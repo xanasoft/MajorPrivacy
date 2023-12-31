@@ -29,6 +29,8 @@ public:
 	//CDriverAPI*		Driver() { return &m_Driver; }
 	//CServiceAPI*	Service() { return &m_Service; }
 
+	QString				GetConfigDir();
+
 	RESULT(XVariant)	GetConfig(const QString& Name);
 	STATUS				SetConfig(const QString& Name, const XVariant& Value);
 

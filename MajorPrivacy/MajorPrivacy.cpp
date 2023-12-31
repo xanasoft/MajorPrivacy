@@ -661,11 +661,13 @@ void CMajorPrivacy::OnAbout()
 		QString AboutCaption = tr(
 			"<h3>About MajorPrivacy</h3>"
 			"<p>Version %1</p>"
-			"<p>Copyright (c) 2023 by DavidXanatos</p>"
+			"<p>Copyright (c) 2023-2024 by DavidXanatos</p>"
 		).arg(theGUI->GetVersion());
 
 
-		QString AboutText = tr("TODO");
+		QString AboutText = tr("GUI Data Folder: \n%1\n\nCore Data Folder: \n%2\n\n")
+			.arg(theConf->GetConfigDir())
+			.arg(theCore->GetConfigDir());
 
 		QMessageBox *msgBox = new QMessageBox(this);
 		msgBox->setAttribute(Qt::WA_DeleteOnClose);

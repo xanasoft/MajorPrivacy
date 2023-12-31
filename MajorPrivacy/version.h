@@ -1,7 +1,7 @@
 #pragma once
 
 #define VERSION_MJR		0
-#define VERSION_MIN 	9
+#define VERSION_MIN 	90
 #define VERSION_REV 	0
 #define VERSION_UPD 	0
 
@@ -20,5 +20,5 @@
 
 #define MY_PRODUCT_NAME_STRING  "MajorPrivacy"
 #define MY_COMPANY_NAME_STRING  "xanasoft.com"
-#define MY_COPYRIGHT_STRING     "Copyright (C) 2023 by David Xanatos (xanasoft.com)"
+#define MY_COPYRIGHT_STRING     "Copyright (C) 2023-2024 by David Xanatos (xanasoft.com)"
 

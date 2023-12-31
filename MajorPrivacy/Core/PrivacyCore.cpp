@@ -182,6 +182,16 @@ return ERR(Ret.GetStatus()); \
 CVariant& Res = Ret.GetValue(); \
 RETURN((XVariant&)Res.Get(n));
 
+QString CPrivacyCore::GetConfigDir()
+{
+	CVariant Request;
+	auto Ret = m_Service.Call(SVC_API_GET_CONFIG_DIR, Request);
+	if (Ret.IsError())
+		return "";
+	CVariant& Response = Ret.GetValue();
+	return ((XVariant&)Response[SVC_API_CONF_VALUE]).AsQStr();
+}
+
 RESULT(XVariant) CPrivacyCore::GetConfig(const QString& Name) 
 {
 	CVariant Request;

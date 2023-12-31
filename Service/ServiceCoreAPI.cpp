@@ -19,6 +19,7 @@ void CServiceCore::RegisterUserAPI()
 {
 	m_pUserPipe->RegisterHandler(SVC_API_GET_VERSION, &CServiceCore::OnRequest, this);
 
+	m_pUserPipe->RegisterHandler(SVC_API_GET_CONFIG_DIR, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_GET_CONFIG, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_SET_CONFIG, &CServiceCore::OnRequest, this);
 
@@ -70,6 +71,13 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, u
 			return STATUS_SUCCESS;
 		}
 
+		case SVC_API_GET_CONFIG_DIR:
+		{
+			CVariant vRpl;
+			vRpl[SVC_API_CONF_VALUE] = svcCore->GetDataFolder();
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
+		}
 		case SVC_API_GET_CONFIG:
 		{
 			CVariant vReq;
