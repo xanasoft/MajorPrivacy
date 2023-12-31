@@ -3,6 +3,7 @@ Major Privacy is an advanced privacy tool for windows, it is a continuation of t
 
 ## ⚠️ Desclaimer
 Major Privacy is still work in progress hence some of the described functionality is not yet implemented.
+The work progress is depicted in % on the Features section below, features with less then 50% completeness are currently not usable enabled in the UI.
 
 ## 🤝 Licensing 
 This tool is open source; however, the license is a bit more restrictive than typical open source licenses. 
@@ -15,16 +16,16 @@ If you want to publicly distribute self-compiled binaries review the LICENSE fil
 
 ## 🚀 Features
 
-* Process Protection - Protect user processes in secure enclaves from other processes including elevated and system processes.
-* Software Restriction - Block undesired processes from starting and undesired Dll’s from loading.
-* File/Folder Protection - Protect selected files and folders from being accessed by unauthorized processes.
-* Registry Protection - like File/Folder Protection just for registry keys.
-* Network Firewall - Advanced network firewall to manage outbound and inbound communication.
-* DNS Inspection - Monitor DNS cache and trace events to determine which domains are being accessed by running processes.
-* DNS Fitlering - Filter all DNS requests with a set of pre-defined block lists (pi home compatible) and own custom rules.
-* Proxy Injection - Force arbitrary processes to use pre-defined network proxies.
-* Secure Drives - Create encrypted volumes stored in disk images fully guarded by File/Folder protection to prevent unauthorized access to confidential data.
-* Tweak Engine - Hardens windows configuration by disabling undesired telemetry and cloud features.
+* Process Protection - Protect user processes in secure enclaves from other processes including elevated and system processes. (Progress: 45%)
+* Software Restriction - Block undesired processes from starting and undesired Dll’s from loading. (Progress: 45%)
+* File/Folder Protection - Protect selected files and folders from being accessed by unauthorized processes. (Progress: 20%)
+* Registry Protection - like File/Folder Protection just for registry keys. (Progress: 20%)
+* Network Firewall - Advanced network firewall to manage outbound and inbound communication. (Progress: 80%)
+* DNS Inspection - Monitor DNS cache and trace events to determine which domains are being accessed by running processes. (Progress: 70%)
+* DNS Fitlering - Filter all DNS requests with a set of pre-defined block lists (pi home compatible) and own custom rules. (Progress: 0%)
+* Proxy Injection - Force arbitrary processes to use pre-defined network proxies. (Progress: 0%)
+* Secure Drives - Create encrypted volumes stored in disk images fully guarded by File/Folder protection to prevent unauthorized access to confidential data. (Progress: 40%)
+* Tweak Engine - Hardens windows configuration by disabling undesired telemetry and cloud features. (Progress: 90%)
 
 
 ## 📌 Project support / sponsorship
