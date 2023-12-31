@@ -1,0 +1,364 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{6A53F08C-A04F-4F18-B0F8-0450A5447943}</ProjectGuid>
+    <Keyword>QtVS_v302</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <QtMsBuild Condition="'$(QtMsBuild)'=='' OR !Exists('$(QtMsBuild)\qt.targets')">$(MSBuildProjectDirectory)\QtMsBuild</QtMsBuild>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
+    <Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." />
+  </Target>
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\phnt\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\phnt\include;$(IncludePath)</IncludePath>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IncludePath>$(SolutionDir)\phnt\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(SolutionDir)\phnt\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt_defaults.props')">
+    <Import Project="$(QtMsBuild)\qt_defaults.props" />
+  </ImportGroup>
+  <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <QtInstall>msvc2019_64</QtInstall>
+    <QtModules>core;network;gui;widgets;winextras;concurrent</QtModules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="QtSettings">
+    <QtInstall>msvc2019</QtInstall>
+    <QtModules>concurrent;core;gui;network;widgets</QtModules>
+  </PropertyGroup>
+  <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <QtInstall>msvc2019_64</QtInstall>
+    <QtModules>core;network;gui;widgets;winextras;concurrent</QtModules>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="QtSettings">
+    <QtInstall>msvc2019</QtInstall>
+    <QtModules>concurrent;core;gui;network;widgets</QtModules>
+  </PropertyGroup>
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.props')">
+    <Import Project="$(QtMsBuild)\qt.props" />
+  </ImportGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <QtMoc>
+      <PrependInclude>pch.h</PrependInclude>
+    </QtMoc>
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <AdditionalIncludeDirectories>.\;..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <QtMoc>
+      <PrependInclude>pch.h</PrependInclude>
+    </QtMoc>
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <AdditionalIncludeDirectories>.\;..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <QtMoc>
+      <PrependInclude>pch.h</PrependInclude>
+    </QtMoc>
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>.\;..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <QtMoc>
+      <PrependInclude>pch.h</PrependInclude>
+    </QtMoc>
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>.\;..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Library\Common\XVariant.cpp" />
+    <ClCompile Include="Core\Network\DnsCacheEntry.cpp" />
+    <ClCompile Include="Core\Network\FwRule.cpp" />
+    <ClCompile Include="Core\Network\NetLogEntry.cpp" />
+    <ClCompile Include="Core\Network\NetworkManager.cpp" />
+    <ClCompile Include="Core\Network\Socket.cpp" />
+    <ClCompile Include="Core\Network\TrafficEntry.cpp" />
+    <ClCompile Include="Core\PrivacyCore.cpp" />
+    <ClCompile Include="Core\Process.cpp" />
+    <ClCompile Include="Core\ProcessList.cpp" />
+    <ClCompile Include="Core\Programs\AppInstallation.cpp" />
+    <ClCompile Include="Core\Programs\AppPackage.cpp" />
+    <ClCompile Include="Core\Programs\ProgramFile.cpp" />
+    <ClCompile Include="Core\Programs\ProgramGroup.cpp" />
+    <ClCompile Include="Core\Programs\ProgramID.cpp" />
+    <ClCompile Include="Core\Programs\ProgramItem.cpp" />
+    <ClCompile Include="Core\Programs\ProgramManager.cpp" />
+    <ClCompile Include="Core\Programs\ProgramPattern.cpp" />
+    <ClCompile Include="Core\Programs\WindowsService.cpp" />
+    <ClCompile Include="Core\TraceLogEntry.cpp" />
+    <ClCompile Include="Core\TraceLogUtils.cpp" />
+    <ClCompile Include="Core\Tweaks\Tweak.cpp" />
+    <ClCompile Include="Core\Tweaks\TweakManager.cpp" />
+    <ClCompile Include="Helpers\WinHelper.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="MajorPrivacy.cpp" />
+    <ClCompile Include="Models\DnsCacheModel.cpp" />
+    <ClCompile Include="Models\ExecRuleModel.cpp" />
+    <ClCompile Include="Models\ExecTraceModel.cpp" />
+    <ClCompile Include="Models\FsRuleModel.cpp" />
+    <ClCompile Include="Models\FsTraceModel.cpp" />
+    <ClCompile Include="Models\NetTraceModel.cpp" />
+    <ClCompile Include="Models\FwRuleModel.cpp" />
+    <ClCompile Include="Models\OpenFilesModel.cpp" />
+    <ClCompile Include="Models\OpenKeysModel.cpp" />
+    <ClCompile Include="Models\ProcessModel.cpp" />
+    <ClCompile Include="Models\ProgramModel.cpp" />
+    <ClCompile Include="Models\RegRuleModel.cpp" />
+    <ClCompile Include="Models\RegTraceModel.cpp" />
+    <ClCompile Include="Models\SocketModel.cpp" />
+    <ClCompile Include="Models\TrafficModel.cpp" />
+    <ClCompile Include="Models\TweakModel.cpp" />
+    <ClCompile Include="Pages\DnsPage.cpp" />
+    <ClCompile Include="Pages\FirewallPage.cpp" />
+    <ClCompile Include="Pages\FileSystemPage.cpp" />
+    <ClCompile Include="Pages\HomePage.cpp" />
+    <ClCompile Include="Pages\DrivePage.cpp" />
+    <ClCompile Include="Pages\ProxyPage.cpp" />
+    <ClCompile Include="Pages\TweakPage.cpp" />
+    <ClCompile Include="Pages\ProcessPage.cpp" />
+    <ClCompile Include="Pages\RegistryPage.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Views\DnsCacheView.cpp" />
+    <ClCompile Include="Views\ExecRuleView.cpp" />
+    <ClCompile Include="Views\ExecTraceView.cpp" />
+    <ClCompile Include="Views\FsRuleView.cpp" />
+    <ClCompile Include="Views\FsTraceView.cpp" />
+    <ClCompile Include="Views\FwRuleView.cpp" />
+    <ClCompile Include="Views\NetTraceView.cpp" />
+    <ClCompile Include="Views\OpenFilesView.cpp" />
+    <ClCompile Include="Views\OpenKeysView.cpp" />
+    <ClCompile Include="Views\ProcessView.cpp" />
+    <ClCompile Include="Views\ProgramView.cpp" />
+    <ClCompile Include="Views\RegRuleView.cpp" />
+    <ClCompile Include="Views\RegTraceView.cpp" />
+    <ClCompile Include="Views\SocketView.cpp" />
+    <ClCompile Include="Views\TrafficView.cpp" />
+    <ClCompile Include="Views\TweakView.cpp" />
+    <ClCompile Include="Windows\FirewallRuleWnd.cpp" />
+    <ClCompile Include="Windows\PopUpWindow.cpp" />
+    <ClCompile Include="Windows\SettingsWindow.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="Windows\PopUpWindow.h" />
+    <QtMoc Include="Core\Network\DnsCacheEntry.h" />
+    <ClInclude Include="Core\Network\NetLogEntry.h" />
+    <QtMoc Include="Windows\SettingsWindow.h" />
+    <QtMoc Include="Core\Network\TrafficEntry.h" />
+    <QtMoc Include="Core\Network\NetworkManager.h" />
+    <ClInclude Include="Core\TraceLogEntry.h" />
+    <ClInclude Include="Core\TraceLogUtils.h" />
+    <QtMoc Include="Models\TrafficModel.h" />
+    <QtMoc Include="Views\TrafficView.h" />
+    <QtMoc Include="Core\Tweaks\Tweak.h" />
+    <QtMoc Include="Core\Tweaks\TweakManager.h" />
+    <QtMoc Include="Views\TweakView.h" />
+    <QtMoc Include="Pages\DrivePage.h" />
+    <QtMoc Include="Pages\TweakPage.h" />
+    <QtMoc Include="Models\TweakModel.h" />
+    <QtMoc Include="Views\DnsCacheView.h" />
+    <QtMoc Include="Models\DnsCacheModel.h" />
+    <QtMoc Include="Pages\DnsPage.h" />
+    <QtMoc Include="Pages\ProxyPage.h" />
+    <ClInclude Include="Views\ExecRuleView.h" />
+    <ClInclude Include="Views\ExecTraceView.h" />
+    <ClInclude Include="Views\FsRuleView.h" />
+    <ClInclude Include="Views\FsTraceView.h" />
+    <ClInclude Include="Views\OpenFilesView.h" />
+    <ClInclude Include="Views\OpenKeysView.h" />
+    <QtMoc Include="Views\ProcessView.h" />
+    <ClInclude Include="Views\RegRuleView.h" />
+    <ClInclude Include="Views\RegTraceView.h" />
+    <QtMoc Include="Views\NetTraceView.h" />
+    <QtMoc Include="Views\SocketView.h" />
+    <QtMoc Include="Views\FwRuleView.h" />
+    <QtMoc Include="Windows\FirewallRuleWnd.h" />
+    <QtMoc Include="Views\ProgramView.h" />
+    <QtMoc Include="Core\PrivacyCore.h" />
+    <QtMoc Include="Core\Process.h" />
+    <QtMoc Include="Core\ProcessList.h" />
+    <QtMoc Include="Models\ProcessModel.h" />
+    <QtMoc Include="Pages\FirewallPage.h" />
+    <QtMoc Include="Pages\FileSystemPage.h" />
+    <QtMoc Include="Pages\ProcessPage.h" />
+    <QtMoc Include="Core\Programs\AppPackage.h" />
+    <QtMoc Include="Core\Programs\ProgramFile.h" />
+    <QtMoc Include="Core\Programs\ProgramGroup.h" />
+    <QtMoc Include="Core\Programs\ProgramItem.h" />
+    <QtMoc Include="Core\Programs\ProgramManager.h" />
+    <QtMoc Include="Core\Programs\ProgramPattern.h" />
+    <QtMoc Include="Core\Programs\WindowsService.h" />
+    <ClInclude Include="..\Library\Common\XVariant.h" />
+    <QtMoc Include="Core\Programs\AppInstallation.h" />
+    <QtMoc Include="Core\Network\FwRule.h" />
+    <QtMoc Include="Core\Network\Socket.h" />
+    <ClInclude Include="Core\Programs\ProgramID.h" />
+    <QtMoc Include="Models\ProgramModel.h" />
+    <QtMoc Include="Pages\HomePage.h" />
+    <QtMoc Include="Models\FwRuleModel.h" />
+    <QtMoc Include="Models\SocketModel.h" />
+    <QtMoc Include="Models\NetTraceModel.h" />
+    <QtMoc Include="Pages\RegistryPage.h" />
+    <ClInclude Include="Helpers\WinHelper.h" />
+    <ClInclude Include="Models\ExecRuleModel.h" />
+    <ClInclude Include="Models\ExecTraceModel.h" />
+    <ClInclude Include="Models\FsRuleModel.h" />
+    <ClInclude Include="Models\FsTraceModel.h" />
+    <ClInclude Include="Models\OpenFilesModel.h" />
+    <ClInclude Include="Models\OpenKeysModel.h" />
+    <ClInclude Include="Models\RegRuleModel.h" />
+    <ClInclude Include="Models\RegTraceModel.h" />
+    <ClInclude Include="version.h" />
+    <QtMoc Include="MajorPrivacy.h" />
+    <ClInclude Include="Resources\resource.h" />
+    <ClInclude Include="pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="Forms\FirewallRuleWnd.ui" />
+    <QtUic Include="Forms\PopUpWindow.ui" />
+    <QtUic Include="Forms\SettingsWindow.ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="Resources\MajorPrivacy.qrc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources\MajorPrivacy.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

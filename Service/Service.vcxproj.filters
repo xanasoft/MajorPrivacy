@@ -1,0 +1,421 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Network">
+      <UniqueIdentifier>{814546e0-71a7-49d8-a1f2-6aed1cb3dc87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FileSystem">
+      <UniqueIdentifier>{e7ec2e9b-6f83-4728-ad3d-eee8190fe070}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Processes">
+      <UniqueIdentifier>{8465121f-a1ed-4106-bef5-bc17e0e8039d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API">
+      <UniqueIdentifier>{d0454084-2c5a-42a0-aff5-ae2986dd5d7b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Service">
+      <UniqueIdentifier>{f6ce88e9-ae66-4e47-964b-07c48d7f3aa2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network\Dns">
+      <UniqueIdentifier>{8662ad3d-b686-46ae-a549-0e04f4acbf54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network\Firewall">
+      <UniqueIdentifier>{5f400fdb-b321-4b83-8022-be29b5c22f8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Etw">
+      <UniqueIdentifier>{f4024281-adab-4372-8e5d-1b1fe4e0b8da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Etw\krabs">
+      <UniqueIdentifier>{0f8d8da9-7a4d-404b-9079-b24833f7d551}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Etw\krabs\filtering">
+      <UniqueIdentifier>{9c870e27-cc24-4543-8ef6-d69c71f28048}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Programs">
+      <UniqueIdentifier>{e30137e0-f97b-48de-8131-7ab719ae529d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{5e77daa9-b13b-4918-b69c-38f870a8a1f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tweaks">
+      <UniqueIdentifier>{c3b3cac6-18af-45d1-adc9-4dc3ac715f9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Registry">
+      <UniqueIdentifier>{86079de2-4e8a-4197-b70a-1c73c32b799b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\SocketList.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Processes\AppIsolator.cpp">
+      <Filter>Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="Processes\ProcessList.cpp">
+      <Filter>Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="Processes\ProcessLog.cpp">
+      <Filter>Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="FileSystem\FSAccessLog.cpp">
+      <Filter>FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="FileSystem\FSIsolator.cpp">
+      <Filter>FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="FileSystem\FSHandleList.cpp">
+      <Filter>FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ServiceCore.cpp">
+      <Filter>Service</Filter>
+    </ClCompile>
+    <ClCompile Include="ServiceCoreAPI.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Dns\DnsInspector.cpp">
+      <Filter>Network\Dns</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Firewall\Firewall.cpp">
+      <Filter>Network\Firewall</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Firewall\WindowsFwGuard.cpp">
+      <Filter>Network\Firewall</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Firewall\WindowsFwLog.cpp">
+      <Filter>Network\Firewall</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Firewall\FirewallRule.cpp">
+      <Filter>Network\Firewall</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Firewall\WindowsFirewall.cpp">
+      <Filter>Network\Firewall</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\NetIsolator.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Socket.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Processes\Process.cpp">
+      <Filter>Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="Etw\EtwEventMonitor.cpp">
+      <Filter>Etw</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\ProgramID.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Processes\ServiceList.cpp">
+      <Filter>Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\AbstractInfo.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\ProgramManager.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\AppPackage.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\ProgramFile.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\ProgramGroup.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\ProgramItem.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\ProgramPattern.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\WindowsService.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\PackageList.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\AppInstallation.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\InstallationList.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\NetLogEntry.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\TraceLogEntry.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Tweaks\Tweak.cpp">
+      <Filter>Tweaks</Filter>
+    </ClCompile>
+    <ClCompile Include="Tweaks\TweakManager.cpp">
+      <Filter>Tweaks</Filter>
+    </ClCompile>
+    <ClCompile Include="Tweaks\TweakManagerList.cpp">
+      <Filter>Tweaks</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Dns\DnsCacheEntry.cpp">
+      <Filter>Network\Dns</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Dns\DnsProcLog.cpp">
+      <Filter>Network\Dns</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\TrafficLog.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Registry\RegIsolator.cpp">
+      <Filter>Registry</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServiceAPI.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\SocketList.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Processes\AppIsolator.h">
+      <Filter>Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="Processes\ProcessList.h">
+      <Filter>Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="Processes\ProcessLog.h">
+      <Filter>Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="FileSystem\FSAccessLog.h">
+      <Filter>FileSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="FileSystem\FSIsolator.h">
+      <Filter>FileSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="FileSystem\FSHandleList.h">
+      <Filter>FileSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ServiceCore.h">
+      <Filter>Service</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsInspector.h">
+      <Filter>Network\Dns</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Firewall\Firewall.h">
+      <Filter>Network\Firewall</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Firewall\WindowsFwGuard.h">
+      <Filter>Network\Firewall</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Firewall\WindowsFwLog.h">
+      <Filter>Network\Firewall</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Firewall\FirewallRule.h">
+      <Filter>Network\Firewall</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Firewall\WindowsFirewall.h">
+      <Filter>Network\Firewall</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Firewall\WindowsFirewallAPI.h">
+      <Filter>Network\Firewall</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\NetIsolator.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Socket.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Processes\Process.h">
+      <Filter>Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\EtwEventMonitor.h">
+      <Filter>Etw</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs.hpp">
+      <Filter>Etw</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\client.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\collection_view.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\compiler_check.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\errors.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\etw.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\guid.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\kernel_guids.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\kernel_providers.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\kt.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\parse_types.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\parser.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\perfinfo_groupmask.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\property.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\provider.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\schema.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\schema_locator.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\size_provider.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\tdh_helpers.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\trace.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\trace_context.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\ut.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\version_helpers.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\wstring_convert.hpp">
+      <Filter>Etw\krabs</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\filtering\comparers.hpp">
+      <Filter>Etw\krabs\filtering</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\filtering\event_filter.hpp">
+      <Filter>Etw\krabs\filtering</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\filtering\predicates.hpp">
+      <Filter>Etw\krabs\filtering</Filter>
+    </ClInclude>
+    <ClInclude Include="Etw\krabs\filtering\view_adapters.hpp">
+      <Filter>Etw\krabs\filtering</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\ProgramID.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\resource.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Processes\ServiceList.h">
+      <Filter>Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\AbstractInfo.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\ProgramManager.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\AppPackage.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\ProgramFile.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\ProgramGroup.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\ProgramItem.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\ProgramPattern.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\WindowsService.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\PackageList.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\AppInstallation.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\InstallationList.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\NetLogEntry.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Firewall\FirewallDefs.h">
+      <Filter>Network\Firewall</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\TraceLogEntry.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Tweaks\Tweak.h">
+      <Filter>Tweaks</Filter>
+    </ClInclude>
+    <ClInclude Include="Tweaks\TweakManager.h">
+      <Filter>Tweaks</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsCacheEntry.h">
+      <Filter>Network\Dns</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsHostName.h">
+      <Filter>Network\Dns</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsProcLog.h">
+      <Filter>Network\Dns</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\TrafficLog.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Registry\RegIsolator.h">
+      <Filter>Registry</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\Agent.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources\Service.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

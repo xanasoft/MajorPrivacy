@@ -1,0 +1,389 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Helpers">
+      <UniqueIdentifier>{a2768dbc-6ac6-46e2-a15a-415247a7fed3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API">
+      <UniqueIdentifier>{9710633e-4bf3-46f8-b50e-3dd19c787212}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{c8c311d3-1d38-44f1-9f76-bc35d46bf8c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PHlib">
+      <UniqueIdentifier>{6e346657-0526-4af5-afa2-1583ad337a49}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PHlib\include">
+      <UniqueIdentifier>{c6158929-61b8-4371-b21f-02deda91d7c7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Service.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="lib_global.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="API\DriverAPI.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="Types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Status.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\NtIO.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Buffer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Strings.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Variant.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Scoped.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\AppUtil.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\FileIO.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="API\ServiceAPI.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\NtObj.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\SVariant.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\DbgHelp.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\VariantDefs.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="API\AbstractClient.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\FltPortClient.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\DeviceClient.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\AlpcPortClient.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\PortMessage.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\WinUtil.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\SID.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\TokenUtil.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\NtUtil.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\appresolver.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\appresolverp.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\fastlock.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\phbase.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\phbasesup.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\phintrnl.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\queuedlock.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\ph.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\phutil.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\phconfig.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\phdata.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\phsup.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\ref.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\refp.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\lsasup.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\phmisc.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\circbuf.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\circbuf_h.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\templ.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\phintrin.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\workqueue.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\workqueuep.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\format_i.h">
+      <Filter>PHlib</Filter>
+    </ClInclude>
+    <ClInclude Include="API\AlpcPortServer.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\EvtUtil.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\NetUtil.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Address.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Exception.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\resource.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\stl_helpers.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="API\PipeClient.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\PipeServer.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\MiscHelpers.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\ConfigIni.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\GPOUtil.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\RegUtil.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\MiscStats.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\UIntX.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Pointers.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\PoolAllocator.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\SchdUtil.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\Service.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="API\DriverAPI.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\NtIO.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Buffer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Strings.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Variant.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\AppUtil.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\FileIO.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="API\ServiceAPI.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\SVariant.c">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\VariantTest.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\DbgHelp.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="API\FltPortClient.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\AlpcPortClient.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\WinUtil.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\SID.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\TokenUtil.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\NtUtil.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\appresolver.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\appruntime.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\fastlock.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\queuedlock.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\sync.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\misc.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\data.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\global.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\basesup.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\ref.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\workqueue.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\format.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\error.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\format_std.cpp">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="API\AlpcPortServer.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\EvtUtil.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\NetUtil.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Address.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="API\PipeClient.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\PipeServer.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\MiscHelpers.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\ConfigIni.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\GPOUtil.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\RegUtil.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\UIntX.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\SchdUtil.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\util.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources\Service.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

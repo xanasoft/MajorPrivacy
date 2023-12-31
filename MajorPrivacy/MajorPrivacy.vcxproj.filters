@@ -1,0 +1,516 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="GUI">
+      <UniqueIdentifier>{f87113f1-60d4-4103-a698-491db090ed67}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{49ca243a-7324-43c5-a0a4-e35c980ad7ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Models">
+      <UniqueIdentifier>{6575ddd7-938f-4859-b336-44313d560404}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Views">
+      <UniqueIdentifier>{e976efba-63e2-41f5-bb56-15fb3192d977}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pages">
+      <UniqueIdentifier>{b2f5616a-367c-4c2c-8950-e8b884aded48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Programs">
+      <UniqueIdentifier>{0cdbca93-afa1-462d-bdf2-e4f9e0f73743}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{27089cf2-ac72-48a0-9501-c74a1148fe51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Network">
+      <UniqueIdentifier>{c943f17a-f558-4006-9ba7-7bffeb157861}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Windows">
+      <UniqueIdentifier>{68593eb0-a1d4-436b-9f53-d23c826c49bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Helpers">
+      <UniqueIdentifier>{a73082d3-41e7-4e47-b5e7-a814bd4bb4fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Tweaks">
+      <UniqueIdentifier>{54f9408a-dc1d-4cc1-8912-2183fc4281c5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MajorPrivacy.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Process.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ProcessList.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\PrivacyCore.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\ProcessModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\FirewallPage.cpp">
+      <Filter>Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\FileSystemPage.cpp">
+      <Filter>Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\ProcessPage.cpp">
+      <Filter>Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\ProgramView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Programs\AppPackage.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Programs\ProgramFile.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Programs\ProgramGroup.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Programs\ProgramItem.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Programs\ProgramManager.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Programs\ProgramPattern.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Programs\WindowsService.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\ProgramModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\HomePage.cpp">
+      <Filter>Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\FwRuleModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Library\Common\XVariant.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\SocketModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Programs\AppInstallation.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\FirewallRuleWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\NetTraceModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\RegistryPage.cpp">
+      <Filter>Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Network\FwRule.cpp">
+      <Filter>Core\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Programs\ProgramID.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Network\Socket.cpp">
+      <Filter>Core\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\WinHelper.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\FwRuleView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\NetTraceView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\SocketView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\ExecRuleModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\ExecTraceModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\FsRuleModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\FsTraceModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\OpenFilesModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\OpenKeysModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\RegRuleModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\RegTraceModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\ExecRuleView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\ExecTraceView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\FsRuleView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\FsTraceView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\OpenFilesView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\OpenKeysView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\RegRuleView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\RegTraceView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\ProcessView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Network\NetLogEntry.cpp">
+      <Filter>Core\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\TraceLogEntry.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\TraceLogUtils.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\DrivePage.cpp">
+      <Filter>Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\TweakPage.cpp">
+      <Filter>Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\TweakModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\TweakView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Tweaks\Tweak.cpp">
+      <Filter>Core\Tweaks</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Tweaks\TweakManager.cpp">
+      <Filter>Core\Tweaks</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\TrafficView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\TrafficModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Network\TrafficEntry.cpp">
+      <Filter>Core\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\SettingsWindow.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\DnsCacheView.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\DnsCacheModel.cpp">
+      <Filter>Models</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Network\DnsCacheEntry.cpp">
+      <Filter>Core\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\DnsPage.cpp">
+      <Filter>Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\ProxyPage.cpp">
+      <Filter>Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Network\NetworkManager.cpp">
+      <Filter>Core\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\PopUpWindow.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\resource.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Programs\ProgramID.h">
+      <Filter>Core\Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Library\Common\XVariant.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\WinHelper.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Models\ExecRuleModel.h">
+      <Filter>Models</Filter>
+    </ClInclude>
+    <ClInclude Include="Models\ExecTraceModel.h">
+      <Filter>Models</Filter>
+    </ClInclude>
+    <ClInclude Include="Models\FsRuleModel.h">
+      <Filter>Models</Filter>
+    </ClInclude>
+    <ClInclude Include="Models\FsTraceModel.h">
+      <Filter>Models</Filter>
+    </ClInclude>
+    <ClInclude Include="Models\OpenFilesModel.h">
+      <Filter>Models</Filter>
+    </ClInclude>
+    <ClInclude Include="Models\OpenKeysModel.h">
+      <Filter>Models</Filter>
+    </ClInclude>
+    <ClInclude Include="Models\RegRuleModel.h">
+      <Filter>Models</Filter>
+    </ClInclude>
+    <ClInclude Include="Models\RegTraceModel.h">
+      <Filter>Models</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\ExecRuleView.h">
+      <Filter>Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\ExecTraceView.h">
+      <Filter>Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\FsRuleView.h">
+      <Filter>Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\FsTraceView.h">
+      <Filter>Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\OpenFilesView.h">
+      <Filter>Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\OpenKeysView.h">
+      <Filter>Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\RegRuleView.h">
+      <Filter>Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\RegTraceView.h">
+      <Filter>Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Network\NetLogEntry.h">
+      <Filter>Core\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\TraceLogEntry.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\TraceLogUtils.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="Forms\FirewallRuleWnd.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\SettingsWindow.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\PopUpWindow.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="MajorPrivacy.h">
+      <Filter>GUI</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\PrivacyCore.h">
+      <Filter>Core</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\ProcessList.h">
+      <Filter>Core</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Process.h">
+      <Filter>Core</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\ProcessModel.h">
+      <Filter>Models</Filter>
+    </QtMoc>
+    <QtMoc Include="Pages\FirewallPage.h">
+      <Filter>Pages</Filter>
+    </QtMoc>
+    <QtMoc Include="Pages\FileSystemPage.h">
+      <Filter>Pages</Filter>
+    </QtMoc>
+    <QtMoc Include="Pages\ProcessPage.h">
+      <Filter>Pages</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\ProgramView.h">
+      <Filter>Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Programs\AppPackage.h">
+      <Filter>Core\Programs</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Programs\ProgramFile.h">
+      <Filter>Core\Programs</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Programs\ProgramGroup.h">
+      <Filter>Core\Programs</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Programs\ProgramItem.h">
+      <Filter>Core\Programs</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Programs\ProgramPattern.h">
+      <Filter>Core\Programs</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Programs\WindowsService.h">
+      <Filter>Core\Programs</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Programs\ProgramManager.h">
+      <Filter>Core\Programs</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\ProgramModel.h">
+      <Filter>Models</Filter>
+    </QtMoc>
+    <QtMoc Include="Pages\HomePage.h">
+      <Filter>Pages</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\FwRuleModel.h">
+      <Filter>Models</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\SocketModel.h">
+      <Filter>Models</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Programs\AppInstallation.h">
+      <Filter>Core\Programs</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\FirewallRuleWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\NetTraceModel.h">
+      <Filter>Models</Filter>
+    </QtMoc>
+    <QtMoc Include="Pages\RegistryPage.h">
+      <Filter>Pages</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Network\FwRule.h">
+      <Filter>Core\Network</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Network\Socket.h">
+      <Filter>Core\Network</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\FwRuleView.h">
+      <Filter>Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\NetTraceView.h">
+      <Filter>Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\SocketView.h">
+      <Filter>Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\ProcessView.h">
+      <Filter>Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Pages\DrivePage.h">
+      <Filter>Pages</Filter>
+    </QtMoc>
+    <QtMoc Include="Pages\TweakPage.h">
+      <Filter>Pages</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\TweakModel.h">
+      <Filter>Models</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\TweakView.h">
+      <Filter>Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Tweaks\Tweak.h">
+      <Filter>Core\Tweaks</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Tweaks\TweakManager.h">
+      <Filter>Core\Tweaks</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\TrafficModel.h">
+      <Filter>Models</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Network\TrafficEntry.h">
+      <Filter>Core\Network</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\TrafficView.h">
+      <Filter>Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\SettingsWindow.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\DnsCacheView.h">
+      <Filter>Views</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\DnsCacheModel.h">
+      <Filter>Models</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Network\DnsCacheEntry.h">
+      <Filter>Core\Network</Filter>
+    </QtMoc>
+    <QtMoc Include="Pages\DnsPage.h">
+      <Filter>Pages</Filter>
+    </QtMoc>
+    <QtMoc Include="Pages\ProxyPage.h">
+      <Filter>Pages</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Network\NetworkManager.h">
+      <Filter>Core\Network</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\PopUpWindow.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="Resources\MajorPrivacy.qrc">
+      <Filter>Resource Files</Filter>
+    </QtRcc>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources\MajorPrivacy.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
