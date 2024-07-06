@@ -6,4 +6,4 @@ It does not require a C++ runtime or exception support.
 
 The driver also utilized ..\Library\Common\Variant.cpp/h for its communication with the user mode components, the CVariant implements a versatile yet fast mechanism to serialize data.
 
-The driver uses parts of the MIT licenses System Informer source code.
+The driver uses parts of the MIT licensed System Informer source code.
