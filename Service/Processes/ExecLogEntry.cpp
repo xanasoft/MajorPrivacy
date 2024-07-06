@@ -2,7 +2,7 @@
 #include "ExecLogEntry.h"
 #include "../../Library/API/PrivacyAPI.h"
 
-CExecLogEntry::CExecLogEntry(EExecLogRole Role, EExecLogType Type, EEventStatus Status, uint64 MiscID, std::wstring ActorServiceTag, uint64 PID, uint64 TimeStamp, uint32 AccessMask)
+CExecLogEntry::CExecLogEntry(EExecLogRole Role, EExecLogType Type, EEventStatus Status, uint64 MiscID, std::wstring ActorServiceTag, uint64 TimeStamp, uint64 PID, uint32 AccessMask)
 	: CTraceLogEntry(PID)
 {
 	m_Role = Role;

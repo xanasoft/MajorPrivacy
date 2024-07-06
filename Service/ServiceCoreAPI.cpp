@@ -132,10 +132,8 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 	{
 		case SVC_API_GET_VERSION:
 		{
-			//CVariant vReq;
-			//vReq.FromPacket(req);
 			CVariant vRpl;
-			vRpl[API_V_VERSION] = 0x1234; // todo full version
+			vRpl[API_V_VERSION] = MY_ABI_VERSION;
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}

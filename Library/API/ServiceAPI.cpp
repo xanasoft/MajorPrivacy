@@ -163,12 +163,16 @@ bool CServiceAPI::RegisterEventHandler(uint32 MessageId, const std::function<voi
 	return m_EventHandlers.insert(std::make_pair(MessageId, Handler)).second; 
 }
 
-void CServiceAPI::TestSvc()
+uint32 CServiceAPI::GetABIVersion()
 {
-
 	CVariant Request;
-	//Request["test"] = "1234";
 	auto Ret = Call(SVC_API_GET_VERSION, Request);
 	CVariant Response = Ret.GetValue();
 	uint32 version = Response.Get(API_V_VERSION).To<uint32>();
+	return version;
+}
+
+void CServiceAPI::TestSvc()
+{
+
 }

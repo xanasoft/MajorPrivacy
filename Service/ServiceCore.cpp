@@ -199,6 +199,11 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 		return -1;
 	}
 
+	if(This->m_pDriver->GetABIVersion() != MY_ABI_VERSION) {
+		theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Driver ABI version mismatch");
+		return -1;
+	}
+
 	This->m_InitStatus = This->m_pProgramManager->Init();
 	if (This->m_InitStatus.IsError()) return -1;
 

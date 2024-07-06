@@ -53,6 +53,7 @@ struct SProcessEvent
 		ImageLoad,
 		UntrustedLoad,
 		ProcessAccess,
+		ThreadAccess,
 		ResourceAccess,
 	};
 
@@ -100,7 +101,7 @@ struct SProcessImageEvent : public SProcessEventEx
 struct SProcessAccessEvent : public SProcessEventEx
 {
 	uint64 ProcessId = 0;
-	bool bThread = false;
+	//bool bThread = false;
 	uint32 AccessMask = 0;
 	EEventStatus Status = EEventStatus::eUndefined;
 };
@@ -140,6 +141,8 @@ public:
 	void Disconnect();
 
 	RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message);
+
+	uint32 GetABIVersion();
 
 	RESULT(std::shared_ptr<std::vector<uint64>>) EnumProcesses();
 	RESULT(SProcessInfoPtr) GetProcessInfo(uint64 pid);

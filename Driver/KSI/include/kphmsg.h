@@ -40,12 +40,13 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgProcessExit   = 0x40000002,
     KphMsgImageLoad     = 0x40000004,
     KphMsgProcAccess    = 0x40000008,
-    KphMsgUntrustedImage= 0x40000011,
-    KphMsgAccessFile    = 0x40000012,
-    KphMsgAccessReg     = 0x40000014,
+    KphMsgThreadAccess  = 0x40000010,
+    KphMsgUntrustedImage= 0x40000020,
+    KphMsgAccessFile    = 0x40000040,
+    KphMsgAccessReg     = 0x40000080,
 
-    KphMsgProgramRules  = 0x40000101,
-    KphMsgAccessRules   = 0x40000102,
+    KphMsgProgramRules  = 0x40000100,
+    KphMsgAccessRules   = 0x40000200,
 
     MaxKphMsg
 } KPH_MESSAGE_ID, *PKPH_MESSAGE_ID;

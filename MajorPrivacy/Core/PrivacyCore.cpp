@@ -112,8 +112,14 @@ STATUS CPrivacyCore::Connect()
 	Status = m_Service.ConnectEngine();
 #endif
 	if (Status) {
+		if(m_Service.GetABIVersion() != MY_ABI_VERSION)
+			return ERR(STATUS_REVISION_MISMATCH, L"Service ABI Mismatch");
+
 		Status = m_Driver.ConnectDrv();
 		if (Status) {
+			if(m_Driver.GetABIVersion() != MY_ABI_VERSION)
+				return ERR(STATUS_REVISION_MISMATCH, L"Driver ABI Mismatch");
+
 			m_Driver.RegisterForRuleEvents(ERuleType::eAccess);
 			m_Driver.RegisterForRuleEvents(ERuleType::eProgram);
 		}

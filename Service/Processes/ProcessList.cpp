@@ -572,9 +572,10 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
             break;
 		}
         case SProcessEvent::EType::ProcessAccess:
+        case SProcessEvent::EType::ThreadAccess:
 		{
 			const SProcessAccessEvent* pAccessEvent = (SProcessAccessEvent*)(pEvent);
-            OnProcessAccessed(pAccessEvent->ProcessId, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->bThread, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status);
+            OnProcessAccessed(pAccessEvent->ProcessId, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pEvent->Type == SProcessEvent::EType::ThreadAccess, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status);
 			break;
 		}
         case SProcessEvent::EType::ResourceAccess:

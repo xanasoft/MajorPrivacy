@@ -18,6 +18,8 @@ public:
 
 	RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message);
 
+	uint32 GetABIVersion();
+
 	void TestSvc();
 
 	bool RegisterEventHandler(uint32 MessageId, const std::function<void(uint32 msgId, const CBuffer* pEvent)>& Handler);

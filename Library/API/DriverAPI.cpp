@@ -165,16 +165,17 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
             break;
         }
         case KphMsgProcAccess:
+        case KphMsgThreadAccess:
         {
             SProcessAccessEvent Event;
-            Event.Type = SProcessEvent::EType::ProcessAccess;
+            Event.Type = (Message->Header.MessageId == KphMsgProcAccess) ? SProcessEvent::EType::ProcessAccess : SProcessEvent::EType::ThreadAccess;
             Event.ActorProcessId = vEvent[API_V_EVENT_ACTOR_PID].To<uint64>();
             Event.ActorThreadId = vEvent[API_V_EVENT_ACTOR_TID].To<uint64>();
             uint32 ActorServiceTag = (uint32)vEvent.Get(API_V_EVENT_ACTOR_SVC).To<uint64>();
             if (ActorServiceTag) Event.ActorServiceTag = GetServiceNameFromTag((HANDLE)Event.ActorProcessId, ActorServiceTag);
             Event.ProcessId = vEvent[API_V_EVENT_PID].To<uint64>();
             Event.TimeStamp = vEvent[API_V_EVENT_TIME_STAMP].To<uint64>();
-            Event.bThread = !vEvent[API_V_EVENT_IS_P].To<bool>();
+            //Event.bThread = !vEvent[API_V_EVENT_IS_P].To<bool>();
             Event.AccessMask = vEvent[API_V_EVENT_ACCESS].To<uint32>();
             Event.Status = (EEventStatus)vEvent[API_V_EVENT_ACCESS_STATUS].To<uint32>();
 
@@ -494,9 +495,9 @@ STATUS CDriverAPI::RegisterForProcesses(bool bRegister)
 {
     CVariant ReqVar;
     if(bRegister)
-        ReqVar[API_V_SET_NOTIFY_BITMASK] = KphMsgProcessCreate | KphMsgProcessExit | KphMsgUntrustedImage | KphMsgImageLoad | KphMsgProcAccess | KphMsgAccessFile | KphMsgAccessReg;
+        ReqVar[API_V_SET_NOTIFY_BITMASK] = KphMsgProcessCreate | KphMsgProcessExit | KphMsgUntrustedImage | KphMsgImageLoad | KphMsgProcAccess | KphMsgThreadAccess | KphMsgAccessFile | KphMsgAccessReg;
     else
-        ReqVar[API_V_CLEAR_NOTIFY_BITMASK] = KphMsgProcessCreate | KphMsgProcessExit | KphMsgUntrustedImage | KphMsgImageLoad | KphMsgProcAccess | KphMsgAccessFile | KphMsgAccessReg;
+        ReqVar[API_V_CLEAR_NOTIFY_BITMASK] = KphMsgProcessCreate | KphMsgProcessExit | KphMsgUntrustedImage | KphMsgImageLoad | KphMsgProcAccess | KphMsgThreadAccess | KphMsgAccessFile | KphMsgAccessReg;
 	return m_pClient->Call(API_REGISTER_FOR_EVENT, ReqVar);
 }
 
@@ -520,6 +521,15 @@ void CDriverAPI::RegisterRuleEventHandler(ERuleType Type, const std::function<vo
 {
     std::unique_lock<std::mutex> Lock(m_HandlersMutex);
     m_RuleEventHandlers[Type] = Handler;
+}
+
+uint32 CDriverAPI::GetABIVersion()
+{
+    CVariant Request;
+    auto Ret = Call(API_GET_VERSION, Request);
+    CVariant Response = Ret.GetValue();
+    uint32 version = Response.Get(API_V_VERSION).To<uint32>();
+    return version;
 }
 
 void CDriverAPI::TestDrv()
