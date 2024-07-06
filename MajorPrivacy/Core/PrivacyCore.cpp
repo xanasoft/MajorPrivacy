@@ -136,11 +136,11 @@ STATUS CPrivacyCore::Reconnect()
 
 void CPrivacyCore::Disconnect(bool bKeepEngine)
 {
+	m_Driver.Disconnect();
+
 	if (m_bEngineMode && !bKeepEngine)
 		m_Service.Call(SVC_API_SHUTDOWN, CVariant());
-
 	m_Service.Disconnect();
-	m_Driver.Disconnect();
 
 	m_ProgramRulesUpdated = false;
 	m_AccessRulesUpdated = false;

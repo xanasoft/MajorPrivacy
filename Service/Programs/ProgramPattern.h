@@ -14,7 +14,7 @@ public:
 	std::wstring GetPattern() const				{ std::unique_lock lock(m_Mutex); return m_Pattern; }
 	bool MatchFileName(const std::wstring& FileName);
 
-	virtual std::wstring GetPath() const		{ std::unique_lock lock(m_Mutex); return GetPattern(); }
+	//virtual std::wstring GetPath() const		{ std::unique_lock lock(m_Mutex); return GetPattern(); }
 
 	virtual int									GetSpecificity() const { return m_Specificity; }
 

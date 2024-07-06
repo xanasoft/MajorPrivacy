@@ -33,9 +33,9 @@ void CProgramID::Set(EProgramType Type, const std::wstring& Value)
 	m_Type = Type;
 	switch (m_Type)
 	{
-	case EProgramType::eProgramFile:			m_FilePath = NormalizeFilePath(Value); break;
-	case EProgramType::eFilePattern:	m_FilePath = NormalizeFilePath(Value); break;
-	case EProgramType::eAppInstallation:		m_RegKey = MkLower(Value); break;
+	case EProgramType::eProgramFile:		m_FilePath = NormalizeFilePath(Value); break;
+	case EProgramType::eFilePattern:		m_FilePath = NormalizeFilePath(Value); break;
+	case EProgramType::eAppInstallation:	m_RegKey = MkLower(Value); break;
 	case EProgramType::eWindowsService:		m_ServiceTag = MkLower(Value); break;
 	case EProgramType::eAppPackage:			m_AppContainerSid = MkLower(Value); break;
 	}

@@ -135,9 +135,9 @@ CProgramItemPtr CProgramManager::GetProgramByID(const CProgramID& ID, EAddFlags 
 {
 	switch (ID.GetType())
 	{
-	case EProgramType::eProgramFile:			return GetProgramFile(ID.GetFilePath(), AddFlags);
-	case EProgramType::eFilePattern:	return GetPattern(ID.GetFilePath(), AddFlags);
-	case EProgramType::eAppInstallation:		return GetInstallation(ID.GetRegKey(), AddFlags);
+	case EProgramType::eProgramFile:		return GetProgramFile(ID.GetFilePath(), AddFlags);
+	case EProgramType::eFilePattern:		return GetPattern(ID.GetFilePath(), AddFlags);
+	case EProgramType::eAppInstallation:	return GetInstallation(ID.GetRegKey(), AddFlags);
 	case EProgramType::eWindowsService:		return GetService(ID.GetServiceTag(), AddFlags);
 	case EProgramType::eAppPackage:			return GetAppPackage(ID.GetAppContainerSid(), AddFlags);
 	default:
@@ -669,8 +669,13 @@ void CProgramManager::TryAddChildren(const CProgramListPtr& pBranche, const CPro
 	for(auto I = pBranche->m_Nodes.begin(); I != pBranche->m_Nodes.end(); )
 	{
 		CProgramItemPtr pItem = *I;
-		if (pItem != pPattern) {
-			std::wstring FileName = pItem->GetID().GetFilePath();
+		if (pItem != pPattern)
+		{
+			std::wstring FileName;
+			if(CProgramPatternPtr pPattern = std::dynamic_pointer_cast<CProgramPattern>(pItem))
+				FileName = pPattern->GetPattern();
+			else if(CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+				FileName = pProgram->GetPath();
 			if (!FileName.empty() && pPattern->MatchFileName(FileName)) {
 				if (bRemove) {
 					std::unique_lock lock1(pItem->m_Mutex);

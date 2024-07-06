@@ -34,6 +34,9 @@ VOID CInstallationList::EnumCallBack(PVOID param, const std::wstring& RegKey)
     if (InstallLocation.empty()/* && UninstallString.empty()*/)
         return;
 
+    if(InstallLocation.at(0) == L'\"')
+        InstallLocation = InstallLocation.substr(1, InstallLocation.length() - 2);
+
     bool bAdd = false;
     auto F = pParams->OldList.find(RegKey);
     SInstallationPtr pInstalledApp;

@@ -185,6 +185,8 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 						This->m_InitStatus = ERR(STATUS_UNSUCCESSFUL);
 					}
 				}
+				else
+					RegSet(hKey, L"Config", L"Data", CVariant()); // todo: fox me driver should create this folder when needed on its own
 			}
 		}
 		if (This->m_InitStatus.IsError()) {
@@ -313,6 +315,13 @@ void CServiceCore::Shutdown()
 	{
 		KillService(API_DRIVER_NAME);
 
+		for (;;) {
+			SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
+			if((SvcState & SVC_RUNNING) == SVC_RUNNING)
+				continue;
+			break;
+		}
+
 		CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
 		if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
 		{
@@ -337,9 +346,7 @@ void CServiceCore::Shutdown()
 			DriverData.ToPacket(&Data);
 			WriteFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Data);
 
-#ifndef _DEBUG
 			RemoveService(API_DRIVER_NAME);
-#endif
 		}
 	}
 	theCore->m_Terminate = true;
