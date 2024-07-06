@@ -6,7 +6,7 @@
 #include <phnt_windows.h>
 #include <phnt.h>
 
-#include "../NtCRT/NtCRT.h"
+//#include "../NtCRT/NtCRT.h"
 
 extern "C" NTSTATUS NTAPI PhInitializePhLib(PCWSTR ApplicationName, PVOID ImageBaseAddress);
 

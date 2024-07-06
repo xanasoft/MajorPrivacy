@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "../Core/PrivacyCore.h"
-#include "../Core/ProcessList.h"
+#include "../Core/Processes/ProcessList.h"
 #include "../../MiscHelpers/Common/SortFilterProxyModel.h"
 #include "TweakPage.h"
 #include "../Views/TweakView.h"
@@ -27,5 +27,5 @@ void CTweakPage::Update()
 	if (!isVisible())
 		return;
 	
-	m_pTweakView->Sync(theCore->Tweaks()->GetRoot());
+	m_pTweakView->Sync(theCore->TweakManager()->GetRoot());
 }

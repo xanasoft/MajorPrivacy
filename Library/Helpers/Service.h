@@ -29,4 +29,6 @@ LIBRARY_EXPORT STATUS KillService(PCWSTR Name);
 LIBRARY_EXPORT DWORD GetServiceStart(PCWSTR Name);
 LIBRARY_EXPORT STATUS SetServiceStart(PCWSTR Name, DWORD StartValue);
 
-LIBRARY_EXPORT std::wstring GetServiceNameFromTag(HANDLE ProcessId, PVOID ServiceTag);
+LIBRARY_EXPORT std::wstring GetServiceNameFromTag(HANDLE ProcessId, ULONG ServiceTag);
+
+LIBRARY_EXPORT STATUS RemoveService(PCWSTR Name);   

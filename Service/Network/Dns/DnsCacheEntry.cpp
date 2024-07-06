@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "DnsCacheEntry.h"
-#include "ServiceAPI.h"
+#include "../../Library/API/PrivacyAPI.h"
 
 CDnsCacheEntry::CDnsCacheEntry(const std::wstring& HostName, uint16 Type, const CAddress& Address, const std::wstring& ResolvedString)
 {
@@ -69,14 +69,14 @@ void CDnsCacheEntry::SubtractTTL(uint64 Delta)
 CVariant CDnsCacheEntry::ToVariant() const
 {
 	CVariant Entry;
-	Entry.BeginMap();
-	Entry.Write(SVC_API_DNS_CACHE_REF, (uint64)this);
-	Entry.Write(SVC_API_DNS_HOST, m_HostName);
-	Entry.Write(SVC_API_DNS_TYPE, m_Type);
-	Entry.Write(SVC_API_DNS_ADDR, m_Address.ToString());
-	Entry.Write(SVC_API_DNS_DATA, m_ResolvedString);
-	Entry.Write(SVC_API_DNS_TTL, m_TTL);
-	Entry.Write(SVC_API_DNS_QUERY_COUNT, m_QueryCounter);
+	Entry.BeginIMap();
+	Entry.Write(API_V_DNS_CACHE_REF, (uint64)this);
+	Entry.Write(API_V_DNS_HOST, m_HostName);
+	Entry.Write(API_V_DNS_TYPE, m_Type);
+	Entry.Write(API_V_DNS_ADDR, m_Address.ToString());
+	Entry.Write(API_V_DNS_DATA, m_ResolvedString);
+	Entry.Write(API_V_DNS_TTL, m_TTL);
+	Entry.Write(API_V_DNS_QUERY_COUNT, m_QueryCounter);
 	Entry.Finish();
 	return Entry;
 }

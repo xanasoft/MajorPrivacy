@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -149,8 +149,11 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -172,8 +175,11 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -192,8 +198,11 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
@@ -211,7 +220,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -234,8 +243,11 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
@@ -257,10 +269,17 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Access\AccessRule.cpp" />
+    <ClCompile Include="Access\AccessManager.cpp" />
+    <ClCompile Include="Access\AccessTree.cpp" />
+    <ClCompile Include="Access\Handle.cpp" />
+    <ClCompile Include="Access\HandleList.cpp" />
+    <ClCompile Include="Access\ResLogEntry.cpp" />
+    <ClCompile Include="API_Impl.cpp" />
     <ClCompile Include="Common\AbstractInfo.cpp" />
     <ClCompile Include="Etw\EtwEventMonitor.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
@@ -270,9 +289,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="FileSystem\FSAccessLog.cpp" />
-    <ClCompile Include="FileSystem\FSIsolator.cpp" />
-    <ClCompile Include="FileSystem\FSHandleList.cpp" />
+    <ClCompile Include="GenericRule.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Network\Dns\DnsCacheEntry.cpp" />
     <ClCompile Include="Network\Dns\DnsInspector.cpp" />
@@ -282,7 +299,7 @@
     <ClCompile Include="Network\Firewall\WindowsFwLog.cpp" />
     <ClCompile Include="Network\Firewall\FirewallRule.cpp" />
     <ClCompile Include="Network\Firewall\WindowsFirewall.cpp" />
-    <ClCompile Include="Network\NetIsolator.cpp" />
+    <ClCompile Include="Network\NetworkManager.cpp" />
     <ClCompile Include="Network\NetLogEntry.cpp" />
     <ClCompile Include="Network\Socket.cpp" />
     <ClCompile Include="Network\SocketList.cpp" />
@@ -295,10 +312,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Processes\AppIsolator.cpp" />
     <ClCompile Include="Processes\Process.cpp" />
     <ClCompile Include="Processes\ProcessList.cpp" />
-    <ClCompile Include="Processes\ProcessLog.cpp" />
+    <ClCompile Include="Processes\ExecLogEntry.cpp" />
     <ClCompile Include="Processes\ServiceList.cpp" />
     <ClCompile Include="Programs\AppInstallation.cpp" />
     <ClCompile Include="Programs\AppPackage.cpp" />
@@ -308,18 +324,28 @@
     <ClCompile Include="Programs\ProgramGroup.cpp" />
     <ClCompile Include="Programs\ProgramID.cpp" />
     <ClCompile Include="Programs\ProgramItem.cpp" />
+    <ClCompile Include="Programs\ProgramLibrary.cpp" />
     <ClCompile Include="Programs\ProgramManager.cpp" />
     <ClCompile Include="Programs\ProgramPattern.cpp" />
+    <ClCompile Include="Programs\ProgramRule.cpp" />
     <ClCompile Include="Programs\TraceLogEntry.cpp" />
     <ClCompile Include="Programs\WindowsService.cpp" />
-    <ClCompile Include="Registry\RegIsolator.cpp" />
     <ClCompile Include="ServiceCore.cpp" />
     <ClCompile Include="ServiceCoreAPI.cpp" />
     <ClCompile Include="Tweaks\Tweak.cpp" />
     <ClCompile Include="Tweaks\TweakManager.cpp" />
     <ClCompile Include="Tweaks\TweakManagerList.cpp" />
+    <ClCompile Include="Volumes\MountManagerHelpers.cpp" />
+    <ClCompile Include="Volumes\Volume.cpp" />
+    <ClCompile Include="Volumes\VolumeManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Access\AccessRule.h" />
+    <ClInclude Include="Access\AccessManager.h" />
+    <ClInclude Include="Access\AccessTree.h" />
+    <ClInclude Include="Access\Handle.h" />
+    <ClInclude Include="Access\HandleList.h" />
+    <ClInclude Include="Access\ResLogEntry.h" />
     <ClInclude Include="Common\AbstractInfo.h" />
     <ClInclude Include="Etw\EtwEventMonitor.h" />
     <ClInclude Include="Etw\krabs.hpp" />
@@ -350,9 +376,7 @@
     <ClInclude Include="Etw\krabs\ut.hpp" />
     <ClInclude Include="Etw\krabs\version_helpers.hpp" />
     <ClInclude Include="Etw\krabs\wstring_convert.hpp" />
-    <ClInclude Include="FileSystem\FSAccessLog.h" />
-    <ClInclude Include="FileSystem\FSIsolator.h" />
-    <ClInclude Include="FileSystem\FSHandleList.h" />
+    <ClInclude Include="GenericRule.h" />
     <ClInclude Include="Network\Dns\DnsCacheEntry.h" />
     <ClInclude Include="Network\Dns\DnsHostName.h" />
     <ClInclude Include="Network\Dns\DnsInspector.h" />
@@ -364,16 +388,15 @@
     <ClInclude Include="Network\Firewall\FirewallRule.h" />
     <ClInclude Include="Network\Firewall\WindowsFirewall.h" />
     <ClInclude Include="Network\Firewall\WindowsFirewallAPI.h" />
-    <ClInclude Include="Network\NetIsolator.h" />
+    <ClInclude Include="Network\NetworkManager.h" />
     <ClInclude Include="Network\NetLogEntry.h" />
     <ClInclude Include="Network\Socket.h" />
     <ClInclude Include="Network\SocketList.h" />
     <ClInclude Include="Network\TrafficLog.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Processes\AppIsolator.h" />
     <ClInclude Include="Processes\Process.h" />
     <ClInclude Include="Processes\ProcessList.h" />
-    <ClInclude Include="Processes\ProcessLog.h" />
+    <ClInclude Include="Processes\ExecLogEntry.h" />
     <ClInclude Include="Processes\ServiceList.h" />
     <ClInclude Include="Programs\AppInstallation.h" />
     <ClInclude Include="Programs\AppPackage.h" />
@@ -383,16 +406,18 @@
     <ClInclude Include="Programs\ProgramGroup.h" />
     <ClInclude Include="Programs\ProgramID.h" />
     <ClInclude Include="Programs\ProgramItem.h" />
+    <ClInclude Include="Programs\ProgramLibrary.h" />
     <ClInclude Include="Programs\ProgramManager.h" />
     <ClInclude Include="Programs\ProgramPattern.h" />
+    <ClInclude Include="Programs\ProgramRule.h" />
     <ClInclude Include="Programs\TraceLogEntry.h" />
     <ClInclude Include="Programs\WindowsService.h" />
-    <ClInclude Include="Registry\RegIsolator.h" />
     <ClInclude Include="Resources\resource.h" />
-    <ClInclude Include="ServiceAPI.h" />
     <ClInclude Include="ServiceCore.h" />
     <ClInclude Include="Tweaks\Tweak.h" />
     <ClInclude Include="Tweaks\TweakManager.h" />
+    <ClInclude Include="Volumes\Volume.h" />
+    <ClInclude Include="Volumes\VolumeManager.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\Agent.ico" />

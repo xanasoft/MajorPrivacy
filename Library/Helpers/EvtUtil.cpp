@@ -57,13 +57,26 @@ bool SetAuditPolicy(const GUID* pSubCategoryGuids, ULONG dwPolicyCount, uint32 A
 	{
 		if (pOldAuditingMode) *pOldAuditingMode = AuditPolicyInformation->AuditingInformation;
 
-		AuditPolicyInformation->AuditingInformation |= AuditingMode; // just enable additional modes
+		AuditPolicyInformation->AuditingInformation = AuditingMode;
 
 		success = AuditSetSystemPolicy(AuditPolicyInformation, 1);
 	}
 
 	AuditFree(AuditPolicyInformation);
-	return true;
+	return success;
+}
+
+uint32 GetAuditPolicy(const GUID* pSubCategoryGuids, ULONG dwPolicyCount)
+{
+    PAUDIT_POLICY_INFORMATION AuditPolicyInformation;
+    BOOLEAN success = AuditQuerySystemPolicy(pSubCategoryGuids, dwPolicyCount, &AuditPolicyInformation);
+    if (!success)
+        return -1;
+
+    uint32 AuditingMode = AuditPolicyInformation->AuditingInformation;
+
+    AuditFree(AuditPolicyInformation);
+    return AuditingMode;
 }
 
 

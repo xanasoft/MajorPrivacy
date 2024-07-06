@@ -2,11 +2,15 @@
 #include "TweakView.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Tweaks/TweakManager.h"
+#include "../MiscHelpers/Common/CustomStyles.h"
 
 CTweakView::CTweakView(QWidget *parent)
 	:CPanelViewEx<CTweakModel>(parent)
 {
 	m_pTreeView->setColumnReset(2);
+	QStyle* pStyle = QStyleFactory::create("windows");
+	m_pTreeView->setStyle(pStyle);
+	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 
@@ -50,9 +54,9 @@ void CTweakView::OnCheckChanged(const QModelIndex& Index, bool State)
 	STATUS Status;
 	CTweakPtr pTweak = m_pItemModel->GetItem(Index);
 	if(State)
-		Status = theCore->Tweaks()->ApplyTweak(pTweak);
+		Status = theCore->TweakManager()->ApplyTweak(pTweak);
 	else
-		Status = theCore->Tweaks()->UndoTweak(pTweak);
+		Status = theCore->TweakManager()->UndoTweak(pTweak);
 	//todo: show error Status
 }
 

@@ -38,14 +38,14 @@ void CServiceList::EnumServices()
     ULONG servicesReturned;
     for (;;) 
     {
-        if (EnumServicesStatusEx(scmHandle, SC_ENUM_PROCESS_INFO, type, SERVICE_STATE_ALL, (PBYTE)Buffer.GetBuffer(), (DWORD)Buffer.GetLength(), &returnLength, &servicesReturned, NULL, NULL))
+        if (EnumServicesStatusEx(scmHandle, SC_ENUM_PROCESS_INFO, type, SERVICE_STATE_ALL, (PBYTE)Buffer.GetBuffer(), (DWORD)Buffer.GetCapacity(), &returnLength, &servicesReturned, NULL, NULL))
             status = STATUS_SUCCESS;
         else
             status = GetLastWin32ErrorAsNtStatus();
 
         if (status == STATUS_MORE_ENTRIES)
         {
-            Buffer.SetSize(0, true, Buffer.GetLength() * 2);
+            Buffer.SetSize(0, true, Buffer.GetCapacity() * 2);
             continue;
         }
         break;
@@ -91,9 +91,9 @@ void CServiceList::EnumServices()
                 bool ok;
                 CBuffer Buffer(0x200);
                 ULONG bufferSize = 0x200;
-                if (!(ok = QueryServiceConfigW(serviceHandle, (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer(), (DWORD)Buffer.GetLength(), &bufferSize))) {
+                if (!(ok = QueryServiceConfigW(serviceHandle, (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer(), (DWORD)Buffer.GetCapacity(), &bufferSize))) {
                     Buffer.SetSize(bufferSize, true);
-                    ok = QueryServiceConfigW(serviceHandle, (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer(), (DWORD)Buffer.GetLength(), &bufferSize);
+                    ok = QueryServiceConfigW(serviceHandle, (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer(), (DWORD)Buffer.GetCapacity(), &bufferSize);
                     Buffer.SetSize(bufferSize);
                 }
 
@@ -104,7 +104,7 @@ void CServiceList::EnumServices()
             }
 
             m_List.insert(std::make_pair(Id, pService));
-            svcCore->ProgramManager()->AddService(pService);
+            theCore->ProgramManager()->AddService(pService);
         }
         
         pService->State = service->ServiceStatusProcess.dwCurrentState;
@@ -114,10 +114,10 @@ void CServiceList::EnumServices()
             {
                 mmap_erase(m_Pids, pService->ProcessId, Id);
 
-                CProcessPtr pProcess = svcCore->ProcessList()->GetProcess(pService->ProcessId);
+                CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId);
                 if (pProcess) {
                     pProcess->RemoveService(Id);
-                    svcCore->ProgramManager()->RemoveService(pProcess, Id);
+                    theCore->ProgramManager()->RemoveService(pProcess, Id);
                 }
             }
 
@@ -125,10 +125,10 @@ void CServiceList::EnumServices()
 
             if (pService->ProcessId) {
                 m_Pids.insert(std::make_pair(pService->ProcessId, Id));
-                CProcessPtr pProcess = svcCore->ProcessList()->GetProcess(pService->ProcessId, true);
+                CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId, true);
                 if (pProcess) {
                     pProcess->AddService(Id);
-                    svcCore->ProgramManager()->AddService(pProcess, Id);
+                    theCore->ProgramManager()->AddService(pProcess, Id);
                 }
             }
         }
@@ -139,6 +139,6 @@ void CServiceList::EnumServices()
         SServicePtr pService = E.second;
         if (pService->ProcessId)
             mmap_erase(m_Pids, pService->ProcessId, E.first);
-        svcCore->ProgramManager()->RemoveService(pService);
+        theCore->ProgramManager()->RemoveService(pService);
     }
 }

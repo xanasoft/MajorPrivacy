@@ -6,9 +6,10 @@
 #include "../Library/Helpers/Service.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Processes/Process.h"
-#include "../ServiceAPI.h"
-#include "NetIsolator.h"
+#include "../../Library/API/PrivacyAPI.h"
+#include "NetworkManager.h"
 #include "Dns/DnsInspector.h"
+#include "../Library/Common/Strings.h"
 
 #include <WS2tcpip.h>
 #include <Iphlpapi.h>
@@ -111,7 +112,7 @@ void CSocket::ResolveHost()
 		if(!m_pRemoteHostName) m_pRemoteHostName = std::make_shared<CResHostName>(m_CreationTime);
 		CProcessPtr pProcess = m_pProcess.lock();
 		if(!pProcess || !pProcess->DnsLog()->ResolveHost(m_RemoteAddress, m_pRemoteHostName))
-			svcCore->NetIsolator()->DnsInspector()->ResolveHost(m_RemoteAddress, m_pRemoteHostName);
+			theCore->NetworkManager()->DnsInspector()->ResolveHost(m_RemoteAddress, m_pRemoteHostName);
 	}
 }
 
@@ -121,7 +122,7 @@ void CSocket::InitStaticDataEx(struct SNetworkSocket* connection)
 
 	std::unique_lock Lock(m_Mutex);
 
-	PVOID serviceTag = UlongToPtr(*(PULONG)connection->OwnerInfo);
+	ULONG serviceTag = *(PULONG)connection->OwnerInfo;
 	m_OwnerService = GetServiceNameFromTag((HANDLE)connection->ProcessId, serviceTag);
 #ifdef _DEBUG
 	if (!m_OwnerService.empty())
@@ -248,42 +249,42 @@ CVariant CSocket::ToVariant() const
 
 	CVariant Socket;
 
-	Socket.BeginMap();
+	Socket.BeginIMap();
 
-	Socket.Write(SVC_API_SOCK_REF, (uint64)this);
+	Socket.Write(API_V_SOCK_REF, (uint64)this);
 	//m_HashID; // not guaranteed unique
 
-	Socket.Write(SVC_API_SOCK_TYPE, m_ProtocolType);
-	Socket.Write(SVC_API_SOCK_LADDR, m_LocalAddress.ToString());
-	Socket.Write(SVC_API_SOCK_LPORT, m_LocalPort);
-	Socket.Write(SVC_API_SOCK_RADDR, m_RemoteAddress.ToString());
-	Socket.Write(SVC_API_SOCK_RPORT, m_RemotePort);
-	Socket.Write(SVC_API_SOCK_STATE, m_State);
-	Socket.Write(SVC_API_SOCK_LSCOPE, m_LocalScopeId); // Ipv6
-	Socket.Write(SVC_API_SOCK_RSCOPE, m_RemoteScopeId); // Ipv6
+	Socket.Write(API_V_SOCK_TYPE, m_ProtocolType);
+	Socket.Write(API_V_SOCK_LADDR, m_LocalAddress.ToString());
+	Socket.Write(API_V_SOCK_LPORT, m_LocalPort);
+	Socket.Write(API_V_SOCK_RADDR, m_RemoteAddress.ToString());
+	Socket.Write(API_V_SOCK_RPORT, m_RemotePort);
+	Socket.Write(API_V_SOCK_STATE, m_State);
+	Socket.Write(API_V_SOCK_LSCOPE, m_LocalScopeId); // Ipv6
+	Socket.Write(API_V_SOCK_RSCOPE, m_RemoteScopeId); // Ipv6
 
-	//Socket.Write(SVC_API_SOCK_ACCESS, );
+	//Socket.Write(API_V_SOCK_ACCESS, );
 	//m_FwStatus
 
-	Socket.Write(SVC_API_SOCK_PID, m_ProcessId);
-	Socket.Write(SVC_API_SOCK_SVC_TAG, m_OwnerService);
+	Socket.Write(API_V_SOCK_PID, m_ProcessId);
+	Socket.Write(API_V_SOCK_SVC_TAG, m_OwnerService);
 	//m_ProcessName;
 	//m_pProcess;
 
-	Socket.Write(SVC_API_SOCK_RHOST, m_pRemoteHostName ? m_pRemoteHostName->ToString() : L"");
+	Socket.Write(API_V_SOCK_RHOST, m_pRemoteHostName ? m_pRemoteHostName->ToString() : L"");
 
-	Socket.Write(SVC_API_SOCK_CREATED, m_CreateTimeStamp); // in ms
+	Socket.Write(API_V_SOCK_CREATED, m_CreateTimeStamp); // in ms
 
-	Socket.Write(SVC_API_SOCK_LAST_ACT, m_LastActivity);
+	Socket.Write(API_V_SOCK_LAST_ACT, m_LastActivity);
 
 	Lock.unlock();
 
 	std::shared_lock StatsLock(m_StatsMutex);
 
-	Socket.Write(SVC_API_SOCK_UPLOAD, m_Stats.Net.SendRate.Get());
-	Socket.Write(SVC_API_SOCK_DOWNLOAD, m_Stats.Net.ReceiveRate.Get());
-	Socket.Write(SVC_API_SOCK_UPLOADED, m_Stats.Net.SendRaw);
-	Socket.Write(SVC_API_SOCK_DOWNLOADED, m_Stats.Net.ReceiveRaw);
+	Socket.Write(API_V_SOCK_UPLOAD, m_Stats.Net.SendRate.Get());
+	Socket.Write(API_V_SOCK_DOWNLOAD, m_Stats.Net.ReceiveRate.Get());
+	Socket.Write(API_V_SOCK_UPLOADED, m_Stats.Net.SendRaw);
+	Socket.Write(API_V_SOCK_DOWNLOADED, m_Stats.Net.ReceiveRaw);
 
 	Socket.Finish();
 

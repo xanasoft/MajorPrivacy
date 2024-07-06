@@ -70,7 +70,7 @@ std::wstring GetFileFromCommand(const std::wstring& Command, std::wstring* Argum
 }
 
 
-__inline std::wstring PHStr2WStr(PPH_STRING phStr, bool bFree = false)
+std::wstring PHStr2WStr(PPH_STRING phStr, bool bFree = false)
 {
     std::wstring wStr;
     if (!PhIsNullOrEmptyString(phStr))
@@ -317,7 +317,7 @@ std::wstring GetPebString(HANDLE ProcessHandle, PEB_OFFSET Offset)
 #ifdef _WIN64
 	is64BitOperatingSystem = TRUE;
 #else // ! _WIN64
-	isWow64Process = CSbieAPI::IsWow64();
+	isWow64Process = IsWow64();
 	is64BitOperatingSystem = isWow64Process;
 #endif _WIN64
 
@@ -438,20 +438,19 @@ std::wstring GetProcessImageFileNameByProcessId(HANDLE ProcessId)
 }
 
 
-
-NTSTATUS NtEnumProcesses(std::vector<BYTE>& Processes, SYSTEM_INFORMATION_CLASS SystemInformationClass)
+NTSTATUS MyQuerySystemInformation(std::vector<BYTE>& Info, SYSTEM_INFORMATION_CLASS SystemInformationClass)
 {
     NTSTATUS status;
     ULONG bufferSize = 0x00100000;
-    Processes.resize(bufferSize);
+    Info.resize(bufferSize);
 
     for(;;)
     {
-        status = NtQuerySystemInformation(SystemInformationClass, Processes.data(), bufferSize, &bufferSize);
+        status = NtQuerySystemInformation(SystemInformationClass, Info.data(), bufferSize, &bufferSize);
 
         if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH) {
             bufferSize = bufferSize * 10 / 8;
-            Processes.resize(bufferSize);
+            Info.resize(bufferSize);
         } else
             break;
     }

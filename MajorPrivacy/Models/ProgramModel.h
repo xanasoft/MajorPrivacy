@@ -29,16 +29,13 @@ public:
 		eType,
 
 		eRunning, // current running process count
-		eExecRules,
+		eProgramRules,
 		//eTotalUpTime,
 
-		eOpenFiles,
-		eFsRules,
+		//eOpenFiles,
 		//eFsTotalRead,
 		//eFsTotalWritten,
-
-		eOpenKeys,
-		eRegRules,
+		eAccessRules,
 
 		eSockets,
 		eFwRules,
@@ -50,7 +47,7 @@ public:
 
 		ePath,
 
-		eInfo,
+		//eInfo,
 
 		eCount
 	};
@@ -67,7 +64,7 @@ protected:
 		QSet<int>			Bold;
 	};
 
-	void					Sync(const CProgramSetPtr& pRoot, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
+	void					Sync(const CProgramSetPtr& pRoot, const QString& RootID, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
 
 	virtual QVariant		NodeData(STreeNode* pNode, int role, int section) const;
 

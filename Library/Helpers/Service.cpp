@@ -225,7 +225,7 @@ STATUS SetServiceStart(PCWSTR Name, DWORD StartValue)
     return OK;
 }
 
-std::wstring GetServiceNameFromTag(HANDLE ProcessId, PVOID ServiceTag)
+std::wstring GetServiceNameFromTag(HANDLE ProcessId, ULONG ServiceTag)
 {
     static PQUERY_TAG_INFORMATION I_QueryTagInformation = NULL;
     std::wstring serviceName;
@@ -244,7 +244,7 @@ std::wstring GetServiceNameFromTag(HANDLE ProcessId, PVOID ServiceTag)
 
     memset(&nameFromTag, 0, sizeof(TAG_INFO_NAME_FROM_TAG));
     nameFromTag.InParams.dwPid = HandleToUlong(ProcessId);
-    nameFromTag.InParams.dwTag = PtrToUlong(ServiceTag);
+    nameFromTag.InParams.dwTag = ServiceTag;
 
     I_QueryTagInformation(NULL, eTagInfoLevelNameFromTag, &nameFromTag);
 
@@ -255,4 +255,23 @@ std::wstring GetServiceNameFromTag(HANDLE ProcessId, PVOID ServiceTag)
     }
 
     return serviceName;
+}
+
+STATUS RemoveService(PCWSTR Name)
+{
+    CScopedHandle scmHandle(OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE), CloseServiceHandle);
+	if (!scmHandle)
+		return ERR(PhGetLastWin32ErrorAsNtStatus());
+
+	CScopedHandle serviceHandle(OpenService(scmHandle, Name, DELETE | SERVICE_STOP), CloseServiceHandle);
+	if (!serviceHandle)
+		return ERR(PhGetLastWin32ErrorAsNtStatus());
+
+    SERVICE_STATUS svcStatus;
+    ControlService(serviceHandle, SERVICE_CONTROL_STOP, &svcStatus);
+
+	if (!DeleteService(serviceHandle))
+		return ERR(PhGetLastWin32ErrorAsNtStatus());
+
+	return OK;
 }

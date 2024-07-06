@@ -5,12 +5,13 @@
 CProgramItem
   CProgramSet
 	CProgramFile (path)
-	CAllProgram (special case)
 	CProgramList
 	  CAppPackage (sid)
-	  CAppInstallation (uninstall_key)
 	  CProgramPattern (pattern)
+	  	  CAppInstallation (uninstall_key)
 	  CProgramGroup (custom)
+	  CProgramRoot (special case)
+	CAllPrograms (special case)
   CWinService (tag)
 */
 
@@ -18,12 +19,16 @@ CProgramItem
 //#include "ProgramHash.h"
 #include "ProgramPattern.h"
 #include "ProgramFile.h"
+#include "WindowsService.h"
 #include "../Processes/Process.h"
 #include "../Processes/ServiceList.h"
 #include "AppInstallation.h"
 #include "InstallationList.h"
 #include "PackageList.h"
 #include "../Network/Firewall/FirewallRule.h"
+#include "ProgramLibrary.h"
+#include "ProgramRule.h"
+#include "../Access/AccessRule.h"
 
 class CProgramManager
 {
@@ -32,6 +37,14 @@ public:
 	~CProgramManager();
 
 	STATUS Init();
+
+	STATUS Load();
+	STATUS Store();
+
+	void Update();
+	void Cleanup();
+
+	STATUS LoadRules();
 
 	void AddPattern(const std::wstring& Pattern, const std::wstring& Name);
 
@@ -46,11 +59,17 @@ public:
 	void AddInstallation(const CInstallationList::SInstallationPtr& pInstalledApp);
 	void RemoveInstallation(const CInstallationList::SInstallationPtr& pInstalledApp);
 
+	RESULT(CProgramItemPtr) CreateProgram(const CProgramID& ID);
+	STATUS RemoveProgramFrom(uint64 UID, uint64 ParentUID);
+
 	void AddFwRule(const CFirewallRulePtr& pFwRule);
 	void RemoveFwRule(const CFirewallRulePtr& pFwRule);
 
-	CProgramGroupPtr				GetRoot() const { std::unique_lock lock(m_Mutex); return m_Root; }
-	CProgramSetPtr					GetOnlyAll() const { std::unique_lock lock(m_Mutex); return m_pAll; }
+	void AddResRule(const CAccessRulePtr& pFwRule);
+	void RemoveResRule(const CAccessRulePtr& pFwRule);
+
+	CProgramListPtr					GetRoot() const { std::unique_lock lock(m_Mutex); return m_Root; }
+	CProgramSetPtr					GetAllItem() const { std::unique_lock lock(m_Mutex); return m_pAll; }
 	CProgramFilePtr					GetNtOsKernel() const { std::unique_lock lock(m_Mutex); return m_NtOsKernel; }
 
 	enum EAddFlags
@@ -64,8 +83,8 @@ public:
 
 	CAppPackagePtr					GetAppPackage(const TAppId& Id, EAddFlags AddFlags = eCanAdd);
 	CWindowsServicePtr				GetService(const TServiceId& Id, EAddFlags AddFlags = eCanAdd);
-	std::vector<CProgramSetPtr>		FindPatternGroups(const std::wstring& FileName);
-	std::vector<CProgramSetPtr>		FindGroups(const std::wstring& FileName);
+	CProgramPatternPtr				GetPattern(const TPatternId& Id, EAddFlags AddFlags = eCanAdd);
+	CAppInstallationPtr				GetInstallation(const TInstallId& Id, EAddFlags AddFlags = eCanAdd);
 	CProgramFilePtr					GetProgramFile(const std::wstring& FileName, EAddFlags AddFlags = eCanAdd);
 
 	//std::map<TAppId, CProgramPatternPtr>	GetPatterns()		{ std::unique_lock lock(m_Mutex); return m_PatternMap; }
@@ -76,22 +95,28 @@ public:
 
 	
 	std::map<uint64, CProgramItemPtr>GetItems()	{ std::unique_lock lock(m_Mutex); return m_Items; }
+	CProgramItemPtr					GetItem(uint64 UID);
 
 	bool							IsPathReserved(std::wstring FileName) const;
 
+	CProgramLibraryPtr				GetLibrary(const TFilePath& Path, bool bCanAdd = true);
+	CProgramLibraryPtr				GetLibrary(uint64 Id);
+	std::map<uint64, CProgramLibraryPtr>GetLibraries()	{ std::unique_lock lock(m_Mutex); return m_Libraries; }
+
+	std::map<std::wstring, CProgramRulePtr> GetProgramRules() { std::unique_lock lock(m_RulesMutex); return m_Rules; }
+
 protected:
 	
-	mutable std::recursive_mutex			m_Mutex;
-
-	void AppendGroupToList(std::vector<CProgramSetPtr>& Groups, const CProgramSetPtr& pGroup);
-
-	bool AddProgramToGroup(const CProgramItemPtr& pProgram, const CProgramSetPtr& pGroup);
-	void AddProgramToGroups(const CProgramItemPtr& pProgram, const std::vector<CProgramSetPtr>& Groups);
-
-	bool AddProgramPattern(const CProgramPatternPtr& pPattern, const CProgramSetPtr& pGroup);
-	void ApplyPattern(const CProgramPatternPtr& pPattern);
-
 	void CollectData(const CProgramItemPtr& pItem);
+
+	bool AddProgramToGroup(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
+	bool RemoveProgramFromGroup(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
+	bool RemoveProgramFromGroupEx(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
+	void AddItemToRoot(const CProgramItemPtr& pItem);
+	bool AddItemToBranch(const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
+	void TryAddChildren(const CProgramListPtr& pGroup, const CProgramPatternPtr& pPattern, bool bRemove = false);
+
+	mutable std::recursive_mutex			m_Mutex;
 
 	std::map<TPatternId, CProgramPatternPtr>m_PatternMap;
 	std::map<TAppId, CAppPackagePtr>		m_PackageMap;
@@ -101,7 +126,7 @@ protected:
 
 	std::map<uint64, CProgramItemPtr>		m_Items;
 
-	CProgramGroupPtr						m_Root; // default programs root
+	CProgramListPtr							m_Root; // default programs root
 	CProgramSetPtr							m_pAll; // all programs
 	CProgramFilePtr							m_NtOsKernel;
 
@@ -110,5 +135,25 @@ protected:
 
 	std::wstring							m_WinDir;
 	std::wstring							m_ProgDir;
+
+	std::map<TFilePath, CProgramLibraryPtr>	m_LibraryMap;
+	std::map<uint64, CProgramLibraryPtr>	m_Libraries;
+
+	uint64									m_LastCleanup = 0;
+
+	//////////////////////////////////////////////////////////////////////////
+	// Rules
+
+	void UpdateRule(const CProgramRulePtr& pRule, const std::wstring& Guid);
+
+	void AddRuleUnsafe(const CProgramRulePtr& pRule);
+	void RemoveRuleUnsafe(const CProgramRulePtr& pRule);
+
+	std::recursive_mutex					m_RulesMutex;
+
+	bool									m_UpdateAllRules = true;
+	std::map<std::wstring, CProgramRulePtr> m_Rules;
+
+	void OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type);
 };
 

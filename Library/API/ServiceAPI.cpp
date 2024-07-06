@@ -18,11 +18,11 @@ typedef long NTSTATUS;
 
 #include "../Helpers/AppUtil.h"
 #include "../Helpers/Service.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 #include "../Common/Variant.h"
 
-#include "PipeClient.h"
-#include "AlpcPortClient.h"
+#include "../IPC/PipeClient.h"
+#include "../IPC/AlpcPortClient.h"
 
 void CServiceAPI__EmitEvent(CServiceAPI* This, const CBuffer* pEvent)
 {
@@ -51,6 +51,14 @@ CServiceAPI::~CServiceAPI()
 	delete m_pClient;
 }
 
+STATUS CServiceAPI::InstallSvc()
+{
+	std::wstring FileName = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
+	std::wstring DisplayName = L"MajorPrivacy System Service";
+
+	return InstallService(API_SERVICE_NAME, FileName.c_str(), DisplayName.c_str(), NULL, OPT_OWN_TYPE | OPT_DEMAND_START);
+}
+
 STATUS CServiceAPI::ConnectSvc()
 {
 	STATUS Status;
@@ -58,26 +66,19 @@ STATUS CServiceAPI::ConnectSvc()
     if (m_pClient->IsConnected())
 		return OK;
 
-	std::wstring Name = API_SERVICE_NAME;
-    std::wstring DisplayName = L"MajorPrivacy System Service";
-
-    SVC_STATE SvcState = GetServiceState(Name.c_str());
-    if ((SvcState & SVC_INSTALLED) != SVC_INSTALLED)
-    {
-        std::wstring FileName = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
-
-        Status = InstallService(Name.c_str(), FileName.c_str(), DisplayName.c_str(), NULL, OPT_OWN_TYPE | OPT_DEMAND_START | OPT_START_NOW);
-    }
-    else if ((SvcState & SVC_RUNNING) != SVC_RUNNING)
-        Status = RunService(Name.c_str());
-
+    SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+	if ((SvcState & SVC_INSTALLED) != SVC_INSTALLED) {
+		Status = InstallSvc();
+		if (!Status) return Status;
+	}
+    if ((SvcState & SVC_RUNNING) != SVC_RUNNING)
+        Status = RunService(API_SERVICE_NAME);
     if (!Status)
         return Status;
 
 	//Status = m_pClient->Connect(API_SERVICE_PORT);
 	Status = m_pClient->Connect(API_SERVICE_PIPE);
 
-	m_EngineMode = false;
 	return Status;
 }
 
@@ -133,25 +134,26 @@ STATUS CServiceAPI::ConnectEngine()
 		}
 	}
 
-	m_EngineMode = true;
 	return Status;
 }
 
-void CServiceAPI::DisconnectSvc()
+STATUS CServiceAPI::Reconnect()
 {
-	if (m_EngineMode) {
-		CVariant Request;
-		m_pClient->Call(SVC_API_SHUTDOWN, Request);
-	}
+	m_pClient->Disconnect();
 
+	return m_pClient->Connect(API_SERVICE_PIPE);
+}
+
+void CServiceAPI::Disconnect()
+{
 	m_pClient->Disconnect();
 }
 
 RESULT(CVariant) CServiceAPI::Call(uint32 MessageId, const CVariant& Message)
 {
 	auto Ret = m_pClient->Call(MessageId, Message);
-	if (!Ret.IsError() && (Ret.GetValue().Get(SVC_API_ERR_CODE).To<uint32>() != 0 || Ret.GetValue().Has(SVC_API_ERR_MSG)))
-		return ERR(Ret.GetValue()[SVC_API_ERR_CODE], Ret.GetValue()[SVC_API_ERR_MSG].AsStr());
+	if (!Ret.IsError() && (Ret.GetValue().Get(API_V_ERR_CODE).To<uint32>() != 0 || Ret.GetValue().Has(API_V_ERR_MSG)))
+		return ERR(Ret.GetValue()[API_V_ERR_CODE], Ret.GetValue()[API_V_ERR_MSG].AsStr());
 	return Ret;
 }
 
@@ -168,5 +170,5 @@ void CServiceAPI::TestSvc()
 	//Request["test"] = "1234";
 	auto Ret = Call(SVC_API_GET_VERSION, Request);
 	CVariant Response = Ret.GetValue();
-	uint32 version = Response.Get('ver').To<uint32>();
+	uint32 version = Response.Get(API_V_VERSION).To<uint32>();
 }

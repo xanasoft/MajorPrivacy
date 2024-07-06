@@ -19,36 +19,7 @@ CAbstractTweak
     CTweakGroup (contains tweak sets or other groups)
 */
 
-//enum class ETweakPreset
-//{
-//    eGroup = -1,    // tweak is group
-//    eNotSet = 0,    // not set
-//    eSet,           // recomended
-//    eSetCustom,     // group has custom preset
-//    eSetAll         // all in group set
-//};
-
-enum class ETweakStatus
-{
-    eGroup = -1,    // tweak is group
-    eNotSet = 0,    // tweak is not set
-    eApplied,       // tweak was not set by user but is applied
-    eSet,           // tweak is set
-    eMissing        // tweak was set but is not applied
-};
-
-enum class ETweakHint
-{
-    eNone = 0,
-    eRecommended
-};
-
-enum class ETweakMode
-{
-    eDefault    = 0,
-    eAll        = 1,
-    eDontSet    = 2
-};
+#include "../Library/API/PrivacyDefs.h"
 
 struct SWinVer
 {
@@ -88,11 +59,12 @@ public:
     virtual void SetParent(std::shared_ptr<class CAbstractTweak> pParent) { std::unique_lock Lock(m_Mutex); m_Parent = pParent; }
     virtual std::shared_ptr<class CAbstractTweak> GetParent() { std::unique_lock Lock(m_Mutex); return m_Parent.lock(); }
 
-	virtual CVariant ToVariant() const;
+	virtual CVariant ToVariant(const SVarWriteOpt& Opts) const;
 
 protected:
 	
-    virtual void WriteVariant(CVariant& Data) const;
+    virtual void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const;
+    virtual void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const;
 
     mutable std::recursive_mutex m_Mutex;
 
@@ -120,7 +92,8 @@ public:
 
 protected:
 	
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 
     std::list<CTweakPtr> m_List;
 };
@@ -137,7 +110,8 @@ public:
 
 protected:
 	
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -152,7 +126,8 @@ public:
 
 protected:
 	
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -176,7 +151,8 @@ public:
 
 protected:
 	
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 
     bool        m_Set = false;
     SWinVer     m_Ver;
@@ -202,7 +178,8 @@ public:
 
 protected:
 	
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 
     std::wstring m_Key;
     std::wstring m_Value;
@@ -224,7 +201,8 @@ public:
 
 protected:
 
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 
     std::wstring m_Key;
     std::wstring m_Value;
@@ -248,7 +226,8 @@ public:
 
 protected:
     
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 
     std::wstring m_SvcTag;
 };
@@ -270,7 +249,8 @@ public:
 
 protected:
     
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 
     std::wstring m_Folder;
     std::wstring m_Entry;
@@ -293,7 +273,8 @@ public:
 
 protected:
     
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 
     std::wstring m_PathPattern;
 };
@@ -315,7 +296,8 @@ public:
 
 protected:
     
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 
     std::wstring m_PathPattern;
 };
@@ -337,7 +319,8 @@ public:
 
 protected:
     
-    virtual void WriteVariant(CVariant& Data) const;
+    void WriteIVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(CVariant& Data, const SVarWriteOpt& Opts) const override;
 
     CProgramID m_ProgID;
 };

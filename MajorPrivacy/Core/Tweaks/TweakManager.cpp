@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "TweakManager.h"
 #include "../PrivacyCore.h"
-#include "../../Service/ServiceApi.h"
+#include "../../Library/API/PrivacyAPI.h"
 
 CTweakManager::CTweakManager(QObject* parent)
 	: QObject(parent)

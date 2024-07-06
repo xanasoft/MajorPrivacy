@@ -407,23 +407,6 @@ NTSTATUS PhSetValueKey(
     return status;
 }
 
-// rev from SE_TOKEN_USER (dmex)
-typedef struct _PH_TOKEN_USER
-{
-    union
-    {
-        TOKEN_USER TokenUser;
-        SID_AND_ATTRIBUTES User;
-    };
-    union
-    {
-        SID Sid;
-        BYTE Buffer[SECURITY_MAX_SID_SIZE];
-    };
-} PH_TOKEN_USER, *PPH_TOKEN_USER;
-
-C_ASSERT(sizeof(PH_TOKEN_USER) >= TOKEN_USER_MAX_SIZE);
-
 NTSTATUS PhGetTokenUser(
     _In_ HANDLE TokenHandle,
     _Out_ PPH_TOKEN_USER User

@@ -2,11 +2,15 @@
 
 //#include "../Process.h"
 #include "ProgramID.h"
+#include "../../Helpers/FilePath.h"
 
 struct SProgramStats
 {
 	int				ProcessCount = 0;
-	
+	int				ProgRuleCount = 0;
+
+	int				ResRuleCount = 0;
+
 	int				FwRuleCount = 0;
 	int				SocketCount = 0;
 
@@ -24,6 +28,9 @@ class CProgramItem: public QObject
 public:
 	CProgramItem(QObject* parent = nullptr);
 
+	virtual EProgramType GetType() const = 0;
+	virtual QString GetTypeStr() const;
+
 	void SetUID(quint64 UID) 						{ m_UID = UID; }
 	quint64 GetUID() const							{ return m_UID; }
 	void SetID(const CProgramID& ID) 				{ m_ID = ID; }
@@ -36,22 +43,36 @@ public:
 	virtual QIcon DefaultIcon() const;
 	void SetIconFile(const QString& IconFile);
 	virtual QIcon GetIcon() const					{ return m_Icon; }
+	void SetInfo(const QString& Info)				{ m_Info = Info; }
 	virtual QString GetInfo() const					{ return m_Info; }
-	virtual QString GetPath() const					{ return ""; }
+	virtual QString GetPath(EPathType Type) const	{ return ""; }
+
+	virtual QList<QWeakPointer<QObject>> GetGroups() const	{ return m_Groups; }
 
 	virtual int GetFwRuleCount() const				{ return m_FwRuleIDs.count(); }
 	virtual QSet<QString> GetFwRules() const		{ return m_FwRuleIDs; }
 
+	virtual int GetProgRuleCount() const			{ return m_ProgRuleIDs.count(); }
+	virtual QSet<QString> GetProgRules() const		{ return m_ProgRuleIDs; }
+
+	virtual int GetResRuleCount() const				{ return m_ResRuleIDs.count(); }
+	virtual QSet<QString> GetResRules() const		{ return m_ResRuleIDs; }
+
 	virtual void CountStats() = 0;
 	virtual const SProgramStats* GetStats()			{ return &m_Stats; }
 
-
-	virtual void FromVariant(const class XVariant& Item);
+	virtual XVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual NTSTATUS FromVariant(const XVariant& Data);
 
 protected:
 	friend class CProgramManager;
 
-	virtual void ReadValue(const SVarName& Name, const XVariant& Data);
+	void SetIconFile();
+
+	virtual void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
+	virtual void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
+	virtual void ReadIValue(uint32 Index, const XVariant& Data);
+	virtual void ReadMValue(const SVarName& Name, const XVariant& Data);
 
 	quint64								m_UID = 0;
 	CProgramID							m_ID;
@@ -64,6 +85,8 @@ protected:
 	QList<QWeakPointer<QObject>>		m_Groups;
 
 	QSet<QString>						m_FwRuleIDs;
+	QSet<QString>						m_ProgRuleIDs;
+	QSet<QString>						m_ResRuleIDs;
 
 	SProgramStats						m_Stats;
 };

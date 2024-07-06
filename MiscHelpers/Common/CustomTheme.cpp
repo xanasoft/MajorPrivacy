@@ -50,7 +50,7 @@ bool CCustomTheme::IsSystemDark()
 }
 
 #if defined(Q_OS_WIN)
-void SetTitleTheme(const HWND& hwnd, bool bDark)
+void CCustomTheme::SetTitleTheme(const HWND& hwnd)
 {
 	static const int CurrentVersion = QSettings("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
 		QSettings::NativeFormat).value("CurrentBuild").toInt();
@@ -70,7 +70,7 @@ void SetTitleTheme(const HWND& hwnd, bool bDark)
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
-			BOOL Dark = bDark;
+			BOOL Dark = m_DarkTheme;
 			pDwmSetWindowAttribute(hwnd,
 				CurrentVersion >= 18985 ? DWMWA_USE_IMMERSIVE_DARK_MODE : DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1,
 				&Dark, sizeof(Dark));
@@ -111,7 +111,7 @@ void CCustomTheme::SetUITheme(bool bDark, int iFusion)
 	foreach(QWidget * pWidget, QApplication::topLevelWidgets())
 	{
 		if (pWidget->isVisible())
-			SetTitleTheme((HWND)pWidget->winId(), bDark);
+			SetTitleTheme((HWND)pWidget->winId());
 	}
 #endif
 }

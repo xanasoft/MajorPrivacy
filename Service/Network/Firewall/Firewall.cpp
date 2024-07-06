@@ -3,11 +3,11 @@
 #include "WindowsFirewall.h"
 #include "../../ServiceCore.h"
 //#include "../Library/API/AlpcPortServer.h"
-#include "../Library/API/PipeServer.h"
+#include "../../Library/IPC/PipeServer.h"
 #include "WindowsFwLog.h"
 #include "WindowsFwGuard.h"
-#include "ServiceAPI.h"
-#include "../NetIsolator.h"
+#include "../../Library/API/PrivacyAPI.h"
+#include "../NetworkManager.h"
 #include "../SocketList.h"
 #include "../../Programs/ProgramManager.h"
 #include "../../Processes/ProcessList.h"
@@ -15,6 +15,8 @@
 #include "../Library/Helpers/RegUtil.h"
 #include "../NetLogEntry.h"
 #include "../Library/Common/UIntX.h"
+#include "../Library/Common/Strings.h"
+#include "../Library/API/DriverAPI.h"
 
 EFwProfiles CFirewall__Profiles[] = { EFwProfiles::Private, EFwProfiles::Public, EFwProfiles::Domain };
 
@@ -52,18 +54,20 @@ CFirewall::~CFirewall()
 
 STATUS CFirewall::Init()
 {
-	m_pLog->Start();
-	m_pGuard->Start();
+	if(!m_pLog->Start((int)GetAuditPolicy(false)))
+		theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed set Connection auditing policy");
+	if(!m_pGuard->Start())
+		theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed set Firewall Rule auditing policy");
 
-	LoadRules();
+	if(!LoadRules())
+		theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed set load Firewall Rules");
 	LoadDefaults();
 	
-	if(svcCore->Config()->GetBool("Service", "LoadWindowsFirewallLog", false))
+	if(theCore->Config()->GetBool("Service", "LoadWindowsFirewallLog", false))
 		LoadFwLog();
 
 	return OK;
 }
-
 void CFirewall::Update()
 {
 	if (m_UpdateDefaultProfiles)
@@ -88,7 +92,7 @@ STATUS CFirewall::LoadRules()
 	for (auto pRule : *pRuleList) 
 	{
 		CFirewallRulePtr pFwRule;
-		auto I = OldFwRules.find(pRule->guid);
+		auto I = OldFwRules.find(pRule->Guid);
 		if (I != OldFwRules.end())
 		{
 			pFwRule = I->second;
@@ -146,7 +150,7 @@ void CFirewall::AddRuleUnsafe(const CFirewallRulePtr& pFwRule)
 	//if (ProgID.GetFilePath().empty() && ProgID.GetServiceTag().empty() && ProgID.GetAppContainerSid().empty())
 	//	m_AllProgramsRules.insert(std::make_pair(pFwRule->GetGuid(), pFwRule));
 
-	svcCore->ProgramManager()->AddFwRule(pFwRule);
+	theCore->ProgramManager()->AddFwRule(pFwRule);
 }
 
 void CFirewall::RemoveRuleUnsafe(const CFirewallRulePtr& pFwRule)
@@ -165,7 +169,7 @@ void CFirewall::RemoveRuleUnsafe(const CFirewallRulePtr& pFwRule)
 	//if (ProgID.GetFilePath().empty() && ProgID.GetServiceTag().empty() && ProgID.GetAppContainerSid().empty())
 	//	m_AllProgramsRules.erase(pFwRule->GetGuid())
 
-	svcCore->ProgramManager()->RemoveFwRule(pFwRule);
+	theCore->ProgramManager()->RemoveFwRule(pFwRule);
 }
 
 std::map<std::wstring, CFirewallRulePtr> CFirewall::FindRules(const CProgramID& ID)
@@ -176,24 +180,24 @@ std::map<std::wstring, CFirewallRulePtr> CFirewall::FindRules(const CProgramID& 
 
 	switch (ID.GetType())
 	{
-	case CProgramID::eFile:
+	case EProgramType::eProgramFile:
 		for (auto I = m_FileRules.find(ID.GetFilePath()); I != m_FileRules.end() && I->first == ID.GetFilePath(); ++I) {
 			Found.insert(std::make_pair(I->second->GetGuid(), I->second));
 		}
 		break;
-	case CProgramID::eService:
+	case EProgramType::eWindowsService:
 		for (auto I = m_SvcRules.find(ID.GetServiceTag()); I != m_SvcRules.end() && I->first == ID.GetServiceTag(); ++I) {
 			if (!ID.GetFilePath().empty() && I->second->GetProgramID().GetFilePath() != ID.GetFilePath())
 				continue;
 			Found.insert(std::make_pair(I->second->GetGuid(), I->second));
 		}
 		break;
-	case CProgramID::eApp:
+	case EProgramType::eAppPackage:
 		for (auto I = m_AppRules.find(ID.GetAppContainerSid()); I != m_AppRules.end() && I->first == ID.GetAppContainerSid(); ++I) {
 			Found.insert(std::make_pair(I->second->GetGuid(), I->second));
 		}
 		break;
-	case CProgramID::eAll:
+	case EProgramType::eAllPrograms:
 		//return m_AllProgramsRules;
 		return m_FwRules;
 	}
@@ -210,9 +214,9 @@ STATUS CFirewall::SetRule(const CFirewallRulePtr& pFwRule)
 {
 	std::shared_ptr<struct SWindowsFwRule> pData = pFwRule->GetData();
 
-	if (pData->Direction == EFwDirections::Bidirectiona)
+	if (pData->Direction == EFwDirections::Bidirectional)
 	//{
-	//	if(!pData->guid.empty()) // Bidirectiona is only valid when creating a new rule(s)
+	//	if(!pData->guid.empty()) // Bidirectional is only valid when creating a new rule(s)
 			return ERR(STATUS_INVALID_PARAMETER);
 	//
 	//	std::shared_ptr<struct SWindowsFwRule> pData2 = std::make_shared<struct SWindowsFwRule>(*pData); // copy the ruledata
@@ -231,7 +235,7 @@ STATUS CFirewall::SetRule(const CFirewallRulePtr& pFwRule)
 	if (!Status)
 		return Status;
 
-	UpdateFWRule(pData, pData->guid);
+	UpdateFWRule(pData, pData->Guid);
 
 	return OK;
 }
@@ -296,7 +300,7 @@ void CFirewall::UpdateFWRule(const std::shared_ptr<struct SWindowsFwRule>& pRule
 uint32 CFirewall::OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent)
 {
 	SWindowsFwRulePtr pRule;
-	if (pEvent->Type != SWinFwGuardEvent::EType::Removed) {
+	if (pEvent->Type != ERuleEvent::eRemoved) {
 		std::vector<std::wstring> RuleIds;
 		RuleIds.push_back(pEvent->RuleId);
 		auto ret = CWindowsFirewall::Instance()->LoadRules(RuleIds);
@@ -306,25 +310,19 @@ uint32 CFirewall::OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent)
 	UpdateFWRule(pRule, pEvent->RuleId);
 
 	CVariant vEvent;
-	vEvent[SVC_API_FW_GUID] = pEvent->RuleId;
-	vEvent[SVC_API_FW_NAME] = pEvent->RuleName;
-	switch (pEvent->Type)
-	{
-	case SWinFwGuardEvent::EType::Added:	vEvent[SVC_API_FW_CHANGE] = SVC_API_FW_ADDED;   break;
-	case SWinFwGuardEvent::EType::Changed:	vEvent[SVC_API_FW_CHANGE] = SVC_API_FW_CHANGED; break;
-	case SWinFwGuardEvent::EType::Removed:	vEvent[SVC_API_FW_CHANGE] = SVC_API_FW_REMOVED; break;
-	}
+	vEvent[API_V_RULE_GUID] = pEvent->RuleId;
+	//vEvent[API_V_RULE_TYPE] = (uint32)ERuleType::eFirewall;
+	vEvent[API_V_NAME] = pEvent->RuleName;
+	vEvent[API_V_EVENT] = (uint32)pEvent->Type;
 
-	CBuffer Event;
-	vEvent.ToPacket(&Event);
-	svcCore->UserPipe()->BroadcastMessage(SVC_API_EVENT_RULE_CHANGED, &Event);
+	theCore->BroadcastMessage(SVC_API_EVENT_FW_RULE_CHANGED, vEvent);
 
 	return 0;
 }
 
 uint32 CFirewall::OnFwLogEvent(const SWinFwLogEvent* pEvent)
 {
-	CSocketPtr pSocket = svcCore->NetIsolator()->SocketList()->OnFwLogEvent(pEvent);
+	CSocketPtr pSocket = theCore->NetworkManager()->SocketList()->OnFwLogEvent(pEvent);
 
 	ProcessFwEvent(pEvent, pSocket.get());
 
@@ -339,27 +337,27 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 	std::list<CWindowsServicePtr> Svcs;
 	CHostNamePtr pRemoteHostName;
 
-	SAdapterInfoPtr pNicInfo = svcCore->NetIsolator()->GetAdapterInfoByIP(pEvent->LocalAddress);
+	SAdapterInfoPtr pNicInfo = theCore->NetworkManager()->GetAdapterInfoByIP(pEvent->LocalAddress);
 
 	if (_wcsicmp(pEvent->ProcessFileName.c_str(), L"System") == 0)
 	{
-		pProcess = svcCore->ProcessList()->GetProcess(NT_OS_KERNEL_PID, true);
-		pProgram = svcCore->ProgramManager()->GetNtOsKernel();
+		pProcess = theCore->ProcessList()->GetProcess(NT_OS_KERNEL_PID, true);
+		pProgram = theCore->ProgramManager()->GetNtOsKernel();
 	}
 	else if(pSocket != (CSocket*)-1)
 	{
-		pProcess = pSocket ? pSocket->GetProcess() : svcCore->ProcessList()->GetProcess(pEvent->ProcessId, true); // todo socket should always have a process
+		pProcess = pSocket ? pSocket->GetProcess() : theCore->ProcessList()->GetProcess(pEvent->ProcessId, true); // todo socket should always have a process
 		if (pProcess)
 		{
 			pProgram = pProcess->GetProgram();
 			
 			std::wstring AppSid = pProcess->GetAppContainerSid();
 			if (!AppSid.empty())
-				pApp = svcCore->ProgramManager()->GetAppPackage(AppSid);
+				pApp = theCore->ProgramManager()->GetAppPackage(AppSid);
 
 			std::set<std::wstring> SvcTags = pProcess->GetServices();
 			for (auto I : SvcTags) {
-				CWindowsServicePtr pSvc = svcCore->ProgramManager()->GetService(I);
+				CWindowsServicePtr pSvc = theCore->ProgramManager()->GetService(I);
 				if (pSvc) 
 					Svcs.push_back(pSvc);
 			}
@@ -372,7 +370,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 	//
 
 	if (!pProgram) {
-		pProgram = svcCore->ProgramManager()->GetProgramFile(pEvent->ProcessFileName);
+		pProgram = theCore->ProgramManager()->GetProgramFile(pEvent->ProcessFileName);
 		pApp = pProgram->GetAppPackage();
 		Svcs = pProgram->GetAllServices();
 	}
@@ -439,7 +437,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 		// We also evaluate rules applying to the App package if one is present
 		//
 
-		SRuleMatch AllMatch = MatchRulesWithEvent(svcCore->ProgramManager()->GetOnlyAll()->GetFwRules(), pEvent, pNicInfo);
+		SRuleMatch AllMatch = MatchRulesWithEvent(theCore->ProgramManager()->GetAllItem()->GetFwRules(), pEvent, pNicInfo);
 		RuleAction.TestAndSetOrClear(AllMatch.Result, pEvent);
 
 		SRuleMatch FileMatch = MatchRulesWithEvent(pProgram->GetFwRules(), pEvent, pNicInfo);
@@ -478,7 +476,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 		//
 
 		if (!RuleAction.bHasRules) {
-			EFwActions DefaultAction = GetDefaultAction(pEvent->Direction, pNicInfo ? pNicInfo->Profile : svcCore->NetIsolator()->GetDefaultProfile());
+			EFwActions DefaultAction = GetDefaultAction(pEvent->Direction, pNicInfo ? pNicInfo->Profile : theCore->NetworkManager()->GetDefaultProfile());
 			if (DefaultAction != pEvent->Type) // Conflicts with default action
 				RuleAction.bConflict = true;
 		}
@@ -493,17 +491,16 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 			EventState = EFwEventStates::RuleBlocked;
 	}
 
-	CNetLogEntryPtr pLogEntry = std::make_shared<CNetLogEntry>(pEvent, EventState, pRemoteHostName, ServiceTag);
-	uint32 LogIndex = pProgram->AddTraceLogEntry(pLogEntry, ETraceLogs::eNetLog);
+	CNetLogEntryPtr pLogEntry = std::make_shared<CNetLogEntry>(pEvent, EventState, pRemoteHostName, pEvent->ProcessId, ServiceTag);
+	uint64 LogIndex = pProgram->AddTraceLogEntry(pLogEntry, ETraceLogs::eNetLog);
 
 	CVariant Event;
 	//Event[SVC_API_EVENT_TYPE]	= SVC_API_EVENT_FW_EVENT;
-	Event[SVC_API_ID_PROG]		= pProgram->GetID().ToVariant();
-	Event[SVC_API_EVENT_INDEX]	= LogIndex;
-	Event[SVC_API_EVENT_DATA]	= pLogEntry->ToVariant();
-	CBuffer EventBuff;
-	Event.ToPacket(&EventBuff);
-	svcCore->UserPipe()->BroadcastMessage(SVC_API_EVENT_NET_ACTIVITY, &EventBuff);
+	Event[API_V_PROG_ID]		= pProgram->GetID().ToVariant(SVarWriteOpt());
+	Event[API_V_EVENT_INDEX]	= LogIndex;
+	Event[API_V_EVENT_DATA]		= pLogEntry->ToVariant();
+
+	theCore->BroadcastMessage(SVC_API_EVENT_NET_ACTIVITY, Event); //, pProgram); - always bradcast network activity wven if the process is not actively watched
 }
 
 EFwActions CFirewall::GetDefaultAction(EFwDirections Direction, EFwProfiles Profiles)
@@ -901,6 +898,7 @@ STATUS CFirewall::SetFilteringMode(FwFilteringModes Mode)
 	//case FwFilteringModes::BlockAll:
 	//	BlockAllTrafic();
 	//	break;
+	default: return ERR(STATUS_INVALID_PARAMETER);
 	}
 
 	return OK;
@@ -917,4 +915,31 @@ FwFilteringModes CFirewall::GetFilteringMode()
 			return FwFilteringModes::AllowList;
 	}
 	return FwFilteringModes::NoFiltering;
+}
+
+STATUS CFirewall::SetAuditPolicy(FwAuditPolicy Mode)
+{
+	std::wstring AuditPolicy;
+	switch (Mode)
+	{
+	case FwAuditPolicy::All:		AuditPolicy = L"All"; break;
+	case FwAuditPolicy::Blocked:	AuditPolicy = L"Blocked"; break;
+	case FwAuditPolicy::Allowed:	AuditPolicy = L"Allowed"; break;
+	case FwAuditPolicy::Off:		AuditPolicy = L"Off"; break;
+	}
+	theCore->Config()->SetValue("Firewall", "AuditPolicy", AuditPolicy);
+
+	return m_pLog->UpdatePolicy((int)Mode);
+}
+
+FwAuditPolicy CFirewall::GetAuditPolicy(bool bCurrent)
+{
+	if(bCurrent)
+		return (FwAuditPolicy)m_pLog->GetCurrentPolicy();
+
+	std::wstring AuditPolicy = theCore->Config()->GetValue("Firewall", "AuditPolicy", L"All");
+	if (AuditPolicy == L"All")		return FwAuditPolicy::All;
+	if (AuditPolicy == L"Blocked")	return FwAuditPolicy::Blocked;
+	if (AuditPolicy == L"Allowed")	return FwAuditPolicy::Allowed;
+	return FwAuditPolicy::Off;
 }

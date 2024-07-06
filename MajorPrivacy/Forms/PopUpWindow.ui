@@ -53,20 +53,20 @@
        </property>
        <widget class="QWidget" name="tabFw">
         <attribute name="title">
-         <string>Net Firewall</string>
+         <string>Firewall</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_4">
          <property name="leftMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <property name="topMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <property name="rightMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <property name="bottomMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <item row="0" column="1">
           <widget class="QLabel" name="lblFwCount">
@@ -179,16 +179,16 @@
            </property>
            <layout class="QGridLayout" name="gridLayout">
             <property name="leftMargin">
-             <number>9</number>
+             <number>3</number>
             </property>
             <property name="topMargin">
-             <number>9</number>
+             <number>3</number>
             </property>
             <property name="rightMargin">
-             <number>9</number>
+             <number>3</number>
             </property>
             <property name="bottomMargin">
-             <number>9</number>
+             <number>3</number>
             </property>
             <item row="1" column="0">
              <widget class="QLabel" name="lblFwAux">
@@ -234,17 +234,17 @@
               </column>
               <column>
                <property name="text">
-                <string>Host Name</string>
-               </property>
-              </column>
-              <column>
-               <property name="text">
                 <string>Time Stamp</string>
                </property>
               </column>
               <column>
                <property name="text">
                 <string>Process Id</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Command Line</string>
                </property>
               </column>
              </widget>
@@ -272,23 +272,23 @@
        </widget>
        <widget class="QWidget" name="tabRes">
         <attribute name="title">
-         <string>Res Access</string>
+         <string>Access</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_5">
          <property name="leftMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <property name="topMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <property name="rightMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <property name="bottomMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <item row="1" column="0" colspan="3">
-          <widget class="QGroupBox" name="groupBox_2">
+          <widget class="QGroupBox" name="grpRes">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
              <horstretch>0</horstretch>
@@ -300,33 +300,33 @@
            </property>
            <layout class="QGridLayout" name="gridLayout_2">
             <property name="leftMargin">
-             <number>9</number>
+             <number>3</number>
             </property>
             <property name="topMargin">
-             <number>9</number>
+             <number>3</number>
             </property>
             <property name="rightMargin">
-             <number>9</number>
+             <number>3</number>
             </property>
             <property name="bottomMargin">
-             <number>9</number>
+             <number>3</number>
             </property>
             <item row="1" column="0">
-             <widget class="QLabel" name="label_6">
+             <widget class="QLabel" name="lblResAux">
               <property name="text">
                <string>TextLabel</string>
               </property>
              </widget>
             </item>
             <item row="0" column="0">
-             <widget class="QLabel" name="label_5">
+             <widget class="QLabel" name="lblResProc">
               <property name="text">
                <string>TextLabel</string>
               </property>
              </widget>
             </item>
             <item row="3" column="0" colspan="2">
-             <widget class="QTreeWidget" name="treeWidget_3">
+             <widget class="QTreeWidget" name="treeRes">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                 <horstretch>0</horstretch>
@@ -353,10 +353,15 @@
                 <string>Process ID</string>
                </property>
               </column>
+              <column>
+               <property name="text">
+                <string>Command Line</string>
+               </property>
+              </column>
              </widget>
             </item>
             <item row="0" column="1" rowspan="2">
-             <widget class="QLabel" name="label_9">
+             <widget class="QLabel" name="lblResIcon">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -372,7 +377,7 @@
              </widget>
             </item>
             <item row="2" column="0" colspan="2">
-             <widget class="QLabel" name="label_7">
+             <widget class="QLabel" name="lblResPath">
               <property name="text">
                <string>TextLabel</string>
               </property>
@@ -454,7 +459,7 @@
           </layout>
          </item>
          <item row="0" column="2">
-          <widget class="QPushButton" name="resNext">
+          <widget class="QPushButton" name="btnResNext">
            <property name="text">
             <string>Next</string>
            </property>
@@ -469,25 +474,221 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="tabCfg">
+       <widget class="QWidget" name="tabExec">
         <attribute name="title">
-         <string>Sys Config</string>
+         <string>Exec</string>
+        </attribute>
+        <layout class="QGridLayout" name="gridLayout_50">
+         <property name="leftMargin">
+          <number>3</number>
+         </property>
+         <property name="topMargin">
+          <number>3</number>
+         </property>
+         <property name="rightMargin">
+          <number>3</number>
+         </property>
+         <property name="bottomMargin">
+          <number>3</number>
+         </property>
+         <item row="1" column="0" colspan="3">
+          <widget class="QGroupBox" name="grpExec">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="title">
+            <string>GroupBox</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_20">
+            <property name="leftMargin">
+             <number>3</number>
+            </property>
+            <property name="topMargin">
+             <number>3</number>
+            </property>
+            <property name="rightMargin">
+             <number>3</number>
+            </property>
+            <property name="bottomMargin">
+             <number>3</number>
+            </property>
+            <item row="1" column="0">
+             <widget class="QLabel" name="lblExecAux">
+              <property name="text">
+               <string>TextLabel</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="lblExecProc">
+              <property name="text">
+               <string>TextLabel</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0" colspan="2">
+             <widget class="QTreeWidget" name="treeExec">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <column>
+               <property name="text">
+                <string>File Name</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Action</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Signature</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Tiem Stamp</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Process ID</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>File Path</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+            <item row="0" column="1" rowspan="2">
+             <widget class="QLabel" name="lblExecIcon">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Icon</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0" colspan="2">
+             <widget class="QLabel" name="lblExecPath">
+              <property name="text">
+               <string>TextLabel</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLabel" name="lblExecCount">
+           <property name="text">
+            <string>0/0</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0" colspan="3">
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QToolButton" name="btnExecIgnore">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Ignore</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_40">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QToolButton" name="btnExecSign">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Sign File</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="0" column="2">
+          <widget class="QPushButton" name="btnExecNext">
+           <property name="text">
+            <string>Next</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QPushButton" name="btnExecPrev">
+           <property name="text">
+            <string>Previouse</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tabConf">
+        <attribute name="title">
+         <string>Tweaks</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_6">
          <property name="leftMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <property name="topMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <property name="rightMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <property name="bottomMargin">
-          <number>0</number>
+          <number>3</number>
          </property>
          <item row="0" column="0" colspan="3">
-          <widget class="QTreeWidget" name="treeWidget_2">
+          <widget class="QTreeWidget" name="treeConf">
            <column>
             <property name="text">
              <string>Name</string>

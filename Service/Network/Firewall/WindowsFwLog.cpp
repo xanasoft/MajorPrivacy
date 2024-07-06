@@ -192,15 +192,12 @@ std::wstring CWindowsFwLog::GetXmlQuery()
 	return XmlQuery;
 }
 
-STATUS CWindowsFwLog::Start()
+STATUS CWindowsFwLog::Start(int AuditingMode)
 {
 	if (m_hSubscription)
 		return OK;
 
-	int AuditingMode = AUDIT_POLICY_INFORMATION_TYPE_FAILURE;	// blocked connections
-	AuditingMode |= AUDIT_POLICY_INFORMATION_TYPE_SUCCESS;		// allowed connections
-
-	if (!SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, 1, AuditingMode, &m_OldAuditingMode)) // todo: save old and restore
+	if (!SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, 1, AuditingMode, &m_OldAuditingMode))
 		return ERR(STATUS_UNSUCCESSFUL, L"Failed to configure the auditing policy");
 
 	if (CEventLogListener::Start(GetXmlQuery()))
@@ -214,6 +211,21 @@ STATUS CWindowsFwLog::Start()
 		// You can call EvtGetExtendedStatus to get information as to why the query is not valid.
 		return ERR(status, L"The query is not valid");
 	return ERR(status);
+}
+
+STATUS CWindowsFwLog::UpdatePolicy(int AuditingMode)
+{
+	uint32 OldAuditingMode = -1;
+	if (!SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, 1, AuditingMode, &OldAuditingMode))
+		return ERR(STATUS_UNSUCCESSFUL, L"Failed to configure the auditing policy");
+	if(m_OldAuditingMode == -1) // keep the original old mode if there is any
+		m_OldAuditingMode = OldAuditingMode;
+	return OK;
+}
+
+uint32 CWindowsFwLog::GetCurrentPolicy()
+{
+	return GetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, 1);
 }
 
 void CWindowsFwLog::Stop()

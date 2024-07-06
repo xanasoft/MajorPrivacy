@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "NetworkManager.h"
 #include "../PrivacyCore.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 #include "./MiscHelpers/Common/Common.h"
 
 CNetworkManager::CNetworkManager(QObject *parent) 
@@ -24,10 +24,10 @@ bool CNetworkManager::UpdateAllFwRules()
 	{
 		const XVariant& Rule = Rules[i];
 
-		QString RuleID = Rule[SVC_API_FW_GUID].AsQStr();
+		QString RuleID = Rule[API_V_RULE_GUID].AsQStr();
 
 		CProgramID ID;
-		ID.FromVariant(Rule[SVC_API_ID_PROG]);
+		ID.FromVariant(Rule[API_V_PROG_ID]);
 
 		CFwRulePtr pRule = OldRules.value(RuleID);
 		if (pRule) {
@@ -66,10 +66,10 @@ bool CNetworkManager::UpdateFwRule(const QString& RuleId)
 
 	XVariant& Rule = Ret.GetValue();
 
-	QString RuleID = Rule[SVC_API_FW_GUID].AsQStr();
+	QString RuleID = Rule[API_V_RULE_GUID].AsQStr();
 
 	CProgramID ID;
-	ID.FromVariant(Rule[SVC_API_ID_PROG]);
+	ID.FromVariant(Rule[API_V_PROG_ID]);
 
 	CFwRulePtr pRule = m_FwRules.value(RuleID);
 	if (pRule) {
@@ -151,10 +151,10 @@ QList<CFwRulePtr> CNetworkManager::GetFwRules(const QSet<QString>& FwRuleIDs)
 
 STATUS CNetworkManager::SetFwRule(const CFwRulePtr& pRule)
 {
-	return theCore->SetFwRule(pRule->ToVariant());
+	return theCore->SetFwRule(pRule->ToVariant(SVarWriteOpt()));
 }
 
-RESULT(CFwRulePtr) CNetworkManager::GetRule(QString Guid)
+RESULT(CFwRulePtr) CNetworkManager::GetProgramRule(QString Guid)
 {
 	auto Ret = theCore->GetFwRule(Guid);
 	if (Ret.IsError())
@@ -163,7 +163,7 @@ RESULT(CFwRulePtr) CNetworkManager::GetRule(QString Guid)
 	XVariant& Rule = Ret.GetValue();
 
 	CProgramID ID;
-	ID.FromVariant(Rule[SVC_API_ID_PROG]);
+	ID.FromVariant(Rule[API_V_PROG_ID]);
 
 	CFwRulePtr pRule = CFwRulePtr(new CFwRule(ID));
 	pRule->FromVariant(Rule);
@@ -171,9 +171,9 @@ RESULT(CFwRulePtr) CNetworkManager::GetRule(QString Guid)
 	RETURN(pRule);
 }
 
-STATUS CNetworkManager::DelRule(QString Guid)
+STATUS CNetworkManager::DelFwRule(const CFwRulePtr& pRule)
 {
-	return theCore->DelFwRule(Guid);
+	return theCore->DelFwRule(pRule->GetGuid());
 }
 
 void CNetworkManager::UpdateDnsCache()
@@ -189,7 +189,7 @@ void CNetworkManager::UpdateDnsCache()
 	Cache.ReadRawList([&](const CVariant& vData) {
 		const XVariant& Data = *(XVariant*)&vData;
 
-		quint64 CacheRef = Data[SVC_API_DNS_CACHE_REF];
+		quint64 CacheRef = Data[API_V_DNS_CACHE_REF];
 
 		CDnsCacheEntryPtr pEntry = OldCache.take(CacheRef);
 		if (!pEntry) {

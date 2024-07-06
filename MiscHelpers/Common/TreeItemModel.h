@@ -53,12 +53,14 @@ protected:
 			ID = Id;
 			Parent = NULL;
 			Row = 0;
+			ChildrenChanged = false;
 			//AllChildren = 0;
 
 			Virtual = false;
 
 			IsBold = false;
 			IsGray = false;
+			IsItalic = false;
 
 			Model = pModel;
 			Model->m_Nodes.insert(this);
@@ -73,6 +75,7 @@ protected:
 		int					Row;
 		QList<QVariant>		Path;
 		QList<STreeNode*>	Children;
+		bool				ChildrenChanged;
 		//int				AllChildren;
 		//QMap<QVariant, int>	Aux;
 		bool				Virtual;
@@ -80,6 +83,7 @@ protected:
 		QVariant			Icon;
 		bool				IsBold;
 		bool				IsGray;
+		bool				IsItalic;
 		QColor				Color;
 		struct SValue
 		{

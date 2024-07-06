@@ -7,6 +7,8 @@ class CWindowsService: public CProgramItem
 public:
 	CWindowsService(QObject* parent = nullptr);
 
+	virtual EProgramType GetType() const { return EProgramType::eWindowsService; }
+
 	virtual QIcon DefaultIcon() const;
 	
 	virtual QString GetNameEx() const;
@@ -19,15 +21,23 @@ public:
 
 	virtual void CountStats();
 
+	virtual QMap<quint64, SAccessStatsPtr>	GetAccessStats();
+
 	virtual QMap<QString, CTrafficEntryPtr>	GetTrafficLog();
 	
 protected:
 	
-	virtual void ReadValue(const SVarName& Name, const XVariant& Data);
+	void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
+	void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
+	void ReadIValue(uint32 Index, const XVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
 
 	QString						m_ServiceId;
 
 	quint64						m_ProcessId = 0;
+
+	QMap<quint64, SAccessStatsPtr> m_AccessStats;
+	quint64						m_AccessStatsLastActivity = 0;
 
 	QSet<quint64>				m_SocketRefs;
 

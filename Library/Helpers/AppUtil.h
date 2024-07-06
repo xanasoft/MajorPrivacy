@@ -104,4 +104,4 @@ LIBRARY_EXPORT std::wstring GetProcessImageFileNameByProcessId(HANDLE ProcessId)
     sizeof(SYSTEM_EXTENDED_THREAD_INFORMATION) * \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NumberOfThreads))
 
-LIBRARY_EXPORT NTSTATUS NtEnumProcesses(std::vector<BYTE>& Processes, SYSTEM_INFORMATION_CLASS SystemInformationClass);
+LIBRARY_EXPORT NTSTATUS MyQuerySystemInformation(std::vector<BYTE>& Info, SYSTEM_INFORMATION_CLASS SystemInformationClass);

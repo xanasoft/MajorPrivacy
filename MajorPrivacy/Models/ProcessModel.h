@@ -1,6 +1,6 @@
 #pragma once
 #include <qwidget.h>
-#include "../Core/Process.h"
+#include "../Core/Processes/Process.h"
 #include "../../MiscHelpers/Common/TreeItemModel.h"
 
 class CProcessModel : public CTreeItemModel
@@ -10,6 +10,8 @@ class CProcessModel : public CTreeItemModel
 public:
     CProcessModel(QObject *parent = 0);
 	~CProcessModel();
+
+	typedef CProcessPtr ItemType;
 
 	void			SetTree(bool bTree)				{ m_bTree = bTree; }
 	bool			IsTree() const					{ return m_bTree; }
@@ -28,8 +30,11 @@ public:
 		eProcess = 0,
 		ePID,
 		eParentPID,
-		eStaus,
-		//eFileName,
+		eEnclaveID,
+		eSignAuthority,
+		eStatus,
+		eImageStats,
+		eFileName,
 		//eFileHash,
 
 		eCount
@@ -51,7 +56,7 @@ protected:
 
 	virtual STreeNode*		MkNode(const QVariant& Id) { return new SProcessNode(this, Id); }
 		
-	QList<QVariant>			MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList);
+	void					MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, QList<QVariant>& Path);
 	bool					TestProcPath(const QList<QVariant>& Path, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, int Index = 0);
 	
 	bool					m_bTree;

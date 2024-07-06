@@ -2,10 +2,12 @@
 #include "ProgramItem.h"
 #include "../Processes/ProcessList.h"
 #include "../ServiceCore.h"
-#include "ServiceAPI.h"
-#include "../Network/NetIsolator.h"
+#include "../../Library/API/PrivacyAPI.h"
+#include "../Network/NetworkManager.h"
 #include "../Network/SocketList.h"
 #include "../Network/Firewall/FirewallRule.h"
+#include "../Programs/ProgramRule.h"
+#include "../Access/AccessRule.h"
 
 
 CProgramItem::CProgramItem()
@@ -15,32 +17,59 @@ CProgramItem::CProgramItem()
 	m_UID = InterlockedIncrement64(&VolatileIdCounter);
 }
 
-CVariant CProgramItem::ToVariant() const
+CVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const
 {
-	std::unique_lock lock(m_Mutex);
+	std::unique_lock Lock(m_Mutex);
 
 	CVariant Data;
-	Data.BeginMap();
-	
-	WriteVariant(Data);
-
+	if (Opts.Format == SVarWriteOpt::eIndex) {
+		Data.BeginIMap();
+		WriteIVariant(Data, Opts);
+	} else {  
+		Data.BeginMap();
+		WriteMVariant(Data, Opts);
+	}
 	Data.Finish();
 	return Data;
 }
 
-void CProgramItem::WriteVariant(CVariant& Data) const
+NTSTATUS CProgramItem::FromVariant(const class CVariant& Data)
 {
-	Data.Write(SVC_API_PROG_UID, m_UID);
-	Data.WriteVariant(SVC_API_PROG_ID, m_ID.ToVariant());
-	Data.Write(SVC_API_PROG_NAME, m_Name);
+	std::unique_lock Lock(m_Mutex);
 
-	Data.Write(SVC_API_PROG_ICON, m_Icon);
-	Data.Write(SVC_API_PROG_INFO, m_Info);
+	if (Data.GetType() == VAR_TYPE_MAP)         Data.ReadRawMap([&](const SVarName& Name, const CVariant& Data) { ReadMValue(Name, Data); });
+	else if (Data.GetType() == VAR_TYPE_INDEX)  Data.ReadRawIMap([&](uint32 Index, const CVariant& Data)        { ReadIValue(Index, Data); });
+	else
+		return STATUS_UNKNOWN_REVISION;
+	return STATUS_SUCCESS;
+}
 
+CVariant CProgramItem::CollectFwRules() const
+{
 	CVariant FwRules;
 	FwRules.BeginList();
 	for (auto FwRule : m_FwRules)
 		FwRules.Write(FwRule->GetGuid());
 	FwRules.Finish();
-	Data.WriteVariant(SVC_API_PROG_FW_RULES, FwRules);
+	return FwRules;
+}
+
+CVariant CProgramItem::CollectProgRules() const
+{
+	CVariant ProgRules;
+	ProgRules.BeginList();
+	for (auto ProgRule : m_ProgRules)
+		ProgRules.Write(ProgRule->GetGuid());
+	ProgRules.Finish();
+	return ProgRules;
+}
+
+CVariant CProgramItem::CollectResRules() const
+{
+	CVariant ResRules;
+	ResRules.BeginList();
+	for (auto ResRule : m_ResRules)
+		ResRules.Write(ResRule->GetGuid());
+	ResRules.Finish();
+	return ResRules;
 }

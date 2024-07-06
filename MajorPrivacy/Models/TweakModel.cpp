@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "TweakModel.h"
 #include "../MiscHelpers/Common/Common.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/AppUtil.h"
 #include "../Core/PrivacyCore.h"
 

@@ -1,11 +1,15 @@
 #include "pch.h"
 #include "SocketView.h"
 #include "../Core/PrivacyCore.h"
+#include "../MiscHelpers/Common/CustomStyles.h"
 
 CSocketView::CSocketView(QWidget *parent)
 	:CPanelViewEx<CSocketModel>(parent)
 {
 	m_pTreeView->setColumnReset(2);
+	QStyle* pStyle = QStyleFactory::create("windows");
+	m_pTreeView->setStyle(pStyle);
+	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 	
@@ -29,7 +33,7 @@ void CSocketView::Sync(const QMap<quint64, CProcessPtr>& Processes, const QSet<C
 	foreach(CProcessPtr pProcess, Processes)
 		SocketList.append(pProcess->GetSockets());
 	foreach(CWindowsServicePtr pService, ServicesEx) {
-		CProcessPtr pProcess = theCore->Processes()->GetProcess(pService->GetProcessId());
+		CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->GetProcessId());
 		if (!pProcess) continue;
 		foreach(CSocketPtr pSocket, pProcess->GetSockets()) {
 			if (pSocket->GetOwnerService().compare(pService->GetSvcTag(), Qt::CaseInsensitive) == 0)

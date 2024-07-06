@@ -16,9 +16,6 @@
     <Filter Include="Helpers">
       <UniqueIdentifier>{a2768dbc-6ac6-46e2-a15a-415247a7fed3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="API">
-      <UniqueIdentifier>{9710633e-4bf3-46f8-b50e-3dd19c787212}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common">
       <UniqueIdentifier>{c8c311d3-1d38-44f1-9f76-bc35d46bf8c6}</UniqueIdentifier>
     </Filter>
@@ -27,6 +24,21 @@
     </Filter>
     <Filter Include="PHlib\include">
       <UniqueIdentifier>{c6158929-61b8-4371-b21f-02deda91d7c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework">
+      <UniqueIdentifier>{8f2ad962-764b-4552-941b-002aa6b712e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Crypto">
+      <UniqueIdentifier>{b4dc1078-adca-4d0e-a1b5-333d0cae2cc4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{e7a1af14-4f2e-4272-ac43-d9b2af0d12b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IPC">
+      <UniqueIdentifier>{9710633e-4bf3-46f8-b50e-3dd19c787212}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API">
+      <UniqueIdentifier>{5759a500-9c30-4891-9546-1354a55fda54}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -41,9 +53,6 @@
     </ClInclude>
     <ClInclude Include="lib_global.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="API\DriverAPI.h">
-      <Filter>API</Filter>
     </ClInclude>
     <ClInclude Include="Types.h">
       <Filter>Header Files</Filter>
@@ -72,9 +81,6 @@
     <ClInclude Include="Common\FileIO.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="API\ServiceAPI.h">
-      <Filter>API</Filter>
-    </ClInclude>
     <ClInclude Include="Helpers\NtObj.h">
       <Filter>Helpers</Filter>
     </ClInclude>
@@ -86,21 +92,6 @@
     </ClInclude>
     <ClInclude Include="Common\VariantDefs.h">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="API\AbstractClient.h">
-      <Filter>API</Filter>
-    </ClInclude>
-    <ClInclude Include="API\FltPortClient.h">
-      <Filter>API</Filter>
-    </ClInclude>
-    <ClInclude Include="API\DeviceClient.h">
-      <Filter>API</Filter>
-    </ClInclude>
-    <ClInclude Include="API\AlpcPortClient.h">
-      <Filter>API</Filter>
-    </ClInclude>
-    <ClInclude Include="API\PortMessage.h">
-      <Filter>API</Filter>
     </ClInclude>
     <ClInclude Include="Helpers\WinUtil.h">
       <Filter>Helpers</Filter>
@@ -183,9 +174,6 @@
     <ClInclude Include="PHlib\format_i.h">
       <Filter>PHlib</Filter>
     </ClInclude>
-    <ClInclude Include="API\AlpcPortServer.h">
-      <Filter>API</Filter>
-    </ClInclude>
     <ClInclude Include="Helpers\EvtUtil.h">
       <Filter>Helpers</Filter>
     </ClInclude>
@@ -203,12 +191,6 @@
     </ClInclude>
     <ClInclude Include="Common\stl_helpers.h">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="API\PipeClient.h">
-      <Filter>API</Filter>
-    </ClInclude>
-    <ClInclude Include="API\PipeServer.h">
-      <Filter>API</Filter>
     </ClInclude>
     <ClInclude Include="Helpers\MiscHelpers.h">
       <Filter>Helpers</Filter>
@@ -237,6 +219,117 @@
     <ClInclude Include="Helpers\SchdUtil.h">
       <Filter>Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="..\Framework\Array.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\Defer.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\Framework.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\List.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\Map.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\Memory.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\Object.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\Pair.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\SafeRef.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\SharedPtr.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\String.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\Table.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\UniquePtr.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\WeakPtr.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\RetValue.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Framework\Header.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\hndlinfo.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\PrivateCrypto.h">
+      <Filter>Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\HashFunction.h">
+      <Filter>Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\PrivateKey.h">
+      <Filter>Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\Encryption.h">
+      <Filter>Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\PublicKey.h">
+      <Filter>Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\ScopedHandle.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\SharedCrypto.h">
+      <Filter>Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC\AbstractClient.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC\AlpcPortClient.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC\AlpcPortServer.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC\DeviceClient.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC\FltPortClient.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC\PipeClient.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC\PipeServer.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC\PortMessage.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="API\ServiceAPI.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\DriverAPI.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\PrivacyAPI.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\PrivacyDefs.h">
+      <Filter>API</Filter>
+    </ClInclude>
+    <ClInclude Include="API\PrivacyAPIs.h">
+      <Filter>API</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -247,9 +340,6 @@
     </ClCompile>
     <ClCompile Include="Helpers\Service.cpp">
       <Filter>Helpers</Filter>
-    </ClCompile>
-    <ClCompile Include="API\DriverAPI.cpp">
-      <Filter>API</Filter>
     </ClCompile>
     <ClCompile Include="Helpers\NtIO.cpp">
       <Filter>Helpers</Filter>
@@ -269,9 +359,6 @@
     <ClCompile Include="Common\FileIO.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="API\ServiceAPI.cpp">
-      <Filter>API</Filter>
-    </ClCompile>
     <ClCompile Include="Common\SVariant.c">
       <Filter>Common</Filter>
     </ClCompile>
@@ -280,12 +367,6 @@
     </ClCompile>
     <ClCompile Include="Common\DbgHelp.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="API\FltPortClient.cpp">
-      <Filter>API</Filter>
-    </ClCompile>
-    <ClCompile Include="API\AlpcPortClient.cpp">
-      <Filter>API</Filter>
     </ClCompile>
     <ClCompile Include="Helpers\WinUtil.cpp">
       <Filter>Helpers</Filter>
@@ -341,9 +422,6 @@
     <ClCompile Include="PHlib\format_std.cpp">
       <Filter>PHlib</Filter>
     </ClCompile>
-    <ClCompile Include="API\AlpcPortServer.cpp">
-      <Filter>API</Filter>
-    </ClCompile>
     <ClCompile Include="Helpers\EvtUtil.cpp">
       <Filter>Helpers</Filter>
     </ClCompile>
@@ -352,12 +430,6 @@
     </ClCompile>
     <ClCompile Include="Common\Address.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="API\PipeClient.cpp">
-      <Filter>API</Filter>
-    </ClCompile>
-    <ClCompile Include="API\PipeServer.cpp">
-      <Filter>API</Filter>
     </ClCompile>
     <ClCompile Include="Helpers\MiscHelpers.cpp">
       <Filter>Helpers</Filter>
@@ -380,10 +452,78 @@
     <ClCompile Include="PHlib\util.c">
       <Filter>PHlib</Filter>
     </ClCompile>
+    <ClCompile Include="..\Framework\Memory.cpp">
+      <Filter>Framework</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\hndlinfo.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\HashFunction.cpp">
+      <Filter>Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\PrivateKey.cpp">
+      <Filter>Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\Encryption.cpp">
+      <Filter>Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\PublicKey.cpp">
+      <Filter>Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\SharedCrypto.cpp">
+      <Filter>Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC\AlpcPortClient.cpp">
+      <Filter>IPC</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC\AlpcPortServer.cpp">
+      <Filter>IPC</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC\FltPortClient.cpp">
+      <Filter>IPC</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC\PipeClient.cpp">
+      <Filter>IPC</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC\PipeServer.cpp">
+      <Filter>IPC</Filter>
+    </ClCompile>
+    <ClCompile Include="API\ServiceAPI.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\DriverAPI.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\API_AccessRule.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\API_GenericRule.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\API_ProgramRule.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\API_FwRule.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\API_ProgramID.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\API_Tweak.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="API\API_Programs.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\Service.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Framework\README.MD">
+      <Filter>Framework</Filter>
+    </None>
   </ItemGroup>
 </Project>

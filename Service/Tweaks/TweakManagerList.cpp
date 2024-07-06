@@ -2,6 +2,8 @@
 #include "Tweak.h"
 #include "../Library/Common/DbgHelp.h"
 
+#define V(x) CVariant(x)
+
 // Windows Versions
 #define WinVer_Win2k        SWinVer(2195)
 #define WinVer_WinXP        SWinVer(2600)
@@ -39,6 +41,7 @@
 #define WinVer_Win23H2      SWinVer(22631)
 
 
+
 template <class _Ty, class... _Types>
 CTweakPtr MakeTweakObject(const CTweakPtr& pParent, std::map<std::wstring, CTweakPtr>* pList, _Types&&... _Args)
 {
@@ -73,27 +76,27 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(telemetry, pList, L"Minimize Telemetry", WinVer_Win10EE,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
         L"AllowTelemetry",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(telemetry, pList, L"Disable App. Compat. Telemetry", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppCompat",
         L"AITEnable",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(telemetry, pList, L"Do not Show Feedback Notifications", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
         L"DoNotShowFeedbackNotifications",
-        1);
+        V(1));
     MakeTweakObject<CSvcTweak>(telemetry, pList, L"Disable Telemetry Service (DiagTrack-Listener)", WinVer_Win7,
         L"DiagTrack");
     MakeTweakObject<CRegTweak>(telemetry, pList, L"Disable AutoLogger-Diagtrack-Listener", WinVer_Win10,
         L"SYSTEM\\CurrentControlSet\\Control\\WMI\\Autologger\\AutoLogger-Diagtrack-Listener",
         L"Start",
-        0);
+        V(0));
     MakeTweakObject<CSvcTweak>(telemetry, pList, L"Disable Push Service", WinVer_Win10,
         L"dmwappushservice");
     MakeTweakObject<CGpoTweak>(telemetry, pList, L"Don't AllowDeviceNameInTelemetry", WinVer_Win1803,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection",
         L"AllowDeviceNameInTelemetry",
-        0,
+        V(0),
         ETweakHint::eNone);
     MakeTweakObject<CTaskTweak>(telemetry, pList, L"Device Census", WinVer_Win7,
         L"\\Microsoft\\Windows\\Device Information",
@@ -115,11 +118,11 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(appExp, pList, L"Turn off Steps Recorder", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\windows\\AppCompat",
         L"DisableUAR",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(appExp, pList, L"Turn off Inventory Collector", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\windows\\AppCompat",
         L"DisableInventory",
-        1);
+        V(1));
     MakeTweakObject<CFSTweak>(appExp, pList, L"Disable CompatTelRunner.exe", WinVer_Win6,
         L"%SystemRoot%\\System32\\CompatTelRunner.exe");
     MakeTweakObject<CFSTweak>(appExp, pList, L"Disable DiagTrackRunner.exe", WinVer_Win7to81,
@@ -131,19 +134,19 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(ceip, pList, L"Turn of CEIP", WinVer_Win6,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\SQMClient\\Windows",
         L"CEIPEnable",
-        0);
+        V(0));
     MakeTweakObject<CTaskTweak>(ceip, pList, L"Disable all CEIP Tasks", WinVer_Win6,
         L"\\Microsoft\\Windows\\Customer Experience Improvement Program",
-        L"*");
+        V(L"*"));
     MakeTweakObject<CGpoTweak>(ceip, pList, L"Disable IE CEIP", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\SQM",
         L"DisableCustomerImprovementProgram",
-        0,  // must be 0 according to https://getadmx.com/?Category=Windows_10_2016&Policy=Microsoft.Policies.InternetExplorer::SQM_DisableCEIP
+        V(0),  // must be 0 according to https://getadmx.com/?Category=Windows_10_2016&Policy=Microsoft.Policies.InternetExplorer::SQM_DisableCEIP
         ETweakHint::eNone);
     MakeTweakObject<CGpoTweak>(ceip, pList, L"Disable Live Messenger CEIP", WinVer_WinXPto7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Messenger\\Client",
         L"CEIP",
-        2,
+        V(2),
         ETweakHint::eNone);
     //  Set USER GPO "SOFTWARE\\Policies\\Microsoft\\Messenger\\Client" "CEIP" "2"(deprecated)
 
@@ -153,20 +156,20 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CRegTweak>(werr, pList, L"Turn off Windows Error Reporting", WinVer_Win6,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting",
         L"Disabled",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(werr, pList, L"Turn off Windows Error Reporting (GPO)", WinVer_Win6,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Error Reporting",
         L"Disabled",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(werr, pList, L"Do not Report Errors", WinVer_WinXPonly,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\PCHealth\\ErrorReporting",
         L"DoReport",
-        0);
+        V(0));
     MakeTweakObject<CSvcTweak>(werr, pList, L"Disable Error Reporting Service", WinVer_Win6,
         L"WerSvc");
     MakeTweakObject<CTaskTweak>(werr, pList, L"Disable Error Reporting Tasks", WinVer_Win6,
         L"\\Microsoft\\Windows\\Windows Error Reporting",
-        L"*");
+        V(L"*"));
     //(Disable file WerSvc.dll)
     //(Disable file wer*.exe)
 
@@ -176,7 +179,7 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CRegTweak>(kdmp, pList, L"Disable System Crash Dumps", WinVer_Win2k,
         L"SYSTEM\\CurrentControlSet\\Control\\CrashControl",
         L"CrashDumpEnabled",
-        0,
+        V(0),
         ETweakHint::eNone);
 
 
@@ -185,11 +188,11 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(diag, pList, L"Turn of MSDT", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\ScriptedDiagnosticsProvider\\Policy",
         L"DisableQueryRemoteServer",
-        0); // must be 0 according to https://getadmx.com/?Category=Windows_10_2016&Policy=Microsoft.Policies.MSDT::MsdtSupportProvider
+        V(0)); // must be 0 according to https://getadmx.com/?Category=Windows_10_2016&Policy=Microsoft.Policies.MSDT::MsdtSupportProvider
     MakeTweakObject<CGpoTweak>(diag, pList, L"Turn off Online Assist", WinVer_Win6to7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Assistance\\Client\\1.0",
         L"NoOnlineAssist",
-        1);
+        V(1));
     // Set USER GPO @"Software\Policies\Microsoft\Assistance\Client\1.0" "NoOnlineAssist" "1" (deprecated)
     // Set USER GPO @"Software\Policies\Microsoft\Assistance\Client\1.0" "NoExplicitFeedback" "1" (deprecated)
     // Set USER GPO @"Software\Policies\Microsoft\Assistance\Client\1.0" "NoImplicitFeedback" "1" (deprecated)
@@ -198,7 +201,7 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(diag, pList, L"Do not Update Disk Health Model", WinVer_Win1709,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\StorageHealth",
         L"AllowDiskHealthModelUpdates",
-        0);
+        V(0));
     MakeTweakObject<CTaskTweak>(diag, pList, L"Disable Disk Diagnostics Task", WinVer_Win6,
         L"\\Microsoft\\Windows\\DiskDiagnostic",
         L"Microsoft-Windows-DiskDiagnosticDataCollector",
@@ -220,30 +223,30 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(cortana, pList, L"Disable Cortana App", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
         L"AllowCortana",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(cortana, pList, L"Forbid the Use of Location", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
         L"AllowSearchToUseLocation",
-        0);
+        V(0));
 
     // *** Disable Web Search ***
     CTweakPtr webSearch = MakeTweakObject<CTweakSet>(searchCat, pList, L"Disable Online Search", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(webSearch, pList, L"Disable Web Search", WinVer_WinXP,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
         L"DisableWebSearch",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(webSearch, pList, L"Disable Connected Web Search", WinVer_Win81,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
         L"ConnectedSearchUseWeb",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(webSearch, pList, L"Enforce Search Privacy", WinVer_Win81only,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
         L"ConnectedSearchPrivacy",
-        3);
+        V(3));
     MakeTweakObject<CGpoTweak>(webSearch, pList, L"Disable Search Box Suggestions", WinVer_Win20H1,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
         L"DisableSearchBoxSuggestions",
-        1);
+        V(1));
 
     // *** Disable Search ***
     CTweakPtr search = MakeTweakObject<CTweakSet>(searchCat, pList, L"Disable Search");
@@ -255,11 +258,11 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(search, pList, L"Remove Search Box", WinVer_Win10,
         L"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Search",
         L"SearchboxTaskbarMode",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(webSearch, pList, L"Don't Update Search Companion", WinVer_WinXPto7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\SearchCompanion",
         L"DisableContentFileUpdates",
-        1);
+        V(1));
 
 
 
@@ -277,23 +280,23 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(defender, pList, L"Disable Real-Time Protection", WinVer_Win10, // starting with windows 1903 this must be disabled first to turn off tamper protection
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection",
         L"DisableRealtimeMonitoring",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(defender, pList, L"Turn off Anti Spyware", WinVer_Win6,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender",
         L"DisableAntiSpyware",
-        1);
+        V(1));
     //MakeTweakObject<CGpoTweak>(defender, pList, L"Turn off Anti Virus", WinVer_Win6, // legacy not neede
     //    L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender",
     //    L"DisableAntiVirus",
-    //    1);
+    //    V(1));
     MakeTweakObject<CGpoTweak>(defender, pList, L"Torn off Application Guard", WinVer_Win10EE,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\AppHVSI",
         L"AllowAppHVSI_ProviderSet",
-        0);
+        V(0));
     MakeTweakObject<CRegTweak>(defender, pList, L"Disable SecurityHealthService Service", WinVer_Win1703,
         L"SYSTEM\\CurrentControlSet\\Services\\SecurityHealthService",
         L"Start",
-        4,
+        V(4),
         ETweakHint::eNone);
 
     // *** Silence Defender ***
@@ -301,15 +304,15 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(defender2, pList, L"Disable Enhanced Notifications", WinVer_Win6,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Reporting",
         L"DisableEnhancedNotifications",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(defender2, pList, L"Disable Spynet Reporting", WinVer_Win6,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Spynet",
         L"SpynetReporting",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(defender2, pList, L"Don't Submit Samples", WinVer_Win6,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Spynet",
         L"SubmitSamplesConsent",
-        2);
+        V(2));
     //Set GPO @"SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates" "DefinitionUpdateFileSharesSources" DELET (nope)
     //Set GPO @"SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates" "FallbackOrder" "SZ:FileShares"(nope)
 
@@ -318,12 +321,12 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(screen, pList, L"Turn off SmartScreen", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
         L"EnableSmartScreen",
-        0);
+        V(0));
     // Set GPO @"Software\Policies\Microsoft\Windows\System" "ShellSmartScreenLevel" DEL
     MakeTweakObject<CGpoTweak>(screen, pList, L"Disable App Install Control", WinVer_Win1703,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\SmartScreen",
         L"ConfigureAppInstallControlEnabled",
-        0);
+        V(0));
     MakeTweakObject<CFSTweak>(screen, pList, L"Disable smartscreen.exe", WinVer_Win6,
         L"%SystemRoot%\\System32\\smartscreen.exe",
         ETweakHint::eNone);
@@ -331,19 +334,19 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(screen, pList, L"No SmartScreen for Store Apps", WinVer_Win81,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppHost",
         L"EnableWebContentEvaluation",
-        0);
+        V(0));
     // Edge
     MakeTweakObject<CGpoTweak>(screen, pList, L"Disable SmartScreen for Edge", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\PhishingFilter",
         L"EnabledV9",
-        0,
+        V(0),
         ETweakHint::eNone);
     //Set GPO @"Software\Policies\Microsoft\MicrosoftEdge\PhishingFilter" "PreventOverride" "0"
     // Edge
     MakeTweakObject<CGpoTweak>(screen, pList, L"Disable SmartScreen for IE", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\PhishingFilter",
         L"EnabledV9",
-        0,
+        V(0),
         ETweakHint::eNone);
 
     // *** MRT-Tool ***
@@ -351,11 +354,11 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(mrt, pList, L"Don't Report Infections", WinVer_Win2k,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MRT",
         L"DontReportInfectionInformation",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(mrt, pList, L"Disable MRT-Tool", WinVer_Win2k,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MRT",
         L"DontOfferThroughWUAU",
-        1,
+        V(1),
         ETweakHint::eNone);
 
 
@@ -374,22 +377,22 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(noAutoUpdates, pList, L"Disable Automatic Update", WinVer_WinXPto8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
         L"NoAutoUpdate",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(noAutoUpdates, pList, L"Disable Automatic Update (Enterprise Only)", WinVer_Win10EE, // since 10 this tweak only works on enterprise and alike
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
         L"NoAutoUpdate",
-        1);
+        V(1));
 
     // *** Disable Driver Update ***
     CTweakPtr drv = MakeTweakObject<CTweakSet>(updateCat, pList, L"Disable Driver Update");
     MakeTweakObject<CGpoTweak>(drv, pList, L"Don't Update Drivers With", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
         L"ExcludeWUDriversInQualityUpdate",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(drv, pList, L"Don't get Device Info from Web", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Device Metadata",
         L"PreventDeviceMetadataFromNetwork",
-        1);
+        V(1));
 
     // *** Disable Windows Update ***
     CTweakPtr noUpdates = MakeTweakObject<CTweakSet>(updateCat, pList, L"Disable Windows Update Services");
@@ -405,23 +408,23 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(blockWU, pList, L"DoNotConnectToWindowsUpdateInternetLocations", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
         L"DoNotConnectToWindowsUpdateInternetLocations",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(blockWU, pList, L"WUServer", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
         L"WUServer",
-        L"\" \"");
+        V(L"\" \""));
     MakeTweakObject<CGpoTweak>(blockWU, pList, L"WUStatusServer", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
         L"WUStatusServer",
-        L"\" \"");
+        V(L"\" \""));
     MakeTweakObject<CGpoTweak>(blockWU, pList, L"UpdateServiceUrlAlternate", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate",
         L"UpdateServiceUrlAlternate",
-        L"\" \"");
+        V(L"\" \""));
     MakeTweakObject<CGpoTweak>(blockWU, pList, L"UseWUServer", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
         L"UseWUServer",
-        1);
+        V(1));
 
     // *** Disable Windows Insider Service ***
     CTweakPtr noInsider = MakeTweakObject<CTweakSet>(updateCat, pList, L"Disable Windows Insider Services");
@@ -444,106 +447,106 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(privacy, pList, L"Turn off Advertising ID", WinVer_Win81,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo",
         L"DisabledByGroupPolicy",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(privacy, pList, L"Turn off Consumer Experiences", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
         L"DisableWindowsConsumerFeatures",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(privacy, pList, L"Limit Tailored Experiences", WinVer_Win1703,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Privacy",
         L"TailoredExperiencesWithDiagnosticDataEnabled",
-        0);
+        V(0));
     // Limit Tailored Experiences (user)
     MakeTweakObject<CGpoTweak>(privacy, pList, L"Limit Tailored Experiences (user)", WinVer_Win1703,
         L"HKCU\\Software\\Policies\\Microsoft\\Windows\\CloudContent",
         L"DisableTailoredExperiencesWithDiagnosticData",
-        1);
+        V(1));
     // Turn off Windows Spotlight
     MakeTweakObject<CGpoTweak>(privacy, pList, L"Turn off Windows Spotlight", WinVer_Win10,
         L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
         L"DisableWindowsSpotlightFeatures",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(privacy, pList, L"Disable OnlineTips in Settings", WinVer_Win1709,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
         L"AllowOnlineTips",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(privacy, pList, L"Don't show Windows Tips", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
         L"DisableSoftLanding",
-        1);
+        V(1));
 
     // *** Disable Unsolicited App Installation ***
     CTweakPtr delivery = MakeTweakObject<CTweakSet>(privacyCat, pList, L"Disable Unsolicited App Installation", ETweakHint::eRecommended);
     MakeTweakObject<CRegTweak>(delivery, pList, L"ContentDeliveryAllowed", WinVer_Win1607,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
         L"ContentDeliveryAllowed",
-        0);
+        V(0));
     MakeTweakObject<CRegTweak>(delivery, pList, L"OemPreInstalledAppsEnabled", WinVer_Win1607,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
         L"OemPreInstalledAppsEnabled",
-        0);
+        V(0));
     MakeTweakObject<CRegTweak>(delivery, pList, L"PreInstalledAppsEnabled", WinVer_Win1607,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
         L"PreInstalledAppsEnabled",
-        0);
+        V(0));
     //MakeTweakObject<CRegTweak>(delivery, pList, L"PreInstalledAppsEverEnabled (user)", WinVer_Win1607,
     //    L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
     //    L"PreInstalledAppsEverEnabled",
-    //    0);
+    //    V(0));
     MakeTweakObject<CRegTweak>(delivery, pList, L"SilentInstalledAppsEnabled", WinVer_Win1607,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
         L"SilentInstalledAppsEnabled",
-        0);
+        V(0));
     MakeTweakObject<CRegTweak>(delivery, pList, L"SoftLandingEnabled (user)", WinVer_Win1607,
         L"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
         L"SoftLandingEnabled",
-        0);
+        V(0));
     //MakeTweakObject<CRegTweak>(delivery, pList, L"SubscribedContentEnabled (user)", WinVer_Win1607,
     //    L"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
     //    L"SubscribedContentEnabled",
-    //    0);
+    //    V(0));
 
     // *** No Lock Screen ***
     CTweakPtr lockScr = MakeTweakObject<CTweakSet>(privacyCat, pList, L"Disable Lock Screen", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(lockScr, pList, L"Don't use Lock Screen", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization",
         L"NoLockScreen",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(lockScr, pList, L"Enable LockScreen Image", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization",
         L"LockScreenOverlaysDisabled",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(lockScr, pList, L"Set LockScreen Image", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization",
         L"LockScreenImage",
-        L"C:\\windows\\web\\screen\\lockscreen.jpg");
+        V(L"C:\\windows\\web\\screen\\lockscreen.jpg"));
 
     // *** No Personalization ***
     CTweakPtr spying = MakeTweakObject<CTweakSet>(privacyCat, pList, L"No Personalization", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(spying, pList, L"Disable input personalization", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization",
         L"AllowInputPersonalization",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(spying, pList, L"Disable Test Collection", WinVer_Win6,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization",
         L"RestrictImplicitTextCollection",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(spying, pList, L"Disable Inc Collection", WinVer_Win6,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization",
         L"RestrictImplicitInkCollection",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(spying, pList, L"Disable Linguistic Data Collection", WinVer_Win1803,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\TextInput",
         L"AllowLinguisticDataCollection",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(spying, pList, L"Disable Handwriting Error Reports", WinVer_Win6to7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\HandwritingErrorReport",
         L"PreventHandwritingErrorReports",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(spying, pList, L"Disable Handwriting Data Sharing", WinVer_Win6to7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\TabletPC",
         L"PreventHandwritingDataSharing",
-        1);
+        V(1));
     // Set USER GPO @"Software\Policies\Microsoft\Windows\HandwritingErrorReports" "PreventHandwritingErrorReports" "1" (deprecated)
     // Set USER GPO @"Software\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" "1" (deprecated)	
 
@@ -552,22 +555,22 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(location, pList, L"Disable Location Provider", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors",
         L"DisableLocation",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(location, pList, L"Don't Share Lang List", WinVer_Win10,
         L"Control Panel\\International\\User Profile",
         L"HttpAcceptLanguageOptOut",
-        1);
+        V(1));
 
     // *** No Registration ***
     CTweakPtr privOther = MakeTweakObject<CTweakSet>(privacyCat, pList, L"No Registration", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(privOther, pList, L"Disable KMS GenTicket", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\CurrentVersion\\Software Protection Platform",
         L"NoGenTicket",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(privOther, pList, L"Disable Registration", WinVer_WinXP,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Registration Wizard Control",
         L"NoRegistration",
-        1);
+        V(1));
     MakeTweakObject<CSvcTweak>(privOther, pList, L"Disable LicenseManager Service", WinVer_Win10,
         L"LicenseManager",
         ETweakHint::eNone);
@@ -577,11 +580,11 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(push, pList, L"Disable Cloud Notification", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
         L"NoCloudApplicationNotification",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(push, pList, L"Disable Cloud Notification (user)", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
         L"NoCloudApplicationNotification",
-        1);
+        V(1));
     /*CTweakPtr oobe = MakeTweakObject<CTweakSet>(privacyCat, pList, L"Disable OOBE Post Setup", ETweakHint::eRecommended);
     oobe.Add(new Tweak("Disable OOBE Post Setup 1", TweakType.SetRegistry, WinVer.Win19H1)
     {
@@ -621,18 +624,18 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(onedrive, pList, L"Disable OneDrive Usage", WinVer_Win10, // WinVer.Win7
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\OneDrive",
         L"DisableFileSyncNGSC",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(onedrive, pList, L"Silence OneDrive", WinVer_Win10, // WinVer.Win7
         L"HKLM\\SOFTWARE\\Microsoft\\OneDrive",
         L"PreventNetworkTrafficPreUserSignIn",
-        1);
+        V(1));
     // Run uninstaller
     // *** No Microsoft Accounts ***
     CTweakPtr account = MakeTweakObject<CTweakSet>(accountCat, pList, L"No Microsoft Accounts", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(account, pList, L"Disable Microsoft Accounts", WinVer_Win8, // or 10?
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
         L"NoConnectedUser",
-        3);
+        V(3));
     MakeTweakObject<CSvcTweak>(account, pList, L"Disable MS Account Login Service", WinVer_Win8, // or 10?
         L"wlidsvc",
         ETweakHint::eNone);
@@ -642,62 +645,62 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(sync, pList, L"Disable Settings Sync", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
         L"DisableSettingSync",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(sync, pList, L"Force Disable Settings Sync", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\SettingSync",
         L"DisableSettingSyncUserOverride",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(sync, pList, L"Disable WiFi-Sense", WinVer_Win10to1709,
         L"HKLM\\SOFTWARE\\Microsoft\\wcmsvc\\wifinetworkmanager\\config",
         L"AutoConnectAllowedOEM",
-        0);
+        V(0));
 
     // *** No Find My Device ***
     CTweakPtr find = MakeTweakObject<CTweakSet>(accountCat, pList, L"No Find My Device", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(find, pList, L"Don't Allow FindMyDevice", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\FindMyDevice",
         L"AllowFindMyDevice",
-        0);
+        V(0));
 
     // *** No Cloud Clipboard ***
     CTweakPtr ccb = MakeTweakObject<CTweakSet>(accountCat, pList, L"No Cloud Clipboard", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(ccb, pList, L"Disable Cloud Clipboard", WinVer_Win1809,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
         L"AllowCrossDeviceClipboard",
-        0);
+        V(0));
 
     // *** No Cloud Messages ***
     CTweakPtr msgbak = MakeTweakObject<CTweakSet>(accountCat, pList, L"No Cloud Messages", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(msgbak, pList, L"Don't Sync Messages", WinVer_Win1709,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Messaging",
         L"AllowMessageSync",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(msgbak, pList, L"Don't Sync Messages (user)", WinVer_Win1709,
         L"HKLM\\SOFTWARE\\Microsoft\\Messaging",
         L"CloudServiceSyncEnabled",
-        0);
+        V(0));
 
     // *** Disable Activity Feed ***
     CTweakPtr feed = MakeTweakObject<CTweakSet>(accountCat, pList, L"Disable User Tracking", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(feed, pList, L"Disable Activity Feed", WinVer_Win1709,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
         L"EnableActivityFeed",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(feed, pList, L"Don't Upload User Activities", WinVer_Win1709,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
         L"UploadUserActivities",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(feed, pList, L"Don't Publish User Activities", WinVer_Win1709,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
         L"PublishUserActivities",
-        0);
+        V(0));
 
     // *** No Cross Device Experience ***
     CTweakPtr cdp = MakeTweakObject<CTweakSet>(accountCat, pList, L"No Cross Device Experience", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(cdp, pList, L"Disable Cross Device Experience", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
         L"EnableCdp",
-        0);
+        V(0));
 
 
 
@@ -735,130 +738,130 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(officeTelemetryOSM, pList, L"Enablelogging", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM",
         L"Enablelogging",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(officeTelemetryOSM, pList, L"EnableUpload", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM",
         L"EnableUpload",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(officeTelemetryOSM, pList, L"EnableFileObfuscation", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM",
         L"EnableFileObfuscation",
-        1);
+        V(1));
 
     // *** Disable Office Telemetry 2 ***
     CTweakPtr officeTelemetryCommon = MakeTweakObject<CTweakSet>(officeCat, pList, L"Disable Telemetry Common", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(officeTelemetryCommon, pList, L"sendtelemetry", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\Common\\ClientTelemetry",
         L"sendtelemetry",
-        3);
+        V(3));
     MakeTweakObject<CGpoTweak>(officeTelemetryCommon, pList, L"DisableTelemetry", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\Common\\ClientTelemetry",
         L"DisableTelemetry",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryCommon, pList, L"qmenable", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\Common",
         L"qmenable",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(officeTelemetryCommon, pList, L"sendcustomerdata", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\Common",
         L"sendcustomerdata",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(officeTelemetryCommon, pList, L"updatereliabilitydata", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\Common",
         L"updatereliabilitydata",
-        0);
+        V(0));
 
     // *** Disable Office Telemetry 3 ***
     CTweakPtr officeTelemetryFeedback = MakeTweakObject<CTweakSet>(officeCat, pList, L"Disable Telemetry Feedback", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(officeTelemetryFeedback, pList, L"feedback", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\Common\\feedback",
         L"enabled",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(officeTelemetryFeedback, pList, L"includescreenshot", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\Common\\feedback",
         L"includescreenshot",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(officeTelemetryFeedback, pList, L"ptwoptin", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\Common\\ptwatson",
         L"ptwoptin",
-        0);
+        V(0));
 
     // *** Disable Office Telemetry 4 ***
     CTweakPtr officeTelemetryByApp = MakeTweakObject<CTweakSet>(officeCat, pList, L"Disable Telemetry by Application", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(officeTelemetryByApp, pList, L"access", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedapplications",
         L"accesssolution",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByApp, pList, L"olk", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedapplications",
         L"olksolution",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByApp, pList, L"onenote", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedapplications",
         L"onenotesolution",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByApp, pList, L"ppt", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedapplications",
         L"pptsolution",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByApp, pList, L"project", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedapplications",
         L"projectsolution",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByApp, pList, L"publisher", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedapplications",
         L"publishersolution",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByApp, pList, L"visio", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedapplications",
         L"visiosolution",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByApp, pList, L"wd", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedapplications",
         L"wdsolution",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByApp, pList, L"xl", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedapplications",
         L"xlsolution",
-        1);
+        V(1));
 
     // *** Disable Office Telemetry 5 ***
     CTweakPtr officeTelemetryByType = MakeTweakObject<CTweakSet>(officeCat, pList, L"Disable Telemetry by Type", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(officeTelemetryByType, pList, L"agave", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedsolutiontypes",
         L"agave",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByType, pList, L"appaddins", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedsolutiontypes",
         L"appaddins",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByType, pList, L"comaddins", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedsolutiontypes",
         L"comaddins",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByType, pList, L"documentfiles", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedsolutiontypes",
         L"documentfiles",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeTelemetryByType, pList, L"templatefiles", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\OSM\\preventedsolutiontypes",
         L"templatefiles",
-        1);
+        V(1));
 
     // *** Disable Office Online Features ***
     CTweakPtr officeOnline = MakeTweakObject<CTweakSet>(officeCat, pList, L"Disable Online Features", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(officeOnline, pList, L"skydrivesigninoption", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\Common\\General",
         L"skydrivesigninoption",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(officeOnline, pList, L"shownfirstrunoptin", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\Common\\General",
         L"shownfirstrunoptin",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(officeOnline, pList, L"disablemovie", WinVer_Win7,
         L"HKCU\\Software\\Policies\\Microsoft\\Office\\16.0\\Firstrun",
         L"disablemovie",
-        1);
+        V(1));
 
 
 
@@ -875,11 +878,11 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(vsTelemetry, pList, L"Turn off telemetry", WinVer_Win7,
         L"HKCU\\Software\\Microsoft\\VisualStudio\\Telemetry",
         L"TurnOffSwitch",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(vsTelemetry, pList, L"Turn off PerfWatson2.exe", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\SQM",
         L"OptIn",
-        0);
+        V(0));
     MakeTweakObject<CFSTweak>(vsTelemetry, pList, L"Disable Microsoft.ServiceHub.Controller.exe (Enterprise)", WinVer_Win7,
         L"%ProgramFiles(x86)%\\Microsoft Visual Studio\\2019\\Enterprise\\Common7\\ServiceHub\\controller\\Microsoft.ServiceHub.Controller.exe",
         ETweakHint::eNone);
@@ -895,15 +898,15 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(vsFeedback, pList, L"DisableFeedbackDialog", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\Feedback",
         L"DisableFeedbackDialog",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(vsFeedback, pList, L"DisableEmailInput", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\Feedback",
         L"DisableEmailInput",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(vsFeedback, pList, L"DisableScreenshotCapture", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\VisualStudio\\Feedback",
         L"DisableScreenshotCapture",
-        1);
+        V(1));
 
 
 
@@ -921,153 +924,153 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(ac, pList, L"Disable Auto Suggest", WinVer_Win2k,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\Explorer\\AutoComplete",
         L"AutoSuggest",
-        L"no");
+        V("no"));
 
     // *** No Speech Updates ***
     CTweakPtr speech = MakeTweakObject<CTweakSet>(miscCat, pList, L"No Speech Updates");
     MakeTweakObject<CGpoTweak>(speech, pList, L"Don't Update SpeechModel", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Speech",
         L"AllowSpeechModelUpdate",
-        0);
+        V(0));
 
     // *** No Font Updates ***
     CTweakPtr font = MakeTweakObject<CTweakSet>(miscCat, pList, L"No Font Updates");
     MakeTweakObject<CGpoTweak>(font, pList, L"Don't Update Fonts", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
         L"EnableFontProviders",
-        0);
+        V(0));
 
     // *** No Certificate Updates ***
     CTweakPtr cert = MakeTweakObject<CTweakSet>(miscCat, pList, L"Automatic certificate updates");
     MakeTweakObject<CGpoTweak>(cert, pList, L"Disable Certificate Auto Update", WinVer_WinXP,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\SystemCertificates\\AuthRoot",
         L"DisableRootAutoUpdate",
-        1);
+        V(1));
 
     // *** Disable NtpClient ***
     CTweakPtr ntp = MakeTweakObject<CTweakSet>(miscCat, pList, L"Date and Time (NTP Client)");
     MakeTweakObject<CGpoTweak>(ntp, pList, L"Disable NTP Client", WinVer_WinXP,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\W32time\\TimeProviders\\NtpClient",
         L"Enabled",
-        0);
+        V(0));
 
     // *** Disable Net Status ***
     CTweakPtr ncsi = MakeTweakObject<CTweakSet>(miscCat, pList, L"Disable Net Status");
     MakeTweakObject<CGpoTweak>(ncsi, pList, L"Disable Active Probeing", WinVer_Win6,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\NetworkConnectivityStatusIndicator",
         L"NoActiveProbe",
-        1);
+        V(1));
 
     // *** Disable Teredo IPv6 ***
     CTweakPtr teredo = MakeTweakObject<CTweakSet>(miscCat, pList, L"Disable Teredo (IPv6)");
     MakeTweakObject<CGpoTweak>(teredo, pList, L"Disable Teredo Tunneling", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\TCPIP\\v6Transition",
         L"Teredo_State",
-        L"Disabled");
+        V(L"Disabled"));
 
     // *** Disable Delivery Optimizations ***
     CTweakPtr dodm = MakeTweakObject<CTweakSet>(miscCat, pList, L"No Delivery Optimizations", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(dodm, pList, L"Disable Delivery Optimizations", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization",
         L"DODownloadMode",
-        L"100");
+        V(L"100"));
 
     // *** Disable Map Updates ***
     CTweakPtr map = MakeTweakObject<CTweakSet>(miscCat, pList, L"Disable Map Updates");
     MakeTweakObject<CGpoTweak>(map, pList, L"Turn off unsolicited Maps Downloads", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Maps",
         L"AllowUntriggeredNetworkTrafficOnSettingsPage",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(map, pList, L"Turn off Auto Maps Update", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Maps",
         L"AutoDownloadAndUpdateMapData",
-        0);
+        V(0));
 
     // *** No Internet OpenWith ***
     CTweakPtr iopen = MakeTweakObject<CTweakSet>(miscCat, pList, L"No Internet OpenWith", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(iopen, pList, L"Disable Internet OpenWith", WinVer_WinXPto7,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
         L"NoInternetOpenWith",
-        1);
+        V(1));
     // Disable Internet OpenWith (user)
     MakeTweakObject<CGpoTweak>(iopen, pList, L"Disable Internet OpenWith (user)", WinVer_WinXPto7,
         L"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
         L"NoInternetOpenWith",
-        1);
+        V(1));
 
     // *** Lockdown MS Edge ***
     CTweakPtr edge = MakeTweakObject<CTweakSet>(miscCat, pList, L"Lockdown MS Edge (non Chromium)");
     MakeTweakObject<CGpoTweak>(edge, pList, L"Don't Update Compatibility Lists", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\BrowserEmulation",
         L"MSCompatibilityMode",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(edge, pList, L"Set Blank Start Page", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\Internet Settings",
         L"ProvisionedHomePages",
-        L"<about:blank>");
+        V(L"<about:blank>"));
     MakeTweakObject<CGpoTweak>(edge, pList, L"Set 'DoNotTrack'", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\Main",
         L"DoNotTrack",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(edge, pList, L"No Password Auto Complete", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\Main",
         L"FormSuggest Passwords",
-        L"no");
+        V("no"));
     MakeTweakObject<CGpoTweak>(edge, pList, L"Disable First Start Page", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\Main",
         L"PreventFirstRunPage",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(edge, pList, L"No Form Auto Complete", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\Main",
         L"Use FormSuggest",
-        L"no");
+        V("no"));
     MakeTweakObject<CGpoTweak>(edge, pList, L"Disable AddressBar Suggestions", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\SearchScopes",
         L"ShowSearchSuggestionsGlobal",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(edge, pList, L"Disable AddressBar (drop down) Suggestions", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\ServiceUI",
         L"ShowOneBox",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(edge, pList, L"Keep New Edge Tabs Empty", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\ServiceUI",
         L"AllowWebContentOnNewTabPage",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(edge, pList, L"Disable Books Library Updating", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\MicrosoftEdge\\BooksLibrary",
         L"AllowConfigurationUpdateForBooksLibrary",
-        0);
+        V(0));
 
     // *** Lockdown IE ***
     CTweakPtr ie = MakeTweakObject<CTweakSet>(miscCat, pList, L"Lockdown Internet Explorer");
     MakeTweakObject<CGpoTweak>(ie, pList, L"Disable Enhanced AddressBar Suggestions", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer",
         L"AllowServicePoweredQSA",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(ie, pList, L"Turn off Browser Geolocation", WinVer_Win7,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Geolocation",
         L"PolicyDisableGeolocation",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(ie, pList, L"Turn off Site Suggestions", WinVer_WinXP,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Suggested Sites",
         L"Enabled",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(ie, pList, L"Turn off FlipAhead Prediction", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\FlipAhead",
         L"Enabled",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(ie, pList, L"Disable Sync of Feeds & Slices", WinVer_WinXP,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Feeds",
         L"BackgroundSyncStatus",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(ie, pList, L"Disable Compatibility View", WinVer_WinXP,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\BrowserEmulation",
         L"DisableSiteListEditing",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(ie, pList, L"Disable First Run Wizard", WinVer_WinXP,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main",
         L"DisableFirstRunCustomize",
-        1);
+        V(1));
     //MakeTweakObject<CGpoTweak>(ie, pList, L"Set Blank Stat Page", WinVer_WinXP,
     //    L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\Main",
     //    L"Start Page",
@@ -1075,7 +1078,7 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(ie, pList, L"Keep New Tabs Empty", WinVer_WinXP,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\TabbedBrowsing",
         L"NewTabPageShow",
-        0);
+        V(0));
  
 
 
@@ -1093,97 +1096,97 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(store, pList, L"Disable Store Apps", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\WindowsStore",
         L"DisableStoreApps",
-        1);
+        V(1));
     MakeTweakObject<CGpoTweak>(store, pList, L"Don't Auto Update Apps", WinVer_Win10EE,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\WindowsStore",
         L"AutoDownload",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(store, pList, L"Disable App Uri Handlers", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
         L"EnableAppUriHandlers",
-        0, ETweakHint::eNone);
+        V(0), ETweakHint::eNone);
 
     // *** Lockdown Apps ***
     CTweakPtr apps = MakeTweakObject<CTweakSet>(appCat, pList, L"Lockdown Apps", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access AccountInfo", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessAccountInfo",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Calendar", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessCalendar",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access CallHistory", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessCallHistory",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Camera", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessCamera",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Contacts", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessContacts",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Email", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessEmail",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Location", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessLocation",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Messaging", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessMessaging",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Microphone", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessMicrophone",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Motion", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessMotion",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Notifications", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessNotifications",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Radios", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessRadios",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access Tasks", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessTasks",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Access TrustedDevices", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsAccessTrustedDevices",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps get Diagnostic Info", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsGetDiagnosticInfo",
-        2);
+        V(2));
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Run In Background", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsRunInBackground",
-        2, ETweakHint::eNone);
+        V(2), ETweakHint::eNone);
     MakeTweakObject<CGpoTweak>(apps, pList, L"Don't Let Apps Sync With Devices", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\AppPrivacy",
         L"LetAppsSyncWithDevices",
-        2);
+        V(2));
 
     // *** Disable Mail and People ***
     CTweakPtr mail = MakeTweakObject<CTweakSet>(appCat, pList, L"Block Mail and People", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(mail, pList, L"Disable Mail App", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Mail",
         L"ManualLaunchAllowed",
-        0);
+        V(0));
     MakeTweakObject<CGpoTweak>(mail, pList, L"Hide People from Taskbar", WinVer_Win10,
         L"HKCU\\Software\\Policies\\Microsoft\\Windows\\Explorer",
         L"HidePeopleBar",
-        1);
+        V(1));
 
 
     // HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}_NvTelemetry

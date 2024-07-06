@@ -1,11 +1,16 @@
 #include "pch.h"
 #include "ProgramPattern.h"
-#include "ServiceAPI.h"
+#include "../../Library/API/PrivacyAPI.h"
 
 CProgramPattern::CProgramPattern(const std::wstring& Pattern)
-{ 
-    m_ID.Set(CProgramID::eFilePattern, Pattern);
+{
+    m_ID.Set(EProgramType::eFilePattern, Pattern);
 
+    SetPathPattern(Pattern);
+}
+
+void CProgramPattern::SetPathPattern(const std::wstring& Pattern)
+{
 	m_Pattern = Pattern; 
 
     std::wstring regex = Pattern;
@@ -26,17 +31,8 @@ CProgramPattern::CProgramPattern(const std::wstring& Pattern)
 
 bool CProgramPattern::MatchFileName(const std::wstring& FileName)
 {
-	std::shared_lock lock(m_Mutex);
+	std::unique_lock lock(m_Mutex);
 
     std::wcmatch matches;
     return std::regex_search(FileName.c_str(), matches, m_RegExp);
-}
-
-void CProgramPattern::WriteVariant(CVariant& Data) const
-{
-    Data.Write(SVC_API_ID_TYPE, SVC_API_ID_TYPE_PATTERN);
-
-    CProgramList::WriteVariant(Data);
-
-    Data.Write(SVC_API_PROG_PATTERN, m_Pattern);
 }

@@ -1,23 +1,26 @@
 #pragma once
-#include "ProgramGroup.h"
+#include "ProgramPattern.h"
 
-class CAppInstallation: public CProgramList
+class CAppInstallation: public CProgramPattern
 {
 	Q_OBJECT
 public:
 	CAppInstallation(QObject* parent = nullptr);
 	
-	virtual QString GetRegKey() const			{ return m_RegKey; }
-	virtual QString GetPath() const				{ return m_InstallPath; }
+	virtual EProgramType GetType() const					{ return EProgramType::eAppInstallation; }
 
-	virtual QString GetInfo() const				{ return m_RegKey; } // todo
+	virtual QString GetRegKey() const				{ return m_RegKey; }
+	virtual QString GetPath(EPathType Type) const	{ return m_Path.Get(Type); }
 
 protected:
 
-	virtual void ReadValue(const SVarName& Name, const XVariant& Data);
+	void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
+	void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
+	void ReadIValue(uint32 Index, const XVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
 
 	QString m_RegKey;
-	QString m_InstallPath;
+	CFilePath m_Path;
 };
 
 typedef QSharedPointer<CAppInstallation> CAppInstallationPtr;

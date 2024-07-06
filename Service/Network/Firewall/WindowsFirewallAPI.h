@@ -19,6 +19,7 @@
 #define FW_19Hx_BINARY_VERSION 0x021E
 #define FW_21H2_BINARY_VERSION 0x021F // Server 2022 LTSC
 #define FW_22H2_BINARY_VERSION 0x0220
+#define FW_23H2_BINARY_VERSION 0x0221 // Server 2025
 
 #define ERROR_RULE_NOT_FOUND 0x02
 
@@ -760,6 +761,10 @@ typedef struct _tag_FW_RULE
     // since win 11 / server 2022
     GUID  providerContextKey;
     FW_DYNAMIC_KEYWORD_ADDRESS_ID_LIST  RemoteDynamicKeywordAddresses;
+
+    // 23H2
+    //[string, range(1, 10001)] 
+    WCHAR* wszPackageFamilyName;
 
 } FW_RULE, *PFW_RULE;
 

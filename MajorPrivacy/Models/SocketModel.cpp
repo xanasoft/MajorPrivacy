@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "SocketModel.h"
 #include "../MiscHelpers/Common/Common.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Core/PrivacyCore.h"
@@ -39,7 +39,7 @@ QList<QModelIndex>	CSocketModel::Sync(const QList<CSocketPtr>& SocketList)
 			pNode->Values.resize(columnCount());
 			//pNode->Path = Path;
 			pNode->pSocket = pSocket;
-			pNode->pProcess = theCore->Processes()->GetProcess(pSocket->GetProcessId(), true);
+			pNode->pProcess = theCore->ProcessList()->GetProcess(pSocket->GetProcessId(), true);
 			New[pNode->Path].append(pNode);
 		}
 		else
@@ -94,7 +94,7 @@ QList<QModelIndex>	CSocketModel::Sync(const QList<CSocketPtr>& SocketList)
 			case eUploaded:			Value = pSocket->GetUploadTotal(); break;
 			case eDownloaded:		Value = pSocket->GetDownloadTotal(); break;
 			case eTimeStamp:		Value = pSocket->GetCreateTimeStamp(); break;
-			case eProgram:			Value = pNode->pProcess ? pNode->pProcess->GetFileName() : tr("PROCESS MISSING"); break;
+			case eProgram:			Value = pNode->pProcess ? pNode->pProcess->GetPath(EPathType::eDisplay) : tr("PROCESS MISSING"); break;
 			}
 
 			SSocketNode::SValue& ColValue = pNode->Values[section];

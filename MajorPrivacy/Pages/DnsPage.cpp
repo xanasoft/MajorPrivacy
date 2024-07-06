@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "../Core/PrivacyCore.h"
-#include "../Core/ProcessList.h"
+#include "../Core/Processes/ProcessList.h"
 #include "../../MiscHelpers/Common/SortFilterProxyModel.h"
 #include "DnsPage.h"
 

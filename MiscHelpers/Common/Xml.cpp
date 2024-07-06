@@ -9,10 +9,10 @@ QString CXml::Serialize(const QVariant &Variant, bool bLazy)
 	return String;
 }
 
-QVariant CXml::Parse(const QString& String, bool bLazy)
+QVariant CXml::Parse(const QString& String, bool*pOK, bool bLazy)
 {
 	QXmlStreamReader xml(String);
-	return Parse(xml, bLazy);
+	return Parse(xml, pOK, bLazy);
 }
 
 void CXml::Serialize(const QVariant& Variant, QFile* pFile)
@@ -21,7 +21,7 @@ void CXml::Serialize(const QVariant& Variant, QFile* pFile)
 	Serialize(Variant, xml);
 }
 
-QVariant CXml::Parse(QFile* pFile)
+QVariant CXml::Parse(QFile* pFile, bool*pOK)
 {
 	QXmlStreamReader xml(pFile);
 	return Parse(xml);
@@ -55,11 +55,12 @@ void CXml::Serialize(const QVariant& Variant, QXmlStreamWriter &xml, bool bLazy)
 	xml.writeEndDocument();
 }
 
-QVariant CXml::Parse(QXmlStreamReader &xml, bool bLazy)
+QVariant CXml::Parse(QXmlStreamReader &xml, bool* pOK, bool bLazy)
 {
 	QVariant Variant;
 	QString Temp;
-	Parse(Temp, Variant, xml, bLazy);
+	bool bOk = Parse(Temp, Variant, xml, bLazy);
+	if(pOK) * pOK = bOk;
 	return Variant;
 }
 
@@ -122,8 +123,10 @@ bool CXml::Parse(QString &Name, QVariant &Variant, QXmlStreamReader &xml, bool b
 	while (!xml.atEnd())
 	{
 		xml.readNext();
-		if (xml.error()) 
+		if (xml.error()) {
+			qDebug() << xml.errorString();
 			break;
+		}
 		if (xml.isEndDocument())
 			continue;
 

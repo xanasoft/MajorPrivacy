@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "TrafficEntry.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 
 CTrafficEntry::CTrafficEntry(QObject* parent)
 	: QObject(parent)
@@ -26,18 +26,16 @@ void CTrafficEntry::Merge(const QSharedPointer<CTrafficEntry>& pOther)
 
 void CTrafficEntry::FromVariant(const class XVariant& TrafficEntry)
 {
-	TrafficEntry.ReadRawMap([&](const SVarName& Name, const CVariant& vData) {
+	TrafficEntry.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
 		const XVariant& Data = *(XVariant*)&vData;
 
-			 if (VAR_TEST_NAME(Name, SVC_API_NET_HOST))			m_HostName = Data.AsQStr();
-
-		else if (VAR_TEST_NAME(Name, SVC_API_SOCK_LAST_ACT))	m_LastActivity = Data;
-
-		else if (VAR_TEST_NAME(Name, SVC_API_SOCK_UPLOADED))	m_UploadTotal = Data;
-		else if (VAR_TEST_NAME(Name, SVC_API_SOCK_DOWNLOADED))	m_DownloadTotal = Data;
-
-		// else unknown tag
-
+		switch (Index)
+		{
+		case API_V_SOCK_RHOST:		m_HostName = Data.AsQStr(); break;
+		case API_V_SOCK_LAST_ACT:	m_LastActivity = Data; break;
+		case API_V_SOCK_UPLOADED:	m_UploadTotal = Data; break;
+		case API_V_SOCK_DOWNLOADED:	m_DownloadTotal = Data; break;
+		}
 	});
 }
 
@@ -50,7 +48,7 @@ quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const cla
 	TrafficList.ReadRawList([&](const CVariant& vData) {
 		const XVariant& TrafficEntry = *(XVariant*)&vData;
 
-		QString HostName = TrafficEntry.Find(SVC_API_NET_HOST).AsQStr();
+		QString HostName = TrafficEntry.Find(API_V_SOCK_RHOST).AsQStr();
 
 		CTrafficEntryPtr pEntry = OldList.take(HostName);
 		if (!pEntry) {

@@ -16,17 +16,11 @@
     <Filter Include="Network">
       <UniqueIdentifier>{814546e0-71a7-49d8-a1f2-6aed1cb3dc87}</UniqueIdentifier>
     </Filter>
-    <Filter Include="FileSystem">
-      <UniqueIdentifier>{e7ec2e9b-6f83-4728-ad3d-eee8190fe070}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Processes">
       <UniqueIdentifier>{8465121f-a1ed-4106-bef5-bc17e0e8039d}</UniqueIdentifier>
     </Filter>
     <Filter Include="API">
       <UniqueIdentifier>{d0454084-2c5a-42a0-aff5-ae2986dd5d7b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Service">
-      <UniqueIdentifier>{f6ce88e9-ae66-4e47-964b-07c48d7f3aa2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Network\Dns">
       <UniqueIdentifier>{8662ad3d-b686-46ae-a549-0e04f4acbf54}</UniqueIdentifier>
@@ -52,40 +46,28 @@
     <Filter Include="Tweaks">
       <UniqueIdentifier>{c3b3cac6-18af-45d1-adc9-4dc3ac715f9e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Registry">
-      <UniqueIdentifier>{86079de2-4e8a-4197-b70a-1c73c32b799b}</UniqueIdentifier>
+    <Filter Include="Volumes">
+      <UniqueIdentifier>{8524c7d5-920e-426d-838f-63a5bbfbf97a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Access">
+      <UniqueIdentifier>{8775800c-fccc-436c-8643-623a37f4af9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{f6ce88e9-ae66-4e47-964b-07c48d7f3aa2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Network\SocketList.cpp">
       <Filter>Network</Filter>
     </ClCompile>
-    <ClCompile Include="Processes\AppIsolator.cpp">
-      <Filter>Processes</Filter>
-    </ClCompile>
     <ClCompile Include="Processes\ProcessList.cpp">
       <Filter>Processes</Filter>
     </ClCompile>
-    <ClCompile Include="Processes\ProcessLog.cpp">
-      <Filter>Processes</Filter>
-    </ClCompile>
-    <ClCompile Include="FileSystem\FSAccessLog.cpp">
-      <Filter>FileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="FileSystem\FSIsolator.cpp">
-      <Filter>FileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="FileSystem\FSHandleList.cpp">
-      <Filter>FileSystem</Filter>
-    </ClCompile>
     <ClCompile Include="ServiceCore.cpp">
-      <Filter>Service</Filter>
+      <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="ServiceCoreAPI.cpp">
       <Filter>API</Filter>
@@ -108,7 +90,7 @@
     <ClCompile Include="Network\Firewall\WindowsFirewall.cpp">
       <Filter>Network\Firewall</Filter>
     </ClCompile>
-    <ClCompile Include="Network\NetIsolator.cpp">
+    <ClCompile Include="Network\NetworkManager.cpp">
       <Filter>Network</Filter>
     </ClCompile>
     <ClCompile Include="Network\Socket.cpp">
@@ -119,9 +101,6 @@
     </ClCompile>
     <ClCompile Include="Etw\EtwEventMonitor.cpp">
       <Filter>Etw</Filter>
-    </ClCompile>
-    <ClCompile Include="Programs\ProgramID.cpp">
-      <Filter>Programs</Filter>
     </ClCompile>
     <ClCompile Include="Processes\ServiceList.cpp">
       <Filter>Processes</Filter>
@@ -183,40 +162,67 @@
     <ClCompile Include="Network\TrafficLog.cpp">
       <Filter>Network</Filter>
     </ClCompile>
-    <ClCompile Include="Registry\RegIsolator.cpp">
-      <Filter>Registry</Filter>
+    <ClCompile Include="Processes\ExecLogEntry.cpp">
+      <Filter>Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\ProgramLibrary.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Volumes\MountManagerHelpers.cpp">
+      <Filter>Volumes</Filter>
+    </ClCompile>
+    <ClCompile Include="Volumes\VolumeManager.cpp">
+      <Filter>Volumes</Filter>
+    </ClCompile>
+    <ClCompile Include="Volumes\Volume.cpp">
+      <Filter>Volumes</Filter>
+    </ClCompile>
+    <ClCompile Include="Access\AccessManager.cpp">
+      <Filter>Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Access\ResLogEntry.cpp">
+      <Filter>Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Access\AccessRule.cpp">
+      <Filter>Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\ProgramRule.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="GenericRule.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Access\AccessTree.cpp">
+      <Filter>Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Access\HandleList.cpp">
+      <Filter>Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Access\Handle.cpp">
+      <Filter>Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\ProgramID.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="API_Impl.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ServiceAPI.h">
-      <Filter>API</Filter>
-    </ClInclude>
     <ClInclude Include="Network\SocketList.h">
       <Filter>Network</Filter>
-    </ClInclude>
-    <ClInclude Include="Processes\AppIsolator.h">
-      <Filter>Processes</Filter>
     </ClInclude>
     <ClInclude Include="Processes\ProcessList.h">
       <Filter>Processes</Filter>
     </ClInclude>
-    <ClInclude Include="Processes\ProcessLog.h">
-      <Filter>Processes</Filter>
-    </ClInclude>
-    <ClInclude Include="FileSystem\FSAccessLog.h">
-      <Filter>FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="FileSystem\FSIsolator.h">
-      <Filter>FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="FileSystem\FSHandleList.h">
-      <Filter>FileSystem</Filter>
-    </ClInclude>
     <ClInclude Include="ServiceCore.h">
-      <Filter>Service</Filter>
+      <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Network\Dns\DnsInspector.h">
       <Filter>Network\Dns</Filter>
@@ -239,7 +245,7 @@
     <ClInclude Include="Network\Firewall\WindowsFirewallAPI.h">
       <Filter>Network\Firewall</Filter>
     </ClInclude>
-    <ClInclude Include="Network\NetIsolator.h">
+    <ClInclude Include="Network\NetworkManager.h">
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="Network\Socket.h">
@@ -335,9 +341,6 @@
     <ClInclude Include="Etw\krabs\filtering\view_adapters.hpp">
       <Filter>Etw\krabs\filtering</Filter>
     </ClInclude>
-    <ClInclude Include="Programs\ProgramID.h">
-      <Filter>Programs</Filter>
-    </ClInclude>
     <ClInclude Include="Resources\resource.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
@@ -404,8 +407,44 @@
     <ClInclude Include="Network\TrafficLog.h">
       <Filter>Network</Filter>
     </ClInclude>
-    <ClInclude Include="Registry\RegIsolator.h">
-      <Filter>Registry</Filter>
+    <ClInclude Include="Processes\ExecLogEntry.h">
+      <Filter>Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\ProgramLibrary.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Volumes\VolumeManager.h">
+      <Filter>Volumes</Filter>
+    </ClInclude>
+    <ClInclude Include="Volumes\Volume.h">
+      <Filter>Volumes</Filter>
+    </ClInclude>
+    <ClInclude Include="Access\AccessManager.h">
+      <Filter>Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Access\ResLogEntry.h">
+      <Filter>Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Access\AccessRule.h">
+      <Filter>Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\ProgramRule.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="GenericRule.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Access\AccessTree.h">
+      <Filter>Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Access\HandleList.h">
+      <Filter>Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Access\Handle.h">
+      <Filter>Access</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\ProgramID.h">
+      <Filter>Programs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

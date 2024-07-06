@@ -1,8 +1,14 @@
 #pragma once
 #include <QWidget>
 #include "../../MiscHelpers/Common/TreeviewEx.h"
+#include "../Core/TraceLogUtils.h"
 
 class CProcessView;
+class CProgramRuleView;
+class CLibraryView;
+class CExecutionView;
+class CIngressView;
+class CProcessTraceView;
 
 class CProcessPage : public QWidget
 {
@@ -23,9 +29,14 @@ private:
 	//QToolBar*				m_pToolBar;
 
 	QSplitter*				m_pVSplitter;
-	QTreeViewEx*			m_pRuleView;
+	CProgramRuleView*		m_pRuleView;
 	QTabWidget*				m_pTabs;
 	CProcessView*			m_pProcessView;
-	QTreeViewEx*			m_pTraceView;
+	CLibraryView*			m_pLibraryView;
+	CExecutionView*			m_pExecutionView;
+	CIngressView*			m_pIngressView;
+	CProcessTraceView*		m_pTraceView;
+
+	SMergedLog				m_Log;
 };
 

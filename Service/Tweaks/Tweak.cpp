@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Tweak.h"
 #include "..\ServiceCore.h"
-#include "..\ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 #include "..\Library\Helpers\RegUtil.h"
 #include "..\Library\Helpers\GPOUtil.h"
 #include "TweakManager.h"
@@ -30,38 +30,20 @@ bool SWinVer::Test() const
 ///////////////////////////////////////////////////////////////////////////////////////
 // CAbstractTweak
 
-CVariant CAbstractTweak::ToVariant() const
+CVariant CAbstractTweak::ToVariant(const SVarWriteOpt& Opts) const
 {
-	std::unique_lock lock(m_Mutex);
+    std::unique_lock Lock(m_Mutex);
 
-	CVariant Data;
-	Data.BeginMap();
-	
-	WriteVariant(Data);
-
-	Data.Finish();
-	return Data;
-}
-
-void CAbstractTweak::WriteVariant(CVariant& Data) const
-{
-	Data.Write(SVC_API_TWEAK_NAME, m_Name);
-
-    switch (m_Hint)
-    {
-    case ETweakHint::eNone:         Data.Write(SVC_API_TWEAK_HINT, SVC_API_TWEAK_HINT_NONE); break;
-    case ETweakHint::eRecommended:  Data.Write(SVC_API_TWEAK_HINT, SVC_API_TWEAK_HINT_RECOMMENDED); break;
+    CVariant Rule;
+    if (Opts.Format == SVarWriteOpt::eIndex) {
+        Rule.BeginIMap();
+        WriteIVariant(Rule, Opts);
+    } else {  
+        Rule.BeginMap();
+        WriteMVariant(Rule, Opts);
     }
-
-    ETweakStatus Status = GetStatus();
-    switch (Status)
-    {
-    case ETweakStatus::eNotSet:     Data.Write(SVC_API_TWEAK_STATUS, SVC_API_TWEAK_NOT_SET); break;
-    case ETweakStatus::eApplied:    Data.Write(SVC_API_TWEAK_STATUS, SVC_API_TWEAK_APPLIED); break;
-    case ETweakStatus::eSet:        Data.Write(SVC_API_TWEAK_STATUS, SVC_API_TWEAK_SET); break;
-    case ETweakStatus::eMissing:    Data.Write(SVC_API_TWEAK_STATUS, SVC_API_TWEAK_MISSING); break;
-    default:                        Data.Write(SVC_API_TWEAK_STATUS, SVC_API_TWEAK_TYPE_GROUP); 
-    }
+    Rule.Finish();
+    return Rule;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -100,28 +82,6 @@ STATUS CTweakList::Undo(ETweakMode Mode)
     return OK;
 }
 
-void CTweakList::WriteVariant(CVariant& Data) const
-{
-	CAbstractTweak::WriteVariant(Data);
-
-    CVariant List;
-	List.BeginList();
-	for (auto I : m_List)
-		List.WriteVariant(I->ToVariant());
-	List.Finish();
-	Data.WriteVariant(SVC_API_TWEAK_LIST, List);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////
-// CTweakGroup
-
-void CTweakGroup::WriteVariant(CVariant& Data) const
-{
-	CTweakList::WriteVariant(Data);
-
-	Data.Write(SVC_API_TWEAK_TYPE, SVC_API_TWEAK_TYPE_GROUP);
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // CTweakSet
 
@@ -135,14 +95,6 @@ ETweakStatus CTweakSet::GetStatus() const
     }
     return (ETweakStatus)State;
 }
-
-void CTweakSet::WriteVariant(CVariant& Data) const
-{
-	CTweakList::WriteVariant(Data);
-
-	Data.Write(SVC_API_TWEAK_TYPE, SVC_API_TWEAK_TYPE_SET);
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CTweak
@@ -160,14 +112,6 @@ STATUS CTweak::Undo(ETweakMode Mode)
         m_Set = false;
     return OK;
 }
-
-void CTweak::WriteVariant(CVariant& Data) const
-{
-	CAbstractTweak::WriteVariant(Data);
-
-	Data.Write(SVC_API_TWEAK_SET, m_Set);
-}
-
 
 //
 // ************************************************************************************
@@ -218,23 +162,12 @@ STATUS CRegTweak::Undo(ETweakMode Mode)
 	return OK;    
 }
 
-void CRegTweak::WriteVariant(CVariant& Data) const
-{
-	CTweak::WriteVariant(Data);
-
-    Data.Write(SVC_API_TWEAK_TYPE, SVC_API_TWEAK_TYPE_REG);
-
-	Data.Write(SVC_API_TWEAK_KEY, m_Key);
-    Data.Write(SVC_API_TWEAK_VALUE, m_Value);
-    Data.WriteVariant(SVC_API_TWEAK_DATA, m_Data);
-}
-
 ////////////////////////////////////////////
 // CGpoTweak
 
 ETweakStatus CGpoTweak::GetStatus() const
 {
-    CGPO* pGPO = svcCore->TweakManager()->GetGPOLocked();
+    CGPO* pGPO = theCore->TweakManager()->GetGPOLocked();
 
     std::unique_lock Lock(m_Mutex);
 
@@ -260,7 +193,7 @@ ETweakStatus CGpoTweak::GetStatus() const
 
 STATUS CGpoTweak::Apply(ETweakMode Mode)
 {
-    CGPO* pGPO = svcCore->TweakManager()->GetGPOLocked();
+    CGPO* pGPO = theCore->TweakManager()->GetGPOLocked();
 
     std::unique_lock Lock(m_Mutex);
 
@@ -287,7 +220,7 @@ STATUS CGpoTweak::Apply(ETweakMode Mode)
 
 STATUS CGpoTweak::Undo(ETweakMode Mode)
 {
-    CGPO* pGPO = svcCore->TweakManager()->GetGPOLocked();
+    CGPO* pGPO = theCore->TweakManager()->GetGPOLocked();
 
     std::unique_lock Lock(m_Mutex);
 
@@ -310,17 +243,6 @@ STATUS CGpoTweak::Undo(ETweakMode Mode)
     if (!pGPO->Save())
         return ERR(STATUS_UNSUCCESSFUL);
     return OK;    
-}
-
-void CGpoTweak::WriteVariant(CVariant& Data) const
-{
-	CTweak::WriteVariant(Data);
-    
-    Data.Write(SVC_API_TWEAK_TYPE, SVC_API_TWEAK_TYPE_GPO);
-
-	Data.Write(SVC_API_TWEAK_KEY, m_Key);
-    Data.Write(SVC_API_TWEAK_VALUE, m_Value);
-    Data.WriteVariant(SVC_API_TWEAK_DATA, m_Data);
 }
 
 ////////////////////////////////////////////
@@ -381,15 +303,6 @@ STATUS CSvcTweak::Undo(ETweakMode Mode)
     return ERR(STATUS_NOT_FOUND);
 }
 
-void CSvcTweak::WriteVariant(CVariant& Data) const
-{
-	CTweak::WriteVariant(Data);
-    
-    Data.Write(SVC_API_TWEAK_TYPE, SVC_API_TWEAK_TYPE_SVC);
-
-	Data.Write(SVC_API_TWEAK_SVC_TAG, m_SvcTag);
-}
-
 ////////////////////////////////////////////
 // CTaskTweak
 
@@ -414,12 +327,12 @@ bool SetTaskEnabledEx(const std::wstring& path, const std::wstring& taskName, bo
     {
         std::vector<std::wstring> tasks = EnumTasks(path);
         for (auto task : tasks) {
-            SetTaskEnabledEx(path, task, setValue);
+            SetTaskEnabled(path, task, setValue);
         }
         return true;
     }
 
-    return SetTaskEnabledEx(path, taskName, setValue);
+    return SetTaskEnabled(path, taskName, setValue);
 }
 
 bool CheckTaskExistEx(const std::wstring& path, const std::wstring& taskName)
@@ -452,15 +365,15 @@ ETweakStatus CTaskTweak::GetStatus() const
     std::unique_lock Lock(m_Mutex);
 
     if(IsTaskEnabledEx(m_Folder.c_str(), m_Entry.c_str()))
-        return m_Set ? ETweakStatus::eSet : ETweakStatus::eApplied;
-    return m_Set ? ETweakStatus::eMissing : ETweakStatus::eNotSet;
+        return m_Set ? ETweakStatus::eMissing : ETweakStatus::eNotSet;
+    return m_Set ? ETweakStatus::eSet : ETweakStatus::eApplied;
 }
 
 STATUS CTaskTweak::Apply(ETweakMode Mode)
 {
     CTweak::Apply(Mode);
 
-    if(!SetTaskEnabledEx(m_Folder.c_str(), m_Entry.c_str(), false))
+    if(SetTaskEnabledEx(m_Folder.c_str(), m_Entry.c_str(), false))
         return ERR(STATUS_UNSUCCESSFUL);
     return OK;
 }
@@ -472,16 +385,6 @@ STATUS CTaskTweak::Undo(ETweakMode Mode)
     if(!SetTaskEnabledEx(m_Folder.c_str(), m_Entry.c_str(), true))
         return ERR(STATUS_UNSUCCESSFUL);
     return OK;
-}
-
-void CTaskTweak::WriteVariant(CVariant& Data) const
-{
-	CTweak::WriteVariant(Data);
-    
-    Data.Write(SVC_API_TWEAK_TYPE, SVC_API_TWEAK_TYPE_TASK);
-
-	Data.Write(SVC_API_TWEAK_FOLDER, m_Folder);
-	Data.Write(SVC_API_TWEAK_ENTRY, m_Entry);
 }
 
 ////////////////////////////////////////////
@@ -507,15 +410,6 @@ STATUS CFSTweak::Undo(ETweakMode Mode)
     return ERR(-1);
 }
 
-void CFSTweak::WriteVariant(CVariant& Data) const
-{
-	CTweak::WriteVariant(Data);
-    
-    Data.Write(SVC_API_TWEAK_TYPE, SVC_API_TWEAK_TYPE_FS);
-
-	Data.Write(SVC_API_TWEAK_PATH, m_PathPattern);
-}
-
 ////////////////////////////////////////////
 // CExecTweak
 
@@ -539,15 +433,6 @@ STATUS CExecTweak::Undo(ETweakMode Mode)
     return ERR(-1);
 }
 
-void CExecTweak::WriteVariant(CVariant& Data) const
-{
-	CTweak::WriteVariant(Data);
-    
-    Data.Write(SVC_API_TWEAK_TYPE, SVC_API_TWEAK_TYPE_EXEC);
-
-	Data.Write(SVC_API_TWEAK_PATH, m_PathPattern);
-}
-
 ////////////////////////////////////////////
 // CFwTweak
 
@@ -569,13 +454,4 @@ STATUS CFwTweak::Undo(ETweakMode Mode)
     CTweak::Undo(Mode);
     // todo
     return ERR(-1);
-}
-
-void CFwTweak::WriteVariant(CVariant& Data) const
-{
-	CTweak::WriteVariant(Data);
-    
-    Data.Write(SVC_API_TWEAK_TYPE, SVC_API_TWEAK_TYPE_FW);
-
-	Data.WriteVariant(SVC_API_TWEAK_PROG_ID, m_ProgID.ToVariant());
 }

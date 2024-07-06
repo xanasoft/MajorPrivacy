@@ -10,7 +10,9 @@ class CProgramSet : public CProgramItem
 public:
 	CProgramSet() {}
 
-	virtual std::vector<CProgramItemPtr>		GetNodes() const			{ std::shared_lock lock(m_Mutex); return m_Nodes; }
+	virtual EProgramType GetType() const {return EProgramType::eProgramSet; }
+
+	virtual std::vector<CProgramItemPtr>		GetNodes() const			{ std::unique_lock lock(m_Mutex); return m_Nodes; }
 	virtual bool								ContainsNode(const CProgramItemPtr& Item) const;
 
 	virtual int									GetSpecificity() const { return 0; }	
@@ -18,7 +20,10 @@ public:
 protected:
 	friend class CProgramManager;
 
-	virtual void WriteVariant(CVariant& Data) const;
+	void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
+	void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
+	void ReadIValue(uint32 Index, const CVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const CVariant& Data) override;
 
 	std::vector<CProgramItemPtr>				m_Nodes;
 };
@@ -27,17 +32,14 @@ typedef std::shared_ptr<CProgramSet> CProgramSetPtr;
 typedef std::weak_ptr<CProgramSet> CProgramSetRef;
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// CAllProgram
+// CAllPrograms
 
-class CAllProgram : public CProgramSet
+class CAllPrograms : public CProgramSet
 {
 public:
-	CAllProgram() {
-		m_ID.Set(CProgramID::eAll, L"");
-	}
+	CAllPrograms() { m_ID.Set(EProgramType::eAllPrograms, L""); }
 
-protected:
-	virtual void WriteVariant(CVariant& Data) const;
+	virtual EProgramType GetType() const {return EProgramType::eAllPrograms; }
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -48,7 +50,11 @@ class CProgramList : public CProgramSet
 public:
 	CProgramList() {}
 
+	virtual EProgramType GetType() const {return EProgramType::eProgramList; }
 };
+
+typedef std::shared_ptr<CProgramList> CProgramListPtr;
+typedef std::weak_ptr<CProgramList> CProgramListRef;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CProgramGroup
@@ -58,9 +64,20 @@ class CProgramGroup: public CProgramList
 public:
 	CProgramGroup() {}
 
-protected:
-	virtual void WriteVariant(CVariant& Data) const;
+	virtual EProgramType GetType() const {return EProgramType::eProgramGroup; }
 };
 
 typedef std::shared_ptr<CProgramGroup> CProgramGroupPtr;
 typedef std::weak_ptr<CProgramGroup> CProgramGroupRef;
+
+///////////////////////////////////////////////////////////////////////////////////////
+// CProgramRoot
+
+class CProgramRoot : public CProgramList
+{
+public:
+	CProgramRoot() { m_ID.Set(EProgramType::eProgramRoot, L""); }
+
+	virtual EProgramType GetType() const {return EProgramType::eProgramRoot; }
+
+};

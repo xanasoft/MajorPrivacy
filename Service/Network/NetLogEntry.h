@@ -7,7 +7,7 @@
 class CNetLogEntry: public CTraceLogEntry
 {
 public:
-	CNetLogEntry(const struct SWinFwLogEvent* pEvent, EFwEventStates State, const CHostNamePtr& pRemoteHostName, const std::wstring& ServiceTag = L"", const std::wstring& AppSid = L"");
+	CNetLogEntry(const struct SWinFwLogEvent* pEvent, EFwEventStates State, const CHostNamePtr& pRemoteHostName, uint64 PID, const std::wstring& ServiceTag = L"", const std::wstring& AppSid = L"");
 
 	virtual void WriteVariant(CVariant& Entry) const;
 

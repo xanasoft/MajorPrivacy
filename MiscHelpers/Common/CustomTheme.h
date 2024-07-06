@@ -12,6 +12,10 @@ public:
 
 	void SetUITheme(bool bDark, int iFusion = 2);
 
+#if defined(Q_OS_WIN)
+	void SetTitleTheme(const HWND& hwnd);
+#endif
+
 private:
 	QString				m_DefaultStyle;
 	QPalette			m_DefaultPalett;

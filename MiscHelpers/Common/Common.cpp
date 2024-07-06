@@ -62,6 +62,17 @@ quint64 GetCurTick()
 	return g_CurTick.Get();
 }
 
+quint64 GetCurCycle()
+{
+	return GetCurTick()*1000; // ToDo
+}
+/*	quint64 freq, now;
+	QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
+	QueryPerformanceCounter((LARGE_INTEGER*)&now);
+	quint64 dwNow = ((now * 1000000) / freq) & 0xffffffff;
+	return dwNow; // returns time since system start in us
+}*/
+
 QString UnEscape(QString Text)
 {
 	QString Value;

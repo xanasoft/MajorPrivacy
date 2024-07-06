@@ -3,7 +3,7 @@
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
 #include "../Core/Network/NetworkManager.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NetUtil.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../MiscHelpers/Common/SettingsWidgets.h"
@@ -34,14 +34,28 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 
 	foreach(auto pItem, Items) 
 	{
-		CProgramFilePtr pFile = pItem.objectCast<CProgramFile>();
+		/*CProgramFilePtr pFile = pItem.objectCast<CProgramFile>();
 		CWindowsServicePtr pSvc = pItem.objectCast<CWindowsService>();
 		CAppPackagePtr pApp = pItem.objectCast<CAppPackage>();
-		if(!pFile && !pSvc && !pApp) // windows firewall only supports these types of identifiers
+		if(!pFile && !pSvc && !pApp && !pItem->inherits("CAllPrograms"))
+			continue;*/
+		switch (pItem->GetID().GetType())
+		{
+		case EProgramType::eProgramFile:
+		case EProgramType::eWindowsService:
+		case EProgramType::eAppPackage:
+		case EProgramType::eAllPrograms:
+			break;
+		default:
 			continue;
+		}
 
 		m_Items.append(pItem);
 		ui.cmbProgram->addItem(pItem->GetNameEx());
+	}
+
+	if (bNew && m_pRule->m_Name.isEmpty()) {
+		m_pRule->m_Name = tr("New Firewall Rule");
 	}
 
 	connect(ui.cmbProgram, SIGNAL(currentIndexChanged(int)), this, SLOT(OnProgramChanged()));
@@ -69,15 +83,15 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
 
-	ui.cmbAction->addItem(tr("Allow"), SVC_API_FW_ALLOW);
-	ui.cmbAction->addItem(tr("Block"), SVC_API_FW_BLOCK);
+	ui.cmbAction->addItem(tr("Allow"), (uint32)EFwActions::Allow);
+	ui.cmbAction->addItem(tr("Block"), (uint32)EFwActions::Block);
 
 	if(bNew)
-		ui.cmbDirection->addItem(tr("Bidirectional"), SVC_API_FW_BIDIRECTIONAL);
-	ui.cmbDirection->addItem(tr("Inbound"), SVC_API_FW_INBOUND);
-	ui.cmbDirection->addItem(tr("Outbound"), SVC_API_FW_OUTBOUND);
+		ui.cmbDirection->addItem(tr("Bidirectional"), (uint32)EFwDirections::Bidirectional);
+	ui.cmbDirection->addItem(tr("Inbound"), (uint32)EFwDirections::Inbound);
+	ui.cmbDirection->addItem(tr("Outbound"), (uint32)EFwDirections::Outbound);
 
-	ui.cmbProtocol->addItem(tr("Any Protocol"), (quint32)EKnownProtocols::Any);
+	ui.cmbProtocol->addItem(tr("Any Protocol"), (quint32)EFwKnownProtocols::Any);
 	for(auto I: g_KnownProtocols)
 		ui.cmbProtocol->addItem(QString::fromStdWString(I.second), I.first);
 
@@ -112,37 +126,41 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 
 	ui.cmbProgram->setEditable(true);
 	ui.cmbProgram->lineEdit()->setReadOnly(true);
-	CProgramItemPtr pItem = theCore->Programs()->GetProgramByID(m_pRule->m_ProgramID);
+	CProgramItemPtr pItem;
+	if (m_pRule->m_ProgramID.GetType() != EProgramType::eUnknown)
+		pItem = theCore->ProgramManager()->GetProgramByID(m_pRule->m_ProgramID);
+	else
+		pItem = theCore->ProgramManager()->GetAll();
 	int Index = m_Items.indexOf(pItem);
 	ui.cmbProgram->setCurrentIndex(Index);
 
-	SetComboBoxValue(ui.cmbAction, m_pRule->m_Action);
+	SetComboBoxValue(ui.cmbAction, (uint32)m_pRule->m_Action);
 
-	if (m_pRule->m_Profile.size() == 1 && m_pRule->m_Profile[0] == SVC_API_FW_ALL)
+	if (m_pRule->m_Profile == (int)EFwProfiles::All || m_pRule->m_Profile == (int)EFwProfiles::Invalid)
 		ui.radProfileAll->setChecked(true);
 	else
 	{
 		ui.radProfileCustom->setChecked(true);
 	
-		ui.chkPublic->setChecked(m_pRule->m_Profile.contains(SVC_API_FW_PUBLIC));
-		ui.chkDomain->setChecked(m_pRule->m_Profile.contains(SVC_API_FW_DOMAIN));
-		ui.chkPrivate->setChecked(m_pRule->m_Profile.contains(SVC_API_FW_PRIVATE));
+		ui.chkPublic->setChecked(m_pRule->m_Profile & (int)EFwProfiles::Public);
+		ui.chkDomain->setChecked(m_pRule->m_Profile & (int)EFwProfiles::Domain);
+		ui.chkPrivate->setChecked(m_pRule->m_Profile & (int)EFwProfiles::Private);
 	}
 
-	if(m_pRule->m_Interface.size() == 1 && m_pRule->m_Interface[0] == SVC_API_FW_ANY)
+	if(m_pRule->m_Interface == (int)EFwInterfaces::All)
 		ui.radNicAll->setChecked(true);
 	else
 	{
 		ui.radNicCustom->setChecked(true);
 
-		ui.chkLAN->setChecked(m_pRule->m_Interface.contains(SVC_API_FW_LAN));
-		ui.chkVPN->setChecked(m_pRule->m_Interface.contains(SVC_API_FW_REMOTEACCESS));
-		ui.chkWiFi->setChecked(m_pRule->m_Interface.contains(SVC_API_FW_WIRELESS));
+		ui.chkLAN->setChecked(m_pRule->m_Interface & (int)EFwInterfaces::Lan);
+		ui.chkVPN->setChecked(m_pRule->m_Interface & (int)EFwInterfaces::RemoteAccess);
+		ui.chkWiFi->setChecked(m_pRule->m_Interface & (int)EFwInterfaces::Wireless);
 	}
 
-	SetComboBoxValue(ui.cmbDirection, m_pRule->m_Direction);
+	SetComboBoxValue(ui.cmbDirection, (uint32)m_pRule->m_Direction);
 
-	SetComboBoxValue(ui.cmbProtocol, m_pRule->m_Protocol);
+	SetComboBoxValue(ui.cmbProtocol, (uint32)m_pRule->m_Protocol);
 
 	// ICMP set by OnProtocolChanged
 		
@@ -193,11 +211,9 @@ void CFirewallRuleWnd::OnSaveAndClose()
 		return;
 	}
 
-	STATUS Status = theCore->Network()->SetFwRule(m_pRule);	
-	if (Status.IsError()) {
-		theGUI->CheckResults(QList<STATUS>() << Status, this);
+	STATUS Status = theCore->NetworkManager()->SetFwRule(m_pRule);	
+	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
 		return;
-	}
 	accept();
 }
 
@@ -213,46 +229,46 @@ bool CFirewallRuleWnd::Save()
 
 	CProgramItemPtr pItem = m_Items[Index];
 	if (m_pRule->m_ProgramID != pItem->GetID()) {
-		m_pRule->m_BinaryPath = pItem->GetPath();
+		m_pRule->m_BinaryPath = pItem->GetPath(EPathType::eWin32);
 		CWindowsServicePtr pSvc = pItem.objectCast<CWindowsService>();
 		m_pRule->m_ServiceTag = pSvc ? pSvc->GetSvcTag() : "";
 		CAppPackagePtr pApp = pItem.objectCast<CAppPackage>();
 		m_pRule->m_AppContainerSid = pApp ? pApp->GetAppSid() : "";
 	}
 
-	m_pRule->m_Action = GetComboBoxValue(ui.cmbAction).toString();
+	m_pRule->m_Action = (EFwActions)GetComboBoxValue(ui.cmbAction).toUInt();
 
 	if (!ui.radProfileCustom->isChecked())
-		m_pRule->m_Profile = QStringList() << SVC_API_FW_ALL;
+		m_pRule->m_Profile = (int)EFwProfiles::All;
 	else
 	{
-		m_pRule->m_Profile.clear();
+		m_pRule->m_Profile = 0;
 		if(ui.chkPublic->isChecked())
-			m_pRule->m_Profile.append(SVC_API_FW_PUBLIC);
+			m_pRule->m_Profile |= (int)EFwProfiles::Public;
 		if(ui.chkDomain->isChecked())
-			m_pRule->m_Profile.append(SVC_API_FW_DOMAIN);
+			m_pRule->m_Profile |= (int)EFwProfiles::Domain;
 		if(ui.chkPrivate->isChecked())
-			m_pRule->m_Profile.append(SVC_API_FW_PRIVATE);
+			m_pRule->m_Profile |= (int)EFwProfiles::Private;
 	}
 
 	if (!ui.radNicCustom->isChecked())
-		m_pRule->m_Interface = QStringList() << SVC_API_FW_ANY;
+		m_pRule->m_Interface = (int)EFwInterfaces::All;
 	else
 	{
-		m_pRule->m_Interface.clear();
+		m_pRule->m_Interface = 0;
 		if(ui.chkLAN->isChecked())
-			m_pRule->m_Interface.append(SVC_API_FW_LAN);
+			m_pRule->m_Interface |= (int)EFwInterfaces::Lan;
 		if(ui.chkVPN->isChecked())
-			m_pRule->m_Interface.append(SVC_API_FW_REMOTEACCESS);
+			m_pRule->m_Interface |= (int)EFwInterfaces::RemoteAccess;
 		if(ui.chkWiFi->isChecked())
-			m_pRule->m_Interface.append(SVC_API_FW_WIRELESS);
+			m_pRule->m_Interface |= (int)EFwInterfaces::Wireless;
 	}
 
-	m_pRule->m_Direction = GetComboBoxValue(ui.cmbDirection).toString();
+	m_pRule->m_Direction = (EFwDirections)GetComboBoxValue(ui.cmbDirection).toUInt();
 
-	m_pRule->m_Protocol = GetComboBoxValue(ui.cmbProtocol).toUInt();
+	m_pRule->m_Protocol = (EFwKnownProtocols)GetComboBoxValue(ui.cmbProtocol).toUInt();
 
-	bool bICMP = (m_pRule->m_Protocol == (quint32)EKnownProtocols::ICMP || m_pRule->m_Protocol == (quint32)EKnownProtocols::ICMPv6);
+	bool bICMP = (m_pRule->m_Protocol == EFwKnownProtocols::ICMP || m_pRule->m_Protocol == EFwKnownProtocols::ICMPv6);
 	if (!bICMP)
 		m_pRule->m_IcmpTypesAndCodes.clear();
 	else
@@ -263,7 +279,7 @@ bool CFirewallRuleWnd::Save()
 			m_pRule->m_IcmpTypesAndCodes = SplitStr(ui.cmbICMP->currentText(), ",");
 	}
 
-	bool bPorts = (m_pRule->m_Protocol == (quint32)EKnownProtocols::TCP || m_pRule->m_Protocol == (quint32)EKnownProtocols::UDP);
+	bool bPorts = (m_pRule->m_Protocol == EFwKnownProtocols::TCP || m_pRule->m_Protocol == EFwKnownProtocols::UDP);
 
 	auto GetPorts = [&](QComboBox* pBox)
 	{
@@ -306,7 +322,7 @@ void CFirewallRuleWnd::OnProgramChanged()
 	CProgramItemPtr pItem = m_Items[Index];
 	//if (pItem) ui.cmbProgram->setCurrentText(pItem->GetName());
 	CProgramID ID = pItem->GetID();
-	ui.txtPath->setText(QString::fromStdWString(NtPathToDosPath(pItem->GetPath().toStdWString())));
+	ui.txtPath->setText(pItem->GetPath(EPathType::eWin32));
 	CWindowsServicePtr pSvc = pItem.objectCast<CWindowsService>();
 	ui.txtService->setText(pSvc ? pSvc->GetSvcTag() : "");
 	//ui.txtService->setToolTip(pSvc ? pSvc->GetName() : "");
@@ -331,8 +347,8 @@ void CFirewallRuleWnd::OnInterfacesChanged()
 
 void CFirewallRuleWnd::OnDirectionChanged()
 {
-	quint32 Protocol = GetComboBoxValue(ui.cmbProtocol).toUInt();
-	bool bPorts = (Protocol == (quint32)EKnownProtocols::TCP || Protocol == (quint32)EKnownProtocols::UDP);
+	EFwKnownProtocols Protocol = (EFwKnownProtocols)GetComboBoxValue(ui.cmbProtocol).toUInt();
+	bool bPorts = (Protocol == EFwKnownProtocols::TCP || Protocol == EFwKnownProtocols::UDP);
 
 	if(bPorts)
 		UpdatePorts();
@@ -342,8 +358,8 @@ void CFirewallRuleWnd::OnProtocolChanged()
 {
 	quint32 Protocol = GetComboBoxValue(ui.cmbProtocol).toUInt();
 
-	bool bICMP = (Protocol == (quint32)EKnownProtocols::ICMP || Protocol == (quint32)EKnownProtocols::ICMPv6);
-	bool bPorts = (Protocol == (quint32)EKnownProtocols::TCP || Protocol == (quint32)EKnownProtocols::UDP);
+	bool bICMP = (Protocol == (quint32)EFwKnownProtocols::ICMP || Protocol == (quint32)EFwKnownProtocols::ICMPv6);
+	bool bPorts = (Protocol == (quint32)EFwKnownProtocols::TCP || Protocol == (quint32)EFwKnownProtocols::UDP);
 
 	ui.lblICMP->setVisible(bICMP);
 	ui.cmbICMP->setVisible(bICMP);
@@ -356,7 +372,7 @@ void CFirewallRuleWnd::OnProtocolChanged()
 	{
 		ui.cmbICMP->clear();
 		ui.cmbICMP->addItem(tr("All Types"), "*");
-		for(auto I: (Protocol == (quint32)EKnownProtocols::ICMPv6) ? g_KnownIcmp6Types : g_KnownIcmp4Types)
+		for(auto I: (Protocol == (quint32)EFwKnownProtocols::ICMPv6) ? g_KnownIcmp6Types : g_KnownIcmp4Types)
 			ui.cmbICMP->addItem(QString("%1:* (%2)").arg(I.first).arg(QString::fromStdWString(I.second)), QString("%1:*").arg(I.first));
 		ui.cmbICMP->addItem("3:4 (Type 3, Code 4)", "3:4");
 
@@ -375,29 +391,29 @@ void CFirewallRuleWnd::UpdatePorts()
 	ui.cmbLocalPorts->clear();
 	ui.cmbRemotePorts->clear();
 
-	QString Direction = ui.cmbDirection->currentData().toString();
-	quint32 Protocol = GetComboBoxValue(ui.cmbProtocol).toUInt();
+	EFwDirections Direction = (EFwDirections)ui.cmbDirection->currentData().toUInt();
+	EFwKnownProtocols Protocol = (EFwKnownProtocols)GetComboBoxValue(ui.cmbProtocol).toUInt();
 
 	ui.cmbLocalPorts->addItem("Any Port");
 	ui.cmbRemotePorts->addItem("Any Port");
 
-	if (Direction == SVC_API_FW_OUTBOUND)
+	if (Direction == EFwDirections::Outbound)
 	{
-		if (Protocol == (uint32)EKnownProtocols::TCP)
+		if (Protocol == EFwKnownProtocols::TCP)
 		{
 			ui.cmbRemotePorts->addItem("IPHTTPSOut", "IPHTTPSOut");
 		}
 	}
 
-	if (Direction == SVC_API_FW_INBOUND)
+	if (Direction == EFwDirections::Inbound)
 	{
-		if (Protocol == (uint32)EKnownProtocols::TCP)
+		if (Protocol == EFwKnownProtocols::TCP)
 		{
 			ui.cmbLocalPorts->addItem("IPHTTPSIn", "IPHTTPSIn");
 			ui.cmbLocalPorts->addItem("RPC-EPMap", "RPC-EPMap");
 			ui.cmbLocalPorts->addItem("RPC", "RPC");
 		}
-		else if (Protocol == (uint32)EKnownProtocols::UDP)
+		else if (Protocol == EFwKnownProtocols::UDP)
 		{
 			ui.cmbLocalPorts->addItem("Teredo", "Teredo");
 			ui.cmbLocalPorts->addItem("Ply2Disc", "Ply2Disc");

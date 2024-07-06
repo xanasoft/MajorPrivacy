@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "TrafficLog.h"
-#include "../ServiceAPI.h"
+#include "../../Library/API/PrivacyAPI.h"
 
 CTrafficLog::CTrafficLog()
 {
@@ -62,12 +62,12 @@ void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntr
 CVariant CTrafficLog::STrafficLogEntry::ToVariant(const std::wstring& Host) const
 {
 	CVariant Entry;
-	Entry.BeginMap();
+	Entry.BeginIMap();
 
-	Entry.Write(SVC_API_NET_HOST, Host);
-	Entry.Write(SVC_API_NET_LAST_ACT, LastActivity);
-	Entry.Write(SVC_API_NET_UPLOADED, Uploaded);
-	Entry.Write(SVC_API_NET_DOWNLOADED, Downloaded);
+	Entry.Write(API_V_SOCK_RHOST, Host);
+	Entry.Write(API_V_SOCK_LAST_ACT, LastActivity);
+	Entry.Write(API_V_SOCK_UPLOADED, Uploaded);
+	Entry.Write(API_V_SOCK_DOWNLOADED, Downloaded);
 
 	Entry.Finish();
 	return Entry;

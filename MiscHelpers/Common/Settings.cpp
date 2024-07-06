@@ -13,7 +13,7 @@ bool TestWriteRight(const QString& Path)
 	return TestFile.remove();
 }
 
-CSettings::CSettings(const QString& AppDir, const QString& AppName, QMap<QString, SSetting> DefaultValues, QObject* qObject) : QObject(qObject)
+CSettings::CSettings(const QString& AppDir, const QString& AppName, const QString& GroupName, QMap<QString, SSetting> DefaultValues, QObject* qObject) : QObject(qObject)
 {
 	m_ConfigDir = AppDir;
 	if (!(m_bPortable = QFile::exists(m_ConfigDir + "/" + AppName + ".ini")))
@@ -24,10 +24,17 @@ CSettings::CSettings(const QString& AppDir, const QString& AppName, QMap<QString
 		//
 		// if ini is present in the shared location it take precedence over an ini in a user location
 		//
-		else if(dirs.count() > 2 && QFile::exists(dirs[1] + "/" + AppName + "/" + AppName + ".ini"))
-			m_ConfigDir = dirs[1] + "/" + AppName;
-		else
-			m_ConfigDir = dirs[0] + "/" + AppName;
+		else 
+		{
+			if (dirs.count() > 2 && QFile::exists(dirs[1] + "/" + AppName + "/" + AppName + ".ini"))
+				m_ConfigDir = dirs[1];
+			else
+				m_ConfigDir = dirs[0];
+
+			if(!GroupName.isEmpty())
+				m_ConfigDir += "/" + GroupName;
+			m_ConfigDir += "/" + AppName;
+		}
 		QDir().mkpath(m_ConfigDir);
 	}
 
@@ -113,7 +120,7 @@ QByteArray CSettings::GetBlob(const QString& key)
 	return value;
 }
 
-const QStringList CSettings::ListKeys(const QString& Root)
+QStringList CSettings::ListKeys(const QString& Root)
 {
 	QMutexLocker Locker(&m_Mutex); 
 	QStringList Keys;

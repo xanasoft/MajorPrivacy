@@ -76,7 +76,7 @@ BOOLEAN CPackageList::EnumCallBack(PVOID param, void* AppPackage, void* AppPacka
         pAppPackage->PackageInstallPath = PackageInstallPath; // DOS Path
 
         pParams->pThis->m_List.insert(std::make_pair(PackageFullName, pAppPackage));
-        svcCore->ProgramManager()->AddPackage(pAppPackage);
+        theCore->ProgramManager()->AddPackage(pAppPackage);
     }
 
     return TRUE;
@@ -107,7 +107,7 @@ void CPackageList::Update()
     for(auto E: Params.OldList) {
         m_List.erase(E.first);
         SPackagePtr pAppPackage = E.second;
-        if (pAppPackage) svcCore->ProgramManager()->RemovePackage(pAppPackage);
+        if (pAppPackage) theCore->ProgramManager()->RemovePackage(pAppPackage);
     }
 }
 
@@ -154,21 +154,21 @@ void CPackageList::Update()
 
             m_ListBySID.insert(std::make_pair(Id, pAppPackage));
 
-            svcCore->ProgramManager()->AddPackage(pAppPackage);
+            theCore->ProgramManager()->AddPackage(pAppPackage);
         }
     }
 
     for(auto E: OldList) {
         m_ListBySID.erase(E.first);
         SPackagePtr pAppPackage = E.second;
-        if (pAppPackage) svcCore->ProgramManager()->RemovePackage(pAppPackage);
+        if (pAppPackage) theCore->ProgramManager()->RemovePackage(pAppPackage);
     }
 }*/
 
 bool CPackageList::LoadFromCache()
 {
     CBuffer Data;
-    if (!ReadFile(svcCore->GetDataFolder() + L"AppPackages.dat", 0, Data))
+    if (!ReadFile(theCore->GetDataFolder() + L"\\AppPackages.dat", 0, Data))
         return false;
 
     CVariant List;
@@ -195,7 +195,7 @@ bool CPackageList::LoadFromCache()
         pAppPackage->SmallLogoPath = Package["LogoPath"];
 
         m_List.insert(std::make_pair(pAppPackage->PackageFullName, pAppPackage));
-        svcCore->ProgramManager()->AddPackage(pAppPackage);
+        theCore->ProgramManager()->AddPackage(pAppPackage);
     }
 
     return true;
@@ -226,5 +226,5 @@ void CPackageList::StoreToCache()
 
     CBuffer Data;
     List.ToPacket(&Data);
-    WriteFile(svcCore->GetDataFolder() + L"AppPackages.dat", 0, Data);
+    WriteFile(theCore->GetDataFolder() + L"\\AppPackages.dat", 0, Data);
 }

@@ -1,13 +1,38 @@
-#include "pch.h"
+//#include "pch.h"
+
+// machine types
+#include "../Types.h"
+
+#include "../../Framework/Header.h"
+
+#ifdef VAR_NO_STL_STR
+void* __cdecl operator new(size_t size, void* ptr);
+/*{
+	return ptr;
+}*/
+#endif
+
 #include "Variant.h"
 //#include "../../zlib/zlib.h"
+#include "../../Framework/Memory.h"
+#ifndef VAR_NO_EXCEPTIONS
 #include "Exception.h"
-#include "Strings.h"
+#endif
+#include "../../Framework/UniquePtr.h"
 
-std::recursive_mutex CVariant::m_AllocatorMutex;
-PoolAllocator<sizeof(CVariant::SVariant)> CVariant::m_Allocator;
+#ifdef VAR_USE_POOL_ALLOCATOR
+#include "PoolAllocator.h"
+#include <mutex>
 
-CVariant::CVariant(EType Type)
+static std::recursive_mutex g_Var_AllocatorMutex;
+static PoolAllocator<sizeof(CVariant::SVariant)> g_Var_Allocator;
+#endif
+
+FW::DefaultMemPool g_VariantDefaultMemPool;
+
+
+CVariant::CVariant(FW::AbstractMemPool* pMemPool, EType Type)
+	: FW::AbstractContainer(pMemPool)
 {
 	if(Type != VAR_TYPE_EMPTY)
 		InitValue(Type, 0, NULL);
@@ -16,9 +41,15 @@ CVariant::CVariant(EType Type)
 }
 
 CVariant::CVariant(const CVariant& Variant)
+	: FW::AbstractContainer(Variant)
 {
 	m_Variant = NULL;
-	Assign(Variant);
+	EResult Err = Assign(Variant);
+#ifndef VAR_NO_EXCEPTIONS
+	if (Err) throw CException(ErrorString(Err));
+#else
+	UNREFERENCED_PARAMETER(Err);
+#endif
 }
 
 CVariant::~CVariant()
@@ -26,163 +57,289 @@ CVariant::~CVariant()
 	Clear();
 }
 
-CVariant::SVariant* CVariant::Alloc()
+CVariant::EResult CVariant::Throw(EResult Error)
 {
-	std::unique_lock Lock(m_AllocatorMutex);
+#ifdef KERNEL_MODE
+	//DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "CVariant::Throw: %s\n", ErrorString(Error));
+#endif
+#ifndef VAR_NO_EXCEPTIONS
+	throw CException(ErrorString(Error));
+#endif
+	return Error;
+}
 
-	SVariant* ptr = (SVariant*)m_Allocator.allocate(sizeof(SVariant));
+const char* CVariant::ErrorString(EResult Error)
+{
+	switch(Error) {
+	case eErrNone: return "No Error";
+	case eErrAllocFailed: return "Memory Allocation Failed";
+	case eErrBufferShort: return "Buffer Too Short";
+	case eErrBufferWriteFailed: return "Buffer Write Failed";
+	case eErrInvalidHeader: return "Invalid Header";
+	case eErrIntegerOverflow: return "Integer Overflow";
+	case eErrNotWritable: return "Variant Not Writable";
+	case eErrTypeMismatch: return "Type Mismatch";
+	case eErrIsEmpty: return "Variant Is Empty";
+	case eErrWriteInProgrees: return "Write In Progress";
+	case eErrWriteNotReady: return "Write Not Ready";
+	case eErrInvalidName: return "Invalid Name";
+	case eErrNotFound: return "Not Found";
+	case eErrIndexOutOfBounds: return "Index Out Of Bounds";
+	default: return "Unknown Error";
+	}
+}
+
+CVariant::SVariant* CVariant::AllocData() const
+{
+	FW::AbstractMemPool* pMem = m_pMem ? m_pMem : &g_VariantDefaultMemPool;
+#ifdef VAR_USE_POOL_ALLOCATOR
+	std::unique_lock Lock(g_Var_AllocatorMutex);
+	CVariant::SVariant* ptr = (CVariant::SVariant*)g_Var_Allocator.allocate(sizeof(SVariant));
+#else
+	CVariant::SVariant* ptr = (CVariant::SVariant*)pMem->Alloc(sizeof(SVariant));
+#endif
+	if (!ptr) return NULL;
 	new (ptr) SVariant;
+	ptr->pMem = pMem;
 	return ptr;
-	//return new SVariant;
 }
 
-void CVariant::Free(SVariant* ptr)
+void CVariant::FreeData(SVariant* ptr) const
 {
-	if (!ptr)
-		return;
-
-	std::unique_lock Lock(m_AllocatorMutex);
-
+	if (!ptr) return;
+	FW::AbstractMemPool* pMem = ptr->pMem ? ptr->pMem : &g_VariantDefaultMemPool;
 	ptr->~SVariant();
-	m_Allocator.free(ptr);
-	//delete ptr;
+#ifdef VAR_USE_POOL_ALLOCATOR
+	std::unique_lock Lock(g_Var_AllocatorMutex);
+	g_Var_Allocator.free(ptr);
+#else
+	pMem->Free(ptr);
+#endif
 }
 
-void CVariant::Assign(const CVariant& Variant)
+CVariant::EResult CVariant::Assign(const CVariant& Other) noexcept
 {
-	const SVariant* VariantVal = Variant.Val();
-	if(m_Variant && m_Variant->Access != eReadWrite)
-		throw CException(L"variant access violation; Assign");
-	if(VariantVal->Access == eDerived)
+	auto pOther = Other.Val(true);
+	if (pOther.Error == eErrIsEmpty) 
+	{
+		Clear();
+		return eErrNone;
+	}
+	if(pOther.Error) return pOther.Error;
+
+	if (m_Variant && m_Variant->Access != eReadWrite)
+		return eErrNotWritable;
+
+	if(pOther.Value->Access == eDerived)
 	{
 		// Note: We can not asign buffer derivations, as the original variant may be removed at any time,
 		//	those we must copy the buffer on accessey by value
-		SVariant* VariantCopy = Alloc();
-		VariantCopy->Type = VariantVal->Type;
-		VariantCopy->Size = VariantVal->Size;
-		VariantCopy->Alloc();
-		memcpy(VariantCopy->Payload,VariantVal->Payload, VariantCopy->Size);
+		SVariant* VariantCopy = AllocData();
+		if(!VariantCopy) return eErrAllocFailed;
+		VariantCopy->Type = pOther.Value->Type;
+		VariantCopy->Size = pOther.Value->Size;
+		if (!VariantCopy->AllocPayload()) {
+			FreeData(VariantCopy);
+			return eErrAllocFailed;
+		}
+		MemCopy(VariantCopy->Payload,pOther.Value->Payload, VariantCopy->Size);
 		VariantCopy->Access = eReadOnly;
 		Attach(VariantCopy);
 	}
 	else
-	{
-		ASSERT(Variant.m_Variant);
-		Attach(Variant.m_Variant);
-	}
+		Attach(Other.m_Variant);
+	return eErrNone;
 }
 
-void CVariant::Clear()
+void CVariant::Clear() noexcept
 {
-	if(m_Variant && m_Variant->Refs.fetch_sub(1) == 1)
-		Free(m_Variant);
+	if (!m_Variant)
+		return;
+#ifndef VAR_NO_STL
+	if(m_Variant->Refs.fetch_sub(1) == 1)
+#else
+	if(InterlockedDecrement(&m_Variant->Refs) == 0)
+#endif
+		FreeData(m_Variant);
 	m_Variant = NULL;
 }
 
 CVariant CVariant::Clone(bool Full) const
 {
-	const SVariant* Variant = Val();
+	auto Variant = Val();
 
-	CVariant NewVariant;
-	NewVariant.Attach(Variant->Clone(Full));
+	CVariant NewVariant(m_pMem);
+	if (!Variant.Error) {
+		FW::UniquePtr pClone(CVariant::AllocData(), [this](SVariant* ptr) { FreeData(ptr); });
+		if (pClone) {
+			EResult Err = Variant.Value->Clone(pClone, Full);
+			if (!Err) 
+				NewVariant.Attach(pClone.Detach());
+#ifndef VAR_NO_EXCEPTIONS
+			else throw CException(ErrorString(Err));
+#endif
+		}
+#ifndef VAR_NO_EXCEPTIONS
+		else throw CException(ErrorString(eErrAllocFailed));
+#endif
+	}
 	return NewVariant;
 }
 
-void CVariant::Attach(SVariant* Variant)
+void CVariant::Attach(SVariant* Variant) noexcept
 {
-	if(m_Variant && m_Variant->Refs.fetch_sub(1) == 1)
-		Free(m_Variant);
-	m_Variant = Variant;
-	m_Variant->Refs.fetch_add(1);
-}
+	Clear();
 
-void CVariant::InitValue(EType Type, size_t Size, const void* Value, bool bTake)
-{
-	m_Variant = Alloc();
-	m_Variant->Refs.fetch_add(1);
+	if (m_pMem != Variant->pMem) {
+		m_pMem = Variant->pMem; // todo
+	}
 
-	m_Variant->Init(Type, Size, Value, bTake);
-}
-
-void CVariant::Detach()
-{
-	ASSERT(m_Variant);
-	ASSERT(m_Variant->Refs > 1);
-	SVariant* newVariant = m_Variant->Clone();
-	if(m_Variant->Refs.fetch_sub(1) == 1)
-		Free(m_Variant);
-	m_Variant = newVariant;
-	m_Variant->Refs.fetch_add(1);
-}
-
-void CVariant::Freeze()
-{
-	SVariant* Variant = Val();
-	if(Variant->Access == eReadOnly)
+	if (!Variant) 
 		return;
+	m_Variant = Variant;
+#ifndef VAR_NO_STL
+	m_Variant->Refs.fetch_add(1);
+#else
+	InterlockedIncrement(&m_Variant->Refs);
+#endif
+}
+
+bool CVariant::InitValue(EType Type, size_t Size, const void* Value, bool bTake)
+{
+	ASSERT(m_Variant == NULL);
+
+	m_Variant = AllocData();
+	if (!m_Variant) {
+#ifndef VAR_NO_EXCEPTIONS
+		throw CException(ErrorString(eErrAllocFailed));
+#endif
+		return false;
+	}
+#ifndef VAR_NO_STL
+	m_Variant->Refs.fetch_add(1);
+#else
+	m_Variant->Refs = 1;
+#endif
+
+	if (!m_Variant->Init(Type, Size, Value, bTake)) {
+#ifndef VAR_NO_EXCEPTIONS
+		throw CException(ErrorString(eErrAllocFailed));
+#endif
+		return false;
+	}
+	return true;
+}
+
+FW::RetValue<CVariant::SVariant*, CVariant::EResult> CVariant::Val(bool NoAlloc) const
+{
+	if (!m_Variant) 
+	{
+		if (NoAlloc)
+			return eErrIsEmpty;
+		if(!((CVariant*)this)->InitValue(VAR_TYPE_EMPTY, 0, NULL))
+			return eErrAllocFailed;
+	}
+	return m_Variant;
+}
+
+FW::RetValue<CVariant::SVariant*, CVariant::EResult> CVariant::Val()
+{
+	if (!m_Variant) 
+	{
+		if(!InitValue(VAR_TYPE_EMPTY, 0, NULL))
+			return eErrAllocFailed;
+	}
+	else if (m_Variant->Refs > 1) 
+	{
+		FW::UniquePtr pClone(CVariant::AllocData(), [this](SVariant* ptr) { FreeData(ptr); });
+		if (!pClone) return Throw(eErrAllocFailed);
+		EResult Err = m_Variant->Clone(pClone);
+		if (Err) return Throw(Err);
+		Attach(pClone.Detach());
+	}
+	return m_Variant;
+}
+
+CVariant::EResult CVariant::Freeze()
+{
+	auto pVal = Val();
+	if (pVal.Error) return Throw(pVal.Error);
+	if (pVal.Value->Access == eReadOnly)
+		return Throw(eErrNotWritable);
 
 	// Note: we must flly serialize and deserialize the variant in order to not store maps and std::list content multiple times in memory
 	//	The CPU overhead should be howeever minimal as we imply parse on read for the dictionaries, 
 	//	and we usually dont read the variant afterwards but put in on the socket ot save it to a file
-	CBuffer Packet;
-	ToPacket(&Packet);
+	CBuffer Packet(m_pMem);
+	EResult Err = ToPacket(&Packet);
+	if(Err) return Throw(Err);
 	Packet.SetPosition(0);
-	FromPacket(&Packet);
+	return FromPacket(&Packet);
 }
 
-void CVariant::Unfreeze()
+CVariant::EResult CVariant::Unfreeze()
 {
-	SVariant* Variant = Val();
-	if(Variant->Access == eReadWrite)
-		return;
+	auto pVal = Val();
+	if (pVal.Error) return Throw(pVal.Error);
+	if (pVal.Value->Access == eReadOnly)
+		return Throw(eErrNotWritable);
 
-	Attach(Variant->Clone());
+	FW::UniquePtr pClone(CVariant::AllocData(), [this](SVariant* ptr) { FreeData(ptr); });
+	if (!pClone) return Throw(eErrAllocFailed);
+	EResult Err = pVal.Value->Clone(pClone);
+	if (Err) return Throw(Err);
+	Attach(pClone.Detach());
+	return eErrNone;
 }
 
 bool CVariant::IsFrozen() const
 {
-	const SVariant* Variant = Val();
-	return Variant->Access != eReadWrite;
+	auto pVal = Val(true);
+	if(pVal.Error) return false;
+	return pVal.Value->Access != eReadWrite;
 }
 
-void CVariant::FromPacket(const CBuffer* pPacket, bool bDerived)
+CVariant::EResult CVariant::FromPacket(const CBuffer* pPacket, bool bDerived)
 {
 	Clear();
-	SVariant* Variant = Val();
+	auto pVal = Val();
+	if (pVal.Error) return Throw(pVal.Error);
 
-	Variant->Size = ReadHeader(pPacket, &Variant->Type);
+	pVal.Value->Size = ReadHeader(pPacket, &pVal.Value->Type);
+	if (pVal.Value->Size == 0xFFFFFFFF) return Throw(eErrInvalidHeader);
 	
 	if(bDerived)
 	{
-		Variant->Access = eDerived;
-		Variant->Payload = pPacket->ReadData(Variant->Size);
+		pVal.Value->Access = eDerived;
+		pVal.Value->Payload = pPacket->ReadData(pVal.Value->Size);
+		if(!pVal.Value->Payload) return Throw(eErrBufferShort);
 	}
 	else
 	{
-		Variant->Access = eReadOnly;
+		pVal.Value->Access = eReadOnly;
 //#ifdef HAS_ZLIB // deprecated
 //		if((Type & VAR_LEN32) == 0) // is it packed
 //		{
-//			byte* pData = pPacket->ReadData(Variant->Size);
+//			byte* pData = pPacket->ReadData(pVal.Value->Size);
 //
-//			uLongf newsize = Variant->Size*10+300;
+//			uLongf newsize = pVal.Value->Size*10+300;
 //			uLongf unpackedsize = 0;
 //			int result = 0;
-//			CBuffer Buffer;
+//			CBuffer Buffer(m_pMem);
 //			do
 //			{
 //				Buffer.AllocBuffer(newsize, true);
 //				unpackedsize = newsize;
-//				result = uncompress(Buffer.GetBuffer(),&unpackedsize,pData,Variant->Size);
+//				result = uncompress(Buffer.GetBuffer(),&unpackedsize,pData,pVal.Value->Size);
 //				newsize *= 2; // size for the next try if needed
 //			}
-//			while (result == Z_BUF_ERROR && newsize < Max(MB2B(16), Variant->Size*100));	// do not allow the unzip buffer to grow infinetly,
+//			while (result == Z_BUF_ERROR && newsize < Max(MB2B(16), pVal.Value->Size*100));	// do not allow the unzip buffer to grow infinetly,
 //																					// assume that no packetcould be originaly larger than the UnpackLimit nd those it must be damaged
 //			if (result == Z_OK)
 //			{
-//				Variant->Size = unpackedsize;
-//				Variant->Alloc();
-//				memcpy(Variant->Payload, Buffer.GetBuffer(), Variant->Size);
+//				pVal.Value->Size = unpackedsize;
+//				pVal.Value->AllocPayload();
+//				MemCopy(pVal.Value->Payload, Buffer.GetBuffer(), pVal.Value->Size);
 //			}
 //			else
 //				return;
@@ -190,26 +347,33 @@ void CVariant::FromPacket(const CBuffer* pPacket, bool bDerived)
 //		else
 //#endif
 		{
-			Variant->Alloc();
-			memcpy(Variant->Payload, pPacket->ReadData(Variant->Size), Variant->Size);
+			if (!pVal.Value->AllocPayload())
+				return Throw(eErrAllocFailed);
+			MemCopy(pVal.Value->Payload, pPacket->ReadData(pVal.Value->Size), pVal.Value->Size);
 		}
 	}
+	return eErrNone;
 }
 
 uint32 CVariant::ReadHeader(const CBuffer* pPacket, EType* pType)
 {
-	byte Type = pPacket->ReadValue<uint8>();
+	bool bOk;
+	byte Type = pPacket->ReadValue<uint8>(&bOk);
+	if (!bOk) 
+		return 0xFFFFFFFF;
 	ASSERT(Type != 0xFF);
 
 	uint32 Size;
 	if (Type & VAR_LEN_FIELD)
 	{
 		if ((Type & VAR_LEN_MASK) == VAR_LEN8)
-			Size = pPacket->ReadValue<uint8>();
+			Size = pPacket->ReadValue<uint8>(&bOk);
 		else if ((Type & VAR_LEN_MASK) == VAR_LEN16)
-			Size = pPacket->ReadValue<uint16>();
+			Size = pPacket->ReadValue<uint16>(&bOk);
 		else //if ((Type & VAR_LEN_MASK) == VAR_LEN32) // VAR_LEN32 or packed in eider case teh length is 32 bit 
-			Size = pPacket->ReadValue<uint32>();
+			Size = pPacket->ReadValue<uint32>(&bOk);
+		if (!bOk) 
+			return 0xFFFFFFFF;
 	}
 	else if ((Type & VAR_TYPE_MASK) == VAR_TYPE_EMPTY)
 		Size = 0;
@@ -222,33 +386,35 @@ uint32 CVariant::ReadHeader(const CBuffer* pPacket, EType* pType)
 	else //if ((Type & VAR_LEN_MASK) == VAR_LEN64)
 		Size = 8;
 
-	if(pPacket->GetSizeLeft() < Size)
-		throw CException(L"incomplete variant");
+	if (pPacket->GetSizeLeft() < Size)
+		return 0xFFFFFFFF;
 
 	if(pType) *pType = (EType)(Type & VAR_TYPE_MASK); // clear size flags
 
 	return Size;
 }
 
-void CVariant::ToPacket(CBuffer* pPacket/*, bool bPack*/) const
+CVariant::EResult CVariant::ToPacket(CBuffer* pPacket/*, bool bPack*/) const
 {
-	const SVariant* Variant = Val();
+	auto pVal = Val();
+	if (pVal.Error) return Throw(pVal.Error);
 
-	CBuffer Payload;
-	Variant->MkPayload(Payload);
+	CBuffer Payload(m_pMem);
+	EResult Err = pVal.Value->MkPayload(&Payload);
+	if(Err) return Throw(Err);
 
 //#ifdef HAS_ZLIB // deprecated
 //	if(bPack)
 //	{
 //		ASSERT(Payload.GetSize() + 300 < 0xFFFFFFFF);
 //		uLongf newsize = (uLongf)(Payload.GetSize() + 300);
-//		CBuffer Buffer(newsize);
+//		CBuffer Buffer(m_pMem, newsize);
 //		int result = compress2(Buffer.GetBuffer(),&newsize,Payload.GetBuffer(),(uLongf)Payload.GetSize(),Z_BEST_COMPRESSION);
 //
 //		if (result == Z_OK && Payload.GetSize() > newsize) // does the compression helped?
 //		{
-//			ASSERT(Variant->Type != 0xFF);
-//			pPacket->WriteValue<uint8>(Variant->Type | VAR_LEN64);
+//			ASSERT(pVal.Value->Type != 0xFF);
+//			pPacket->WriteValue<uint8>(pVal.Value->Type | VAR_LEN64);
 //			pPacket->WriteValue<uint32>(newsize);
 //			pPacket->WriteData(Buffer.GetBuffer(), newsize);
 //			return;
@@ -256,309 +422,455 @@ void CVariant::ToPacket(CBuffer* pPacket/*, bool bPack*/) const
 //	}
 //#endif
 	
-	ToPacket(pPacket, Variant->Type, Payload.GetSize(), Payload.GetBuffer());
+	return ToPacket(pPacket, pVal.Value->Type, Payload.GetSize(), Payload.GetBuffer());
 }
 
-void CVariant::ToPacket(CBuffer* pPacket, EType Type, size_t uLength, const void* Value)
+CVariant::EResult CVariant::ToPacket(CBuffer* pPacket, EType Type, size_t uLength, const void* Value)
 {
 	ASSERT(uLength < 0xFFFFFFFF);
 
 	ASSERT((Type & ~VAR_TYPE_MASK) == 0);
 
+	bool bOk;
+
 	if(Type == VAR_TYPE_EMPTY)
-		pPacket->WriteValue<uint8>(Type);
+		bOk = pPacket->WriteValue<uint8>(Type);
 	else if (uLength == 1)
-		pPacket->WriteValue<uint8>(Type | VAR_LEN8);
+		bOk = pPacket->WriteValue<uint8>(Type | VAR_LEN8);
 	else if (uLength == 2)
-		pPacket->WriteValue<uint8>(Type | VAR_LEN16);
+		bOk = pPacket->WriteValue<uint8>(Type | VAR_LEN16);
 	else if (uLength == 4)
-		pPacket->WriteValue<uint8>(Type | VAR_LEN32);
+		bOk = pPacket->WriteValue<uint8>(Type | VAR_LEN32);
 	else if (uLength == 8)
-		pPacket->WriteValue<uint8>(Type | VAR_LEN64);
+		bOk = pPacket->WriteValue<uint8>(Type | VAR_LEN64);
 	else
 	{
-		if (uLength > USHRT_MAX) {
-			pPacket->WriteValue<uint8>(Type | VAR_LEN_FIELD | VAR_LEN32);
-			pPacket->WriteValue<uint32>((uint32)uLength);
+		if (uLength > 0xFFFF) {
+			bOk = pPacket->WriteValue<uint8>(Type | VAR_LEN_FIELD | VAR_LEN32);
+			if(bOk) bOk = pPacket->WriteValue<uint32>((uint32)uLength);
 		}
-		else if (uLength > UCHAR_MAX) {
-			pPacket->WriteValue<uint8>(Type | VAR_LEN_FIELD | VAR_LEN16);
-			pPacket->WriteValue<uint16>((uint32)uLength);
+		else if (uLength > 0xFF) {
+			bOk = pPacket->WriteValue<uint8>(Type | VAR_LEN_FIELD | VAR_LEN16);
+			if(bOk) bOk = pPacket->WriteValue<uint16>((uint16)uLength);
 		}
 		else {
-			pPacket->WriteValue<uint8>(Type | VAR_LEN_FIELD | VAR_LEN8);
-			pPacket->WriteValue<uint8>((uint32)uLength);
+			bOk = pPacket->WriteValue<uint8>(Type | VAR_LEN_FIELD | VAR_LEN8);
+			if(bOk) bOk = pPacket->WriteValue<uint8>((uint8)uLength);
 		}
 	}
 
-	pPacket->WriteData(Value, uLength);
+	if(bOk) bOk =  pPacket->WriteData(Value, uLength);
+
+	if(!bOk) 
+		return Throw(eErrBufferWriteFailed);
+	return eErrNone;
 }
 
-uint32 CVariant::Count() const
+uint32 CVariant::Count() const // Map, List or Index
 {
-	const SVariant* Variant = Val();
-	return Variant->Count();
+	auto pVal = Val(true);
+	if(pVal.Error) return 0;
+	return pVal.Value->Count();
 }
 
-bool CVariant::IsMap() const
+bool CVariant::IsMap() const // Map
 {
-	const SVariant* Variant = Val();
-	return Variant->Type == VAR_TYPE_MAP;
+	auto pVal = Val(true);
+	if(pVal.Error) return false;
+	return pVal.Value->Type == VAR_TYPE_MAP;
 }
 
-const char* CVariant::Key(uint32 Index) const
+const char* CVariant::Key(uint32 Index) const // Map
 {
-	const SVariant* Variant = Val();
-	return Variant->Key(Index);
+	auto pVal = Val(true);
+	if(pVal.Error) return NULL;
+	return pVal.Value->Key(Index);
 }
 
-std::wstring CVariant::WKey(uint32 Index) const
+#ifndef VAR_NO_STL_STR
+std::wstring CVariant::WKey(uint32 Index) const // Map
 {
 	std::wstring Name; 
-	AsciiToWStr(Name, Key(Index));
+	const char* pName = Key(Index);
+	if (pName) AsciiToWStr(Name, pName);
 	return Name;
 }
+#endif
 
-CVariant& CVariant::At(const char* Name, size_t Len)
+FW::RetValue<const CVariant*, CVariant::EResult> CVariant::PtrAt(const char* Name) const // Map
 {
-	SVariant* Variant = Val();
-	if (Variant->Access != eReadWrite && !Variant->Has(Name))
-		throw CException(L"variant access violation; Map Member: %.*S is not present", Len != -1 ? Len : strlen(Name), Name);
-	if(Variant->Type != VAR_TYPE_MAP)
-		Variant->Init(VAR_TYPE_MAP);
-	return Variant->At(Name, Len);
+	auto pVal = Val(true);
+	if (pVal.Error) return eErrNotFound;
+
+	auto pValue = pVal.Value->Get(Name);
+	if(!pValue.Value) return eErrNotFound;
+	return pValue.Value;
 }
 
-CVariant CVariant::Get(const char* Name, const CVariant& Default) const
+FW::RetValue<CVariant*, CVariant::EResult> CVariant::PtrAt(const char* Name, bool bCanAdd) // Map
+{
+	auto pVal = Val(!bCanAdd);
+	if (pVal.Error) return bCanAdd ? pVal.Error : eErrNotFound;
+
+	auto pValue = pVal.Value->Get(Name);
+	if (!pValue.Value)
+	{
+		if (!bCanAdd) return eErrNotFound;
+		if (pVal.Value->Access) return eErrNotWritable;
+
+		if (pVal.Value->Type != VAR_TYPE_MAP) {
+			if (!pVal.Value->Init(VAR_TYPE_MAP))
+				return eErrAllocFailed;
+		}
+
+		pValue = pVal.Value->Insert(Name, NULL, true);
+	}
+	return pValue;
+}
+
+CVariant CVariant::Get(const char* Name) const // Map
 {
 	if(!Has(Name))
-		return Default;
+		return CVariant(m_pMem);
 	return At(Name);
 }
 
-const CVariant& CVariant::At(const char* Name, size_t Len) const
+bool CVariant::Has(const char* Name) const // Map
 {
-	const SVariant* Variant = Val();
-	return Variant->At(Name, Len);
+	auto pVal = Val(true);
+	if(pVal.Error) return false;
+	return pVal.Value->Has(Name);
 }
 
-bool CVariant::Has(const char* Name) const
+CVariant::EResult CVariant::Remove(const char* Name) // Map
 {
-	const SVariant* Variant = Val();
-	return Variant->Has(Name);
+	auto pVal = Val();
+	if (pVal.Error) return Throw(pVal.Error);
+	if (pVal.Value->Access != eReadWrite)
+		return Throw(eErrNotWritable);
+	return pVal.Value->Remove(Name);
 }
 
-void CVariant::Remove(const char* Name)
+CVariant::EResult CVariant::Insert(const char* Name, const CVariant& variant) // Map
 {
-	SVariant* Variant = Val();
-	return Variant->Remove(Name);
+	auto pVal = Val();
+	if (pVal.Error) return Throw(pVal.Error);
+	if (pVal.Value->Access != eReadWrite)
+		return Throw(eErrNotWritable);
+	if (pVal.Value->Type != VAR_TYPE_MAP) {
+		if(!pVal.Value->Init(VAR_TYPE_MAP))
+			return Throw(eErrAllocFailed);
+	}
+	return pVal.Value->Insert(Name, &variant).Error;
 }
 
-bool CVariant::IsList() const
+bool CVariant::IsList() const // List
 {
-	const SVariant* Variant = Val();
-	return Variant->Type == VAR_TYPE_LIST;
+	auto pVal = Val(true);
+	if(pVal.Error) return false;
+	return pVal.Value->Type == VAR_TYPE_LIST;
 }
 
-void CVariant::Insert(const char* Name, const CVariant& variant)
+bool CVariant::IsIndex() const // Index
 {
-	SVariant* Variant = Val();
-	if(Variant->Access != eReadWrite)
-		throw CException(L"variant access violation; Map Insert");
-	if(Variant->Type != VAR_TYPE_MAP)
-		Variant->Init(VAR_TYPE_MAP);
-	Variant->Insert(Name, variant);
+	auto pVal = Val(true);
+	if(pVal.Error) return false;
+	return pVal.Value->Type == VAR_TYPE_INDEX;
 }
 
-void CVariant::Append(const CVariant& variant)
+uint32 CVariant::Id(uint32 Index) const // Index
 {
-	SVariant* Variant = Val();
-	if(Variant->Access != eReadWrite)
-		throw CException(L"variant access violation; List Append");
-	if(Variant->Type != VAR_TYPE_LIST)
-		Variant->Init(VAR_TYPE_LIST);
-	Variant->Append(variant);
+	auto pVal = Val(true);
+	if(pVal.Error) return 0xFFFFFFFF;
+	return pVal.Value->Id(Index);
 }
 
-const CVariant& CVariant::At(uint32 Index) const
+FW::RetValue<const CVariant*, CVariant::EResult> CVariant::PtrAt(uint32 Index) const // Map
 {
-	const SVariant* Variant = Val();
-	return Variant->At(Index);
+	auto pVal = Val(true);
+	if (pVal.Error) return eErrNotFound;
+
+	auto pValue = pVal.Value->Get(Index);
+	if(!pValue.Value) return eErrNotFound;
+	return pValue.Value;
 }
 
-void CVariant::Remove(uint32 Index)
+FW::RetValue<CVariant*, CVariant::EResult> CVariant::PtrAt(uint32 Index, bool bCanAdd) // List or Index
 {
-	SVariant* Variant = Val();
-	return Variant->Remove(Index);
+	auto pVal = Val(!bCanAdd);
+	if (pVal.Error) return bCanAdd ? pVal.Error : eErrNotFound;
+
+	auto pValue = pVal.Value->Get(Index);
+	if (!pValue.Value)
+	{
+		if (!bCanAdd) return eErrNotFound;
+		if (pVal.Value->Access) return eErrNotWritable;
+
+		if (pVal.Value->Type != VAR_TYPE_INDEX) {
+			if (!pVal.Value->Init(VAR_TYPE_INDEX))
+				return eErrAllocFailed;
+		}
+
+		pValue = pVal.Value->Insert(Index, NULL, true);
+	}
+	return pValue;
 }
 
-bool CVariant::IsIndex() const
-{
-	const SVariant* Variant = Val();
-	return Variant->Type == VAR_TYPE_INDEX;
-}
-
-uint32 CVariant::Id(uint32 Index) const
-{
-	const SVariant* Variant = Val();
-	return Variant->Id(Index);
-}
-
-CVariant& CVariant::At(uint32 Index)
-{
-	SVariant* Variant = Val();
-	if(Variant->Access != eReadWrite && !Variant->Has(Index))
-		throw CException(L"variant access violation; index Member: 0x%08X is not present", Index);
-	if(Variant->Type != VAR_TYPE_INDEX && Variant->Type != VAR_TYPE_LIST)
-		Variant->Init(VAR_TYPE_INDEX);
-	return Variant->At(Index);
-}
-
-CVariant CVariant::Get(uint32 Index, const CVariant& Default) const
+CVariant CVariant::Get(uint32 Index) const // List or Index
 {
 	if(!Has(Index))
-		return Default;
+		return CVariant(m_pMem);
 	return At(Index);
 }
 
-bool CVariant::Has(uint32 Index) const
+bool CVariant::Has(uint32 Index) const // List or Index
 {
-	const SVariant* Variant = Val();
-	return Variant->Has(Index);
+	auto pVal = Val(true);
+	if(pVal.Error) return false;
+	return pVal.Value->Has(Index);
 }
 
-void CVariant::Insert(uint32 Index, const CVariant& variant)
+CVariant::EResult CVariant::Remove(uint32 Index) // List or Index
 {
-	SVariant* Variant = Val();
-	if(Variant->Access != eReadWrite)
-		throw CException(L"variant access violation; Index Insert");
-	if(Variant->Type != VAR_TYPE_INDEX)
-		Variant->Init(VAR_TYPE_INDEX);
-	Variant->Insert(Index, variant);
+	auto pVal = Val();
+	if (pVal.Error) return Throw(pVal.Error);
+	if (pVal.Value->Access != eReadWrite)
+		return Throw(eErrNotWritable);
+	return pVal.Value->Remove(Index);
 }
 
-void CVariant::Merge(const CVariant& Variant)
+CVariant::EResult CVariant::Append(const CVariant& variant) // List
 {
-	if(!IsValid()) // if this valiant is void we can merge with anything
-		Assign(Variant);
+	auto pVal = Val();
+	if (pVal.Value->Access != eReadWrite)
+		return Throw(eErrNotWritable);
+	if (pVal.Value->Type != VAR_TYPE_LIST) {
+		if (!pVal.Value->Init(VAR_TYPE_LIST))
+			return Throw(eErrAllocFailed);
+	}
+	return pVal.Value->Append(&variant);
+}
+
+CVariant::EResult CVariant::Insert(uint32 Index, const CVariant& variant) // Index
+{
+	auto pVal = Val();
+	if (pVal.Error) return Throw(pVal.Error);
+	if (pVal.Value->Access != eReadWrite)
+		return Throw(eErrNotWritable);
+	if (pVal.Value->Type != VAR_TYPE_INDEX) {
+		if(!pVal.Value->Init(VAR_TYPE_INDEX))
+			return Throw(eErrAllocFailed);
+	}
+	return pVal.Value->Insert(Index, &variant).Error;
+}
+
+CVariant::EResult CVariant::Merge(const CVariant& Variant)
+{
+	if (!IsValid()) // if this valiant is void we can merge with anything
+	{
+		EResult Err = Assign(Variant);
+		if (Err) return Throw(Err);
+	}
 	else if(Variant.IsList() && IsList())
 	{
-		std::vector<CVariant>* pList = Variant.m_Variant->List();
-		for (auto I = pList->begin(); I != pList->end(); ++I)
-			Append(*I);
+		auto Ret = Variant.m_Variant->List();
+		if (Ret.Error) return Throw(Ret.Error);
+		for (auto I = Ret.Value->begin(); I != Ret.Value->end(); ++I) {
+			EResult Err = Append(*I);
+			if (Err) return Throw(Err);
+		}
 	}
 	else if(Variant.IsMap() && IsMap())
 	{
-		std::map<std::string, CVariant>* pMap = Variant.m_Variant->Map();
-		for (auto I = pMap->begin(); I != pMap->end(); ++I)
-			Insert(I->first.c_str(), I->second);
+		auto Ret = Variant.m_Variant->Map();
+		if (Ret.Error) return Throw(Ret.Error);
+		for (auto I = Ret.Value->begin(); I != Ret.Value->end(); ++I) {
+#ifndef VAR_NO_STL
+			EResult Err = Insert(I->first.c_str(), I->second);
+#else
+			EResult Err = Insert(I.Key().ConstData(), I.Value());
+#endif
+			if (Err) return Throw(Err);
+		}
 	}
 	else if (Variant.IsIndex() && IsIndex())
 	{
-		std::map<SVariant::TIndex, CVariant>* pMap = Variant.m_Variant->IMap();
-		for (auto I = pMap->begin(); I != pMap->end(); ++I)
-			Insert(I->first.u, I->second);
+		auto Ret = Variant.m_Variant->IMap();
+		if (Ret.Error) return Throw(Ret.Error);
+		for (auto I = Ret.Value->begin(); I != Ret.Value->end(); ++I) {
+#ifndef VAR_NO_STL
+			EResult Err = Insert(I->first.u, I->second);
+#else
+			EResult Err = Insert(I.Key().u, I.Value());
+#endif
+			if (Err) return Throw(Err);
+		}
 	}
 	else
-		throw CException(L"Variant could not be merged, type mismatch");
+		return Throw(eErrTypeMismatch);
+	return eErrNone;
 }
 
-
-void CVariant::GetInt(size_t Size, void* Value) const
+CVariant::EResult CVariant::GetInt(size_t Size, void* Value) const
 {
-	const SVariant* Variant = Val();
-	if(Variant->Type == VAR_TYPE_EMPTY)
+	auto pVal = Val(true); // only error can be eErrIsEmpty
+	if(pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
 	{
-		memset(Value, 0, Size);
-		return;
+		MemZero(Value, Size);
+		return eErrNone;
 	}
 
-	if(Variant->Type != VAR_TYPE_SINT && Variant->Type != VAR_TYPE_UINT)
-		throw CException(L"Int Value can not be pulled form a incomatible type");
-	if (Size < Variant->Size)
+	if(pVal.Value->Type != VAR_TYPE_SINT && pVal.Value->Type != VAR_TYPE_UINT)
+		return Throw(eErrTypeMismatch);
+	if (Size < pVal.Value->Size)
 	{
-		for (size_t i = Size; i < Variant->Size; i++) {
-			if (Variant->Payload[i] != 0)
-				throw CException(L"Int Value pulled is shorter than int value present");
+		for (size_t i = Size; i < pVal.Value->Size; i++) {
+			if (pVal.Value->Payload[i] != 0)
+				return Throw(eErrIntegerOverflow);
 		}
 	}
 
-	if (Size <= Variant->Size)
-		memcpy(Value, Variant->Payload, Size);
+	if (Size <= pVal.Value->Size)
+		MemCopy(Value, pVal.Value->Payload, Size);
 	else {
-		memcpy(Value, Variant->Payload, Variant->Size);
-		memset((byte*)Value + Variant->Size, 0, Size - Variant->Size);
+		MemCopy(Value, pVal.Value->Payload, pVal.Value->Size);
+		MemZero((byte*)Value + pVal.Value->Size, Size - pVal.Value->Size);
 	}
+	return eErrNone;
 }
 
-void CVariant::GetDouble(size_t Size, void* Value) const
+#ifndef VAR_NO_FPU
+CVariant::EResult CVariant::GetDouble(size_t Size, void* Value) const
 {
-	const SVariant* Variant = Val();
+	auto pVal = Val(true); // only error can be eErrIsEmpty
+	if(pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
+	{
+		MemZero(Value, Size);
+		return eErrNone;
+	}
 
-	if(Variant->Type != VAR_TYPE_DOUBLE)
-		throw CException(L"double Value can not be pulled form a incomatible type");
-	if(Size != Variant->Size)
-		throw CException(L"double Value pulled is shorter than int value present");
+	if(pVal.Value->Type != VAR_TYPE_DOUBLE)
+		return Throw(eErrTypeMismatch);
+	if(Size != pVal.Value->Size)
+		return Throw(eErrIntegerOverflow); // technicaly double but who cares
 
-	memcpy(Value, Variant->Payload, Size);
+	MemCopy(Value, pVal.Value->Payload, Size);
+	return eErrNone;
 }
+#endif
 
+#ifndef VAR_NO_STL_STR
 std::string CVariant::ToString() const
 {
-	const SVariant* Variant = Val();
 	std::string str;
-	if(Variant->Type == VAR_TYPE_ASCII || Variant->Type == VAR_TYPE_BYTES)
-		str = std::string((char*)Variant->Payload, Variant->Size);
-	else if(Variant->Type == VAR_TYPE_UTF8 || Variant->Type == VAR_TYPE_UNICODE)
+	auto pVal = Val(true); // only error can be eErrIsEmpty
+	if(pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
+		return str;
+
+	if(pVal.Value->Type == VAR_TYPE_ASCII || pVal.Value->Type == VAR_TYPE_BYTES)
+		str = std::string((char*)pVal.Value->Payload, pVal.Value->Size);
+	else if(pVal.Value->Type == VAR_TYPE_UTF8 || pVal.Value->Type == VAR_TYPE_UNICODE)
 	{
 		std::wstring wstr = ToWString();
 		WStrToAscii(str, wstr);
 	}
-	else if(Variant->Type != VAR_TYPE_EMPTY)
-		throw CException(L"std::string Value can not be pulled form a incomatible type");
+#ifndef VAR_NO_EXCEPTIONS
+	else
+		throw CException(ErrorString(eErrTypeMismatch));
+#endif
 	return str;
 }
 
 std::wstring CVariant::ToWString() const
 {
-	const SVariant* Variant = Val();
 	std::wstring wstr;
-	if(Variant->Type == VAR_TYPE_UNICODE)
-		wstr = std::wstring((wchar_t*)Variant->Payload, Variant->Size/sizeof(wchar_t));
-	else if(Variant->Type == VAR_TYPE_ASCII || Variant->Type == VAR_TYPE_BYTES)
+	auto pVal = Val(true); // only error can be eErrIsEmpty
+	if(pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
+		return wstr;
+
+	if(pVal.Value->Type == VAR_TYPE_UNICODE)
+		wstr = std::wstring((wchar_t*)pVal.Value->Payload, pVal.Value->Size/sizeof(wchar_t));
+	else if(pVal.Value->Type == VAR_TYPE_ASCII || pVal.Value->Type == VAR_TYPE_BYTES)
 	{
-		std::string str = std::string((char*)Variant->Payload, Variant->Size);
+		std::string str = std::string((char*)pVal.Value->Payload, pVal.Value->Size);
 		AsciiToWStr(wstr, str);
 	}
-	else if(Variant->Type == VAR_TYPE_UTF8)
+	else if(pVal.Value->Type == VAR_TYPE_UTF8)
 	{
-		std::string str = std::string((char*)Variant->Payload, Variant->Size);
+		std::string str = std::string((char*)pVal.Value->Payload, pVal.Value->Size);
 		Utf8ToWStr(wstr, str);
 	}
-	else if(Variant->Type != VAR_TYPE_EMPTY)
-		throw CException(L"std::string Value can not be pulled form a incomatible type");
+#ifndef VAR_NO_EXCEPTIONS
+	else
+		throw CException(ErrorString(eErrTypeMismatch));
+#endif
+	return wstr;
+}
+#endif
+
+FW::StringA CVariant::ToStringA() const
+{
+	FW::StringA str;
+	auto pVal = Val(true); // only error can be eErrIsEmpty
+	if(pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
+		return str;
+
+	if(pVal.Value->Type == VAR_TYPE_ASCII || pVal.Value->Type == VAR_TYPE_BYTES)
+		str = FW::StringA(Allocator(), (char*)pVal.Value->Payload, pVal.Value->Size);
+	else if(/*pVal.Value->Type == VAR_TYPE_UTF8 ||*/ pVal.Value->Type == VAR_TYPE_UNICODE)
+		str = ToStringW();
+#ifndef VAR_NO_EXCEPTIONS
+	else
+		throw CException(ErrorString(eErrTypeMismatch));
+#endif
+	return str;
+}
+
+FW::StringW CVariant::ToStringW() const
+{
+	FW::StringW wstr;
+	auto pVal = Val(true); // only error can be eErrIsEmpty
+	if(pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
+		return wstr;
+
+	if(pVal.Value->Type == VAR_TYPE_UNICODE)
+		wstr = FW::StringW(Allocator(), (wchar_t*)pVal.Value->Payload, pVal.Value->Size/sizeof(wchar_t));
+	else if(pVal.Value->Type == VAR_TYPE_ASCII || pVal.Value->Type == VAR_TYPE_BYTES)
+		wstr = FW::StringA(Allocator(), (char*)pVal.Value->Payload, pVal.Value->Size);
+	/*else if(pVal.Value->Type == VAR_TYPE_UTF8) // todo
+	{
+		std::string str = std::string((char*)pVal.Value->Payload, pVal.Value->Size);
+		Utf8ToWStr(wstr, str);
+	}*/
+#ifndef VAR_NO_EXCEPTIONS
+	else
+		throw CException(ErrorString(eErrTypeMismatch));
+#endif
 	return wstr;
 }
 
 CVariant::EType CVariant::GetType() const
 {
-	const SVariant* Variant = Val();
-	return Variant->Type;
-}
-
-bool CVariant::IsValid() const
-{
-	const SVariant* Variant = Val();
-	return Variant->Type != VAR_TYPE_EMPTY;
+	auto pVal = Val(true);
+	if(pVal.Error) return VAR_TYPE_EMPTY;
+	return pVal.Value->Type;
 }
 
 int	CVariant::Compare(const CVariant &R) const
 {
+	auto pL = Val(true);
+	auto pR = R.Val(true);
+	if (pL.Error || pR.Error)
+	{
+		if(pL.Error && pR.Error) return 0;
+		else if(pL.Error) return -1;
+		else return 1;
+	}
 	// we compare only actual payload, content not the declared type or auxyliary informations
-	CBuffer l;
-	Val()->MkPayload(l);
-	CBuffer r;
-	R.Val()->MkPayload(r);
+	CBuffer l(m_pMem);
+	pL.Value->MkPayload(&l); // for non containers this is fast, CBuffer only gets a pointer
+	CBuffer r(m_pMem);
+	pR.Value->MkPayload(&r); // same here
 	return l.Compare(r); 
 }
 
@@ -577,35 +889,108 @@ CVariant::SVariant::SVariant()
 
 CVariant::SVariant::~SVariant()
 {
-	if (Access == eWriteOnly)
-		delete Container.Buffer;
-	else {
-		switch (Type)
-		{
-		case VAR_TYPE_MAP:		delete Container.Map; break;
-		case VAR_TYPE_LIST:		delete Container.List; break;
-		case VAR_TYPE_INDEX:	delete Container.Index; break;
-		}
-	}
+	FreeContainer();
 	if (Access != eDerived)
-		Free();
+		FreePayload();
 }
 
-void CVariant::SVariant::Alloc()
+bool CVariant::SVariant::AllocPayload()
 {
 	ASSERT(Payload == NULL);
-	if (Size <= sizeof(Buffer))
+	if (Size <= sizeof(Buffer)) {
 		Payload = Buffer;
-	Payload = (byte*)malloc(Size);
+		return true;
+	}
+	Payload = (byte*)pMem->Alloc(Size);
+	return Payload != NULL;
 }
 
-void CVariant::SVariant::Free()
+void CVariant::SVariant::FreePayload()
 {
 	if (Payload != Buffer)
-		free(Payload);
+		pMem->Free(Payload);
+	Payload = NULL;
 }
 
-void CVariant::SVariant::Init(EType type, size_t size, const void* payload, bool bTake)
+bool CVariant::SVariant::AllocContainer()
+{
+	if (Access == eWriteOnly)
+	{
+		Container.Void = pMem->Alloc(sizeof(CBuffer));
+		if (!Container.Void) return false;
+		// todo mem pool for buffer
+		new (Container.Buffer) CBuffer(pMem);
+	}
+	else 
+	{
+		switch (Type)
+		{
+#ifndef VAR_NO_STL
+			case VAR_TYPE_MAP:
+				Container.Void = pMem->Alloc(sizeof(std::map<std::string, CVariant>));
+				if (!Container.Void) return false;
+				new (Container.Map) std::map<std::string, CVariant>;
+				break;
+			case VAR_TYPE_LIST:
+				Container.Void = pMem->Alloc(sizeof(std::vector<CVariant>));
+				if (!Container.Void) return false;
+				new (Container.List) std::vector<CVariant>;	
+				break;
+			case VAR_TYPE_INDEX:
+				Container.Void = pMem->Alloc(sizeof(std::map<TIndex, CVariant>));
+				if (!Container.Void) return false;
+				new (Container.Index) std::map<TIndex, CVariant>;
+				break;
+#else
+			case VAR_TYPE_MAP:
+				Container.Void = pMem->Alloc(sizeof(FW::Map<FW::StringA, CVariant>));
+				if (!Container.Void) return false;
+				new (Container.Map) FW::Map<FW::StringA, CVariant>(pMem);
+				break;
+			case VAR_TYPE_LIST:
+				Container.Void = pMem->Alloc(sizeof(FW::Array<CVariant>));
+				if (!Container.Void) return false;
+				new (Container.List) FW::Array<CVariant>(pMem);	
+				break;
+			case VAR_TYPE_INDEX:
+				Container.Void = pMem->Alloc(sizeof(FW::Map<TIndex, CVariant>));
+				if (!Container.Void) return false;
+				new (Container.Index) FW::Map<TIndex, CVariant>(pMem);
+				break;
+#endif
+		}
+	}
+	return true;
+}
+
+void CVariant::SVariant::FreeContainer()
+{
+	if (!Container.Void) 
+		return;
+	if (Access == eWriteOnly)
+	{
+		Container.Buffer->~CBuffer();
+	}
+	else 
+	{
+		switch (Type)
+		{
+#ifndef VAR_NO_STL
+			case VAR_TYPE_MAP:		Container.Map->~map(); break;
+			case VAR_TYPE_LIST:		Container.List->~vector(); break;
+			case VAR_TYPE_INDEX:	Container.Index->~map(); break;
+#else
+			case VAR_TYPE_MAP:		Container.Map->~Map(); break;
+			case VAR_TYPE_LIST:		Container.List->~Array(); break;
+			case VAR_TYPE_INDEX:	Container.Index->~Map(); break;
+#endif
+		}
+	}
+	pMem->Free(Container.Void);
+	Container.Void = NULL;
+}
+
+bool CVariant::SVariant::Init(EType type, size_t size, const void* payload, bool bTake)
 {
 	ASSERT(Access == eReadWrite);
 	ASSERT(Type == VAR_TYPE_EMPTY);
@@ -617,90 +1002,136 @@ void CVariant::SVariant::Init(EType type, size_t size, const void* payload, bool
 		Payload = (byte*)payload;
 	else if(Size)
 	{
-		Alloc();
+		if(!AllocPayload()) 
+			return false;
 		if(payload)
-			memcpy(Payload, payload, Size);
+			MemCopy(Payload, payload, size);
 		else
-			memset(Payload, 0, Size);
+			MemZero(Payload, size);
 	}
 	else
 		Payload = NULL;
 
-	switch(Type)
-	{
-		case VAR_TYPE_MAP:		Container.Map = new std::map<std::string, CVariant>;	break;
-		case VAR_TYPE_LIST:		Container.List = new std::vector<CVariant>;				break;
-		case VAR_TYPE_INDEX:	Container.Index = new std::map<TIndex, CVariant>;		break;
-	}
+	if(!AllocContainer()) 
+		return false;
+
+	return true;
 }
 
-std::map<std::string, CVariant>* CVariant::SVariant::Map() const
+#ifndef VAR_NO_STL
+FW::RetValue<std::map<std::string, CVariant>*, CVariant::EResult> CVariant::SVariant::Map() const
+#else
+FW::RetValue<FW::Map<FW::StringA, CVariant>*, CVariant::EResult> CVariant::SVariant::Map() const
+#endif
 {
-	if (Access == eWriteOnly) 
-		throw new CException(L"Variant is being writen to");
+	ASSERT(Type == VAR_TYPE_MAP);
+
+	if (Access == eWriteOnly)
+		return Throw(eErrWriteInProgrees);
 	if(Container.Map == NULL)
 	{
-		CBuffer Packet(Payload, Size, true);
-		Container.Map = new std::map<std::string, CVariant>;
+		CBuffer Packet(pMem, Payload, Size, true);
+		((CVariant::SVariant*)this)->AllocContainer();
 		for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < Size; )
 		{
-			uint8 Len = Packet.ReadValue<uint8>();
+			bool bOk;
+			uint8 Len = Packet.ReadValue<uint8>(&bOk);
+			if(!bOk) return Throw(eErrBufferShort);
 			if(Packet.GetSizeLeft() < Len)
-				throw CException(L"invalid variant name");
-			std::string Name = std::string((char*)Packet.ReadData(Len), Len);
+				return Throw(eErrInvalidName);
+			const char* pName = (char*)Packet.ReadData(Len);
+			if(!pName) return eErrInvalidName;
 
-			CVariant Temp;
-			Temp.FromPacket(&Packet,true);
+			CVariant Data(pMem);
+			EResult Err = Data.FromPacket(&Packet, true);
+			if(Err) return Throw(Err);
 
-			// Note: this wil fail if the entry is already in the std::map
-			Container.Map->insert(std::map<std::string, CVariant>::value_type(Name.c_str(), Temp));
+#ifndef VAR_NO_STL
+			CVariant* pValue = &Container.Map[std::string(pName, Len)];
+#else
+			CVariant* pValue = Container.Map->AddValuePtr(FW::StringA(Container.Map->Allocator(), pName, Len), nullptr);
+			if(!pValue)
+				return Throw(eErrAllocFailed);
+#endif
+			pValue->Attach(Data.m_Variant);
 		}
 	}
 	return Container.Map;
 }
 
-std::vector<CVariant>* CVariant::SVariant::List() const
+#ifndef VAR_NO_STL
+FW::RetValue<std::vector<CVariant>*, CVariant::EResult> CVariant::SVariant::List() const
+#else
+FW::RetValue<FW::Array<CVariant>*, CVariant::EResult> CVariant::SVariant::List() const
+#endif
 {
+	ASSERT(Type == VAR_TYPE_LIST);
+
 	if (Access == eWriteOnly) 
-		throw new CException(L"Variant is being writen to");
+		return Throw(eErrWriteInProgrees);
 	if(Container.List == NULL)
 	{
-		CBuffer Packet(Payload, Size, true);
-		Container.List = new std::vector<CVariant>;
+		CBuffer Packet(pMem, Payload, Size, true);
+		((CVariant::SVariant*)this)->AllocContainer();
 		for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < Size; )
 		{
-			CVariant Temp;
-			Temp.FromPacket(&Packet,true);
+			CVariant Data(pMem);
+			EResult Err = Data.FromPacket(&Packet, true);
+			if(Err) return Throw(Err);
 
-			Container.List->push_back(Temp);
+#ifndef VAR_NO_STL
+			Container.List->push_back(CVariant(pMem));
+			CVariant* pValue = &Container.List.back();
+#else
+			if(!Container.List->Append(CVariant(pMem)))
+				return Throw(eErrAllocFailed);
+			CVariant* pValue = Container.List->LastPtr();
+#endif
+			pValue->Attach(Data.m_Variant);
+
 		}
 	}
 	return Container.List;
 }
 
-std::map<CVariant::SVariant::TIndex, CVariant>* CVariant::SVariant::IMap() const
+#ifndef VAR_NO_STL
+FW::RetValue<std::map<CVariant::SVariant::TIndex, CVariant>*, CVariant::EResult> CVariant::SVariant::IMap() const
+#else
+FW::RetValue<FW::Map<CVariant::SVariant::TIndex, CVariant>*, CVariant::EResult> CVariant::SVariant::IMap() const
+#endif
 {
+	ASSERT(Type == VAR_TYPE_INDEX);
+
 	if (Access == eWriteOnly) 
-		throw new CException(L"Variant is being writen to");
+		return Throw(eErrWriteInProgrees);
 	if(Container.Index == NULL)
 	{
-		CBuffer Packet(Payload, Size, true);
-		Container.Index = new std::map<TIndex, CVariant>;
+		CBuffer Packet(pMem, Payload, Size, true);
+		((CVariant::SVariant*)this)->AllocContainer();
 		for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < Size; )
 		{
-			uint32 Id = Packet.ReadValue<uint32>();
+			bool bOk;
+			uint32 Id = Packet.ReadValue<uint32>(&bOk);
+			if(!bOk) return Throw(eErrBufferShort);
 			
-			CVariant Temp;
-			Temp.FromPacket(&Packet,true);
+			CVariant Data(pMem);
+			EResult Err = Data.FromPacket(&Packet, true);
+			if(Err) return Throw(Err);
 
-			// Note: this wil fail if the entry is already in the std::map
-			Container.Index->insert(std::map<TIndex, CVariant>::value_type(TIndex{ Id }, Temp));
+#ifndef VAR_NO_STL
+			CVariant* pValue = &Container.Index[TIndex{ Id }];
+#else
+			CVariant* pValue = Container.Index->AddValuePtr(TIndex{ Id }, nullptr);
+			if(!pValue)
+				return Throw(eErrAllocFailed);
+#endif
+			pValue->Attach(Data.m_Variant);
 		}
 	}
 	return Container.Index;
 }
 
-void CVariant::SVariant::MkPayload(CBuffer& Buffer) const
+CVariant::EResult CVariant::SVariant::MkPayload(CBuffer* pBuffer) const
 {
 	if(Access == eReadWrite) // write the packet
 	{
@@ -708,595 +1139,760 @@ void CVariant::SVariant::MkPayload(CBuffer& Buffer) const
 		{
 			case VAR_TYPE_MAP:
 			{
-				std::map<std::string, CVariant>* pMap = Map();
-				for (auto I = pMap->begin(); I != pMap->end(); ++I)
+				auto Ret = Map();
+				if (Ret.Error) return Throw(Ret.Error);
+				for (auto I = Ret.Value->begin(); I != Ret.Value->end(); ++I)
 				{
+#ifndef VAR_NO_STL
 					const std::string& sKey = I->first;
 					ASSERT(sKey.length() < 0xFF);
 					uint8 Len = (uint8)sKey.length();
-					Buffer.WriteValue<uint8>(Len);
-					Buffer.WriteData(sKey.c_str(), Len);
+					if (!pBuffer->WriteValue<uint8>(Len)) return Throw(eErrBufferWriteFailed);
+					if (!pBuffer->WriteData(sKey.c_str(), Len)) return Throw(eErrBufferWriteFailed);
 
-					I->second.ToPacket(&Buffer);
+					EResult Err = I->second.ToPacket(&Buffer);
+#else
+					const FW::StringA& sKey = I.Key();
+					ASSERT(sKey.Length() < 0xFF);
+					uint8 Len = (uint8)sKey.Length();
+					if (!pBuffer->WriteValue<uint8>(Len)) return Throw(eErrBufferWriteFailed);
+					if (!pBuffer->WriteData(sKey.ConstData(), Len)) return Throw(eErrBufferWriteFailed);
+
+					EResult Err = I.Value().ToPacket(pBuffer);
+#endif
+					if (Err) return Throw(Err);
 				}
-				break;
+				return eErrNone;
 			}
 			case VAR_TYPE_LIST:
 			{
-				std::vector<CVariant>* pList = List();
-				for (auto I = pList->begin(); I != pList->end(); ++I)
+				auto Ret = List();
+				if (Ret.Error) return Throw(Ret.Error);
+				for (auto I = Ret.Value->begin(); I != Ret.Value->end(); ++I)
 				{
-					I->ToPacket(&Buffer);
+					EResult Err = I->ToPacket(pBuffer);
+					if (Err) return Throw(Err);
 				}
-				break;
+				return eErrNone;
 			}
 			case VAR_TYPE_INDEX:
 			{
-				std::map<TIndex, CVariant>* pMap = IMap();
-				for (auto I = pMap->begin(); I != pMap->end(); ++I)
+				auto Ret = IMap();
+				if (Ret.Error) return Throw(Ret.Error);
+				for (auto I = Ret.Value->begin(); I != Ret.Value->end(); ++I)
 				{
-					Buffer.WriteValue<uint32>(I->first.u);
+#ifndef VAR_NO_STL
+					if (!pBuffer->WriteValue<uint32>(I->first.u)) return Throw(eErrBufferWriteFailed);
 
-					I->second.ToPacket(&Buffer);
+					EResult Err = I->second.ToPacket(&Buffer);
+#else
+					if (!pBuffer->WriteValue<uint32>(I.Key().u)) return Throw(eErrBufferWriteFailed);
+
+					EResult Err = I.Value().ToPacket(pBuffer);
+#endif
+					if (Err) return Throw(Err);
 				}
-				break;
+				return eErrNone;
 			}
-			default:
-				Buffer.SetBuffer(Payload, Size, true);
 		}
 	}
-	else
-		Buffer.SetBuffer(Payload, Size, true);
+	
+	if (!pBuffer->SetBuffer(Payload, Size, true))
+		return Throw(eErrBufferWriteFailed);
+	return eErrNone; 
 }
 
 
-CVariant::SVariant* CVariant::SVariant::Clone(bool Full) const
+CVariant::EResult CVariant::SVariant::Clone(SVariant* pClone, bool Full) const
 {
-	SVariant* Variant = CVariant::Alloc();
-	Variant->Type = Type;
+	pClone->Type = Type;
 	switch(Type)
 	{
 		case VAR_TYPE_MAP:
 		{
 			if (Container.Map == NULL) break;
-			Variant->Container.Map = new std::map<std::string, CVariant>;
-			std::map<std::string, CVariant>* pMap = Map();
-			for (auto I = pMap->begin(); I != pMap->end(); ++I)
-				Variant->Insert(I->first.c_str(), Full ? I->second.Clone() : I->second);
-			return Variant;
+			pClone->AllocContainer();
+			auto Ret = Map();
+			if (Ret.Error) return Throw(Ret.Error);
+			for (auto I = Ret.Value->begin(); I != Ret.Value->end(); ++I) {
+				CVariant Value = Full ? I.Value().Clone() : I.Value();
+#ifndef VAR_NO_STL
+				pClone->Insert(I->first.c_str(), &Value); // todo pass err
+#else
+				pClone->Insert(I.Key().ConstData(), &Value); // todo pass err
+#endif
+			}
+			return eErrNone;
 		}
 		case VAR_TYPE_LIST:
 		{
 			if (Container.List == NULL) break;
-			Variant->Container.List = new std::vector<CVariant>;
-			std::vector<CVariant>* pList = List();
-			for (auto I = pList->begin(); I != pList->end(); ++I)
-				Variant->Append(Full ? I->Clone() : *I);
-			return Variant;
+			pClone->AllocContainer();
+			auto Ret = List();
+			if (Ret.Error) return Throw(Ret.Error);
+			for (auto I = Ret.Value->begin(); I != Ret.Value->end(); ++I) {
+				CVariant Value = Full ? I->Clone() : *I;
+				pClone->Append(&Value); // todo pass err
+			}
+			return eErrNone;
 		}
 		case VAR_TYPE_INDEX:
 		{
 			if (Container.Index == NULL) break;
-			Variant->Container.Index = new std::map<TIndex, CVariant>;
-			std::map<TIndex, CVariant>* pMap = IMap();
-			for (auto I = pMap->begin(); I != pMap->end(); ++I)
-				Variant->Insert(I->first.u, Full ? I->second.Clone() : I->second);
-			return Variant;
+			pClone->AllocContainer();
+			auto Ret = IMap();
+			if (Ret.Error) return Throw(Ret.Error);
+			for (auto I = Ret.Value->begin(); I != Ret.Value->end(); ++I) {
+				CVariant Value = Full ? I.Value().Clone() : I.Value();
+#ifndef VAR_NO_STL
+				pClone->Insert(I->first.u, &Value); // todo pass err
+#else
+				pClone->Insert(I.Key().u, &Value); // todo pass err
+#endif
+		}
+			return eErrNone;
 		}
 	}
 	if(Size > 0)
 	{
-		Variant->Size = Size;
-		Variant->Alloc();
-		memcpy(Variant->Payload, Payload, Variant->Size);
+		pClone->Size = Size;
+		if(!pClone->AllocPayload())
+			return Throw(eErrAllocFailed);
+		MemCopy(pClone->Payload, Payload, pClone->Size);
 	}
-	return Variant;
+	return eErrNone;
 }
 
-uint32 CVariant::SVariant::Count() const
+uint32 CVariant::SVariant::Count() const // Map, List or Index
 {
 	switch(Type)
 	{
-		case VAR_TYPE_MAP:		return (uint32)Map()->size();
-		case VAR_TYPE_LIST:		return (uint32)List()->size();
-		case VAR_TYPE_INDEX:	return (uint32)IMap()->size();
+		case VAR_TYPE_MAP: {
+			auto Ret = Map();
+			if (Ret.Error) return 0;
+#ifndef VAR_NO_STL
+			return (uint32)Ret.Value->size();
+#else
+			return (uint32)Ret.Value->Count();
+#endif
+		}
+		case VAR_TYPE_LIST: {
+			auto Ret = List();
+			if (Ret.Error) return 0;
+#ifndef VAR_NO_STL
+			return (uint32)Ret.Value->size();
+#else
+			return (uint32)Ret.Value->Count();
+#endif
+		}
+		case VAR_TYPE_INDEX: {
+			auto Ret = IMap();
+			if (Ret.Error) return 0;
+#ifndef VAR_NO_STL
+			return (uint32)Ret.Value->size();
+#else
+			return (uint32)Ret.Value->Count();
+#endif
+		}
 		default:		return 0;
 	}
 }
 
-const char* CVariant::SVariant::Key(uint32 Index) const
+const char* CVariant::SVariant::Key(uint32 Index) const // Map
 {
 	switch(Type)
 	{
 		case VAR_TYPE_MAP:
 		{
-			std::map<std::string, CVariant>* pMap = Map();
-			if(Index >= pMap->size())
-				throw CException(L"Index out of bound");
+			auto Ret = Map();
+			if (Ret.Error) return NULL;
+#ifndef VAR_NO_STL
+			if (Index >= Ret.Value->size())
+#else
+			if (Index >= Ret.Value->Count())
+#endif
+				return NULL;
 
-			std::map<std::string, CVariant>::iterator I = pMap->begin();
+			auto I = Ret.Value->begin();
 			while(Index--)
-				I++;
+				++I;
+#ifndef VAR_NO_STL
 			return I->first.c_str();
+#else
+			return I.Key().ConstData();
+#endif
 		}
 		case VAR_TYPE_LIST:
 		case VAR_TYPE_INDEX:
-		default:		throw CException(L"Not a Map Variant");
+		default: return NULL;
 	}
 }
 
-CVariant& CVariant::SVariant::Insert(const char* Name, const CVariant& Variant)
+FW::RetValue<CVariant*, CVariant::EResult> CVariant::SVariant::Get(const char* Name) const // Map
 {
 	switch(Type)
 	{
 		case VAR_TYPE_MAP:
 		{
-			std::pair<std::map<std::string, CVariant>::iterator, bool> Ret = Map()->insert(std::map<std::string, CVariant>::value_type(Name, Variant));
-			if(!Ret.second)
-				Ret.first->second.Attach(Variant.m_Variant);
-			return Ret.first->second;
-		}
-		case VAR_TYPE_LIST:
-		case VAR_TYPE_INDEX:
-		default:		throw CException(L"Not a Map Variant");
-	}
-}
-
-CVariant& CVariant::SVariant::At(const char* Name, size_t Len) const
-{
-	switch(Type)
-	{
-		case VAR_TYPE_MAP:
-		{
+			auto Ret = Map();
+			if (Ret.Error) return Ret.Error;
+#ifndef VAR_NO_STL
 			std::string sName;
-			sName.assign(Name, Len != -1 ? Len : strlen(Name));
-			std::map<std::string, CVariant>* pMap = Map();
-			std::map<std::string, CVariant>::iterator I = pMap->find(sName);
-			if(I == pMap->end())
-				I = pMap->insert(std::map<std::string, CVariant>::value_type(sName, CVariant())).first;
-			return I->second;
+			sName.assign(Name/*, Len != -1 ? Len : strlen(Name)*/);
+			std::map<std::string, CVariant>::iterator I = Ret.Value->find(sName);
+			if (I == Ret.Value->end())
+				return NULL; //I = Ret.Value->insert(std::map<std::string, CVariant>::value_type(sName, CVariant(pMem))).first;
+			return &I->second;
+#else
+			FW::StringA NameA(Ret.Value->Allocator(), Name);
+			CVariant* pValue = Ret.Value->GetValuePtr(NameA);
+			//if (!pValue) {
+			//	pValue = Ret.Value->SetValuePtr(NameA, NULL).first;
+			//	if(!pValue) return Throw(eErrAllocFailed);
+			//}
+			return pValue;
+#endif
 		}
 		case VAR_TYPE_LIST:
 		case VAR_TYPE_INDEX:
-		default:		throw CException(L"Not a Map Variant");
+		default: return eErrTypeMismatch;
 	}
 }
 
-bool CVariant::SVariant::Has(const char* Name) const
+bool CVariant::SVariant::Has(const char* Name) const // Map
 {
 	switch(Type)
 	{
 		case VAR_TYPE_MAP:
 		{
-			std::map<std::string, CVariant>* pMap = Map();
-			return pMap->find(Name) != pMap->end();
+			auto Ret = Map();
+			if (Ret.Error) return false;
+#ifndef VAR_NO_STL
+			return Ret.Value->find(Name) != Ret.Value->end();
+#else
+			return Ret.Value->find(FW::StringA(Ret.Value->Allocator(), Name)) != Ret.Value->end();
+#endif
 		}
 		case VAR_TYPE_LIST:
 		case VAR_TYPE_INDEX:
-		default:		return false;
+		default: return false;
 	}
 }
 
-void CVariant::SVariant::Remove(const char* Name)
+FW::RetValue<CVariant*, CVariant::EResult> CVariant::SVariant::Insert(const char* Name, const CVariant* pVariant, bool bUnsafe) // Map
+{
+	switch(Type)
+	{
+	case VAR_TYPE_MAP:
+	{
+		auto Ret = Map();
+		if (Ret.Error) return Ret.Error;
+#ifndef VAR_NO_STL
+		CVariant* pValue = &Ret.Value->insert[Name];
+		*Value = pVariant ? *pVariant : CVariant(pMem);
+#else
+		CVariant* pValue; // We use eMulti as we already know that there is no duplicate
+		if(bUnsafe) pValue = Ret.Value->AddValuePtr(FW::StringA(Ret.Value->Allocator(), Name), pVariant);
+		else        pValue = Ret.Value->SetValuePtr(FW::StringA(Ret.Value->Allocator(), Name), pVariant).first;
+		if(!pValue) return Throw(eErrAllocFailed);
+#endif
+		return pValue;
+	}
+	case VAR_TYPE_LIST:
+	case VAR_TYPE_INDEX:
+	default: return eErrTypeMismatch;
+	}
+}
+
+CVariant::EResult CVariant::SVariant::Remove(const char* Name) // Map
 {
 	switch(Type)
 	{
 		case VAR_TYPE_MAP:
 		{
-			std::map<std::string, CVariant>* pMap = Map();
-			std::map<std::string, CVariant>::iterator I = pMap->find(Name);
-			if(I != pMap->end())
-				pMap->erase(I);
-			break;
+			auto Ret = Map();
+			if (Ret.Error) return Ret.Error;
+#ifndef VAR_NO_STL
+			std::map<std::string, CVariant>::iterator I = Ret.Value->find(Name);
+#else
+			auto I = Ret.Value->find(FW::StringA(Ret.Value->Allocator(), Name));
+#endif
+			if(I != Ret.Value->end())
+				Ret.Value->erase(I);
+			return eErrNone;
 		}
 		case VAR_TYPE_LIST:
 		case VAR_TYPE_INDEX:
-		default:		throw CException(L"Not a Map Variant");
+		default: return Throw(eErrTypeMismatch);
 	}
 }
 
-CVariant& CVariant::SVariant::Append(const CVariant& Variant)
+uint32 CVariant::SVariant::Id(uint32 Index) const // Index
+{
+	switch(Type)
+	{
+	case VAR_TYPE_INDEX:
+	{
+		auto Ret = IMap();
+		if (Ret.Error) return Ret.Error;
+#ifndef VAR_NO_STL
+		if (Index >= Ret.Value->size())
+#else
+		if (Index >= Ret.Value->Count())
+#endif
+			return 0xFFFFFFFF;
+
+		auto I = Ret.Value->begin();
+		while(Index--)
+			++I;
+#ifndef VAR_NO_STL
+		return I->first.u;
+#else
+		return I.Key().u;
+#endif
+	}
+	case VAR_TYPE_LIST:
+	case VAR_TYPE_MAP:
+	default: return Throw(eErrTypeMismatch);
+	}
+}
+
+FW::RetValue<CVariant*, CVariant::EResult> CVariant::SVariant::Get(uint32 Index) const // List or Index
+{
+	switch(Type)
+	{
+	case VAR_TYPE_LIST:
+	{
+		auto Ret = List();
+		if (Ret.Error) return Ret.Error;
+#ifndef VAR_NO_STL
+		if(Index >= Ret.Value->size())
+#else
+		if(Index >= Ret.Value->Count())
+#endif
+			return Throw(eErrIndexOutOfBounds);
+		return &(*Ret.Value)[Index];
+	}
+	case VAR_TYPE_INDEX:
+	{
+		auto Ret = IMap();
+		if (Ret.Error) return Ret.Error;
+#ifndef VAR_NO_STL
+		std::map<TIndex, CVariant>::iterator I = Ret.Value->find(TIndex{ Index });
+		if (I == Ret.Value->end())
+			return NULL; // I = Ret.Value->insert(std::map<TIndex, CVariant>::value_type(TIndex{ Index }, CVariant())).first;
+		return &I->second;
+#else
+		CVariant* pValue = Ret.Value->GetValuePtr(TIndex{ Index });
+		//if (!pValue) {
+		//	pValue = Ret.Value->SetValuePtr(TIndex{ Index }, NULL).first;
+		//	if(!pValue) return Throw(eErrAllocFailed);
+		//}
+		return pValue;
+#endif
+	}
+	case VAR_TYPE_MAP:
+	default: return eErrTypeMismatch;
+	}
+}
+
+bool CVariant::SVariant::Has(uint32 Index) const // List or Index
+{
+	switch(Type)
+	{
+	case VAR_TYPE_INDEX:
+	{
+		auto Ret = IMap();
+		if (Ret.Error) return false;
+		return Ret.Value->find(TIndex{ Index }) != Ret.Value->end();
+	}
+	case VAR_TYPE_LIST:
+	{
+		auto Ret = List();
+		if (Ret.Error) return false;
+#ifndef VAR_NO_STL
+		return Index < Ret.Value->size();
+#else
+		return Index < Ret.Value->Count();
+#endif
+	}
+	case VAR_TYPE_MAP:
+	default: return false;
+	}
+}
+
+CVariant::EResult CVariant::SVariant::Append(const CVariant* pVariant) // List
 {
 	switch(Type)
 	{
 		case VAR_TYPE_LIST:
 		{
-			std::vector<CVariant>* pList = List();
-			pList->push_back(Variant);
-			return pList->back();
+			auto Ret = List();
+			if (Ret.Error) return Ret.Error;
+#ifndef VAR_NO_STL
+			Ret.Value->push_back(pVariant ? *pVariant : CVariant(pMem));
+#else
+			if(!Ret.Value->Append(pVariant ? *pVariant : CVariant(pMem)))
+				return Throw(eErrAllocFailed);
+#endif
+			return eErrNone;
 		}
 		case VAR_TYPE_MAP:
 		case VAR_TYPE_INDEX:
-		default:		throw CException(L"Not a List Variant");
+		default: return Throw(eErrTypeMismatch);
 	}
 }
 
-CVariant& CVariant::SVariant::At(uint32 Index) const
+FW::RetValue<CVariant*, CVariant::EResult> CVariant::SVariant::Insert(uint32 Index, const CVariant* pVariant, bool bUnsafe) // Index
+{
+	switch(Type)
+	{
+	case VAR_TYPE_INDEX:
+	{
+		auto Ret = IMap();
+		if (Ret.Error) return Ret.Error;
+#ifndef VAR_NO_STL
+		CVariant* pValue = &Ret.Value->insert[TIndex{ Index }];
+		*Value = pVariant ? *pVariant : CVariant(pMem);
+#else
+		CVariant* pValue; // We use eMulti as we already know that there is no duplicate
+		if(bUnsafe) pValue = Ret.Value->AddValuePtr(TIndex{ Index }, pVariant);
+		else pValue = Ret.Value->SetValuePtr(TIndex{ Index }, pVariant).first;
+		if(!pValue) return Throw(eErrAllocFailed);
+#endif
+		return pValue;
+	}
+	case VAR_TYPE_LIST:
+	case VAR_TYPE_MAP:
+	default: return Throw(eErrTypeMismatch);
+	}
+}
+
+CVariant::EResult CVariant::SVariant::Remove(uint32 Index) // List and Index
 {
 	switch(Type)
 	{
 		case VAR_TYPE_LIST:
 		{
-			std::vector<CVariant>* pList = List();
-			if(Index >= pList->size())
-				throw CException(L"Index out of bound");
-			return (*pList)[Index];
+			auto Ret = List();
+			if (Ret.Error) return Ret.Error;
+#ifndef VAR_NO_STL
+			if(Index >= Ret.Value->size())
+#else
+			if(Index >= Ret.Value->Count())
+#endif
+				return Throw(eErrIndexOutOfBounds);
+			auto I = Ret.Value->begin();
+			I += Index;
+			Ret.Value->erase(I);
+			return eErrNone;
 		}
 		case VAR_TYPE_INDEX:
 		{
-			std::map<TIndex, CVariant>* pMap = IMap();
-			std::map<TIndex, CVariant>::iterator I = pMap->find(TIndex{ Index });
-			if(I == pMap->end())
-				I = pMap->insert(std::map<TIndex, CVariant>::value_type(TIndex{ Index }, CVariant())).first;
-			return I->second;
+			auto Ret = IMap();
+			if (Ret.Error) return Ret.Error;
+			auto I = Ret.Value->find(TIndex{ Index });
+			if(I != Ret.Value->end())
+				Ret.Value->erase(I);
+			return eErrNone;
 		}
 		case VAR_TYPE_MAP:
-		default:		throw CException(L"Not a List/Index Variant");
+		default: return Throw(eErrTypeMismatch);
 	}
 }
 
-void CVariant::SVariant::Remove(uint32 Index)
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Variant Read/Write
+
+CVariant::EResult CVariant::BeginWrite(EType Type)
 {
-	switch(Type)
-	{
-		case VAR_TYPE_LIST:
-		{
-			std::vector<CVariant>* pList = List();
-			if(Index >= pList->size())
-				throw CException(L"Index out of bound");
-			std::vector<CVariant>::iterator I = pList->begin();
-			while(Index--)
-				I++;
-			pList->erase(I);
-		}
-		case VAR_TYPE_INDEX:
-		{
-			std::map<TIndex, CVariant>* pMap = IMap();
-			std::map<TIndex, CVariant>::iterator I = pMap->find(TIndex{ Index });
-			if(I != pMap->end())
-				pMap->erase(I);
-			break;
-		}
-		case VAR_TYPE_MAP:
-		default:		throw CException(L"Not a List/Index Variant");
-	}
+	Clear();
+
+	if(!InitValue(VAR_TYPE_EMPTY, 0, NULL)) 
+		return eErrAllocFailed;
+	m_Variant->Access = eWriteOnly;
+	m_Variant->Type = Type;
+	m_Variant->AllocContainer();
+	if (!m_Variant->Container.Buffer) return Throw(eErrAllocFailed);
+	return eErrNone;
 }
 
-uint32 CVariant::SVariant::Id(uint32 Index) const
+CVariant::EResult CVariant::Finish()
 {
-	switch(Type)
-	{
-		case VAR_TYPE_INDEX:
-		{
-			std::map<TIndex, CVariant>* pMap = IMap();
-			if(Index >= pMap->size())
-				throw CException(L"Index out of bound");
+	if (m_Variant->Access != eWriteOnly) 
+		return Throw(eErrWriteNotReady);
 
-			std::map<TIndex, CVariant>::iterator I = pMap->begin();
-			while(Index--)
-				I++;
-			return I->first.u;
-		}
-		case VAR_TYPE_LIST:
-		case VAR_TYPE_MAP:
-		default:		throw CException(L"Not a Map Variant");
-	}
-}
-
-bool CVariant::SVariant::Has(uint32 Index) const
-{
-	switch(Type)
-	{
-		case VAR_TYPE_INDEX:
-		{
-			std::map<TIndex, CVariant>* pMap = IMap();
-			return pMap->find(TIndex{ Index }) != pMap->end();
-		}
-		case VAR_TYPE_LIST:
-		{
-			std::vector<CVariant>* pList = List();
-			return Index < pList->size();
-		}
-		case VAR_TYPE_MAP:
-		default:		return false;
-	}
-}
-
-CVariant& CVariant::SVariant::Insert(uint32 Index, const CVariant& Variant)
-{
-	switch(Type)
-	{
-		case VAR_TYPE_INDEX:
-		{
-			std::pair<std::map<TIndex, CVariant>::iterator, bool> Ret = IMap()->insert(std::map<TIndex, CVariant>::value_type(TIndex{ Index }, Variant));
-			if(!Ret.second)
-				Ret.first->second.Attach(Variant.m_Variant);
-			return Ret.first->second;
-		}
-		case VAR_TYPE_LIST:
-		case VAR_TYPE_MAP:
-		default:		throw CException(L"Not a Map Variant");
-	}
+	m_Variant->Size = (uint32)m_Variant->Container.Buffer->GetSize();
+	m_Variant->Payload = m_Variant->Container.Buffer->GetBuffer(true);
+	m_Variant->FreeContainer();
+	m_Variant->Access = eReadOnly;
+	return eErrNone;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // Map Read/Write
 
-bool CVariant::ReadRawMap(const std::function<void(const SVarName& Name, const CVariant& Data)>& cb) const
+CVariant::EResult CVariant::ReadRawMap(void(*cb)(const SVarName& Name, const CVariant& Data, void* Param), void* Param) const
 {
-	const SVariant* Variant = Val();
-	if (Variant->Type != VAR_TYPE_MAP) 
-		return false;
+	auto pVal = Val(true);
+	if (pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
+		return eErrNone;
+	if (pVal.Value->Type != VAR_TYPE_MAP) 
+		return Throw(eErrTypeMismatch);
 
-	if (Variant->Container.Map) { // in case this variant has already been parsed
-		for (auto I = Variant->Container.Map->begin(); I != Variant->Container.Map->end(); ++I)
-			cb(SVarName{ I->first.c_str(), I->first.length() }, I->second);
-		return true;
+	if (pVal.Value->Container.Map) { // in case this variant has already been parsed
+		for (auto I = pVal.Value->Container.Map->begin(); I != pVal.Value->Container.Map->end(); ++I)
+#ifndef VAR_NO_STL
+			cb(SVarName{ I->first.c_str(), I->first.length() }, I->second, Param);
+#else
+			cb(SVarName{ I.Key().ConstData(), I.Key().Length() }, I.Value(), Param);
+#endif
+		return eErrNone;
 	}
 
-	CBuffer Packet(Variant->Payload, Variant->Size, true);
-	for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < Variant->Size; )
+	CBuffer Packet(m_pMem, pVal.Value->Payload, pVal.Value->Size, true);
+	for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < pVal.Value->Size; )
 	{
-		uint8 Len = Packet.ReadValue<uint8>();
+		bool bOk;
+		uint8 Len = Packet.ReadValue<uint8>(&bOk);
+		if(!bOk) return Throw(eErrBufferShort);
 		if(Packet.GetSizeLeft() < Len)
-			throw CException(L"invalid variant name");
+			return Throw(eErrInvalidName);
+
 		//std::string Name = std::string((char*)Packet.ReadData(Len), Len);
 		SVarName Name;
-		Name.Buf = (char*)Packet.ReadData(Len);
+		Name.Buf = (char*)Packet.GetData(Len);
+		if(!Name.Buf) return Throw(eErrInvalidName);
 		Name.Len = Len;
 
-		CVariant Temp;
-		Temp.FromPacket(&Packet,true);
+		CVariant Data(m_pMem);
+		EResult Err = Data.FromPacket(&Packet, true);
+		if(Err) return Err;
 
-		cb(Name, Temp);
+		cb(Name, Data, Param);
 	}
-	return true;
+	return eErrNone;
 }
 
-bool CVariant::Find(const char* sName, CVariant& Data) const
+CVariant::EResult CVariant::Find(const char* sName, CVariant& Data) const
 {
-	const SVariant* Variant = Val();
-	if (Variant->Type != VAR_TYPE_MAP) 
-		return false;
+	auto pVal = Val(true);
+	if (pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
+		return eErrNone;
+	if (pVal.Value->Type != VAR_TYPE_MAP) 
+		return Throw(eErrTypeMismatch);
 
-	if (Variant->Container.Map) { // in case this variant has already been parsed
-		if (!Has(sName))
-			return false;
-		Data = At(sName);
-		return true;
+	if (pVal.Value->Container.Map) { // in case this variant has already been parsed
+		auto Ret = PtrAt(sName);
+		if (Ret.Error) 
+			return eErrNotFound;
+		Data = *Ret.Value;
+		return eErrNone;
 	}
 
 	size_t uLen = strlen(sName);
 
-	CBuffer Packet(Variant->Payload, Variant->Size, true);
-	for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < Variant->Size; )
+	CBuffer Packet(m_pMem, pVal.Value->Payload, pVal.Value->Size, true);
+	for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < pVal.Value->Size; )
 	{
-		uint8 Len = Packet.ReadValue<uint8>();
+		bool bOk;
+		uint8 Len = Packet.ReadValue<uint8>(&bOk);
+		if(!bOk) return Throw(eErrBufferShort);
 		if(Packet.GetSizeLeft() < Len)
-			throw CException(L"invalid variant name");
+			return Throw(eErrInvalidName);
 
 		SVarName Name;
 		Name.Buf = (char*)Packet.ReadData(Len);
+		if(!Name.Buf) return eErrInvalidName;
 		Name.Len = Len;
-		if (Name.Len == uLen && memcmp(sName, Name.Buf, Name.Len) == 0) {
-			Data.FromPacket(&Packet, true);
-			return true;
-		}
+		if (Name.Len == uLen && MemCmp(sName, Name.Buf, Name.Len) == 0) 
+			return Data.FromPacket(&Packet, true);
 
-		Packet.ReadData(ReadHeader(&Packet));
+		uint32 Size = ReadHeader(&Packet);
+		if(Size == 0xFFFFFFFF) return Throw(eErrInvalidHeader);
+		if (!Packet.ReadData(Size)) return Throw(eErrBufferShort);
 	}
-	return false;
+	return eErrNotFound;
 }
 
-void CVariant::BeginMap()
+CVariant::EResult CVariant::WriteValue(const char* Name, EType Type, size_t Size, const void* Value)
 {
-	Clear();
-
-	m_Variant = Alloc();
-	m_Variant->Refs.fetch_add(1);
-	m_Variant->Access = eWriteOnly;
-	m_Variant->Type = VAR_TYPE_MAP;
-	m_Variant->Container.Buffer = new CBuffer();
-}
-
-void CVariant::WriteValue(const char* Name, EType Type, size_t Size, const void* Value)
-{
-	if (m_Variant->Access != eWriteOnly) 
-		throw new CException(L"Variant is not being writen to");
+	if (m_Variant->Access != eWriteOnly)
+		return eErrWriteNotReady;
 	if (m_Variant->Type != VAR_TYPE_MAP)
-		throw new CException(L"Variant is not a map");
+		return Throw(eErrTypeMismatch);
 
 	ASSERT(strlen(Name) < 0xFF);
 	uint8 Len = (uint8)strlen(Name);
-	m_Variant->Container.Buffer->WriteValue<uint8>(Len);
-	m_Variant->Container.Buffer->WriteData(Name, Len);
+	if (!m_Variant->Container.Buffer->WriteValue<uint8>(Len)) return Throw(eErrBufferWriteFailed);
+	if (!m_Variant->Container.Buffer->WriteData(Name, Len)) return Throw(eErrBufferWriteFailed);
 
-	ToPacket(m_Variant->Container.Buffer, Type, Size, Value);
+	return ToPacket(m_Variant->Container.Buffer, Type, Size, Value);
 }
 
-void CVariant::WriteVariant(const char* Name, const CVariant& Variant)
+CVariant::EResult CVariant::WriteVariant(const char* Name, const CVariant& Variant)
 {
 	if (m_Variant->Access != eWriteOnly) 
-		throw new CException(L"Variant is not being writen to");
+		return eErrWriteNotReady;
 	if (m_Variant->Type != VAR_TYPE_MAP)
-		throw new CException(L"Variant is not a map");
+		return Throw(eErrTypeMismatch);
 
 	ASSERT(strlen(Name) < 0xFF);
 	uint8 Len = (uint8)strlen(Name);
-	m_Variant->Container.Buffer->WriteValue<uint8>(Len);
-	m_Variant->Container.Buffer->WriteData(Name, Len);
+	if (!m_Variant->Container.Buffer->WriteValue<uint8>(Len)) return Throw(eErrBufferWriteFailed);
+	if (!m_Variant->Container.Buffer->WriteData(Name, Len)) return Throw(eErrBufferWriteFailed);
 
-	Variant.ToPacket(m_Variant->Container.Buffer);
+	return Variant.ToPacket(m_Variant->Container.Buffer);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // List Read/Write
 
-bool CVariant::ReadRawList(const std::function<void(const CVariant& Data)>& cb) const
+CVariant::EResult CVariant::ReadRawList(void(*cb)(const CVariant& Data, void* Param), void* Param) const
 {
-	const SVariant* Variant = Val();
-	if (Variant->Type != VAR_TYPE_LIST) 
-		return false;
+	auto pVal = Val(true);
+	if (pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
+		return eErrNone;
+	if (pVal.Value->Type != VAR_TYPE_LIST) 
+		return Throw(eErrTypeMismatch);
 
-	if (Variant->Container.List) { // in case this variant has already been parsed
-		for (auto I = Variant->Container.List->begin(); I != Variant->Container.List->end(); ++I)
-			cb(*I);
-		return true;
+	if (pVal.Value->Container.List) { // in case this variant has already been parsed
+		for (auto I = pVal.Value->Container.List->begin(); I != pVal.Value->Container.List->end(); ++I)
+			cb(*I, Param);
+		return eErrNone;
 	}
 
-	CBuffer Packet(Variant->Payload, Variant->Size, true);
-	for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < Variant->Size; )
+	CBuffer Packet(m_pMem, pVal.Value->Payload, pVal.Value->Size, true);
+	for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < pVal.Value->Size; )
 	{
-		CVariant Temp;
-		Temp.FromPacket(&Packet,true);
+		CVariant Data(m_pMem);
+		EResult Err = Data.FromPacket(&Packet, true);
+		if(Err) return Err;
 
-		cb(Temp);
+		cb(Data, Param);
 	}
-	return true;
+	return eErrNone;
 }
 
-void CVariant::BeginList()
+CVariant::EResult CVariant::WriteValue(EType Type, size_t Size, const void* Value)
 {
-	Clear();
-
-	m_Variant = Alloc();
-	m_Variant->Refs.fetch_add(1);
-	m_Variant->Access = eWriteOnly;
-	m_Variant->Type = VAR_TYPE_LIST;
-	m_Variant->Container.Buffer = new CBuffer();
-}
-
-void CVariant::WriteValue(EType Type, size_t Size, const void* Value)
-{
-	if (m_Variant->Access != eWriteOnly) 
-		throw new CException(L"Variant is not being writen to");
+	if (m_Variant->Access != eWriteOnly)
+		return eErrWriteNotReady;
 	if (m_Variant->Type != VAR_TYPE_LIST)
-		throw new CException(L"Variant is not a list");
+		return Throw(eErrTypeMismatch);
 
-	ToPacket(m_Variant->Container.Buffer, Type, Size, Value);
+	return ToPacket(m_Variant->Container.Buffer, Type, Size, Value);
 }
 	
-void CVariant::WriteVariant(const CVariant& Variant)
+CVariant::EResult CVariant::WriteVariant(const CVariant& Variant)
 {
 	if (m_Variant->Access != eWriteOnly) 
-		throw new CException(L"Variant is not being writen to");
+		return eErrWriteNotReady;
 	if (m_Variant->Type != VAR_TYPE_LIST)
-		throw new CException(L"Variant is not a list");
+		return Throw(eErrTypeMismatch);
 
-	Variant.ToPacket(m_Variant->Container.Buffer);
+	return Variant.ToPacket(m_Variant->Container.Buffer);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // IMap Read/Write
 
-bool CVariant::ReadRawIMap(const std::function<void(uint32 Index, const CVariant& Data)>& cb) const
+CVariant::EResult CVariant::ReadRawIMap(void(*cb)(uint32 Index, const CVariant& Data, void* Param), void* Param) const
 {
-	const SVariant* Variant = Val();
-	if (Variant->Type != VAR_TYPE_MAP) 
-		return false;
+	auto pVal = Val(true);
+	if (pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
+		return eErrNone;
+	if (pVal.Value->Type != VAR_TYPE_INDEX) 
+		return Throw(eErrTypeMismatch);
 
-	if (Variant->Container.Index) { // in case this variant has already been parsed
-		for (auto I = Variant->Container.Index->begin(); I != Variant->Container.Index->end(); ++I)
-			cb(I->first.u, I->second);
-		return true;
+	if (pVal.Value->Container.Index) { // in case this variant has already been parsed
+		for (auto I = pVal.Value->Container.Index->begin(); I != pVal.Value->Container.Index->end(); ++I)
+#ifndef VAR_NO_STL
+			cb(I->first.u, I->second, Param);
+#else
+			cb(I.Key().u, I.Value(), Param);
+#endif
+		return eErrNone;
 	}
 
-	CBuffer Packet(Variant->Payload, Variant->Size, true);
-	for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < Variant->Size; )
+	CBuffer Packet(m_pMem, pVal.Value->Payload, pVal.Value->Size, true);
+	for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < pVal.Value->Size; )
 	{
-		uint32 Index = Packet.ReadValue<uint32>();
+		bool bOk;
+		uint32 Index = Packet.ReadValue<uint32>(&bOk);
+		if(!bOk) return Throw(eErrBufferShort);
 		
-		CVariant Temp;
-		Temp.FromPacket(&Packet,true);
+		CVariant Data(m_pMem);
+		EResult Err = Data.FromPacket(&Packet, true);
+		if(Err) return Err;
 
-		cb(Index, Temp);
+		cb(Index, Data, Param);
 	}
-	return true;
+	return eErrNone;
 }
 
-
-
-bool CVariant::Find(uint32 uIndex, CVariant& Data) const
+CVariant::EResult CVariant::Find(uint32 uIndex, CVariant& Data) const
 {
-	const SVariant* Variant = Val();
-	if (Variant->Type != VAR_TYPE_MAP) 
-		return false;
+	auto pVal = Val(true);
+	if (pVal.Error == eErrIsEmpty || pVal.Value->Type == VAR_TYPE_EMPTY)
+		return eErrNone;
+	if (pVal.Value->Type != VAR_TYPE_INDEX) 
+		return Throw(eErrTypeMismatch);
 
-	if (Variant->Container.Index) { // in case this variant has already been parsed
-		if (!Has(uIndex))
-			return false;
-		Data = At(uIndex);
-		return true;
+	if (pVal.Value->Container.Index) { // in case this variant has already been parsed
+		auto Ret = PtrAt(uIndex);
+		if (Ret.Error) 
+			return eErrNotFound;
+		Data = *Ret.Value;
 	}
 
-	CBuffer Packet(Variant->Payload, Variant->Size, true);
-	for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < Variant->Size; )
+	CBuffer Packet(m_pMem, pVal.Value->Payload, pVal.Value->Size, true);
+	for(size_t Pos = Packet.GetPosition(); Packet.GetPosition() - Pos < pVal.Value->Size; )
 	{
-		uint32 Index = Packet.ReadValue<uint32>();
+		bool bOk;
+		uint32 Index = Packet.ReadValue<uint32>(&bOk);
+		if(!bOk) return eErrBufferShort;
 
-		if (Index == uIndex) {
-			Data.FromPacket(&Packet, true);
-			return true;
-		}
+		if (Index == uIndex) 
+			return Data.FromPacket(&Packet, true);
 
-		Packet.ReadData(ReadHeader(&Packet));
+		uint32 Size = ReadHeader(&Packet);
+		if(Size == 0xFFFFFFFF) return Throw(eErrInvalidHeader);
+		if (!Packet.ReadData(Size)) return Throw(eErrBufferShort);
 	}
-	return false;
+	return eErrNotFound;
 }
 
-void CVariant::BeginIMap()
-{
-	Clear();
-
-	m_Variant = Alloc();
-	m_Variant->Refs.fetch_add(1);
-	m_Variant->Access = eWriteOnly;
-	m_Variant->Type = VAR_TYPE_MAP;
-	m_Variant->Container.Buffer = new CBuffer();
-}
-
-void CVariant::WriteValue(uint32 Index, EType Type, size_t Size, const void* Value)
+CVariant::EResult CVariant::WriteValue(uint32 Index, EType Type, size_t Size, const void* Value)
 {
 	if (m_Variant->Access != eWriteOnly) 
-		throw new CException(L"Variant is not being writen to");
-	if (m_Variant->Type != VAR_TYPE_MAP)
-		throw new CException(L"Variant is not a imap");
+		return eErrWriteNotReady;
+	if (m_Variant->Type != VAR_TYPE_INDEX)
+		return Throw(eErrTypeMismatch);
 
-	m_Variant->Container.Buffer->WriteValue<uint32>(Index);
+	if(!m_Variant->Container.Buffer->WriteValue<uint32>(Index)) return Throw(eErrBufferWriteFailed);
 
-	ToPacket(m_Variant->Container.Buffer, Type, Size, Value);
+	return ToPacket(m_Variant->Container.Buffer, Type, Size, Value);
 }
 
-void CVariant::WriteVariant(uint32 Index, const CVariant& Variant)
+CVariant::EResult CVariant::WriteVariant(uint32 Index, const CVariant& Variant)
 {
 	if (m_Variant->Access != eWriteOnly) 
-		throw new CException(L"Variant is not being writen to");
-	if (m_Variant->Type != VAR_TYPE_MAP)
-		throw new CException(L"Variant is not a imap");
+		return eErrWriteNotReady;
+	if (m_Variant->Type != VAR_TYPE_INDEX)
+		return Throw(eErrTypeMismatch);
 
-	m_Variant->Container.Buffer->WriteValue<uint32>(Index);
+	if(!m_Variant->Container.Buffer->WriteValue<uint32>(Index)) return Throw(eErrBufferWriteFailed);
 
-	Variant.ToPacket(m_Variant->Container.Buffer);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-// Common Read/Write
-
-void CVariant::Finish()
-{
-	if (m_Variant->Access != eWriteOnly) 
-		throw new CException(L"Variant is not being writen to");
-
-	m_Variant->Access = eReadOnly;
-	m_Variant->Size = (uint32)m_Variant->Container.Buffer->GetSize();
-	m_Variant->Payload = m_Variant->Container.Buffer->GetBuffer(true);
-	delete m_Variant->Container.Buffer;
-	m_Variant->Container.Buffer = NULL;
+	return Variant.ToPacket(m_Variant->Container.Buffer);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // 
 
+#ifndef VAR_NO_STL_STR
 void WritePacket(const std::string& Name, const CVariant& Packet, CBuffer& Buffer)
 {
 	ASSERT(Name.length() < 0xFF);
@@ -1360,3 +1956,4 @@ void ReadPacket(const CBuffer& Buffer, std::string& Name, CVariant& Packet)
 //
 //	return true;
 //}
+#endif

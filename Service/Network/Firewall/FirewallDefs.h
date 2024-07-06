@@ -5,7 +5,7 @@ enum class EFwDirections // same as FW_DIRECTION
     Unknown = 0,
     Outbound = 1,
     Inbound = 2,
-    Bidirectiona = 3
+    Bidirectional = 3
 };
 
 enum class EFwActions // NOT same as FW_RULE_ACTION
@@ -70,4 +70,12 @@ enum class FwFilteringModes
     BlockList = 2,
     AllowList = 3,
     //BlockAll = 4,
+};
+
+enum class FwAuditPolicy
+{
+    Off = 0,
+    Allowed = 1,    // AUDIT_POLICY_INFORMATION_TYPE_SUCCESS
+    Blocked = 2,    // AUDIT_POLICY_INFORMATION_TYPE_FAILURE
+    All = 3
 };

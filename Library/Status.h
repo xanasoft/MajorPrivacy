@@ -41,6 +41,7 @@ public:
 	}
 
 	__inline bool IsError() const		{ return m != NULL; }
+	__inline bool IsSuccess() const		{ return m == NULL; }
 	__inline sint32 GetStatus() const	{ return m ? m->Status : 0; }
 	__inline const wchar_t* GetMessageText() const	{ return m ? m->Message.c_str() : NULL; }
 

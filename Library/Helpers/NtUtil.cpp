@@ -6,6 +6,7 @@
 
 #include <Aclapi.h>
 #include <sddl.h>
+#include <hndlinfo.h>
 
 std::wstring DosPathToNtPath(const std::wstring &dosPath) 
 {
@@ -70,6 +71,16 @@ uint64 FILETIME2ms(uint64 fileTime)
 uint64 FILETIME2time(uint64 fileTime)
 {
 	return FILETIME2ms(fileTime) / 1000ULL;
+}
+
+uint64 GetCurrentTimeAsFileTime()
+{
+    FILETIME ft;
+    ULARGE_INTEGER ui;
+    GetSystemTimeAsFileTime(&ft);
+    ui.LowPart = ft.dwLowDateTime;
+    ui.HighPart = ft.dwHighDateTime;
+    return ui.QuadPart;
 }
 
 std::wstring NormalizeFilePath(std::wstring FilePath, bool bLowerCase)
@@ -180,4 +191,28 @@ std::wstring GetProcessUserSID(DWORD processID)
         HeapFree(GetProcessHeap(), 0, userSID);
     }
     return sid;
+}
+
+uint32 GetNtObjectTypeNumber(const wchar_t* name)
+{
+    PH_STRINGREF fileTypeName;
+    PhInitializeStringRef(&fileTypeName, (wchar_t*)name);
+    return PhGetObjectTypeNumber(&fileTypeName);
+}
+
+std::wstring PHStr2WStr(PPH_STRING phStr, bool bFree = false);
+
+std::wstring GetHandleObjectName(HANDLE hProcess, PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle)
+{
+    PPH_STRING TypeName = NULL;
+    PPH_STRING ObjectName = NULL; // Original Name
+    PPH_STRING BestObjectName = NULL; // File Name // todo
+
+    if (!NT_SUCCESS(PhGetHandleInformationEx(hProcess, (HANDLE)handle->HandleValue, handle->ObjectTypeIndex, 0, NULL, NULL, &TypeName, &ObjectName, &BestObjectName, NULL)))
+        return L"";
+
+    if(TypeName) PhDereferenceObject(TypeName);
+    if(BestObjectName) PhDereferenceObject(BestObjectName);
+
+    return PHStr2WStr(ObjectName);
 }

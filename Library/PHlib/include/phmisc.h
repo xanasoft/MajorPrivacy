@@ -292,6 +292,33 @@ PhGetProcessIsWow64(
     return status;
 }
 
+// rev from SE_TOKEN_USER (dmex)
+typedef struct _PH_TOKEN_USER
+{
+    union
+    {
+        TOKEN_USER TokenUser;
+        SID_AND_ATTRIBUTES User;
+    };
+    union
+    {
+        SID Sid;
+        BYTE Buffer[SECURITY_MAX_SID_SIZE];
+    };
+} PH_TOKEN_USER, *PPH_TOKEN_USER;
+
+C_ASSERT(sizeof(PH_TOKEN_USER) >= TOKEN_USER_MAX_SIZE);
+
+NTSTATUS PhGetTokenUser(
+    _In_ HANDLE TokenHandle,
+    _Out_ PPH_TOKEN_USER User
+);
+
+/** The PID of the idle process. */
+#define SYSTEM_IDLE_PROCESS_ID ((HANDLE)0)
+/** The PID of the system process. */
+#define SYSTEM_PROCESS_ID ((HANDLE)4)
+
 #ifdef __cplusplus
 }
 #endif

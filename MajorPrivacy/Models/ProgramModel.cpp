@@ -23,19 +23,20 @@ QList<QVariant> CProgramModel::Sync(const CProgramSetPtr& pRoot)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
-	Sync(pRoot, QList<QVariant>(), New, Old, Added);
+	Sync(pRoot, QString::number(pRoot->GetUID()), QList<QVariant>(), New, Old, Added);
 
 	CTreeItemModel::Sync(New, Old);
 	return Added;
 }
 
-void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
+void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
 {
 
 	foreach(const CProgramItemPtr& pItem, pRoot->GetNodes())
 	{
-		// Make effective id contain the parent id as items may be listed more than one time !!!
-		QVariant ID = QString::number(pRoot->GetUID()) + "/" + QString::number(pItem->GetUID());
+		quint64 uID = pItem->GetUID();
+		QString sID = RootID + "/" + QString::number(uID);
+		QVariant ID = sID;
 
 		QModelIndex Index;
 
@@ -59,7 +60,7 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QList<QVariant>& Pat
 
 		CProgramSetPtr pGroup = pItem.objectCast<CProgramSet>();
 		if (pGroup)
-			Sync(pGroup, QList<QVariant>(pNode->Path) << ID, New, Old, Added);
+			Sync(pGroup, sID, QList<QVariant>(pNode->Path) << ID, New, Old, Added);
 
 		//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
@@ -81,21 +82,17 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QList<QVariant>& Pat
 			QVariant Value;
 			switch (section)
 			{
-			//case eName: 			Value = pItem->GetName(); break;
 			case eName: 			Value = pItem->GetNameEx(); break;
-			case eType:				Value = QString(pItem->metaObject()->className()); break;
+			case eType:				Value = pItem->GetTypeStr(); break;
 
 			case eRunning:			Value = pItem->GetStats()->ProcessCount; break;
-			case eExecRules:		break;
+			case eProgramRules:		Value = pItem->GetStats()->ProgRuleCount; break;
 			//case eTotalUpTime:
 
-			case eOpenFiles:		break;
-			case eFsRules:			break;
+			//case eOpenFiles:		break;
 			//case eFsTotalRead:
 			//case eFsTotalWritten:
-
-			case eOpenKeys:			break;
-			case eRegRules:			break;
+			case eAccessRules:		Value = pItem->GetStats()->ResRuleCount; break;
 
 			case eSockets:			Value = pItem->GetStats()->SocketCount; break;
 			case eFwRules:			Value = pItem->GetStats()->FwRuleCount; break;
@@ -105,9 +102,9 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QList<QVariant>& Pat
 			case eUploaded:			Value = pItem->GetStats()->Uploaded; break;
 			case eDownloaded:		Value = pItem->GetStats()->Downloaded; break;
 
-			case ePath:				Value = pItem->GetPath(); break;
+			case ePath:				Value = pItem->GetPath(EPathType::eDisplay); break;
 
-			case eInfo:				Value = pItem->GetInfo(); break;
+			//case eInfo:				Value = pItem->GetInfo(); break;
 			}
 
 			STreeNode::SValue& ColValue = pNode->Values[section];
@@ -196,16 +193,13 @@ QString CProgramModel::GetColumHeader(int section) const
 		case eType:					return tr("Type");
 
 		case eRunning:				return tr("Processes");
-		case eExecRules:			return tr("Exec Rules");
+		case eProgramRules:			return tr("Program Rules");
 		//case eTotalUpTime:			return tr("Up Time");
 
-		case eOpenFiles:			return tr("Open Files");
-		case eFsRules:				return tr("FS Rules");
+		//case eOpenFiles:			return tr("Open Files");
 		//case eFsTotalRead:
 		//case eFsTotalWritten:
-
-		case eOpenKeys:				return tr("Open Keys");
-		case eRegRules:				return tr("Reg Rules");
+		case eAccessRules:			return tr("Access Rules");
 		
 		case eSockets:				return tr("Open Sockets");
 		case eFwRules:				return tr("FW Rules");
@@ -217,7 +211,7 @@ QString CProgramModel::GetColumHeader(int section) const
 
 		case ePath:					return tr("Path");
 
-		case eInfo:					return tr("Info");
+		//case eInfo:					return tr("Info");
 	}
 	return "";
 }

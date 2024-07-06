@@ -2,18 +2,12 @@
 #include "../Library/Status.h"
 #include "../Library/Helpers/Scoped.h"
 #include "../Library/Helpers/EvtUtil.h"
+#include "../Library/API/PrivacyAPI.h"
+#include "../Library/API/PrivacyDefs.h"
 
 struct SWinFwGuardEvent
 {
-    enum class EType
-    {
-        Undefined = 0,
-        Added = 1,
-        Removed = 2,
-        Changed = 3
-    };
-
-    EType Type = EType::Undefined;
+	ERuleEvent Type = ERuleEvent::eUnknown;
     std::wstring ProfileChanged;
     std::wstring RuleId;
     std::wstring RuleName;

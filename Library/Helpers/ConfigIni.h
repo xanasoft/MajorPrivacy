@@ -50,7 +50,7 @@ public:
     void SetValue(const std::string& section, const std::string& key, const CVariant& value);
     */
 	
-	std::wstring GetValue(const std::string& section, const std::string& key, const std::wstring& defaultValue = L"");
+	std::wstring GetValue(const std::string& section, const std::string& key, const std::wstring& defaultValue = L"", bool* pOk = NULL);
 
 	sint32 GetInt(const std::string& section, const std::string& key, sint32 defaultValue) {
         return std::stoi(GetValue(section, key, std::to_wstring(defaultValue)));

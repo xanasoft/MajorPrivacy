@@ -3,12 +3,17 @@
 #include "../Core/PrivacyCore.h"
 #include "../Windows/FirewallRuleWnd.h"
 #include "../MajorPrivacy.h"
-#include "../Service/ServiceAPI.h" // todo
+#include "../Core/Programs/ProgramManager.h"
+#include "../Library/API/PrivacyAPI.h" // todo
+#include "../MiscHelpers/Common/CustomStyles.h"
 
 CFwRuleView::CFwRuleView(QWidget *parent)
 	:CPanelViewEx<CFwRuleModel>(parent)
 {
 	m_pTreeView->setColumnReset(2);
+	QStyle* pStyle = QStyleFactory::create("windows");
+	m_pTreeView->setStyle(pStyle);
+	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 	
@@ -18,17 +23,18 @@ CFwRuleView::CFwRuleView(QWidget *parent)
 	} else
 		m_pTreeView->restoreState(Columns);
 
-	m_pCreateRule = m_pMenu->addAction(tr("Create Rule"), this, SLOT(OnRuleAction()));
+	m_pCreateRule = m_pMenu->addAction(QIcon(":/Icons/Plus.png"), tr("Create Rule"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
-	m_pEnableRule = m_pMenu->addAction(tr("Enable Rule"), this, SLOT(OnRuleAction()));
-	m_pDisableRule = m_pMenu->addAction(tr("Disable Rule"), this, SLOT(OnRuleAction()));
+	m_pEnableRule = m_pMenu->addAction(QIcon(":/Icons/Enable.png"), tr("Enable Rule"), this, SLOT(OnRuleAction()));
+	m_pDisableRule = m_pMenu->addAction(QIcon(":/Icons/Disable.png"), tr("Disable Rule"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
-	m_pRuleBlock = m_pMenu->addAction(tr("Set Blocking"), this, SLOT(OnRuleAction()));
-	m_pRuleAllow = m_pMenu->addAction(tr("Set Allowing"), this, SLOT(OnRuleAction()));
+	m_pRuleBlock = m_pMenu->addAction(QIcon(":/Icons/Stop.png"), tr("Set Blocking"), this, SLOT(OnRuleAction()));
+	m_pRuleAllow = m_pMenu->addAction(QIcon(":/Icons/Go.png"), tr("Set Allowing"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
-	m_pRemoveRule = m_pMenu->addAction(tr("Delete Rule"), this, SLOT(OnRuleAction()));
-	m_pEditRule = m_pMenu->addAction(tr("Edit Rule"), this, SLOT(OnRuleAction()));
-	m_pCloneRule = m_pMenu->addAction(tr("Duplicate Rule"), this, SLOT(OnRuleAction()));
+	m_pRemoveRule = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Delete Rule"), this, SLOT(OnRuleAction()));
+	m_pEditRule = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Edit Rule"), this, SLOT(OnRuleAction()));
+	m_pCloneRule = m_pMenu->addAction(QIcon(":/Icons/Duplicate.png"), tr("Duplicate Rule"), this, SLOT(OnRuleAction()));
+
 
 	AddPanelItemsToMenu();
 }
@@ -50,14 +56,19 @@ void CFwRuleView::OnDoubleClicked(const QModelIndex& Index)
 	if (pRule.isNull())
 		return;
 
-	OpenFwRullDialog(pRule);
+	OpenRullDialog(pRule);
 }
 
-void CFwRuleView::OpenFwRullDialog(const CFwRulePtr& pRule)
+void CFwRuleView::OpenRullDialog(const CFwRulePtr& pRule)
 {
 	auto Current = theGUI->GetCurrentItems();
 
-	CFirewallRuleWnd* pFirewallRuleWnd = new CFirewallRuleWnd(pRule, Current.Items);
+	QSet<CProgramItemPtr> Items;
+	if(Current.bAllPrograms)
+		Items = theCore->ProgramManager()->GetItems();
+	else
+		Items = Current.Items;
+	CFirewallRuleWnd* pFirewallRuleWnd = new CFirewallRuleWnd(pRule, Items);
 	pFirewallRuleWnd->show();
 }
 
@@ -85,51 +96,54 @@ void CFwRuleView::OnRuleAction()
 	if (pAction == m_pCreateRule)
 	{
 		CFwRulePtr pRule = CFwRulePtr(new CFwRule(CProgramID()));
-		OpenFwRullDialog(pRule);
+		OpenRullDialog(pRule);
 	}
 	else if (pAction == m_pEnableRule)
 	{
 		foreach(const CFwRulePtr & pRule, m_SelectedItems) {
 			pRule->SetEnabled(true);
-			Results << theCore->Network()->SetFwRule(pRule);
+			Results << theCore->NetworkManager()->SetFwRule(pRule);
 		}
 	}
 	else if (pAction == m_pDisableRule)
 	{
 		foreach(const CFwRulePtr & pRule, m_SelectedItems) {
 			pRule->SetEnabled(false);
-			Results << theCore->Network()->SetFwRule(pRule);
+			Results << theCore->NetworkManager()->SetFwRule(pRule);
 		}
 	}
 	else if (pAction == m_pRuleBlock)
 	{
 		foreach(const CFwRulePtr & pRule, m_SelectedItems) {
-			pRule->SetAction(SVC_API_FW_BLOCK);
-			Results << theCore->Network()->SetFwRule(pRule);
+			pRule->SetAction(EFwActions::Block);
+			Results << theCore->NetworkManager()->SetFwRule(pRule);
 		}
 	}
 	else if (pAction == m_pRuleAllow)
 	{
 		foreach(const CFwRulePtr & pRule, m_SelectedItems) {
-			pRule->SetAction(SVC_API_FW_ALLOW);
-			Results << theCore->Network()->SetFwRule(pRule);
+			pRule->SetAction(EFwActions::Allow);
+			Results << theCore->NetworkManager()->SetFwRule(pRule);
 		}
 	}
 	else if (pAction == m_pRemoveRule)
 	{
+		if(QMessageBox::question(this, "MajorPrivacy", tr("Do you want to delete selected Rules Items?") , QMessageBox::Yes, QMessageBox::Cancel) != QMessageBox::Yes)
+			return;
+
 		foreach(const CFwRulePtr & pRule, m_SelectedItems) {
-			Results << theCore->DelFwRule(pRule->GetGuid());
+			Results << theCore->NetworkManager()->DelFwRule(pRule);
 		}
 	}
 	else if (pAction == m_pEditRule)
 	{
-		OpenFwRullDialog(m_CurrentItem);
+		OpenRullDialog(m_CurrentItem);
 	}
 	else if (pAction == m_pCloneRule)
 	{
 		foreach(const CFwRulePtr & pRule, m_SelectedItems) {
 			CFwRulePtr pClone = CFwRulePtr(pRule->Clone());
-			Results << theCore->Network()->SetFwRule(pClone);
+			Results << theCore->NetworkManager()->SetFwRule(pClone);
 		}
 	}
 

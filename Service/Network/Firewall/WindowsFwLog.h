@@ -33,7 +33,9 @@ public:
 
 	static bool ReadEvent(EVT_HANDLE hEvent, SWinFwLogEvent& Event);
 
-	virtual STATUS Start();
+	virtual STATUS Start(int AuditingMode);
+	virtual STATUS UpdatePolicy(int AuditingMode);
+	virtual uint32 GetCurrentPolicy();
 	virtual void Stop();
 
 	void RegisterHandler(const std::function<uint32(const SWinFwLogEvent* pEvent)>& Handler) { 

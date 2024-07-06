@@ -1,11 +1,11 @@
 #include "pch.h"
 #include "TraceLogEntry.h"
-#include "ServiceAPI.h"
+#include "../../Library/API/PrivacyAPI.h"
 
 CVariant CTraceLogEntry::ToVariant() const
 {
 	CVariant Entry;
-	Entry.BeginMap();
+	Entry.BeginIMap();
 	
 	WriteVariant(Entry);
 
@@ -15,10 +15,12 @@ CVariant CTraceLogEntry::ToVariant() const
 
 void CTraceLogEntry::WriteVariant(CVariant& Entry) const
 {
-	Entry.Write(SVC_API_EVENT_UID, (uint64)this);
+	Entry.Write(API_V_EVENT_UID, (uint64)this);
 
-	if(!m_ServiceTag.empty()) Entry.Write(SVC_API_ID_SVC_TAG, m_ServiceTag);
-	if(!m_AppSid.empty()) Entry.Write(SVC_API_ID_APP_SID, m_AppSid);
+	Entry.Write(API_V_PID, m_PID);
 
-	Entry.Write(SVC_API_EVENT_TIMESTAMP, m_TimeStamp);
+	if(!m_ServiceTag.empty()) Entry.Write(API_V_SVC_TAG, m_ServiceTag);
+	if(!m_AppSid.empty()) Entry.Write(API_V_APP_SID, m_AppSid);
+
+	Entry.Write(API_V_EVENT_TIME_STAMP, m_TimeStamp);
 }

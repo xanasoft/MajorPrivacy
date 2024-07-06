@@ -11,7 +11,9 @@ struct SMergedLog {
 
 	QMap<CProgramItemPtr, SLogState> States;
 
-	QVector<QPair<CProgramFilePtr, CLogEntryPtr>> List;
+	typedef QPair<CProgramFilePtr, CLogEntryPtr> TLogEntry;
+
+	QVector<TLogEntry> List;
 
 	quint64 MergeSeqNr = 0;
 	int LastCount = 0;

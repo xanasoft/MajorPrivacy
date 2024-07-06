@@ -10,9 +10,11 @@ public:
 	CServiceAPI();
 	virtual ~CServiceAPI();
 
+	STATUS InstallSvc();
 	STATUS ConnectSvc();
 	STATUS ConnectEngine();
-	void DisconnectSvc();
+	STATUS Reconnect();
+	void Disconnect();
 
 	RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message);
 
@@ -30,6 +32,5 @@ protected:
 
 private:
 	class CAbstractClient* m_pClient;
-	bool m_EngineMode = false;
 };
 

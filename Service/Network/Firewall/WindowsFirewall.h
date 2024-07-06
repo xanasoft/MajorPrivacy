@@ -49,12 +49,14 @@ struct SWindowsFwRule
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 
 
-    std::wstring guid;  // Note: usually this is a guid but some default windows rules use a string name instead
+    std::wstring Guid;  // Note: usually this is a guid but some default windows rules use a string name instead
     int Index = 0;      // this is only used for sorting by newest rules
 
     std::wstring BinaryPath;
     std::wstring ServiceTag;
     std::wstring AppContainerSid;
+    std::wstring LocalUserOwner;
+    std::wstring PackageFamilyName;
         
     std::wstring Name;
     std::wstring Grouping;

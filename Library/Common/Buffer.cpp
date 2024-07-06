@@ -1,58 +1,68 @@
-﻿#include "pch.h"
+﻿//#include "pch.h"
+
+// machine types
+#include "../Types.h"
+
+#include "../../Framework/Header.h"
+
 #include "Buffer.h"
 //#include "../zlib/zlib.h"
-#include "Exception.h"
+//#include "Exception.h"
 
-CBuffer::CBuffer(size_t uLength, bool bUsed)
+CBuffer::CBuffer(FW::AbstractMemPool* pMemPool) 
+	: FW::AbstractContainer(pMemPool) 
+{
+	Init();
+}
+
+CBuffer::CBuffer(FW::AbstractMemPool* pMemPool, size_t uLength, bool bUsed)
+	: FW::AbstractContainer(pMemPool) 
 {
 	Init();
 	AllocBuffer(uLength, bUsed);
 }
 
-CBuffer::CBuffer(const CBuffer& Buffer)
-{
-	Init();
-	if(Buffer.GetSize())
-		CopyBuffer(((CBuffer*)&Buffer)->GetBuffer(), Buffer.GetSize());
-}
-
-CBuffer::CBuffer(void* pBuffer, size_t uSize, bool bDerived)
+CBuffer::CBuffer(FW::AbstractMemPool* pMemPool, void* pBuffer, size_t uSize, bool bDerived)
+	: FW::AbstractContainer(pMemPool) 
 {
 	Init();
 	SetBuffer(pBuffer, uSize, bDerived);
 }
 
-CBuffer::CBuffer(const void* pBuffer, const size_t uSize, bool bDerived)
+CBuffer::CBuffer(FW::AbstractMemPool* pMemPool, const void* pBuffer, const size_t uSize, bool bDerived)
+	: FW::AbstractContainer(pMemPool) 
 {
 	Init();
 	SetBuffer((void*)pBuffer, uSize, bDerived);
 	SetReadOnly();
 }
 
+CBuffer::CBuffer(const CBuffer& Buffer)
+	: FW::AbstractContainer(Buffer) 
+{
+	Init();
+	if(Buffer.GetSize())
+		CopyBuffer(((CBuffer*)&Buffer)->GetBuffer(), Buffer.GetSize());
+}
+
 CBuffer::~CBuffer()
 {
 	if(m_pBuffer && !IsDerived())
-		free(m_pBuffer);
+		Free(m_pBuffer);
 }
 
 void CBuffer::Clear() 
 {
 	if(m_pBuffer && !IsDerived())
-		free(m_pBuffer);
+		Free(m_pBuffer);
 	Init();
-}
-
-CBuffer& CBuffer::operator=(const CBuffer &Buffer)
-{
-	CopyBuffer(((CBuffer*)&Buffer)->GetBuffer(), Buffer.GetSize());
-	return *this;
 }
 
 void CBuffer::Init() 
 {
 	m_pBuffer = NULL;
 	m_uSize = 0;
-	m_uLength = 0;
+	m_uCapacity = 0;
 	m_uPosition = 0;
 	m_eType = eNormal;
 	m_bReadOnly = false;
@@ -61,51 +71,61 @@ void CBuffer::Init()
 void CBuffer::AllocBuffer(size_t uLength, bool bUsed, bool bFixed)
 {
 	if(m_pBuffer && !IsDerived())
-		free(m_pBuffer);
+		Free(m_pBuffer);
 
 	m_uPosition = 0;
-	m_uLength = uLength;
-	m_pBuffer = (byte*)malloc(uLength);
+	m_uCapacity = uLength;
+	m_pBuffer = (byte*)Alloc(uLength);
 	m_uSize = bUsed ? uLength : 0;
 	m_eType = bFixed ? eFixed : eNormal;
 }
 
-void CBuffer::SetBuffer(void* pBuffer, size_t uSize, bool bDerived)
+bool CBuffer::SetBuffer(void* pBuffer, size_t uSize, bool bDerived)
 {
 	if(m_pBuffer && !IsDerived())
-		delete m_pBuffer;
+		Free(m_pBuffer);
 
 	if(pBuffer == NULL)
 		Init();
 	else
 	{
-		m_uLength = uSize;
+		m_uCapacity = uSize;
 		m_uSize = uSize;
 		m_eType = bDerived ? eDerived : eFixed;
 		m_uPosition = 0;
 		m_pBuffer = (byte*)pBuffer;
 	}
+	return true;
 }
 
-void CBuffer::CopyBuffer(void* pBuffer, size_t uSize)
+void CBuffer::CopyBuffer(const void* pBuffer, size_t uSize)
 {
 	AllocBuffer(uSize, true);
 	ASSERT(m_pBuffer + m_uSize < (byte*)pBuffer || m_pBuffer > (byte*)pBuffer + m_uSize);
-	memcpy(m_pBuffer, pBuffer, m_uSize);
+	MemCopy(m_pBuffer, pBuffer, m_uSize);
 }
 
 bool CBuffer::SetSize(size_t uSize, bool bExpend, size_t uPreAlloc)
 {
-	if(m_uLength < uSize + uPreAlloc)
+	if(m_uCapacity < uSize + uPreAlloc)
 	{
-		if(!bExpend || IsDerived() || IsReadOnly())
-		{
+		if(!bExpend || IsDerived() || IsReadOnly()) {
 			ASSERT(0);
 			return false;
 		}
 
-		m_uLength = uSize + uPreAlloc;
-		m_pBuffer = (byte*)realloc(m_pBuffer,m_uLength);
+		m_uCapacity = uSize + uPreAlloc;
+		
+		void* pNew = Alloc(m_uCapacity);
+		if (m_pBuffer && pNew)
+			MemCopy(pNew, m_pBuffer, m_uSize);
+		Free(m_pBuffer);
+		m_pBuffer = (byte*)pNew;
+
+		if(!m_pBuffer) {
+			m_uSize = m_uCapacity = 0;
+			return false;
+		}
 	}
 	m_uSize = uSize;
 	if(m_uSize < m_uPosition)
@@ -119,7 +139,7 @@ bool CBuffer::PrepareWrite(size_t uOffset, size_t uLength)
 		return false;
 
 	// check if there is enough space allocated for the data, and fail if no realocation cna be done
-	if(uOffset + uLength > m_uLength || m_pBuffer == NULL)
+	if(uOffset + uLength > m_uCapacity || m_pBuffer == NULL)
 	{
 		if(m_eType != eNormal)
 			return false;
@@ -144,7 +164,7 @@ byte* CBuffer::GetBuffer(bool bDetatch)
 	{
 		size_t uSize = GetSize();
 		byte* pBuffer = new byte[uSize];
-		memcpy(pBuffer,CBuffer::GetBuffer(),uSize);
+		MemCopy(pBuffer,CBuffer::GetBuffer(),uSize);
 		return pBuffer;
 	}
 	else
@@ -240,9 +260,10 @@ byte* CBuffer::GetData(size_t uLength) const
 
 byte* CBuffer::ReadData(size_t uLength) const
 {
-	if(byte* pData = GetData(uLength))
-		return pData;
-	throw CException(L"CBuffer::ReadError");
+	byte* pData = GetData(uLength);
+	//if(!pData)
+	//	throw CException(L"CBuffer::ReadError");
+	return pData;
 }
 
 byte* CBuffer::SetData(const void* pData, size_t uLength)
@@ -253,7 +274,7 @@ byte* CBuffer::SetData(const void* pData, size_t uLength)
 	if(pData)
 	{
 		ASSERT(m_pBuffer + m_uPosition + uLength < (byte*)pData || m_pBuffer + m_uPosition > (byte*)pData + uLength);
-		memcpy(m_pBuffer + m_uPosition, pData, uLength);
+		MemCopy(m_pBuffer + m_uPosition, pData, uLength);
 	}
 	pData = m_pBuffer + m_uPosition;
 	m_uPosition += uLength;
@@ -261,11 +282,12 @@ byte* CBuffer::SetData(const void* pData, size_t uLength)
 	return (byte*)pData;
 }
 
-void CBuffer::WriteData(const void* pData, size_t uLength)
+bool CBuffer::WriteData(const void* pData, size_t uLength)
 {
-	if(SetData(pData, uLength))
-		return;
-	throw CException(L"CBuffer::WriteError");
+	bool bRet = SetData(pData, uLength);
+	//if(!bRet)
+	//	throw CException(L"CBuffer::WriteError");
+	return bRet;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -292,10 +314,10 @@ byte* CBuffer::SetData(size_t uOffset, void* pData, size_t uLength)
 	if(pData)
 	{
 		ASSERT(m_pBuffer + uOffset + uLength < (byte*)pData || m_pBuffer + uOffset > (byte*)pData + uLength);
-		memcpy(m_pBuffer + uOffset, pData, uLength);
+		MemCopy(m_pBuffer + uOffset, pData, uLength);
 	}
 	else
-		memset(m_pBuffer + uOffset, 0, uLength);
+		MemZero(m_pBuffer + uOffset, uLength);
 
 	return m_pBuffer + uOffset;
 }
@@ -308,12 +330,12 @@ byte* CBuffer::InsertData(size_t uOffset, void* pData, size_t uLength)
 	if(!PrepareWrite(m_uSize, uLength))
 		return NULL;
 
-	memmove(m_pBuffer + uOffset + uLength, m_pBuffer + uOffset, uSize - uOffset);
+	MemMove(m_pBuffer + uOffset + uLength, m_pBuffer + uOffset, uSize - uOffset);
 
 	if(pData)
 	{
 		ASSERT(m_pBuffer + uOffset + uLength < (byte*)pData || m_pBuffer + uOffset > (byte*)pData + uLength);
-		memcpy(m_pBuffer + uOffset, pData, uLength);
+		MemCopy(m_pBuffer + uOffset, pData, uLength);
 	}
 
 	return m_pBuffer + uOffset;
@@ -339,7 +361,7 @@ bool CBuffer::AppendData(const void* pData, size_t uLength)
 
 	ASSERT(pData);
 	ASSERT(m_pBuffer + uOffset + uLength < (byte*)pData || m_pBuffer + uOffset > (byte*)pData + uLength);
-	memcpy(m_pBuffer + uOffset, pData, uLength);
+	MemCopy(m_pBuffer + uOffset, pData, uLength);
 	return true;
 }
 
@@ -353,7 +375,7 @@ bool CBuffer::ShiftData(size_t uOffset)
 
 	m_uSize -= uOffset;
 
-	memmove(m_pBuffer, m_pBuffer + uOffset, m_uSize);
+	MemMove(m_pBuffer, m_pBuffer + uOffset, m_uSize);
 
 	if(m_uPosition > uOffset)
 		m_uPosition -= uOffset;
@@ -372,7 +394,7 @@ bool CBuffer::RemoveData(size_t uOffset, size_t uLength)
 	else if(uOffset + uLength > m_uSize)
 		return false;
 
-	memmove(m_pBuffer + uOffset, m_pBuffer + uOffset + uLength, m_uSize - uLength);
+	MemMove(m_pBuffer + uOffset, m_pBuffer + uOffset + uLength, m_uSize - uLength);
 
 	m_uSize -= uLength;
 
@@ -380,10 +402,35 @@ bool CBuffer::RemoveData(size_t uOffset, size_t uLength)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
+// Memory Operations
+
+void* CBuffer::Alloc(size_t size)
+{
+	if (m_pMem)
+		return m_pMem->Alloc(size);
+	else
+#ifdef NO_CRT
+		return NULL;
+#else
+		return malloc(size);
+#endif
+}
+
+void CBuffer::Free(void* ptr)
+{
+	if(m_pMem)
+		m_pMem->Free(ptr);
+#ifndef NO_CRT
+	else
+		free(ptr);
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////////////////
 // Specifyed Data Operations
 
-
-void CBuffer::WriteString(const std::wstring& String, EStrSet Set, EStrLen Len)
+#ifndef BUFF_NO_STL_STR
+bool CBuffer::WriteString(const std::wstring& String, EStrSet Set, EStrLen Len)
 {
 	std::string RawString;
 	if(Set == eAscii)
@@ -397,97 +444,31 @@ void CBuffer::WriteString(const std::wstring& String, EStrSet Set, EStrLen Len)
 	size_t uLength = RawString.length();
 	ASSERT(uLength < 0xFFFFFFFF);
 
+	bool bOk = true;
 	switch(Len)
 	{
-		case e8Bit:		ASSERT(RawString.length() < 0xFF);			WriteValue<uint8>((uint8)uLength);	break;
-		case e16Bit:	ASSERT(RawString.length() < 0xFFFF);		WriteValue<uint16>((uint16)uLength);	break;
-		case e32Bit:	ASSERT(RawString.length() < 0xFFFFFFFF);	WriteValue<uint32>((uint32)uLength);	break;
+		case e8Bit:		ASSERT(RawString.length() < 0xFF);			bOk = WriteValue<uint8>((uint8)uLength);	break;
+		case e16Bit:	ASSERT(RawString.length() < 0xFFFF);		bOk = WriteValue<uint16>((uint16)uLength);	break;
+		case e32Bit:	ASSERT(RawString.length() < 0xFFFFFFFF);	bOk = WriteValue<uint32>((uint32)uLength);	break;
 	}
 
-	WriteData(RawString.c_str(), RawString.length());
+	return bOk && WriteData(RawString.c_str(), RawString.length());
 }
 
-void WStrToAscii(std::string& dest, const std::wstring& src)
+bool CBuffer::WriteString(const std::string& String, EStrLen Len)
 {
-	dest.clear();
-	for (size_t i = 0; i < src.size(); i++)
+	size_t uLength = String.length();
+	ASSERT(uLength < 0xFFFFFFFF);
+
+	bool bOk = true;
+	switch(Len)
 	{
-		wchar_t w = src[i];
-		if (w <= 0xff)
-			dest.push_back((char)w);
-		else
-			dest.push_back('?');
-	}
-}
-
-void WStrToUtf8(std::string& dest, const std::wstring& src)
-{
-	dest.clear();
-	for (size_t i = 0; i < src.size(); i++)
-	{
-		wchar_t w = src[i];
-		if (w <= 0x7f)
-			dest.push_back((char)w);
-		else if (w <= 0x7ff)
-		{
-			dest.push_back(0xc0 | ((w >> 6)& 0x1f));
-			dest.push_back(0x80 | (w & 0x3f));
-		}
-		else if (w <= 0xffff)
-		{
-			dest.push_back(0xe0 | ((w >> 12)& 0x0f));
-			dest.push_back(0x80 | ((w >> 6) & 0x3f));
-			dest.push_back(0x80 | (w & 0x3f));
-		}
-		/*else if (w <= 0x10ffff)  // utf32
-		{
-			dest.push_back(0xf0 | ((w >> 18)& 0x07));
-			dest.push_back(0x80 | ((w >> 12) & 0x3f));
-			dest.push_back(0x80 | ((w >> 6) & 0x3f));
-			dest.push_back(0x80 | (w & 0x3f));
-		}*/
-		else
-			dest.push_back('?');
-	}
-}
-
-char* WCharToUtf8(const wchar_t* str, size_t len, size_t* out_len)
-{
-	if (len == -1) len = wcslen(str);
-
-	char* str8 = (char*)malloc((len + 1) * 3);
-	char* ptr8 = str8;
-
-	for (size_t i = 0; i < len; i++)
-	{
-		wchar_t w = str[i];
-		if (w <= 0x7f)
-			*ptr8++ = (char)w;
-		else if (w <= 0x7ff)
-		{
-			*ptr8++ = (0xc0 | ((w >> 6)& 0x1f));
-			*ptr8++ = (0x80 | (w & 0x3f));
-		}
-		else if (w <= 0xffff)
-		{
-			*ptr8++ = (0xe0 | ((w >> 12)& 0x0f));
-			*ptr8++ = (0x80 | ((w >> 6) & 0x3f));
-			*ptr8++ = (0x80 | (w & 0x3f));
-		}
-		/*else if (w <= 0x10ffff)  // utf32
-		{
-			*ptr8++ = (0xf0 | ((w >> 18)& 0x07));
-			*ptr8++ = (0x80 | ((w >> 12) & 0x3f));
-			*ptr8++ = (0x80 | ((w >> 6) & 0x3f));
-			*ptr8++ = (0x80 | (w & 0x3f));
-		}*/
-		else
-			*ptr8++ = '?';
+		case e8Bit:		ASSERT(String.length() < 0xFF);			bOk = WriteValue<uint8>((uint8)uLength);	break;
+		case e16Bit:	ASSERT(String.length() < 0xFFFF);		bOk = WriteValue<uint16>((uint16)uLength);	break;
+		case e32Bit:	ASSERT(String.length() < 0xFFFFFFFF);	bOk = WriteValue<uint32>((uint32)uLength);	break;
 	}
 
-	*ptr8 = 0;
-	if(out_len) *out_len = ptr8 - str8;
-	return str8;
+	return bOk && WriteData(String.c_str(), String.length());
 }
 
 std::wstring CBuffer::ReadString(EStrSet Set, EStrLen Len) const
@@ -524,6 +505,91 @@ std::wstring CBuffer::ReadString(EStrSet Set, size_t uRawLength) const
 		Utf8ToWStr(String, RawString);
 
 	return String;
+}
+#endif
+
+#ifndef BUFF_NO_STL_STR
+void WStrToAscii(std::string& dest, const std::wstring& src)
+{
+	dest.clear();
+	for (size_t i = 0; i < src.size(); i++)
+	{
+		wchar_t w = src[i];
+		if (w <= 0xff)
+			dest.push_back((char)w);
+		else
+			dest.push_back('?');
+	}
+}
+
+void WStrToUtf8(std::string& dest, const std::wstring& src)
+{
+	dest.clear();
+	for (size_t i = 0; i < src.size(); i++)
+	{
+		wchar_t w = src[i];
+		if (w <= 0x7f)
+			dest.push_back((char)w);
+		else if (w <= 0x7ff)
+		{
+			dest.push_back(0xc0 | ((w >> 6)& 0x1f));
+			dest.push_back(0x80 | (w & 0x3f));
+		}
+		else if (w <= 0xffff)
+		{
+			dest.push_back(0xe0 | ((w >> 12)& 0x0f));
+			dest.push_back(0x80 | ((w >> 6) & 0x3f));
+			dest.push_back(0x80 | (w & 0x3f));
+		}
+		/*else if (w <= 0x10ffff)  // utf32
+		{
+		dest.push_back(0xf0 | ((w >> 18)& 0x07));
+		dest.push_back(0x80 | ((w >> 12) & 0x3f));
+		dest.push_back(0x80 | ((w >> 6) & 0x3f));
+		dest.push_back(0x80 | (w & 0x3f));
+		}*/
+		else
+			dest.push_back('?');
+	}
+}
+
+char* WCharToUtf8(const wchar_t* str, size_t len, size_t* out_len)
+{
+	if (len == -1) len = wcslen(str);
+
+	char* str8 = (char*)malloc((len + 1) * 3);
+	char* ptr8 = str8;
+
+	for (size_t i = 0; i < len; i++)
+	{
+		wchar_t w = str[i];
+		if (w <= 0x7f)
+			*ptr8++ = (char)w;
+		else if (w <= 0x7ff)
+		{
+			*ptr8++ = (0xc0 | ((w >> 6)& 0x1f));
+			*ptr8++ = (0x80 | (w & 0x3f));
+		}
+		else if (w <= 0xffff)
+		{
+			*ptr8++ = (0xe0 | ((w >> 12)& 0x0f));
+			*ptr8++ = (0x80 | ((w >> 6) & 0x3f));
+			*ptr8++ = (0x80 | (w & 0x3f));
+		}
+		/*else if (w <= 0x10ffff)  // utf32
+		{
+		*ptr8++ = (0xf0 | ((w >> 18)& 0x07));
+		*ptr8++ = (0x80 | ((w >> 12) & 0x3f));
+		*ptr8++ = (0x80 | ((w >> 6) & 0x3f));
+		*ptr8++ = (0x80 | (w & 0x3f));
+		}*/
+		else
+			*ptr8++ = '?';
+	}
+
+	*ptr8 = 0;
+	if(out_len) *out_len = ptr8 - str8;
+	return str8;
 }
 
 void AsciiToWStr(std::wstring& dest, const std::string& src)
@@ -652,3 +718,4 @@ CBuffer FromHex(std::wstring str)
 	}
 	return Buffer;
 }
+#endif

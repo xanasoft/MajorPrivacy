@@ -2,22 +2,20 @@
 #include "AppInstallation.h"
 #include "../../Library/Helpers/SID.h"
 #include "../../Library/Helpers/AppUtil.h"
-#include "ServiceAPI.h"
+#include "../../Library/API/PrivacyAPI.h"
 
 CAppInstallation::CAppInstallation(const TInstallId& Id)
 {
-	m_ID.Set(CProgramID::eInstall, Id);
+	m_ID.Set(EProgramType::eAppInstallation, Id);
 
 	m_RegKey = Id;
 }
 
-
-void CAppInstallation::WriteVariant(CVariant& Data) const
-{
-	Data.Write(SVC_API_ID_TYPE, SVC_API_ID_TYPE_INSTALL);
-
-	CProgramList::WriteVariant(Data);
-
-	Data.Write(SVC_API_PROG_REG_KEY, m_RegKey);
-	Data.Write(SVC_API_PROG_APP_PATH, m_InstallPath);
+void CAppInstallation::SetInstallPath(const std::wstring Path)	
+{ 
+	std::unique_lock lock(m_Mutex); 
+	m_Path = Path; 
+	if(m_Path.length() > 0 && m_Path.at(m_Path.length() - 1) == L'\\')
+		m_Path.erase(m_Path.length() - 1);
+	SetPathPattern(m_Path + L"\\*");
 }

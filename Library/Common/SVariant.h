@@ -11,6 +11,7 @@ extern "C" {
 typedef struct _VARIANT
 {
 	uint8  uType;
+	uint8  bError;
 	uint32 uSize;
 	uint32 uMaxSize;
 	union {
@@ -24,6 +25,10 @@ typedef struct _VARIANT_IT
 	uchar* ptr;
 	uchar* end;
 } VARIANT_IT, * PVARIANT_IT;
+
+#define VAR_ERR_BAD_SIZE		1
+#define VAR_ERR_BAD_TYPE		2
+
 
 size_t Variant_FromBuffer(const byte* pBuffer, size_t uSize, PVARIANT out_var);
 size_t Variant_FromPacket(const byte* pBuffer, size_t uSize, char* out_name, size_t max_name, PVARIANT out_var);

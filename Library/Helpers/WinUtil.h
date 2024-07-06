@@ -28,6 +28,8 @@
 #define WINDOWS_10_22H2 113     // October, 2022
 #define WINDOWS_11 114          // October, 2021
 #define WINDOWS_11_22H1 115     // February, 2022
+#define WINDOWS_11_23H2 116     // October, 2023
+#define WINDOWS_11_24H2 117
 #define WINDOWS_NEW ULONG_MAX
 #endif
 

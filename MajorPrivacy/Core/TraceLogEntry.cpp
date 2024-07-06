@@ -1,23 +1,23 @@
 #include "pch.h"
 #include "TraceLogEntry.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 
 void CAbstractLogEntry::FromVariant(const class XVariant& FwEvent)
 {
-	FwEvent.ReadRawMap([&](const SVarName& Name, const CVariant& vData) {
+	FwEvent.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
 		const XVariant& Data = *(XVariant*)&vData;
-		ReadValue(Name, Data);
+		ReadValue(Index, Data);
 	});
 }
 
-void CAbstractLogEntry::ReadValue(const SVarName& Name, const XVariant& Data)
+void CAbstractLogEntry::ReadValue(uint32 Index, const XVariant& Data)
 {
-		 if (VAR_TEST_NAME(Name, SVC_API_EVENT_UID))		m_UID = Data;
-
-	else if (VAR_TEST_NAME(Name, SVC_API_ID_SVC_TAG))		m_ServiceTag = Data.AsQStr();
-	else if (VAR_TEST_NAME(Name, SVC_API_ID_APP_SID))		m_AppSid = Data.AsQStr();
-
-	else if (VAR_TEST_NAME(Name, SVC_API_EVENT_TIMESTAMP))	m_TimeStamp = Data;
-
-	// else unknown tag
+	switch (Index)
+	{
+	case API_V_EVENT_UID:			m_UID = Data; break;
+	case API_V_PID:					m_PID = Data; break;
+	case API_V_SVC_TAG:				m_ServiceTag = Data.AsQStr(); break;
+	case API_V_APP_SID:				m_AppSid = Data.AsQStr(); break;
+	case API_V_EVENT_TIME_STAMP:	m_TimeStamp = Data; break;
+	}
 }

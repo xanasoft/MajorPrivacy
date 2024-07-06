@@ -2,7 +2,7 @@
 #include "../Types.h"
 #include "../lib_global.h"
 
-enum class EKnownProtocols
+/*enum class EKnownProtocols
 {
     //Min = 0,
 
@@ -13,7 +13,7 @@ enum class EKnownProtocols
 
     //Max = 142,
     Any = 256
-};
+};*/
 
 extern LIBRARY_EXPORT const std::map<uint32, std::wstring> g_KnownProtocols;
 extern LIBRARY_EXPORT const std::map<uint32, std::wstring> g_KnownIcmp4Types;

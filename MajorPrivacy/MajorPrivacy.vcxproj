@@ -124,6 +124,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <QtMoc>
@@ -147,6 +150,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <QtMoc>
@@ -166,9 +172,12 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <QtMoc>
@@ -188,12 +197,28 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Framework\Memory.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\Library\Common\XVariant.cpp" />
+    <ClCompile Include="Core\Access\AccessEntry.cpp" />
+    <ClCompile Include="Core\Access\AccessManager.cpp" />
+    <ClCompile Include="Core\Access\AccessRule.cpp" />
+    <ClCompile Include="Core\Access\Handle.cpp" />
+    <ClCompile Include="Core\Access\ResLogEntry.cpp" />
+    <ClCompile Include="Core\API_Impl.cpp" />
+    <ClCompile Include="Core\GenericRule.cpp" />
     <ClCompile Include="Core\Network\DnsCacheEntry.cpp" />
     <ClCompile Include="Core\Network\FwRule.cpp" />
     <ClCompile Include="Core\Network\NetLogEntry.cpp" />
@@ -201,10 +226,15 @@
     <ClCompile Include="Core\Network\Socket.cpp" />
     <ClCompile Include="Core\Network\TrafficEntry.cpp" />
     <ClCompile Include="Core\PrivacyCore.cpp" />
-    <ClCompile Include="Core\Process.cpp" />
-    <ClCompile Include="Core\ProcessList.cpp" />
+    <ClCompile Include="Core\Processes\Enclave.cpp" />
+    <ClCompile Include="Core\Processes\EnclaveList.cpp" />
+    <ClCompile Include="Core\Processes\ExecLogEntry.cpp" />
+    <ClCompile Include="Core\Processes\Process.cpp" />
+    <ClCompile Include="Core\Processes\ProcessList.cpp" />
     <ClCompile Include="Core\Programs\AppInstallation.cpp" />
     <ClCompile Include="Core\Programs\AppPackage.cpp" />
+    <ClCompile Include="Core\Programs\ProgramLibrary.cpp" />
+    <ClCompile Include="Core\Programs\ProgramRule.cpp" />
     <ClCompile Include="Core\Programs\ProgramFile.cpp" />
     <ClCompile Include="Core\Programs\ProgramGroup.cpp" />
     <ClCompile Include="Core\Programs\ProgramID.cpp" />
@@ -216,67 +246,124 @@
     <ClCompile Include="Core\TraceLogUtils.cpp" />
     <ClCompile Include="Core\Tweaks\Tweak.cpp" />
     <ClCompile Include="Core\Tweaks\TweakManager.cpp" />
+    <ClCompile Include="Core\Volumes\Volume.cpp" />
+    <ClCompile Include="Core\Volumes\VolumeManager.cpp" />
+    <ClCompile Include="Helpers\FilePath.cpp" />
     <ClCompile Include="Helpers\WinHelper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MajorPrivacy.cpp" />
+    <ClCompile Include="Models\AccessModel.cpp" />
     <ClCompile Include="Models\DnsCacheModel.cpp" />
-    <ClCompile Include="Models\ExecRuleModel.cpp" />
-    <ClCompile Include="Models\ExecTraceModel.cpp" />
-    <ClCompile Include="Models\FsRuleModel.cpp" />
-    <ClCompile Include="Models\FsTraceModel.cpp" />
+    <ClCompile Include="Models\EnclaveModel.cpp" />
+    <ClCompile Include="Models\ExecutionModel.cpp" />
+    <ClCompile Include="Models\HandleModel.cpp" />
+    <ClCompile Include="Models\IngressModel.cpp" />
+    <ClCompile Include="Models\LibraryModel.cpp" />
+    <ClCompile Include="Models\ProgramRuleModel.cpp" />
+    <ClCompile Include="Models\ProcessTraceModel.cpp" />
+    <ClCompile Include="Models\AccessRuleModel.cpp" />
+    <ClCompile Include="Models\AccessTraceModel.cpp" />
     <ClCompile Include="Models\NetTraceModel.cpp" />
     <ClCompile Include="Models\FwRuleModel.cpp" />
-    <ClCompile Include="Models\OpenFilesModel.cpp" />
-    <ClCompile Include="Models\OpenKeysModel.cpp" />
     <ClCompile Include="Models\ProcessModel.cpp" />
     <ClCompile Include="Models\ProgramModel.cpp" />
-    <ClCompile Include="Models\RegRuleModel.cpp" />
-    <ClCompile Include="Models\RegTraceModel.cpp" />
     <ClCompile Include="Models\SocketModel.cpp" />
+    <ClCompile Include="Models\TraceModel.cpp" />
     <ClCompile Include="Models\TrafficModel.cpp" />
     <ClCompile Include="Models\TweakModel.cpp" />
+    <ClCompile Include="Models\VolumeModel.cpp" />
     <ClCompile Include="Pages\DnsPage.cpp" />
-    <ClCompile Include="Pages\FirewallPage.cpp" />
-    <ClCompile Include="Pages\FileSystemPage.cpp" />
+    <ClCompile Include="Pages\EnclavePage.cpp" />
+    <ClCompile Include="Pages\NetworkPage.cpp" />
+    <ClCompile Include="Pages\AccessPage.cpp" />
     <ClCompile Include="Pages\HomePage.cpp" />
-    <ClCompile Include="Pages\DrivePage.cpp" />
-    <ClCompile Include="Pages\ProxyPage.cpp" />
+    <ClCompile Include="Pages\VolumePage.cpp" />
     <ClCompile Include="Pages\TweakPage.cpp" />
     <ClCompile Include="Pages\ProcessPage.cpp" />
-    <ClCompile Include="Pages\RegistryPage.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Views\AccessInfoView.cpp" />
+    <ClCompile Include="Views\AccessView.cpp" />
     <ClCompile Include="Views\DnsCacheView.cpp" />
-    <ClCompile Include="Views\ExecRuleView.cpp" />
-    <ClCompile Include="Views\ExecTraceView.cpp" />
-    <ClCompile Include="Views\FsRuleView.cpp" />
-    <ClCompile Include="Views\FsTraceView.cpp" />
+    <ClCompile Include="Views\EnclaveView.cpp" />
+    <ClCompile Include="Views\ExecutionView.cpp" />
+    <ClCompile Include="Views\HandleView.cpp" />
+    <ClCompile Include="Views\InfoView.cpp" />
+    <ClCompile Include="Views\IngressView.cpp" />
+    <ClCompile Include="Views\LibraryView.cpp" />
+    <ClCompile Include="Views\ProgramRuleView.cpp" />
+    <ClCompile Include="Views\ProcessTraceView.cpp" />
+    <ClCompile Include="Views\AccessRuleView.cpp" />
+    <ClCompile Include="Views\AccessTraceView.cpp" />
     <ClCompile Include="Views\FwRuleView.cpp" />
     <ClCompile Include="Views\NetTraceView.cpp" />
-    <ClCompile Include="Views\OpenFilesView.cpp" />
-    <ClCompile Include="Views\OpenKeysView.cpp" />
     <ClCompile Include="Views\ProcessView.cpp" />
     <ClCompile Include="Views\ProgramView.cpp" />
-    <ClCompile Include="Views\RegRuleView.cpp" />
-    <ClCompile Include="Views\RegTraceView.cpp" />
     <ClCompile Include="Views\SocketView.cpp" />
+    <ClCompile Include="Views\TraceView.cpp" />
     <ClCompile Include="Views\TrafficView.cpp" />
     <ClCompile Include="Views\TweakView.cpp" />
+    <ClCompile Include="Views\VolumeView.cpp" />
+    <ClCompile Include="Windows\AccessRuleWnd.cpp" />
     <ClCompile Include="Windows\FirewallRuleWnd.cpp" />
+    <ClCompile Include="Windows\OptionsTransferWnd.cpp" />
     <ClCompile Include="Windows\PopUpWindow.cpp" />
+    <ClCompile Include="Windows\ProgramRuleWnd.cpp" />
+    <ClCompile Include="Windows\ProgramWnd.cpp" />
     <ClCompile Include="Windows\SettingsWindow.cpp" />
+    <ClCompile Include="Windows\VolumeWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Windows\OptionsTransferWnd.h" />
+    <QtMoc Include="Views\AccessInfoView.h" />
+    <QtMoc Include="Views\InfoView.h" />
+    <QtMoc Include="Windows\ProgramWnd.h" />
+    <QtMoc Include="Views\EnclaveView.h" />
+    <QtMoc Include="Views\HandleView.h" />
+    <QtMoc Include="Windows\AccessRuleWnd.h" />
+    <QtMoc Include="Views\TraceView.h" />
+    <QtMoc Include="Views\VolumeView.h" />
+    <QtMoc Include="Windows\VolumeWindow.h" />
+    <QtMoc Include="Windows\ProgramRuleWnd.h" />
     <QtMoc Include="Windows\PopUpWindow.h" />
     <QtMoc Include="Core\Network\DnsCacheEntry.h" />
+    <ClInclude Include="..\Framework\Array.h" />
+    <ClInclude Include="..\Framework\Defer.h" />
+    <ClInclude Include="..\Framework\Framework.h" />
+    <ClInclude Include="..\Framework\Header.h" />
+    <ClInclude Include="..\Framework\List.h" />
+    <ClInclude Include="..\Framework\Map.h" />
+    <ClInclude Include="..\Framework\Memory.h" />
+    <ClInclude Include="..\Framework\Object.h" />
+    <ClInclude Include="..\Framework\Pair.h" />
+    <ClInclude Include="..\Framework\RetValue.h" />
+    <ClInclude Include="..\Framework\SafeRef.h" />
+    <ClInclude Include="..\Framework\SharedPtr.h" />
+    <ClInclude Include="..\Framework\String.h" />
+    <ClInclude Include="..\Framework\Table.h" />
+    <ClInclude Include="..\Framework\UniquePtr.h" />
+    <ClInclude Include="..\Framework\WeakPtr.h" />
+    <QtMoc Include="Core\Access\AccessManager.h" />
+    <QtMoc Include="Core\Access\AccessRule.h" />
+    <ClInclude Include="Core\Access\AccessEntry.h" />
+    <QtMoc Include="Core\Access\Handle.h" />
+    <ClInclude Include="Core\Access\ResLogEntry.h" />
+    <QtMoc Include="Core\GenericRule.h" />
     <ClInclude Include="Core\Network\NetLogEntry.h" />
     <QtMoc Include="Windows\SettingsWindow.h" />
     <QtMoc Include="Core\Network\TrafficEntry.h" />
     <QtMoc Include="Core\Network\NetworkManager.h" />
+    <QtMoc Include="Core\Programs\ProgramRule.h" />
+    <QtMoc Include="Core\Processes\Enclave.h" />
+    <QtMoc Include="Core\Processes\EnclaveList.h" />
+    <ClInclude Include="Core\Processes\ExecLogEntry.h" />
+    <QtMoc Include="Core\Processes\Process.h" />
+    <QtMoc Include="Core\Processes\ProcessList.h" />
+    <QtMoc Include="Core\Programs\ProgramLibrary.h" />
     <ClInclude Include="Core\TraceLogEntry.h" />
     <ClInclude Include="Core\TraceLogUtils.h" />
     <QtMoc Include="Models\TrafficModel.h" />
@@ -284,33 +371,39 @@
     <QtMoc Include="Core\Tweaks\Tweak.h" />
     <QtMoc Include="Core\Tweaks\TweakManager.h" />
     <QtMoc Include="Views\TweakView.h" />
-    <QtMoc Include="Pages\DrivePage.h" />
+    <QtMoc Include="Pages\VolumePage.h" />
     <QtMoc Include="Pages\TweakPage.h" />
     <QtMoc Include="Models\TweakModel.h" />
     <QtMoc Include="Views\DnsCacheView.h" />
     <QtMoc Include="Models\DnsCacheModel.h" />
     <QtMoc Include="Pages\DnsPage.h" />
-    <QtMoc Include="Pages\ProxyPage.h" />
-    <ClInclude Include="Views\ExecRuleView.h" />
-    <ClInclude Include="Views\ExecTraceView.h" />
-    <ClInclude Include="Views\FsRuleView.h" />
-    <ClInclude Include="Views\FsTraceView.h" />
-    <ClInclude Include="Views\OpenFilesView.h" />
-    <ClInclude Include="Views\OpenKeysView.h" />
+    <QtMoc Include="Pages\EnclavePage.h" />
+    <QtMoc Include="Views\ProgramRuleView.h" />
+    <QtMoc Include="Views\ProcessTraceView.h" />
+    <QtMoc Include="Models\VolumeModel.h" />
+    <QtMoc Include="Core\Volumes\Volume.h" />
+    <QtMoc Include="Core\Volumes\VolumeManager.h" />
+    <QtMoc Include="Views\AccessRuleView.h" />
+    <QtMoc Include="Views\AccessTraceView.h" />
+    <QtMoc Include="Models\TraceModel.h" />
+    <QtMoc Include="Views\LibraryView.h" />
+    <QtMoc Include="Models\LibraryModel.h" />
+    <QtMoc Include="Views\IngressView.h" />
+    <QtMoc Include="Models\IngressModel.h" />
+    <QtMoc Include="Views\ExecutionView.h" />
+    <QtMoc Include="Models\ExecutionModel.h" />
+    <QtMoc Include="Models\AccessModel.h" />
+    <QtMoc Include="Views\AccessView.h" />
     <QtMoc Include="Views\ProcessView.h" />
-    <ClInclude Include="Views\RegRuleView.h" />
-    <ClInclude Include="Views\RegTraceView.h" />
     <QtMoc Include="Views\NetTraceView.h" />
     <QtMoc Include="Views\SocketView.h" />
     <QtMoc Include="Views\FwRuleView.h" />
     <QtMoc Include="Windows\FirewallRuleWnd.h" />
     <QtMoc Include="Views\ProgramView.h" />
     <QtMoc Include="Core\PrivacyCore.h" />
-    <QtMoc Include="Core\Process.h" />
-    <QtMoc Include="Core\ProcessList.h" />
     <QtMoc Include="Models\ProcessModel.h" />
-    <QtMoc Include="Pages\FirewallPage.h" />
-    <QtMoc Include="Pages\FileSystemPage.h" />
+    <QtMoc Include="Pages\NetworkPage.h" />
+    <QtMoc Include="Pages\AccessPage.h" />
     <QtMoc Include="Pages\ProcessPage.h" />
     <QtMoc Include="Core\Programs\AppPackage.h" />
     <QtMoc Include="Core\Programs\ProgramFile.h" />
@@ -329,25 +422,28 @@
     <QtMoc Include="Models\FwRuleModel.h" />
     <QtMoc Include="Models\SocketModel.h" />
     <QtMoc Include="Models\NetTraceModel.h" />
-    <QtMoc Include="Pages\RegistryPage.h" />
+    <ClInclude Include="Helpers\FilePath.h" />
     <ClInclude Include="Helpers\WinHelper.h" />
-    <ClInclude Include="Models\ExecRuleModel.h" />
-    <ClInclude Include="Models\ExecTraceModel.h" />
-    <ClInclude Include="Models\FsRuleModel.h" />
-    <ClInclude Include="Models\FsTraceModel.h" />
-    <ClInclude Include="Models\OpenFilesModel.h" />
-    <ClInclude Include="Models\OpenKeysModel.h" />
-    <ClInclude Include="Models\RegRuleModel.h" />
-    <ClInclude Include="Models\RegTraceModel.h" />
+    <QtMoc Include="Models\ProgramRuleModel.h" />
+    <QtMoc Include="Models\ProcessTraceModel.h" />
+    <QtMoc Include="Models\AccessRuleModel.h" />
+    <QtMoc Include="Models\AccessTraceModel.h" />
+    <QtMoc Include="Models\HandleModel.h" />
+    <QtMoc Include="Models\EnclaveModel.h" />
     <ClInclude Include="version.h" />
     <QtMoc Include="MajorPrivacy.h" />
     <ClInclude Include="Resources\resource.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <QtUic Include="Forms\AccessRuleWnd.ui" />
     <QtUic Include="Forms\FirewallRuleWnd.ui" />
+    <QtUic Include="Forms\OptionsTransferWnd.ui" />
     <QtUic Include="Forms\PopUpWindow.ui" />
+    <QtUic Include="Forms\ProgramRuleWnd.ui" />
+    <QtUic Include="Forms\ProgramWnd.ui" />
     <QtUic Include="Forms\SettingsWindow.ui" />
+    <QtUic Include="Forms\VolumeWindow.ui" />
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="Resources\MajorPrivacy.qrc" />

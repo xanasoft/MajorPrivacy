@@ -1,0 +1,197 @@
+#include "pch.h"
+#include "Process.h"
+#include "../PrivacyCore.h"
+#include "../Library/Common/XVariant.h"
+#include "../Library/API/PrivacyAPI.h"
+#include "../Library/Helpers/NtUtil.h"
+#include "../../Helpers/WinHelper.h"
+#include "../Driver/KSI/include/kphapi.h"
+
+
+CProcess::CProcess(quint32 Pid, QObject* parent)
+ : QObject(parent)
+{
+	m_Pid = Pid;
+}
+
+QIcon CProcess::DefaultIcon()
+{
+	static QIcon ExeIcon;
+	if(ExeIcon.isNull())
+	{
+		ExeIcon.addFile(":/exe16.png");
+		ExeIcon.addFile(":/exe32.png");
+		ExeIcon.addFile(":/exe48.png");
+		ExeIcon.addFile(":/exe64.png");
+	}
+	//return QIcon(":/Icons/Process.png");
+	return ExeIcon;
+}
+
+bool CProcess::IsProtected(bool bAlsoLite) const 
+{ 
+	KPH_PROCESS_FLAGS kFlags;
+	kFlags.Flags = m_Flags;
+
+	KPH_PROCESS_SFLAGS kSFlags;
+	kSFlags.SecFlags = m_SecFlags;
+
+	return kFlags.Protected && (bAlsoLite || kSFlags.ProtectionLevel == KphFullProtection);
+}
+
+void CProcess::FromVariant(const class XVariant& Process)
+{
+	Process.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
+		const XVariant& Data = *(XVariant*)&vData;
+
+		switch (Index)
+		{
+		case API_V_CREATE_TIME:		m_CreationTime = Data; break;
+		case API_V_PARENT_PID:		m_ParentPid = Data; break;
+
+		case API_V_NAME:		m_Name = Data.AsQStr(); break;
+		case API_V_FILE_PATH:
+		{
+			bool bInitIcon = m_Path.IsEmpty();
+			m_Path.Set(Data.AsQStr(), EPathType::eNative);
+
+			if (bInitIcon && !m_Path.IsEmpty())
+			{
+				QString Path = m_Path.Get(EPathType::eWin32);
+				m_Icon = LoadWindowsIconEx(Path, 0);
+				if (m_Icon.availableSizes().isEmpty())
+					m_Icon = DefaultIcon();
+			}
+			break;
+		}
+
+		case API_V_CMD_LINE:	m_CmdLine = Data.AsQStr(); break;
+
+		//case API_V_HASH:		m_ImageHash = Data.AsQBytes(); break;
+
+		case API_V_APP_SID:		m_AppContainerSid = Data.AsQStr(); break;
+		case API_V_APP_NAME:	m_AppContainerName = Data.AsQStr(); break;
+		case API_V_PACK_NAME:	m_PackageFullName = Data.AsQStr(); break;
+
+		case API_V_EID:			m_EnclaveId = Data; break;
+		case API_V_SEC:			m_SecState = Data; break;
+
+		case API_V_FLAGS:		m_Flags = Data; break;
+		case API_V_SFLAGS:		m_SecFlags = Data; break;
+
+		case API_V_SIGN_INFO:	m_SignInfo.Data = Data.To<uint64>(); break;
+		case API_V_N_IMG:		m_NumberOfImageLoads = Data; break;
+		case API_V_N_MS_IMG:	m_NumberOfMicrosoftImageLoads = Data; break;
+		case API_V_N_AV_IMG:	m_NumberOfAntimalwareImageLoads = Data; break;
+		case API_V_N_V_IMG:		m_NumberOfVerifiedImageLoads = Data; break;
+		case API_V_N_S_IMG:		m_NumberOfSignedImageLoads = Data; break;
+		case API_V_N_U_IMG:		m_NumberOfUntrustedImageLoads = Data; break;
+
+		case API_V_SVCS:		m_ServiceList = Data.AsQList(); break;
+
+		case API_V_HANDLES:		UpdateHandles(Data); break;
+
+		case API_V_SOCKETS:		UpdateSockets(Data); break;
+
+		}
+
+	});
+}
+
+void CProcess::UpdateHandles(const class XVariant& Handles)
+{
+	QMap<quint64, CHandlePtr> OldHandles = m_Handles;
+
+	Handles.ReadRawList([&](const CVariant& vData) {
+		const XVariant& Handle = *(XVariant*)&vData;
+
+		quint64 HandleRef = Handle.Find(API_V_ACCESS_REF);
+
+		CHandlePtr pHandle = OldHandles.take(HandleRef);
+		if (!pHandle) {
+			pHandle = CHandlePtr(new CHandle());
+			m_Handles.insert(HandleRef, pHandle);
+		} 
+
+		pHandle->FromVariant(Handle);
+	});
+
+	foreach(quint64 HandleRef, OldHandles.keys())
+		m_Handles.remove(OldHandles.take(HandleRef)->GetHandleRef());
+}
+
+void CProcess::UpdateSockets(const class XVariant& Sockets)
+{
+	QMap<quint64, CSocketPtr> OldSockets = m_Sockets;
+
+	Sockets.ReadRawList([&](const CVariant& vData) {
+		const XVariant& Socket = *(XVariant*)&vData;
+
+		quint64 SockRef = Socket.Find(API_V_SOCK_REF);
+
+		CSocketPtr pSocket = OldSockets.take(SockRef);
+		if (!pSocket) {
+			pSocket = CSocketPtr(new CSocket());
+			m_Sockets.insert(SockRef, pSocket);
+		} 
+		
+		pSocket->FromVariant(Socket);
+	});
+
+	foreach(quint64 SockRef, OldSockets.keys())
+		m_Sockets.remove(OldSockets.take(SockRef)->GetSocketRef());
+}
+
+QString CProcess::GetStatus() const
+{
+	QStringList Infos;
+
+	KPH_PROCESS_FLAGS kFlags;
+	kFlags.Flags = m_Flags;
+
+	//KPH_PROCESS_SFLAGS kSFlags;
+	//kSFlags.SecFlags = m_SecFlags;
+
+	QStringList Flags;
+	if (kFlags.VerifiedProcess)		Flags.append("VerifiedProcess");
+	if (kFlags.SecurelyCreated)		Flags.append("SecurelyCreated");
+	if (kFlags.Protected)			Flags.append("Protected");
+	if (kFlags.IsLsass)				Flags.append("IsLsass");
+	//if (kFlags.IsWow64)				Flags.append("IsWow64");
+	//if (kFlags.IsSubsystemProcess)	Flags.append("IsSubsystemProcess");
+	if(!Flags.isEmpty())	Infos.append(Flags.join(", "));
+
+	if (kFlags.Protected && m_SecState)
+	{
+		if((m_SecState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM)		Infos.append(tr("Sec: %1").arg("Maximum"));
+		else if ((m_SecState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH)		Infos.append(tr("Sec: %1").arg("High"));
+		else if ((m_SecState & KPH_PROCESS_STATE_MEDIUM) == KPH_PROCESS_STATE_MEDIUM)	Infos.append(tr("Sec: %1").arg("Medium"));
+		else if ((m_SecState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)			Infos.append(tr("Sec: %1").arg("Low"));
+		else if ((m_SecState & KPH_PROCESS_STATE_MINIMUM) == KPH_PROCESS_STATE_MINIMUM)	Infos.append(tr("Sec: %1").arg("Minimum"));
+		else																			Infos.append(tr("Sec: %1").arg("Other"));
+
+		/*QStringList Sec;
+		if (m_SecState & KPH_PROCESS_SECURELY_CREATED)				Sec.append("Created");
+		if (m_SecState & KPH_PROCESS_VERIFIED_PROCESS)				Sec.append("Verified");
+		if (m_SecState & KPH_PROCESS_PROTECTED_PROCESS)				Sec.append("Protected");
+		if (m_SecState & KPH_PROCESS_NO_UNTRUSTED_IMAGES)			Sec.append("NoUntrusted");
+		if (m_SecState & KPH_PROCESS_HAS_FILE_OBJECT)				Sec.append("HasFile");
+		if (m_SecState & KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS)	Sec.append("HasSection");
+		if (m_SecState & KPH_PROCESS_NO_USER_WRITABLE_REFERENCES)	Sec.append("NoUserWritable");
+		if (m_SecState & KPH_PROCESS_NO_FILE_TRANSACTION)			Sec.append("NoFileTransaction");
+		if (m_SecState & KPH_PROCESS_NOT_BEING_DEBUGGED)			Sec.append("NotBeingDebugged");
+		Infos.append(tr("Sec: %1").arg(Sec.join(", ")));*/
+
+	}
+
+	return Infos.join("; ");
+}
+
+QString CProcess::GetImgStats() const
+{
+	QString Infos = tr("%1 (").arg(m_NumberOfImageLoads);
+	if (!m_NumberOfAntimalwareImageLoads) Infos.append(tr("%1").arg(m_NumberOfMicrosoftImageLoads));
+	else Infos.append(tr("%1+%2").arg(m_NumberOfMicrosoftImageLoads).arg(m_NumberOfAntimalwareImageLoads));
+	Infos.append(tr("/%1/%2/%3)").arg(m_NumberOfVerifiedImageLoads).arg(m_NumberOfSignedImageLoads).arg(m_NumberOfUntrustedImageLoads));
+	return Infos;
+}

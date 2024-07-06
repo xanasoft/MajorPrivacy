@@ -143,3 +143,22 @@ QIcon LoadWindowsIconEx(const QString &Path, quint32 Index)
 
     return icon;
 }
+
+void WindowsMoveFile(const QString& From, const QString& To)
+{
+    std::wstring from = From.toStdWString();
+    from.append(L"\0", 1);
+    std::wstring to = To.toStdWString();
+    to.append(L"\0", 1);
+
+    SHFILEOPSTRUCT SHFileOp;
+    memset(&SHFileOp, 0, sizeof(SHFILEOPSTRUCT));
+    SHFileOp.hwnd = NULL;
+    SHFileOp.wFunc = To.isEmpty() ? FO_DELETE : FO_MOVE;
+    SHFileOp.pFrom = from.c_str();
+    SHFileOp.pTo = to.c_str();
+    SHFileOp.fFlags = NULL;    
+
+    //The Copying Function
+    SHFileOperation(&SHFileOp);
+}

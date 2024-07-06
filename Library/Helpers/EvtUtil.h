@@ -34,6 +34,7 @@ extern LIBRARY_EXPORT GUID Audit_ObjectAccess_FirewallRuleChange_;
 #define WIN_LOG_EVENT_FW_REMOVED 4948
 
 LIBRARY_EXPORT bool SetAuditPolicy(const GUID* pSubCategoryGuids, ULONG dwPolicyCount, uint32 AuditingMode, uint32* pOldAuditingMode);
+LIBRARY_EXPORT uint32 GetAuditPolicy(const GUID* pSubCategoryGuids, ULONG dwPolicyCount);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

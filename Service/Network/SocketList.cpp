@@ -23,7 +23,7 @@ CSocketList::~CSocketList()
 
 STATUS CSocketList::Init()
 {
-    svcCore->EtwEventMonitor()->RegisterNetworkHandler(&CSocketList::OnEtwNetEvent, this);
+    theCore->EtwEventMonitor()->RegisterNetworkHandler(&CSocketList::OnEtwNetEvent, this);
 
 	EnumSockets();
 
@@ -202,7 +202,7 @@ STATUS CSocketList::EnumSockets()
                 Sockets[i].ProtocolType, Sockets[i].LocalAddress, Sockets[i].LocalPort, Sockets[i].RemoteAddress, Sockets[i].RemotePort);
 			pSocket->InitStaticDataEx(&(Sockets[i]));
 			if (pSocket->m_ProcessId) {
-				CProcessPtr pProcess = svcCore->ProcessList()->GetProcess(pSocket->m_ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
+				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pSocket->m_ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
 				pSocket->LinkProcess(pProcess);
 				pProcess->AddSocket(pSocket);
 			}
@@ -230,7 +230,7 @@ STATUS CSocketList::EnumSockets()
 		pSocket->UpdateDynamicData(&(Sockets[i]));
 	}
 
-	uint64 UdpPersistenceTime = svcCore->Config()->GetUInt64("Service", "UdpPersistenceTime", 300);
+	uint64 UdpPersistenceTime = theCore->Config()->GetUInt64("Service", "UdpPersistenceTime", 300);
 	// For UDP Traffic keep the pseudo connections listed for a while
 	for(auto I = OldSockets.begin(); I != OldSockets.end(); )
 	{
@@ -281,7 +281,7 @@ CSocketPtr CSocketList::OnNetworkEvent(EEventType Type, uint64 ProcessId, uint32
 	std::unique_lock Lock(m_Mutex);
 
     CSocket::EMatchMode Mode = CSocket::eFuzzy;
-	if (ProtocolType == IPPROTO_UDP && svcCore->Config()->GetBool("Service", "UseUDPPseudoConnectins", true))
+	if (ProtocolType == IPPROTO_UDP && theCore->Config()->GetBool("Service", "UseUDPPseudoConnectins", true))
 		Mode = CSocket::eStrict;
 
 	CSocketPtr pSocket;
@@ -311,7 +311,7 @@ CSocketPtr CSocketList::OnNetworkEvent(EEventType Type, uint64 ProcessId, uint32
 		}
 
 		if (pSocket->m_ProcessId) {
-			CProcessPtr pProcess = svcCore->ProcessList()->GetProcess(pSocket->m_ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
+			CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pSocket->m_ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
 			pSocket->LinkProcess(pProcess);
 			pProcess->AddSocket(pSocket);
 		}
@@ -362,10 +362,10 @@ void CSocketList::OnEtwNetEvent(const struct SEtwNetworkEvent* pEvent)
 
 std::set<CSocketPtr> CSocketList::FindSockets(const CProgramID& ID)
 {
-	if (ID.GetType() == CProgramID::eAll)
+	if (ID.GetType() == EProgramType::eAllPrograms)
 		return GetAllSockets();
 
-	auto Processes = svcCore->ProcessList()->FindProcesses(ID);
+	auto Processes = theCore->ProcessList()->FindProcesses(ID);
 
 	std::shared_lock<std::shared_mutex> Lock(m_Mutex);
 
@@ -377,7 +377,7 @@ std::set<CSocketPtr> CSocketList::FindSockets(const CProgramID& ID)
 		auto Sockets = pProcess->GetSocketList();
 		for (auto pSocket : Sockets)
 		{
-			if (ID.GetType() == CProgramID::eService)
+			if (ID.GetType() == EProgramType::eWindowsService)
 			{
 				//
 				// Note: Multiple services may be hosted in one svchost.exe instance

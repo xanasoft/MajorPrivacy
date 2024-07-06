@@ -254,6 +254,7 @@ void Variant_Init(uint8 uType, void* pBuffer, size_t uMaxSize, PVARIANT out_var)
 	out_var->pData = pBuffer;
 	out_var->uSize = 0;
 	out_var->uType = uType;
+	out_var->bError = 0;
 }
 
 void Variant_Prepare(uint8 uType, void* pBuffer, size_t uMaxSize, PVARIANT out_var)
@@ -272,6 +273,9 @@ void Variant_Prepare(uint8 uType, void* pBuffer, size_t uMaxSize, PVARIANT out_v
 
 size_t Variant_Finish(void* pBuffer, PVARIANT out_var)
 {
+	if(out_var->bError)
+		return 0;
+
 	byte* out_buff = (byte*)pBuffer;
     if (out_buff && out_var->uType != VAR_TYPE_EMPTY) {
 		size_t hdr_size;
@@ -301,6 +305,7 @@ size_t Variant_Finish(void* pBuffer, PVARIANT out_var)
 		}
         return hdr_size + out_var->uSize;
     }
+
 	return 0;
 }
 
@@ -342,7 +347,8 @@ void* Variant_Set(uint8 type, const void* in, size_t size, PVARIANT out_var)
 size_t Variant_WriteRaw(uchar* ptr, uint8 type, const void* in, size_t size)
 {
 	uint32 hdr_size = Variant_WriteSize(&ptr, type, size);
-	memcpy(ptr, in, size);
+	if(in != (const void*)-1)
+		memcpy(ptr, in, size);
 	return hdr_size + size;
 }
 
@@ -352,10 +358,14 @@ void* Variant_InsertRaw(PVARIANT var, const char* name, uint8 type, const void* 
 
 	if (var->uType == VAR_TYPE_EMPTY)
 		var->uType = VAR_TYPE_MAP;
-	else if (var->uType != VAR_TYPE_MAP)
+	else if (var->uType != VAR_TYPE_MAP) {
+		var->bError |= VAR_ERR_BAD_TYPE;
 		return NULL;
-	if (var->uMaxSize - var->uSize < 1 + name_len + 1 + size)
+	}
+	if (var->uMaxSize - var->uSize < 1 + name_len + 1 + size) {
+		var->bError |= VAR_ERR_BAD_SIZE;
 		return NULL;
+	}
 
 	uchar* ptr = var->pData + var->uSize;
 	*ptr++ = (uint8)name_len;
@@ -391,10 +401,14 @@ void* Variant_AddRaw(PVARIANT var, uint32 index, uint8 type, const void* in, siz
 {
 	if (var->uType == VAR_TYPE_EMPTY)
 		var->uType = VAR_TYPE_INDEX;
-	else if (var->uType != VAR_TYPE_INDEX)
-		return 0;
-	if (var->uMaxSize - var->uSize < 4 + size)
-		return 0;
+	else if (var->uType != VAR_TYPE_INDEX) {
+		var->bError |= VAR_ERR_BAD_TYPE;
+		return NULL;
+	}
+	if (var->uMaxSize - var->uSize < 4 + size) {
+		var->bError |= VAR_ERR_BAD_SIZE;
+		return NULL;
+	}
 
 	uchar* ptr = var->pData + var->uSize;
 	*(uint32*)ptr = index;
@@ -429,10 +443,14 @@ void* Variant_AppendRaw(PVARIANT var, uint8 type, const void* in, size_t size)
 {
 	if (var->uType == VAR_TYPE_EMPTY)
 		var->uType = VAR_TYPE_LIST;
-	else if (var->uType != VAR_TYPE_LIST)
-		return 0;
-	if (var->uMaxSize - var->uSize < + size)
-		return 0;
+	else if (var->uType != VAR_TYPE_LIST) {
+		var->bError |= VAR_ERR_BAD_TYPE;
+		return NULL;
+	}
+	if (var->uMaxSize - var->uSize < +size) {
+		var->bError |= VAR_ERR_BAD_SIZE;
+		return NULL;
+	}
 
 	uchar* ptr = var->pData + var->uSize;
 

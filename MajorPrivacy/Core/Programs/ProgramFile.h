@@ -1,9 +1,11 @@
 #pragma once
 #include "ProgramGroup.h"
 
-#include "../Process.h"
+#include "../Processes/Process.h"
 #include "../TraceLogEntry.h"
 #include "../Network/TrafficEntry.h"
+#include "../Processes/ExecLogEntry.h"
+#include "../Access/AccessEntry.h"
 
 class CProgramFile: public CProgramSet
 {
@@ -11,27 +13,86 @@ class CProgramFile: public CProgramSet
 public:
 	CProgramFile(QObject* parent = nullptr);
 
+	virtual EProgramType GetType() const { return EProgramType::eProgramFile; }
+
 	virtual QString GetNameEx() const;
-	virtual QString GetPath() const					{ return m_FileName; }
+	virtual void SetPath(const QString& Path, EPathType Type) { m_Path.Set(Path, Type); }
+	virtual QString GetPath(EPathType Type) const	{ return m_Path.Get(Type); }
+
+	virtual SLibraryInfo::USign GetSignInfo() const	{ return m_SignInfo; }
 
 	virtual QSet<quint64> GetProcessPids() const	{ return m_ProcessPids; }
 
 	virtual void CountStats();
 
+	QMap<quint64, SLibraryInfo> GetLibraries();
+
+	static QString GetLibraryStatusStr(EEventStatus Status);
+	static QString GetSignatureInfoStr(SLibraryInfo::USign SignInfo);
+
+	struct SInfo
+	{
+		enum {
+			eNone = 0,
+			eTarget,
+			eActor,
+		}							eRole = eNone;
+		uint64						ProgramUID = 0;
+		QString						ActorSvcTag;
+	};
+
+	struct SExecutionInfo: SInfo
+	{
+		uint64						LastExecTime = 0;
+		bool						bBlocked = false;
+		QString						CommandLine;
+	};
+
+	QMap<quint64, SExecutionInfo> GetExecStats();
+
+	struct SIngressInfo: SInfo
+	{
+		uint64						LastAccessTime = 0;
+		bool						bBlocked = false;
+		uint32						ThreadAccessMask = 0;
+		uint32						ProcessAccessMask = 0;
+	};
+
+	QMap<quint64, SIngressInfo> GetIngressStats();
+
+	virtual QMap<quint64, SAccessStatsPtr>	GetAccessStats();
+
 	virtual QMap<QString, CTrafficEntryPtr>	GetTrafficLog();
 
-	virtual void TraceLogAdd(ETraceLogs Log, const CLogEntryPtr& pEntry, quint32 Index);
+	virtual void TraceLogAdd(ETraceLogs Log, const CLogEntryPtr& pEntry, quint64 Index);
 	virtual STraceLogList* GetTraceLog(ETraceLogs Log);
 
 protected:
 	friend class CProgramManager;
 
-	virtual void ReadValue(const SVarName& Name, const XVariant& Data);
+	void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
+	void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
+	void ReadIValue(uint32 Index, const XVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
 
-	QString m_FileName;
+	CFilePath					m_Path;
+
+	SLibraryInfo::USign			m_SignInfo;
 
 	QSet<quint64>				m_ProcessPids;
-	
+
+	QMap<quint64, SLibraryInfo>	m_Libraries;
+	bool						m_LibrariesChanged = true;
+
+	QMap<quint64, SExecutionInfo>m_ExecStats;
+	bool						m_ExecChanged = true;
+
+	QMap<quint64, SIngressInfo>	m_Ingress;
+	bool						m_IngressChanged = true;
+
+	QMap<quint64, SAccessStatsPtr> m_AccessStats;
+	quint64						m_AccessStatsLastActivity = 0;
+
 	QSet<quint64>				m_SocketRefs;
 
 	QMap<QString, CTrafficEntryPtr> m_TrafficLog;

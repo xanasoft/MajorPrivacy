@@ -1,23 +1,43 @@
 #include "pch.h"
 #include "NetLogEntry.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
+#include "FwRule.h"
 
+QString CNetLogEntry::GetStateStr() const 
+{ 
+	return CFwRule::StateToStr(m_State);
+}
 
-void CNetLogEntry::ReadValue(const SVarName& Name, const XVariant& Data)
+QString CNetLogEntry::GetActionStr() const 
+{ 
+	return CFwRule::ActionToStr(m_Action);
+}
+
+QString CNetLogEntry::GetDirectionStr() const 
+{ 
+	return CFwRule::DirectionToStr(m_Direction);
+}
+
+QString CNetLogEntry::GetProtocolTypeStr() const 
+{ 
+	return CFwRule::ProtocolToStr((EFwKnownProtocols)m_ProtocolType);
+}
+
+void CNetLogEntry::ReadValue(uint32 Index, const XVariant& Data)
 {
-		 if (VAR_TEST_NAME(Name, SVC_API_EVENT_STATE))		m_State = Data.AsQStr();
+	switch (Index) {
+	case API_V_FW_EVENT_STATE:			m_State = (EFwEventStates)Data.To<uint32>(); break;
 
-	else if (VAR_TEST_NAME(Name, SVC_API_FW_ACTION))		m_Action = Data.AsQStr();
-	else if (VAR_TEST_NAME(Name, SVC_API_FW_DIRECTION))		m_Direction = Data.AsQStr();
-	else if (VAR_TEST_NAME(Name, SVC_API_FW_PROTOCOL))		m_ProtocolType = Data;
-	else if (VAR_TEST_NAME(Name, SVC_API_FW_LOCAL_ADDR))	m_LocalAddress = Data.AsQStr();
-	else if (VAR_TEST_NAME(Name, SVC_API_FW_LOCAL_PORT))	m_LocalPort = Data;
-	else if (VAR_TEST_NAME(Name, SVC_API_FW_REMOTE_ADDR))	m_RemoteAddress = Data.AsQStr();
-	else if (VAR_TEST_NAME(Name, SVC_API_FW_REMOTE_PORT))	m_RemotePort = Data;
-	else if (VAR_TEST_NAME(Name, SVC_API_FW_REMOTE_HOST))	m_RemoteHostName = Data.AsQStr();
+	case API_V_FW_RULE_ACTION:			m_Action = (EFwActions)Data.To<uint32>(); break;
+	case API_V_FW_RULE_DIRECTION:		m_Direction = (EFwDirections)Data.To<uint32>(); break;
+	case API_V_FW_RULE_PROTOCOL:		m_ProtocolType = Data; break;
 
-	else if (VAR_TEST_NAME(Name, SVC_API_EVENT_REALM))		m_Realm = Data.AsQStr();
+	case API_V_FW_RULE_LOCAL_ADDR:		m_LocalAddress = Data.AsQStr(); break;
+	case API_V_FW_RULE_LOCAL_PORT:		m_LocalPort = Data; break;
+	case API_V_FW_RULE_REMOTE_ADDR:		m_RemoteAddress = Data.AsQStr(); break;
+	case API_V_FW_RULE_REMOTE_PORT:		m_RemotePort = Data; break;
+	case API_V_FW_RULE_REMOTE_HOST:		m_RemoteHostName = Data.AsQStr(); break;
 
-	else 
-		CAbstractLogEntry::ReadValue(Name, Data);
+	default: CAbstractLogEntry::ReadValue(Index, Data);
+	}
 }

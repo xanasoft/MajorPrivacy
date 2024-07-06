@@ -2,7 +2,7 @@
 #include "DnsCacheEntry.h"
 #include "../../MiscHelpers/Common/Common.h"
 #include "../../Library/Common/XVariant.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 
 CDnsCacheEntry::CDnsCacheEntry(QObject *parent) 
 	: QObject(parent)
@@ -69,17 +69,17 @@ void CDnsCacheEntry::RecordProcess(const QString& ProcessName, quint64 ProcessId
 
 void CDnsCacheEntry::FromVariant(const class XVariant& Variant)
 {
-	Variant.ReadRawMap([&](const SVarName& Name, const CVariant& vData) {
+	Variant.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
 		const XVariant& Data = *(XVariant*)&vData;
 
-			 if (VAR_TEST_NAME(Name, SVC_API_NET_HOST))			m_HostName = Data.AsQStr();
-		else if (VAR_TEST_NAME(Name, SVC_API_DNS_TYPE))			m_Type = Data;
-		else if (VAR_TEST_NAME(Name, SVC_API_DNS_ADDR))			m_Address = QHostAddress(Data.AsQStr());
-		else if (VAR_TEST_NAME(Name, SVC_API_DNS_DATA))			m_ResolvedString = Data.AsQStr();
-		else if (VAR_TEST_NAME(Name, SVC_API_DNS_TTL))			m_TTL = Data;
-		else if (VAR_TEST_NAME(Name, SVC_API_DNS_QUERY_COUNT))	m_QueryCounter = Data;
-
-		// else unknown tag
-
+		switch (Index)
+		{
+		case API_V_DNS_HOST:		m_HostName = Data.AsQStr(); break;
+		case API_V_DNS_TYPE:		m_Type = Data; break;
+		case API_V_DNS_ADDR:		m_Address = QHostAddress(Data.AsQStr()); break;
+		case API_V_DNS_DATA:		m_ResolvedString = Data.AsQStr(); break;
+		case API_V_DNS_TTL:			m_TTL = Data; break;
+		case API_V_DNS_QUERY_COUNT:	m_QueryCounter = Data; break;
+		}
 	});
 }

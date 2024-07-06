@@ -4,11 +4,11 @@
 
 #define VAR_TYPE_MASK		0b00011111
 
-//#ifdef __cplusplus
-//typedef enum _VAR_TYPE : unsigned char
-//#else
+#ifdef __cplusplus
+typedef enum _VAR_TYPE : unsigned char
+#else
 typedef enum _VAR_TYPE
-//#endif
+#endif
 {
 		VAR_TYPE_EMPTY	  = 0b00000000,	// An Empty Variant - special case has no payload and no length field
 		VAR_TYPE_MAP	  = 0b00000001,	// A Dictionary (Map by Name)

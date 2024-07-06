@@ -52,7 +52,7 @@ VOID CInstallationList::EnumCallBack(PVOID param, const std::wstring& RegKey)
 
         pInstalledApp->InstallPath = InstallLocation; // DOS Path
 
-        if(!svcCore->ProgramManager()->IsPathReserved(InstallLocation))
+        if(!theCore->ProgramManager()->IsPathReserved(InstallLocation))
             bAdd = true;
     }
 
@@ -62,7 +62,7 @@ VOID CInstallationList::EnumCallBack(PVOID param, const std::wstring& RegKey)
 
     if (bAdd) {
         pParams->pThis->m_List.insert(std::make_pair(RegKey, pInstalledApp));
-        svcCore->ProgramManager()->AddInstallation(pInstalledApp);
+        theCore->ProgramManager()->AddInstallation(pInstalledApp);
     }
 }
 
@@ -99,6 +99,6 @@ void CInstallationList::Update()
     for(auto E: Params.OldList) {
         m_List.erase(E.first);
         SInstallationPtr pInstalledApp = E.second;
-        if (pInstalledApp) svcCore->ProgramManager()->RemoveInstallation(pInstalledApp);
+        if (pInstalledApp) theCore->ProgramManager()->RemoveInstallation(pInstalledApp);
     }
 }

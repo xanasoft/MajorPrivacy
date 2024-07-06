@@ -6,17 +6,18 @@
 #include "Core/TraceLogEntry.h"
 #include "../Library/Status.h"
 #include "../MiscHelpers/Common/CustomTheme.h"
+#include <QTranslator>
 
 class CHomePage;
+class CEnclavePage;
 class CProcessPage;
-class CFileSystemPage;
-class CRegistryPage;
-class CFirewallPage;
+class CAccessPage;
+class CNetworkPage;
 class CProgramView;
 class CDnsPage;
-class CProxyPage;
 class CTweakPage;
-class CDrivePage;
+class CVolumePage;
+class CInfoView;
 
 class CPopUpWindow;
 
@@ -34,7 +35,7 @@ public:
 	{
 		QSet<CProgramItemPtr> Items; // all items including not sellected children
 
-		QMap<quint64, CProcessPtr> Processes;
+		//QMap<quint64, CProcessPtr> Processes;
 		QSet<CProgramFilePtr> Programs;
 		QSet<CWindowsServicePtr> ServicesEx; // explicitly sellected services
 		QSet<CWindowsServicePtr> ServicesIm; // implicitly sellected services
@@ -42,26 +43,52 @@ public:
 		bool bAllPrograms = false;
 	};
 
-	SCurrentItems		GetCurrentItems() const;
+	const SCurrentItems& GetCurrentItems() const {return m_CurrentItems;}
+	QMap<quint64, CProcessPtr> GetCurrentProcesses() const;
+
+	int					SafeExec(QDialog* pDialog);
 
 	QString				FormatError(const STATUS& Error);
-	void				CheckResults(QList<STATUS> Results, QWidget* pParent, bool bAsync = false);
+	int 				CheckResults(QList<STATUS> Results, QWidget* pParent, bool bAsync = false);
+
+	void				UpdateTheme();
 
 	bool				IsAlwaysOnTop() const;
+
+	STATUS				SignFiles(const QStringList& Paths);
+
+	void				IgnoreEvent(ERuleType Type, const CProgramFilePtr& pProgram, const QString& Path = QString());
+	bool				IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry) const;
+
+	void				LoadIgnoreList();
+	void				StoreIgnoreList();
 
 signals:
 	void				Closed();
 
+	void				OnMountVolume();
+	void				OnUnmountAllVolumes();
+	void				OnCreateVolume();
+
 public slots:
-	void				OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
+	void				OnExecutionEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
+	void				OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
+	void				OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
 
 	void				OpenSettings();
 
+	void				UpdateSettings(bool bRebuildUI);
+
+	//void				ClearIgnoreLists();
+
 private slots:
+	void				OnMaintenance();
 	void				OnExit();
 	void				OnHelp();
 	void				OnAbout();
 
+	void				BuildMenu();
+	void				SetUITheme();
 	void				BuildGUI();
 
 	void				OnAlwaysTop();
@@ -69,9 +96,18 @@ private slots:
 	void				OnShowHide();
 	void				OnSysTray(QSystemTrayIcon::ActivationReason Reason);
 
+	void				OnSignFile();
+	void				OnPrivateKey();
+	void				OnMakeKeyPair();
+	void				OnClearKeys();
+
 	void				OnFwProfile();
 
 	void				OnPageChanged(int index);
+
+	void				OnProgramsChanged(const QList<CProgramItemPtr>& Programs);
+
+	void				OnProgSplitter(int pos, int index);
 
 protected:
 	void				closeEvent(QCloseEvent *e);
@@ -79,34 +115,51 @@ protected:
 	void				timerEvent(QTimerEvent* pEvent);
 	int					m_uTimerID;
 
+	void				SetTitle();
+
+	STATUS				InitSigner(class CPrivateKey& PrivateKey);
+
 	void				CreateTrayIcon();
 	void				CreateTrayMenu();
 
+	SCurrentItems		MakeCurrentItems() const;
+	SCurrentItems		MakeCurrentItems(const QList<CProgramItemPtr>& Progs) const;
+	SCurrentItems		m_CurrentItems;
+
+	bool				m_bShowAll = false;
+	bool				m_bWasVisible = false;
 	bool				m_bOnTop = false;
 	bool				m_bExit = false;
 
+	void				LoadIgnoreList(ERuleType Type);
+	void				StoreIgnoreList(ERuleType Type);
+
+	struct SIgnoreEvent
+	{
+		bool bAllPaths = false;
+		QSet<QString> Paths;
+	};
+
+	QMap<QString, SIgnoreEvent> m_IgnoreEvents[(int)ERuleType::eMax - 1];
+
 private:
-
-	SCurrentItems GetCurrentItems(const QList<CProgramItemPtr>& Progs) const;
-
 	void				LoadState(bool bFull = true);
 	void				StoreState();
+
+	void				Update();
 
 	//Ui::CMajorPrivacyClass ui;
 
 	enum ETabs
 	{
 		eHome = 0,
-		//eEnclaves,
 		eProcesses,
-		eFileSystem,
-		eRegistry,
+		eEnclaves,
+		eResource,
+		eDrives,
 		eFirewall,
 		eDNS,
-		eProxy,
-		eDrives,
 		eTweaks,
-		//eLog,
 		eTabCount
 	};
 
@@ -125,14 +178,31 @@ private:
 	QStackedLayout*		m_pPageSubStack;
 
 	QMenu*				m_pMain;
+	QMenu*				m_pMaintenance;
+	QAction*			m_pImportOptions;
+	QAction*			m_pExportOptions;
+	QAction*			m_pOpenUserFolder;
+	QAction*			m_pOpenSystemFolder;
 	QAction*			m_pExit;
 
 	QMenu*				m_pView;
 	QAction*			m_pTabLabels;
 	QAction*			m_pWndTopMost;
 
+	QMenu*				m_pVolumes;
+	QAction*			m_pMountVolume;
+	QAction*			m_pUnmountAllVolumes;
+	QAction*			m_pCreateVolume;
+
+	QMenu*				m_pSecurity;
+	QAction*			m_pSignFile;
+	QAction*			m_pPrivateKey;
+	QAction*			m_pMakeKeyPair;
+	QAction*			m_pClearKeys;
+
 	QMenu*				m_pOptions;
 	QAction*			m_pSettings;
+	//QAction*			m_pClearIgnore;
 
 	QMenu*				m_pMenuHelp;
 	QAction*			m_pForum;
@@ -142,15 +212,16 @@ private:
 
 	CHomePage*			m_HomePage;
 
+	CEnclavePage*		m_EnclavePage;
 	CProcessPage*		m_ProcessPage;
-	CFileSystemPage*	m_FileSystemPage;
-	CRegistryPage*		m_RegistryPage;
-	CFirewallPage*		m_FirewallPage;
+	CAccessPage*		m_AccessPage;
+	CNetworkPage*		m_NetworkPage;
 	CDnsPage*			m_DnsPage;
-	CProxyPage*			m_ProxyPage;
 	CTweakPage*			m_TweakPage;
-	CDrivePage*			m_DrivePage;
+	CVolumePage*		m_VolumePage;
 
+	QSplitter*			m_pInfoSplitter;
+	CInfoView*			m_pInfoView;
 	CProgramView*		m_pProgramView;
 
 	CPopUpWindow*		m_pPopUpWindow;
@@ -163,7 +234,23 @@ private:
 	QAction*			m_pFwBlockList;
 	QAction*			m_pFwDisabled;
 
+protected:
+	friend class CNativeEventFilter;
 	CCustomTheme		m_CustomTheme;
+
+	bool				m_ThemeUpdatePending = false;
+
+private:
+	void				LoadLanguage();
+	void				LoadLanguage(const QString& Lang, const QString& Module, int Index);
+	QTranslator			m_Translator[2];
+
+	QString				m_Language;
+	//quint32				m_LanguageId;
 };
+
+#define IGNORE_LIST_GROUP "IgnoreList"
+QString GetIgnoreTypeName(ERuleType Type);
+ERuleType GetIgnoreType(const QString& Key);
 
 extern CMajorPrivacy* theGUI;

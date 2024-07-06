@@ -2,7 +2,7 @@
 #include "DnsProcLog.h"
 #include "../../Etw/EtwEventMonitor.h"
 #include "ServiceCore.h"
-#include "../NetIsolator.h"
+#include "../NetworkManager.h"
 #include "DnsInspector.h"
 
 CDnsProcLog::CDnsProcLog()

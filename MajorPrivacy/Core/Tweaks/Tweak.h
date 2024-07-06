@@ -1,34 +1,7 @@
 #pragma once
 #include "../Library/Common/XVariant.h"
 
-enum class ETweakType
-{
-	eGroup = -1,
-	eSet = 0,
-	eReg,
-	eGpo,
-	eSvc,
-	eTask,
-	eFS,
-	eExec,
-	eFw,
-	eUnknown
-};
-
-enum class ETweakStatus
-{
-	eGroup = -1,    // tweak is group
-	eNotSet = 0,    // tweak is not set
-	eApplied,       // tweak was not set by user but is applied
-	eSet,           // tweak is set
-	eMissing        // tweak was set but is not applied
-};
-
-enum class ETweakHint
-{
-	eNone = 0,
-	eRecommended
-};
+#include "../Library/API/PrivacyDefs.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CAbstractTweak
@@ -50,7 +23,8 @@ public:
 
 protected:
 
-	virtual void ReadValue(const SVarName& Name, const XVariant& Data);
+	virtual void ReadIValue(uint32 Index, const XVariant& Data);
+	virtual void ReadMValue(const SVarName& Name, const XVariant& Data);
 
 	QString m_Name;
 	ETweakType m_Type = ETweakType::eUnknown;
@@ -72,7 +46,10 @@ public:
 
 protected:
 
-	virtual void ReadValue(const SVarName& Name, const XVariant& Data);
+	void ReadIValue(uint32 Index, const XVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
+
+	void ReadList(const XVariant& List);
 
 	QMap<QString, CTweakPtr> m_List;
 };
@@ -113,7 +90,8 @@ public:
 
 protected:
 
-	virtual void ReadValue(const SVarName& Name, const XVariant& Data);
+	void ReadIValue(uint32 Index, const XVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
 
 	QString m_Info;
 };

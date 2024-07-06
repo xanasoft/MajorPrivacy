@@ -1,11 +1,15 @@
 #include "pch.h"
 #include "TrafficView.h"
 #include "../Core/PrivacyCore.h"
+#include "../MiscHelpers/Common/CustomStyles.h"
 
 CTrafficView::CTrafficView(QWidget *parent)
 	:CPanelViewEx<CTrafficModel>(parent)
 {
 	m_pTreeView->setColumnReset(2);
+	QStyle* pStyle = QStyleFactory::create("windows");
+	m_pTreeView->setStyle(pStyle);
+	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 
@@ -91,7 +95,7 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		QTimer::singleShot(10, this, [this, Added]() {
 			foreach(const QModelIndex & Index, Added)
 				m_pTreeView->expand(m_pSortProxy->mapFromSource(Index));
-			});
+		});
 	}
 }
 

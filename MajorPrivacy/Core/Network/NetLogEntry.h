@@ -1,5 +1,6 @@
 #pragma once
 #include "../TraceLogEntry.h"
+#include "../../Service\Network\Firewall\FirewallDefs.h"
 
 class CNetLogEntry : public CAbstractLogEntry
 {
@@ -8,11 +9,17 @@ public:
 
 	//virtual CSharedData* Clone() { return new CNetLogEntry(*this); }
 
-	QString GetState() const { return m_State; }
+	EFwEventStates GetState() const { return m_State; }
+	QString GetStateStr() const;
 
-	QString GetAction() const { return m_Action; }
-	QString GetDirection() const { return m_Direction; }
+	EFwActions GetAction() const { return m_Action; }
+	QString GetActionStr() const;
+
+	EFwDirections GetDirection() const { return m_Direction; }
+	QString GetDirectionStr() const;
+
 	quint32	GetProtocolType() const { return m_ProtocolType; }
+	QString GetProtocolTypeStr() const;
 	QHostAddress GetLocalAddress() const { return m_LocalAddress; }
 	quint16 GetLocalPort() const { return m_LocalPort; }
 	QHostAddress GetRemoteAddress() const { return m_RemoteAddress; }
@@ -23,12 +30,12 @@ public:
 
 protected:
 
-	virtual void ReadValue(const SVarName& Name, const XVariant& Data);
+	virtual void ReadValue(uint32 Index, const XVariant& Data);
 
-	QString				m_State;
+	EFwEventStates      m_State = EFwEventStates::Undefined;
 
-	QString				m_Action;
-    QString				m_Direction;
+	EFwActions			m_Action = EFwActions::Undefined;
+	EFwDirections       m_Direction = EFwDirections::Unknown;
 	quint32				m_ProtocolType = 0;
 	QHostAddress        m_LocalAddress;
 	quint16             m_LocalPort = 0;

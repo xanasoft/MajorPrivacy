@@ -3,11 +3,12 @@
 #include "ProcessList.h"
 #include "ServiceList.h"
 #include "ServiceCore.h"
-#include "ServiceAPI.h"
+#include "../../Library/API/PrivacyAPI.h"
 #include "../../Library/API/DriverAPI.h"
 #include "../../Library/Common/Strings.h"
 #include "../Network/SocketList.h"
 #include "../Programs/ProgramFile.h"
+#include "../Programs/WindowsService.h"
 
 #include "../../Library/Helpers/Scoped.h"
 #include "../../Library/Helpers/TokenUtil.h"
@@ -33,9 +34,9 @@ bool CProcess::Init()
 {
 	// init once before enlisting -> no lock needed
 
-	//m_ServiceList = svcCore->ProcessList()->Services()->GetServicesByPid(m_Pid);
+	//m_ServiceList = theCore->ProcessList()->Services()->GetServicesByPid(m_Pid);
 
-	auto Result = svcCore->Driver()->GetProcessInfo(m_Pid);
+	auto Result = theCore->Driver()->GetProcessInfo(m_Pid);
 	if (!Result.IsError())
 	{
 		auto Data = Result.GetValue();
@@ -44,21 +45,35 @@ bool CProcess::Init()
 		m_ParentPid = Data->ParentPid;
 		m_Name = Data->ImageName;
 		m_FileName = Data->FileName;
-		ASSERT(!m_FileName.empty() || m_Pid == 4); // todo: test
-
-		// driver specific fields
-		m_ImageHash = Data->FileHash;
-		m_EnclaveId = Data->EnclaveId;
-	}
-	else
-	{
-		// todo PID
-
-		m_FileName = GetProcessImageFileNameByProcessId((HANDLE)m_Pid);
-		//ASSERT(!m_FileName.empty());
+		if(m_FileName.empty() && m_Pid == NT_OS_KERNEL_PID)
+			m_FileName = NormalizeFilePath(NtOsKernel_exe);
+		ASSERT(!m_Name.empty());
+		ASSERT(!m_FileName.empty());
 		if (m_FileName.empty())
 			m_FileName = L"UNKNOWN_FILENAME";
 
+		// driver specific fields
+		//m_ImageHash = Data->FileHash;
+		m_EnclaveId = Data->EnclaveId;
+		m_SecState = Data->SecState;
+
+		m_Flags = Data->Flags;
+		m_SecFlags = Data->SecFlags;
+
+		m_NumberOfImageLoads = Data->NumberOfImageLoads;
+		m_NumberOfMicrosoftImageLoads = Data->NumberOfMicrosoftImageLoads;
+		m_NumberOfAntimalwareImageLoads = Data->NumberOfAntimalwareImageLoads;
+		m_NumberOfVerifiedImageLoads = Data->NumberOfVerifiedImageLoads;
+		m_NumberOfSignedImageLoads = Data->NumberOfSignedImageLoads;
+		m_NumberOfUntrustedImageLoads = Data->NumberOfUntrustedImageLoads;
+	}
+	else
+	{
+		m_FileName = GetProcessImageFileNameByProcessId((HANDLE)m_Pid);
+		if (m_FileName.empty()) {
+			m_Name = m_FileName = L"UNKNOWN_FILENAME";
+			return false;
+		}
 		m_Name = GetFileNameFromPath(m_FileName);
 	}
 
@@ -69,7 +84,7 @@ bool CProcess::Init(PSYSTEM_PROCESS_INFORMATION process, bool bFullProcessInfo)
 {
 	// init once before enlisting -> no lock needed
 
-	//m_ServiceList = svcCore->ProcessList()->Services()->GetServicesByPid(m_Pid);
+	//m_ServiceList = theCore->ProcessList()->Services()->GetServicesByPid(m_Pid);
 
 	m_ParentPid = (uint64)process->InheritedFromUniqueProcessId;
 	if (bFullProcessInfo)
@@ -109,7 +124,7 @@ void CProcess::SetRawCreationTime(uint64 TimeStamp)
 bool CProcess::InitOther()
 {
 	if (m_Pid == NT_OS_KERNEL_PID)
-		m_FileName = NtOsKernel_exe;
+		m_FileName = NormalizeFilePath(NtOsKernel_exe);
 
 	CScopedHandle hProcess = CScopedHandle(OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, (DWORD)m_Pid), CloseHandle);
 	if (!hProcess) // try with less rights
@@ -117,7 +132,7 @@ bool CProcess::InitOther()
 	if (!hProcess) // try with even less rights
 		hProcess.Set(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, (DWORD)m_Pid));
 	if (!hProcess)
-		return true;
+		return false;
 
 	if (m_CreationTime == 0) {
 		FILETIME time, time1, time2, time3;
@@ -140,26 +155,31 @@ bool CProcess::InitOther()
 				m_AppContainerName = ::GetAppContainerNameBySid(AppContainerSid);
 			}
 		}
-		
 
-		//Buffer.Clear();
 
-		//if (!QueryTokenVariable(ProcessToken, TokenSecurityAttributes, Buffer).IsError())
-		//{
-		//	PTOKEN_SECURITY_ATTRIBUTES_INFORMATION Attributes = (PTOKEN_SECURITY_ATTRIBUTES_INFORMATION)Buffer.GetBuffer();
-		//	for (ULONG i = 0; i < Attributes->AttributeCount; i++)
-		//	{
-		//		PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &Attributes->Attribute.pAttributeV1[i];
+		Buffer.Clear();
 
-		//		if (attribute->ValueType != TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
-		//			continue;
-		//		if (_wcsnicmp(attribute->Name.Buffer, L"WIN://SYSAPPID", attribute->Name.Length / sizeof(wchar_t)) == 0)
-		//		{
-		//			m_PackageFullName = std::wstring(attribute->Values.pString->Buffer, attribute->Values.pString->Length / sizeof(wchar_t));
-		//			break;
-		//		}
-		//	}
-		//}
+		if (!QueryTokenVariable(ProcessToken, TokenSecurityAttributes, Buffer).IsError())
+		{
+			PTOKEN_SECURITY_ATTRIBUTES_INFORMATION Attributes = (PTOKEN_SECURITY_ATTRIBUTES_INFORMATION)Buffer.GetBuffer();
+			for (ULONG i = 0; i < Attributes->AttributeCount; i++)
+			{
+				PTOKEN_SECURITY_ATTRIBUTE_V1 attribute = &Attributes->Attribute.pAttributeV1[i];
+
+				if (attribute->ValueType != TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING)
+					continue;
+				if (_wcsnicmp(attribute->Name.Buffer, L"WIN://SYSAPPID", attribute->Name.Length / sizeof(wchar_t)) == 0)
+				{
+					m_PackageFullName = std::wstring(attribute->Values.pString->Buffer, attribute->Values.pString->Length / sizeof(wchar_t));
+					if (m_AppContainerName.empty() && attribute->ValueCount >= 3)
+					{
+						m_AppContainerName = std::wstring(attribute->Values.pString[2].Buffer, attribute->Values.pString[2].Length / sizeof(wchar_t));
+						m_AppContainerSid = ::GetAppContainerSidFromName(m_AppContainerName);
+					}
+					break;
+				}
+			}
+		}
 	}
 	
 #define ProcessCommandLineInformation ((PROCESSINFOCLASS)60)
@@ -192,6 +212,15 @@ std::wstring CProcess::GetWorkDir() const
 	return GetPebString(hProcess, AppCurrentDirectory);
 }
 
+void CProcess::UpdateSignInfo(KPH_VERIFY_AUTHORITY SignAuthority, uint32 SignLevel, uint32 SignPolicy)
+{
+	std::unique_lock lock(m_Mutex);
+
+	m_SignInfo.Authority = (uint8)SignAuthority;
+	if(SignLevel) m_SignInfo.Level = (uint8)SignLevel;
+	if(SignPolicy) m_SignInfo.Policy = SignPolicy;
+}
+
 bool CProcess::Update()
 {
 	if (m_ParentPid == -1) {
@@ -218,10 +247,49 @@ bool CProcess::Update(PSYSTEM_PROCESS_INFORMATION process, bool bFullProcessInfo
 
 void CProcess::UpdateMisc()
 {
+	auto Result = theCore->Driver()->GetProcessInfo(m_Pid);
+	if (!Result.IsError())
+	{
+		auto Data = Result.GetValue();
+
+		// driver specific fields
+		//m_ImageHash = Data->FileHash;
+		m_EnclaveId = Data->EnclaveId;
+		m_SecState = Data->SecState;
+
+		m_Flags = Data->Flags;
+		m_SecFlags = Data->SecFlags;
+
+		m_NumberOfImageLoads = Data->NumberOfImageLoads;
+		m_NumberOfMicrosoftImageLoads = Data->NumberOfMicrosoftImageLoads;
+		m_NumberOfAntimalwareImageLoads = Data->NumberOfAntimalwareImageLoads;
+		m_NumberOfVerifiedImageLoads = Data->NumberOfVerifiedImageLoads;
+		m_NumberOfSignedImageLoads = Data->NumberOfSignedImageLoads;
+		m_NumberOfUntrustedImageLoads = Data->NumberOfUntrustedImageLoads;
+
+		if (!m_SignInfo.Data) {
+			KPH_PROCESS_SFLAGS kSFlags;
+			kSFlags.SecFlags = m_SecFlags;
+			m_SignInfo.Authority = kSFlags.SignatureAuthority;
+		}
+	}
+
 	m_DnsLog.Update();
 
 	std::shared_lock StatsLock(m_StatsMutex);
 	m_Stats.UpdateStats();
+}
+
+void CProcess::AddHandle(const CHandlePtr& pHandle)
+{
+	std::unique_lock Lock(m_HandleMutex);
+	m_HandleList.insert(pHandle);
+}
+
+void CProcess::RemoveHandle(const CHandlePtr& pHandle)
+{
+	std::unique_lock Lock(m_HandleMutex);
+	m_HandleList.erase(pHandle);
 }
 
 void CProcess::AddSocket(const CSocketPtr& pSocket)
@@ -277,45 +345,74 @@ CVariant CProcess::ToVariant() const
 
 	CVariant Process;
 
-	Process.BeginMap();
+	Process.BeginIMap();
 
-	Process.Write(SVC_API_PROC_PID, m_Pid);
-	Process.Write(SVC_API_PROC_CREATED, m_CreationTime);
-	Process.Write(SVC_API_PROC_PARENT, m_ParentPid);
+	Process.Write(API_V_PID, m_Pid);
+	Process.Write(API_V_CREATE_TIME, m_CreationTime);
+	Process.Write(API_V_PARENT_PID, m_ParentPid);
+	
+	Process.Write(API_V_NAME, m_Name);
+	Process.Write(API_V_FILE_PATH, m_FileName);
+	Process.Write(API_V_CMD_LINE, m_CommandLine);
+	//Process.Write(API_V_HASH, m_ImageHash);
 
-	Process.Write(SVC_API_PROC_NAME, m_Name);
-	Process.Write(SVC_API_PROC_PATH, m_FileName);
-	Process.Write(SVC_API_PROC_HASH, m_ImageHash);
+	Process.Write(API_V_EID, m_EnclaveId);
+	Process.Write(API_V_SEC, m_SecState);
 
-	Process.Write(SVC_API_PROC_EID, m_EnclaveId);
+	Process.Write(API_V_FLAGS, m_Flags);
+	Process.Write(API_V_SFLAGS, m_SecFlags);
+	
+	Process.Write(API_V_SIGN_INFO, m_SignInfo.Data);
+	Process.Write(API_V_N_IMG, m_NumberOfImageLoads);
+	Process.Write(API_V_N_MS_IMG, m_NumberOfMicrosoftImageLoads);
+	Process.Write(API_V_N_AV_IMG, m_NumberOfAntimalwareImageLoads);
+	Process.Write(API_V_N_V_IMG, m_NumberOfVerifiedImageLoads);
+	Process.Write(API_V_N_S_IMG, m_NumberOfSignedImageLoads);
+	Process.Write(API_V_N_U_IMG, m_NumberOfUntrustedImageLoads);
 
-	Process.Write(SVC_API_PROC_SVCS, m_ServiceList);
+	Process.Write(API_V_SVCS, m_ServiceList);
 
-	Process.Write(SVC_API_PROC_APP_SID, m_AppContainerSid);
-	Process.Write(SVC_API_PROC_APP_NAME, m_AppContainerName);
-	//Process.Write(SVC_API_PROC_PACK_NAME, m_PackageFullName);
+	Process.Write(API_V_APP_SID, m_AppContainerSid);
+	Process.Write(API_V_APP_NAME, m_AppContainerName);
+	Process.Write(API_V_PACK_NAME, m_PackageFullName);
 
-	Process.Write(SVC_API_SOCK_LAST_ACT, m_LastActivity);
-
+	Process.Write(API_V_SOCK_LAST_ACT, m_LastActivity);
+	
 	Lock.unlock();
 
 	std::shared_lock StatsLock(m_StatsMutex);
 
-	Process.Write(SVC_API_SOCK_UPLOAD, m_Stats.Net.SendRate.Get());
-	Process.Write(SVC_API_SOCK_DOWNLOAD, m_Stats.Net.ReceiveRate.Get());
-	Process.Write(SVC_API_SOCK_UPLOADED, m_Stats.Net.SendRaw);
-	Process.Write(SVC_API_SOCK_DOWNLOADED, m_Stats.Net.ReceiveRaw);
+	Process.Write(API_V_SOCK_UPLOAD, m_Stats.Net.SendRate.Get());
+	Process.Write(API_V_SOCK_DOWNLOAD, m_Stats.Net.ReceiveRate.Get());
+	Process.Write(API_V_SOCK_UPLOADED, m_Stats.Net.SendRaw);
+	Process.Write(API_V_SOCK_DOWNLOADED, m_Stats.Net.ReceiveRaw);
 
 	StatsLock.unlock();
 
-	std::shared_lock SocksLock(m_SocketMutex);
+	std::shared_lock HandleLock(m_HandleMutex);
+
+	CVariant Handles;
+	Handles.BeginList();
+	for (auto I : m_HandleList) {
+		if(I->GetFileName().empty())
+			continue; // skip unnamed handles
+		Handles.WriteVariant(I->ToVariant());
+	}
+	Handles.Finish();
+	Process.WriteVariant(API_V_HANDLES, Handles);
+
+	HandleLock.unlock();
+
+	std::shared_lock SocketLock(m_SocketMutex);
 
 	CVariant Sockets;
 	Sockets.BeginList();
 	for (auto I : m_SocketList)
 		Sockets.WriteVariant(I->ToVariant());
 	Sockets.Finish();
-	Process.WriteVariant(SVC_API_PROC_SOCKETS, Sockets);
+	Process.WriteVariant(API_V_SOCKETS, Sockets);
+
+	SocketLock.unlock();
 
 	Process.Finish();
 

@@ -9,6 +9,7 @@ MISCHELPERS_EXPORT int vswprintf_l(wchar_t * _String, size_t _Count, const wchar
 MISCHELPERS_EXPORT time_t GetTime();
 MISCHELPERS_EXPORT __time64_t GetTimeMs();
 MISCHELPERS_EXPORT quint64 GetCurTick();
+MISCHELPERS_EXPORT quint64 GetCurCycle();
 
 
 MISCHELPERS_EXPORT quint64 GetRand64();

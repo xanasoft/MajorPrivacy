@@ -10,12 +10,12 @@ STATUS QueryTokenVariable(HANDLE TokenHandle, TOKEN_INFORMATION_CLASS TokenInfor
     ULONG returnLength = 0;
 
     Buffer.AllocBuffer(0x80);
-    status = NtQueryInformationToken(TokenHandle, TokenInformationClass, Buffer.GetBuffer(), (ULONG)Buffer.GetLength(), &returnLength);
+    status = NtQueryInformationToken(TokenHandle, TokenInformationClass, Buffer.GetBuffer(), (ULONG)Buffer.GetCapacity(), &returnLength);
 
     if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL)
     {
         Buffer.AllocBuffer(returnLength);
-        status = NtQueryInformationToken(TokenHandle, TokenInformationClass, Buffer.GetBuffer(), (ULONG)Buffer.GetLength(), &returnLength);
+        status = NtQueryInformationToken(TokenHandle, TokenInformationClass, Buffer.GetBuffer(), (ULONG)Buffer.GetCapacity(), &returnLength);
     }
 
     if (NT_SUCCESS(status))

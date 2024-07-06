@@ -2,11 +2,15 @@
 #include "DnsCacheView.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Network/NetworkManager.h"
+#include "../MiscHelpers/Common/CustomStyles.h"
 
 CDnsCacheView::CDnsCacheView(QWidget *parent)
 	:CPanelViewEx<CDnsCacheModel>(parent)
 {
 	m_pTreeView->setColumnReset(2);
+	QStyle* pStyle = QStyleFactory::create("windows");
+	m_pTreeView->setStyle(pStyle);
+	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 
@@ -26,8 +30,8 @@ CDnsCacheView::~CDnsCacheView()
 
 void CDnsCacheView::Sync()
 {
-	theCore->Network()->UpdateDnsCache();
-	m_pItemModel->Sync(theCore->Network()->GetDnsCache());
+	theCore->NetworkManager()->UpdateDnsCache();
+	m_pItemModel->Sync(theCore->NetworkManager()->GetDnsCache());
 }
 
 void CDnsCacheView::OnDoubleClicked(const QModelIndex& Index)

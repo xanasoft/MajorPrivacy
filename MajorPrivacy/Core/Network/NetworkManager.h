@@ -20,8 +20,8 @@ public:
 	QList<CFwRulePtr> GetFwRules(const QSet<QString> &FwRuleIDs);
 
 	STATUS SetFwRule(const CFwRulePtr& pRule);
-	RESULT(CFwRulePtr) GetRule(QString Guid);
-	STATUS DelRule(QString Guid);
+	RESULT(CFwRulePtr) GetProgramRule(QString Guid);
+	STATUS DelFwRule(const CFwRulePtr& pRule);
 
 	void UpdateDnsCache();
 	QMultiMap<quint64, CDnsCacheEntryPtr>		GetDnsCache() { return m_DnsCache; }

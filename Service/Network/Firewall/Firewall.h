@@ -30,6 +30,9 @@ public:
 	STATUS SetFilteringMode(FwFilteringModes Mode);
 	FwFilteringModes GetFilteringMode();
 
+	STATUS SetAuditPolicy(FwAuditPolicy Mode);
+	FwAuditPolicy GetAuditPolicy(bool bCurrent = true);
+
 	static bool IsEmptyOrStar(const std::vector<std::wstring>& value);
 	static bool MatchPort(uint16 Port, const std::vector<std::wstring>& Ports);
     static bool MatchAddress(const CAddress& Address, const std::vector<std::wstring>& Addresses, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());

@@ -2,6 +2,7 @@
 #include "../Library/Status.h"
 #include "Process.h"
 #include "Programs/ProgramID.h"
+#include "ExecLogEntry.h"
 
 #define NT_OS_KERNEL_PID	4
 
@@ -37,11 +38,18 @@ protected:
 	NTSTATUS OnProcessDrvEvent(const struct SProcessEvent* pEvent);
 	void OnProcessEtwEvent(const struct SEtwProcessEvent* pEvent);
 
-	void TerminateProcess(uint64 Pid, const std::wstring& FileName);
+	//void TerminateProcess(uint64 Pid, const std::wstring& FileName);
 
-	bool OnProcessStarted(uint64 Pid, uint64 ParentPid, const std::wstring& FileName, const std::wstring& Command, uint64 CreateTime, bool bETW = false);
+	bool OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& FileName, const std::wstring& Command, uint64 CreateTime, EEventStatus Status, bool bETW = false);
 	void OnProcessStopped(uint64 Pid, uint32 ExitCode);
+
+	void OnProcessAccessed(uint64 Pid, uint64 ActorPid, const std::wstring& ActorServiceTag, bool bThread, uint32 AccessMask, uint64 AccessTime, EEventStatus Status);
+	void OnImageEvent(const struct SProcessImageEvent* pImageEvent);
 	
+	void OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status);
+
+	void AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram, const CExecLogEntryPtr& pLogEntry);
+
 	mutable std::recursive_mutex m_Mutex;
 
 	class CServiceList* m_Services;

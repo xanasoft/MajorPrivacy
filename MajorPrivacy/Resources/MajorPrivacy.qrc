@@ -155,5 +155,30 @@
         <file>exe64.png</file>
         <file>Icons/PassDisk.png</file>
         <file>Icons/SecureDisk.png</file>
+        <file>Icons/Enclave.png</file>
+        <file>Icons/Enclave3.png</file>
+        <file>Icons/Stats.png</file>
+        <file>Icons/Stats1.png</file>
+        <file>Icons/ArrowDown.png</file>
+        <file>Icons/ArrowUp.png</file>
+        <file>Icons/ArrowUpDown.png</file>
+        <file>Icons/Plus.png</file>
+        <file>Icons/Duplicate.png</file>
+        <file>Icons/EditIni.png</file>
+        <file>Icons/Disable.png</file>
+        <file>Icons/Enable.png</file>
+        <file>Icons/Go.png</file>
+        <file>Icons/VolumeTools.png</file>
+        <file>Icons/ConfigVolume.png</file>
+        <file>Icons/VolumePW.png</file>
+        <file>Icons/UnmountVolume.png</file>
+        <file>Icons/MountVolume.png</file>
+        <file>Icons/AddVolume.png</file>
+        <file>Icons/RemoveKey.png</file>
+        <file>Icons/AddKey.png</file>
+        <file>Icons/SignFile.png</file>
+        <file>HelpingHand.png</file>
+        <file>Icons/Export.png</file>
+        <file>Icons/Import.png</file>
     </qresource>
 </RCC>

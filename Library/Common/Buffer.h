@@ -1,19 +1,45 @@
 #pragma once
 #include "../lib_global.h"
 
-class LIBRARY_EXPORT CBuffer
+#include "../Types.h"
+
+#ifndef FRAMEWORK_EXPORT
+#define FRAMEWORK_EXPORT LIBRARY_EXPORT
+#endif
+
+#include "../../Framework/Memory.h"
+
+#ifndef BUFF_NO_STL_STR
+#include <string>
+#endif
+
+class LIBRARY_EXPORT CBuffer: public FW::AbstractContainer
 {
 public:
-	CBuffer()													{Init();}
+#ifdef KERNEL_MODE
+	CBuffer(FW::AbstractMemPool* pMemPool);
+#else
+	CBuffer(FW::AbstractMemPool* pMemPool = nullptr);
+	CBuffer(size_t uLength, bool bUsed = false) : CBuffer((FW::AbstractMemPool*)nullptr, uLength, bUsed) {}
+	CBuffer(void* pBuffer, const size_t uSize, bool bDerived = false) : CBuffer((FW::AbstractMemPool*)nullptr, pBuffer, uSize, bDerived) {}
+	CBuffer(const void* pBuffer, const size_t uSize, bool bDerived = false) : CBuffer((FW::AbstractMemPool*)nullptr, pBuffer, uSize, bDerived) {}
+#endif
+	CBuffer(FW::AbstractMemPool* pMemPool, size_t uLength, bool bUsed = false);
+	CBuffer(FW::AbstractMemPool* pMemPool, void* pBuffer, const size_t uSize, bool bDerived = false);
+	CBuffer(FW::AbstractMemPool* pMemPool, const void* pBuffer, const size_t uSize, bool bDerived = false);
 	CBuffer(const CBuffer& Buffer);
-	CBuffer(size_t uLength, bool bUsed = false);
-	CBuffer(void* pBuffer, const size_t uSize, bool bDerived = false);
-	CBuffer(const void* pBuffer, const size_t uSize, bool bDerived = false);
-	virtual ~CBuffer();
+	~CBuffer();
 
-	virtual void	Clear();
+	CBuffer& operator=(const CBuffer &Other)			
+	{
+		Clear();
+		if(!m_pMem && Other.m_pMem)
+			m_pMem = Other.m_pMem;
+		CopyBuffer(Other.GetBuffer(), Other.GetSize()); 
+		return *this;
+	}
 
-	CBuffer& operator=(const CBuffer &Buffer);
+	void	Clear();
 
 #ifdef USING_QT
 	CBuffer(const QByteArray& Buffer, bool bDerive = false)		
@@ -24,73 +50,76 @@ public:
 		else
 			CopyBuffer((byte*)Buffer.data(), Buffer.size()); 
 	}
-	virtual QByteArray	ToByteArray() const						{return QByteArray((char*)GetBuffer(), (int)GetSize());}
+	QByteArray	ToByteArray() const						{return QByteArray((char*)GetBuffer(), (int)GetSize());}
 #endif
 
-	virtual void	AllocBuffer(size_t uSize, bool bUsed = false, bool bFixed = true);
+	void	AllocBuffer(size_t uSize, bool bUsed = false, bool bFixed = true);
 
-	virtual void	SetBuffer(void* pBuffer, size_t uSize, bool bDerived = false);
-	virtual void	CopyBuffer(void* pBuffer, size_t uSize);
-	virtual byte*	GetBuffer(bool bDetatch = false);
-	virtual const byte*	GetBuffer() const						{return m_pBuffer;}
+	bool	SetBuffer(void* pBuffer, size_t uSize, bool bDerived = false);
+	void	CopyBuffer(const void* pBuffer, size_t uSize);
+	byte*	GetBuffer(bool bDetatch = false);
+	const byte*	GetBuffer() const						{return m_pBuffer;}
 
-	virtual size_t	GetSize() const								{return m_uSize;}
-	virtual bool	SetSize(size_t uSize, bool bExpend = false, size_t uPreAlloc = 0);
+	size_t	GetSize() const								{return m_uSize;}
+	bool	SetSize(size_t uSize, bool bExpend = false, size_t uPreAlloc = 0);
 
-	virtual bool	IsValid() const								{return m_pBuffer != NULL;}
-	virtual size_t	GetLength() const							{return m_uLength;}
+	bool	IsValid() const								{return m_pBuffer != NULL;}
+	size_t	GetCapacity() const							{return m_uCapacity;}
 
-	virtual int		Compare(const CBuffer& Buffer) const;
-	virtual bool	CompareTo(const CBuffer& Buffer) const		{return Compare(Buffer) == 0;}
+	int		Compare(const CBuffer& Buffer) const;
+
 
 #ifdef HAS_ZLIB
-	virtual bool	Pack();
-	virtual bool	Unpack();
+	bool	Pack();
+	bool	Unpack();
 #endif
 
 	///////////////////////////////
 	// Read Write
 
-	virtual void	SetReadOnly(bool bReadOnly = true)			{m_bReadOnly = bReadOnly;}
-	virtual bool	IsReadOnly() const							{return m_bReadOnly;}
-	virtual bool	IsDerived()	const							{return m_eType == eDerived;}
+	void	SetReadOnly(bool bReadOnly = true)			{m_bReadOnly = bReadOnly;}
+	bool	IsReadOnly() const							{return m_bReadOnly;}
+	bool	IsDerived()	const							{return m_eType == eDerived;}
 
-	virtual size_t	GetPosition() const							{return m_uPosition;}
-	virtual bool	SetPosition(size_t uPosition) const;
-	virtual byte*	GetData(size_t uLength = -1) const;
-	virtual byte*	ReadData(size_t uLength = -1) const;
+	size_t	GetPosition() const							{return m_uPosition;}
+	bool	SetPosition(size_t uPosition) const;
+	byte*	GetData(size_t uLength = -1) const;
+	byte*	ReadData(size_t uLength = -1) const;
 #ifdef USING_QT
-	virtual QByteArray ReadQData(size_t uLength = -1) const		{return QByteArray((char*)ReadData(uLength), (int)(uLength == -1 ? GetSizeLeft() : uLength));}
+	QByteArray ReadQData(size_t uLength = -1) const		{return QByteArray((char*)ReadData(uLength), (int)(uLength == -1 ? GetSizeLeft() : uLength));}
 #endif
-	virtual byte*	SetData(const void* pData, size_t uLength);
-	virtual void	WriteData(const void* pData, size_t uLength);
+	byte*	SetData(const void* pData, size_t uLength);
+	bool	WriteData(const void* pData, size_t uLength);
 #ifdef USING_QT
-	virtual void	WriteQData(const QByteArray& Buffer, int Size = 0){if(Size == 0) Size = Buffer.size(); ASSERT(Size <= Buffer.size()); WriteData(Buffer.data(),Size);}
+	void	WriteQData(const QByteArray& Buffer, int Size = 0){if(Size == 0) Size = Buffer.size(); ASSERT(Size <= Buffer.size()); WriteData(Buffer.data(),Size);}
 #endif
-	virtual size_t	GetSizeLeft() const							{ASSERT(m_uSize >= m_uPosition); return m_uSize - m_uPosition;}
-	virtual size_t	GetLengthLeft() const						{ASSERT(m_uLength >= m_uSize); return m_uLength - m_uSize;}
+	size_t	GetSizeLeft() const							{ASSERT(m_uSize >= m_uPosition); return m_uSize - m_uPosition;}
+	size_t	GetCapacityLeft() const						{ASSERT(m_uCapacity >= m_uSize); return m_uCapacity - m_uSize;}
 
-	virtual byte*	GetData(size_t uOffset, size_t uLength) const;
-	virtual byte*	SetData(size_t uOffset, void* pData, size_t uLength);
-	virtual byte*	InsertData(size_t uOffset, void* pData, size_t uLength);
-	virtual byte*	ReplaceData(size_t uOffset, size_t uOldLength, void* pData, size_t uNewLength);
-	virtual bool	RemoveData(size_t uOffset, size_t uLength);
-	virtual bool	AppendData(const void* pData, size_t uLength);
-	virtual bool	ShiftData(size_t uOffset);
+	byte*	GetData(size_t uOffset, size_t uLength) const;
+	byte*	SetData(size_t uOffset, void* pData, size_t uLength);
+	byte*	InsertData(size_t uOffset, void* pData, size_t uLength);
+	byte*	ReplaceData(size_t uOffset, size_t uOldLength, void* pData, size_t uNewLength);
+	bool	RemoveData(size_t uOffset, size_t uLength);
+	bool	AppendData(const void* pData, size_t uLength);
+	bool	ShiftData(size_t uOffset);
 
 	template <class T>
-	void			WriteValue(T Data, bool toBigEndian = false)
+	bool			WriteValue(T Data, bool toBigEndian = false)
 	{
 		if(toBigEndian)
 		{
-			for (size_t i = sizeof(T); i > 0; i--)
-				WriteData(((byte*)&Data) + i - 1, 1);
+			for (size_t i = sizeof(T); i > 0; i--) {
+				if (!WriteData(((byte*)&Data) + i - 1, 1))
+					return false;
+			}
+			return true;
 		}
 		else
-			WriteData(&Data, sizeof(T));
+			return WriteData(&Data, sizeof(T));
 	}
 	template <class T>
-	T				ReadValue(bool fromBigEndian = false) const
+	T				ReadValue(bool* pOk = NULL, bool fromBigEndian = false) const
 	{
 		if(fromBigEndian)
 		{
@@ -98,22 +127,28 @@ public:
 			for (size_t i = sizeof(T); i > 0; i--)
 			{
 				byte* pByte = ReadData(1);
-				ASSERT(pByte);
-				if(pByte)
-					*(((byte*)&Data) + i - 1) = *pByte;
-				else
-					return 0;
+				if (!pByte) {
+					if (pOk) *pOk = false;
+					return T();
+				}
+				*(((byte*)&Data) + i - 1) = *pByte;
 			}
+			if (pOk) *pOk = true;
 			return Data;
 		}
 		else
 		{
 			byte* pData = ReadData(sizeof(T)); 
-			ASSERT(pData);
-			return pData ? *((T*)pData) : 0;
+			if (!pData) {
+				if (pOk) *pOk = false;
+				return T();
+			}
+			if (pOk) *pOk = true;
+			return *((T*)pData);
 		}
 	}
 
+#ifndef BUFF_NO_STL_STR
 	enum EStrSet
 	{
 		eAscii,
@@ -127,18 +162,22 @@ public:
 		e32Bit,
 	};
 
-	void			WriteString(const std::wstring& String, EStrSet Set = eUtf8, EStrLen Len = e16Bit);
-	void			WriteString(const std::string& String, EStrSet Set = eUtf8, EStrLen Len = e16Bit);
+	bool			WriteString(const std::wstring& String, EStrSet Set = eUtf8, EStrLen Len = e16Bit);
+	bool			WriteString(const std::string& String, EStrLen Len = e16Bit);
 	std::wstring	ReadString(EStrSet Set = eUtf8, EStrLen Len = e16Bit) const;
 	std::wstring	ReadString(EStrSet Set, size_t uRawLength) const;
+#endif
 
 protected:
 	void			Init();
 	bool			PrepareWrite(size_t uOffset, size_t uLength);
 
+	void*			Alloc(size_t size);
+	void			Free(void* ptr);
+
 	byte*			m_pBuffer;
 	size_t			m_uSize; // size of data
-	size_t			m_uLength; // Length of the allocated memory
+	size_t			m_uCapacity; // Length of the allocated memory
 
 	mutable size_t	m_uPosition; // read/write position
 
@@ -151,6 +190,9 @@ protected:
 	bool			m_bReadOnly;
 };
 
+
+
+#ifndef BUFF_NO_STL_STR
 LIBRARY_EXPORT void WStrToAscii(std::string& dest, const std::wstring& src);
 LIBRARY_EXPORT void WStrToUtf8(std::string& dest, const std::wstring& src);
 LIBRARY_EXPORT char* WCharToUtf8(const wchar_t* str, size_t len, size_t* out_len);
@@ -159,3 +201,4 @@ LIBRARY_EXPORT void Utf8ToWStr(std::wstring& dest, const std::string& src);
 
 LIBRARY_EXPORT std::wstring ToHex(const byte* Data, size_t uSize);
 LIBRARY_EXPORT CBuffer FromHex(std::wstring Hex);
+#endif

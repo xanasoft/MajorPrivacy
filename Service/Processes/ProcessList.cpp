@@ -8,12 +8,14 @@
 #include "../Library/API/DriverAPI.h"
 #include "../Etw/EtwEventMonitor.h"
 #include "../Library/Helpers/EvtUtil.h"
-#include "ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 #include "ServiceList.h"
-#include "AppIsolator.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Helpers/AppUtil.h"
 #include "../Programs/ProgramManager.h"
+#include "../Library/Common/Strings.h"
+#include "../Library/IPC/PipeServer.h"
+#include "../Access/ResLogEntry.h"
 
 
 CProcessList::CProcessList()
@@ -30,17 +32,17 @@ STATUS CProcessList::Init()
 {
     STATUS Status;
 
-    svcCore->Driver()->RegisterProcessHandler(&CProcessList::OnProcessDrvEvent, this);
-    Status = svcCore->Driver()->RegisterForProcesses(true);
+    theCore->Driver()->RegisterProcessHandler(&CProcessList::OnProcessDrvEvent, this);
+    Status = theCore->Driver()->RegisterForProcesses(true);
     if (Status.IsError()) 
     {
         //
         // When the driver registration fails we fall back to using ETW
         //
 
-        svcCore->Log()->LogEvent(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_DRIVER_FAILED, L"Failed to register with driver for process creation notifications.");
+        theCore->Log()->LogEvent(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_DRIVER_FAILED, L"Failed to register with driver for process creation notifications.");
 
-        svcCore->EtwEventMonitor()->RegisterProcessHandler(&CProcessList::OnProcessEtwEvent, this);
+        theCore->EtwEventMonitor()->RegisterProcessHandler(&CProcessList::OnProcessEtwEvent, this);
         Status = OK;
     }
 
@@ -68,15 +70,18 @@ STATUS CProcessList::EnumProcesses()
 
     std::map<uint64, CProcessPtr> OldList(m_List);
 
-    if (svcCore->Driver()->IsDrvConnected())
+    if (theCore->Driver()->IsConnected())
     {
-        auto Pids = svcCore->Driver()->EnumProcesses();
+        auto Pids = theCore->Driver()->EnumProcesses();
+        if(Pids.IsError())
+            return Pids.GetStatus();
 
         for (uint64 Pid : *Pids.GetValue())
         {
             if (Pid == 0)
                 continue; // skip Idle Process
 
+            bool bAdd = false;
             auto F = OldList.find(Pid);
             CProcessPtr pProcess;
             if (F != OldList.end()) {
@@ -87,28 +92,32 @@ STATUS CProcessList::EnumProcesses()
             {
                 pProcess = CProcessPtr(new CProcess(Pid));
                 pProcess->Init();
-
-                AddProcessUnsafe(pProcess);
-                svcCore->ProgramManager()->AddProcess(pProcess);
-
-                if (!svcCore->AppIsolator()->AllowProcessStart(pProcess)) {
-                    TerminateProcess(Pid, pProcess->GetFileName());
-                    continue;
-                }
+                bAdd = true;
             }
 
             pProcess->Update();
+
+            if (bAdd) 
+            {
+                AddProcessUnsafe(pProcess);
+                theCore->ProgramManager()->AddProcess(pProcess);
+
+                //if (!theCore->AppIsolator()->AllowProcessStart(pProcess)) {
+                //    TerminateProcess(Pid, pProcess->GetFileName());
+                //    continue;
+                //}
+            }
         }
     }
     else
     {
         std::vector<BYTE> Processes;
-        //NtEnumProcesses(Processes, SystemExtendedProcessInformation);
+        //MyQuerySystemInformation(Processes, SystemExtendedProcessInformation);
         bool bFullProcessInfo = true;
-        NTSTATUS status = NtEnumProcesses(Processes, SystemFullProcessInformation); // requires win 8 and admin
+        NTSTATUS status = MyQuerySystemInformation(Processes, SystemFullProcessInformation); // requires win 8 and admin
         if (!NT_SUCCESS(status)) {
             bFullProcessInfo = false;
-            status = NtEnumProcesses(Processes, SystemProcessInformation); // fallback win 7
+            status = MyQuerySystemInformation(Processes, SystemProcessInformation); // fallback win 7
         }
         if (!NT_SUCCESS(status))
             return ERR(status);
@@ -132,12 +141,12 @@ STATUS CProcessList::EnumProcesses()
                 pProcess->Init(process, bFullProcessInfo);
 
                 AddProcessUnsafe(pProcess);
-                svcCore->ProgramManager()->AddProcess(pProcess);
+                theCore->ProgramManager()->AddProcess(pProcess);
 
-                if (!svcCore->AppIsolator()->AllowProcessStart(pProcess)) {
-                    TerminateProcess(Pid, pProcess->GetFileName());
-                    continue;
-                }
+                //if (!theCore->AppIsolator()->AllowProcessStart(pProcess)) {
+                //    TerminateProcess(Pid, pProcess->GetFileName());
+                //    continue;
+                //}
             }
 
             pProcess->Update(process, bFullProcessInfo);
@@ -153,7 +162,7 @@ STATUS CProcessList::EnumProcesses()
         if (pProcess->CanBeRemoved() && pProcess->GetSocketCount() == 0) // keep processes around as long as we have the acompanying sockets
         {
             RemoveProcessUnsafe(pProcess);
-            svcCore->ProgramManager()->RemoveProcess(pProcess);
+            theCore->ProgramManager()->RemoveProcess(pProcess);
         }
         else if (!pProcess->IsMarkedForRemoval())
             pProcess->MarkForRemoval();
@@ -178,15 +187,22 @@ CProcessPtr CProcessList::GetProcess(uint64 Pid, bool bCanAdd)
         return NULL;
 
     CProcessPtr pProcess = CProcessPtr(new CProcess(Pid));
-    pProcess->Init();
+    if (pProcess->Init()) 
+    {
+        AddProcessUnsafe(pProcess);
+        theCore->ProgramManager()->AddProcess(pProcess);
 
-    AddProcessUnsafe(pProcess);
-    svcCore->ProgramManager()->AddProcess(pProcess);
+        //if (!theCore->AppIsolator()->AllowProcessStart(pProcess))
+        //    TerminateProcess(Pid, pProcess->GetFileName());
 
-    if (!svcCore->AppIsolator()->AllowProcessStart(pProcess))
-        TerminateProcess(Pid, pProcess->GetFileName());
+        pProcess->Update();
+    }
+    else 
+    {
+        // Process already terminated
 
-    pProcess->Update();
+        m_List.insert(std::make_pair(pProcess->GetProcessId(), pProcess));
+    }
     
 	return pProcess; 
 }
@@ -221,14 +237,14 @@ std::map<uint64, CProcessPtr> CProcessList::FindProcesses(const CProgramID& ID)
 
 	switch (ID.GetType())
 	{
-	case CProgramID::eFile:
+	case EProgramType::eProgramFile:
         {
             for (auto I = m_ByPath.find(ID.GetFilePath()); I != m_ByPath.end() && I->first == ID.GetFilePath(); ++I) {
                 Found.insert(std::make_pair(I->second->GetProcessId(), I->second));
             }
         }
 		break;
-	case CProgramID::eService:
+	case EProgramType::eWindowsService:
         {
             auto pService = m_Services->GetService(ID.GetServiceTag());
             if (!pService || !pService->ProcessId)
@@ -240,26 +256,26 @@ std::map<uint64, CProcessPtr> CProcessList::FindProcesses(const CProgramID& ID)
             Found.insert(std::make_pair(pProcess->GetProcessId(), pProcess));
         }
 		break;
-	case CProgramID::eApp:
+	case EProgramType::eAppPackage:
         {
             for (auto I = m_Apps.find(ID.GetAppContainerSid()); I != m_Apps.end() && I->first == ID.GetAppContainerSid(); ++I) {
                 Found.insert(std::make_pair(I->second->GetProcessId(), I->second));
             }
         }
 		break;
-	case CProgramID::eAll:
+	case EProgramType::eAllPrograms:
 		return m_List;
 	}
 	return Found;
 }
 
-void CProcessList::TerminateProcess(uint64 Pid, const std::wstring& FileName)
-{
-    svcCore->Log()->LogEvent(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_BLOCK_PROC, StrLine(L"Terminating blocked process: %s (%u).", FileName.c_str(), Pid));
-    CScopedHandle ProcessHandle = CScopedHandle(OpenProcess(PROCESS_TERMINATE, FALSE, (DWORD)Pid), CloseHandle);
-    if (!ProcessHandle || !NT_SUCCESS(NtTerminateProcess(ProcessHandle, -1)))
-        svcCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_KILL_FAILED, StrLine(L"Failed to terminate blocked process: %s (%u)!", FileName.c_str(), Pid));
-}
+//void CProcessList::TerminateProcess(uint64 Pid, const std::wstring& FileName)
+//{
+//    theCore->Log()->LogEvent(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_BLOCK_PROC, StrLine(L"Terminating blocked process: %s (%u).", FileName.c_str(), Pid));
+//    CScopedHandle ProcessHandle = CScopedHandle(OpenProcess(PROCESS_TERMINATE, FALSE, (DWORD)Pid), CloseHandle);
+//    if (!ProcessHandle || !NT_SUCCESS(NtTerminateProcess(ProcessHandle, -1)))
+//        theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_KILL_FAILED, StrLine(L"Failed to terminate blocked process: %s (%u)!", FileName.c_str(), Pid));
+//}
 
 std::wstring FindInPath(const std::wstring& filePath)
 {
@@ -325,29 +341,20 @@ std::wstring CProcessList::GetPathFromCmd(const std::wstring &CommandLine, const
     return FindInPath(filePath + L".exe");
 }
 
-bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, const std::wstring& FileName, const std::wstring& Command, uint64 CreateTime, bool bETW)
+bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& FileName, const std::wstring& Command, uint64 CreateTime, EEventStatus Status, bool bETW)
 {
-    CProcessPtr pProcess;
+    CProcessPtr pProcess = GetProcess(Pid, true);
+    if (!pProcess->IsInitDone()) {
 
-	std::unique_lock Lock(m_Mutex);
+        std::unique_lock Lock(pProcess->m_Mutex);
 
-    auto F = m_List.find(Pid);
-    if (F == m_List.end())
-    {
-        pProcess = CProcessPtr(new CProcess(Pid));
-        pProcess->Init();
-        
-        //
-        // pProcess->Init(); may fail eider entierly or partially,
-        // hence here we set whatever data may be missing and we have
-        //
+        bool bInitDone = pProcess->m_ParentPid != -1;
+        pProcess->m_ParentPid = ParentPid;
 
-        if(pProcess->m_CreationTime == 0)
+        if (pProcess->m_CreationTime == 0)
             pProcess->SetRawCreationTime(CreateTime);
-        if(pProcess->m_ParentPid == -1)
-            pProcess->m_ParentPid = ParentPid;
 
-        if(bETW && pProcess->m_Name.empty())
+        if (bETW)
         {
             //
             // ETW returns only the actual file name not file path
@@ -359,30 +366,41 @@ bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, const std::wst
             std::wstring FilePath = GetPathFromCmd(Command, FileName, ParentPid);
             if (!FilePath.empty())
                 pProcess->m_FileName = DosPathToNtPath(FilePath);
-
         }
-        else if(pProcess->m_FileName.empty())
+        else
             pProcess->m_FileName = FileName;
-        if(pProcess->m_CommandLine.empty())
+
+        if (pProcess->m_CommandLine.empty())
             pProcess->m_CommandLine = Command;
 
-        AddProcessUnsafe(pProcess);
         Lock.unlock();
-        svcCore->ProgramManager()->AddProcess(pProcess);
+
+        if (!bInitDone) {
+            std::unique_lock Lock(m_Mutex);
+
+            AddProcessUnsafe(pProcess); // Note: at this point its already listed in m_List but as its not a multi map its fine
+            theCore->ProgramManager()->AddProcess(pProcess);
+        }
     }
-    else
+
+    CProgramFilePtr pProgram = pProcess->GetProgram();
+
+    CProcessPtr pActorProcess = GetProcess(ActorPid, true);
+    CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
+    if (pProgram && pActorProgram)
     {
-        pProcess = F->second;
+        pProgram->AddExecActor(pActorProgram, ActorServiceTag, Command, CreateTime, (Status != EEventStatus::eAllowed));
+        pActorProgram->AddExecTarget(ActorServiceTag, pProgram, Command, CreateTime, (Status != EEventStatus::eAllowed));
 
-        Lock.unlock();
+        CExecLogEntryPtr pLogActorEntry = CExecLogEntryPtr(new CExecLogEntry(EExecLogRole::eActor, EExecLogType::eProcessStarted, Status, pProgram->GetUID(), ActorServiceTag, CreateTime, Pid));
+        AddExecLogEntry(pActorProgram, pLogActorEntry);
 
-        std::unique_lock Lock(pProcess->m_Mutex);
-
-        if(pProcess->m_CommandLine.empty())
-            pProcess->m_CommandLine = Command;
+        CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EExecLogRole::eTarget, EExecLogType::eProcessStarted, Status, pActorProgram->GetUID(), ActorServiceTag, CreateTime, Pid));
+        AddExecLogEntry(pProgram, pLogEntry);
     }
 
-    return svcCore->AppIsolator()->AllowProcessStart(pProcess);
+    //return theCore->AppIsolator()->AllowProcessStart(pProcess);
+    return true;
 }
 
 void CProcessList::OnProcessStopped(uint64 Pid, uint32 ExitCode)
@@ -392,34 +410,179 @@ void CProcessList::OnProcessStopped(uint64 Pid, uint32 ExitCode)
     auto F = m_List.find(Pid);
     if (F == m_List.end())
         return;
-    
     CProcessPtr pProcess = F->second;
+
     if (!pProcess->IsMarkedForRemoval())
 	    pProcess->MarkForRemoval();
 }
 
-NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
+void CProcessList::OnProcessAccessed(uint64 Pid, uint64 ActorPid, const std::wstring& ActorServiceTag, bool bThread, uint32 AccessMask, uint64 AccessTime, EEventStatus Status)
 {
-    if (pEvent->Type != SProcessEvent::EType::Started)
-    {
-        OnProcessStopped(pEvent->ProcessId, pEvent->ExitCode);
-        return STATUS_SUCCESS;
+    CProcessPtr pProcess = GetProcess(Pid, true);
+    CProgramFilePtr pProgram = pProcess ? pProcess->GetProgram() : NULL;
+
+    CProcessPtr pActorProcess = GetProcess(ActorPid, true);
+    CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
+
+    if (!pProgram || !pActorProgram || pProgram == pActorProgram) // discard self accesses
+        return;
+
+    pProgram->AddIngressActor(pActorProgram, ActorServiceTag, bThread, AccessMask, AccessTime, (Status != EEventStatus::eAllowed));
+    pActorProgram->AddIngressTarget(ActorServiceTag, pProgram, bThread, AccessMask, AccessTime, (Status != EEventStatus::eAllowed));
+
+    CExecLogEntryPtr pLogActorEntry = CExecLogEntryPtr(new CExecLogEntry(EExecLogRole::eActor, bThread ? EExecLogType::eThreadAccess : EExecLogType::eProcessAccess, Status, pProgram->GetUID(), ActorServiceTag, AccessTime, Pid, AccessMask));
+    AddExecLogEntry(pActorProgram, pLogActorEntry);
+
+    CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EExecLogRole::eTarget, bThread ? EExecLogType::eThreadAccess : EExecLogType::eProcessAccess, Status, pActorProgram->GetUID(), ActorServiceTag, AccessTime, Pid, AccessMask));
+    AddExecLogEntry(pProgram, pLogEntry);
+}
+
+void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
+{
+	CProcessPtr pProcess = GetProcess(pImageEvent->ProcessId, true);
+    if(!pProcess)
+        return;
+
+    std::wstring ProgramPath = NormalizeFilePath(pProcess->GetFileName());
+    std::wstring ModulePath = NormalizeFilePath(pImageEvent->FileName);
+
+    bool bIsProcess = ProgramPath == ModulePath;
+    if (bIsProcess)
+        pProcess->UpdateSignInfo(pImageEvent->SignAuthority, pImageEvent->SignLevel, pImageEvent->SignPolicy);
+
+    CProgramFilePtr pProgram = pProcess->GetProgram();
+    if (!pProgram)
+        return;
+
+    if (bIsProcess) {
+        pProgram->UpdateSignInfo(pImageEvent->SignAuthority, pImageEvent->SignLevel, pImageEvent->SignPolicy);
+        return;
     }
 
-    //
-    // Note: this triggers before teh process is started, during early process initialization
-    // returnign an error code canceles the process creation
-    //
+    CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibrary(ModulePath, true);
 
+    //CProcessPtr pActorProcess = GetProcess(ActorPid, true);
+    //CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
+    
 #ifdef _DEBUG
-    //DbgPrint("CProcessList::OnProcessDrvEvent (%d) %S\r\n", pEvent->ProcessId, pEvent->CommandLine.c_str());
+    if(pImageEvent->ProcessId != pImageEvent->ActorProcessId)
+	{
+		DbgPrint("CProcessList::OnImageEvent: Pid != ActorPid\r\n");
+	}
 #endif
 
-    if (!OnProcessStarted(pEvent->ProcessId, pEvent->ParentId, pEvent->FileName, pEvent->CommandLine, pEvent->CreateTime)) 
-    {
-        svcCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_BLOCK_PROC, StrLine(L"Preventing start of blocked process: %s (%u).", pEvent->FileName, pEvent->ProcessId));
+    // todo:
 
-        return STATUS_ACCESS_DENIED;
+    //
+    // Note: an image may receive a loaded event folowed by an unloaded event
+    // this means the library was unloaded bevore controll was returned to user space
+    // in which case we handle it as if it would have been unloaded instantly.
+    //
+
+    EEventStatus Status;
+    if (pImageEvent->Type == SProcessEvent::EType::UntrustedLoad) { // image was deamed not trusted
+        if (pImageEvent->bLoadPrevented)
+            Status = EEventStatus::eBlocked;
+        else
+            Status = EEventStatus::eUntrusted;
+    } else // image was loaded, we do not know if it was trusted or not
+        Status = Status = EEventStatus::eAllowed;
+	
+    pProgram->AddLibrary(pLibrary, pImageEvent->TimeStamp, pImageEvent->SignAuthority, pImageEvent->SignLevel, pImageEvent->SignPolicy, Status);
+
+    CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EExecLogRole::eBooth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId));
+    AddExecLogEntry(pProgram, pLogEntry);
+}
+
+void CProcessList::OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status)
+{
+    CProcessPtr pActorProcess = GetProcess(ActorPid, true);
+    CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
+
+    if (!pActorProgram)
+        return;
+
+    pActorProgram->AddAccess(ActorServiceTag, Path, AccessMask, AccessTime, (Status != EEventStatus::eAllowed));
+
+    CResLogEntryPtr pLogEntry = CResLogEntryPtr(new CResLogEntry(Path, ActorServiceTag, AccessMask, Status, AccessTime, ActorPid));
+    
+    uint64 LogIndex = pActorProgram->AddTraceLogEntry(pLogEntry, ETraceLogs::eResLog);
+
+    CVariant Event;
+    //Event[SVC_API_EVENT_TYPE]	= SVC_API_EVENT_FW_EVENT;
+    Event[API_V_PROG_ID]		= pActorProgram->GetID().ToVariant(SVarWriteOpt());
+    Event[API_V_EVENT_INDEX]	= LogIndex;
+    Event[API_V_EVENT_DATA]	    = pLogEntry->ToVariant();
+
+    if(pLogEntry->GetStatus() != EEventStatus::eAllowed)
+        theCore->BroadcastMessage(SVC_API_EVENT_RES_ACTIVITY, Event); // always breadcast suspiciosue activity
+    else
+        theCore->BroadcastMessage(SVC_API_EVENT_RES_ACTIVITY, Event, pActorProgram);
+}
+
+void CProcessList::AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram, const CExecLogEntryPtr& pLogEntry)
+{
+    uint64 LogIndex = pProgram->AddTraceLogEntry(pLogEntry, ETraceLogs::eExecLog);
+
+    CVariant Event;
+    //Event[SVC_API_EVENT_TYPE]	= SVC_API_EVENT_FW_EVENT;
+    Event[API_V_PROG_ID]		= pProgram->GetID().ToVariant(SVarWriteOpt());
+    Event[API_V_EVENT_INDEX]	= LogIndex;
+    Event[API_V_EVENT_DATA]	    = pLogEntry->ToVariant();
+
+    if(pLogEntry->GetStatus() != EEventStatus::eAllowed)
+		theCore->BroadcastMessage(SVC_API_EVENT_EXEC_ACTIVITY, Event); // always breadcast suspiciosue activity
+	else
+        theCore->BroadcastMessage(SVC_API_EVENT_EXEC_ACTIVITY, Event, pProgram);
+}
+
+NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
+{
+    switch (pEvent->Type)
+    {
+        case SProcessEvent::EType::ProcessStarted: 
+        {
+            const SProcessStartEvent* pStartEvent = (SProcessStartEvent*)(pEvent);
+            OnProcessStarted(pStartEvent->ProcessId, pStartEvent->ParentId, pStartEvent->ActorProcessId, pStartEvent->ActorServiceTag, pStartEvent->FileName, pStartEvent->CommandLine, pStartEvent->TimeStamp, pStartEvent->Status);
+
+            //
+            // Note: this triggers before teh process is started, during early process initialization
+            // returnign an error could cancel the process creation, if we uncoment the code in the driver and driver interface
+            //
+#ifdef _DEBUG
+            //DbgPrint("CProcessList::OnProcessDrvEvent (%d) %S\r\n", pEvent->ProcessId, pEvent->CommandLine.c_str());
+#endif
+            //if (!OnProcessStarted(pEvent->ProcessId, pStartEvent->ParentId, pStartEvent->FileName, pStartEvent->CommandLine, pStartEvent->CreateTime)) 
+            //{
+            //    theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_BLOCK_PROC, StrLine(L"Preventing start of blocked process: %s (%u).", pStartEvent->FileName, pEvent->ProcessId));
+            //    return STATUS_ACCESS_DENIED;
+            //}
+            break;
+        }
+        case SProcessEvent::EType::ProcessStopped:
+        {
+			const SProcessStopEvent* pStopEvent = (SProcessStopEvent*)(pEvent);
+            OnProcessStopped(pStopEvent->ProcessId, pStopEvent->ExitCode);
+            break;
+		}
+        case SProcessEvent::EType::ImageLoad:
+        case SProcessEvent::EType::UntrustedLoad:
+        {
+            OnImageEvent((SProcessImageEvent*)pEvent);
+            break;
+		}
+        case SProcessEvent::EType::ProcessAccess:
+		{
+			const SProcessAccessEvent* pAccessEvent = (SProcessAccessEvent*)(pEvent);
+            OnProcessAccessed(pAccessEvent->ProcessId, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->bThread, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status);
+			break;
+		}
+        case SProcessEvent::EType::ResourceAccess:
+        {
+            const SResourceAccessEvent* pAccessEvent = (SResourceAccessEvent*)(pEvent);
+			OnResourceAccessed(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status);
+			break;
+        }
     }
 
     return STATUS_SUCCESS;
@@ -441,6 +604,7 @@ void CProcessList::OnProcessEtwEvent(const struct SEtwProcessEvent* pEvent)
     //DbgPrint("CProcessList::OnProcessEtwEvent (%d) %S\r\n", pEvent->ProcessId, pEvent->CommandLine.c_str());
 #endif
 
-    if (!OnProcessStarted(pEvent->ProcessId, pEvent->ParentId, pEvent->FileName, pEvent->CommandLine, pEvent->TimeStamp, true))
-        TerminateProcess(pEvent->ProcessId, pEvent->FileName);
+    OnProcessStarted(pEvent->ProcessId, pEvent->ParentId, pEvent->ParentId, L"", pEvent->FileName, pEvent->CommandLine, pEvent->TimeStamp, EEventStatus::eAllowed, true);
+    //if (!OnProcessStarted(pEvent->ProcessId, pEvent->ParentId, pEvent->FileName, pEvent->CommandLine, pEvent->TimeStamp, true))
+    //    TerminateProcess(pEvent->ProcessId, pEvent->FileName);
 }

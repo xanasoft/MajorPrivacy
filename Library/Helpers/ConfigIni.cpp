@@ -35,20 +35,23 @@ CConfigIni::~CConfigIni()
     }
 }
 
-std::wstring CConfigIni::GetValue(const std::string& section, const std::string& key, const std::wstring& defaultValue) 
+std::wstring CConfigIni::GetValue(const std::string& section, const std::string& key, const std::wstring& defaultValue, bool* pOk) 
 {
     std::lock_guard lock(m_mutex);
 
     // Check if value is cached
     std::string cacheKey = section + "." + key;
     auto it = m_cache.find(cacheKey);
-    if (it != m_cache.end())
+    if (it != m_cache.end()) {
+        if(pOk) *pOk = true;
         return it->second;
+    }
 
     // Load value from INI file
     wchar_t buffer[MAX_CONF_LEN];
     if (!GetPrivateProfileStringW(s2w(section).c_str(), s2w(key).c_str(), defaultValue.c_str(), buffer, ARRAYSIZE(buffer), m_iniFile.c_str())) {
         //std::wcerr << L"Failed to read value from INI file." << std::endl;
+        if(pOk) *pOk = false;
         return defaultValue;
     }
     std::wstring value(buffer);
@@ -56,6 +59,7 @@ std::wstring CConfigIni::GetValue(const std::string& section, const std::string&
     // Cache the value
     m_cache[cacheKey] = value;
 
+    if(pOk) *pOk = true;
     return value;
 }
 
@@ -100,11 +104,10 @@ std::vector<std::string> CConfigIni::ListSections()
     GetPrivateProfileSectionNamesW(bufferW, sizeof(bufferW), m_iniFile.c_str());
 
     std::vector<std::string> sections;
-    std::string buffer = w2s(bufferW);
-    const char* section = buffer.c_str();
-    while (*section != '\0') {
-        sections.push_back(section);
-        section += strlen(section) + 1;
+    wchar_t* ptr = bufferW;
+    while (*ptr != '\0') {
+        sections.push_back(w2s(ptr));
+        ptr += wcslen(ptr) + 1;
     }
     return sections;
 }
@@ -115,11 +118,10 @@ std::vector<std::string> CConfigIni::ListKeys(const std::string& section)
     GetPrivateProfileStringW(s2w(section).c_str(), NULL, L"", bufferW, sizeof(bufferW), m_iniFile.c_str());
 
     std::vector<std::string> keys;
-    std::string buffer = w2s(bufferW);
-    const char* key = buffer.c_str();
-    while (*key != '\0') {
-        keys.push_back(key);
-        key += strlen(key) + 1;
+    wchar_t* ptr = bufferW;
+    while (*ptr != '\0') {
+        keys.push_back(w2s(ptr));
+        ptr += wcslen(ptr) + 1;
     }
     return keys;
 }

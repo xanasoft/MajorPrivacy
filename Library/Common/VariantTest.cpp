@@ -4,39 +4,22 @@
 #include "DbgHelp.h"
 #include "stl_helpers.h"
 
+#define V(x) CVariant(x)
+
 void TestVariant()
 {
-	CCowPtr<std::list<int>> list1;
-	list1.New();
-	list1->push_back(1);
-	list1->push_back(2);
-	list1->push_back(3);
-
-	CCowPtr<std::list<int>> list2 = list1;
-
-	for (auto num : list2.Const())
-		printf("%d", num);
-
-
-	CCowPtr<std::wstring> str1(new std::wstring(L"test"));
-
-	CCowPtr<std::wstring> str2 = str1;
-
-	if(str2->size() > 2)
-		str2->insert(2, L"_");
-
-#if 1
+#if 0
 	CVariant Test_0;
 	Test_0[(uint32)'a'] = 0x12345678;
 	Test_0[(uint32)'b'] = 0xABCDABCD;
 
 	CVariant Test_0_1;
-	Test_0_1.Append(1);
-	Test_0_1.Append(2);
-	Test_0_1.Append(3);
+	Test_0_1.Append(V(1));
+	Test_0_1.Append(V(2));
+	Test_0_1.Append(V(3));
 	Test_0[(uint32)'c'] = Test_0_1;
 
-	Test_0[(uint32)'c'].Append(4);
+	Test_0[(uint32)'c'].Append(V(4));
 
 
 	
@@ -53,12 +36,12 @@ void TestVariant()
 	Variant_Get(&Var_0, 'b', &test_0_2);
 #endif
 
-#if 1
+#if 0
 	CVariant Test_1;
-	Test_1.Append(1);
-	Test_1.Append(2);
-	Test_1.Append(3);
-	Test_1.Append(4);
+	Test_1.Append(V(1));
+	Test_1.Append(V(2));
+	Test_1.Append(V(3));
+	Test_1.Append(V(4));
 	
 	CBuffer Buff_1;
 	//WritePacket("TST", Test_1, Buff_1);
@@ -84,7 +67,7 @@ void TestVariant()
 
 #endif
 
-#if 1
+#if 0
 	byte Buffer_2[255];
 
 	VARIANT Var_2;
@@ -143,7 +126,7 @@ void TestVariant()
 	}
 #endif
 
-#if 1
+#if 0
 
 	CBuffer Buff_3;
 	Buff_3.SetSize(0, true, 0x1000);
@@ -174,6 +157,7 @@ void TestVariant()
 
 #endif
 
+#if 0
 	CVariant Test_x;
 
 	Test_x["1"] = 1;
@@ -192,6 +176,21 @@ void TestVariant()
 	Test_RawList.Write("3");
 	Test_RawList.Write("4");
 	Test_RawList.Finish();
-
+	
 	int Test_RawList_Count = Test_RawList.Count();
+#endif
+
+	CVariant v1;
+	v1["str"] = "test 1";
+	v1["int"] = 1;
+	v1["3"] = "test 3";
+	v1["4"] = "test 4";
+
+	v1.Freeze();
+
+	CVariant v3 = v1["3"];
+	//byte* v3b = v3.GetData();
+
+	v1.Clear();
+
 }

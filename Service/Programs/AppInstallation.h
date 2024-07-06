@@ -1,24 +1,30 @@
 #pragma once
-#include "ProgramGroup.h"
+#include "ProgramPattern.h"
 
-class CAppInstallation: public CProgramList
+typedef std::wstring		TInstallId;	// registry key under: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\
+
+class CAppInstallation: public CProgramPattern
 {
 public:
 	CAppInstallation(const TInstallId& Id);
 
-	virtual void SetInstallPath(const std::wstring& Path)	{ std::unique_lock lock(m_Mutex); m_InstallPath = Path; }
-	virtual std::wstring GetInstallPath() const				{ std::shared_lock lock(m_Mutex);return m_InstallPath; }
+	virtual EProgramType GetType() const					{ return EProgramType::eAppInstallation; }
 
-	virtual int									GetSpecificity() const { return (int)m_InstallPath.length(); }
+	virtual void SetInstallPath(const std::wstring Path);
+	virtual std::wstring GetInstallPath() const				{ std::unique_lock lock(m_Mutex);return m_Path; }
+
+	virtual int									GetSpecificity() const { return (int)m_Path.length(); }
 
 protected:
 	friend class CProgramManager;
 
-	virtual void WriteVariant(CVariant& Data) const;
+	void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
+	void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
+	void ReadIValue(uint32 Index, const CVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const CVariant& Data) override;
 
 	std::wstring m_RegKey;
-
-	std::wstring m_InstallPath;
+	std::wstring m_Path;
 };
 
 typedef std::shared_ptr<CAppInstallation> CAppInstallationPtr;

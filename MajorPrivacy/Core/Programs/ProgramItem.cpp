@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "ProgramItem.h"
-#include "../ProcessList.h"
+#include "../Processes/ProcessList.h"
 #include "../PrivacyCore.h"
 #include "../Library/Common/XVariant.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../Network/NetworkManager.h"
 #include "../Library/Helpers/NtUtil.h"
@@ -26,15 +26,14 @@ QIcon CProgramItem::DefaultIcon() const
 	return ExeIcon;
 }
 
-void CProgramItem::SetIconFile(const QString& IconFile)
+void CProgramItem::SetIconFile()
 {
-	if (m_IconFile == IconFile && !m_Icon.isNull())
+	if(!m_Icon.isNull())
 		return;
-	m_IconFile = IconFile;
 
-	if (!IconFile.isEmpty())
+	if (!m_IconFile.isEmpty())
 	{
-		QString Path = QString::fromStdWString(NtPathToDosPath(IconFile.toStdWString()));
+		QString Path = QString::fromStdWString(NtPathToDosPath(m_IconFile.toStdWString()));
 
 		StrPair NameIndex = Split2(Path, ",", true);
 		if (NameIndex.second.length() > 2) { // todo improve
@@ -52,17 +51,45 @@ void CProgramItem::SetIconFile(const QString& IconFile)
 		m_Icon = DefaultIcon();
 }
 
-void CProgramItem::FromVariant(const class XVariant& Item)
+XVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const
 {
-	Item.ReadRawMap([&](const SVarName& Name, const CVariant& vData) { ReadValue(Name, *(XVariant*)&vData); });
+	XVariant Data;
+	if (Opts.Format == SVarWriteOpt::eIndex) {
+		Data.BeginIMap();
+		WriteIVariant(Data, Opts);
+	} else {  
+		Data.BeginMap();
+		WriteMVariant(Data, Opts);
+	}
+	Data.Finish();
+	return Data;
 }
 
-void CProgramItem::ReadValue(const SVarName& Name, const XVariant& Data)
+NTSTATUS CProgramItem::FromVariant(const class XVariant& Data)
 {
-		 if (VAR_TEST_NAME(Name, SVC_API_PROG_NAME))		m_Name = Data.AsQStr();
+	if (Data.GetType() == VAR_TYPE_MAP)         Data.ReadRawMap([&](const SVarName& Name, const CVariant& Data) { ReadMValue(Name, Data); });
+	else if (Data.GetType() == VAR_TYPE_INDEX)  Data.ReadRawIMap([&](uint32 Index, const CVariant& Data)        { ReadIValue(Index, Data); });
+	else
+		return STATUS_UNKNOWN_REVISION;
+	SetIconFile();
+	return STATUS_SUCCESS;
+}
 
-	else if (VAR_TEST_NAME(Name, SVC_API_PROG_ICON))		SetIconFile(Data.AsQStr());
-	else if (VAR_TEST_NAME(Name, SVC_API_PROG_INFO))		m_Info = Data.AsQStr();
+QString CProgramItem::GetTypeStr() const
+{
+	switch (GetType())
+	{
+	case EProgramType::eProgramFile:		return tr("Executable File");
+	case EProgramType::eFilePattern:		return tr("File Path Pattern");
+	case EProgramType::eAppInstallation:	return tr("Installation");
+	case EProgramType::eWindowsService:		return tr("Windows Service");
+	case EProgramType::eAppPackage:			return tr("Application Package");
 
-	else if (VAR_TEST_NAME(Name, SVC_API_PROG_FW_RULES))	m_FwRuleIDs = Data.AsQSet();
+	case EProgramType::eProgramSet:			return tr("Program Set");
+	case EProgramType::eProgramList:		return tr("Program List");
+	case EProgramType::eProgramGroup:		return tr("Program Group");
+	case EProgramType::eAllPrograms:		return tr("All Programs");
+	//case EProgramType::eProgramRoot:		return tr("Program Root");
+	}
+	return tr("Unknown");
 }

@@ -59,7 +59,7 @@ CDnsInspector::~CDnsInspector()
 
 STATUS CDnsInspector::Init()
 {
-	svcCore->EtwEventMonitor()->RegisterDnsHandler(&CDnsInspector::OnEtwDnsEvent, this);
+	theCore->EtwEventMonitor()->RegisterDnsHandler(&CDnsInspector::OnEtwDnsEvent, this);
 
 	if (m->DnsApiHandle = LoadLibrary(L"dnsapi.dll"))
 	{
@@ -80,7 +80,7 @@ void CDnsInspector::OnEtwDnsEvent(const struct SEtwDnsEvent* pEvent)
 	//DbgPrint(L"ETW Dns Event for %s\n", pEvent->HostName.c_str());
 #endif
 
-	CProcessPtr pProcess = svcCore->ProcessList()->GetProcess(pEvent->ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
+	CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pEvent->ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
 	if(pProcess)
 		pProcess->DnsLog()->OnEtwDnsEvent(pEvent);
 }
@@ -191,6 +191,9 @@ static const CAddress LocalHostV6("::1");
 
 void CDnsInspector::Update()
 {
+	static int x = 0;
+	if (x)
+		return;
 
 #ifdef DNS_SCRAPE
 	PDNS_RECORD dnsRecordRootPtr = TraverseDnsCacheTable(m); 
@@ -323,7 +326,7 @@ void CDnsInspector::Update()
 	uint64 TimeToSubtract = CurTick - m_LastCacheTraverse;
 	m_LastCacheTraverse = CurTick;
 
-	uint64 DnsPersistenceTime = svcCore->Config()->GetUInt64("Service", "DnsPersistenceTime", 60*60*1000); // 60 minutes
+	uint64 DnsPersistenceTime = theCore->Config()->GetUInt64("Service", "DnsPersistenceTime", 60*60*1000); // 60 minutes
 	for (std::multimap<std::wstring, CDnsCacheEntryPtr>::iterator I = OldEntries.begin(); I != OldEntries.end(); )
 	{
 		if (I->second->GetDeadTime() < DnsPersistenceTime)
@@ -358,9 +361,9 @@ void CDnsInspector::Update()
 		DnsRecordListFree(dnsRecordRootPtr, DnsFreeRecordList);
 #else
 	if (dnsCacheDataTable)
-		DnsRecordListFree(dnsCacheDataTable, DnsFreeRecordList);
+		DnsRecordListFree(dnsCacheDataTable, DnsFreeFlat);
 #endif
-	}
+}
 
 bool CDnsInspector::ResolveHost(const CAddress& Address, const CHostNamePtr& pHostName)
 {
@@ -394,7 +397,7 @@ bool CDnsInspector::ResolveHost(const CAddress& Address, const CHostNamePtr& pHo
 
 	// if we dont have a valid entry start a lookup job and finisch asynchroniously
 	//if (ValidReverseEntries == 0)
-	if(RevHostNames.size() == 0 && svcCore->Config()->GetBool("Service", "UserReverseDns", false))
+	if(RevHostNames.size() == 0 && theCore->Config()->GetBool("Service", "UserReverseDns", false))
 	{
 		std::unique_lock Lock(m_JobMutex);
 

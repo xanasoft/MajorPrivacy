@@ -230,6 +230,7 @@ void CTreeItemModel::Purge(STreeNode* pParent, const QModelIndex &parent, QHash<
 				for(int j = End; j >= Begin; j--)
 				{
 					pNode = pParent->Children.takeAt(j);
+					pParent->ChildrenChanged = true;
 					FreeNode(pNode);
 					Removed++;
 				}
@@ -276,6 +277,7 @@ void CTreeItemModel::Fill(STreeNode* pParent, /*const QModelIndex &parent,*/ con
 			//pParent->Aux.insert(pNode->ID, pParent->Children.size());
 			pNode->Row = pParent->Children.size();
 			pParent->Children.append(pNode);
+			pParent->ChildrenChanged = true;
 			//endInsertRows();
 		}
 		Fill(pNode, /*index(i, 0, parent),*/ Paths, PathsIndex + 1, New, pNewBranches);
@@ -299,6 +301,7 @@ void CTreeItemModel::Fill(STreeNode* pParent, /*const QModelIndex &parent,*/ con
 			//	pParent->Aux.insert(pNode->ID, pParent->Children.size());
 			pNode->Row = pParent->Children.size();
 			pParent->Children.append(pNode);
+			pParent->ChildrenChanged = true;
 			//endInsertRows();
 		}
 	}
@@ -432,10 +435,13 @@ QVariant CTreeItemModel::NodeData(STreeNode* pNode, int role, int section) const
 		}
 		case Qt::FontRole:
 		{
-			if (section == FIRST_COLUMN && pNode->IsBold)
+			if ((section == FIRST_COLUMN && pNode->IsBold) || pNode->IsItalic)
 			{
 				QFont fnt;
-				fnt.setBold(true);
+				if (section == FIRST_COLUMN && pNode->IsBold)
+					fnt.setBold(true);
+				if (pNode->IsItalic)
+					fnt.setItalic(true);
 				return fnt;
 			}
 			break;

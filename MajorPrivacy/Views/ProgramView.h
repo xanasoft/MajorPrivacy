@@ -15,11 +15,16 @@ public:
 
 	QList<CProgramItemPtr> GetCurrentProgs() const { return m_CurPrograms; }
 
+signals:
+	void	ProgramsChanged(const QList<CProgramItemPtr>& Programs);
+
 public slots:
 	void	Update();
 
 private slots:
 	void	OnProgramChanged(const QModelIndexList& Selection);
+	void	OnDoubleClicked(const QModelIndex& Index);
+	void	OnProgramAction();
 
 protected:
 	//virtual void				OnMenu(const QPoint& Point);
@@ -33,6 +38,8 @@ protected:
 	QList<CProgramItemPtr>		m_CurPrograms;
 
 private:
+	virtual void				OnMenu(const QPoint& Point);
+
 	QVBoxLayout*				m_pMainLayout;
 
 #ifdef SPLIT_TREE
@@ -42,5 +49,11 @@ private:
 #endif
 	CProgramModel*				m_pProgramModel;
 	QSortFilterProxyModel*		m_pSortProxy;
+
+	QAction*					m_pCreateProgram;
+	QAction*					m_pCreateGroup;
+	QAction*					m_pAddToGroup;
+	QAction*					m_pRenameItem;
+	QAction*					m_pRemoveItem;
 };
 

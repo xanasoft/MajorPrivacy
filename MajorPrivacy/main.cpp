@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 	//InitGeneralCRT(&MyCRT);
 
 	QString AppDir = QString::fromStdWString(GetApplicationDirectory());
-	theConf = new CSettings(AppDir, "MajorPrivacy");
+	theConf = new CSettings(AppDir, "MajorPrivacy", "Xanasoft");
 
 	theCore = new CPrivacyCore();
 

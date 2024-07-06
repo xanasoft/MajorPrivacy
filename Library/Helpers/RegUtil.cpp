@@ -111,7 +111,8 @@ CVariant RegQuery(HKEY hKey, const WCHAR* valueName, const CVariant& defaultValu
 DWORD RegSet(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const CVariant& value)
 {
 	HKEY key;
-	if (RegOpenKeyEx(hKey, subKey, 0, KEY_WRITE, &key) == ERROR_SUCCESS) {
+    DWORD disposition;
+	if (RegCreateKeyExW(hKey, subKey, 0, NULL, 0, KEY_WRITE, NULL, &key, &disposition) == ERROR_SUCCESS) {
         DWORD res = RegSet(key, valueName, value);
 		RegCloseKey(key);
 		return res;

@@ -17,20 +17,16 @@ CProcessModel::~CProcessModel()
 {
 }
 
-QList<QVariant> CProcessModel::MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList)
+void CProcessModel::MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, QList<QVariant>& Path)
 {
-	QList<QVariant> Path;
-
 	quint64 ParentID = pProcess->GetParentId();
 	CProcessPtr pParent = ProcessList.value(ParentID);
 
-	if (!pParent.isNull())
+	if (!pParent.isNull() && pParent->GetCreationTime() < pProcess->GetCreationTime() && !Path.contains(ParentID))
 	{
-		Path = MakeProcPath(pParent, ProcessList);
-		Path.append(ParentID);
+		Path.prepend(ParentID);
+		MakeProcPath(pParent, ProcessList, Path);
 	}
-
-	return Path;
 }
 
 bool CProcessModel::TestProcPath(const QList<QVariant>& Path, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, int Index)
@@ -38,7 +34,7 @@ bool CProcessModel::TestProcPath(const QList<QVariant>& Path, const CProcessPtr&
 	quint64 ParentID = pProcess->GetParentId();
 	CProcessPtr pParent = ProcessList.value(ParentID);
 
-	if (!pParent.isNull())
+	if (!pParent.isNull() && pParent->GetCreationTime() < pProcess->GetCreationTime())
 	{
 		if(Index >= Path.size() || Path[Path.size() - Index - 1] != ParentID)
 			return false;
@@ -55,15 +51,12 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
-	bool bShow32 = theConf->GetBool("Options/Show32", true);
-	bool bClearZeros = theConf->GetBool("Options/ClearZeros", true);
-	bool bShowMaxThread = theConf->GetBool("Options/ShowMaxThread", false);
-	int iHighlightMax = theConf->GetInt("Options/HighLoadHighlightCount", 5);
-	time_t curTime = GetTime();
+	//bool bClearZeros = theConf->GetBool("Options/ClearZeros", true);
+	//int iHighlightMax = theConf->GetInt("Options/HighLoadHighlightCount", 5);
 
-	QVector<QList<QPair<quint64, SProcessNode*> > > Highlights;
-	if(iHighlightMax > 0)
-		Highlights.resize(columnCount());
+	//QVector<QList<QPair<quint64, SProcessNode*> > > Highlights;
+	//if(iHighlightMax > 0)
+	//	Highlights.resize(columnCount());
 
 	foreach (const CProcessPtr& pProcess, ProcessList)
 	{
@@ -78,7 +71,7 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 			pNode = static_cast<SProcessNode*>(MkNode(ID));
 			pNode->Values.resize(columnCount());
 			if (m_bTree)
-				pNode->Path = MakeProcPath(pProcess, ProcessList);
+				MakeProcPath(pProcess, ProcessList, pNode->Path);
 			pNode->pProcess = pProcess;
 			New[pNode->Path].append(pNode);
 			Added.insert(ID);
@@ -100,6 +93,13 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 			pNode->Icon = pProcess->GetIcon();
 			Changed = 1;
 		}
+		if (pNode->Bold.contains(0) != pProcess->IsProtected()) {
+			if (pProcess->IsProtected())
+				pNode->Bold.insert(0);
+			else
+				pNode->Bold.remove(0);
+			Changed = 1;
+		}
 
 		for(int section = 0; section < columnCount(); section++)
 		{
@@ -114,6 +114,11 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 				case eProcess:				Value = pProcess->GetName(); break;
 				case ePID:					Value = pProcess->GetProcessId(); break;
 				case eParentPID:			Value = pProcess->GetParentId(); break;
+				case eEnclaveID:			Value = (qint64)pProcess->GetEnclaveId(); break;
+				case eSignAuthority:		Value = pProcess->GetSignInfo().Data; break;
+				case eStatus:				Value = pProcess->GetStatus(); break;
+				case eImageStats:			Value = pProcess->GetImgStats(); break;
+				case eFileName:				Value = pProcess->GetPath(EPathType::eDisplay); break;
 			}
 
 			SProcessNode::SValue& ColValue = pNode->Values[section];
@@ -133,14 +138,15 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 					Changed = 1;
 				ColValue.Raw = Value;
 
-				/*switch(section)
+				switch(section)
 				{
-					case ePID:				if (Value.toLongLong() < 0) ColValue.Formatted = ""; break;
-				}*/
+					//case ePID:				if (Value.toLongLong() < 0) ColValue.Formatted = ""; break;
+					case eSignAuthority:	ColValue.Formatted = CProgramFile::GetSignatureInfoStr(SLibraryInfo::USign{Value.toULongLong()}); break;
+				}
 			}
 
 
-			if(!Highlights.isEmpty() && CurIntValue != 0)
+			/*if(!Highlights.isEmpty() && CurIntValue != 0)
 			{
 				QList<QPair<quint64, SProcessNode*> >& List = Highlights[section];
 
@@ -159,7 +165,7 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 					while (List.count() > iHighlightMax)
 						List.removeLast();
 				}
-			}
+			}*/
 
 
 			if(State != (Changed != 0))
@@ -176,7 +182,7 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 			emit dataChanged(createIndex(Index.row(), Col, pNode), createIndex(Index.row(), columnCount()-1, pNode));
 	}
 
-	if (!Highlights.isEmpty())
+	/*if (!Highlights.isEmpty())
 	{
 		for (int section = eProcess; section < columnCount(); section++)
 		{
@@ -185,7 +191,7 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 			for (int i = 0; i < List.size(); i++)
 				List.at(i).second->Bold.insert(section);
 		}
-	}
+	}*/
 
 	CTreeItemModel::Sync(New, Old);
 
@@ -253,7 +259,11 @@ QString CProcessModel::GetColumHeader(int section) const
 		case eProcess:				return tr("Process");
 		case ePID:					return tr("PID");
 		case eParentPID:			return tr("Parent PID");
-		case eStaus:				return tr("Status");
+		case eEnclaveID:			return tr("Enclave ID");
+		case eSignAuthority:		return tr("Signature");
+		case eStatus:				return tr("Status");
+		case eImageStats:			return tr("Image Loads (MS/V/S/U)");
+		case eFileName:				return tr("File Name");
 	}
 	return "";
 }

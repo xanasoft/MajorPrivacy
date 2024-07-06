@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "ServiceCore.h"
-#include "ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 #include <shellapi.h>
 
 //#include "../NtCRT/NtCRT.h"
@@ -117,7 +117,7 @@ int WinMain(
     {
         STATUS Status = CServiceCore::Startup(true);
 
-        while(svcCore)
+        while(theCore)
             Sleep(1000);
 
         return Status.GetStatus();

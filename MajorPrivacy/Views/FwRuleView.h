@@ -18,7 +18,7 @@ protected:
 	void					OnMenu(const QPoint& Point) override;
 	void					OnDoubleClicked(const QModelIndex& Index) override;
 
-	void					OpenFwRullDialog(const CFwRulePtr& pRule);
+	void					OpenRullDialog(const CFwRulePtr& pRule);
 
 private slots:
 	//void					OnResetColumns();

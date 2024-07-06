@@ -3,6 +3,8 @@
 #include "../Library/Common/Variant.h"
 #include "../Network/Socket.h"
 #include "../Network/Dns/DnsProcLog.h"
+#include "../Access/Handle.h"
+#include "../Library/API/PrivacyDefs.h"
 
 class CProcess: public CAbstractInfoEx
 {
@@ -15,7 +17,12 @@ public:
 	std::wstring GetName() const { std::shared_lock Lock(m_Mutex); return m_Name; }
 	std::wstring GetFileName() const { std::shared_lock Lock(m_Mutex); return m_FileName; }
 	std::wstring GetWorkDir() const;
-	uint32 GetEnclave() const { std::shared_lock Lock(m_Mutex); return m_EnclaveId; }
+
+	uint64 GetEnclave() const { std::shared_lock Lock(m_Mutex); return m_EnclaveId; }
+
+	bool IsInitDone() const { std::shared_lock Lock(m_Mutex); return m_ParentPid != -1; }
+
+	void UpdateSignInfo(KPH_VERIFY_AUTHORITY SignAuthority, uint32 SignLevel, uint32 SignPolicy);
 
 	std::set<std::wstring> GetServices() const { std::shared_lock Lock(m_Mutex);  return m_ServiceList; }
 
@@ -23,6 +30,11 @@ public:
 	std::wstring GetAppContainerName() const { std::shared_lock Lock(m_Mutex); return m_AppContainerName; }
 
 	std::shared_ptr<class CProgramFile> GetProgram() const { std::shared_lock Lock(m_Mutex); return m_pFileRef.lock(); }
+
+	void AddHandle(const CHandlePtr& pHandle);
+	void RemoveHandle(const CHandlePtr& pHandle);
+	std::set<CHandlePtr> GetHandleList() const { std::shared_lock Lock(m_HandleMutex); return m_HandleList;  }
+	int GetHandleCount() const { std::shared_lock Lock(m_HandleMutex); return (int)m_HandleList.size(); }
 
 	void AddSocket(const CSocketPtr& pSocket);
 	void RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit = false);
@@ -65,20 +77,34 @@ protected:
 
 	uint64 m_Pid = -1;
 	uint64 m_CreationTime = 0;
-	//uint64 m_SequenceNr = -1;
+	//uint64 m_SeqNr = -1;
 	uint64 m_ParentPid = -1;
+	//uint64 m_ParentSeqNr = -1;
 	std::wstring m_Name;
 	std::wstring m_FileName;
 	std::wstring m_CommandLine;
 
-	std::vector<uint8> m_ImageHash;
-	uint32 m_EnclaveId = 0;
+	//std::vector<uint8> m_ImageHash;
+	uint64 m_EnclaveId = 0;
+	uint32 m_SecState = 0;
+	uint32 m_Flags = 0;
+	uint32 m_SecFlags = 0;
+	SLibraryInfo::USign	m_SignInfo;
+	uint32 m_NumberOfImageLoads = 0;
+	uint32 m_NumberOfMicrosoftImageLoads = 0;
+	uint32 m_NumberOfAntimalwareImageLoads = 0;
+	uint32 m_NumberOfVerifiedImageLoads = 0;
+	uint32 m_NumberOfSignedImageLoads = 0;
+	uint32 m_NumberOfUntrustedImageLoads = 0;
 
 	std::set<std::wstring>		m_ServiceList;
 
 	std::wstring m_AppContainerSid;
 	std::wstring m_AppContainerName;
-	//std::wstring m_PackageFullName;
+	std::wstring m_PackageFullName;
+
+	mutable std::shared_mutex	m_HandleMutex;
+	std::set<CHandlePtr>		m_HandleList;
 
 	mutable std::shared_mutex	m_SocketMutex;
 	std::set<CSocketPtr>		m_SocketList;

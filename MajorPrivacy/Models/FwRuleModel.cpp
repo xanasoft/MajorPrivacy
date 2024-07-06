@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "FwRuleModel.h"
 #include "../MiscHelpers/Common/Common.h"
-#include "../Service/ServiceAPI.h"
+#include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/AppUtil.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
@@ -27,15 +27,15 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 
 	foreach(const CFwRulePtr& pRule, RuleList)
 	{
-		QVariant ID = pRule->GetGuid();
+		QVariant Guid = pRule->GetGuid();
 
 		QModelIndex Index;
 
-		QHash<QVariant, STreeNode*>::iterator I = Old.find(ID);
+		QHash<QVariant, STreeNode*>::iterator I = Old.find(Guid);
 		SRuleNode* pNode = I != Old.end() ? static_cast<SRuleNode*>(I.value()) : NULL;
 		if (!pNode)
 		{
-			pNode = static_cast<SRuleNode*>(MkNode(ID));
+			pNode = static_cast<SRuleNode*>(MkNode(Guid));
 			pNode->Values.resize(columnCount());
 			//pNode->Path = Path;
 			pNode->pRule = pRule;
@@ -48,7 +48,7 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 		}
 
 		if (pNode->pProg.isNull())
-			pNode->pProg = theCore->Programs()->GetProgramByID(pNode->pRule->GetProgramID());
+			pNode->pProg = theCore->ProgramManager()->GetProgramByID(pNode->pRule->GetProgramID());
 
 		//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
@@ -63,6 +63,10 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 		}
 		if (pNode->IsGray != !pRule->IsEnabled()) {
 			pNode->IsGray = !pRule->IsEnabled();
+			Changed = 2; // set change for all columns
+		}
+		if (pNode->IsItalic != pRule->IsTemporary()) {
+			pNode->IsItalic = pRule->IsTemporary();
 			Changed = 2; // set change for all columns
 		}
 
@@ -80,9 +84,9 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 			case eStatus:			break; // todo
 			case eHitCount:			break; // todo
 			case eProfiles:			Value = pRule->GetProfile(); break;
-			case eAction:			Value = pRule->GetAction(); break;
-			case eDirection:		Value = pRule->GetDirection(); break;
-			case eProtocol:			Value = pRule->GetProtocol(); break;
+			case eAction:			Value = (uint32)pRule->GetAction(); break;
+			case eDirection:		Value = (uint32)pRule->GetDirection(); break;
+			case eProtocol:			Value = (uint32)pRule->GetProtocol(); break;
 			case eRemoteAddress:	Value = pRule->GetRemoteAddresses(); break;
 			case eLocalAddress:		Value = pRule->GetLocalAddresses(); break;
 			case eRemotePorts:		Value = pRule->GetRemotePorts(); break;
@@ -106,13 +110,15 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 					case eName:				ColValue.Formatted = QString::fromStdWString(GetResourceStr(Value.toString().toStdWString())); break;
 					case eGrouping:			ColValue.Formatted = QString::fromStdWString(GetResourceStr(Value.toString().toStdWString())); break;
 
-					case eProfiles:			ColValue.Formatted = pRule->GetProfile().join(", "); break;
+					case eProfiles:			ColValue.Formatted = pRule->GetProfileStr(); break;
+					case eAction:			ColValue.Formatted = pRule->GetActionStr(); break;
+					case eDirection:		ColValue.Formatted = pRule->GetDirectionStr(); break;
 					case eRemoteAddress:	ColValue.Formatted = pRule->GetRemoteAddresses().join(", "); break;
 					case eLocalAddress:		ColValue.Formatted = pRule->GetLocalAddresses().join(", "); break;
 					case eRemotePorts:		ColValue.Formatted = pRule->GetRemotePorts().join(", "); break;
 					case eLocalPorts:		ColValue.Formatted = pRule->GetLocalPorts().join(", "); break;
 					case eICMPOptions:		ColValue.Formatted = pRule->GetIcmpTypesAndCodes().join(", "); break;
-					case eInterfaces:		ColValue.Formatted = pRule->GetInterface().join(", "); break;
+					case eInterfaces:		ColValue.Formatted = pRule->GetInterfaceStr(); break;
 				}
 			}
 

@@ -1,10 +1,11 @@
 #include "pch.h"
 #include "../../MiscHelpers/Common/SortFilterProxyModel.h"
 #include "HomePage.h"
-#include "../../Service/ServiceAPI.h"
+#include "../../Library/API/PrivacyAPI.h"
 #include "../../Library/Helpers/NtUtil.h"
 #include "../../Library/Helpers/EvtUtil.h"
 #include "../../Library/Helpers/Scoped.h"
+#include "../MiscHelpers/Common/CustomStyles.h"
 
 
 CHomePage::CHomePage(QWidget* parent)
@@ -15,7 +16,9 @@ CHomePage::CHomePage(QWidget* parent)
 
 	// Event Log
 	m_pEventLog = new QTreeWidgetEx();
-	//m_pEventLog->setItemDelegate(new CTreeItemDelegate());
+	QStyle* pStyle = QStyleFactory::create("windows");
+	m_pEventLog->setStyle(pStyle);
+	m_pEventLog->setItemDelegate(new CTreeItemDelegate());
 	//m_pEventLog->setHeaderLabels(tr("#|Symbol|Stack address|Frame address|Control address|Return address|Stack parameters|File info").split("|"));
 	m_pEventLog->setHeaderLabels(tr("Time Stamp|Type|Class|Event|Message").split("|"));
 	m_pEventLog->setMinimumHeight(50);

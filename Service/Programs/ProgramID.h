@@ -1,12 +1,6 @@
 #pragma once
 #include "../Library/Common/Variant.h"
-
-//typedef std::wstring	TAppHash;		// Application Binary Hash SHA256
-typedef std::wstring		TPatternId;	// Pattern as string
-typedef std::wstring		TAppId;		// Appcontainer SID as string
-typedef std::wstring		TFilePath;	// normalized Application Binary file apth
-typedef std::wstring		TServiceId;	// Service name as string
-typedef std::wstring		TInstallId;	// registry key under: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\
+#include "../Library/API/PrivacyDefs.h"
 
 class CProgramID
 {
@@ -14,38 +8,33 @@ public:
 	CProgramID();
 	~CProgramID();
 
-	enum EType
-	{
-		eUnknown = 0,
-		eFile,
-		eFilePattern,
-		eInstall,
-		eService,
-		eApp,
-		eAll
-	};
+	bool operator ==(const CProgramID& ID) const;
 
-	void Set(EType Type, const std::wstring& Value);
+	void Set(EProgramType Type, const std::wstring& Value = L"");
 	void Set(const std::wstring& FilePath, const std::wstring& ServiceTag, const std::wstring& AppContainerSid);
+	void SetPath(const std::wstring& FilePath);
 
-	inline EType GetType() const								{ return m_Type; }
+	inline EProgramType GetType() const							{ return m_Type; }
 
 	inline const std::wstring& GetFilePath() const				{ return m_FilePath; }
 	inline const std::wstring& GetServiceTag() const			{ return m_ServiceTag; }
 	inline const std::wstring& GetAppContainerSid() const		{ return m_AppContainerSid; }
+	inline const std::wstring& GetRegKey() const				{ return m_RegKey; }
 
-	CVariant ToVariant() const;
-	bool FromVariant(const CVariant& FwRule);
+	static EProgramType ReadType(const CVariant& Data, SVarWriteOpt::EFormat& Format);
+	static std::string TypeToStr(EProgramType Type);
+
+	CVariant ToVariant(const SVarWriteOpt& Opts) const;
+	bool FromVariant(const CVariant& ID);
 
 protected:
 
-	EType m_Type = EType::eUnknown;
+	EProgramType m_Type = EProgramType::eUnknown;
 
 	std::wstring m_FilePath; // or pattern
 	std::wstring m_RegKey;
 	std::wstring m_ServiceTag;
 	std::wstring m_AppContainerSid;
-
 };
 
 //typedef std::shared_ptr<CProgramID> CProgramIDPtr;

@@ -1,7 +1,7 @@
 #pragma once
 #include <qwidget.h>
 #include "../../MiscHelpers/Common/TreeItemModel.h"
-#include "../Core/ProcessList.h"
+#include "../Core/Processes/ProcessList.h"
 #include "../Core/Network/Socket.h"
 
 

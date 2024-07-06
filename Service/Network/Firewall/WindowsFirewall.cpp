@@ -273,7 +273,9 @@ struct SWindowsFirewall
 
 USHORT SWindowsFirewall::DetectApiVersion()
 {
-    if (g_WindowsVersion >= WINDOWS_11_22H1)
+    if (g_WindowsVersion >= WINDOWS_11_24H2)
+        return FW_23H2_BINARY_VERSION;
+    else if (g_WindowsVersion >= WINDOWS_11_22H1)
         return FW_22H2_BINARY_VERSION;
     else if (g_WindowsVersion >= WINDOWS_11)
         return FW_21H2_BINARY_VERSION;
@@ -668,12 +670,18 @@ SWindowsFwRulePtr SWindowsFirewall::LoadRule(const FW_RULE* fwRule)
 
 #define SAFE_GET_STR(x) (x ? x : std::wstring())
 
-    pRule->guid = SAFE_GET_STR(fwRule->wszRuleId);
+    pRule->Guid = SAFE_GET_STR(fwRule->wszRuleId);
 
     pRule->BinaryPath = SAFE_GET_STR(fwRule->wszLocalApplication);
     pRule->ServiceTag = SAFE_GET_STR(fwRule->wszLocalService);
-    if(fwRule->wSchemaVersion >= FW_WIN8_1_BINARY_VERSION)
+    if (fwRule->wSchemaVersion >= FW_WIN8_1_BINARY_VERSION) {
         pRule->AppContainerSid = SAFE_GET_STR(fwRule->wszPackageId);
+        pRule->LocalUserOwner = SAFE_GET_STR(fwRule->wszLocalUserOwner);
+    }
+
+    if (fwRule->wSchemaVersion >= FW_23H2_BINARY_VERSION) {
+        pRule->PackageFamilyName = SAFE_GET_STR(fwRule->wszPackageFamilyName);
+    }
 
     pRule->Name = SAFE_GET_STR(fwRule->wszName);
     pRule->Description = SAFE_GET_STR(fwRule->wszDescription);
@@ -792,12 +800,18 @@ FW_RULE* SWindowsFirewall::SaveRule(const SWindowsFwRulePtr& pRule, std::list<st
 
 #define SAFE_SET_STR(x) (x.empty() ? NULL : (WCHAR*)(x).c_str())
 
-    fwRule->wszRuleId = SAFE_SET_STR(pRule->guid);
+    fwRule->wszRuleId = SAFE_SET_STR(pRule->Guid);
 
     fwRule->wszLocalApplication = SAFE_SET_STR(pRule->BinaryPath);
     fwRule->wszLocalService = SAFE_SET_STR(pRule->ServiceTag);
-    if (fwRule->wSchemaVersion >= FW_WIN8_1_BINARY_VERSION)
+    if (fwRule->wSchemaVersion >= FW_WIN8_1_BINARY_VERSION) {
         fwRule->wszPackageId = SAFE_SET_STR(pRule->AppContainerSid);
+        fwRule->wszLocalUserOwner = SAFE_SET_STR(pRule->LocalUserOwner);
+    }
+
+    if (fwRule->wSchemaVersion >= FW_23H2_BINARY_VERSION) {
+        fwRule->wszPackageFamilyName = SAFE_SET_STR(pRule->PackageFamilyName);
+    }
 
     fwRule->wszName = SAFE_SET_STR(pRule->Name);
     fwRule->wszDescription = SAFE_SET_STR(pRule->Description);
@@ -1005,7 +1019,7 @@ RESULT(std::shared_ptr<SWindowsFwRuleList>) CWindowsFirewall::LoadRules()
             SWindowsFwRulePtr pRule = m->LoadRule(fwRule);
             if (pRule) {
                 list->push_front(pRule);
-                m_FwRules[pRule->guid] = pRule;
+                m_FwRules[pRule->Guid] = pRule;
                 pRule->Index = (int)(uRuleCount - m_FwRules.size());
             }
         }
@@ -1064,7 +1078,7 @@ RESULT(std::shared_ptr<SWindowsFwRuleMap>) CWindowsFirewall::LoadRules(const std
         {
             SWindowsFwRulePtr pRule = m->LoadRule(fwRule);
             if (pRule)
-                map->insert(std::make_pair(pRule->guid, pRule));
+                map->insert(std::make_pair(pRule->Guid, pRule));
         }
     }
 
@@ -1133,16 +1147,16 @@ STATUS CWindowsFirewall::UpdateRule(const SWindowsFwRulePtr& pRule)
 
     bool bAdd = false;
 
-    auto F = pRule->guid.empty() ? m_FwRules.end() : m_FwRules.find(pRule->guid);
+    auto F = pRule->Guid.empty() ? m_FwRules.end() : m_FwRules.find(pRule->Guid);
     if (F == m_FwRules.end())
     {
         bAdd = true;
-        if (pRule->guid.empty()) {
-            GUID guid;
-            CoCreateGuid(&guid);
+        if (pRule->Guid.empty()) {
+            GUID Guid;
+            CoCreateGuid(&Guid);
             wchar_t wszGuid[40] = { 0 };
-            StringFromGUID2(guid, wszGuid, sizeof(wszGuid) / sizeof(wchar_t));
-            pRule->guid = wszGuid;
+            StringFromGUID2(Guid, wszGuid, sizeof(wszGuid) / sizeof(wchar_t));
+            pRule->Guid = wszGuid;
         }
     }
     
@@ -1167,7 +1181,7 @@ STATUS CWindowsFirewall::UpdateRule(const SWindowsFwRulePtr& pRule)
     if (bAdd)
     {
         pRule->Index = (int)m_FwRules.size();
-        m_FwRules[pRule->guid] = pRule;
+        m_FwRules[pRule->Guid] = pRule;
     }
     else
         F->second = pRule;

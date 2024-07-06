@@ -65,16 +65,16 @@ protected:
 };
 
 template <class T, class B = CPanelView>
-class CPanelWidget : public B
+class CPanelWidgetTmpl : public B
 {
 public:
-	CPanelWidget(QWidget *parent = 0) : B(parent)
+	CPanelWidgetTmpl(T* pTree, QWidget *parent = 0) : B(parent)
 	{
 		m_pMainLayout = new QVBoxLayout();
 		m_pMainLayout->setContentsMargins(0,0,0,0);
 		this->setLayout(m_pMainLayout);
 
-		m_pTreeList = new T();
+		m_pTreeList = pTree ? pTree : new T();
 		m_pTreeList->setContextMenuPolicy(Qt::CustomContextMenu);
 		connect(m_pTreeList, SIGNAL(customContextMenuRequested( const QPoint& )), this, SLOT(OnMenu(const QPoint &)));
 		m_pMainLayout->addWidget(m_pTreeList);
@@ -104,19 +104,19 @@ protected:
 #include "TreeWidgetEx.h"
 #include "Finder.h"
 
-class MISCHELPERS_EXPORT CPanelWidgetEx : public CPanelWidget<QTreeWidgetEx>
+class MISCHELPERS_EXPORT CPanelWidgetX : public CPanelWidgetTmpl<QTreeWidget>
 {
 	Q_OBJECT
 
 public:
-	CPanelWidgetEx(QWidget *parent = 0) : CPanelWidget<QTreeWidgetEx>(parent) 
+	CPanelWidgetX(QTreeWidget* pTree, QWidget *parent = 0) : CPanelWidgetTmpl<QTreeWidget>(pTree, parent) 
 	{
 		m_pFinder = new CFinder(NULL, this, CFinder::eRegExp | CFinder::eCaseSens);
 		m_pMainLayout->addWidget(m_pFinder);
 		QObject::connect(m_pFinder, SIGNAL(SetFilter(const QString&, int, int)), this, SLOT(SetFilter(const QString&, int, int)));
 	}
 
-	static void ApplyFilter(QTreeWidgetEx* pTree, QTreeWidgetItem* pItem, const QRegularExpression* Exp/*, bool bHighLight = false, int Col = -1*/)
+	static void ApplyFilter(QTreeWidget* pTree, QTreeWidgetItem* pItem, const QRegularExpression* Exp/*, bool bHighLight = false, int Col = -1*/)
 	{
 		for (int j = 0; j < pTree->columnCount(); j++) {
 			pItem->setForeground(j, (m_DarkMode && Exp && pItem->text(j).contains(*Exp)) ? Qt::yellow : pTree->palette().color(QPalette::WindowText));
@@ -127,7 +127,7 @@ public:
 			ApplyFilter(pTree, pItem->child(i), Exp/*, bHighLight, Col*/);
 	}
 
-	static void ApplyFilter(QTreeWidgetEx* pTree, const QRegularExpression* Exp/*, bool bHighLight = false, int Col = -1*/)
+	static void ApplyFilter(QTreeWidget* pTree, const QRegularExpression* Exp/*, bool bHighLight = false, int Col = -1*/)
 	{
 		for (int i = 0; i < pTree->topLevelItemCount(); i++)
 			ApplyFilter(pTree, pTree->topLevelItem(i), Exp/*, bHighLight, Col*/);
@@ -145,17 +145,25 @@ private slots:
 	}
 
 private:
-	
+
 	CFinder*				m_pFinder;
+};
+
+class MISCHELPERS_EXPORT CPanelWidgetEx : public CPanelWidgetX
+{
+	Q_OBJECT
+
+public:
+	CPanelWidgetEx(QWidget *parent = 0) : CPanelWidgetX(new QTreeWidgetEx(parent), parent) { }
 };
 
 #include "TreeViewEx.h"
 #include "SortFilterProxyModel.h"
 
-/*class CPanelViewEx: public CPanelWidget<QTreeViewEx>
+/*class CPanelViewEx: public CPanelWidgetTmpl<QTreeViewEx>
 {
 public:
-	CPanelViewEx(QAbstractItemModel* pModel, QWidget *parent = 0) : CPanelWidget<QTreeViewEx>(parent)
+	CPanelViewEx(QAbstractItemModel* pModel, QWidget *parent = 0) : CPanelWidgetTmpl<QTreeViewEx>(NULL, parent)
 	{
 		m_pModel = pModel;
 
@@ -250,7 +258,25 @@ public:
 	}
 
 	typename M::ItemType		GetCurrentItem()	{ return m_CurrentItem; }
-	QList<typename M::ItemType>	GetSelectedItem()	{ return m_SelectedItems; }
+	QList<typename M::ItemType>	GetSelectedItems()	{ return m_SelectedItems; }
+	QList<typename M::ItemType>	GetSelectedItemsWithChildren()
+	{
+		QList<typename M::ItemType> List;
+		foreach(const QModelIndex& Index, m_pTreeView->selectedRows())
+		{
+			QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
+			typename M::ItemType pItem = m_pItemModel->GetItem(ModelIndex);
+			if (!pItem)
+				continue;
+			List.append(pItem);
+			List.append(GetChildren(ModelIndex));
+		}
+		return List;
+	}
+
+	QTreeView*					GetView()			{ return m_pTreeView; }
+	QAbstractItemModel*			GetModel()			{ return m_pSortProxy; }
+	QAbstractItemModel*			GetItemModel()		{ return m_pItemModel; }
 
 protected:
 
@@ -278,10 +304,22 @@ protected:
 		m_SelectedItems = List;
 		emit SelectionChanged();
 	}
-
-	QTreeView*					GetView()			{ return m_pTreeView; }
-	QAbstractItemModel*			GetModel()			{ return m_pSortProxy; }
 	
+	QList<typename M::ItemType> GetChildren(QModelIndex ModelIndex)
+	{
+		QList<typename M::ItemType> List;
+		for (int i = 0; i < m_pItemModel->rowCount(ModelIndex); i++)
+		{
+			QModelIndex ChildIndex = m_pItemModel->index(i, 0, ModelIndex);
+			typename M::ItemType pItem = m_pItemModel->GetItem(ChildIndex);
+			if (!pItem)
+				continue;
+			List.append(pItem);
+			List.append(GetChildren(ChildIndex));
+		}
+		return List;
+	}
+
 	QVBoxLayout*				m_pMainLayout;
 
 	T*							m_pTreeView;
