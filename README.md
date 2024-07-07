@@ -26,6 +26,7 @@ If you want to publicly distribute self-compiled binaries review the LICENSE fil
 * Proxy Injection - Force arbitrary processes to use pre-defined network proxies. (Progress: 0%)
 * Secure Drives - Create encrypted volumes stored in disk images fully guarded by File/Folder protection to prevent unauthorized access to confidential data. (Progress: 40%)
 * Tweak Engine - Hardens windows configuration by disabling undesired telemetry and cloud features. (Progress: 90%)
+* Integrity level control - set the integrity level of processes in a secure enclave to "Protected" to isolate user objects, including their windows, from other processes（Progress: 0%)
 
 
 ## 📌 Project support / sponsorship
