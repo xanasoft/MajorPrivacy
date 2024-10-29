@@ -3,10 +3,12 @@
 #include "../Library/Common/Buffer.h"
 #include "../Library/Common/Variant.h"
 #include "../Library/Helpers/ConfigIni.h"
+#include "../Library/Helpers/EvtUtil.h"
 
 
 class CServiceCore
 {
+	TRACK_OBJECT(CServiceCore)
 public:
 	static STATUS Startup(bool bEngineMode = false);
 	static void Shutdown();

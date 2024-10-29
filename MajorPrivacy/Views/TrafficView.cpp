@@ -21,6 +21,26 @@ CTrafficView::CTrafficView(QWidget *parent)
 	} else
 		m_pTreeView->restoreState(Columns);
 
+	m_pMainLayout->setSpacing(1);
+
+	m_pToolBar = new QToolBar();
+	m_pMainLayout->insertWidget(0, m_pToolBar);
+
+	m_pCmbGrouping = new QComboBox();
+	m_pCmbGrouping->addItems(QStringList() << tr("By Host") << tr("By Program"));
+	m_pToolBar->addWidget(m_pCmbGrouping);
+
+	int comboBoxHeight = m_pCmbGrouping->sizeHint().height();
+
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
+
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	m_pToolBar->addWidget(pBtnSearch);
+
 	AddPanelItemsToMenu();
 }
 
@@ -31,30 +51,32 @@ CTrafficView::~CTrafficView()
 
 void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services)
 {
-	if (m_CurPrograms != Programs || m_CurServices != Services) {
+	bool bGroupByProgram = m_pCmbGrouping->currentIndex() == 1;
+
+	if (m_CurPrograms != Programs || m_CurServices != Services || bGroupByProgram != m_bGroupByProgram) {
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
-		m_HostMap.clear();
-		m_CurTraffic.clear();
+		m_ParentMap.clear();
+		m_TrafficMap.clear();
 		m_pItemModel->Clear();
 	}
 
-	auto OldTraffic = m_CurTraffic;
+	m_bGroupByProgram = bGroupByProgram;
 
-	foreach(auto& pItem, m_HostMap)
+	auto OldTraffic = m_TrafficMap;
+
+	foreach(auto& pItem, m_ParentMap)
 		pItem->pEntry->Reset();
 
-	std::function<void(const CProgramItemPtr&, const CTrafficEntryPtr&)> AddEntry = [&](const CProgramItemPtr& pProg, const CTrafficEntryPtr& pEntry) {
+	std::function<void(const CProgramItemPtr&, const CTrafficEntryPtr&)> AddByDomain = [&](const CProgramItemPtr& pProg, const CTrafficEntryPtr& pEntry) {
 
-		QString HostName = pEntry->GetHostName();
-
-		STrafficItemPtr& pItem = m_HostMap[HostName];
+		STrafficItemPtr& pItem = m_ParentMap[pEntry->GetHostName()];
 		if(pItem.isNull())
 		{
 			pItem = STrafficItemPtr(new STrafficItem());
 			pItem->pEntry = CTrafficEntryPtr(new CTrafficEntry());
-			pItem->pEntry->SetHostName(HostName);
-			m_CurTraffic.insert((uint64)pItem->pEntry.get(), pItem);
+			pItem->pEntry->SetHostName(pEntry->GetHostName());
+			m_TrafficMap.insert((uint64)pItem->pEntry.get(), pItem);
 		}
 		else
 			OldTraffic.remove((uint64)pItem->pEntry.get());
@@ -65,7 +87,32 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 			pSubItem->pEntry = pEntry;	
 			pSubItem->pProg = pProg;
 			pSubItem->Parent = (uint64)pItem->pEntry.get();
-			m_CurTraffic.insert((uint64)pSubItem->pEntry.get(), pSubItem);
+			m_TrafficMap.insert((uint64)pSubItem->pEntry.get(), pSubItem);
+		}
+
+		pItem->pEntry->Merge(pEntry);
+	};
+
+	std::function<void(const CProgramItemPtr&, const CTrafficEntryPtr&)> AddByProgram = [&](const CProgramItemPtr& pProg, const CTrafficEntryPtr& pEntry) {
+
+		STrafficItemPtr& pItem = m_ParentMap[QString::number((quint64)pProg.get())];
+		if(pItem.isNull())
+		{
+			pItem = STrafficItemPtr(new STrafficItem());
+			pItem->pEntry = CTrafficEntryPtr(new CTrafficEntry());
+			pItem->pProg = pProg;
+			pItem->pEntry->SetHostName(pEntry->GetHostName());
+			m_TrafficMap.insert((uint64)pItem->pEntry.get(), pItem);
+		}
+		else
+			OldTraffic.remove((uint64)pItem->pEntry.get());
+
+		STrafficItemPtr pSubItem = OldTraffic.take((uint64)pEntry.get());
+		if (!pSubItem) {
+			pSubItem = STrafficItemPtr(new STrafficItem());
+			pSubItem->pEntry = pEntry;	
+			pSubItem->Parent = (uint64)pItem->pEntry.get();
+			m_TrafficMap.insert((uint64)pSubItem->pEntry.get(), pSubItem);
 		}
 
 		pItem->pEntry->Merge(pEntry);
@@ -74,21 +121,27 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 	foreach(const CProgramFilePtr& pProgram, Programs) {
 		QMap<QString, CTrafficEntryPtr> Log = pProgram->GetTrafficLog();
 		for (auto I = Log.begin(); I != Log.end(); I++)
-			AddEntry(pProgram, I.value());
+			if(m_bGroupByProgram)
+				AddByProgram(pProgram, I.value());
+			else
+				AddByDomain(pProgram, I.value());
 	}
 	foreach(const CWindowsServicePtr& pService, Services) {
 		QMap<QString, CTrafficEntryPtr> Log = pService->GetTrafficLog();
 		for (auto I = Log.begin(); I != Log.end(); I++)
-			AddEntry(pService, I.value());
+			if(m_bGroupByProgram)
+				AddByProgram(pService, I.value());
+			else
+				AddByDomain(pService, I.value());
 	}
 
 	foreach(quint64 Key, OldTraffic.keys()) {
-		STrafficItemPtr pOld = m_CurTraffic.take(Key);
+		STrafficItemPtr pOld = m_TrafficMap.take(Key);
 		if(pOld->pProg.isNull())
-			m_HostMap.remove(pOld->pEntry->GetHostName());
+			m_ParentMap.remove(pOld->pEntry->GetHostName());
 	}
 
-	QList<QModelIndex> Added = m_pItemModel->Sync(m_CurTraffic);
+	QList<QModelIndex> Added = m_pItemModel->Sync(m_TrafficMap);
 
 	if (m_CurPrograms.count() + m_CurServices.count() > 1)
 	{

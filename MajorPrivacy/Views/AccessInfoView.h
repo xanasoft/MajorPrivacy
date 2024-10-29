@@ -28,6 +28,8 @@ private:
 		eCount
 	};
 
-	QGridLayout*			m_pMainLayout;
+	QVBoxLayout*			m_pMainLayout;
 	CPanelWidgetEx*			m_pInfo;
+
+	QToolBar*				m_pToolBar;
 };

@@ -14,9 +14,12 @@ CGenericRule::CGenericRule(const CProgramID& ID, QObject* parent)
 	m_ProgramID = ID;
 }
 
-void CGenericRule::CopyTo(CGenericRule* pRule) const
+void CGenericRule::CopyTo(CGenericRule* pRule, bool CloneGuid) const
 {
-	pRule->m_Guid = QUuid::createUuid().toString();
+	if(CloneGuid)
+		pRule->m_Guid = m_Guid;
+	else
+		pRule->m_Guid = QUuid::createUuid().toString();
 		
 	pRule->m_Name = m_Name + tr(" (duplicate)");
 	//pRule->m_Grouping = m_Grouping;

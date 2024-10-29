@@ -3,6 +3,7 @@
 
 class CVolume
 {
+	TRACK_OBJECT(CVolume)
 public:
 	CVolume();
 	~CVolume();
@@ -22,6 +23,10 @@ public:
 	std::wstring m_MountPoint;
 	uint64 m_VolumeSize = 0;
 	HANDLE m_ProcessHandle = NULL;
+	bool m_bProtected = false;
+	bool m_bDataDirty = false;
+
+	CVariant m_Data;
 };
 
 typedef std::shared_ptr<CVolume> CVolumePtr;

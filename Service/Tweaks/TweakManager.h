@@ -3,6 +3,7 @@
 
 class CTweakManager
 {
+	TRACK_OBJECT(CTweakManager)
 public:
 	CTweakManager();
 	~CTweakManager();

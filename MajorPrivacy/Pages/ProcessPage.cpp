@@ -79,12 +79,12 @@ void CProcessPage::Update()
 
 	if (m_pExecutionView->isVisible())
 	{
-		m_pExecutionView->Sync(Current.Programs, Current.bAllPrograms);
+		m_pExecutionView->Sync(Current.Programs, Current.ServicesEx | Current.ServicesIm, Current.bAllPrograms);
 	}
 
 	if (m_pIngressView->isVisible())
 	{
-		m_pIngressView->Sync(Current.Programs, Current.bAllPrograms);
+		m_pIngressView->Sync(Current.Programs, Current.ServicesEx | Current.ServicesIm, Current.bAllPrograms);
 	}
 
 	if (m_pTraceView->isVisible())

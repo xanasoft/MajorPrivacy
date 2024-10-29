@@ -20,6 +20,18 @@ CDnsCacheView::CDnsCacheView(QWidget *parent)
 	} else
 		m_pTreeView->restoreState(Columns);
 
+	m_pMainLayout->setSpacing(1);
+
+	m_pToolBar = new QToolBar();
+	m_pMainLayout->insertWidget(0, m_pToolBar);
+
+	m_pBtnClear = new QToolButton();
+	m_pBtnClear->setIcon(QIcon(":/Icons/Clean.png"));
+	m_pBtnClear->setToolTip(tr("Clear System DNS Cache"));
+	m_pBtnClear->setFixedHeight(22);
+	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(FlushDnsCache()));
+	m_pToolBar->addWidget(m_pBtnClear);
+
 	AddPanelItemsToMenu();
 }
 
@@ -42,4 +54,9 @@ void CDnsCacheView::OnDoubleClicked(const QModelIndex& Index)
 void CDnsCacheView::OnMenu(const QPoint& Point)
 {
 	CPanelView::OnMenu(Point);
+}
+
+void CDnsCacheView::FlushDnsCache()
+{
+	theCore->FlushDnsCache();
 }

@@ -292,6 +292,7 @@ struct SVarWriteOpt
 	{
 		eNone = 0,
 		eSaveAll,
+		eSaveNtPaths,
 	};
 	uint32 Flags = eNone;
 };

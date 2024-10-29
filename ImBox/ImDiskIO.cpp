@@ -97,6 +97,7 @@ BOOL WINAPI MyImDiskCliValidateDriveLetterTarget(LPCWSTR DriveLetter, LPCWSTR Va
 struct SImDiskIO
 {
 	std::wstring Mount;
+    UINT Number;
 	std::wstring Format;
 	std::wstring Params;
 	HANDLE hImDisk;
@@ -107,11 +108,12 @@ struct SImDiskIO
     SSection* pSection;
 };
 
-CImDiskIO::CImDiskIO(CAbstractIO* pIO, const std::wstring& Mount, const std::wstring& Format, const std::wstring& Params)
+CImDiskIO::CImDiskIO(CAbstractIO* pIO, const std::wstring& Mount, UINT Number, const std::wstring& Format, const std::wstring& Params)
 {
 	m = new SImDiskIO;
 
 	m->Mount = Mount;
+    m->Number = Number;
 	m->Format = Format;
 	m->Params = Params;
 	m->hImDisk = INVALID_HANDLE_VALUE;
@@ -313,6 +315,7 @@ int CImDiskIO::DoComm()
 	PROCESS_INFORMATION pi;
 	std::wstring cmd = L"imdisk -a -t proxy -o shm -f " + m->Proxy;
 	if (!m->Mount.empty()) cmd += L" -m \"" + m->Mount + L"\"";
+    if (m->Number) cmd += L" -u \"" + std::to_wstring(m->Number) + L"\"";
 	if (!m->Params.empty())cmd += L" " + m->Params;
 	if (!CreateProcess(NULL, (WCHAR*)cmd.c_str(), NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
 		DbgPrint(L"Failed to run imdisk.exe.\n");

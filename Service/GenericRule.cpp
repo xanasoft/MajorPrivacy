@@ -8,20 +8,28 @@ CGenericRule::CGenericRule(const CProgramID& ID)
     m_ProgramID = ID;
 }
 
-void CGenericRule::CopyTo(CGenericRule* Rule) const
+void CGenericRule::MkGuid()
 {
-    std::shared_lock Lock(m_Mutex); 
-
     GUID myGuid;
     RPC_STATUS status = UuidCreate(&myGuid);
     if (status == RPC_S_OK || status == RPC_S_UUID_LOCAL_ONLY) {
         RPC_WSTR guidString = NULL;
         status = UuidToStringW(&myGuid, &guidString);
         if (status == RPC_S_OK) {
-            Rule->m_Guid = std::wstring((wchar_t*)guidString, wcslen((wchar_t*)guidString));
+            m_Guid = std::wstring((wchar_t*)guidString, wcslen((wchar_t*)guidString));
             RpcStringFreeW(&guidString);
         }
     }
+}
+
+void CGenericRule::CopyTo(CGenericRule* Rule, bool CloneGuid) const
+{
+    std::shared_lock Lock(m_Mutex); 
+
+    if(CloneGuid)
+        Rule->m_Guid = m_Guid;
+	else
+		Rule->MkGuid();
 
 	Rule->m_Name = m_Name;
 

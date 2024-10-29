@@ -16,7 +16,7 @@
 
 #pragma once
 
-#define MY_ABI_VERSION  0x009500
+#define MY_ABI_VERSION  0x009600
 
 /////////////////////////////////////////////////////////////////////////////
 // Driver
@@ -116,6 +116,7 @@ enum {
 	SVC_API_GET_SOCKETS,
 	SVC_API_GET_TRAFFIC,
 	SVC_API_GET_DNC_CACHE,
+	SVC_API_FLUSH_DNS_CACHE,
 
 	// Program Manager
 	SVC_API_GET_PROCESSES,      // live runnign or recently terminated processes
@@ -138,6 +139,7 @@ enum {
 
 	// Access Manager
 	SVC_API_GET_HANDLES,
+	SVC_API_CLEAR_LOGS,
 
 	// Volume Manager
 	SVC_API_VOL_CREATE_IMAGE,
@@ -249,6 +251,7 @@ API_V_STATIC : unsigned long
 	API_V_PROG_TYPE				= 'prtp',	// EProgramType
 
 	API_V_FILE_PATH				= 'path',	// String
+	API_V_FILE_PATH2			= 'pat2',	// String
 	API_V_SVC_TAG				= 'stag',	// String
 	API_V_APP_SID				= 'asid',	// String
 	API_V_APP_NAME				= 'appn',	// String
@@ -289,11 +292,13 @@ API_V_STATIC : unsigned long
 
 	API_V_RULE_DATA				= 'data',	// Variant
 
-	API_V_RULE_DATA_REF_GUID	= 'rgid',				
+	API_V_RULE_DATA_REF_GUID	= 'rgid',
 
 // Access Rules
 	API_V_ACCESS_RULE_ACTION	= 'atyp',	// EAccessRuleType
 	API_V_ACCESS_PATH			= 'afnp',	// String
+	API_V_ACCESS_PATH2			= 'afn2',	// String
+	API_V_VOL_RULE				= 'vrul',	// bool
 
 // Execution Rules
 	API_V_EXEC_RULE_ACTION		= 'xtyp',	// CProgramRule::EType
@@ -384,6 +389,8 @@ API_V_DYNAMIC : unsigned long
 	API_V_EIDS,
 	API_V_SEC,
 
+	API_V_USER_SID,
+
 	API_V_N_MS_IMG,
 	API_V_N_AV_IMG,
 	API_V_N_V_IMG,
@@ -436,6 +443,7 @@ API_V_DYNAMIC : unsigned long
 	API_V_EVENT_OPERATION,
 	API_V_EVENT_ACCESS,
 	API_V_EVENT_ACCESS_STATUS,
+	API_V_EVENT_STATUS,
 
 	API_V_EVENT_INDEX,
 	API_V_EVENT_DATA,
@@ -507,6 +515,7 @@ API_V_DYNAMIC : unsigned long
 	API_V_VOL_MOUNT_POINT,
 	API_V_VOL_SIZE,
 	API_V_VOL_PASSWORD,
+	API_V_VOL_PROTECT,
 	API_V_VOL_CIPHER,
 	API_V_VOL_OLD_PASS,
 	API_V_VOL_NEW_PASS,
@@ -562,13 +571,18 @@ API_V_DYNAMIC : unsigned long
 // Event log ID's
 //
 
-#define SVC_EVENT_DRIVER_FAILED 0x0101
-#define SVC_EVENT_BLOCK_PROC    0x0102
-#define SVC_EVENT_KILL_FAILED   0x0103
+#define SVC_EVENT_DRIVER_FAILED		0x0101
+#define SVC_EVENT_BLOCK_PROC		0x0102
+#define SVC_EVENT_KILL_FAILED		0x0103
+#define SVC_EVENT_SVC_INIT_FAILED	0x0104
+#define SVC_EVENT_SVC_STATUS_MSG	0x0105
+#define SVC_EVENT_VOL_PROTECT_ERROR	0x0106
 
 
 /////////////////////////////////////////////////////////////////////////////
 //
 //
+
+#define DEF_MP_SYS_FILE L"\\$mpsys$"
 
 #include "PrivacyAPIs.h"

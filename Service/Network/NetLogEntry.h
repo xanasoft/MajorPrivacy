@@ -6,6 +6,7 @@
 
 class CNetLogEntry: public CTraceLogEntry
 {
+	TRACK_OBJECT(CNetLogEntry)
 public:
 	CNetLogEntry(const struct SWinFwLogEvent* pEvent, EFwEventStates State, const CHostNamePtr& pRemoteHostName, uint64 PID, const std::wstring& ServiceTag = L"", const std::wstring& AppSid = L"");
 

@@ -14,6 +14,8 @@ CWindowsFwLog::CWindowsFwLog()
 
 CWindowsFwLog::~CWindowsFwLog()
 {
+	Stop();
+
 	if (m_OldAuditingMode != -1) 
 		SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, 1, m_OldAuditingMode, NULL);
 }
@@ -171,6 +173,8 @@ void CWindowsFwLog::OnEvent(EVT_HANDLE hEvent)
 {
 	SWinFwLogEvent Event;
 	ReadEvent(hEvent, Event);
+	if(Event.Type == EFwActions::Undefined)
+		return;
 
 	std::unique_lock<std::mutex> Lock(m_HandlersMutex);
 	for (auto Handler : m_Handlers)

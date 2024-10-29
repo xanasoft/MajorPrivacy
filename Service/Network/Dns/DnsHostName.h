@@ -12,6 +12,7 @@ enum class EDnsSource
 
 class CHostName 
 {
+	TRACK_OBJECT(CHostName)
 public:
 	virtual ~CHostName() {}
 
@@ -30,6 +31,7 @@ typedef std::weak_ptr<CHostName> CHostNameRef;
 
 class CResHostName : public CHostName 
 {
+	TRACK_OBJECT(CResHostName)
 public:
 	CResHostName(uint64 TimeStamp) {
 		m_TimeStamp = TimeStamp;

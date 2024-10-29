@@ -11,6 +11,7 @@ public:
     CProgramRule(const CProgramID& ID, QObject* parent = NULL);
 
 	QString GetProgramPath() const					{return m_ProgramPath;}
+	QString GetProgramNtPath() const				{return m_ProgramNtPath;}
 
 	EExecRuleType GetType() const					{return m_Type;}
 	QString GetTypeStr() const;
@@ -32,7 +33,8 @@ protected:
 	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
 
 	EExecRuleType m_Type = EExecRuleType::eUnknown;
-	QString m_ProgramPath; // can be pattern
+	QString m_ProgramPath;
+	QString m_ProgramNtPath;
 	KPH_VERIFY_AUTHORITY m_SignatureLevel = KPH_VERIFY_AUTHORITY::KphUntestedAuthority;
 	EProgramOnSpawn m_OnTrustedSpawn = EProgramOnSpawn::eAllow;
 	EProgramOnSpawn m_OnSpawn = EProgramOnSpawn::eEject;

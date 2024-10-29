@@ -949,6 +949,8 @@ ULONG SWindowsFirewall::SetFWConfig(FW_PROFILE_TYPE profile, FW_PROFILE_CONFIG c
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CWindowsFirewall
 
+CWindowsFirewall* CWindowsFirewall::m_Instance = NULL;
+
 CWindowsFirewall::CWindowsFirewall()
 {
     m = new SWindowsFirewall;
@@ -967,24 +969,35 @@ CWindowsFirewall::~CWindowsFirewall()
 {
     DeleteCriticalSection(&m->cPolicyLock);
 
-    if (m->hPolicyHandle && m->pFWClosePolicyStore)
-        m->pFWClosePolicyStore(&m->hPolicyHandle);
+    // fixme: FWClosePolicyStore crashes
+    //if (m->hPolicyHandle && m->pFWClosePolicyStore)
+    //    m->pFWClosePolicyStore(&m->hPolicyHandle);
+
+    delete m;
 }
 
 CWindowsFirewall* CWindowsFirewall::Instance()
 {
     //static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static CWindowsFirewall* instance = NULL;
 
     //if (PhBeginInitOnce(&initOnce))
-    if (!instance) // todo
+    if (!m_Instance) // todo
     {
-        instance = new CWindowsFirewall();
+        m_Instance = new CWindowsFirewall();
 
     //    PhEndInitOnce(&initOnce);
     }
 
-    return instance;
+    return m_Instance;
+}
+
+void CWindowsFirewall::Dispose()
+{
+	if (m_Instance)
+	{
+		delete m_Instance;
+		m_Instance = NULL;
+	}
 }
 
 bool CWindowsFirewall::IsReady()

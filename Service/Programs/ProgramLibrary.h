@@ -4,6 +4,7 @@
 
 class CProgramLibrary
 {
+	TRACK_OBJECT(CProgramLibrary)
 public:
 	CProgramLibrary(const std::wstring& Path = L"");
 

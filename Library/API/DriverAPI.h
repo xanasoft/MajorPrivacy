@@ -111,6 +111,7 @@ struct SResourceAccessEvent : public SProcessEventEx
 	std::wstring Path;
 	uint32 AccessMask = 0;
 	EEventStatus Status = EEventStatus::eUndefined;
+	NTSTATUS NtStatus = 0;
 };
 
 typedef std::shared_ptr<SProcessEvent> SProcessEventPtr;
@@ -134,7 +135,7 @@ public:
 	CDriverAPI(EInterface Interface = eFltPort);
 	virtual ~CDriverAPI();
 
-	STATUS InstallDrv();
+	STATUS InstallDrv(uint32 TraceLogLevel = 0);
 	STATUS ConnectDrv();
 	bool IsConnected();
 	STATUS Reconnect();
@@ -169,19 +170,19 @@ public:
     void RegisterProcessHandler(T Handler, C This) { RegisterProcessHandler(std::bind(Handler, This, std::placeholders::_1)); }
 
 	STATUS RegisterForRuleEvents(ERuleType Type, bool bRegister = true);
-	void RegisterRuleEventHandler(ERuleType Type, const std::function<void(const std::wstring& Guid, ERuleEvent Event, ERuleType Type)>& Handler);
+	void RegisterRuleEventHandler(ERuleType Type, const std::function<void(const std::wstring& Guid, ERuleEvent Event, ERuleType Type, uint64 PID)>& Handler);
 	template<typename T, class C>
-	void RegisterRuleEventHandler(ERuleType Type, T Handler, C This) { RegisterRuleEventHandler(Type, std::bind(Handler, This, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)); }
+	void RegisterRuleEventHandler(ERuleType Type, T Handler, C This) { RegisterRuleEventHandler(Type, std::bind(Handler, This, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)); }
 
 	void TestDrv();
 
 protected:
 	friend sint32 CDriverAPI__EmitProcess(CDriverAPI* This, const SProcessEvent* pEvent);
-	friend void CDriverAPI__EmitRuleEvent(CDriverAPI* This, ERuleType Type, const std::wstring& Guid, ERuleEvent Event);
+	friend void CDriverAPI__EmitRuleEvent(CDriverAPI* This, ERuleType Type, const std::wstring& Guid, ERuleEvent Event, uint64 PID);
 
 	std::mutex m_HandlersMutex;
 	std::vector<std::function<sint32(const SProcessEvent* pEvent)>> m_ProcessHandlers;
-	std::map<ERuleType, std::function<void(const std::wstring& Guid, ERuleEvent Event, ERuleType Type)>> m_RuleEventHandlers;
+	std::map<ERuleType, std::function<void(const std::wstring& Guid, ERuleEvent Event, ERuleType Type, uint64 PID)>> m_RuleEventHandlers;
 
 	EInterface m_Interface;
 	class CAbstractClient* m_pClient;

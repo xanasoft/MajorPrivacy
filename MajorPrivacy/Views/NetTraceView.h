@@ -14,6 +14,13 @@ public:
 	CNetTraceView(QWidget *parent = 0);
 	virtual ~CNetTraceView();
 
+private slots:
+	void					UpdateFilter();
+
 protected:
+
+	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbAction;
+	QComboBox*				m_pCmbType;
 
 };

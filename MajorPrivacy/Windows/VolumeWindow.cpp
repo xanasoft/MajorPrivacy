@@ -118,8 +118,8 @@ CVolumeWindow::CVolumeWindow(EAction Action, QWidget *parent)
 	ui.cmbCipher->addItem("Serpent-AES", 5);
 	ui.cmbCipher->addItem("AES-Twofish-Serpent", 6);
 
-	//if (m_Action != eMount)
-	ui.chkProtect->setVisible(false); // todo
+	if (m_Action != eMount)
+		ui.chkProtect->setVisible(false);
 
 	//restoreGeometry(theConf->GetBlob("VolumeWindow/Window_Geometry"));
 }

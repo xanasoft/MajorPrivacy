@@ -23,6 +23,11 @@ protected:
 private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
+
+	void					FlushDnsCache();
+
 private:
 
+	QToolBar*				m_pToolBar;
+	QToolButton*			m_pBtnClear;
 };

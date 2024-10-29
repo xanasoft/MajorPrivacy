@@ -6,6 +6,7 @@
 #include "../Library/Common/XVariant.h"
 #include "TraceLogEntry.h"
 #include "Programs/ProgramFile.h"
+#include "../Helpers/SidResolver.h"
 
 class CPrivacyCore : public QObject
 {
@@ -141,9 +142,12 @@ public:
 
 	RESULT(XVariant)	GetDnsCache();
 
+	STATUS				FlushDnsCache();
+
 	// Access Manager
 	RESULT(XVariant)	GetHandlesFor(const QList<const class CProgramItem*>& Nodes);
 	RESULT(XVariant)	GetAllHandles();
+	STATUS				ClearLogs();
 
 	// Program Item
 	RESULT(XVariant)	GetLibraryStats(const class CProgramID& ID);
@@ -156,7 +160,7 @@ public:
 
 	// Volume Manager
 	RESULT(XVariant)	GetVolumes();
-	STATUS				MountVolume(const QString& Path, const QString& MountPoint, const QString& Password);
+	STATUS				MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect);
 	STATUS				DismountVolume(const QString& MountPoint);
 	STATUS				DismountAllVolumes();
 	STATUS				CreateVolume(const QString& Path, const QString& Password, quint64 ImageSize = 0, const QString& Cipher = QString());
@@ -172,6 +176,11 @@ public:
 
 	// Support
 	RESULT(XVariant)	GetSupportInfo();
+
+	// 
+
+
+	CSidResolver*		GetSidResolver() {return m_pSidResolver;}
 
 signals:
 	void				UnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
@@ -216,6 +225,8 @@ protected:
 	//	ERuleEvent Event;
 	//};
 	//QMap<ERuleType, QQueue<SDrvRuleEvent>> m_DrvEventQueue;
+
+	CSidResolver* m_pSidResolver;
 };
 
 extern CSettings* theConf;

@@ -433,6 +433,15 @@ SEventLogDll* CEventLogListener::Dll()
     return m_Dll;
 }
 
+void CEventLogListener::FreeDll()
+{
+	if (m_Dll)
+	{
+		delete m_Dll;
+		m_Dll = NULL;
+	}
+}
+
 EVT_HANDLE CEventLogListener::EvtSubscribe(EVT_HANDLE Session, HANDLE SignalEvent, LPCWSTR ChannelPath, LPCWSTR Query, EVT_HANDLE Bookmark, PVOID Context, EVT_SUBSCRIBE_CALLBACK Callback, DWORD Flags)
 {
     auto func = Dll()->pEvtSubscribe;
@@ -506,6 +515,40 @@ void CEventLogger::LogEvent(WORD wType, WORD wCategory, DWORD dwEventID, const s
 void CEventLogger::LogEvent(WORD wType, WORD wCategory, DWORD dwEventID, const std::vector<const wchar_t*>& strings, const CBuffer* pData)
 {
     ReportEventW(m_Handle, wType, wCategory, dwEventID, NULL, (WORD)strings.size(), pData ? (DWORD)pData->GetSize() : 0, (LPCWSTR*)strings.data(), pData ? (LPVOID)pData->GetBuffer() : NULL);
+}
+
+void CEventLogger::LogEventLine(WORD wType, WORD wCategory, DWORD dwEventID, const wchar_t* pFormat, ...)
+{
+    va_list argptr; 
+    va_start(argptr, pFormat);
+
+    LogEventLine(wType, wCategory, dwEventID, NULL, pFormat, argptr);
+
+    va_end(argptr);
+}
+
+void CEventLogger::LogEventLine(WORD wType, WORD wCategory, DWORD dwEventID, const CBuffer* pData, const wchar_t* pFormat, ...)
+{
+    va_list argptr; 
+    va_start(argptr, pFormat);
+
+    LogEventLine(wType, wCategory, dwEventID, pData, pFormat, argptr);
+
+    va_end(argptr);
+}
+
+void CEventLogger::LogEventLine(WORD wType, WORD wCategory, DWORD dwEventID, const CBuffer* pData, const wchar_t* pFormat, va_list ArgList)
+{
+    const size_t bufferSize = 10241;
+    wchar_t bufferline[bufferSize];
+#ifndef WIN32
+    if (vswprintf_l(bufferline, bufferSize, sLine, argptr) == -1)
+#else
+    if (vswprintf(bufferline, bufferSize, pFormat, ArgList) == -1)
+#endif
+        bufferline[bufferSize - 1] = L'\0';
+
+    LogEvent(wType, wCategory, dwEventID, bufferline, pData);
 }
 
 void CEventLogger::ClearLog(const wchar_t* name)

@@ -16,6 +16,7 @@ public:
 
 	std::wstring GetGuid() const			{ std::shared_lock Lock(m_Mutex); return m_Guid; }
 	
+	void SetName(const std::wstring& Name)	{ std::unique_lock Lock(m_Mutex); m_Name = Name; }
 	std::wstring GetName() const			{ std::shared_lock Lock(m_Mutex); return m_Name; }
 	//std::wstring GetGrouping() const		{ std::shared_lock Lock(m_Mutex); return m_Grouping; }
 	std::wstring GetDescription() const		{ std::shared_lock Lock(m_Mutex); return m_Description; }
@@ -36,7 +37,8 @@ public:
 	virtual NTSTATUS FromVariant(const CVariant& Rule);
 
 protected:
-	void CopyTo(CGenericRule* Rule) const;
+	void MkGuid();
+	void CopyTo(CGenericRule* Rule, bool CloneGuid = false) const;
 
 	virtual void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
 	virtual void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;

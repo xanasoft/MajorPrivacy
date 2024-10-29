@@ -68,8 +68,9 @@ STATUS CServiceAPI::ConnectSvc()
 
     SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
 	if ((SvcState & SVC_INSTALLED) != SVC_INSTALLED) {
-		Status = InstallSvc();
-		if (!Status) return Status;
+		return ERR(STATUS_DEVICE_NOT_READY);
+		//Status = InstallSvc();
+		//if (!Status) return Status;
 	}
     if ((SvcState & SVC_RUNNING) != SVC_RUNNING)
         Status = RunService(API_SERVICE_NAME);

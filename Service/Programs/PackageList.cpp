@@ -172,11 +172,12 @@ bool CPackageList::LoadFromCache()
         return false;
 
     CVariant List;
-    try {
-        List.FromPacket(&Data, true);
-    } catch (const CException&) {
-        return false;
-    }
+    //try {
+    if(List.FromPacket(&Data, true) != CVariant::eErrNone)
+		return false;
+    //} catch (const CException&) {
+    //    return false;
+    //}
 
     for (uint32 i = 0; i < List.Count(); i++)
     {
@@ -226,5 +227,5 @@ void CPackageList::StoreToCache()
 
     CBuffer Data;
     List.ToPacket(&Data);
-    WriteFile(theCore->GetDataFolder() + L"\\AppPackages.dat", 0, Data);
+    WriteFile(theCore->GetDataFolder() + L"\\AppPackages.dat", 0, Data); 
 }

@@ -21,9 +21,17 @@ public:
 
 	virtual void CountStats();
 
+	QMap<quint64, CProgramFile::SExecutionInfo> GetExecStats();
+
+	QMap<quint64, CProgramFile::SIngressInfo> GetIngressStats();
+
 	virtual QMap<quint64, SAccessStatsPtr>	GetAccessStats();
 
 	virtual QMap<QString, CTrafficEntryPtr>	GetTrafficLog();
+
+	virtual void ClearAccessLog();
+	virtual void ClearProcessLogs();
+	virtual void ClearTrafficLog();
 	
 protected:
 	
@@ -35,6 +43,12 @@ protected:
 	QString						m_ServiceId;
 
 	quint64						m_ProcessId = 0;
+
+	QMap<quint64, CProgramFile::SExecutionInfo> m_ExecStats;
+	bool						m_ExecChanged = true;
+
+	QMap<quint64, CProgramFile::SIngressInfo> m_Ingress;
+	bool						m_IngressChanged = true;
 
 	QMap<quint64, SAccessStatsPtr> m_AccessStats;
 	quint64						m_AccessStatsLastActivity = 0;

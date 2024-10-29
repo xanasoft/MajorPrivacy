@@ -40,6 +40,81 @@ void CWindowsService::CountStats()
 	m_Stats.SocketCount = m_SocketRefs.count();
 }
 
+
+
+QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
+{
+	if (m_ExecChanged)
+	{
+		auto Res = theCore->GetExecStats(m_ID);
+		if (!Res.IsError())
+		{
+			m_ExecStats.clear();
+			m_ExecChanged = false;
+
+			auto Data = Res.GetValue();
+
+			auto Targets = Data.Get(API_V_PROC_TARGETS);
+			Targets.ReadRawList([&](const CVariant& vData) {
+				const XVariant& Data = *(XVariant*)&vData;
+
+				quint64 Ref = Data.Get(API_V_PROC_REF).To<uint64>(0);
+
+				CProgramFile::SExecutionInfo Info;
+				Info.eRole = CProgramFile::SExecutionInfo::eTarget;
+
+				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_TARGET).To<uint64>(0);
+				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
+
+				Info.LastExecTime = Data.Get(API_V_PROC_EVENT_LAST_EXEC).To<uint64>(0);
+				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
+				Info.CommandLine = Data.Get(API_V_PROC_EVENT_CMD_LINE).AsQStr();
+
+				m_ExecStats[Ref] = Info;
+				});
+		}
+	}
+
+	return m_ExecStats;
+}
+
+QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
+{
+	if(m_IngressChanged)
+	{
+		auto Res = theCore->GetIngressStats(m_ID);
+		if (!Res.IsError())
+		{
+			m_Ingress.clear();
+			m_IngressChanged = false;
+
+			auto Data = Res.GetValue();
+
+			auto Targets = Data.Get(API_V_PROC_TARGETS);
+			Targets.ReadRawList([&](const CVariant& vData) {
+				const XVariant& Data = *(XVariant*)&vData;
+
+				quint64 Ref = Data.Get(API_V_PROC_REF).To<uint64>(0);
+
+				CProgramFile::SIngressInfo Info;
+				Info.eRole = CProgramFile::SIngressInfo::eTarget;
+
+				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_TARGET).To<uint64>(0);
+				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
+
+				Info.LastAccessTime = Data.Get(API_V_PROC_EVENT_LAST_ACCESS).To<uint64>(0);
+				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
+				Info.ThreadAccessMask = Data.Get(API_V_THREAD_ACCESS_MASK).To<uint32>(0);
+				Info.ProcessAccessMask = Data.Get(API_V_PROCESS_ACCESS_MASK).To<uint32>(0);
+
+				m_Ingress[Ref] = Info;
+				});
+		}
+	}	
+
+	return m_Ingress;
+}
+
 QMap<quint64, SAccessStatsPtr> CWindowsService::GetAccessStats()
 {
 	auto Res = theCore->GetAccessStats(m_ID, m_TrafficLogLastActivity);
@@ -56,5 +131,26 @@ QMap<QString, CTrafficEntryPtr>	CWindowsService::GetTrafficLog()
 	if (!Res.IsError())
 		m_TrafficLogLastActivity = CTrafficEntry__LoadList(m_TrafficLog, Res.GetValue());
 	return m_TrafficLog;
+}
+
+void CWindowsService::ClearProcessLogs()
+{
+	m_ExecStats.clear();
+	m_ExecChanged = true;
+
+	m_Ingress.clear();
+	m_IngressChanged = true;
+}
+
+void CWindowsService::ClearAccessLog()
+{
+	m_AccessStats.clear();
+	m_AccessStatsLastActivity = 0;
+}
+
+void CWindowsService::ClearTrafficLog()
+{
+	m_TrafficLog.clear();
+	m_TrafficLogLastActivity = 0;
 }
 

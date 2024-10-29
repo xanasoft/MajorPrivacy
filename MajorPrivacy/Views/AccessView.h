@@ -26,6 +26,8 @@ private slots:
 
 protected:
 
+	QToolBar*				m_pToolBar;
+
 	QSet<CProgramFilePtr>			m_CurPrograms;
 	QSet<CWindowsServicePtr>		m_CurServices;
 	QMap<QString, SAccessItemPtr>	m_CurAccess;

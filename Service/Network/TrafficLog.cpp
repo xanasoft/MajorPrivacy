@@ -59,6 +59,12 @@ void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntr
 	pEntry->Merge(Data);
 }
 
+void CTrafficLog::Clear()
+{
+	std::unique_lock Lock(m_Mutex);
+	m_TrafficLog.clear();
+}
+
 CVariant CTrafficLog::STrafficLogEntry::ToVariant(const std::wstring& Host) const
 {
 	CVariant Entry;

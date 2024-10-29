@@ -22,6 +22,20 @@ CAccessView::CAccessView(QWidget *parent)
 	} else
 		m_pTreeView->restoreState(Columns);
 
+	m_pMainLayout->setSpacing(1);
+
+	m_pToolBar = new QToolBar();
+	m_pMainLayout->insertWidget(0, m_pToolBar);
+
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
+
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setMaximumHeight(22);
+	m_pToolBar->addWidget(pBtnSearch);
+
 	AddPanelItemsToMenu();
 }
 
@@ -36,7 +50,11 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
 		m_CurAccess.clear();
-		m_pItemModel->Clear();
+		//m_pItemModel->Clear();
+		CAccessModel* pItemModel = new CAccessModel();
+		m_pSortProxy->setSourceModel(pItemModel);
+		m_pItemModel->deleteLater();
+		m_pItemModel = pItemModel;
 	}
 
 	auto OldMap = m_CurAccess;

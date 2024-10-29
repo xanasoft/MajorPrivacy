@@ -10,6 +10,11 @@ void CProgramRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 
 	Rule.Write(API_V_EXEC_RULE_ACTION, (uint32)m_Type);
 	Rule.Write(API_V_FILE_PATH, TO_STR(m_ProgramPath));
+#ifdef SAVE_NT_PATHS
+	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
+		Rule.Write(API_V_FILE_PATH2, TO_STR(m_PathPattern.Get()));
+	}
+#endif
 	if (m_Type == EExecRuleType::eAllow || m_Type == EExecRuleType::eProtect)
 		Rule.Write(API_V_EXEC_SIGN_REQ, (uint32)m_SignatureLevel);
 	Rule.Write(API_V_EXEC_ON_TRUSTED_SPAWN, (uint32)m_OnTrustedSpawn);
@@ -23,6 +28,9 @@ void CProgramRule::ReadIValue(uint32 Index, const XVariant& Data)
 	{
 	case API_V_EXEC_RULE_ACTION: m_Type = (EExecRuleType)Data.To<uint32>(); break;
 	case API_V_FILE_PATH: m_ProgramPath = AS_STR(Data); break;
+#ifdef LOAD_NT_PATHS
+	case API_V_FILE_PATH2: m_ProgramNtPath = AS_STR(Data); break;
+#endif
 	case API_V_EXEC_SIGN_REQ: m_SignatureLevel = (KPH_VERIFY_AUTHORITY)Data.To<uint32>(); break;
 	case API_V_EXEC_ON_TRUSTED_SPAWN: m_OnTrustedSpawn = (EProgramOnSpawn)Data.To<uint32>(); break;
 	case API_V_EXEC_ON_SPAWN: m_OnSpawn = (EProgramOnSpawn)Data.To<uint32>(); break;
@@ -50,6 +58,11 @@ void CProgramRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 	}
 
 	Rule.Write(API_S_FILE_PATH, TO_STR(m_ProgramPath));
+#ifdef SAVE_NT_PATHS
+	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
+		Rule.Write(API_S_FILE_PATH2, TO_STR(m_PathPattern.Get()));
+	}
+#endif
 
 	if (m_Type == EExecRuleType::eAllow || m_Type == EExecRuleType::eProtect)
 	{
@@ -108,6 +121,9 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 	{
 		m_ProgramPath = AS_STR(Data);
 	}
+#ifdef LOAD_NT_PATHS
+	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH2))	m_ProgramNtPath = AS_STR(Data);
+#endif
 
 	else if (VAR_TEST_NAME(Name, API_S_EXEC_SIGN_REQ))
 	{

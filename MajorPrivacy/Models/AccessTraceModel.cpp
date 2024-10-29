@@ -21,6 +21,23 @@ CAccessTraceModel::~CAccessTraceModel()
 	m_Root = NULL;
 }
 
+bool CAccessTraceModel::FilterNode(const SMergedLog::TLogEntry& Data) const
+{
+	const CResLogEntry* pEntry = dynamic_cast<const CResLogEntry*>(Data.second.constData());
+	if (m_Action != EEventStatus::eUndefined)
+	{
+		switch (pEntry->GetStatus())
+		{
+		case EEventStatus::eAllowed:	
+		case EEventStatus::eUntrusted:	
+		case EEventStatus::eEjected:	return m_Action == EEventStatus::eAllowed;
+		case EEventStatus::eProtected:
+		case EEventStatus::eBlocked:	return m_Action == EEventStatus::eBlocked;
+		}
+	}
+	return true;
+}
+
 CTraceModel::STraceNode* CAccessTraceModel::MkNode(const SMergedLog::TLogEntry& Data)
 {
 	quint64 ID = Data.second->GetUID();

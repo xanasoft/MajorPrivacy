@@ -66,6 +66,10 @@ public:
 
 	virtual void TraceLogAdd(ETraceLogs Log, const CLogEntryPtr& pEntry, quint64 Index);
 	virtual STraceLogList* GetTraceLog(ETraceLogs Log);
+	virtual void ClearTraceLog();
+	virtual void ClearAccessLog();
+	virtual void ClearProcessLogs();
+	virtual void ClearTrafficLog();
 
 protected:
 	friend class CProgramManager;
@@ -84,7 +88,7 @@ protected:
 	QMap<quint64, SLibraryInfo>	m_Libraries;
 	bool						m_LibrariesChanged = true;
 
-	QMap<quint64, SExecutionInfo>m_ExecStats;
+	QMap<quint64, SExecutionInfo> m_ExecStats;
 	bool						m_ExecChanged = true;
 
 	QMap<quint64, SIngressInfo>	m_Ingress;

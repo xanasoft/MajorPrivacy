@@ -111,26 +111,12 @@ void CServiceList::EnumServices()
         if (pService->ProcessId != service->ServiceStatusProcess.dwProcessId)
         {
             if (pService->ProcessId) 
-            {
-                mmap_erase(m_Pids, pService->ProcessId, Id);
-
-                CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId);
-                if (pProcess) {
-                    pProcess->RemoveService(Id);
-                    theCore->ProgramManager()->RemoveService(pProcess, Id);
-                }
-            }
+				ClearProcessUnsafe(pService);
 
             pService->ProcessId = service->ServiceStatusProcess.dwProcessId;
 
-            if (pService->ProcessId) {
-                m_Pids.insert(std::make_pair(pService->ProcessId, Id));
-                CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId, true);
-                if (pProcess) {
-                    pProcess->AddService(Id);
-                    theCore->ProgramManager()->AddService(pProcess, Id);
-                }
-            }
+            if (pService->ProcessId)
+				SetProcessUnsafe(pService);
         }
     }
 
@@ -138,7 +124,35 @@ void CServiceList::EnumServices()
         m_List.erase(E.first);
         SServicePtr pService = E.second;
         if (pService->ProcessId)
-            mmap_erase(m_Pids, pService->ProcessId, E.first);
+            ClearProcessUnsafe(pService);
         theCore->ProgramManager()->RemoveService(pService);
+    }
+}
+
+void CServiceList::SetProcessUnsafe(const SServicePtr& pService)
+{
+    std::wstring Id = MkLower(pService->Id);
+
+    m_Pids.insert(std::make_pair(pService->ProcessId, Id));
+    CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId, true);
+    if (pProcess) {
+        pProcess->AddService(Id);
+        CWindowsServicePtr pService = theCore->ProgramManager()->GetService(Id);
+        pService->SetProcess(pProcess);
+    }
+}
+
+void CServiceList::ClearProcessUnsafe(const SServicePtr& pService)
+{
+    std::wstring Id = MkLower(pService->Id);
+
+    mmap_erase(m_Pids, pService->ProcessId, Id);
+
+    CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId);
+    if (pProcess) {
+        pProcess->RemoveService(Id);
+        CWindowsServicePtr pService = theCore->ProgramManager()->GetService(Id, CProgramManager::eDontAdd);
+        if (pService)
+            pService->SetProcess(NULL);
     }
 }

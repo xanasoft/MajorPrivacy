@@ -14,6 +14,16 @@ public:
 	void					SetTree(bool bTree)				{ m_bTree = bTree; }
 	bool					IsTree() const					{ return m_bTree; }
 
+	enum EFilters {
+		eAll = 0,
+		ePrograms = 1,
+		eApps = 2,
+		eSystem = 4,
+	};
+
+	void					SetFilter(int Filter)			{ m_Filter = Filter; }
+	int 					GetFilter() const				{ return m_Filter; }
+
 	QList<QVariant>			Sync(const CProgramSetPtr& pRoot);
 
 	CProgramItemPtr			GetItem(const QModelIndex &index) const;
@@ -64,11 +74,15 @@ protected:
 		QSet<int>			Bold;
 	};
 
-	void					Sync(const CProgramSetPtr& pRoot, const QString& RootID, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
+	bool					FilterByType(EProgramType Type);
+
+	void					Sync(const CProgramSetPtr& pRoot, const QString& RootID, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QSet<QVariant>& Current, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
 
 	virtual QVariant		NodeData(STreeNode* pNode, int role, int section) const;
 
 	virtual STreeNode*		MkNode(const QVariant& Id) { return new SProgramNode(this, Id); }
 
 	bool					m_bTree;
+
+	int						m_Filter;
 };

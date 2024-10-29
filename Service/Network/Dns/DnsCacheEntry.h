@@ -5,7 +5,7 @@
 
 class CDnsCacheEntry: public CAbstractInfoEx
 {
-
+	TRACK_OBJECT(CDnsCacheEntry)
 public:
 	CDnsCacheEntry(const std::wstring& HostName, uint16 Type, const CAddress& Address, const std::wstring& ResolvedString = std::wstring());
 

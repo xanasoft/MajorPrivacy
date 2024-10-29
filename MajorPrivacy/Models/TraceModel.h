@@ -83,6 +83,8 @@ protected:
 
 	virtual QVariant		NodeData(STraceNode* pNode, int role, int section) const;
 
+	virtual bool			FilterNode(const SMergedLog::TLogEntry& Data) const {return true;};
+
 	virtual STraceNode*		MkNode(quint64 Id) = 0;
 	virtual STraceNode*		MkNode(const SMergedLog::TLogEntry& Data) = 0;
 	virtual void			FreeNode(STraceNode* pNode) = 0;

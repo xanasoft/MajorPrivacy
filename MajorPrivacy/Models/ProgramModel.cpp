@@ -11,6 +11,8 @@ CProgramModel::CProgramModel(QObject *parent)
 
 	m_bTree = true;
 	m_bUseIcons = true;
+
+	m_Filter = EFilters::eAll;
 }
 
 CProgramModel::~CProgramModel()
@@ -21,22 +23,63 @@ QList<QVariant> CProgramModel::Sync(const CProgramSetPtr& pRoot)
 {
 	QList<QVariant> Added;
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	QSet<QVariant> Current;
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
-	Sync(pRoot, QString::number(pRoot->GetUID()), QList<QVariant>(), New, Old, Added);
+	Sync(pRoot, QString::number(pRoot->GetUID()), QList<QVariant>(), New, Current, Old, Added);
 
 	CTreeItemModel::Sync(New, Old);
 	return Added;
 }
 
-void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
+bool CProgramModel::FilterByType(EProgramType Type)
 {
+	switch (Type)
+	{
+	case EProgramType::eProgramFile:	return (m_Filter & EFilters::ePrograms);
 
+	case EProgramType::eAllPrograms:
+
+	case EProgramType::eWindowsService: return (m_Filter & EFilters::eSystem);
+
+	case EProgramType::eAppPackage:		return (m_Filter & EFilters::eApps);
+
+	//case EProgramType::eProgramSet:
+	//case EProgramType::eProgramList:
+
+	case EProgramType::eFilePattern:
+	case EProgramType::eAppInstallation:return m_Filter != EFilters::eApps;
+
+	case EProgramType::eProgramGroup:	return true;
+	}
+	return false;
+}
+
+void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QSet<QVariant>& Current, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
+{
 	foreach(const CProgramItemPtr& pItem, pRoot->GetNodes())
 	{
 		quint64 uID = pItem->GetUID();
 		QString sID = RootID + "/" + QString::number(uID);
 		QVariant ID = sID;
+
+		CProgramSetPtr pGroup = pItem.objectCast<CProgramSet>();
+
+		if (m_Filter) 
+		{
+			if(Current.contains(ID))
+				continue;
+			Current.insert(ID);
+
+			EProgramType Type = pItem->GetType();
+			if (!FilterByType(Type))
+			{
+				if (pGroup)
+					Sync(pGroup, RootID, Path, New, Current, Old, Added);
+				continue;
+			}
+		}
+
 
 		QModelIndex Index;
 
@@ -58,9 +101,8 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 			Index = Find(m_Root, pNode);
 		}
 
-		CProgramSetPtr pGroup = pItem.objectCast<CProgramSet>();
 		if (pGroup)
-			Sync(pGroup, sID, QList<QVariant>(pNode->Path) << ID, New, Old, Added);
+			Sync(pGroup, sID, QList<QVariant>(pNode->Path) << ID, New, Current, Old, Added);
 
 		//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
@@ -203,7 +245,7 @@ QString CProgramModel::GetColumHeader(int section) const
 		
 		case eSockets:				return tr("Open Sockets");
 		case eFwRules:				return tr("FW Rules");
-		case eLastActivity:			return tr("Last Activity");
+		case eLastActivity:			return tr("Last Net Activity");
 		case eUpload:				return tr("Upload");
 		case eDownload:				return tr("Download");
 		case eUploaded:				return tr("Uploaded");

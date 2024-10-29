@@ -26,7 +26,11 @@ private slots:
 
 protected:
 
+	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbGrouping;
+
 	QSet<CProgramFilePtr>					m_CurPrograms;
 	QMap<SLibraryKey, SLibraryItemPtr>		m_ParentMap;
 	QMap<SLibraryKey, SLibraryItemPtr>		m_LibraryMap;
+	bool									m_bGroupByLibrary = false;
 };

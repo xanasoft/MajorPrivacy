@@ -40,21 +40,21 @@ STATUS CProcessList::Init()
         // When the driver registration fails we fall back to using ETW
         //
 
-        theCore->Log()->LogEvent(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_DRIVER_FAILED, L"Failed to register with driver for process creation notifications.");
+        theCore->Log()->LogEvent(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Failed to register with driver for process creation notifications.");
 
         theCore->EtwEventMonitor()->RegisterProcessHandler(&CProcessList::OnProcessEtwEvent, this);
         Status = OK;
     }
 
-    EnumProcesses();
-
-    m_Services->EnumServices();
+    Update();
 
     return Status;
 }
 
 void CProcessList::Update()
 {
+    m_bLogNotFound = theCore->Config()->GetBool("Service", "LogNotFound", false);
+
     EnumProcesses();
 
     m_Services->EnumServices();
@@ -101,6 +101,7 @@ STATUS CProcessList::EnumProcesses()
             {
                 AddProcessUnsafe(pProcess);
                 theCore->ProgramManager()->AddProcess(pProcess);
+                pProcess->InitLibs();
 
                 //if (!theCore->AppIsolator()->AllowProcessStart(pProcess)) {
                 //    TerminateProcess(Pid, pProcess->GetFileName());
@@ -142,6 +143,7 @@ STATUS CProcessList::EnumProcesses()
 
                 AddProcessUnsafe(pProcess);
                 theCore->ProgramManager()->AddProcess(pProcess);
+                pProcess->InitLibs();
 
                 //if (!theCore->AppIsolator()->AllowProcessStart(pProcess)) {
                 //    TerminateProcess(Pid, pProcess->GetFileName());
@@ -161,7 +163,9 @@ STATUS CProcessList::EnumProcesses()
 
         if (pProcess->CanBeRemoved() && pProcess->GetSocketCount() == 0) // keep processes around as long as we have the acompanying sockets
         {
+            Lock.lock();
             RemoveProcessUnsafe(pProcess);
+			Lock.unlock();
             theCore->ProgramManager()->RemoveProcess(pProcess);
         }
         else if (!pProcess->IsMarkedForRemoval())
@@ -321,6 +325,8 @@ std::wstring CProcessList::GetPathFromCmd(const std::wstring &CommandLine, const
 
     if (!PathIsRelativeW(filePath.c_str()))
         return filePath;
+
+    std::unique_lock Lock(m_Mutex);
 
     // check relative paths based on the parrent process working directory
     std::wstring workingDir;
@@ -494,8 +500,11 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
     AddExecLogEntry(pProgram, pLogEntry);
 }
 
-void CProcessList::OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status)
+void CProcessList::OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status, NTSTATUS NtStatus)
 {
+	if (!m_bLogNotFound && (NtStatus == STATUS_OBJECT_NAME_NOT_FOUND || NtStatus == STATUS_OBJECT_PATH_NOT_FOUND))
+		return; // ignore not found errors
+
     CProcessPtr pActorProcess = GetProcess(ActorPid, true);
     CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
 
@@ -581,7 +590,7 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
         case SProcessEvent::EType::ResourceAccess:
         {
             const SResourceAccessEvent* pAccessEvent = (SResourceAccessEvent*)(pEvent);
-			OnResourceAccessed(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status);
+			OnResourceAccessed(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status, pAccessEvent->NtStatus);
 			break;
         }
     }

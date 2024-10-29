@@ -4,6 +4,7 @@
 
 class CDnsProcLog
 {
+	TRACK_OBJECT(CDnsProcLog)
 public:
     CDnsProcLog();
 	//~CDnsProcLog();

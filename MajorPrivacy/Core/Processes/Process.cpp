@@ -6,6 +6,7 @@
 #include "../Library/Helpers/NtUtil.h"
 #include "../../Helpers/WinHelper.h"
 #include "../Driver/KSI/include/kphapi.h"
+#include "../../Library/Helpers/SID.h"
 
 
 CProcess::CProcess(quint32 Pid, QObject* parent)
@@ -76,6 +77,15 @@ void CProcess::FromVariant(const class XVariant& Process)
 		case API_V_EID:			m_EnclaveId = Data; break;
 		case API_V_SEC:			m_SecState = Data; break;
 
+		case API_V_USER_SID: {
+			m_UserSid = Data.AsQStr(); 
+			if (!m_UserSid.isEmpty() && m_UserName.isEmpty()) {
+				SSid UserSid(m_UserSid.toStdString());
+				m_UserName = theCore->GetSidResolver()->GetSidFullName(QByteArray((char*)UserSid.Value.data(), UserSid.Value.size()), this, SLOT(OnSidResolved(const QByteArray&, const QString&)));
+			}
+			break;
+		}
+
 		case API_V_FLAGS:		m_Flags = Data; break;
 		case API_V_SFLAGS:		m_SecFlags = Data; break;
 
@@ -96,6 +106,11 @@ void CProcess::FromVariant(const class XVariant& Process)
 		}
 
 	});
+}
+
+void CProcess::OnSidResolved(const QByteArray& SID, const QString& Name)
+{
+	m_UserName = Name;
 }
 
 void CProcess::UpdateHandles(const class XVariant& Handles)

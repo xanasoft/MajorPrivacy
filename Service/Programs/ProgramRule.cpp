@@ -13,10 +13,10 @@ CProgramRule::~CProgramRule()
 
 }
 
-std::shared_ptr<CProgramRule> CProgramRule::Clone() const
+std::shared_ptr<CProgramRule> CProgramRule::Clone(bool CloneGuid) const
 {
 	std::shared_ptr<CProgramRule> pRule = std::make_shared<CProgramRule>(m_ProgramID);
-	CopyTo(pRule.get());
+	CopyTo(pRule.get(), CloneGuid);
 
 	std::shared_lock Lock(m_Mutex); 
 	pRule->m_Type = m_Type;

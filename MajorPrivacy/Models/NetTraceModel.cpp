@@ -21,6 +21,31 @@ CNetTraceModel::~CNetTraceModel()
 	m_Root = NULL;
 }
 
+bool CNetTraceModel::FilterNode(const SMergedLog::TLogEntry& Data) const
+{
+	const CNetLogEntry* pEntry = dynamic_cast<const CNetLogEntry*>(Data.second.constData());
+	if (m_Protocol != ENetProtocols::eAny)
+	{
+		switch (m_Protocol)
+		{
+		case ENetProtocols::eWeb:			if (pEntry->GetProtocolType() != (quint32)EFwKnownProtocols::TCP || (pEntry->GetRemotePort() != 80 && pEntry->GetRemotePort() != 443)) return false; break;
+		case ENetProtocols::eTCP:			if (pEntry->GetProtocolType() != (quint32)EFwKnownProtocols::TCP) return false; break;
+		case ENetProtocols::eTCP_Server:	if (pEntry->GetProtocolType() != (quint32)EFwKnownProtocols::TCP || pEntry->GetDirection() != EFwDirections::Inbound) return false; break;
+		case ENetProtocols::eTCP_Client:	if (pEntry->GetProtocolType() != (quint32)EFwKnownProtocols::TCP || pEntry->GetDirection() != EFwDirections::Outbound) return false; break;
+		case ENetProtocols::eUDP:			if (pEntry->GetProtocolType() != (quint32)EFwKnownProtocols::UDP) return false; break;
+		}
+	}
+	if (m_Action != EEventStatus::eUndefined)
+	{
+		switch (pEntry->GetAction())
+		{
+		case EFwActions::Allow:	return m_Action == EEventStatus::eAllowed;
+		case EFwActions::Block:	return m_Action == EEventStatus::eBlocked;
+		}
+	}
+	return true;
+}
+
 CTraceModel::STraceNode* CNetTraceModel::MkNode(const SMergedLog::TLogEntry& Data)
 {
 	quint64 ID = Data.second->GetUID();

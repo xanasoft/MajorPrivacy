@@ -52,6 +52,10 @@ protected:
 	std::wstring									m_IconFile;
 	std::wstring									m_Info;
 
+#ifdef _DEBUG
+public:
+#endif
+
 	std::map<void*, std::weak_ptr<class CProgramSet>> m_Groups;
 
 	std::set<std::shared_ptr<class CFirewallRule>>	m_FwRules;

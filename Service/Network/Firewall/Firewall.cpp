@@ -50,6 +50,9 @@ CFirewall::~CFirewall()
 
 	delete m_pLog;
 	delete m_pGuard;
+
+	CWindowsFirewall::Dispose();
+	CEventLogListener::FreeDll();
 }
 
 STATUS CFirewall::Init()

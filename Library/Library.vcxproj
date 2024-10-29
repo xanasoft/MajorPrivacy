@@ -480,6 +480,7 @@
     <ClInclude Include="Common\Exception.h" />
     <ClInclude Include="Common\FileIO.h" />
     <ClInclude Include="Common\MiscStats.h" />
+    <ClInclude Include="Common\ObjectTracker.h" />
     <ClInclude Include="Common\Pointers.h" />
     <ClInclude Include="Common\PoolAllocator.h" />
     <ClInclude Include="Common\stl_helpers.h" />
@@ -507,6 +508,7 @@
     <ClInclude Include="Helpers\NtObj.h" />
     <ClInclude Include="Helpers\NtUtil.h" />
     <ClInclude Include="Helpers\RegUtil.h" />
+    <ClInclude Include="Helpers\Reparse.h" />
     <ClInclude Include="Helpers\SchdUtil.h" />
     <ClInclude Include="Helpers\Scoped.h" />
     <ClInclude Include="Helpers\ScopedHandle.h" />
@@ -649,6 +651,7 @@
     </ClCompile>
     <ClCompile Include="Common\DbgHelp.cpp" />
     <ClCompile Include="Common\FileIO.cpp" />
+    <ClCompile Include="Common\ObjectTracker.cpp" />
     <ClCompile Include="Common\Strings.cpp" />
     <ClCompile Include="Common\SVariant.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
@@ -700,6 +703,7 @@
     <ClCompile Include="Helpers\NtIO.cpp" />
     <ClCompile Include="Helpers\NtUtil.cpp" />
     <ClCompile Include="Helpers\RegUtil.cpp" />
+    <ClCompile Include="Helpers\Reparse.cpp" />
     <ClCompile Include="Helpers\SchdUtil.cpp" />
     <ClCompile Include="Helpers\Service.cpp" />
     <ClCompile Include="Helpers\SID.cpp" />

@@ -4,6 +4,7 @@
 
 class CTrafficLog
 {
+	TRACK_OBJECT(CTrafficLog)
 public:
 	CTrafficLog();
 	//~CTrafficLog();
@@ -15,6 +16,8 @@ public:
 	uint64 GetUploaded() const		{ std::shared_lock Lock(m_Mutex); return m_Data.Uploaded; }
 	uint64 GetDownloaded() const	{ std::shared_lock Lock(m_Mutex); return m_Data.Downloaded; }
 
+	void Clear();
+
 	CVariant ToVariant(uint64 MinLastActivity = 0) const;
 
 protected:
@@ -23,6 +26,8 @@ protected:
 
 	struct STrafficLogEntry
 	{
+		TRACK_OBJECT(STrafficLogEntry)
+
 		STrafficLogEntry() {}
 		STrafficLogEntry(const CSocketPtr& pSocket);
 

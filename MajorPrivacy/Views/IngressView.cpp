@@ -22,6 +22,28 @@ CIngressView::CIngressView(QWidget *parent)
 	} else
 		m_pTreeView->restoreState(Columns);
 
+	m_pMainLayout->setSpacing(1);
+
+	m_pToolBar = new QToolBar();
+	m_pMainLayout->insertWidget(0, m_pToolBar);
+
+	m_pCmbRole = new QComboBox();
+	m_pCmbRole->addItem(tr("Any Role"), (qint32)CProgramFile::SInfo::eNone);
+	m_pCmbRole->addItem(tr("Actor"), (qint32)CProgramFile::SInfo::eTarget);
+	m_pCmbRole->addItem(tr("Target"), (qint32)CProgramFile::SInfo::eActor);
+	m_pToolBar->addWidget(m_pCmbRole);
+
+	int comboBoxHeight = m_pCmbRole->sizeHint().height();
+
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
+
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	m_pToolBar->addWidget(pBtnSearch);
+
 	AddPanelItemsToMenu();
 }
 
@@ -30,14 +52,19 @@ CIngressView::~CIngressView()
 	theConf->SetBlob("MainWindow/IngressView_Columns", m_pTreeView->saveState());
 }
 
-void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms)
+void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, bool bAllPrograms)
 {
-	if (m_CurPrograms != Programs) {
+	qint32 FilterRole = m_pCmbRole->currentData().toInt();
+
+	if (m_CurPrograms != Programs || m_CurServices != Services || m_FilterRole != FilterRole) {
 		m_CurPrograms = Programs;
+		m_CurServices = Services;
 		m_ParentMap.clear();
 		m_IngressMap.clear();
 		m_pItemModel->Clear();
 	}
+
+	m_FilterRole = FilterRole;
 
 	auto OldMap = m_IngressMap;
 
@@ -68,9 +95,21 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms
 	foreach(const CProgramFilePtr& pProgram, Programs) {
 		QMap<quint64, CProgramFile::SIngressInfo> Log = pProgram->GetIngressStats();
 		for (auto I = Log.begin(); I != Log.end(); I++) {
+			if(m_FilterRole && I->eRole != m_FilterRole)
+				continue;
 			CProgramFilePtr pProgram2 = theCore->ProgramManager()->GetProgramByUID(I.value().ProgramUID).objectCast<CProgramFile>();
 			if(!pProgram2) continue;
 			AddEntry(pProgram, pProgram2, I.value());
+		}
+	}
+	foreach(const CWindowsServicePtr& pService, Services) {
+		QMap<quint64, CProgramFile::SIngressInfo> Log = pService->GetIngressStats();
+		for (auto I = Log.begin(); I != Log.end(); I++) {
+			if(m_FilterRole && I->eRole != m_FilterRole)
+				continue;
+			CProgramFilePtr pProgram2 = theCore->ProgramManager()->GetProgramByUID(I.value().ProgramUID).objectCast<CProgramFile>();
+			if(!pProgram2) continue;
+			AddEntry(pService->GetProgramFile(), pProgram2, I.value());
 		}
 	}
 

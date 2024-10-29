@@ -2,6 +2,7 @@
 
 class CServiceList
 {
+	TRACK_OBJECT(CServiceList)
 public:
 	CServiceList(std::recursive_mutex& Mutex);
 
@@ -9,6 +10,8 @@ public:
 
 	struct SService
 	{
+		TRACK_OBJECT(SService)
+
 		std::wstring Id;
 		std::wstring Name;
 		std::wstring BinaryPath;
@@ -36,6 +39,9 @@ public:
 	}
 
 protected:
+
+	void SetProcessUnsafe(const SServicePtr& pService);
+	void ClearProcessUnsafe(const SServicePtr& pService);
 
 	std::recursive_mutex& m_Mutex; // Note: we need to sharte a recursive mutex with the process list
 

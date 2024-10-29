@@ -23,6 +23,22 @@
 
 FW_NAMESPACE_BEGIN
 
+class FRAMEWORK_EXPORT AbstractContainer
+{
+	friend class AbstractMemPool;
+public:
+	AbstractContainer(AbstractMemPool* pMem) { m_pMem = pMem; }
+	AbstractContainer(const AbstractContainer& other) { m_pMem = other.m_pMem; }
+	virtual ~AbstractContainer() {}
+	AbstractMemPool* Allocator() const { return m_pMem; }
+
+protected:
+	AbstractMemPool* m_pMem = nullptr;
+
+private:
+	AbstractContainer& operator=(const AbstractContainer& other) = delete;
+};
+
 class FRAMEWORK_EXPORT AbstractMemPool
 {
 public:
@@ -51,6 +67,12 @@ public:
 
 	virtual void* Alloc(size_t size) = 0;
 	virtual void Free(void* ptr) = 0;
+
+	void Adopt(AbstractContainer** ppContainers = NULL)
+	{
+		for (AbstractContainer** pp = ppContainers; *pp; pp++)
+			(*pp)->m_pMem = this;
+	}
 };
 
 class FRAMEWORK_EXPORT DefaultMemPool : public AbstractMemPool
@@ -58,21 +80,6 @@ class FRAMEWORK_EXPORT DefaultMemPool : public AbstractMemPool
 public:
 	virtual void* Alloc(size_t size);
 	virtual void Free(void* ptr);
-};
-
-class FRAMEWORK_EXPORT AbstractContainer
-{
-public:
-	AbstractContainer(AbstractMemPool* pMem) { m_pMem = pMem; }
-	AbstractContainer(const AbstractContainer& other) { m_pMem = other.m_pMem; }
-	virtual ~AbstractContainer() {}
-	AbstractMemPool* Allocator() const { return m_pMem; }
-
-protected:
-	AbstractMemPool* m_pMem = nullptr;
-
-private:
-	AbstractContainer& operator=(const AbstractContainer& other) = delete;
 };
 
 FW_NAMESPACE_END

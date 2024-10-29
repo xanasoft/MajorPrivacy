@@ -22,6 +22,20 @@ CTweakView::CTweakView(QWidget *parent)
 	} else
 		m_pTreeView->restoreState(Columns);
 
+	m_pMainLayout->setSpacing(1);
+
+	m_pToolBar = new QToolBar();
+	m_pMainLayout->insertWidget(0, m_pToolBar);
+
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
+
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setMaximumHeight(22);
+	m_pToolBar->addWidget(pBtnSearch);
+
 	AddPanelItemsToMenu();
 }
 

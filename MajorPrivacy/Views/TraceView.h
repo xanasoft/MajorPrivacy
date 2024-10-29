@@ -28,6 +28,8 @@ protected:
 	QTreeViewEx*				m_pTreeView;
 	CTraceModel*				m_pItemModel;
 
+	CFinder*					m_pFinder;
+
 	bool						m_FullRefresh;
 
 	//QAction*					m_pAutoScroll; // todo

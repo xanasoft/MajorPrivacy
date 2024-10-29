@@ -25,4 +25,6 @@ private slots:
 	//void					OnColumnsChanged();
 private:
 
+	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbType;
 };

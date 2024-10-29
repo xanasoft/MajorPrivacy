@@ -19,14 +19,19 @@ public:
 
 	virtual void AddExecTarget(const std::shared_ptr<CProgramFile>& pProgram, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked);
 	virtual std::map<uint64, CProgramFile::SExecInfo> GetExecTargets() const { std::unique_lock lock(m_Mutex); return m_ExecTargets; }
+	virtual CVariant DumpExecStats() const;
 
 	virtual void AddIngressTarget(const std::shared_ptr<CProgramFile>& pProgram, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
 	virtual std::map<uint64, CProgramFile::SAccessInfo> GetIngressTargets() const { std::unique_lock lock(m_Mutex); return m_IngressTargets; }
+	virtual CVariant DumpIngress() const;
 
 	virtual void AddAccess(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
 	virtual CVariant DumpAccess() const;
+	virtual void ClearAccess();
 
 	virtual CTrafficLog* TrafficLog() { return &m_TrafficLog; }
+
+	virtual void ClearLogs();
 
 protected:
 
@@ -41,6 +46,10 @@ protected:
 	// Note: A service can have only one process,
 	// howeever a process can host multiple services
 	//
+
+#ifdef _DEBUG
+public:
+#endif
 
 	CProcessPtr						m_pProcess;
 

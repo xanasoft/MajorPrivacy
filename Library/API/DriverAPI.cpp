@@ -54,12 +54,12 @@ sint32 CDriverAPI__EmitProcess(CDriverAPI* This, const SProcessEvent* pEvent)
     return status;
 }
 
-void CDriverAPI__EmitRuleEvent(CDriverAPI* This, ERuleType Type, const std::wstring& Guid, ERuleEvent Event)
+void CDriverAPI__EmitRuleEvent(CDriverAPI* This, ERuleType Type, const std::wstring& Guid, ERuleEvent Event, uint64 PID)
 {
     std::unique_lock<std::mutex> Lock(This->m_HandlersMutex);
 
     NTSTATUS status = STATUS_SUCCESS;
-    This->m_RuleEventHandlers[Type](Guid, Event, Type);
+    This->m_RuleEventHandlers[Type](Guid, Event, Type, PID);
 }
 
 extern "C" static VOID NTAPI CDriverAPI__Callback(
@@ -195,6 +195,7 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
             Event.Path = vEvent[API_V_EVENT_PATH].AsStr();
             Event.AccessMask = vEvent[API_V_EVENT_ACCESS].To<uint32>();
             Event.Status = (EEventStatus)vEvent[API_V_EVENT_ACCESS_STATUS].To<uint32>();
+            Event.NtStatus = vEvent[API_V_EVENT_STATUS].To<uint32>();            
 
             CDriverAPI__EmitProcess(This, &Event);
             break;
@@ -207,7 +208,8 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
 			ERuleType Type = MsgTypeToRuleType(Message->Header.MessageId);
 			std::wstring Guid = vEvent[API_V_RULE_GUID].AsStr();
             ERuleEvent Event = (ERuleEvent)vEvent[API_V_EVENT].To<uint32>(); // todo move to api header
-			CDriverAPI__EmitRuleEvent(This, Type, Guid, Event);
+            uint64 PID = vEvent[API_V_EVENT_PID].To<uint64>();
+			CDriverAPI__EmitRuleEvent(This, Type, Guid, Event, PID);
 			break;
 		}
 	}
@@ -227,17 +229,15 @@ CDriverAPI::~CDriverAPI()
     delete m_pClient;
 }
 
-STATUS CDriverAPI::InstallDrv()
+STATUS CDriverAPI::InstallDrv(uint32 TraceLogLevel)
 {
     std::wstring FileName = GetApplicationDirectory() + L"\\" API_DRIVER_BINARY;
     std::wstring DisplayName = L"MajorPrivacy Kernel Driver";
 
-    uint32 TraceLogLevel = 6;
-
     CVariant Params;
     Params["Altitude"] = API_DRIVER_ALTITUDE;
-    Params["TraceLevel"] = TraceLogLevel;
     Params["PortName"] = API_DRIVER_PORT;
+    Params["TraceLevel"] = TraceLogLevel;
 
     return InstallService(API_DRIVER_NAME, FileName.c_str(), DisplayName.c_str(), NULL, OPT_KERNEL_TYPE | OPT_DEMAND_START, Params);
 }
@@ -251,8 +251,9 @@ STATUS CDriverAPI::ConnectDrv()
 
     SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
     if ((SvcState & SVC_INSTALLED) != SVC_INSTALLED) {
-        Status = InstallDrv();
-        if (!Status) return Status;
+        return ERR(STATUS_DEVICE_NOT_READY);
+        //Status = InstallDrv();
+        //if (!Status) return Status;
     }
     if ((SvcState & SVC_RUNNING) != SVC_RUNNING)
         Status = RunService(API_DRIVER_NAME);
@@ -517,7 +518,7 @@ STATUS CDriverAPI::RegisterForRuleEvents(ERuleType Type, bool bRegister)
     return m_pClient->Call(API_REGISTER_FOR_EVENT, ReqVar);
 }
 
-void CDriverAPI::RegisterRuleEventHandler(ERuleType Type, const std::function<void(const std::wstring& Guid, ERuleEvent Event, ERuleType Type)>& Handler)
+void CDriverAPI::RegisterRuleEventHandler(ERuleType Type, const std::function<void(const std::wstring& Guid, ERuleEvent Event, ERuleType Type, uint64 PID)>& Handler)
 {
     std::unique_lock<std::mutex> Lock(m_HandlersMutex);
     m_RuleEventHandlers[Type] = Handler;

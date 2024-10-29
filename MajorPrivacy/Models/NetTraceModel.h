@@ -16,6 +16,8 @@ public:
 	CNetTraceModel(QObject* parent = 0);
 	~CNetTraceModel();
 
+	void 					SetFilter(EEventStatus Action, ENetProtocols Protocol) { m_Action = Action; m_Protocol = Protocol; }
+
 	virtual int				columnCount(const QModelIndex &parent = QModelIndex()) const;
 	virtual QVariant		headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
@@ -45,6 +47,11 @@ protected:
 
 		CProgramFilePtr		pProgram;
 	};
+
+	EEventStatus			m_Action = EEventStatus::eUndefined;
+	ENetProtocols           m_Protocol = ENetProtocols::eAny;
+
+	virtual bool			FilterNode(const SMergedLog::TLogEntry& Data) const;
 
 	virtual STraceNode*		MkNode(quint64 Id);
 	virtual STraceNode*		MkNode(const SMergedLog::TLogEntry& Data);

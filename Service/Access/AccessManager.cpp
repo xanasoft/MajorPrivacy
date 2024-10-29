@@ -54,13 +54,15 @@ CAccessRulePtr CAccessManager::GetRule(const std::wstring& Guid)
 	return nullptr;
 }
 
-STATUS CAccessManager::AddRule(const CAccessRulePtr& pRule)
+RESULT(std::wstring) CAccessManager::AddRule(const CAccessRulePtr& pRule)
 {
 	CVariant Request = pRule->ToVariant(SVarWriteOpt());
 	auto Res = theCore->Driver()->Call(API_SET_ACCESS_RULE, Request);
 	//if (Res.IsSuccess()) // will be done by the notification event
 	//	UpdateRule(pRule, pRule->GetGuid());
-	return Res;
+	if(Res.IsError())
+		return ERR(Res.GetStatus());
+	RETURN(Res.GetValue().AsStr());
 }
 
 STATUS CAccessManager::RemoveRule(const std::wstring& Guid)
@@ -79,6 +81,7 @@ STATUS CAccessManager::RemoveRule(const std::wstring& Guid)
 STATUS CAccessManager::LoadRules()
 {
 	CVariant Request;
+
 	auto Res = theCore->Driver()->Call(API_GET_ACCESS_RULES, Request);
 	if(Res.IsError())
 		return Res;
@@ -162,7 +165,7 @@ void CAccessManager::UpdateRule(const CAccessRulePtr& pRule, const std::wstring&
 	}
 }
 
-void CAccessManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type)
+void CAccessManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID)
 {
 	ASSERT(Type == ERuleType::eAccess);
 
@@ -187,7 +190,7 @@ void CAccessManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEve
 
 	UpdateRule(pRule, Guid);
 
-	theCore->VolumeManager()->OnRuleChanged(Guid, Event, Type);
+	theCore->VolumeManager()->OnRuleChanged(Guid, Event, Type, PID);
 
 	CVariant vEvent;
 	vEvent[API_V_RULE_GUID] = Guid;

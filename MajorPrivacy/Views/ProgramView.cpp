@@ -45,18 +45,59 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pTreeList->GetView()->setItemDelegate(new CTreeItemDelegate());
 	m_pTreeList->GetTree()->setItemDelegate(new CTreeItemDelegate());
 
-	m_pMainLayout->addWidget(new CFinder(m_pSortProxy, this));
+	m_pFinder = new CFinder(m_pSortProxy, this);
+	m_pMainLayout->addWidget(m_pFinder);
 
 	connect(m_pTreeList, SIGNAL(MenuRequested( const QPoint& )), this, SLOT(OnMenu(const QPoint &)));
 #else
 	m_pTreeList->setItemDelegate(new CTreeItemDelegate());
 
-	m_pMainLayout->addWidget(CFinder::AddFinder(m_pTreeList, m_pSortProxy));
+	m_pMainLayout->addWidget(CFinder::AddFinder(m_pTreeList, m_pSortProxy, CFinder::eDefault, &m_pFinder));
 
 	m_pTreeList->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(m_pTreeList, SIGNAL(customContextMenuRequested( const QPoint& )), this, SLOT(OnMenu(const QPoint &)));
 #endif
 	
+	m_pMainLayout->setSpacing(1);
+
+	m_pToolBar = new QToolBar();
+	m_pToolBar->setFixedHeight(30);
+	m_pMainLayout->insertWidget(0, m_pToolBar);
+
+	/*m_pBtnClear = new QToolButton();
+	m_pBtnClear->setIcon(QIcon(":/Icons/Clean.png"));
+	m_pBtnClear->setToolTip(tr("Cleanup Program List"));
+	m_pBtnClear->setFixedHeight(22);
+	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(CleanUpPrograms()));
+	m_pToolBar->addWidget(m_pBtnClear);*/
+
+	m_pBtnPrograms = new QToolButton();
+	m_pBtnPrograms->setIcon(QIcon(":/Icons/Program.png"));
+	m_pBtnPrograms->setToolTip(tr("Show Win32 Programs"));
+	m_pBtnPrograms->setCheckable(true);
+	m_pToolBar->addWidget(m_pBtnPrograms);
+
+	m_pBtnApps = new QToolButton();
+	m_pBtnApps->setIcon(QIcon(":/Icons/StoreApp.png"));
+	m_pBtnApps->setToolTip(tr("Show Modern Apps"));
+	m_pBtnApps->setCheckable(true);
+	m_pToolBar->addWidget(m_pBtnApps);
+
+	m_pBtnSystem = new QToolButton();
+	m_pBtnSystem->setIcon(QIcon(":/Icons/System.png"));
+	m_pBtnSystem->setToolTip(tr("Show System Components"));
+	m_pBtnSystem->setCheckable(true);
+	m_pToolBar->addWidget(m_pBtnSystem);
+
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
+
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setFixedHeight(22);
+	m_pToolBar->addWidget(pBtnSearch);
+
 	//connect(theGUI, SIGNAL(ReloadPanels()), m_pProgramModel, SLOT(Clear()));
 
 	connect(m_pTreeList, SIGNAL(SelectionChanged(const QModelIndexList&)), this, SLOT(OnProgramChanged(const QModelIndexList&)));
@@ -93,11 +134,18 @@ CProgramView::~CProgramView()
 
 void CProgramView::Update()
 {
-#ifdef _DEBUG
-	bool bClear = false;
-	if(bClear)
+	int Filter = CProgramModel::EFilters::eAll;
+	if(m_pBtnPrograms->isChecked())
+		Filter |= CProgramModel::EFilters::ePrograms;
+	if (m_pBtnApps->isChecked())
+		Filter |= CProgramModel::EFilters::eApps;
+	if (m_pBtnSystem->isChecked())
+		Filter |= CProgramModel::EFilters::eSystem;
+	if (Filter != m_pProgramModel->GetFilter()) {
+		m_pProgramModel->SetFilter(Filter);
 		m_pProgramModel->Clear();
-#endif
+	}
+
 	QList<QVariant> AddedProgs = m_pProgramModel->Sync(theCore->ProgramManager()->GetRoot());
 
 	if (m_pProgramModel->IsTree())
@@ -149,7 +197,8 @@ void CProgramView::OnProgramAction()
 	if (pAction == m_pCreateProgram)
 	{
 		CProgramWnd* pProgramWnd = new CProgramWnd(NULL);
-		pProgramWnd->show();
+		pProgramWnd->exec();
+		m_pProgramModel->SetFilter(-1); // force full refresh
 	} 
 	else if (pAction == m_pCreateGroup)
 	{
@@ -201,6 +250,8 @@ void CProgramView::OnProgramAction()
 				Results.append(theCore->ProgramManager()->RemoveProgramFrom(pProgram, Response == QMessageBox::YesToAll ? CProgramItemPtr() : pParent));
 			}
 		}
+
+		m_pProgramModel->SetFilter(-1); // force full refresh
 	}
 
 	theGUI->CheckResults(Results, this);

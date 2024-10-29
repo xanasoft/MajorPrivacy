@@ -39,6 +39,7 @@ typedef std::shared_ptr<SAdapterInfo> SAdapterInfoPtr;
 
 class CNetworkManager
 {
+	TRACK_OBJECT(CNetworkManager)
 public:
 	CNetworkManager();
 	~CNetworkManager();

@@ -22,6 +22,26 @@ CLibraryView::CLibraryView(QWidget *parent)
 	} else
 		m_pTreeView->restoreState(Columns);
 
+	m_pMainLayout->setSpacing(1);
+
+	m_pToolBar = new QToolBar();
+	m_pMainLayout->insertWidget(0, m_pToolBar);
+
+	m_pCmbGrouping = new QComboBox();
+	m_pCmbGrouping->addItems(QStringList() << tr("By Program") << tr("By Library"));
+	m_pToolBar->addWidget(m_pCmbGrouping);
+
+	int comboBoxHeight = m_pCmbGrouping->sizeHint().height();
+
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
+
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	m_pToolBar->addWidget(pBtnSearch);
+
 	AddPanelItemsToMenu();
 }
 
@@ -32,16 +52,20 @@ CLibraryView::~CLibraryView()
 
 void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms)
 {
-	if (m_CurPrograms != Programs) {
+	bool bGroupByLibrary = m_pCmbGrouping->currentIndex() == 1;
+
+	if (m_CurPrograms != Programs || bGroupByLibrary != m_bGroupByLibrary) {
 		m_CurPrograms = Programs;
 		m_ParentMap.clear();
 		m_LibraryMap.clear();
 		m_pItemModel->Clear();
 	}
 
+	m_bGroupByLibrary = bGroupByLibrary;
+
 	auto OldMap = m_LibraryMap;
 
-	std::function<void(const CProgramFilePtr&, const CProgramLibraryPtr&, const SLibraryInfo&)> AddEntry = 
+	std::function<void(const CProgramFilePtr&, const CProgramLibraryPtr&, const SLibraryInfo&)> AddByProgram = 
 		[&](const CProgramFilePtr& pProg, const CProgramLibraryPtr& pLibrary, const SLibraryInfo& Info) {
 
 		SLibraryItemPtr& pItem = m_ParentMap[qMakePair((uint64)pProg.get(), 0)];
@@ -66,7 +90,7 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms
 		pSubItem->Info = Info;
 	};
 
-	std::function<void(const CProgramFilePtr&, const CProgramLibraryPtr&, const SLibraryInfo&)> AddAllEntry = 
+	std::function<void(const CProgramFilePtr&, const CProgramLibraryPtr&, const SLibraryInfo&)> AddByLibrary = 
 		[&](const CProgramFilePtr& pProg, const CProgramLibraryPtr& pLibrary, const SLibraryInfo& Info) {
 
 		SLibraryItemPtr& pItem = m_ParentMap[qMakePair((uint64)pLibrary.get(), 0)];
@@ -96,10 +120,10 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibraryByUID(I.key());
 			if(!pLibrary) continue; // todo 
-			if(bAllPrograms)
-				AddAllEntry(pProgram, pLibrary, I.value());
+			if(m_bGroupByLibrary) // if(bAllPrograms)
+				AddByLibrary(pProgram, pLibrary, I.value());
 			else
-				AddEntry(pProgram, pLibrary, I.value());
+				AddByProgram(pProgram, pLibrary, I.value());
 		}
 	}
 

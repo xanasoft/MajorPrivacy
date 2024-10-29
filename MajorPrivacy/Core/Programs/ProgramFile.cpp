@@ -259,6 +259,39 @@ STraceLogList* CProgramFile::GetTraceLog(ETraceLogs Log)
 	return pLog;
 }
 
+void CProgramFile::ClearTraceLog()
+{
+	for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
+	{
+		STraceLogList* pLog = &m_Logs[(int)i];
+		pLog->Entries.clear();
+		pLog->MissingCount = -1;
+		pLog->IndexOffset = 0;
+		pLog->LastGetLog = 0;
+	}
+}
+
+void CProgramFile::ClearProcessLogs()
+{
+	m_ExecStats.clear();
+	m_ExecChanged = true;
+
+	m_Ingress.clear();
+	m_IngressChanged = true;
+}
+
+void CProgramFile::ClearAccessLog()
+{
+	m_AccessStats.clear();
+	m_AccessStatsLastActivity = 0;
+}
+
+void CProgramFile::ClearTrafficLog()
+{
+	m_TrafficLog.clear();
+	m_TrafficLogLastActivity = 0;
+}
+
 void CProgramFile::CountStats()
 {
 	foreach(auto pNode, m_Nodes)

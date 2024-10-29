@@ -5,6 +5,7 @@
 
 class CExecLogEntry: public CTraceLogEntry
 {
+	TRACK_OBJECT(CExecLogEntry)
 public:
 	CExecLogEntry(EExecLogRole Role, EExecLogType Type, EEventStatus Status, uint64 MiscID, std::wstring ActorServiceTag, uint64 TimeStamp, uint64 PID, uint32 AccessMask = 0);
 

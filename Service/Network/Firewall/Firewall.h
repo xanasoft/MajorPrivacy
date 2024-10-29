@@ -8,6 +8,7 @@
 
 class CFirewall
 {
+	TRACK_OBJECT(CFirewall)
 public:
 	CFirewall();
 	~CFirewall();

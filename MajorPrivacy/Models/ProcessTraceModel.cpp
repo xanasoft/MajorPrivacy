@@ -21,6 +21,25 @@ CProcessTraceModel::~CProcessTraceModel()
 	m_Root = NULL;
 }
 
+bool CProcessTraceModel::FilterNode(const SMergedLog::TLogEntry& Data) const
+{
+	const CExecLogEntry* pEntry = dynamic_cast<const CExecLogEntry*>(Data.second.constData());
+	if (m_Role != EExecLogRole::eUndefined && pEntry->GetRole() != m_Role)
+		return false;
+	if (m_Action != EEventStatus::eUndefined)
+	{
+		switch (pEntry->GetStatus())
+		{
+		case EEventStatus::eAllowed:	
+		case EEventStatus::eUntrusted:	
+		case EEventStatus::eEjected:	return m_Action == EEventStatus::eAllowed;
+		case EEventStatus::eProtected:
+		case EEventStatus::eBlocked:	return m_Action == EEventStatus::eBlocked;
+		}
+	}
+	return true;
+}
+
 CTraceModel::STraceNode* CProcessTraceModel::MkNode(const SMergedLog::TLogEntry& Data)
 {
 	quint64 ID = Data.second->GetUID();

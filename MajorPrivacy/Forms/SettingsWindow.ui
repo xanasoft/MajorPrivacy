@@ -48,7 +48,7 @@
         <enum>QTabWidget::North</enum>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>4</number>
        </property>
        <widget class="QWidget" name="tabGeneral">
         <attribute name="title">
@@ -338,7 +338,7 @@
         <layout class="QGridLayout" name="gridLayout_8">
          <item row="0" column="0">
           <layout class="QGridLayout" name="gridLayout_6">
-           <item row="3" column="0">
+           <item row="4" column="0">
             <spacer name="verticalSpacer_5">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
@@ -351,7 +351,21 @@
              </property>
             </spacer>
            </item>
-           <item row="3" column="1">
+           <item row="1" column="1">
+            <widget class="QCheckBox" name="chkResShowPopUp">
+             <property name="text">
+              <string>Show Resource Access Notification Popups</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QCheckBox" name="chkListOpenFiles">
+             <property name="text">
+              <string>List All Open Files</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
             <spacer name="horizontalSpacer_6">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -363,13 +377,6 @@
               </size>
              </property>
             </spacer>
-           </item>
-           <item row="1" column="1">
-            <widget class="QCheckBox" name="chkResShowPopUp">
-             <property name="text">
-              <string>Show Resource Access Notification Popups</string>
-             </property>
-            </widget>
            </item>
            <item row="0" column="0">
             <widget class="QLabel" name="lblResInfo">
@@ -385,10 +392,10 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
-            <widget class="QCheckBox" name="chkListOpenFiles">
+           <item row="3" column="1">
+            <widget class="QCheckBox" name="chkLogNotFound">
              <property name="text">
-              <string>List All Open Files</string>
+              <string>Log also access atempts to non existing resources</string>
              </property>
             </widget>
            </item>

@@ -2,9 +2,9 @@
 #include "FwRuleModel.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../Library/API/PrivacyAPI.h"
-#include "../Library/Helpers/AppUtil.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
+#include "../MajorPrivacy.h"
 
 CFwRuleModel::CFwRuleModel(QObject* parent)
 	:CTreeItemModel(parent)
@@ -107,8 +107,8 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 
 				switch (section)
 				{
-					case eName:				ColValue.Formatted = QString::fromStdWString(GetResourceStr(Value.toString().toStdWString())); break;
-					case eGrouping:			ColValue.Formatted = QString::fromStdWString(GetResourceStr(Value.toString().toStdWString())); break;
+					case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(Value.toString()); break;
+					case eGrouping:			ColValue.Formatted = CMajorPrivacy::GetResourceStr(Value.toString()); break;
 
 					case eProfiles:			ColValue.Formatted = pRule->GetProfileStr(); break;
 					case eAction:			ColValue.Formatted = pRule->GetActionStr(); break;

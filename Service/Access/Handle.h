@@ -6,6 +6,7 @@
 
 class CHandle: public CAbstractInfoEx
 {
+	TRACK_OBJECT(CHandle)
 public:
 	CHandle(const std::wstring& FileName);
 	~CHandle();

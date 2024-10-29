@@ -360,6 +360,7 @@ void CSettingsWindow::LoadSettings()
 	}
 
 	ui.chkListOpenFiles->setChecked(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));
+	ui.chkLogNotFound->setChecked(theCore->GetConfigBool("Service/LogNotFound", false));
 
 	ui.chkReverseDNS->setChecked(theCore->GetConfigBool("Service/UserReverseDns", false));
 
@@ -415,6 +416,8 @@ void CSettingsWindow::SaveSettings()
 	}
 
 	theCore->SetConfig("Service/EnumAllOpenFiles", ui.chkListOpenFiles->isChecked());
+	theCore->SetConfig("Service/LogNotFound", ui.chkLogNotFound->isChecked());
+
 	theCore->SetConfig("Service/UserReverseDns", ui.chkReverseDNS->isChecked());
 
 	theConf->SetValue("Options/UseDarkTheme", CSettingsWindow__Chk2Int(ui.chkDarkTheme->checkState()));

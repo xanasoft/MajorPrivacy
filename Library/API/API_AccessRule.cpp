@@ -11,6 +11,13 @@ void CAccessRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 	Rule.Write(API_V_ACCESS_RULE_ACTION, (uint32)m_Type);
 	Rule.Write(API_V_ACCESS_PATH, TO_STR(m_AccessPath));
 	Rule.Write(API_V_FILE_PATH, TO_STR(m_ProgramPath));
+#ifdef SAVE_NT_PATHS
+	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
+		Rule.Write(API_V_ACCESS_PATH2, TO_STR(m_PathPattern.Get()));
+		Rule.Write(API_V_FILE_PATH2, TO_STR(m_ProgPattern.Get()));
+	}
+#endif
+	Rule.Write(API_V_VOL_RULE, m_bVolumeRule);
 }
 
 void CAccessRule::ReadIValue(uint32 Index, const XVariant& Data)
@@ -20,6 +27,11 @@ void CAccessRule::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_ACCESS_RULE_ACTION: m_Type = (EAccessRuleType)Data.To<uint32>(); break;
 	case API_V_ACCESS_PATH: m_AccessPath = AS_STR(Data); break;
 	case API_V_FILE_PATH: m_ProgramPath = AS_STR(Data); break;
+#ifdef LOAD_NT_PATHS
+	case API_V_ACCESS_PATH2: m_AccessNtPath = AS_STR(Data); break;
+	case API_V_FILE_PATH2: m_ProgramNtPath = AS_STR(Data); break;
+#endif
+	case API_V_VOL_RULE: m_bVolumeRule = Data.To<bool>(); break;
 	default: CGenericRule::ReadIValue(Index, Data);
 	}
 }
@@ -44,6 +56,13 @@ void CAccessRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 
 	Rule.Write(API_S_ACCESS_PATH, TO_STR(m_AccessPath));
 	Rule.Write(API_S_FILE_PATH, TO_STR(m_ProgramPath));
+#ifdef SAVE_NT_PATHS
+	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
+		Rule.Write(API_S_ACCESS_PATH2, TO_STR(m_PathPattern.Get()));
+		Rule.Write(API_S_FILE_PATH2, TO_STR(m_ProgPattern.Get()));
+	}
+#endif
+	Rule.Write(API_S_VOL_RULE, m_bVolumeRule);
 }
 
 void CAccessRule::ReadMValue(const SVarName& Name, const XVariant& Data)
@@ -68,6 +87,14 @@ void CAccessRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 	else if (VAR_TEST_NAME(Name, API_S_ACCESS_PATH))	m_AccessPath = AS_STR(Data);
 
 	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH))		m_ProgramPath = AS_STR(Data);
+
+#ifdef LOAD_NT_PATHS
+	else if (VAR_TEST_NAME(Name, API_S_ACCESS_PATH2))	m_AccessNtPath = AS_STR(Data);
+
+	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH2))		m_ProgramNtPath = AS_STR(Data);
+#endif
+
+	else if (VAR_TEST_NAME(Name, API_S_VOL_RULE))		m_bVolumeRule = Data.To<bool>();
 	
 	else
 		CGenericRule::ReadMValue(Name, Data);

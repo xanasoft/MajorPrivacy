@@ -3,6 +3,7 @@
 #include "NtUtil.h"
 #include "AppUtil.h"
 #include "../Common/Strings.h"
+//#include "Reparse.h"
 
 #include <Aclapi.h>
 #include <sddl.h>
@@ -11,7 +12,7 @@
 std::wstring DosPathToNtPath(const std::wstring &dosPath) 
 {
     if (dosPath.size() < 2 || dosPath[1] != ':')
-        return dosPath; // Invalid path
+        return dosPath; // not a DOS path
 
     // Extract drive letter
     wchar_t driveLetter[3] = { dosPath[0], ':', '\0' };
@@ -20,13 +21,11 @@ std::wstring DosPathToNtPath(const std::wstring &dosPath)
     if (QueryDosDeviceW(driveLetter, ntDeviceName, MAX_PATH) == 0)
         return dosPath; // Failed to query DOS device
 
+    // TODO: !!! make this work for folder mounted mounts !!!
+
     // Replace drive letter with NT device name
     std::wstring ntPath = ntDeviceName + dosPath.substr(2);
     return ntPath;
-}
-
-bool StartsWith(const std::wstring& path, const std::wstring& prefix) {
-    return path.rfind(prefix, 0) == 0;
 }
 
 std::wstring NtPathToDosPath(const std::wstring& ntPath) 
@@ -101,6 +100,9 @@ std::wstring NormalizeFilePath(std::wstring FilePath, bool bLowerCase)
 		FilePath = DosPathToNtPath(FilePath.substr(4));
 
 	// todo: else if (FilePath.substr(0, 11) == L"\\??\\Volume{")
+
+    /*if(!FilePath.empty() && FilePath[0] != L'*')
+        FilePath = GetReparsedPath(FilePath);*/
 
 	return bLowerCase ? MkLower(FilePath) : FilePath; 
 }

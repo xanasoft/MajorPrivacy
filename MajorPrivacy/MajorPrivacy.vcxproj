@@ -249,6 +249,7 @@
     <ClCompile Include="Core\Volumes\Volume.cpp" />
     <ClCompile Include="Core\Volumes\VolumeManager.cpp" />
     <ClCompile Include="Helpers\FilePath.cpp" />
+    <ClCompile Include="Helpers\SidResolver.cpp" />
     <ClCompile Include="Helpers\WinHelper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MajorPrivacy.cpp" />
@@ -423,6 +424,7 @@
     <QtMoc Include="Models\SocketModel.h" />
     <QtMoc Include="Models\NetTraceModel.h" />
     <ClInclude Include="Helpers\FilePath.h" />
+    <QtMoc Include="Helpers\SidResolver.h" />
     <ClInclude Include="Helpers\WinHelper.h" />
     <QtMoc Include="Models\ProgramRuleModel.h" />
     <QtMoc Include="Models\ProcessTraceModel.h" />

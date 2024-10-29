@@ -18,6 +18,8 @@ public:
 	CAccessTraceModel(QObject* parent = 0);
 	~CAccessTraceModel();
 
+	void					SetFilter(EEventStatus Action) { m_Action = Action; }
+
 	virtual int				columnCount(const QModelIndex &parent = QModelIndex()) const;
 	virtual QVariant		headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
@@ -41,6 +43,10 @@ protected:
 
 		CProgramFilePtr		pProgram;
 	};
+
+	EEventStatus			m_Action = EEventStatus::eUndefined;
+
+	virtual bool			FilterNode(const SMergedLog::TLogEntry& Data) const;
 
 	virtual STraceNode*		MkNode(quint64 Id);
 	virtual STraceNode*		MkNode(const SMergedLog::TLogEntry& Data);

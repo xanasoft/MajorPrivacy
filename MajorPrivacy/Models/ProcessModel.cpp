@@ -116,6 +116,7 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 				case eParentPID:			Value = pProcess->GetParentId(); break;
 				case eEnclaveID:			Value = (qint64)pProcess->GetEnclaveId(); break;
 				case eSignAuthority:		Value = pProcess->GetSignInfo().Data; break;
+				case eSID:					Value = pProcess->GetUserName(); break;
 				case eStatus:				Value = pProcess->GetStatus(); break;
 				case eImageStats:			Value = pProcess->GetImgStats(); break;
 				case eFileName:				Value = pProcess->GetPath(EPathType::eDisplay); break;
@@ -261,6 +262,7 @@ QString CProcessModel::GetColumHeader(int section) const
 		case eParentPID:			return tr("Parent PID");
 		case eEnclaveID:			return tr("Enclave ID");
 		case eSignAuthority:		return tr("Signature");
+		case eSID:					return tr("SID");	
 		case eStatus:				return tr("Status");
 		case eImageStats:			return tr("Image Loads (MS/V/S/U)");
 		case eFileName:				return tr("File Name");

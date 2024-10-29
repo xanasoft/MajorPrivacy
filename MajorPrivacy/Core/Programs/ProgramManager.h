@@ -10,7 +10,7 @@
 #include "ProgramID.h"
 #include "ProgramRule.h"
 #include "ProgramLibrary.h"
-#include "./MiscHelpers/Common/Common.h"
+#include "../MiscHelpers/Common/Common.h"
 
 
 class CProgramManager: public QObject

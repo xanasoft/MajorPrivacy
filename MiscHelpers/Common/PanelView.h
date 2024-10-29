@@ -133,6 +133,8 @@ public:
 			ApplyFilter(pTree, pTree->topLevelItem(i), Exp/*, bHighLight, Col*/);
 	}
 
+	CFinder* GetFinder() { return m_pFinder; }
+
 private slots:
 	void SetFilter(const QString& Exp, int iOptions, int Col = -1) // -1 = any
 	{
@@ -254,7 +256,8 @@ public:
 		connect(m_pTreeView->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)), this, SLOT(OnCurrentChanged(QModelIndex,QModelIndex)));
 		connect(m_pTreeView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(OnSelectionChanged(QItemSelection,QItemSelection)));
 
-		m_pMainLayout->addWidget(new CFinder(m_pSortProxy, this));
+		m_pFinder = new CFinder(m_pSortProxy, this);
+		m_pMainLayout->addWidget(m_pFinder);
 	}
 
 	typename M::ItemType		GetCurrentItem()	{ return m_CurrentItem; }
@@ -328,4 +331,6 @@ protected:
 
 	typename M::ItemType		m_CurrentItem;
 	QList<typename M::ItemType>	m_SelectedItems;
+
+	CFinder*					m_pFinder;
 };

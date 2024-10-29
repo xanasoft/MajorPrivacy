@@ -9,6 +9,7 @@
 #include "../MiscHelpers/Common/SettingsWidgets.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../MajorPrivacy.h"
+#include "../Core/Volumes/VolumeManager.h"
 
 CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget* parent)
 	: QDialog(parent)
@@ -108,6 +109,24 @@ void CAccessRuleWnd::OnSaveAndClose()
 	if (!Save()) {
 		QApplication::beep();
 		return;
+	}
+
+	if (m_pRule->m_Guid.isEmpty())
+	{
+		QString NtPath = QString::fromStdWString(DosPathToNtPath(ui.txtPath->text().toStdWString()));
+
+		theCore->VolumeManager()->Update();
+		auto Volumes = theCore->VolumeManager()->List();
+		foreach(const CVolumePtr& pVolume, Volumes) {
+			if(pVolume->GetStatus() != CVolume::eMounted)
+				continue;
+			QString DevicePath = pVolume->GetDevicePath();
+			if (NtPath.startsWith(DevicePath, Qt::CaseInsensitive)) {
+				m_pRule->SetVolumeRule(true);
+				m_pRule->m_AccessPath = NtPath;
+				break;
+			}
+		}
 	}
 
 	STATUS Status = theCore->AccessManager()->SetAccessRule(m_pRule);	

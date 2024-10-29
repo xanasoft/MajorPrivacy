@@ -22,6 +22,7 @@ struct SNetworkSocket
 
 class CSocketList
 {
+	TRACK_OBJECT(CSocketList)
 public:
 	CSocketList();
 	~CSocketList();

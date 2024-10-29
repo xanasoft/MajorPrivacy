@@ -21,4 +21,6 @@ protected:
 	
 private:
 
+	QToolBar*				m_pToolBar;
+
 };

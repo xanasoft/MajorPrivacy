@@ -14,6 +14,12 @@ public:
 	CAccessTraceView(QWidget *parent = 0);
 	virtual ~CAccessTraceView();
 
+private slots:
+	void					UpdateFilter();
+
 protected:
+
+	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbAction;
 
 };

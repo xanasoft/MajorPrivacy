@@ -379,6 +379,19 @@ void CProgramFile::CleanupTraceLog()
 	}
 }
 
+void CProgramFile::ClearTraceLog()
+{
+	std::unique_lock lock(m_Mutex);
+
+	for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
+	{
+		STraceLog& TraceLog = m_TraceLogs[i];
+
+		TraceLog.IndexOffset = 0;
+		TraceLog.Entries.clear();
+	}
+}
+
 void CProgramFile::CollectStats(SStats& Stats) const
 {
 	Stats.LastActivity = m_TrafficLog.GetLastActivity();
@@ -409,4 +422,20 @@ void CProgramFile::CollectStats(SStats& Stats) const
 			Stats.Downloaded += pSocket->GetDownloaded();
 		}
 	}
+}
+
+void CProgramFile::ClearLogs()
+{
+	ClearTraceLog();
+
+	m_TrafficLog.Clear();
+
+	std::unique_lock lock(m_Mutex);
+	m_AccessTree.Clear();
+
+	m_ExecActors.clear();
+	m_ExecTargets.clear();
+
+	m_IngressActors.clear();
+	m_IngressTargets.clear();
 }

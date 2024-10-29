@@ -34,6 +34,8 @@ private slots:
 
 private:
 
+	QToolBar*				m_pToolBar;
+
 	QAction*				m_pMountVolume;
 	QAction*				m_pUnmountVolume;
 	QAction*				m_pUnmountAllVolumes;

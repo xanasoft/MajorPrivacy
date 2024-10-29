@@ -32,6 +32,7 @@ public:
 		eParentPID,
 		eEnclaveID,
 		eSignAuthority,
+		eSID,
 		eStatus,
 		eImageStats,
 		eFileName,

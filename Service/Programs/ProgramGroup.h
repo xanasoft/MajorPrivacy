@@ -61,6 +61,7 @@ typedef std::weak_ptr<CProgramList> CProgramListRef;
 
 class CProgramGroup: public CProgramList
 {
+	TRACK_OBJECT(CProgramGroup)
 public:
 	CProgramGroup() {}
 

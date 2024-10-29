@@ -16,6 +16,7 @@ public:
 	bool IsEnabled() const							{ return m_bEnabled; }
 	void SetEnabled(bool bEnabled)					{ m_bEnabled = bEnabled; }
 	bool IsTemporary() const						{ return m_bTemporary; }
+	void SetTemporary(bool bTemporary)				{ m_bTemporary = bTemporary; }
 
 	QString GetName() const							{ return m_Name; }
 	void SetName(const QString& Name)				{ m_Name = Name; }
@@ -26,7 +27,7 @@ public:
 	virtual void FromVariant(const class XVariant& Rule);
 
 protected:
-	void CopyTo(CGenericRule* pRule) const;
+	void CopyTo(CGenericRule* pRule, bool CloneGuid = false) const;
 
 	virtual void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
 	virtual void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;

@@ -191,10 +191,6 @@ static const CAddress LocalHostV6("::1");
 
 void CDnsInspector::Update()
 {
-	static int x = 0;
-	if (x)
-		return;
-
 #ifdef DNS_SCRAPE
 	PDNS_RECORD dnsRecordRootPtr = TraverseDnsCacheTable(m); 
 #else
@@ -360,8 +356,16 @@ void CDnsInspector::Update()
 	if (dnsRecordRootPtr)
 		DnsRecordListFree(dnsRecordRootPtr, DnsFreeRecordList);
 #else
-	if (dnsCacheDataTable)
-		DnsRecordListFree(dnsCacheDataTable, DnsFreeFlat);
+	//if (dnsCacheDataTable)
+	//	DnsRecordListFree(dnsCacheDataTable, DnsFreeFlat); // memleak
+
+	for (PDNS_CACHE_ENTRY tablePtr = dnsCacheDataTable; tablePtr != NULL; )
+	{
+		PDNS_CACHE_ENTRY entryPtr = tablePtr;
+		tablePtr = tablePtr->Next;
+		GlobalFree((void*)entryPtr->Name);
+		GlobalFree(entryPtr);
+	}
 #endif
 }
 
@@ -611,4 +615,16 @@ CVariant CDnsInspector::DumpDnsCache()
 		DnsCache.WriteVariant(I->second->ToVariant());
 	DnsCache.Finish();
 	return DnsCache;
+}
+
+void CDnsInspector::FlushDnsCache()
+{
+	std::unique_lock Lock(m_Mutex);
+	m_DnsCache.clear();
+	m_AddressCache.clear();
+	m_RedirectionCache.clear();
+	m_NoResultBlackList.clear();
+
+	if (m->DnsFlushResolverCache_I)
+		m->DnsFlushResolverCache_I();
 }

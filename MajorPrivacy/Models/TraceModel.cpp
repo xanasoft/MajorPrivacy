@@ -56,6 +56,9 @@ QList<QModelIndex> CTraceModel::Sync(const QVector<SMergedLog::TLogEntry>& List)
 	{
 		const auto& Data = List.at(i);
 
+		if (!FilterNode(Data))
+			continue;
+
 		STraceNode* pNode = MkNode(Data);
 
 		if (bHasFilter && !TestHighLight(pNode)) {

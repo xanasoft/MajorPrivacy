@@ -12,7 +12,7 @@ public:
 	CProgramRuleView(QWidget *parent = 0);
 	virtual ~CProgramRuleView();
 
-	void					Sync(const QList<CProgramRulePtr>& RuleList);
+	void					Sync(QList<CProgramRulePtr> RuleList);
 
 protected:
 	void					OnMenu(const QPoint& Point) override;
@@ -27,6 +27,10 @@ private slots:
 	void					OnRuleAction();
 
 private:
+
+	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbAction;
+	QToolButton*			m_pBtnEnabled;
 
 	QAction*				m_pCreateRule;
 	QAction*				m_pEnableRule;

@@ -11,7 +11,8 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Common/FileIO.h"
 #include "../Library/Common/Exception.h"
-#include "../../Library/API/PrivacyAPI.h"
+#include "../Library/API/PrivacyAPI.h"
+#include "../Library/Helpers/EvtUtil.h"
 
 CProgramManager::CProgramManager()
 {
@@ -23,6 +24,74 @@ CProgramManager::~CProgramManager()
 {
 	delete m_InstallationList;
 	delete m_PackageList;
+
+#ifdef _DEBUG
+	m_Root.reset();
+	m_pAll.reset();
+	m_NtOsKernel.reset();
+
+	m_PatternMap.clear();
+	m_PackageMap.clear();
+	m_ServiceMap.clear();
+	m_InstallMap.clear();
+	m_PathMap.clear();
+	
+	//m_Items.clear();
+	for (auto I = m_Items.begin(); I != m_Items.end(); ++I) {
+		CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(I->second);
+		if (pProgram)
+			pProgram->ClearLogs();
+		CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(I->second);
+		if (pService)
+			pService->ClearLogs();
+	}
+
+	for (auto I = m_Items.begin(); I != m_Items.end(); ++I) {
+		I->second->m_FwRules.clear();
+		I->second->m_ProgRules.clear();
+		I->second->m_ResRules.clear();
+	}
+
+	for (auto I = m_Items.begin(); I != m_Items.end(); ++I) {
+		CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(I->second);
+		if(pProgram)
+			pProgram->m_Processes.clear();
+	}
+
+	for (auto I = m_Items.begin(); I != m_Items.end(); ++I) {
+		CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(I->second);
+		if (pService)
+			pService->m_pProcess.reset();
+	}
+
+	for (auto I = m_Items.begin(); I != m_Items.end();) {
+		CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(I->second);
+		CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(I->second);
+		if(pProgram || pService)
+			++I; 
+		else
+			I = m_Items.erase(I);
+	}
+
+	for (auto I = m_Items.begin(); I != m_Items.end(); ) {
+		CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(I->second);
+		if (pProgram)
+			I = m_Items.erase(I);
+		else
+			++I;
+	}
+
+	for (auto I = m_Items.begin(); I != m_Items.end(); ) {
+		CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(I->second);
+		if (pService)
+			I = m_Items.erase(I);
+		else
+			++I;
+	}
+
+	m_LibraryMap.clear();
+	m_Libraries.clear();
+#endif
 }
 
 STATUS CProgramManager::Init()
@@ -292,8 +361,10 @@ void CProgramManager::AddProcess(const CProcessPtr& pProcess)
 {
 	std::set<TServiceId> Services = pProcess->GetServices();
 	if (!Services.empty()) {
-		for(auto SvcId: Services)
-			AddService(pProcess, SvcId);
+		for (auto SvcId : Services) {
+			CWindowsServicePtr pService = GetService(SvcId);
+			pService->SetProcess(pProcess);
+		}
 		// todo file name
 		return;
 	}
@@ -307,6 +378,11 @@ void CProgramManager::AddProcess(const CProcessPtr& pProcess)
 		m_Items.insert(std::make_pair(pProgram->GetUID(), pProgram));
 		//pProgram->SetName(pProcess->GetName());
 		// todo: icon, description
+
+		if (!pProcess->GetAppContainerSid().empty())
+			AddProgramToGroup(pProgram, GetAppPackage(pProcess->GetAppContainerSid()));
+		AddItemToRoot(pProgram);
+		CollectData(pProgram);
 	}
 	lock.unlock();
 
@@ -315,19 +391,16 @@ void CProgramManager::AddProcess(const CProcessPtr& pProcess)
 	pProcess->m_Mutex.lock();
 	pProcess->m_pFileRef = pProgram;
 	pProcess->m_Mutex.unlock();
-
-	if (!pProcess->GetAppContainerSid().empty())
-		AddProgramToGroup(pProgram, GetAppPackage(pProcess->GetAppContainerSid()));
-	AddItemToRoot(pProgram);
-	CollectData(pProgram);
 }
 
 void CProgramManager::RemoveProcess(const CProcessPtr& pProcess)
 {
 	std::set<TServiceId> Services = pProcess->GetServices();
 	if (!Services.empty()) {
-		for(auto SvcId: Services)
-			RemoveService(pProcess, SvcId);
+		for(auto SvcId: Services) {
+			CWindowsServicePtr pService = GetService(SvcId, eDontAdd);
+			if (pService) pService->SetProcess(NULL);
+		}
 	}
 	
 	pProcess->m_Mutex.lock();
@@ -337,20 +410,6 @@ void CProgramManager::RemoveProcess(const CProcessPtr& pProcess)
 
 	if (pProgram)
 		pProgram->RemoveProcess(pProcess);
-}
-
-void CProgramManager::AddService(const CProcessPtr& pProcess, const TServiceId& Id)
-{
-	CWindowsServicePtr pService = GetService(Id);
-
-	pService->SetProcess(pProcess);
-}
-
-void CProgramManager::RemoveService(const CProcessPtr& pProcess, const TServiceId& Id)
-{
-	CWindowsServicePtr pService = GetService(Id, eDontAdd);
-	if(pService)
-		pService->SetProcess(NULL);
 }
 
 void CProgramManager::AddService(const CServiceList::SServicePtr& pWinService)
@@ -851,7 +910,7 @@ void CProgramManager::UpdateRule(const CProgramRulePtr& pRule, const std::wstrin
 	}
 }
 
-void CProgramManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type)
+void CProgramManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID)
 {
 	ASSERT(Type == ERuleType::eProgram);
 
@@ -891,13 +950,19 @@ void CProgramManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEv
 STATUS CProgramManager::Load()
 {
 	CBuffer Data;
-	if (!ReadFile(theCore->GetDataFolder() + L"\\Programs.dat", 0, Data))
+	if (!ReadFile(theCore->GetDataFolder() + L"\\Programs.dat", 0, Data)) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Programs.dat not found");
 		return ERR(STATUS_NOT_FOUND);
+	}
 
 	CVariant List;
-	try {
-		List.FromPacket(&Data, true);
-	} catch (const CException&) {
+	//try {
+	auto ret = List.FromPacket(&Data, true);
+	//} catch (const CException&) {
+	//	return ERR(STATUS_UNSUCCESSFUL);
+	//}
+	if (ret != CVariant::eErrNone) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse  Programs.dat");
 		return ERR(STATUS_UNSUCCESSFUL);
 	}
 

@@ -528,8 +528,8 @@ QModelIndex CTreeItemModel::parent(const QModelIndex &index) const
         return QModelIndex();
 
 	int row = 0;
-	if(pParent->Parent)
-		row = pParent->Parent->Children.indexOf(pParent);
+	if (pParent->Parent)
+		row = pParent->Row;
     return createIndex(row, 0, pParent);
 }
 

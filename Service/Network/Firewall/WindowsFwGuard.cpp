@@ -12,6 +12,8 @@ CWindowsFwGuard::CWindowsFwGuard()
 
 CWindowsFwGuard::~CWindowsFwGuard()
 {
+	Stop();
+
 	if (m_OldAuditingMode != -1)
 		SetAuditPolicy(&Audit_ObjectAccess_FirewallRuleChange_, 1, m_OldAuditingMode, NULL);
 }

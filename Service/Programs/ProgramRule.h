@@ -10,7 +10,7 @@ public:
 	CProgramRule(const CProgramID& ID);
 	~CProgramRule();
 
-	std::shared_ptr<CProgramRule> Clone() const;
+	std::shared_ptr<CProgramRule> Clone(bool CloneGuid = false) const;
 
 	std::wstring GetProgramPath() const				{std::shared_lock Lock(m_Mutex); return m_ProgramPath;}
 

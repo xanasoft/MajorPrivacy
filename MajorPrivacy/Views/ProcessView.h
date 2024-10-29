@@ -12,7 +12,7 @@ public:
 	CProcessView(QWidget *parent = 0);
 	virtual ~CProcessView();
 
-	void					Sync(const QMap<quint64, CProcessPtr>& ProcessMap);
+	void					Sync(QMap<quint64, CProcessPtr> ProcessMap);
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;
@@ -20,5 +20,8 @@ protected:
 	void					OnDoubleClicked(const QModelIndex& Index) override;
 	
 private:
+
+	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbScope;
 
 };

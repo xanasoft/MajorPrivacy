@@ -3,6 +3,7 @@
 
 class CInstallationList
 {
+	TRACK_OBJECT(CInstallationList)
 public:
 	CInstallationList();
 

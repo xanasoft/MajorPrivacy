@@ -3,6 +3,7 @@
 
 class CPackageList
 {
+	TRACK_OBJECT(CPackageList)
 public:
 	CPackageList();
 
@@ -12,6 +13,8 @@ public:
 
 	struct SPackage
 	{
+		TRACK_OBJECT(SPackage)
+
 		std::wstring PackageSid;
 		
 		std::wstring PackageFullName;

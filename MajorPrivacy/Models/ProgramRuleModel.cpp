@@ -2,9 +2,9 @@
 #include "ProgramRuleModel.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../Library/API/PrivacyAPI.h"
-#include "../Library/Helpers/AppUtil.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
+#include "../MajorPrivacy.h"
 
 CProgramRuleModel::CProgramRuleModel(QObject* parent)
 	:CTreeItemModel(parent)
@@ -83,7 +83,7 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 			case eAction:			Value = pRule->GetTypeStr(); break;
 			case eSignature:		Value = pRule->GetSignatureLevel(); break;
 			case eOnSpawn:			Value = ((uint32)pRule->GetOnTrustedSpawn()) << 16 | ((uint32)pRule->GetOnSpawn()); break;
-			case eProgram:			Value = pRule->GetProgramPath(); break;
+			case eProgram:			Value = pRule->GetProgramNtPath(); break;
 			}
 
 			SRuleNode::SValue& ColValue = pNode->Values[section];
@@ -96,9 +96,10 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 
 				switch (section)
 				{
-				case eName:				ColValue.Formatted = QString::fromStdWString(GetResourceStr(Value.toString().toStdWString())); break;
+				case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(Value.toString()); break;
 				case eSignature:		ColValue.Formatted = CProgramRule::GetSignatureLevelStr((KPH_VERIFY_AUTHORITY)Value.toUInt()); break;
 				case eOnSpawn:			ColValue.Formatted = CProgramRule::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() >> 16)) + "/" + CProgramRule::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() & 0xFFFF)); break;
+				case eProgram:			ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetProgramPath()).arg(pRule->GetProgramNtPath()); break;
 				}
 			}
 

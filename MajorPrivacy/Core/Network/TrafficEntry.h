@@ -1,6 +1,16 @@
 #pragma once
 #include "../Programs/ProgramID.h"
 
+enum class ENetProtocols
+{
+	eAny = 0,
+	eWeb,
+	eTCP,
+	eTCP_Server,
+	eTCP_Client,
+	eUDP,
+};
+
 class CTrafficEntry : public QObject
 {
 	Q_OBJECT

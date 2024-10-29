@@ -180,5 +180,21 @@
         <file>HelpingHand.png</file>
         <file>Icons/Export.png</file>
         <file>Icons/Import.png</file>
+        <file>Icons/Search.png</file>
+        <file>Icons/CaseSensitive.png</file>
+        <file>Icons/Highlight.png</file>
+        <file>Icons/RegExp.png</file>
+        <file>Icons/AppLink.png</file>
+        <file>Icons/CloudApp.png</file>
+        <file>Icons/LockApp.png</file>
+        <file>Icons/WarnApp.png</file>
+        <file>Icons/UserApp.png</file>
+        <file>Icons/ShieldApp.png</file>
+        <file>Icons/KeyApp.png</file>
+        <file>Icons/SecApp.png</file>
+        <file>Icons/Program.png</file>
+        <file>Icons/Tool.png</file>
+        <file>Icons/System.png</file>
+        <file>Icons/StoreApp.png</file>
     </qresource>
 </RCC>

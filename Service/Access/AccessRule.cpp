@@ -1,11 +1,14 @@
 #include "pch.h"
 #include "AccessRule.h"
 #include "../../Library/API/PrivacyAPI.h"
+#include "../Library/Helpers/NtUtil.h"
 
 CAccessRule::CAccessRule(const CProgramID& ID)
 	: CGenericRule(ID)
 {
-
+	m_ProgramPath = ID.GetFilePath();
+	if(!m_ProgramPath.empty()) 
+		m_ProgramPath = NtPathToDosPath(m_ProgramPath);
 }
 
 CAccessRule::~CAccessRule()
@@ -13,10 +16,10 @@ CAccessRule::~CAccessRule()
 
 }
 
-std::shared_ptr<CAccessRule> CAccessRule::Clone() const
+std::shared_ptr<CAccessRule> CAccessRule::Clone(bool CloneGuid) const
 {
 	std::shared_ptr<CAccessRule> pRule = std::make_shared<CAccessRule>(m_ProgramID);
-	CopyTo(pRule.get());
+	CopyTo(pRule.get(), CloneGuid);
 
 	std::shared_lock Lock(m_Mutex); 
 	pRule->m_Type = m_Type;

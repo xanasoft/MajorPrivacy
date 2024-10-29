@@ -31,6 +31,9 @@ public:
 	QList<QString> GetServices() const { return m_ServiceList; }
 	QString GetAppContainerSid() const { return m_AppContainerSid; }
 
+	QString GetUserSid() const { return m_UserSid; }
+	QString GetUserName() const { return m_UserName; }
+
 	QList<CHandlePtr> GetHandles() const { return m_Handles.values(); }
 	int GetHandleCount() const { return m_Handles.count(); }
 
@@ -38,6 +41,9 @@ public:
 	int GetSocketCount() const { return m_Sockets.count(); }
 
 	void FromVariant(const class XVariant& Process);
+
+private slots:
+	void OnSidResolved(const QByteArray& SID, const QString& Name);
 
 protected:
 
@@ -71,6 +77,9 @@ protected:
 	QString m_AppContainerSid;
 	QString m_AppContainerName;
 	QString m_PackageFullName;
+
+	QString m_UserSid;
+	QString m_UserName;
 
 	QMap<quint64, CHandlePtr> m_Handles;
 

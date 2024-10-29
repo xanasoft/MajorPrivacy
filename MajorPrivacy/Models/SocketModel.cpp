@@ -107,6 +107,7 @@ QList<QModelIndex>	CSocketModel::Sync(const QList<CSocketPtr>& SocketList)
 
 				switch (section)
 				{
+				case eState:		ColValue.Formatted = pSocket->GetStateString(); break;
 				case eLastActive:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
 				case eUpload:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 				case eDownload:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;

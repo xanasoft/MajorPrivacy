@@ -8,6 +8,7 @@
 
 class CProcess: public CAbstractInfoEx
 {
+	TRACK_OBJECT(CProcess)
 public:
 	CProcess(uint64 Pid);
 	~CProcess();
@@ -74,6 +75,7 @@ protected:
 
 	void SetRawCreationTime(uint64 TimeStamp);
 	bool InitOther();
+	bool InitLibs();
 
 	uint64 m_Pid = -1;
 	uint64 m_CreationTime = 0;
@@ -102,6 +104,8 @@ protected:
 	std::wstring m_AppContainerSid;
 	std::wstring m_AppContainerName;
 	std::wstring m_PackageFullName;
+
+	std::wstring m_UserSid;
 
 	mutable std::shared_mutex	m_HandleMutex;
 	std::set<CHandlePtr>		m_HandleList;

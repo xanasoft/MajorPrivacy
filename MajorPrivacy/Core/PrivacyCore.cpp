@@ -61,6 +61,9 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 
 #endif
 	
+	m_pSidResolver = new CSidResolver(this);
+	m_pSidResolver->Init();
+
 	m_pProcessList = new CProcessList(this);
 	m_pEnclaveList = new CEnclaveList(this);
 	m_pProgramManager = new CProgramManager(this);
@@ -603,6 +606,12 @@ RESULT(XVariant) CPrivacyCore::GetDnsCache()
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_DNC_CACHE, Request), API_V_DNS_CACHE);
 }
 
+STATUS CPrivacyCore::FlushDnsCache()
+{
+	CVariant Request;
+	return m_Service.Call(SVC_API_FLUSH_DNS_CACHE, Request);
+}
+
 // Access Manager
 
 RESULT(XVariant) CPrivacyCore::GetHandlesFor(const QList<const class CProgramItem*>& Nodes)
@@ -617,6 +626,30 @@ RESULT(XVariant) CPrivacyCore::GetAllHandles()
 {
 	CVariant Request;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_HANDLES, Request), API_V_HANDLES);
+}
+
+STATUS CPrivacyCore::ClearLogs()
+{
+	CVariant Request;
+
+	foreach(auto pItem, m_pProgramManager->GetItems()) 
+	{
+		auto pProgram = pItem.objectCast<CProgramFile>();
+		if (pProgram) {
+			pProgram->ClearTraceLog();
+			pProgram->ClearAccessLog();
+			pProgram->ClearProcessLogs();
+			pProgram->ClearTrafficLog();
+		}
+		auto pService = pItem.objectCast<CWindowsService>();
+		if (pService) {
+			pService->ClearAccessLog();
+			pService->ClearProcessLogs();
+			pService->ClearTrafficLog();
+		}
+	}
+
+	return m_Service.Call(SVC_API_CLEAR_LOGS, Request);
 }
 
 // Program Item
@@ -665,12 +698,13 @@ RESULT(XVariant) CPrivacyCore::GetVolumes()
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_VOL_GET_ALL_VOLUMES, Request), API_V_VOLUMES);
 }
 
-STATUS CPrivacyCore::MountVolume(const QString& Path, const QString& MountPoint, const QString& Password)
+STATUS CPrivacyCore::MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect)
 {
 	CVariant Request;
 	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\").toStdWString();
 	Request[API_V_VOL_MOUNT_POINT] = MountPoint.toStdWString();
 	Request[API_V_VOL_PASSWORD] = Password.toStdWString();
+	Request[API_V_VOL_PROTECT] = bProtect;
 	return m_Service.Call(SVC_API_VOL_MOUNT_IMAGE, Request);
 }
 

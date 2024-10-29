@@ -626,6 +626,8 @@ void CPopUpWindow::OnResAction()
 		return;
 	}
 
+	bool bUseVolumeRules = theConf->GetBool("ResourceAccess/UseVolumeRules", true);
+
 	CVolumePtr pCurVolume;
 	theCore->VolumeManager()->Update();
 	auto Volumes = theCore->VolumeManager()->List();
@@ -634,7 +636,10 @@ void CPopUpWindow::OnResAction()
 			continue;
 		QString DevicePath = pVolume->GetDevicePath();
 		if (NtPath.startsWith(DevicePath, Qt::CaseInsensitive)) {
-			Path = QString::fromStdWString(NtPathToDosPath((pVolume->GetImagePath() + "/" + NtPath.mid(DevicePath.length() + 1)).toStdWString()));
+			if(bUseVolumeRules)
+				Path = NtPath;
+			else
+				Path = QString::fromStdWString(NtPathToDosPath((pVolume->GetImagePath() + "/" + NtPath.mid(DevicePath.length() + 1)).toStdWString()));
 			pCurVolume = pVolume;
 			break;
 		}
@@ -644,13 +649,23 @@ void CPopUpWindow::OnResAction()
 	pRule->SetEnabled(true);
 	pRule->SetName(tr("%1 - Rule").arg(pProgram->GetNameEx()));
 	pRule->SetPath(Path);
+	if(bUseVolumeRules)
+		pRule->SetVolumeRule(true);
 
 	if (pSender == m_pResCustom)
 	{
 		CAccessRuleWnd* pAccessRuleWnd = new CAccessRuleWnd(pRule, QSet<CProgramItemPtr>() << pProgram);
 		if (!pAccessRuleWnd->exec())
 			return;
+
 		Path = pRule->GetPath(); // could have been changed
+
+		if (bUseVolumeRules) {
+			if (Path.startsWith("\\"))
+				NtPath = Path;
+			else
+				NtPath = QString::fromStdWString(DosPathToNtPath(Path.toStdWString()));
+		}
 	}
 	else 
 	{
@@ -668,13 +683,16 @@ void CPopUpWindow::OnResAction()
 			return;
 	}
 
-	NtPath = QString::fromStdWString(DosPathToNtPath(Path.toStdWString()));
-
-	if(pCurVolume) {
-		QString ImagePath = pCurVolume->GetImagePath();
-		if (Path.startsWith(ImagePath, Qt::CaseInsensitive)) {
-			Path = Path.mid(ImagePath.length() + 1);
-			NtPath = pCurVolume->GetDevicePath() + "\\" + Path;
+	if (bUseVolumeRules)
+	{
+		NtPath = QString::fromStdWString(DosPathToNtPath(Path.toStdWString()));
+		
+		if(pCurVolume) {
+			QString ImagePath = pCurVolume->GetImagePath();
+			if (Path.startsWith(ImagePath, Qt::CaseInsensitive)) {
+				Path = Path.mid(ImagePath.length() + 1);
+				NtPath = pCurVolume->GetDevicePath() + "\\" + Path;
+			}
 		}
 	}
 

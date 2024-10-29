@@ -95,6 +95,37 @@ CEtwEventMonitor::~CEtwEventMonitor()
 	delete m;
 }
 
+void stripPort(std::wstring& entry) 
+{
+	if (!entry.empty() && entry[0] == L'[') {
+		// Handle IPv6 addresses enclosed in brackets
+		std::size_t end_bracket = entry.find(L']');
+		if (end_bracket != std::wstring::npos) {
+			// Check if there is a colon after the closing bracket indicating a port
+			if (end_bracket + 1 < entry.length() && entry[end_bracket + 1] == L':') {
+				// Strip the port from the address
+				entry = entry.substr(0, end_bracket + 1);
+			}
+			// No port present; do nothing
+		}
+		// Malformed address; do nothing
+	}
+	else {
+		// Handle IPv4 addresses and IPv6 addresses without brackets
+		std::size_t pos = entry.rfind(L':');
+		if (pos != std::wstring::npos) {
+			// Check if the substring after the last colon is a valid port number
+			std::wstring port_candidate = entry.substr(pos + 1);
+			if (!port_candidate.empty() && std::all_of(port_candidate.begin(), port_candidate.end(), iswdigit)) {
+				// Port exists; strip it from the address
+				entry = entry.substr(0, pos);
+			}
+			// No valid port found; do nothing
+		}
+		// No colon found; address does not contain a port
+	}
+}
+
 bool CEtwEventMonitor::Init()
 {
 	if (m->bRunning)
@@ -463,7 +494,10 @@ bool CEtwEventMonitor::Init()
 			"web.whatsapp.com" "31.13.84.51;"
 			*/
 
-			for (auto Entry : SplitStr(Result, L";", false)) {
+			for (std::wstring Entry : SplitStr(Result, L";", false)) 
+			{
+				stripPort(Entry);
+
 				CAddress IP;
 				if (IP.FromWString(Entry))
 					Event.Results.push_back(IP);

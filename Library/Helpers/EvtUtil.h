@@ -109,6 +109,8 @@ protected:
 private:
 	static struct SEventLogDll* Dll();
 	static struct SEventLogDll* m_Dll;
+public:
+	static void FreeDll();
 };
 
 
@@ -144,9 +146,14 @@ public:
 	void LogEvent(WORD wType, WORD wCategory, DWORD dwEventID, const std::wstring& string, const CBuffer* pData = NULL);
 	void LogEvent(WORD wType, WORD wCategory, DWORD dwEventID, const std::vector<const wchar_t*>& strings, const CBuffer* pData = NULL);
 
+	void LogEventLine(WORD wType, WORD wCategory, DWORD dwEventID, const wchar_t* pFormat, ...);
+	void LogEventLine(WORD wType, WORD wCategory, DWORD dwEventID, const CBuffer* pData, const wchar_t* pFormat, ...);
+
 	static void ClearLog(const wchar_t* name);
 
 protected:
+
+	void LogEventLine(WORD wType, WORD wCategory, DWORD dwEventID, const CBuffer* pData, const wchar_t* pFormat, va_list ArgList);
 
 	HANDLE m_Handle;
 

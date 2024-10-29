@@ -63,6 +63,10 @@ public:
 	void				LoadIgnoreList();
 	void				StoreIgnoreList();
 
+	void				ShowNotification(const QString& Title, const QString& Message, QSystemTrayIcon::MessageIcon Icon, int Timeout = 0);
+
+	static QString		GetResourceStr(const QString& Name);
+
 signals:
 	void				Closed();
 
@@ -80,6 +84,8 @@ public slots:
 	void				UpdateSettings(bool bRebuildUI);
 
 	//void				ClearIgnoreLists();
+
+	void				ClearLogs();
 
 private slots:
 	void				OnMaintenance();
@@ -172,7 +178,10 @@ private:
 	
 	QWidget*			m_pProgramWidget;
 	QVBoxLayout*		m_pProgramLayout;
-	QToolBar*			m_pProgramToolBar;
+	
+	//QToolBar*			m_pProgramToolBar;
+	//QToolButton*		m_pBtnClear;
+
 	QSplitter*			m_pProgramSplitter;
 	QWidget*			m_pPageSubWidget;
 	QStackedLayout*		m_pPageSubStack;
@@ -203,6 +212,7 @@ private:
 	QMenu*				m_pOptions;
 	QAction*			m_pSettings;
 	//QAction*			m_pClearIgnore;
+	QAction*			m_pClearLogs;
 
 	QMenu*				m_pMenuHelp;
 	QAction*			m_pForum;

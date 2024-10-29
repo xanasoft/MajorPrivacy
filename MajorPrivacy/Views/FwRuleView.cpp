@@ -23,6 +23,41 @@ CFwRuleView::CFwRuleView(QWidget *parent)
 	} else
 		m_pTreeView->restoreState(Columns);
 
+	m_pMainLayout->setSpacing(1);
+
+	m_pToolBar = new QToolBar();
+	m_pMainLayout->insertWidget(0, m_pToolBar);
+	
+	m_pCmbDir = new QComboBox();
+	m_pCmbDir->addItem(tr("All Directions"), (qint32)EFwDirections::Bidirectional);
+	m_pCmbDir->addItem(tr("Inbound"), (qint32)EFwDirections::Inbound);
+	m_pCmbDir->addItem(tr("Outbound"), (qint32)EFwDirections::Outbound);
+	m_pToolBar->addWidget(m_pCmbDir);
+	
+	m_pCmbAction = new QComboBox();
+	m_pCmbAction->addItem(tr("All Actions"), (qint32)EFwActions::Undefined);
+	m_pCmbAction->addItem(tr("Allow"), (qint32)EFwActions::Allow);
+	m_pCmbAction->addItem(tr("Block"), (qint32)EFwActions::Block);
+	m_pToolBar->addWidget(m_pCmbAction);
+	
+	int comboBoxHeight = m_pCmbDir->sizeHint().height();
+
+	m_pBtnEnabled = new QToolButton();
+	m_pBtnEnabled->setIcon(QIcon(":/Icons/Disable.png"));
+	m_pBtnEnabled->setCheckable(true);
+	m_pBtnEnabled->setToolTip(tr("Hide Disabled Rules"));
+	m_pBtnEnabled->setMaximumHeight(comboBoxHeight);
+	m_pToolBar->addWidget(m_pBtnEnabled);
+
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
+
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	m_pToolBar->addWidget(pBtnSearch);
+
 	m_pCreateRule = m_pMenu->addAction(QIcon(":/Icons/Plus.png"), tr("Create Rule"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
 	m_pEnableRule = m_pMenu->addAction(QIcon(":/Icons/Enable.png"), tr("Enable Rule"), this, SLOT(OnRuleAction()));
@@ -44,8 +79,27 @@ CFwRuleView::~CFwRuleView()
 	theConf->SetBlob("MainWindow/FWRuleView_Columns", m_pTreeView->saveState());
 }
 
-void CFwRuleView::Sync(const QList<CFwRulePtr>& RuleList)
+void CFwRuleView::Sync(QList<CFwRulePtr> RuleList)
 {
+	bool bHideDisabled = m_pBtnEnabled->isChecked();
+	EFwDirections Dir = (EFwDirections)m_pCmbDir->currentData().toInt();
+	EFwActions Type = (EFwActions)m_pCmbAction->currentData().toInt();
+
+	if (bHideDisabled || Type != EFwActions::Undefined || Dir != EFwDirections::Bidirectional)
+	{
+		for (auto I = RuleList.begin(); I != RuleList.end();)
+		{
+			if (bHideDisabled && !(*I)->IsEnabled())
+				I = RuleList.erase(I);
+			else if (Dir != EFwDirections::Bidirectional && (*I)->GetDirection() != Dir)
+				I = RuleList.erase(I);
+			else if (Type != EFwActions::Undefined && (*I)->GetAction() != Type)
+				I = RuleList.erase(I);
+			else
+				++I;
+		}
+	}
+
 	m_pItemModel->Sync(RuleList);
 }
 

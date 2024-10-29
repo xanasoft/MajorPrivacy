@@ -3,6 +3,12 @@
 #include "../Library/API/PrivacyAPI.h"
 #include <shellapi.h>
 
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif
+
 //#include "../NtCRT/NtCRT.h"
 
 extern "C" _ACRTIMP
@@ -105,6 +111,11 @@ int WinMain(
 	//InitGeneralCRT(&MyCRT);
 
     //GetSystemInfo(&g_SystemInfo);
+
+#ifdef _DEBUG
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    //_CrtSetBreakAlloc(1162);
+#endif
 
 	int nArgs = 0;
 	LPWSTR* szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);

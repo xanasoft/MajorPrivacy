@@ -1,6 +1,27 @@
 #pragma once
 #include "../Programs/ProgramID.h"
 
+#ifndef MIB_TCP_STATE
+typedef enum {
+	MIB_TCP_STATE_CLOSED     =  1,
+	MIB_TCP_STATE_LISTEN     =  2,
+	MIB_TCP_STATE_SYN_SENT   =  3,
+	MIB_TCP_STATE_SYN_RCVD   =  4,
+	MIB_TCP_STATE_ESTAB      =  5,
+	MIB_TCP_STATE_FIN_WAIT1  =  6,
+	MIB_TCP_STATE_FIN_WAIT2  =  7,
+	MIB_TCP_STATE_CLOSE_WAIT =  8,
+	MIB_TCP_STATE_CLOSING    =  9,
+	MIB_TCP_STATE_LAST_ACK   = 10,
+	MIB_TCP_STATE_TIME_WAIT  = 11,
+	MIB_TCP_STATE_DELETE_TCB = 12,
+	//
+	// Extra TCP states not defined in the MIB
+	//
+	MIB_TCP_STATE_RESERVED      = 100
+} MIB_TCP_STATE;
+#endif
+
 class CSocket : public QObject
 {
 	Q_OBJECT
@@ -15,6 +36,7 @@ public:
 	QHostAddress GetRemoteAddress() const { return m_RemoteAddress; }
 	quint16 GetRemotePort() const		{ return m_RemotePort; }
 	quint32 GetState() const			{ return m_State; }
+	QString GetStateString() const;
 	uint32 GetLocalScopeId() const		{ return m_LocalScopeId; }
     uint32 GetRemoteScopeId() const		{ return m_RemoteScopeId; }
 

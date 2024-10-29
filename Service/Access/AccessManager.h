@@ -4,6 +4,7 @@
 
 class CAccessManager
 {
+	TRACK_OBJECT(CAccessManager)
 public:
 	CAccessManager();
 	~CAccessManager();
@@ -19,7 +20,7 @@ public:
 	std::map<std::wstring, CAccessRulePtr>	GetAllRules();
 	CAccessRulePtr GetRule(const std::wstring& Guid);
 
-	STATUS AddRule(const CAccessRulePtr& pRule);
+	RESULT(std::wstring) AddRule(const CAccessRulePtr& pRule);
 	STATUS RemoveRule(const std::wstring& Guid);
 
 	std::map<std::wstring, CAccessRulePtr> GetAccessRules() { std::unique_lock lock(m_RulesMutex); return m_Rules; }
@@ -41,5 +42,5 @@ protected:
 	bool									m_UpdateAllRules = true;
 	std::map<std::wstring, CAccessRulePtr>	m_Rules;
 
-	void OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type);
+	void OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID);
 };

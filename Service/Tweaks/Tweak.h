@@ -41,6 +41,7 @@ struct SWinVer
 
 class CAbstractTweak
 {
+    TRACK_OBJECT(CAbstractTweak)
 public:
     CAbstractTweak() {}
     virtual ~CAbstractTweak() {}

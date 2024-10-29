@@ -5,6 +5,7 @@ typedef std::wstring		TInstallId;	// registry key under: HKEY_LOCAL_MACHINE\SOFT
 
 class CAppInstallation: public CProgramPattern
 {
+	TRACK_OBJECT(CAppInstallation)
 public:
 	CAppInstallation(const TInstallId& Id);
 

@@ -5,6 +5,7 @@ typedef std::wstring		TAppId;		// Appcontainer SID as string
 
 class CAppPackage: public CProgramList
 {
+	TRACK_OBJECT(CAppPackage)
 public:
 	CAppPackage(const TAppId& Id, const std::wstring& Name = L"");
 

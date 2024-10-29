@@ -28,6 +28,12 @@ protected:
 
 	QSet<CProgramFilePtr>			m_CurPrograms;
 	QSet<CWindowsServicePtr>		m_CurServices;
-	QMap<QString, STrafficItemPtr>	m_HostMap;
-	QMap<quint64, STrafficItemPtr>	m_CurTraffic;
+	QMap<QString, STrafficItemPtr>	m_ParentMap;
+	QMap<quint64, STrafficItemPtr>	m_TrafficMap;
+
+private:
+
+	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbGrouping;
+	bool					m_bGroupByProgram = false;
 };

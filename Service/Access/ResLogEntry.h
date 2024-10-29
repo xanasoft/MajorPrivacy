@@ -5,6 +5,7 @@
 
 class CResLogEntry: public CTraceLogEntry
 {
+	TRACK_OBJECT(CResLogEntry)
 public:
 	CResLogEntry(const std::wstring& Path, std::wstring ServiceTag, uint32 AccessMask, EEventStatus Status, uint64 TimeStamp, uint64 PID);
 

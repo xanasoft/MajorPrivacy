@@ -14,6 +14,13 @@ public:
 	CProcessTraceView(QWidget *parent = 0);
 	virtual ~CProcessTraceView();
 
+private slots:
+	void					UpdateFilter();
+
 protected:
+
+	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbRole;
+	QComboBox*				m_pCmbAction;
 
 };

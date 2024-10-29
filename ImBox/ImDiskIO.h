@@ -8,7 +8,7 @@
 class CImDiskIO
 {
 public:
-	CImDiskIO(CAbstractIO* pIO, const std::wstring& Mount, const std::wstring& Format, const std::wstring& Params = L"");
+	CImDiskIO(CAbstractIO* pIO, const std::wstring& Mount, UINT Number, const std::wstring& Format, const std::wstring& Params = L"");
 	~CImDiskIO();
 
 	void		SetProxyName(const std::wstring& Name);

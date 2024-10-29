@@ -45,6 +45,8 @@ void CServiceCore::RegisterUserAPI()
 
 	m_pUserPipe->RegisterHandler(SVC_API_GET_DNC_CACHE, &CServiceCore::OnRequest, this);
 
+	m_pUserPipe->RegisterHandler(SVC_API_FLUSH_DNS_CACHE, &CServiceCore::OnRequest, this);
+
 	// Process Manager
 	m_pUserPipe->RegisterHandler(SVC_API_GET_PROCESSES, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_GET_PROCESS, &CServiceCore::OnRequest, this);
@@ -66,7 +68,8 @@ void CServiceCore::RegisterUserAPI()
 
 	// Access Manager
 	m_pUserPipe->RegisterHandler(SVC_API_GET_HANDLES, &CServiceCore::OnRequest, this);
-
+	m_pUserPipe->RegisterHandler(SVC_API_CLEAR_LOGS, &CServiceCore::OnRequest, this);
+	
 	// Volume Manager
 	m_pUserPipe->RegisterHandler(SVC_API_VOL_CREATE_IMAGE, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_VOL_CHANGE_PASSWORD, &CServiceCore::OnRequest, this);
@@ -388,6 +391,12 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			return STATUS_SUCCESS;
 		}
 
+		case SVC_API_FLUSH_DNS_CACHE:
+		{
+			theCore->NetworkManager()->DnsInspector()->FlushDnsCache();
+			return STATUS_SUCCESS;
+		}
+
 		// Process Manager
 		case SVC_API_GET_PROCESSES:
 		{
@@ -592,11 +601,20 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
 			if (!pItem)
 				return STATUS_NOT_FOUND;
-			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
-			if (!pProgram)
-				return STATUS_OBJECT_TYPE_MISMATCH;
 
-			CVariant vRpl = pProgram->DumpExecStats();
+			CVariant vRpl;
+
+			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
+			if (pProgram)
+				vRpl = pProgram->DumpExecStats();
+			else {
+				CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem);
+				if (pService)
+					vRpl = pService->DumpExecStats();
+				else
+					return STATUS_OBJECT_TYPE_MISMATCH;
+			}
+
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
@@ -612,11 +630,20 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
 			if (!pItem)
 				return STATUS_NOT_FOUND;
-			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
-			if (!pProgram)
-				return STATUS_OBJECT_TYPE_MISMATCH;
 
-			CVariant vRpl = pProgram->DumpIngress();
+			CVariant vRpl;
+
+			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
+			if (pProgram)
+				vRpl = pProgram->DumpIngress();
+			else {
+				CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem);
+				if (pService)
+					vRpl = pService->DumpIngress();
+				else
+					return STATUS_OBJECT_TYPE_MISMATCH;
+			}
+
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
@@ -632,13 +659,20 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
 			if (!pItem)
 				return STATUS_NOT_FOUND;
-			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
-			if (!pProgram)
-				return STATUS_OBJECT_TYPE_MISMATCH;
-			// todo service 
 
 			CVariant vRpl;
-			vRpl[API_V_ROOT] = pProgram->DumpAccess();
+
+			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
+			if (pProgram)
+				vRpl[API_V_ROOT] = pProgram->DumpAccess();
+			else {
+				CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem);
+				if (pService)
+					vRpl[API_V_ROOT] = pService->DumpAccess();
+				else
+					return STATUS_OBJECT_TYPE_MISMATCH;
+			}
+			
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
@@ -673,6 +707,45 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
+		case SVC_API_CLEAR_LOGS:
+		{
+			CVariant vReq;
+			vReq.FromPacket(req);
+
+			std::set<CHandlePtr> Handles;
+			if (!vReq.Has(API_V_PROG_ID))
+			{
+				for (auto pItem : theCore->ProgramManager()->GetItems())
+				{
+					CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second);
+					if (pProgram)
+						pProgram->ClearLogs();
+					CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second);
+					if (pService)
+						pService->ClearLogs();
+				}
+			}
+			else
+			{
+				CProgramID ID;
+				ID.FromVariant(vReq[API_V_PROG_ID]);
+
+				CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
+				if (!pItem)
+					return STATUS_NOT_FOUND;
+				CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
+				if (pProgram)
+					pProgram->ClearLogs();
+				else {
+					CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem);
+					if (pService) 
+						pService->ClearLogs();
+					else
+						return STATUS_OBJECT_TYPE_MISMATCH;
+				}
+			}
+			return STATUS_SUCCESS;
+		}
 
 		// Volume Manager
 		case SVC_API_VOL_CREATE_IMAGE:
@@ -705,7 +778,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CVariant vReq;
 			vReq.FromPacket(req);
 
-			STATUS Status = theCore->VolumeManager()->MountImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_MOUNT_POINT], vReq[API_V_VOL_PASSWORD]);
+			STATUS Status = theCore->VolumeManager()->MountImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_MOUNT_POINT], vReq[API_V_VOL_PASSWORD], vReq[API_V_VOL_PROTECT]);
 			RETURN_STATUS(Status);
 		}
 		case SVC_API_VOL_DISMOUNT_VOLUME:

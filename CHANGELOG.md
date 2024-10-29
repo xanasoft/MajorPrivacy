@@ -7,6 +7,35 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 // TODO 
 
 
+
+
+## [0.96.0] - 2024-10-29
+
+### Added
+- added option to clean up all agent logs
+- addes view filters and toolbars to variouse lists
+
+### Changed
+- reworked volume rule handling, rules can now be stored in $mpsys$ file in the volume root itself
+  - such rules can not be altered when the volume is not mounted adding protection against maliciouse modifications
+- reworked password handoff to imbox to make it more secure
+- improved mount error handling
+- improved GUI
+- improved access logging, allowed operations are now logged from the post op with status
+  - this allows to ignore access atempts to non existing objects (see settings)
+- improved finder bar
+- when starting the agent now enums all loaded libraries
+ 
+### Fixed
+- fixed issues with volume unmounting
+- fixed issues with driver communication
+- fixed dnscache related memory leak
+- fixed a race condition in the process list
+
+
+
+
+
 ## [0.95.0] - 2024-06-30
 
 ### Added

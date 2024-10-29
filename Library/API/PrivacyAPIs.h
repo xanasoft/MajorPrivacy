@@ -57,6 +57,7 @@
 	#define API_S_PROG_TYPE_ROOT				"Root"
 
 #define API_S_FILE_PATH						"FilePath"
+#define API_S_FILE_PATH2					"FileNtPath"
 #define API_S_SVC_TAG						"ServiceTag"
 #define API_S_APP_SID						"AppSID"	
 #define API_S_APP_NAME						"AppName"
@@ -104,6 +105,8 @@
 	#define API_S_ACCESS_RULE_ACTION_BLOCK		"Block"
 	#define API_S_ACCESS_RULE_ACTION_PROTECT	"Protect"
 #define API_S_ACCESS_PATH					"AccessPath"
+#define API_S_ACCESS_PATH2					"AccessNtPath"
+#define API_S_VOL_RULE						"VolumeRule"	
 
 // Execution Rules
 #define API_S_EXEC_RULE_ACTION				"Execution"

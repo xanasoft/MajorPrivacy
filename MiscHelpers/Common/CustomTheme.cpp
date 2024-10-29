@@ -57,7 +57,7 @@ void CCustomTheme::SetTitleTheme(const HWND& hwnd)
 	if (CurrentVersion < 17763) // Windows 10 1809 -
 		return;
 
-	HMODULE dwmapi = GetModuleHandle(L"dwmapi.dll");
+	HMODULE dwmapi = GetModuleHandleW(L"dwmapi.dll");
 	if (dwmapi)
 	{
 		typedef HRESULT(WINAPI* P_DwmSetWindowAttribute)(HWND, DWORD, LPCVOID, DWORD);

@@ -8,25 +8,25 @@ CExecLogEntry::CExecLogEntry()
 
 QString CExecLogEntry::GetRoleStr() const
 {
-	switch (m_Role) // todo tr
+	switch (m_Role)
 	{
-	case EExecLogRole::eBooth: return "Booth";
-	case EExecLogRole::eActor: return "Actor";
-	case EExecLogRole::eTarget: return "Target";
-	default: return "Unknown";
+	case EExecLogRole::eBooth: return QObject::tr("Booth");
+	case EExecLogRole::eActor: return QObject::tr("Actor");
+	case EExecLogRole::eTarget: return QObject::tr("Target");
+	default: return QObject::tr("Unknown");
 	}
 }
 
 QString CExecLogEntry::GetTypeStr() const
 {
 	QString Type;
-	switch (m_Type) // todo tr
+	switch (m_Type)
 	{
-	case EExecLogType::eProcessStarted:		Type = "Process Started"; break;
-	case EExecLogType::eImageLoad:			Type = "Image Load"; break;
-	case EExecLogType::eThreadAccess:		Type = "Thread Access"; break;
-	case EExecLogType::eProcessAccess:		Type = "Process Access"; break;
-	default: Type = "Unknown";
+	case EExecLogType::eProcessStarted:		Type = QObject::tr("Process Started"); break;
+	case EExecLogType::eImageLoad:			Type = QObject::tr("Image Load"); break;
+	case EExecLogType::eThreadAccess:		Type = QObject::tr("Thread Access"); break;
+	case EExecLogType::eProcessAccess:		Type = QObject::tr("Process Access"); break;
+	default: Type = QObject::tr("Unknown");
 	}
 
 	if (m_Type == EExecLogType::eProcessAccess)
@@ -42,14 +42,14 @@ QString CExecLogEntry::GetTypeStr() const
 
 QString CExecLogEntry::GetStatusStr() const
 {
-	switch (m_Status) // todo tr
+	switch (m_Status) 
 	{
 	case EEventStatus::eAllowed:	return QObject::tr("Allowed");
 	case EEventStatus::eUntrusted:	return QObject::tr("Allowed (Untrusted)");
 	case EEventStatus::eEjected:	return QObject::tr("Allowed (Ejected)");
 	case EEventStatus::eProtected:
 	case EEventStatus::eBlocked:	return QObject::tr("Blocked");
-	default: return "Unknown";
+	default: return QObject::tr("Unknown");
 	}
 }
 

@@ -31,10 +31,9 @@ CTraceView::CTraceView(CTraceModel* pModel, QWidget *parent)
 	m_pTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(m_pTreeView, SIGNAL(customContextMenuRequested( const QPoint& )), this, SLOT(OnMenu(const QPoint &)));
 
-	CFinder* pFinder;
-	//m_pMainLayout->addWidget(CFinder::AddFinder(m_pTreeList, this, CFinder::eHighLightDefault, &pFinder));
-	m_pMainLayout->addWidget(CFinder::AddFinder(m_pTreeView, this, CFinder::eHighLightDefault, &pFinder));
-	pFinder->SetModel(m_pItemModel);
+	//m_pMainLayout->addWidget(CFinder::AddFinder(m_pTreeList, this, CFinder::eHighLightDefault, &m_pFinder));
+	m_pMainLayout->addWidget(CFinder::AddFinder(m_pTreeView, this, CFinder::eHighLightDefault, &m_pFinder));
+	m_pFinder->SetModel(m_pItemModel);
 
 	m_pTreeView->setColumnReset(2);
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));

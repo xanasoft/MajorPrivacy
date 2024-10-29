@@ -374,3 +374,45 @@ NTSTATUS NtIo_MergeFolder(POBJECT_ATTRIBUTES src_objattrs, POBJECT_ATTRIBUTES de
 
 	return status;
 }
+
+NTSTATUS NtIo_ReadFile(const std::wstring& NtPath, CBuffer* Data)
+{
+	NTSTATUS status = STATUS_SUCCESS;
+	IO_STATUS_BLOCK Iosb;
+
+	HANDLE handle;
+	status = NtCreateFile(&handle, FILE_GENERIC_READ, SNtObject(NtPath).Get(), &Iosb, NULL, FILE_ATTRIBUTE_NORMAL, 0, FILE_OPEN, FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE, NULL, 0);
+	if (!NT_SUCCESS(status))
+		return status;
+
+	FILE_STANDARD_INFORMATION info;
+	status = NtQueryInformationFile(handle, &Iosb, &info, sizeof(info), FileStandardInformation);
+	if (NT_SUCCESS(status))
+	{
+		Data->SetSize(info.EndOfFile.QuadPart, true);
+		status = NtReadFile(handle, NULL, NULL, NULL, &Iosb, Data->GetBuffer(), (ULONG)Data->GetSize(), 0, NULL);
+		if (NT_SUCCESS(status))
+			Data->SetSize(Iosb.Information);
+	}
+
+	NtClose(handle);
+
+	return status;
+}
+
+NTSTATUS NtIo_WriteFile(const std::wstring& NtPath, const CBuffer* Data)
+{
+	NTSTATUS status = STATUS_SUCCESS;
+	IO_STATUS_BLOCK Iosb;
+
+	HANDLE handle;
+	status = NtCreateFile(&handle, FILE_GENERIC_WRITE, SNtObject(NtPath).Get(), &Iosb, NULL, FILE_ATTRIBUTE_NORMAL, 0, FILE_OVERWRITE_IF, FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE, NULL, 0);
+	if (!NT_SUCCESS(status))
+		return status;
+
+	status = NtWriteFile(handle, NULL, NULL, NULL, &Iosb, (VOID*)Data->GetBuffer(), (ULONG)Data->GetSize(), 0, NULL);
+
+	NtClose(handle);
+
+	return status;
+}

@@ -3,7 +3,6 @@
 #include <objbase.h>
 
 #include "../Library/Helpers/NtUtil.h"
-#include "../Library/Helpers/EvtUtil.h"
 #include "../Library/Helpers/AppUtil.h"
 #include "ServiceCore.h"
 #include "../Library/API/PrivacyAPI.h"
@@ -25,6 +24,7 @@
 #include "../Library/Common/FileIO.h"
 #include "../Library/Helpers/NtObj.h"
 #include "../Library/Common/Exception.h"
+#include "../MajorPrivacy/version.h"
 
 
 CServiceCore* theCore = NULL;
@@ -78,6 +78,10 @@ CServiceCore::~CServiceCore()
 
 	delete m_pUserPipe;
 	delete m_pUserPort;
+
+	delete m_pLog;
+
+	delete m_pConfig; // could be NULL
 }
 
 STATUS CServiceCore::Startup(bool bEngineMode)
@@ -100,7 +104,7 @@ STATUS CServiceCore::Startup(bool bEngineMode)
 	theCore = new CServiceCore();
 	theCore->m_bEngineMode = bEngineMode;
 
-	theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, 1, L"Starting Service...");
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Starting PrivacyAgent v%S", VERSION_STR);
 
 	STATUS Status = theCore->Init();
 	if (Status.IsError())
@@ -121,7 +125,12 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 	CServiceCore* This = (CServiceCore*)lpThreadParameter;
 
 	NTSTATUS status;
+	uint32 uDrvABI;
 
+	//
+	// Setup required privileges
+	//
+	
 	HANDLE tokenHandle;
 	if (NT_SUCCESS(status = NtOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
 	{
@@ -148,14 +157,23 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 	}
 
 	if(!NT_SUCCESS(status))
-		theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed to set privileges");
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to set privileges, error: 0x%08X", status);
+
+	//
+	// init COM for this thread
+	//
 
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
+	//
+	// Initialize the driver
+	//
 
 	SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
 	if ((DrvState & SVC_INSTALLED) == 0)
 	{
-		This->m_InitStatus = This->m_pDriver->InstallDrv();
+		uint32 TraceLogLevel = This->m_pConfig->GetInt("Driver", "TraceLogLevel", 0);
+		This->m_InitStatus = This->m_pDriver->InstallDrv(TraceLogLevel);
 		if (This->m_InitStatus) 
 		{
 			CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
@@ -166,67 +184,89 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 				if (ReadFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Data))
 				{
 					CVariant DriverData;
-					try {
-						DriverData.FromPacket(&Data, true);
+					//try {
+					auto ret = DriverData.FromPacket(&Data, true);
 
-						CVariant ConfigData = DriverData[API_S_CONFIG];
-						CBuffer ConfigBuff;
-						ConfigData.ToPacket(&ConfigBuff);
+					CVariant ConfigData = DriverData[API_S_CONFIG];
+					CBuffer ConfigBuff;
+					ConfigData.ToPacket(&ConfigBuff);
 
-						RegSet(hKey, L"Config", L"Data", CVariant(ConfigBuff));
-						if (DriverData.Has(API_S_USER_KEY))
-						{
-							CVariant UserKey = DriverData[API_S_USER_KEY];
-							RegSet(hKey, L"UserKey", L"PublicKey", UserKey[API_S_PUB_KEY]);
-							if (UserKey.Has(API_S_KEY_BLOB)) RegSet(hKey, L"UserKey", L"KeyBlob", UserKey[API_S_KEY_BLOB]);
-						}
+					RegSet(hKey, L"Config", L"Data", CVariant(ConfigBuff));
+					if (DriverData.Has(API_S_USER_KEY))
+					{
+						CVariant UserKey = DriverData[API_S_USER_KEY];
+						RegSet(hKey, L"UserKey", L"PublicKey", UserKey[API_S_PUB_KEY]);
+						if (UserKey.Has(API_S_KEY_BLOB)) RegSet(hKey, L"UserKey", L"KeyBlob", UserKey[API_S_KEY_BLOB]);
 					}
-					catch (const CException&) {
+					//}
+					//catch (const CException&) {
+					if (ret != CVariant::eErrNone)
 						This->m_InitStatus = ERR(STATUS_UNSUCCESSFUL);
-					}
+					//}
 				}
-				else
-					RegSet(hKey, L"Config", L"Data", CVariant()); // todo: fox me driver should create this folder when needed on its own
 			}
 		}
 		if (This->m_InitStatus.IsError()) {
-			theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed to install driver");
-			return -1;
+			theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to install driver, error: 0x%08X", This->m_InitStatus.GetStatus());
+			goto cleanup;
 		}
 	}
 
 	This->m_InitStatus = This->m_pDriver->ConnectDrv();
 	if (This->m_InitStatus.IsError()) {
-		theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed to connect to driver");
-		return -1;
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to connect to driver, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
 	}
 
-	if(This->m_pDriver->GetABIVersion() != MY_ABI_VERSION) {
-		theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Driver ABI version mismatch");
-		return -1;
+	uDrvABI = This->m_pDriver->GetABIVersion();
+	if(uDrvABI != MY_ABI_VERSION) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Driver ABI version mismatch, expected: %06X, got %06X", MY_ABI_VERSION, uDrvABI);
+		goto cleanup;
 	}
+
+	//
+	// Initialize the rest of the components
+	//
 
 	This->m_InitStatus = This->m_pProgramManager->Init();
-	if (This->m_InitStatus.IsError()) return -1;
-
+	if (This->m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Program Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
+	}
+	
 	This->m_InitStatus = This->m_pProcessList->Init();
-	if (This->m_InitStatus.IsError()) return -1;
-
+	if (This->m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Process List, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
+	}
+	
 	This->m_InitStatus = This->m_pAccessManager->Init();
-	if (This->m_InitStatus.IsError()) return -1;
+	if (This->m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Access Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
+	}
 
 	This->m_InitStatus = This->m_pNetworkManager->Init();
-	if (This->m_InitStatus.IsError()) return -1;
+	if (This->m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Network Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
+	}
 
 	This->m_InitStatus = This->m_pVolumeManager->Init();
-	if (This->m_InitStatus.IsError()) return -1;
-
+	if (This->m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Volume Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
+	}
+	
 	This->m_InitStatus = This->m_pTweakManager->Init();
-	if (This->m_InitStatus.IsError()) return -1;
+	if (This->m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Tweak Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
+	}
 
 	if (This->Config()->GetBool("Service", "UseETW", true)) {
 		if (!This->m_pEtwEventMonitor->Init())
-			theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed to initialize ETW monitoring");
+			theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to initialize ETW Monitoring");
 	}
 
 	//
@@ -237,7 +277,7 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
     LARGE_INTEGER liDueTime;
     liDueTime.QuadPart = -10000000LL; // let the timer start after 1 seconds and the repeat every 250 ms
-    if (!SetWaitableTimer(This->m_hTimer, &liDueTime, 250, CServiceCore__TimerProc, This, FALSE))
+	if (!SetWaitableTimer(This->m_hTimer, &liDueTime, 250, CServiceCore__TimerProc, This, FALSE))if (!SetWaitableTimer(This->m_hTimer, &liDueTime, 250, CServiceCore__TimerProc, This, FALSE))
         return ERR(GetLastWin32ErrorAsNtStatus());
 
 	//
@@ -253,6 +293,8 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 	This->m_pProgramManager->Store();
 
 	This->m_pVolumeManager->DismountAll();
+
+cleanup:
 
 	delete theCore;
 	theCore = NULL;
@@ -358,6 +400,23 @@ void CServiceCore::Shutdown()
 	}
 }
 
+#ifdef _DEBUG
+size_t getHeapUsage() 
+{
+	_HEAPINFO heapInfo;
+	heapInfo._pentry = nullptr;
+	size_t usedMemory = 0;
+
+	while (_heapwalk(&heapInfo) == _HEAPOK) {
+		if (heapInfo._useflag == _USEDENTRY) {
+			usedMemory += heapInfo._size;
+		}
+	}
+
+	return usedMemory;
+}
+#endif
+
 void CServiceCore::OnTimer()
 {
 	m_pProcessList->Update();
@@ -367,4 +426,15 @@ void CServiceCore::OnTimer()
 	m_pProgramManager->Update();
 
 	m_pAccessManager->Update();
+
+#ifdef _DEBUG
+	static uint64 LastObjectDump = GetTickCount64();
+	if (LastObjectDump + 60 * 1000 < GetTickCount64()) {
+		LastObjectDump = GetTickCount64();
+		ObjectTrackerBase::PrintCounts();
+
+		size_t memoryUsed = getHeapUsage();
+		DbgPrint(L"USED MEMORY: %llu bytes\n", memoryUsed);
+	}
+#endif
 }

@@ -17,6 +17,7 @@
 
 class CSocket: public CAbstractInfoEx
 {
+	TRACK_OBJECT(CSocket)
 public:
 	CSocket();
 	~CSocket();

@@ -9,6 +9,7 @@
 #include "../Network/SocketList.h"
 #include "../Programs/ProgramFile.h"
 #include "../Programs/WindowsService.h"
+#include "../Programs/ProgramManager.h"
 
 #include "../../Library/Helpers/Scoped.h"
 #include "../../Library/Helpers/TokenUtil.h"
@@ -139,10 +140,18 @@ bool CProcess::InitOther()
 		if (GetProcessTimes(hProcess, &time, &time1, &time2, &time3))
 			SetRawCreationTime(((PLARGE_INTEGER)&time)->QuadPart);
 	}
-	
+
 	CScopedHandle ProcessToken = CScopedHandle((HANDLE)0, CloseHandle);
 	if (OpenProcessToken(hProcess, TOKEN_QUERY, &ProcessToken))
 	{
+		SE_TOKEN_USER tokenUser;
+		ULONG returnLength;
+		if (NT_SUCCESS(NtQueryInformationToken(ProcessToken, TokenUser, &tokenUser, sizeof(SE_TOKEN_USER), &returnLength)))
+		{
+			SSid UserSid = &tokenUser.Sid;
+			m_UserSid = UserSid.ToWString();
+		}
+
 		CBuffer Buffer;
 
 		if (!QueryTokenVariable(ProcessToken, TokenAppContainerSid, Buffer).IsError())
@@ -200,6 +209,57 @@ bool CProcess::InitOther()
 		m_CommandLine = GetPebString(hProcess, AppCommandLine);
 	}
 
+	return true;
+}
+
+bool CProcess::InitLibs()
+{
+	CScopedHandle hProcess = CScopedHandle(OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, (DWORD)m_Pid), CloseHandle);
+	if (!hProcess)
+		return false;
+
+	for (PVOID baseAddress = (PVOID)0;baseAddress != (PVOID)-1;)
+	{
+		MEMORY_BASIC_INFORMATION basicInfo;
+		if (!NT_SUCCESS(NtQueryVirtualMemory(hProcess, baseAddress, MemoryBasicInformation, &basicInfo, sizeof(MEMORY_BASIC_INFORMATION), NULL)))
+			break;
+
+		if (/*basicInfo.Type != MEM_MAPPED &&*/ basicInfo.Type != MEM_IMAGE) {
+			baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
+			continue;
+		}
+
+		PVOID allocationBase = basicInfo.AllocationBase;
+		SIZE_T allocationSize = 0;
+
+		do {
+			baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
+			allocationSize += basicInfo.RegionSize;
+			if (!NT_SUCCESS(NtQueryVirtualMemory(hProcess, baseAddress, MemoryBasicInformation, &basicInfo, sizeof(MEMORY_BASIC_INFORMATION), NULL))) {
+				baseAddress = (PVOID)-1;
+				break;
+			}
+		} while (basicInfo.AllocationBase == allocationBase);
+
+
+		SIZE_T returnLength = 0;
+		std::vector<BYTE> buffer(0x1000);
+		NTSTATUS status = NtQueryVirtualMemory(hProcess, allocationBase, MemoryMappedFilenameInformation, buffer.data(), buffer.size(), &returnLength);
+		if (status == STATUS_BUFFER_OVERFLOW && returnLength > 0) {
+			buffer.resize(returnLength);
+			status = NtQueryVirtualMemory(hProcess, allocationBase, MemoryMappedFilenameInformation, buffer.data(), buffer.size(), &returnLength);
+		}
+
+		if (NT_SUCCESS(status))
+		{
+			auto pUnicodeString = (PUNICODE_STRING)buffer.data();
+			std::wstring ModulePath = NormalizeFilePath(std::wstring(pUnicodeString->Buffer, pUnicodeString->Length / sizeof(wchar_t)));
+
+			CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibrary(ModulePath, true);
+
+			GetProgram()->AddLibrary(pLibrary, GetCurrentTimeAsFileTime(), KphUntestedAuthority, 0, 0, EEventStatus::eUntrusted);
+		}
+	}
 	return true;
 }
 
@@ -375,6 +435,8 @@ CVariant CProcess::ToVariant() const
 	Process.Write(API_V_APP_SID, m_AppContainerSid);
 	Process.Write(API_V_APP_NAME, m_AppContainerName);
 	Process.Write(API_V_PACK_NAME, m_PackageFullName);
+
+	Process.Write(API_V_USER_SID, m_UserSid);
 
 	Process.Write(API_V_SOCK_LAST_ACT, m_LastActivity);
 	

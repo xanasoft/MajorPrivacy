@@ -3,14 +3,17 @@
 
 class CAccessTree
 {
+	TRACK_OBJECT(CAccessTree)
 public:
 	CAccessTree();
 	virtual ~CAccessTree();
 
 	struct SAccessStats
 	{
+		TRACK_OBJECT(SAccessStats)
 		SAccessStats(uint32 AccessMask, uint64 AccessTime, bool bBlocked)
 			: LastAccessTime(AccessTime), bBlocked(bBlocked), AccessMask(AccessMask) {}
+		~SAccessStats() {}
 
 		uint64	LastAccessTime = 0;
 		bool	bBlocked = false;
@@ -24,6 +27,9 @@ public:
 	
 	struct SPathNode
 	{
+		TRACK_OBJECT(SPathNode)
+		SPathNode() {}
+		~SPathNode() {}
 		std::wstring Name;
 		std::map<std::wstring, std::shared_ptr<SPathNode>> Branches;
 		SAccessStatsPtr pStats;

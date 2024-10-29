@@ -13,6 +13,7 @@ typedef std::wstring		TFilePath;	// normalized Application Binary file apth
 
 class CProgramFile: public CProgramSet
 {
+	TRACK_OBJECT(CProgramFile)
 public:
 	CProgramFile(const std::wstring& FileName);
 
@@ -35,6 +36,7 @@ public:
 
 	struct SExecInfo
 	{
+		TRACK_OBJECT(SExecInfo)
 		uint64						LastExecTime = 0;
 		bool						bBlocked = false;
 		std::wstring				CommandLine;
@@ -46,6 +48,7 @@ public:
 
 	struct SAccessInfo
 	{
+		TRACK_OBJECT(SAccessInfo)
 		uint64						LastAccessTime = 0;
 		bool						bBlocked = false;
 		uint32						ProcessAccessMask = 0;
@@ -63,6 +66,7 @@ public:
 
 	struct STraceLog
 	{
+		TRACK_OBJECT(STraceLog)
 		std::vector<CTraceLogEntryPtr> Entries;
 		size_t IndexOffset = 0;
 	};
@@ -70,6 +74,9 @@ public:
 	virtual uint64 AddTraceLogEntry(const CTraceLogEntryPtr& pLogEntry, ETraceLogs Log);
 	virtual STraceLog GetTraceLog(ETraceLogs Log) const;
 	virtual void CleanupTraceLog();
+	virtual void ClearTraceLog();
+
+	virtual void ClearLogs();
 
 protected:
 	friend class CProgramManager;
@@ -93,7 +100,7 @@ protected:
 
 	std::map<uint64, SLibraryInfo>	m_Libraries; // key: Librars UUID
 
-	std::map <uint64, SExecInfo>	m_ExecActors; // key: Program UUID
+	std::map<uint64, SExecInfo>		m_ExecActors; // key: Program UUID
 	std::map<uint64, SExecInfo>		m_ExecTargets; // key: Program UUID
 
 	std::map<uint64, SAccessInfo>	m_IngressActors; // key: Program UUID

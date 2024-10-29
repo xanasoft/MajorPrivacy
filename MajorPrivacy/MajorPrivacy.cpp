@@ -95,6 +95,10 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 	
 	LoadLanguage();
 
+	CFinder::m_CaseInsensitiveIcon = QIcon(":/Icons/CaseSensitive.png");
+	CFinder::m_RegExpStrIcon = QIcon(":/Icons/RegExp.png");
+	CFinder::m_HighlightIcon = QIcon(":/Icons/Highlight.png");
+
 	BuildMenu();
 
 	BuildGUI();
@@ -128,7 +132,11 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 
 	SetTitle();
 
+#ifdef _DEBUG
+	m_uTimerID = startTimer(500);
+#else
 	m_uTimerID = startTimer(250);
+#endif
 }
 
 CMajorPrivacy::~CMajorPrivacy()
@@ -352,6 +360,7 @@ void CMajorPrivacy::BuildMenu()
 	m_pOptions = menuBar()->addMenu("Options");
 	m_pSettings = m_pOptions->addAction(QIcon(":/Icons/Settings.png"), tr("Settings"), this, SLOT(OpenSettings()));
 	//m_pClearIgnore = m_pOptions->addAction(QIcon(":/Icons/Clean.png"), tr("Clear Ignore List"), this, SLOT(ClearIgnoreLists()));
+	m_pClearLogs = m_pOptions->addAction(QIcon(":/Icons/Clean.png"), tr("Clear Logs"), this, SLOT(ClearLogs()));
 
 	m_pMenuHelp = menuBar()->addMenu(tr("&Help"));
 	m_pForum = m_pMenuHelp->addAction(QIcon(":/Icons/Forum.png"), tr("Visit Support Forum"), this, SLOT(OnHelp()));
@@ -436,28 +445,25 @@ void CMajorPrivacy::BuildGUI()
 	m_pProgramWidget = new QWidget();
 	m_pProgramLayout = new QVBoxLayout(m_pProgramWidget);
 	m_pProgramLayout->setContentsMargins(0, 0, 0, 0);
-	m_pProgramToolBar = new QToolBar();
+	/*m_pProgramToolBar = new QToolBar();
 
-	/*
-	m_pProgramToolBar->addAction("start", this, [&]() {
+	m_pBtnClear = new QToolButton();
+	m_pBtnClear->setIcon(QIcon(":/Icons/Clean.png"));
+	m_pBtnClear->setToolTip(tr("Cleanup Program List"));
+	m_pBtnClear->setFixedHeight(22);
+	m_pProgramToolBar->addWidget(m_pBtnClear);
 
-		QString Path = QInputDialog::getText(this, "Major Privacy", tr("Run Path"));
-		if (Path.isEmpty())
-			return;
-		quint32 EnclaveId = QInputDialog::getInt(this, "Major Privacy", tr("enclave id"));
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pProgramToolBar->addWidget(pSpacer);
 
-		theCore->StartProcessInEnvlave(Path, EnclaveId);
-	});
+	QAbstractButton* pBtnSearch = m_pProgramView->m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setFixedHeight(22);
+	m_pProgramToolBar->addWidget(pBtnSearch);
 
-	m_pProgramToolBar->addAction("test svc", this, [&]() {
-		//theCore->Service()->TestSvc();
-	});
 
-	m_pProgramToolBar->addAction("test drv", this, [&]() {
-		//theCore->Driver()->TestDrv();
-	});*/
-
-	m_pProgramLayout->addWidget(m_pProgramToolBar);
+	m_pProgramLayout->addWidget(m_pProgramToolBar);*/
 	m_pProgramSplitter = new QSplitter();
 	m_pProgramSplitter->setOrientation(Qt::Horizontal);
 	m_pProgramLayout->addWidget(m_pProgramSplitter);
@@ -993,7 +999,7 @@ QString CMajorPrivacy::FormatError(const STATUS& Error)
 	{
 		wchar_t* messageBuffer = nullptr;
 		DWORD bufferLength = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			nullptr, RtlNtStatusToDosError(status), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&messageBuffer, 0, nullptr);
+			nullptr, RtlNtStatusToDosError(status), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&messageBuffer, 0, nullptr);
 
 		if (bufferLength) {
 			QString msg = QString::fromWCharArray(messageBuffer);
@@ -1023,6 +1029,12 @@ int CMajorPrivacy::CheckResults(QList<STATUS> Results, QWidget* pParent, bool bA
 		Dialog.exec();
 	}
 	return Errors.count();
+}
+
+void CMajorPrivacy::ShowNotification(const QString& Title, const QString& Message, QSystemTrayIcon::MessageIcon Icon, int Timeout)
+{
+	m_pTrayIcon->showMessage(Title, Message, Icon, Timeout);
+	statusBar()->showMessage(Message, Timeout);
 }
 
 void CMajorPrivacy::IgnoreEvent(ERuleType Type, const CProgramFilePtr& pProgram, const QString& Path)
@@ -1139,6 +1151,11 @@ void CMajorPrivacy::StoreIgnoreList()
 //	foreach(const QString & Key, Keys)
 //		theConf->DelValue(IGNORE_LIST_GROUP "/" + Key);
 //}
+
+void CMajorPrivacy::ClearLogs()
+{
+	theCore->ClearLogs();
+}
 
 QString GetIgnoreTypeName(ERuleType Type)
 {
@@ -1492,6 +1509,31 @@ int CMajorPrivacy::SafeExec(QDialog* pDialog)
 	return ret;
 }
 
+QString CMajorPrivacy::GetResourceStr(const QString& Name)
+{
+	if(Name.isEmpty())
+		return tr("Unnamed Rule");
+
+	//
+	// Convert MajorPrivacy resource strings to full strings
+	//
+
+	auto StrAux = Split2(Name,",");
+	if(StrAux.first == "&Protect")
+		return tr("Volume Protection Rule for: %1").arg(StrAux.second);
+	if(StrAux.first == "&Unmount")
+		return tr("Volume Unmount Rule for: %1").arg(StrAux.second);
+
+	//
+	// Convert Windows resource strings to full strings
+	//
+
+	if(Name.startsWith("@"))
+		return QString::fromStdWString(::GetResourceStr(Name.toStdWString()));
+
+	return Name;
+}
+
 void CMajorPrivacy::LoadLanguage()
 {
 	m_Language = theConf->GetString("Options/UiLanguage");
@@ -1522,6 +1564,8 @@ void CMajorPrivacy::LoadLanguage()
 	CFinder::m_CloseStr = tr("Close");
 	CFinder::m_FindStr = tr("&Find ...");
 	CFinder::m_AllColumns = tr("All columns");
+	CFinder::m_Placeholder = tr("Search ...");
+	CFinder::m_ButtonTip = tr("Toggle Search Bar");
 }
 
 void CMajorPrivacy::LoadLanguage(const QString& Lang, const QString& Module, int Index)

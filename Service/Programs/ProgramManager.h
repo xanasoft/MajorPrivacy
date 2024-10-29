@@ -50,8 +50,6 @@ public:
 
 	void AddProcess(const CProcessPtr& pProcess);
 	void RemoveProcess(const CProcessPtr& pProcess);
-	void AddService(const CProcessPtr& pProcess, const TServiceId& Id);
-	void RemoveService(const CProcessPtr& pProcess, const TServiceId& Id);
 	void AddService(const CServiceList::SServicePtr& pWinService);
 	void RemoveService(const CServiceList::SServicePtr& pWinService);
 	void AddPackage(const CPackageList::SPackagePtr& pAppPackage);
@@ -154,6 +152,6 @@ protected:
 	bool									m_UpdateAllRules = true;
 	std::map<std::wstring, CProgramRulePtr> m_Rules;
 
-	void OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type);
+	void OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID);
 };
 

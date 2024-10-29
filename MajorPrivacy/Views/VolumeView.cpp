@@ -35,6 +35,26 @@ CVolumeView::CVolumeView(QWidget *parent)
 	} else
 		m_pTreeView->restoreState(Columns);
 
+	m_pMainLayout->setSpacing(1);
+
+	m_pToolBar = new QToolBar();
+	m_pToolBar->setFixedHeight(30);
+	m_pMainLayout->insertWidget(0, m_pToolBar);
+
+	m_pToolBar->addAction(m_pCreateVolume);
+	m_pToolBar->addSeparator();
+	m_pToolBar->addAction(m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Mount Volume"), this, SLOT(MountVolume())));
+	m_pToolBar->addAction(m_pUnmountAllVolumes);
+
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
+
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	//pBtnSearch->setMaximumHeight(22);
+	m_pToolBar->addWidget(pBtnSearch);
+
 	AddPanelItemsToMenu();
 }
 
@@ -86,8 +106,9 @@ void CVolumeView::MountVolume(QString Path)
 		return;
 	QString Password = window.GetPassword();
 	QString MountPoint = window.GetMountPoint();
+	bool bProtect = window.UseProtection();
 
-	STATUS Status = theCore->MountVolume(Path, MountPoint, Password);
+	STATUS Status = theCore->MountVolume(Path, MountPoint, Password, bProtect);
 	theGUI->CheckResults(QList<STATUS>() << Status, this);
 }
 

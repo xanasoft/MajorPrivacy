@@ -26,4 +26,6 @@ private slots:
 
 private:
 
+	QToolBar*				m_pToolBar;
+
 };

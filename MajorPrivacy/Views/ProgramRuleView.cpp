@@ -23,6 +23,36 @@ CProgramRuleView::CProgramRuleView(QWidget *parent)
 	} else
 		m_pTreeView->restoreState(Columns);
 
+	m_pMainLayout->setSpacing(1);
+
+	m_pToolBar = new QToolBar();
+	m_pMainLayout->insertWidget(0, m_pToolBar);
+
+	m_pCmbAction = new QComboBox();
+	m_pCmbAction->addItem(tr("All Actions"), (qint32)EExecRuleType::eUnknown);
+	m_pCmbAction->addItem(tr("Allow"), (qint32)EExecRuleType::eAllow);
+	m_pCmbAction->addItem(tr("Block"), (qint32)EExecRuleType::eBlock);
+	m_pCmbAction->addItem(tr("Protect"), (qint32)EExecRuleType::eProtect);
+	m_pToolBar->addWidget(m_pCmbAction);
+
+	int comboBoxHeight = m_pCmbAction->sizeHint().height();
+
+	m_pBtnEnabled = new QToolButton();
+	m_pBtnEnabled->setIcon(QIcon(":/Icons/Disable.png"));
+	m_pBtnEnabled->setCheckable(true);
+	m_pBtnEnabled->setToolTip(tr("Hide Disabled Rules"));
+	m_pBtnEnabled->setMaximumHeight(comboBoxHeight);
+	m_pToolBar->addWidget(m_pBtnEnabled);
+
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
+
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	m_pToolBar->addWidget(pBtnSearch);
+
 	m_pCreateRule = m_pMenu->addAction(QIcon(":/Icons/Plus.png"), tr("Create Rule"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
 	m_pEnableRule = m_pMenu->addAction(QIcon(":/Icons/Enable.png"), tr("Enable Rule"), this, SLOT(OnRuleAction()));
@@ -40,8 +70,24 @@ CProgramRuleView::~CProgramRuleView()
 	theConf->SetBlob("MainWindow/ProgramRuleView_Columns", m_pTreeView->saveState());
 }
 
-void CProgramRuleView::Sync(const QList<CProgramRulePtr>& RuleList)
+void CProgramRuleView::Sync(QList<CProgramRulePtr> RuleList)
 {
+	bool bHideDisabled = m_pBtnEnabled->isChecked();
+	EExecRuleType Type = (EExecRuleType)m_pCmbAction->currentData().toInt();
+
+	if (bHideDisabled || Type != EExecRuleType::eUnknown) 
+	{
+		for (auto I = RuleList.begin(); I != RuleList.end();)
+		{
+			if (bHideDisabled && !(*I)->IsEnabled())
+				I = RuleList.erase(I);
+			else if (Type != EExecRuleType::eUnknown && (*I)->GetType() != Type)
+				I = RuleList.erase(I);
+			else
+				++I;
+		}
+	}
+
 	m_pItemModel->Sync(RuleList);
 }
 

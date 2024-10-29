@@ -25,6 +25,32 @@ void CWindowsService::AddExecTarget(const std::shared_ptr<CProgramFile>& pProgra
 	Info.CommandLine = CmdLine;
 }
 
+CVariant CWindowsService::DumpExecStats() const
+{
+	std::unique_lock lock(m_Mutex);
+
+	CVariant Targets;
+	Targets.BeginList();
+	for (auto& pItem : m_ExecTargets)
+	{
+		CVariant vTarget;
+		vTarget.BeginIMap();
+		vTarget.Write(API_V_PROC_REF, (uint64)&pItem.second);
+		vTarget.Write(API_V_PROC_EVENT_TARGET, pItem.first);
+		vTarget.Write(API_V_PROC_EVENT_LAST_EXEC, pItem.second.LastExecTime);
+		vTarget.Write(API_V_PROC_EVENT_BLOCKED, pItem.second.bBlocked);
+		vTarget.Write(API_V_PROC_EVENT_CMD_LINE, pItem.second.CommandLine);
+		vTarget.Finish();
+		Targets.WriteVariant(vTarget);
+	}
+
+	CVariant Data;
+	Data.BeginIMap();
+	Data.WriteVariant(API_V_PROC_TARGETS, Targets);
+	Data.Finish();
+	return Data;
+}
+
 void CWindowsService::AddIngressTarget(const std::shared_ptr<CProgramFile>& pProgram, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
 {
 	std::unique_lock lock(m_Mutex);
@@ -34,6 +60,34 @@ void CWindowsService::AddIngressTarget(const std::shared_ptr<CProgramFile>& pPro
 	Info.LastAccessTime = AccessTime;
 	if(bThread) Info.ThreadAccessMask |= AccessMask;
 	else Info.ProcessAccessMask |= AccessMask;
+}
+
+CVariant CWindowsService::DumpIngress() const
+{
+	std::unique_lock lock(m_Mutex);
+
+	CVariant Targets;
+	Targets.BeginList();
+	for (auto& pItem : m_IngressTargets)
+	{
+		CVariant vTarget;
+		vTarget.BeginIMap();
+		vTarget.Write(API_V_PROC_REF, (uint64)&pItem.second);
+		vTarget.Write(API_V_PROC_EVENT_TARGET, pItem.first);
+		vTarget.Write(API_V_THREAD_ACCESS_MASK, pItem.second.ThreadAccessMask);
+		vTarget.Write(API_V_PROCESS_ACCESS_MASK, pItem.second.ProcessAccessMask);
+		vTarget.Write(API_V_PROC_EVENT_LAST_ACCESS, pItem.second.LastAccessTime);
+		vTarget.Write(API_V_PROC_EVENT_BLOCKED, pItem.second.bBlocked);
+		vTarget.Finish();
+		Targets.WriteVariant(vTarget);
+	}
+	Targets.Finish();
+
+	CVariant Data;
+	Data.BeginIMap();
+	Data.WriteVariant(API_V_PROC_TARGETS, Targets);
+	Data.Finish();
+	return Data;
 }
 
 void CWindowsService::AddAccess(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
@@ -48,6 +102,13 @@ CVariant CWindowsService::DumpAccess() const
 	std::unique_lock lock(m_Mutex); 
 
 	return m_AccessTree.DumpTree();
+}
+
+void CWindowsService::ClearAccess()
+{
+	std::unique_lock lock(m_Mutex);
+
+	return m_AccessTree.Clear();
 }
 
 void CWindowsService::CollectStats(SStats& Stats) const
@@ -73,4 +134,16 @@ void CWindowsService::CollectStats(SStats& Stats) const
 			Stats.Downloaded += pSocket->GetDownloaded();
 		}
 	}
+}
+
+void CWindowsService::ClearLogs()
+{
+	m_TrafficLog.Clear();
+
+	std::unique_lock lock(m_Mutex);
+	m_AccessTree.Clear();
+
+	m_ExecTargets.clear();
+
+	m_IngressTargets.clear();
 }

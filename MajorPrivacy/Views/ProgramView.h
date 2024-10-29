@@ -27,6 +27,8 @@ private slots:
 	void	OnProgramAction();
 
 protected:
+	friend class CMajorPrivacy;
+
 	//virtual void				OnMenu(const QPoint& Point);
 #ifdef SPLIT_TREE
 	virtual QTreeView*			GetView() 				{ return m_pTreeList->GetView(); }
@@ -36,6 +38,8 @@ protected:
 	virtual QAbstractItemModel* GetModel()				{ return m_pSortProxy; }
 
 	QList<CProgramItemPtr>		m_CurPrograms;
+
+	CFinder*					m_pFinder;
 
 private:
 	virtual void				OnMenu(const QPoint& Point);
@@ -49,6 +53,12 @@ private:
 #endif
 	CProgramModel*				m_pProgramModel;
 	QSortFilterProxyModel*		m_pSortProxy;
+
+	QToolBar*					m_pToolBar;
+	//QToolButton*				m_pBtnClear;
+	QToolButton*				m_pBtnPrograms;
+	QToolButton*				m_pBtnApps;
+	QToolButton*				m_pBtnSystem;
 
 	QAction*					m_pCreateProgram;
 	QAction*					m_pCreateGroup;

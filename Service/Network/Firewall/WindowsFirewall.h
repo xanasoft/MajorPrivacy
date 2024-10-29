@@ -131,6 +131,7 @@ class CWindowsFirewall
 public:
 
 	static CWindowsFirewall* Instance();
+    static void Dispose();
    
     bool IsReady();
 
@@ -165,5 +166,7 @@ protected:
     SWindowsFwRuleMap   m_FwRules;
 
 private:
+
+	static CWindowsFirewall* m_Instance;
 	struct SWindowsFirewall* m;
 };

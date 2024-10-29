@@ -37,6 +37,8 @@
 #define SET_PATH(x, y) (x).Set(y.AsQStr(), EPathType::eNative)
 #define ASTR std::string
 
+#define LOAD_NT_PATHS
+
 #include "../../Library/API/API_GenericRule.cpp"
 
 #include "../../Library/API/API_ProgramRule.cpp"

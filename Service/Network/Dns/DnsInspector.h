@@ -7,6 +7,7 @@
 
 class CDnsInspector
 {
+	TRACK_OBJECT(CDnsInspector)
 public:
 	CDnsInspector();
 	~CDnsInspector();
@@ -20,6 +21,8 @@ public:
 	bool ResolveHost(const CAddress& Address, const CHostNamePtr& pHostName);
 
 	CVariant DumpDnsCache();
+
+	void FlushDnsCache();
 
 protected:
 	void OnEtwDnsEvent(const struct SEtwDnsEvent* pEvent);

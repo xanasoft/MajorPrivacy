@@ -53,6 +53,12 @@ public:
 		return SharedPtr<U>((U*)m_ptr);
 	}
 
+	template<class U>
+	const SharedPtr<U> Cast() const {
+		// todo add check
+		return SharedPtr<U>((U*)m_ptr);
+	}
+
 	void Clear() {
 		if(m_ptr)
 			m_ptr->RemoveRef();

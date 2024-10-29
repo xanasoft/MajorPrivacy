@@ -409,6 +409,9 @@
     <ClCompile Include="Windows\OptionsTransferWnd.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Helpers\SidResolver.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -786,6 +789,9 @@
     </QtMoc>
     <QtMoc Include="Windows\OptionsTransferWnd.h">
       <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Helpers\SidResolver.h">
+      <Filter>Helpers</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

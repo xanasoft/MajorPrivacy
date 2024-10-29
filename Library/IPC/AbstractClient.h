@@ -26,12 +26,26 @@ public:
 	    Message.ToPacket(&sendBuff);
         ((PMSG_HEADER)sendBuff.GetBuffer())->Size = (ULONG)sendBuff.GetSize();
 
-	    CBuffer recvBuff(RetBufferSize);
-	    STATUS Status = Call(sendBuff, recvBuff);
+	    CBuffer recvBuff;
+	    STATUS Status;
+		PMSG_HEADER resHeader;
+
+	retry:
+
+		recvBuff.AllocBuffer(RetBufferSize);
+
+		Status = Call(sendBuff, recvBuff);
 		if (!Status || recvBuff.GetSize() == 0)
 			return Status;
 
-	    PMSG_HEADER resHeader = (PMSG_HEADER)recvBuff.GetData(sizeof(MSG_HEADER));
+	    resHeader = (PMSG_HEADER)recvBuff.GetData(sizeof(MSG_HEADER));
+
+		if(resHeader->Status == STATUS_BUFFER_TOO_SMALL)
+		{
+			ULONG* pSize = (ULONG*)recvBuff.GetData(sizeof(ULONG));
+			RetBufferSize = 0x1000 + *pSize;
+			goto retry;
+		}
 
 		if (!NT_SUCCESS(resHeader->Status))
 			return ERR(resHeader->Status);

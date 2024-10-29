@@ -6,6 +6,7 @@ typedef std::wstring		TPatternId;	// Pattern as string
 
 class CProgramPattern: public CProgramList
 {
+	TRACK_OBJECT(CProgramPattern)
 public:
 	CProgramPattern(const std::wstring& Pattern);
 

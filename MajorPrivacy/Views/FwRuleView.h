@@ -12,7 +12,7 @@ public:
 	CFwRuleView(QWidget *parent = 0);
 	virtual ~CFwRuleView();
 
-	void					Sync(const QList<CFwRulePtr>& RuleList);
+	void					Sync(QList<CFwRulePtr> RuleList);
 
 protected:
 	void					OnMenu(const QPoint& Point) override;
@@ -27,6 +27,11 @@ private slots:
 	void					OnRuleAction();
 
 private:
+
+	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbDir;
+	QComboBox*				m_pCmbAction;
+	QToolButton*			m_pBtnEnabled;
 
 	QAction*				m_pCreateRule;
 	QAction*				m_pEnableRule;

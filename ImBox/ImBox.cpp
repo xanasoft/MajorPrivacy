@@ -80,6 +80,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //bool bUpdate = HasFlag(arguments, L"update");
 
     std::wstring mount = GetArgument(arguments, L"mount");
+    UINT number = _wtoi(GetArgument(arguments, L"number").c_str());
     std::wstring type = GetArgument(arguments, L"type");
     std::wstring size = GetArgument(arguments, L"size");
     std::wstring image = GetArgument(arguments, L"image");
@@ -95,6 +96,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     std::wstring proxy = GetArgument(arguments, L"proxy");
     std::wstring event = GetArgument(arguments, L"event");
     std::wstring section = GetArgument(arguments, L"section");
+    std::wstring mem = GetArgument(arguments, L"mem");
 
     SArgument set_data = GetArgumentEx(arguments, L"set_data");
     SArgument get_data = GetArgumentEx(arguments, L"get_data");
@@ -133,6 +135,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         if (hMapping)
             pSection = (SSection*)MapViewOfFile(hMapping, FILE_MAP_WRITE, 0, 0, 0x1000);
     }
+    if(!mem.empty()) {
+		if (pSection)
+			return ERR_INVALID_PARAM;
+		pSection = (SSection*)wcstoull(mem.c_str()+2, NULL, 16);
+	}
 
     if (!key.empty() || !section.empty()) {
         CCryptoIO* pCrypto;
@@ -183,10 +190,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			if (pSection) {
                 pSection->magic = SECTION_MAGIC;
                 pSection->id = SECTION_PARAM_ID_DATA;
-				pSection->size = uSize;
+				pSection->size = (USHORT)uSize;
 				memcpy(pSection->data, pData, uSize);
 			} else
-				wprintf(L"\n%.*s\n", uSize / sizeof(WCHAR), (WCHAR*)pData);
+				wprintf(L"\n%.*s\n", (int)(uSize / sizeof(WCHAR)), (WCHAR*)pData);
 
 			return ERR_OK;
 		}
@@ -200,7 +207,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return ret;
 
 
-    CImDiskIO* pImDisk = new CImDiskIO(pIO, mount, format, params);
+    CImDiskIO* pImDisk = new CImDiskIO(pIO, mount, number, format, params);
 
     if (!proxy.empty())
         pImDisk->SetProxyName(proxy);

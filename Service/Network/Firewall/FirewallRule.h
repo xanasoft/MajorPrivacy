@@ -4,6 +4,7 @@
 
 class CFirewallRule
 {
+	TRACK_OBJECT(CFirewallRule)
 public:
 	CFirewallRule();
 	CFirewallRule(const std::shared_ptr<struct SWindowsFwRule>& Rule);

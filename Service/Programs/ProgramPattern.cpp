@@ -33,6 +33,17 @@ bool CProgramPattern::MatchFileName(const std::wstring& FileName)
 {
 	std::unique_lock lock(m_Mutex);
 
+    //
+    // Note: we may have multiple identical patterns we must not add them to each other
+    // this happens for example with installations when moluple once point to the same directory
+    // Example: Cyberpunk 2077 installs itself, redmod, and phantom liberty to the same folder
+    //
+
+    if (m_Pattern == FileName)
+        return false;
+
     std::wcmatch matches;
-    return std::regex_search(FileName.c_str(), matches, m_RegExp);
+    if (std::regex_search(FileName.c_str(), matches, m_RegExp))
+        return true;
+    return false;
 }

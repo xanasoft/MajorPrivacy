@@ -2,9 +2,9 @@
 #include "AccessRuleModel.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../Library/API/PrivacyAPI.h"
-#include "../Library/Helpers/AppUtil.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
+#include "../MajorPrivacy.h"
 
 CAccessRuleModel::CAccessRuleModel(QObject* parent)
 	:CTreeItemModel(parent)
@@ -81,8 +81,8 @@ QList<QModelIndex>	CAccessRuleModel::Sync(const QList<CAccessRulePtr>& RuleList)
 			case eName:				Value = pRule->GetName(); break;
 			case eEnabled:			Value = pRule->IsEnabled(); break;
 			case eAction:			Value = pRule->GetTypeStr(); break;
-			case ePath:				Value = pRule->GetPath(); break;
-			case eProgram:			Value = pRule->GetProgramPath(); break;
+			case ePath:				Value = pRule->GetNtPath(); break;
+			case eProgram:			Value = pRule->GetProgramNtPath(); break;
 			}
 
 			SRuleNode::SValue& ColValue = pNode->Values[section];
@@ -95,7 +95,9 @@ QList<QModelIndex>	CAccessRuleModel::Sync(const QList<CAccessRulePtr>& RuleList)
 
 				switch (section)
 				{
-				case eName:				ColValue.Formatted = QString::fromStdWString(GetResourceStr(Value.toString().toStdWString())); break;
+				case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(Value.toString()); break;
+				case ePath:				ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetPath()).arg(pRule->GetNtPath()); break;
+				case eProgram:			ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetProgramPath()).arg(pRule->GetProgramNtPath()); break;
 				}
 			}
 
