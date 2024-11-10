@@ -262,7 +262,7 @@ QString CProcessModel::GetColumHeader(int section) const
 		case eParentPID:			return tr("Parent PID");
 		case eEnclaveID:			return tr("Enclave ID");
 		case eSignAuthority:		return tr("Signature");
-		case eSID:					return tr("SID");	
+		case eSID:					return tr("User Name");	
 		case eStatus:				return tr("Status");
 		case eImageStats:			return tr("Image Loads (MS/V/S/U)");
 		case eFileName:				return tr("File Name");

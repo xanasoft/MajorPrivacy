@@ -48,6 +48,8 @@ protected:
 		STrafficItemPtr pItem;
 	};
 
+	QVariant NodeData(STreeNode* pNode, int role, int section) const;
+
 	virtual STreeNode*	MkNode(const QVariant& Id) { return new STrafficNode(this, Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 };

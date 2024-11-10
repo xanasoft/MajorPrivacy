@@ -8,6 +8,10 @@
 #include "HandleList.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Volumes/VolumeManager.h"
+#include "../Library/Common/FileIO.h"
+
+#define API_ACCESS_LOG_FILE_NAME L"AccessLog.dat"
+#define API_ACCESS_LOG_FILE_VERSION 1
 
 CAccessManager::CAccessManager()
 {
@@ -24,6 +28,8 @@ STATUS CAccessManager::Init()
 	theCore->Driver()->RegisterRuleEventHandler(ERuleType::eAccess, &CAccessManager::OnRuleChanged, this);
 	theCore->Driver()->RegisterForRuleEvents(ERuleType::eAccess);
 	LoadRules();
+
+	Load();
 
 	m_pHandleList->Init();
 
@@ -199,4 +205,76 @@ void CAccessManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEve
 	vEvent[API_V_EVENT] = (uint32)Event;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_RES_RULE_CHANGED, vEvent);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Load/Store
+
+STATUS CAccessManager::Load()
+{
+	CBuffer Buffer;
+	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_ACCESS_LOG_FILE_NAME, 0, Buffer)) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_ACCESS_LOG_FILE_NAME L" not found");
+		return ERR(STATUS_NOT_FOUND);
+	}
+
+	CVariant Data;
+	//try {
+	auto ret = Data.FromPacket(&Buffer, true);
+	//} catch (const CException&) {
+	//	return ERR(STATUS_UNSUCCESSFUL);
+	//}
+	if (ret != CVariant::eErrNone) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_ACCESS_LOG_FILE_NAME);
+		return ERR(STATUS_UNSUCCESSFUL);
+	}
+
+	if (Data[API_S_VERSION].To<uint32>() != API_ACCESS_LOG_FILE_VERSION) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Encountered unsupported " API_ACCESS_LOG_FILE_NAME);
+		return ERR(STATUS_UNSUCCESSFUL);
+	}
+
+	CVariant List = Data[API_S_ACCESS_LOG];
+
+	for (uint32 i = 0; i < List.Count(); i++)
+	{
+		CVariant Item = List[i];
+	
+		CProgramID ID;
+		ID.FromVariant(Item.Find(API_V_PROG_ID));
+		CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
+		if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+			pProgram->LoadAccess(Item);
+		else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+			pService->LoadAccess(Item);
+	}
+
+	return OK;
+}
+
+STATUS CAccessManager::Store()
+{
+	SVarWriteOpt Opts;
+	Opts.Format = SVarWriteOpt::eIndex;
+	Opts.Flags = SVarWriteOpt::eSaveToFile;
+
+	CVariant List;
+	for (auto pItem : theCore->ProgramManager()->GetItems()) 
+	{
+		// StoreAccess saves API_V_PROG_ID
+		if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+			List.Append(pProgram->StoreAccess(Opts));
+		else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+			List.Append(pService->StoreAccess(Opts));
+	}
+
+	CVariant Data;
+	Data[API_S_VERSION] = API_ACCESS_LOG_FILE_VERSION;
+	Data[API_S_ACCESS_LOG] = List;
+
+	CBuffer Buffer;
+	Data.ToPacket(&Buffer);
+	WriteFile(theCore->GetDataFolder() + L"\\" API_ACCESS_LOG_FILE_NAME, 0, Buffer);
+
+	return OK;
 }

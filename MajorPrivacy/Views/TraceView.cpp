@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "TraceView.h"
 #include "../Core/PrivacyCore.h"
+#include "../MajorPrivacy.h"
 #include "..\..\MiscHelpers\Common\Common.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
 
@@ -68,19 +69,23 @@ void CTraceView::SetFilter(const QString& Exp, int iOptions, int Column)
 
 void CTraceView::Sync(const struct SMergedLog* pLog)
 {
-	if (m_FullRefresh) 
+	if (m_FullRefresh || m_RecentLimit != theGUI->GetRecentLimit()) 
 	{
 		//quint64 start = GetCurCycle();
 		m_pItemModel->Clear();
 		//qDebug() << "Clear took" << (GetCurCycle() - start) / 1000000.0 << "s";
+
+		m_RecentLimit = theGUI->GetRecentLimit();
 
 		m_FullRefresh = false;
 	}
 
 	m_pItemModel->SetTextFilter(m_FilterExp, m_bHighLight);	
 
+	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
+
 	//quint64 start = GetCurCycle();
-	QList<QModelIndex> NewBranches = m_pItemModel->Sync(pLog->List);
+	QList<QModelIndex> NewBranches = m_pItemModel->Sync(pLog->List, uRecentLimit);
 	//qDebug() << "Sync took" << (GetCurCycle() - start) / 1000000.0 << "s";
 
 	/*if (m_pItemModel->IsTree())

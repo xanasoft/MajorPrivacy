@@ -32,6 +32,15 @@ CDnsCacheView::CDnsCacheView(QWidget *parent)
 	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(FlushDnsCache()));
 	m_pToolBar->addWidget(m_pBtnClear);
 
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
+
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setFixedHeight(22);
+	m_pToolBar->addWidget(pBtnSearch);
+
 	AddPanelItemsToMenu();
 }
 
@@ -46,10 +55,10 @@ void CDnsCacheView::Sync()
 	m_pItemModel->Sync(theCore->NetworkManager()->GetDnsCache());
 }
 
-void CDnsCacheView::OnDoubleClicked(const QModelIndex& Index)
+/*void CDnsCacheView::OnDoubleClicked(const QModelIndex& Index)
 {
 
-}
+}*/
 
 void CDnsCacheView::OnMenu(const QPoint& Point)
 {

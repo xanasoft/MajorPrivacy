@@ -1,5 +1,6 @@
 #pragma once
 #include "../Library/Common/Variant.h"
+#include "../Library/API/PrivacyDefs.h"
 #include "../Network/Socket.h"
 
 class CTrafficLog
@@ -18,6 +19,9 @@ public:
 
 	void Clear();
 
+	CVariant StoreTraffic(const SVarWriteOpt& Opts) const;
+	void LoadTraffic(const CVariant& Data);
+
 	CVariant ToVariant(uint64 MinLastActivity = 0) const;
 
 protected:
@@ -35,6 +39,7 @@ protected:
 
 		CVariant ToVariant(const std::wstring& Host) const;
 
+		CAddress IpAddress;
 		uint64 LastActivity = 0;
 		uint64 Uploaded = 0;
 		uint64 Downloaded = 0;

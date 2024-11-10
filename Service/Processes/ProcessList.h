@@ -17,6 +17,8 @@ public:
 
 	void Update();
 
+	void Reconfigure();
+
 	STATUS EnumProcesses();
 
 	std::map<uint64, CProcessPtr> List() { 
@@ -47,7 +49,7 @@ protected:
 	void OnProcessAccessed(uint64 Pid, uint64 ActorPid, const std::wstring& ActorServiceTag, bool bThread, uint32 AccessMask, uint64 AccessTime, EEventStatus Status);
 	void OnImageEvent(const struct SProcessImageEvent* pImageEvent);
 	
-	void OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status, NTSTATUS NtStatus);
+	void OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory);
 
 	void AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram, const CExecLogEntryPtr& pLogEntry);
 

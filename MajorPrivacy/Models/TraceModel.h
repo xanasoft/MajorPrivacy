@@ -21,7 +21,7 @@ public:
 	
 	void					SetTextFilter(const QString& Exp, bool bHighLight) { m_FilterExp = Exp; m_bHighLight = bHighLight; }
 
-	virtual QList<QModelIndex> Sync(const QVector<SMergedLog::TLogEntry>& List);
+	virtual QList<QModelIndex> Sync(const QVector<SMergedLog::TLogEntry>& List, quint64 uRecentLimit);
 
 	CLogEntryPtr			GetItem(const QModelIndex& index) const;
 	QVariant				GetItemID(const QModelIndex& index) const;

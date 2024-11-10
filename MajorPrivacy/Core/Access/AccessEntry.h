@@ -9,6 +9,8 @@ struct SAccessStats
 	uint64	LastAccessTime = 0;
 	bool	bBlocked = false;
 	uint32	AccessMask = 0;
+	uint32	NtStatus = 0;
+	bool	IsDirectory = false;
 };
 
 typedef QSharedPointer<SAccessStats> SAccessStatsPtr;

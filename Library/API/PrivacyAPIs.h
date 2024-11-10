@@ -24,7 +24,10 @@
 
 
 #define API_S_CONFIG						"Config"
+#define API_S_VERSION						"Version"
 
+#define API_S_ACCESS_LOG					"AccessLog"
+#define API_S_TRAFFIC_LOG					"TrafficLog"
 
 #define API_S_GUI_CONFIG					"GuiConfig"
 #define API_S_DRIVER_CONFIG					"DriverConfig"
@@ -34,6 +37,7 @@
 #define API_S_ACCESS_RULES					"AccessRules"
 #define API_S_FW_RULES						"FirewallRules"
 #define API_S_PROGRAMS						"Programs"
+#define API_S_LIBRARIES						"Libraries"
 #define API_S_TRACELOG						"TraceLog"
 
 // Programs
@@ -69,6 +73,8 @@
 
 #define API_S_PROG_ITEMS					"Items"
 
+#define API_S_PROG_LAST_EXEC				"LastExec"
+
 // Info
 #define API_S_NAME							"Name"
 #define API_S_ICON							"Icon"
@@ -83,9 +89,9 @@
 #define API_S_LIB_LOAD_TIME					"LoadTime"
 #define API_S_LIB_LOAD_COUNT				"LoadCount"
 #define API_S_SIGN_INFO						"SignInfo" // SLibraryInfo::USign
-//#define API_S_SIGN_INFO_AUTH					"SignAuthority" // KPH_VERIFY_AUTHORITY
-//#define API_S_SIGN_INFO_LEVEL				"SignLevel"
-//#define API_S_SIGN_INFO_POLICY				"SignPolicy"
+#define API_S_SIGN_INFO_AUTH					"SignAuthority" // KPH_VERIFY_AUTHORITY
+#define API_S_SIGN_INFO_LEVEL				"SignLevel"
+#define API_S_SIGN_INFO_POLICY				"SignPolicy"
 #define API_S_LIB_STATUS					"LoadStatus"
 
 // Rules
@@ -157,7 +163,9 @@
 
 // Sockets
 #define API_S_PROG_SOCKETS					"Sockets"
-#define API_S_SOCK_LAST_ACT					"LastActivity"
+#define API_S_SOCK_LAST_ACT					"LastNetActivity"
+#define API_S_SOCK_LAST_ALLOW				"LastFwAllow"
+#define API_S_SOCK_LAST_BLOCK				"LastFwBlock"
 #define API_S_SOCK_UPLOAD					"Upload"
 #define API_S_SOCK_DOWNLOAD					"Download"
 #define API_S_SOCK_UPLOADED					"Uploaded"

@@ -25,8 +25,8 @@ public:
 	CProgramSetPtr			GetRoot() const { return m_Root; }
 	CProgramSetPtr			GetAll() const { return m_pAll; }
 	CProgramItemPtr			GetProgramByID(const CProgramID& ID);
-	CProgramItemPtr			GetProgramByUID(quint64 UID);
-	CProgramLibraryPtr		GetLibraryByUID(quint64 UID);
+	CProgramItemPtr			GetProgramByUID(quint64 UID, bool bCanUpdate = false);
+	CProgramLibraryPtr		GetLibraryByUID(quint64 UID, bool bCanUpdate = false);
 
 	CProgramFilePtr			GetProgramFile(const QString& Path);
 	CWindowsServicePtr		GetService(const QString& Id);
@@ -50,6 +50,9 @@ public:
 	STATUS DelProgramRule(const CProgramRulePtr& pRule);
 
 	QSet<CProgramItemPtr> GetItems() const { return ListToSet(m_Items.values()); }
+
+signals:
+	void					ProgramsAdded();
 
 protected:
 

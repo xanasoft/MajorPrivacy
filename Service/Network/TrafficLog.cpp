@@ -54,6 +54,8 @@ void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntr
 	if (Host.empty()) Host = pSocket->GetRemoteAddress().ToWString();
 
 	STrafficLogEntry* pEntry = &TrafficLog[Host];
+	if (pEntry->IpAddress.IsNull())
+		pEntry->IpAddress = pSocket->GetRemoteAddress();
 	//STrafficLogEntryPtr& pEntry = m_TrafficLog[Host];
 	//if(!pEntry) pEntry = std::make_shared<STrafficLogEntry>(Host);
 	pEntry->Merge(Data);
@@ -65,12 +67,42 @@ void CTrafficLog::Clear()
 	m_TrafficLog.clear();
 }
 
+CVariant CTrafficLog::StoreTraffic(const SVarWriteOpt& Opts) const
+{
+	std::shared_lock Lock(m_Mutex);
+
+	CVariant TrafficLog;
+	TrafficLog.BeginList();
+
+	for (auto I : m_TrafficLog)
+		TrafficLog.WriteVariant(I.second.ToVariant(I.first));
+
+	TrafficLog.Finish();
+	return TrafficLog;
+}
+
+void CTrafficLog::LoadTraffic(const CVariant& Data)
+{
+	std::unique_lock Lock(m_Mutex);
+
+	for (uint32 i = 0; i < Data.Count(); i++)
+	{
+		const CVariant& Entry = Data[i];
+		STrafficLogEntry &Data = m_TrafficLog[Entry[API_V_SOCK_RHOST].AsStr()];
+		Data.IpAddress.FromString(Entry[API_V_SOCK_RADDR]);
+		Data.LastActivity = Entry[API_V_SOCK_LAST_ACT];
+		Data.Uploaded = Entry[API_V_SOCK_UPLOADED];
+		Data.Downloaded = Entry[API_V_SOCK_DOWNLOADED];
+	}
+}
+
 CVariant CTrafficLog::STrafficLogEntry::ToVariant(const std::wstring& Host) const
 {
 	CVariant Entry;
 	Entry.BeginIMap();
 
 	Entry.Write(API_V_SOCK_RHOST, Host);
+	Entry.Write(API_V_SOCK_RADDR, IpAddress.ToString());
 	Entry.Write(API_V_SOCK_LAST_ACT, LastActivity);
 	Entry.Write(API_V_SOCK_UPLOADED, Uploaded);
 	Entry.Write(API_V_SOCK_DOWNLOADED, Downloaded);

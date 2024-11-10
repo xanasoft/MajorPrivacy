@@ -27,6 +27,9 @@ public:
 
 	virtual QMap<quint64, SAccessStatsPtr>	GetAccessStats();
 
+	quint64 GetAccessLastActivity() const { return m_AccessLastActivity; }
+	quint64 GetAccessLastEvent() const { return m_AccessLastEvent; }
+
 	virtual QMap<QString, CTrafficEntryPtr>	GetTrafficLog();
 
 	virtual void ClearAccessLog();
@@ -34,6 +37,7 @@ public:
 	virtual void ClearTrafficLog();
 	
 protected:
+	friend class CProgramFile;
 	
 	void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
 	void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
@@ -41,6 +45,8 @@ protected:
 	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
 
 	QString						m_ServiceId;
+
+	quint64						m_LastExec = 0;
 
 	quint64						m_ProcessId = 0;
 
@@ -51,7 +57,8 @@ protected:
 	bool						m_IngressChanged = true;
 
 	QMap<quint64, SAccessStatsPtr> m_AccessStats;
-	quint64						m_AccessStatsLastActivity = 0;
+	quint64						m_AccessLastActivity = 0;
+	quint64						m_AccessLastEvent = 0;
 
 	QSet<quint64>				m_SocketRefs;
 

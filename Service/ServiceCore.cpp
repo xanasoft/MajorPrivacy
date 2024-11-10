@@ -180,12 +180,12 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 			DWORD disposition;
 			if (RegCreateKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, NULL, 0, KEY_WRITE, NULL, &hKey, &disposition) == ERROR_SUCCESS)
 			{
-				CBuffer Data;
-				if (ReadFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Data))
+				CBuffer Buffer;
+				if (ReadFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Buffer))
 				{
 					CVariant DriverData;
 					//try {
-					auto ret = DriverData.FromPacket(&Data, true);
+					auto ret = DriverData.FromPacket(&Buffer, true);
 
 					CVariant ConfigData = DriverData[API_S_CONFIG];
 					CBuffer ConfigBuff;
@@ -292,6 +292,10 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 	This->m_pProgramManager->Store();
 
+	This->m_pAccessManager->Store();
+
+	This->m_pNetworkManager->Store();
+
 	This->m_pVolumeManager->DismountAll();
 
 cleanup:
@@ -352,6 +356,14 @@ void CServiceCore::Shutdown()
 		return;
 	HANDLE hThread = theCore->m_hThread;
 
+	theCore->m_Terminate = true;
+
+	if (!theCore->m_bEngineMode) {
+		if (WaitForSingleObject(hThread, 10 * 1000) != WAIT_OBJECT_0)
+			TerminateThread(hThread, -1);
+		CloseHandle(hThread);
+	}
+
 	theCore->m_pDriver->Disconnect();
 	if (theCore->m_bEngineMode)
 	{
@@ -384,20 +396,28 @@ void CServiceCore::Shutdown()
 				DriverData[API_S_USER_KEY] = UserKey;
 			}
 
-			CBuffer Data;
-			DriverData.ToPacket(&Data);
-			WriteFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Data);
+			CBuffer Buffer;
+			DriverData.ToPacket(&Buffer);
+			WriteFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Buffer);
 
 			RemoveService(API_DRIVER_NAME);
 		}
 	}
-	theCore->m_Terminate = true;
 
-	if (!theCore->m_bEngineMode) {
-		if (WaitForSingleObject(hThread, 10 * 1000) != WAIT_OBJECT_0)
-			TerminateThread(hThread, -1);
-		CloseHandle(hThread);
-	}
+}
+
+void CServiceCore::Reconfigure(const std::string& Key)
+{
+	if(Key == "LogRegistry")
+		m_pProcessList->Reconfigure();
+
+	//m_pProgramManager->Reconfigure();
+
+	//m_pAccessManager->Reconfigure();
+
+	//m_pNetworkManager->Reconfigure();
+
+	//m_pEtwEventMonitor->Reconfigure();
 }
 
 #ifdef _DEBUG
@@ -433,8 +453,8 @@ void CServiceCore::OnTimer()
 		LastObjectDump = GetTickCount64();
 		ObjectTrackerBase::PrintCounts();
 
-		size_t memoryUsed = getHeapUsage();
-		DbgPrint(L"USED MEMORY: %llu bytes\n", memoryUsed);
+		//size_t memoryUsed = getHeapUsage();
+		//DbgPrint(L"USED MEMORY: %llu bytes\n", memoryUsed);
 	}
 #endif
 }

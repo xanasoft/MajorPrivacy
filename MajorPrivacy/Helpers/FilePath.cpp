@@ -31,14 +31,14 @@ bool CFilePath::Set(QString Path, EPathType Type)
 		case EPathType::eNative: {
 			if (m_NtPath != Path) {
 				m_NtPath = Path;
-				m_DosPath = QString::fromStdWString(NtPathToDosPath(Path.toStdWString()));
+				m_DosPath = QString::fromStdWString(NtPathToDosPath(Path.toStdWString(), false));
 			}
 			return true;
 		}
 		case EPathType::eWin32: {
 			if (m_DosPath != Path) {
 				m_DosPath = Path;
-				m_NtPath = QString::fromStdWString(DosPathToNtPath(Path.toStdWString()));
+				m_NtPath = QString::fromStdWString(DosPathToNtPath(Path.toStdWString(), false));
 			}
 			return true;
 		}

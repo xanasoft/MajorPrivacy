@@ -29,6 +29,7 @@ protected:
 	EEventStatus		m_Status = EEventStatus::eUndefined;
 	quint64				m_MiscID = 0; // Image UID or program file UID
 	quint32				m_AccessMask = 0;
+	uint32				m_NtStatus = 0;
 
 };
 

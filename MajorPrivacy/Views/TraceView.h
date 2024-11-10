@@ -32,6 +32,8 @@ protected:
 
 	bool						m_FullRefresh;
 
+	quint64						m_RecentLimit = 0;
+
 	//QAction*					m_pAutoScroll; // todo
 	//QRegularExpression		m_FilterExp;
 	QString						m_FilterExp;

@@ -58,10 +58,10 @@ void CEnclaveView::Sync()
 	}
 }
 
-void CEnclaveView::OnDoubleClicked(const QModelIndex& Index)
+/*void CEnclaveView::OnDoubleClicked(const QModelIndex& Index)
 {
 
-}
+}*/
 
 void CEnclaveView::OnMenu(const QPoint& Point)
 {

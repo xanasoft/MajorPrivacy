@@ -62,6 +62,9 @@ public:
 
 	virtual QMap<quint64, SAccessStatsPtr>	GetAccessStats();
 
+	quint64 GetAccessLastActivity() const { return m_AccessLastActivity; }
+	quint64 GetAccessLastEvent() const { return m_AccessLastEvent; }
+
 	virtual QMap<QString, CTrafficEntryPtr>	GetTrafficLog();
 
 	virtual void TraceLogAdd(ETraceLogs Log, const CLogEntryPtr& pEntry, quint64 Index);
@@ -74,6 +77,8 @@ public:
 protected:
 	friend class CProgramManager;
 
+	virtual QSharedPointer<class CWindowsService> GetService(const QString& SvcTag) const;
+
 	void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
 	void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
 	void ReadIValue(uint32 Index, const XVariant& Data) override;
@@ -82,6 +87,8 @@ protected:
 	CFilePath					m_Path;
 
 	SLibraryInfo::USign			m_SignInfo;
+
+	quint64						m_LastExec = 0;
 
 	QSet<quint64>				m_ProcessPids;
 
@@ -95,7 +102,8 @@ protected:
 	bool						m_IngressChanged = true;
 
 	QMap<quint64, SAccessStatsPtr> m_AccessStats;
-	quint64						m_AccessStatsLastActivity = 0;
+	quint64						m_AccessLastActivity = 0;
+	quint64						m_AccessLastEvent = 0;
 
 	QSet<quint64>				m_SocketRefs;
 

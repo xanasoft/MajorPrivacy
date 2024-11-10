@@ -367,6 +367,9 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 		}
 	}
 
+	if(pProcess)
+		pProcess->UpdateLastNetActivity(pEvent->TimeStamp); // pEvent->Type
+
 	//
 	// If we were unable to determine exact informations by querying the running process,
 	// fall back to finding the executable file item and decuce from it the likely app package and/or services
@@ -377,6 +380,10 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 		pApp = pProgram->GetAppPackage();
 		Svcs = pProgram->GetAllServices();
 	}
+
+	pProgram->UpdateLastFwActivity(pEvent->TimeStamp, pEvent->Type == EFwActions::Block);
+	if(Svcs.size() == 1)
+		Svcs.front()->UpdateLastFwActivity(pEvent->TimeStamp, pEvent->Type == EFwActions::Block);
 
 	//
 	// Evaluate firewall event

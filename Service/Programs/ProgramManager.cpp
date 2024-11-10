@@ -14,6 +14,9 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/EvtUtil.h"
 
+#define API_PROGRAMS_FILE_NAME L"Programs.dat"
+#define API_PROGRAMS_FILE_VERSION 1
+
 CProgramManager::CProgramManager()
 {
 	m_InstallationList = new CInstallationList;
@@ -114,20 +117,27 @@ STATUS CProgramManager::Init()
 
 	WCHAR windir[MAX_PATH + 8];
     GetWindowsDirectoryW(windir, MAX_PATH);
+	m_OsDrive = DosPathToNtPath(std::wstring(windir, 3));
 	m_WinDir = DosPathToNtPath(windir);
 	m_ProgDir = DosPathToNtPath(GetProgramFilesDirectory());
 
-	AddPattern(DosPathToNtPath(GetApplicationDirectory()) + L"\\*", L"!Major Privacy");
+	STATUS Status = Load();
+	if (!Status)
+	{
+		AddPattern(DosPathToNtPath(GetApplicationDirectory()) + L"\\*", L"Major Privacy");
 
-	AddPattern(m_WinDir + L"\\*", L"Windows");
-	//AddPattern(m_WinDir + L"\\System32\\svchost.exe", L"Windows Service Host");
-	AddPattern(m_WinDir + L"\\System32\\*", L"System32");
-	AddPattern(m_WinDir + L"\\SysWOW64\\*", L"System32 (x86)");
-	AddPattern(m_WinDir + L"\\SystemApps*", L"System Apps");
-	AddPattern(m_ProgDir + L"\\WindowsApps*", L"User Apps");
-	AddPattern(m_ProgDir + L" (x86)\\Microsoft\\Edge*", L"Microsoft Edge");
-
-	Load();
+		AddPattern(m_WinDir + L"\\*", L"Windows");
+		//AddPattern(m_WinDir + L"\\System32\\svchost.exe", L"Windows Service Host");
+		AddPattern(m_WinDir + L"\\System32\\*", L"System32");
+		AddPattern(m_WinDir + L"\\SysWOW64\\*", L"System32 (x86)");
+		AddPattern(m_WinDir + L"\\SystemApps*", L"System Apps");
+		AddPattern(m_ProgDir + L"\\*", L"Program Files");
+		AddPattern(m_ProgDir + L" (x86)\\*", L"Program Files (x86)");
+		AddPattern(m_ProgDir + L"\\WindowsApps*", L"User Apps");
+		AddPattern(m_ProgDir + L" (x86)\\Microsoft\\Edge*", L"Microsoft Edge");
+		AddPattern(m_OsDrive + L"ProgramData\\*" + L"\\*", L"ProgramData");
+		AddPattern(m_OsDrive + L"Users\\*" + L"\\*", L"Users");
+	}
 
 	m_InstallationList->Init();
 	m_PackageList->Init();
@@ -816,7 +826,7 @@ void CProgramManager::RemoveResRule(const CAccessRulePtr& pResRule)
 }
 
 //////////////////////////////////////////////////////////////////////////
-// Exex Rules
+// Exec Rules
 
 STATUS CProgramManager::LoadRules()
 {
@@ -949,30 +959,49 @@ void CProgramManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEv
 
 STATUS CProgramManager::Load()
 {
-	CBuffer Data;
-	if (!ReadFile(theCore->GetDataFolder() + L"\\Programs.dat", 0, Data)) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Programs.dat not found");
+	CBuffer Buffer;
+	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_PROGRAMS_FILE_NAME, 0, Buffer)) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_PROGRAMS_FILE_NAME L" not found");
 		return ERR(STATUS_NOT_FOUND);
 	}
 
-	CVariant List;
+	CVariant Data;
 	//try {
-	auto ret = List.FromPacket(&Data, true);
+	auto ret = Data.FromPacket(&Buffer, true);
 	//} catch (const CException&) {
 	//	return ERR(STATUS_UNSUCCESSFUL);
 	//}
 	if (ret != CVariant::eErrNone) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse  Programs.dat");
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_PROGRAMS_FILE_NAME);
+		return ERR(STATUS_UNSUCCESSFUL);
+	}
+
+	if (Data[API_S_VERSION].To<uint32>() != API_PROGRAMS_FILE_VERSION) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Encountered unsupported " API_PROGRAMS_FILE_NAME);
 		return ERR(STATUS_UNSUCCESSFUL);
 	}
 
 	std::unique_lock lock(m_Mutex);
 
+	//CVariant Librarys = Data[API_S_LIBRARIES];
+
+	//for (uint32 i = 0; i < Librarys.Count(); i++)
+	//{
+	//	const CVariant& Library = Librarys[i];
+	//
+	//	std::wstring Path = Library[API_S_FILE_PATH].AsStr();
+	//	CProgramLibraryPtr pLibrary = GetLibrary(Path, eCanAdd);
+	//	if (pLibrary)
+	//		pLibrary->FromVariant(Library);
+	//}
+
+	CVariant Programs = Data[API_S_PROGRAMS];
+
 	std::map<CProgramSetPtr, std::list<CProgramID>> Tree;
 
-	for (uint32 i = 0; i < List.Count(); i++)
+	for (uint32 i = 0; i < Programs.Count(); i++)
 	{
-		const CVariant& Item = List[i];
+		const CVariant& Item = Programs[i];
 
 		//CProgramID ID;
 		//ID.FromVariant(Item.Find(API_S_PROG_ID));
@@ -1093,14 +1122,24 @@ STATUS CProgramManager::Store()
 
 	SVarWriteOpt Opts;
 	Opts.Format = SVarWriteOpt::eMap;
+	Opts.Flags = SVarWriteOpt::eSaveToFile;
 
-	CVariant List;
+	CVariant Programs;
 	for (auto I : m_Items)
-		List.Append(I.second->ToVariant(Opts));
+		Programs.Append(I.second->ToVariant(Opts));
 
-	CBuffer Data;
-	List.ToPacket(&Data);
-	WriteFile(theCore->GetDataFolder() + L"\\Programs.dat", 0, Data);
+	//CVariant Libraries;
+	//for (auto I : m_Libraries)
+	//	Libraries.Append(I.second->ToVariant(Opts));
+
+	CVariant Data;
+	Data[API_S_VERSION] = API_PROGRAMS_FILE_VERSION;
+	Data[API_S_PROGRAMS] = Programs;
+	//Data[API_S_LIBRARIES] = Libraries;
+
+	CBuffer Buffer;
+	Data.ToPacket(&Buffer);
+	WriteFile(theCore->GetDataFolder() + L"\\" API_PROGRAMS_FILE_NAME, 0, Buffer);
 
 	return OK;
 }

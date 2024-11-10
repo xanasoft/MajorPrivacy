@@ -11,6 +11,13 @@
 #include "SocketList.h"
 #include "Dns/DnsInspector.h"
 
+#include "../ServiceCore.h"
+#include "../Programs/ProgramManager.h"
+#include "../Library/Common/FileIO.h"
+
+#define API_TRAFFIC_LOG_FILE_NAME L"TrafficLog.dat"
+#define API_TRAFFIC_LOG_FILE_VERSION 1
+
 
 CNetworkManager::CNetworkManager()
 {
@@ -46,6 +53,8 @@ STATUS CNetworkManager::Init()
 	m_pFirewall->Init();
 	m_pSocketList->Init();
 
+    Load();
+
 	return OK;
 }
 
@@ -56,7 +65,7 @@ void CNetworkManager::Update()
 
     m_pDnsInspector->Update();
     m_pSocketList->Update();
-	m_pFirewall->Update();
+    m_pFirewall->Update();
 }
 
 void CNetworkManager::UpdateAdapterInfo()
@@ -266,4 +275,77 @@ SAdapterInfoPtr CNetworkManager::GetAdapterInfoByIP(const CAddress& IP)
     if (F != m_AdapterInfoByIP.end())
         return F->second;
     return SAdapterInfoPtr();
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Load/Store
+
+STATUS CNetworkManager::Load()
+{
+    CBuffer Buffer;
+    if (!ReadFile(theCore->GetDataFolder() + L"\\" API_TRAFFIC_LOG_FILE_NAME, 0, Buffer)) {
+        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_TRAFFIC_LOG_FILE_NAME L" not found");
+        return ERR(STATUS_NOT_FOUND);
+    }
+
+    CVariant Data;
+    //try {
+    auto ret = Data.FromPacket(&Buffer, true);
+    //} catch (const CException&) {
+    //	return ERR(STATUS_UNSUCCESSFUL);
+    //}
+    if (ret != CVariant::eErrNone) {
+        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_TRAFFIC_LOG_FILE_NAME);
+        return ERR(STATUS_UNSUCCESSFUL);
+    }
+
+    if (Data[API_S_VERSION].To<uint32>() != API_TRAFFIC_LOG_FILE_VERSION) {
+        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Encountered unsupported " API_TRAFFIC_LOG_FILE_NAME);
+        return ERR(STATUS_UNSUCCESSFUL);
+    }
+
+    CVariant List = Data[API_S_TRAFFIC_LOG];
+
+    for (uint32 i = 0; i < List.Count(); i++)
+    {
+
+        CVariant Item = List[i];
+
+        CProgramID ID;
+        ID.FromVariant(Item.Find(API_V_PROG_ID));
+        CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
+        if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+            pProgram->LoadTraffic(Item);
+        else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+            pService->LoadTraffic(Item);
+    }
+
+    return OK;
+}
+
+STATUS CNetworkManager::Store()
+{
+    SVarWriteOpt Opts;
+    Opts.Format = SVarWriteOpt::eIndex;
+    Opts.Flags = SVarWriteOpt::eSaveToFile;
+
+    CVariant List;
+    for (auto pItem : theCore->ProgramManager()->GetItems()) 
+    {
+        // StoreTraffic saves API_V_PROG_ID
+        if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+            List.Append(pProgram->StoreTraffic(Opts));
+        else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+            List.Append(pService->StoreTraffic(Opts));
+    }
+
+    CVariant Data;
+    Data[API_S_VERSION] = API_TRAFFIC_LOG_FILE_VERSION;
+    Data[API_S_TRAFFIC_LOG] = List;
+
+    CBuffer Buffer;
+    Data.ToPacket(&Buffer);
+    WriteFile(theCore->GetDataFolder() + L"\\" API_TRAFFIC_LOG_FILE_NAME, 0, Buffer);
+
+    return OK;
 }

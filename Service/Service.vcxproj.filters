@@ -210,6 +210,9 @@
     <ClCompile Include="API_Impl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Processes\AccessLog.cpp">
+      <Filter>Processes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -445,6 +448,9 @@
     </ClInclude>
     <ClInclude Include="Programs\ProgramID.h">
       <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Processes\AccessLog.h">
+      <Filter>Processes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

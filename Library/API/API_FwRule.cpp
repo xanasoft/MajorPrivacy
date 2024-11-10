@@ -26,7 +26,7 @@ void CFwRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
     //Rule.Write(API_V_RULE_TEMP, ...
 #endif
 
-    Rule.Write(API_V_FILE_PATH, TO_STR(M(BinaryPath)));
+    Rule.Write(API_V_FILE_PATH, TO_STR(m_BinaryPath));
     Rule.Write(API_V_SVC_TAG, TO_STR(M(ServiceTag)));
     Rule.Write(API_V_APP_SID, TO_STR(M(AppContainerSid)));
     Rule.Write(API_V_OWNER, TO_STR(M(LocalUserOwner)));
@@ -83,7 +83,7 @@ void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
     //case API_V_RULE_TEMP: ...
 #endif
 
-    case API_V_FILE_PATH: M(BinaryPath) = AS_STR(Data); break;
+    case API_V_FILE_PATH: m_BinaryPath = AS_STR(Data); break;
     case API_V_SVC_TAG: M(ServiceTag) = AS_STR(Data); break;
     case API_V_APP_SID: M(AppContainerSid) = AS_STR(Data); break;
     case API_V_OWNER: M(LocalUserOwner) = AS_STR(Data); break;
@@ -160,7 +160,7 @@ void CFwRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
     //Rule.Write(API_S_RULE_TEMP, ...
 #endif
 
-    Rule.Write(API_S_FILE_PATH, TO_STR(M(BinaryPath)));
+    Rule.Write(API_S_FILE_PATH, TO_STR(m_BinaryPath));
     Rule.Write(API_S_SVC_TAG, TO_STR(M(ServiceTag)));
     Rule.Write(API_S_APP_SID, TO_STR(M(AppContainerSid)));
     Rule.Write(API_S_OWNER, TO_STR(M(LocalUserOwner)));
@@ -248,7 +248,7 @@ void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 #endif
 
     else if (VAR_TEST_NAME(Name, API_S_FILE_PATH))
-        M(BinaryPath) = AS_STR(Data);
+        m_BinaryPath = AS_STR(Data);
     else if (VAR_TEST_NAME(Name, API_S_SVC_TAG))
         M(ServiceTag) = AS_STR(Data);
     else if (VAR_TEST_NAME(Name, API_S_APP_SID))

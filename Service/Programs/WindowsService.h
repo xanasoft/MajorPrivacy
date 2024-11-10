@@ -18,18 +18,24 @@ public:
 	virtual void SetProcess(const CProcessPtr& pProcess);
 
 	virtual void AddExecTarget(const std::shared_ptr<CProgramFile>& pProgram, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked);
-	virtual std::map<uint64, CProgramFile::SExecInfo> GetExecTargets() const { std::unique_lock lock(m_Mutex); return m_ExecTargets; }
+	//virtual std::map<uint64, CAccessLog::SExecInfo> GetExecTargets() const { std::unique_lock lock(m_Mutex); return m_AccessLog.GetExecTargets(); }
 	virtual CVariant DumpExecStats() const;
 
 	virtual void AddIngressTarget(const std::shared_ptr<CProgramFile>& pProgram, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
-	virtual std::map<uint64, CProgramFile::SAccessInfo> GetIngressTargets() const { std::unique_lock lock(m_Mutex); return m_IngressTargets; }
+	//virtual std::map<uint64, CAccessLog::SAccessInfo> GetIngressTargets() const { std::unique_lock lock(m_Mutex); return m_AccessLog.GetIngressTargets(); }
 	virtual CVariant DumpIngress() const;
 
-	virtual void AddAccess(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
-	virtual CVariant DumpAccess() const;
-	virtual void ClearAccess();
+	virtual void AddAccess(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked);
+	virtual CVariant StoreAccess(const SVarWriteOpt& Opts) const;
+	virtual void LoadAccess(const CVariant& Data);
+	virtual CVariant DumpAccess(uint64 LastActivity) const;
+
+	virtual void UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked);
 
 	virtual CTrafficLog* TrafficLog() { return &m_TrafficLog; }
+
+	virtual CVariant StoreTraffic(const SVarWriteOpt& Opts) const;
+	virtual void LoadTraffic(const CVariant& Data);
 
 	virtual void ClearLogs();
 
@@ -51,21 +57,29 @@ protected:
 public:
 #endif
 
+	uint64							m_LastExec = 0;
+
 	CProcessPtr						m_pProcess;
 
-	std::map<uint64, CProgramFile::SExecInfo>	m_ExecTargets; // key: Program UUID
-
-	std::map<uint64, CProgramFile::SAccessInfo>	m_IngressTargets; // key: Program UUID
+	CAccessLog						m_AccessLog;
 
 	CAccessTree						m_AccessTree;
 
 	CTrafficLog						m_TrafficLog;
 
+	uint64							m_LastFwAllowed = 0;
+	uint64							m_LastFwBlocked = 0;
+
 private:
 	struct SStats
 	{
 		std::set<uint64> SocketRefs;
-		uint64 LastActivity = 0;
+
+		uint64 LastNetActivity = 0;
+
+		uint64 LastFwAllowed = 0;
+		uint64 LastFwBlocked = 0;
+
 		uint64 Upload = 0;
 		uint64 Download = 0;
 		uint64 Uploaded = 0;

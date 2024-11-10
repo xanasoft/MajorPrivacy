@@ -15,6 +15,8 @@ class CAccessPage : public QWidget
 public:
 	CAccessPage(QWidget* parent);
 
+	void SetMergePanels(bool bMerge);
+
 public slots:
 	void	Update();
 

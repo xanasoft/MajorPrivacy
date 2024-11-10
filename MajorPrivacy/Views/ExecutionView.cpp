@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "ExecutionView.h"
 #include "../Core/PrivacyCore.h"
+#include "../MajorPrivacy.h"
 #include "../Core/Programs/ProgramManager.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
+#include "../../Library/Helpers/NtUtil.h"
 
 CExecutionView::CExecutionView(QWidget *parent)
 	:CPanelViewEx<CExecutionModel>(parent)
@@ -56,13 +58,16 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 {
 	qint32 FilterRole = m_pCmbRole->currentData().toInt();
 
-	if (m_CurPrograms != Programs || m_CurServices != Services || m_FilterRole != FilterRole) {
+	if (m_CurPrograms != Programs || m_CurServices != Services || m_FilterRole != FilterRole || m_RecentLimit != theGUI->GetRecentLimit()) {
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
+		m_RecentLimit = theGUI->GetRecentLimit();
 		m_ParentMap.clear();
 		m_ExecutionMap.clear();
 		m_pItemModel->Clear();
 	}
+
+	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
 	m_FilterRole = FilterRole;
 
@@ -97,6 +102,8 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			if(m_FilterRole && I->eRole != m_FilterRole)
 				continue;
+			if (uRecentLimit && FILETIME2ms(I->LastExecTime) < uRecentLimit)
+				continue;
 			CProgramFilePtr pProgram2 = theCore->ProgramManager()->GetProgramByUID(I.value().ProgramUID).objectCast<CProgramFile>();
 			if(!pProgram2) continue;
 			AddEntry(pProgram, pProgram2, I.value());
@@ -106,6 +113,8 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 		QMap<quint64, CProgramFile::SExecutionInfo> Log = pService->GetExecStats();
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			if(m_FilterRole && I->eRole != m_FilterRole)
+				continue;
+			if (uRecentLimit && FILETIME2ms(I->LastExecTime) < uRecentLimit)
 				continue;
 			CProgramFilePtr pProgram2 = theCore->ProgramManager()->GetProgramByUID(I.value().ProgramUID).objectCast<CProgramFile>();
 			if(!pProgram2) continue;
@@ -130,10 +139,10 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 	}
 }
 
-void CExecutionView::OnDoubleClicked(const QModelIndex& Index)
+/*void CExecutionView::OnDoubleClicked(const QModelIndex& Index)
 {
 	//QPair<CProgramItemPtr, CTrafficEntryPtr> pItem = m_pItemModel->GetItem(Index);
-}
+}*/
 
 void CExecutionView::OnMenu(const QPoint& Point)
 {

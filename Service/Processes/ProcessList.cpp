@@ -17,6 +17,10 @@
 #include "../Library/IPC/PipeServer.h"
 #include "../Access/ResLogEntry.h"
 
+extern "C" {
+#include "../../Driver/KSI/include/kphmsg.h"
+}
+
 
 CProcessList::CProcessList()
 {
@@ -33,7 +37,10 @@ STATUS CProcessList::Init()
     STATUS Status;
 
     theCore->Driver()->RegisterProcessHandler(&CProcessList::OnProcessDrvEvent, this);
-    Status = theCore->Driver()->RegisterForProcesses(true);
+    uint32 uEvents = KphMsgProcessCreate | KphMsgProcessExit | KphMsgUntrustedImage | KphMsgImageLoad | KphMsgProcAccess | KphMsgThreadAccess | KphMsgAccessFile;
+    if(theCore->Config()->GetBool("Service", "LogRegistry", false))
+        uEvents |= KphMsgAccessReg;
+    Status = theCore->Driver()->RegisterForProcesses(uEvents, true);
     if (Status.IsError()) 
     {
         //
@@ -58,6 +65,14 @@ void CProcessList::Update()
     EnumProcesses();
 
     m_Services->EnumServices();
+}
+
+void CProcessList::Reconfigure()
+{
+    bool bRegister = theCore->Config()->GetBool("Service", "LogRegistry", false);
+    STATUS Status = theCore->Driver()->RegisterForProcesses(KphMsgAccessReg, bRegister);
+    if (Status.IsError()) 
+        theCore->Log()->LogEvent(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Failed to register with driver for process notifications.");
 }
 
 STATUS CProcessList::EnumProcesses()
@@ -500,8 +515,10 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
     AddExecLogEntry(pProgram, pLogEntry);
 }
 
-void CProcessList::OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status, NTSTATUS NtStatus)
+void CProcessList::OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory)
 {
+    if (NtStatus == STATUS_INVALID_PARAMETER)
+        return; // ignore invalid parameter errors - WSearch does that a lot
 	if (!m_bLogNotFound && (NtStatus == STATUS_OBJECT_NAME_NOT_FOUND || NtStatus == STATUS_OBJECT_PATH_NOT_FOUND))
 		return; // ignore not found errors
 
@@ -511,7 +528,7 @@ void CProcessList::OnResourceAccessed(const std::wstring& Path, uint64 ActorPid,
     if (!pActorProgram)
         return;
 
-    pActorProgram->AddAccess(ActorServiceTag, Path, AccessMask, AccessTime, (Status != EEventStatus::eAllowed));
+    pActorProgram->AddAccess(ActorServiceTag, Path, AccessMask, AccessTime, NtStatus, IsDirectory, (Status != EEventStatus::eAllowed));
 
     CResLogEntryPtr pLogEntry = CResLogEntryPtr(new CResLogEntry(Path, ActorServiceTag, AccessMask, Status, AccessTime, ActorPid));
     
@@ -590,7 +607,7 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
         case SProcessEvent::EType::ResourceAccess:
         {
             const SResourceAccessEvent* pAccessEvent = (SResourceAccessEvent*)(pEvent);
-			OnResourceAccessed(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status, pAccessEvent->NtStatus);
+			OnResourceAccessed(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status, pAccessEvent->NtStatus, pAccessEvent->IsDirectory);
 			break;
         }
     }

@@ -249,6 +249,7 @@
     <ClCompile Include="Core\Volumes\Volume.cpp" />
     <ClCompile Include="Core\Volumes\VolumeManager.cpp" />
     <ClCompile Include="Helpers\FilePath.cpp" />
+    <ClCompile Include="Helpers\IconCache.cpp" />
     <ClCompile Include="Helpers\SidResolver.cpp" />
     <ClCompile Include="Helpers\WinHelper.cpp" />
     <ClCompile Include="main.cpp" />
@@ -316,9 +317,11 @@
     <ClCompile Include="Windows\ProgramRuleWnd.cpp" />
     <ClCompile Include="Windows\ProgramWnd.cpp" />
     <ClCompile Include="Windows\SettingsWindow.cpp" />
+    <ClCompile Include="Windows\VariantEditorWnd.cpp" />
     <ClCompile Include="Windows\VolumeWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Windows\VariantEditorWnd.h" />
     <QtMoc Include="Windows\OptionsTransferWnd.h" />
     <QtMoc Include="Views\AccessInfoView.h" />
     <QtMoc Include="Views\InfoView.h" />
@@ -425,6 +428,7 @@
     <QtMoc Include="Models\NetTraceModel.h" />
     <ClInclude Include="Helpers\FilePath.h" />
     <QtMoc Include="Helpers\SidResolver.h" />
+    <ClInclude Include="Helpers\IconCache.h" />
     <ClInclude Include="Helpers\WinHelper.h" />
     <QtMoc Include="Models\ProgramRuleModel.h" />
     <QtMoc Include="Models\ProcessTraceModel.h" />

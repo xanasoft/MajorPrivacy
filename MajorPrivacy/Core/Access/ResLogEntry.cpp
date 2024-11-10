@@ -6,11 +6,10 @@ CResLogEntry::CResLogEntry()
 {
 }
 
-QString CResLogEntry::GetAccessStr() const
+QString CResLogEntry::GetAccessStr(quint32 uAccessMask)
 {
     QStringList permissions;
 
-    uint32 uAccessMask = m_AccessMask;
     if ((uAccessMask & GENERIC_READ) == GENERIC_READ) {                     permissions << "GENERIC_READ"; uAccessMask &= ~GENERIC_READ; }
     if ((uAccessMask & GENERIC_WRITE) == GENERIC_WRITE) {                   permissions << "GENERIC_WRITE"; uAccessMask &= ~GENERIC_WRITE; }
     if ((uAccessMask & GENERIC_EXECUTE) == GENERIC_EXECUTE) {               permissions << "GENERIC_EXECUTE"; uAccessMask &= ~GENERIC_EXECUTE; }
@@ -32,7 +31,12 @@ QString CResLogEntry::GetAccessStr() const
     if (uAccessMask)
         permissions << QString::number(uAccessMask, 16);
 
-    return QObject::tr("Access: (%1)").arg(permissions.join(", "));
+    return QObject::tr("%1").arg(permissions.join(", "));
+}
+
+QString CResLogEntry::GetAccessStr() const
+{
+	return GetAccessStr(m_AccessMask);
 }
 
 void CResLogEntry::ReadValue(uint32 Index, const XVariant& Data)
@@ -42,11 +46,12 @@ void CResLogEntry::ReadValue(uint32 Index, const XVariant& Data)
     case API_V_EVENT_PATH:				m_Path.Set(Data.AsQStr(), EPathType::eNative); break;
     case API_V_EVENT_ACCESS:		    m_AccessMask = Data.To<uint32>(); break;
     case API_V_EVENT_ACCESS_STATUS:		m_Status = (EEventStatus)Data.To<uint32>(); break;
+    case API_V_EVENT_STATUS:		    m_NtStatus = Data.To<uint32>(); break;
     default: CAbstractLogEntry::ReadValue(Index, Data);
     }
 }
 
 QString CResLogEntry::GetStatusStr() const
 { 
-    return m_Status == EEventStatus::eAllowed ? QObject::tr("Allowed") : QObject::tr("Blocked");
+    return QString("0x%1 (%2)").arg(m_NtStatus, 8, 16, QChar('0')).arg(m_Status == EEventStatus::eAllowed ? QObject::tr("Allowed") : QObject::tr("Blocked"));
 }

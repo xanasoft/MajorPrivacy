@@ -29,7 +29,7 @@ CTraceModel::~CTraceModel()
 	Q_ASSERT(m_Root == NULL);
 }
 
-QList<QModelIndex> CTraceModel::Sync(const QVector<SMergedLog::TLogEntry>& List)
+QList<QModelIndex> CTraceModel::Sync(const QVector<SMergedLog::TLogEntry>& List, quint64 uRecentLimit)
 {
 	QList<QModelIndex> NewBranches;
 
@@ -55,6 +55,9 @@ QList<QModelIndex> CTraceModel::Sync(const QVector<SMergedLog::TLogEntry>& List)
 	for (; i < List.count(); i++)
 	{
 		const auto& Data = List.at(i);
+
+		if (uRecentLimit && FILETIME2ms(Data.second.data()->GetTimeStamp()) < uRecentLimit)
+			continue;
 
 		if (!FilterNode(Data))
 			continue;

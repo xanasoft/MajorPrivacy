@@ -8,6 +8,7 @@
 #include "../Access/ResLogEntry.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "ProgramRule.h"
+#include "WindowsService.h"
 
 
 CProgramFile::CProgramFile(QObject* parent)
@@ -17,7 +18,7 @@ CProgramFile::CProgramFile(QObject* parent)
 
 QString CProgramFile::GetNameEx() const
 { 
-	QString FileName = QFileInfo(m_Path.Get(EPathType::eWin32)).fileName();
+	QString FileName = QFileInfo(m_Path.Get(EPathType::eDisplay)).fileName();
 	if(m_Name.isEmpty())
 		return FileName;
 	return QString("%1 (%2)").arg(FileName).arg(m_Name); // todo make switchable
@@ -134,7 +135,7 @@ QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_TARGET).To<uint64>(0);
 				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
 
-				Info.LastAccessTime = Data.Get(API_V_PROC_EVENT_LAST_ACCESS).To<uint64>(0);
+				Info.LastAccessTime = Data.Get(API_V_PROC_EVENT_LAST_ACT).To<uint64>(0);
 				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
 				Info.ThreadAccessMask = Data.Get(API_V_THREAD_ACCESS_MASK).To<uint32>(0);
 				Info.ProcessAccessMask = Data.Get(API_V_PROCESS_ACCESS_MASK).To<uint32>(0);
@@ -154,7 +155,7 @@ QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_ACTOR).To<uint64>(0);
 				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
 
-				Info.LastAccessTime = Data.Get(API_V_PROC_EVENT_LAST_ACCESS).To<uint64>(0);
+				Info.LastAccessTime = Data.Get(API_V_PROC_EVENT_LAST_ACT).To<uint64>(0);
 				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
 				Info.ThreadAccessMask = Data.Get(API_V_THREAD_ACCESS_MASK).To<uint32>(0);
 				Info.ProcessAccessMask = Data.Get(API_V_PROCESS_ACCESS_MASK).To<uint32>(0);
@@ -170,6 +171,15 @@ QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 void CProgramFile::TraceLogAdd(ETraceLogs Log, const CLogEntryPtr& pEntry, quint64 Index)
 { 
 	STraceLogList* pLog = &m_Logs[(int)Log];
+
+	if (Log == ETraceLogs::eResLog)
+	{
+		CWindowsServicePtr pActorService = GetService(pEntry->GetOwnerService());
+		if (pActorService) 
+			pActorService->m_AccessLastEvent = pEntry->GetTimeStamp();
+		else
+			m_AccessLastEvent = pEntry->GetTimeStamp();
+	}
 
 	if (Log == ETraceLogs::eExecLog)
 	{
@@ -283,7 +293,7 @@ void CProgramFile::ClearProcessLogs()
 void CProgramFile::ClearAccessLog()
 {
 	m_AccessStats.clear();
-	m_AccessStatsLastActivity = 0;
+	m_AccessLastActivity = 0;
 }
 
 void CProgramFile::ClearTrafficLog()
@@ -294,24 +304,43 @@ void CProgramFile::ClearTrafficLog()
 
 void CProgramFile::CountStats()
 {
-	foreach(auto pNode, m_Nodes)
-		pNode->CountStats();
+	m_Stats.ServicesCount = m_Nodes.count(); // a CProgramFile can only have CWindowsService nodes
 
+	m_Stats.LastExecution = m_LastExec;
 	m_Stats.ProcessCount = m_ProcessPids.count();
-	m_Stats.ProgRuleCount = m_ProgRuleIDs.count();
+	m_Stats.ProgRuleTotal = m_Stats.ProgRuleCount = m_ProgRuleIDs.count();
 
-	m_Stats.ResRuleCount = m_ResRuleIDs.count();
+	m_Stats.ResRuleTotal = m_Stats.ResRuleCount = m_ResRuleIDs.count();
 
-	m_Stats.FwRuleCount = m_FwRuleIDs.count();
+	m_Stats.FwRuleTotal = m_Stats.FwRuleCount = m_FwRuleIDs.count();
 	m_Stats.SocketCount = m_SocketRefs.count();
+
+	foreach(auto pNode, m_Nodes) 
+	{
+		pNode->CountStats();
+		const SProgramStats* pStats = pNode->GetStats();
+
+		m_Stats.ProgRuleTotal += pStats->ProgRuleTotal;
+
+		m_Stats.ResRuleTotal += pStats->ResRuleTotal;
+
+		m_Stats.FwRuleTotal += pStats->FwRuleTotal;
+	}
 }
 
 QMap<quint64, SAccessStatsPtr> CProgramFile::GetAccessStats()
 {
-	auto Res = theCore->GetAccessStats(m_ID, m_TrafficLogLastActivity);
+	auto Res = theCore->GetAccessStats(m_ID, m_AccessLastActivity);
 	if (!Res.IsError()) {
 		XVariant Root = Res.GetValue();
-		m_TrafficLogLastActivity = ReadAccessBranch(m_AccessStats, Root);
+//#ifdef _DEBUG
+//		int oldCount = m_AccessStats.count();
+//#endif
+		m_AccessLastActivity = ReadAccessBranch(m_AccessStats, Root);
+//#ifdef _DEBUG
+//		if (oldCount < m_AccessStats.count())
+//			qDebug() << "AccessStats count for" << GetName() << "added" << m_AccessStats.count() - oldCount;
+//#endif
 	}
 	return m_AccessStats;
 }
@@ -429,4 +458,14 @@ QString CProgramFile::GetSignatureInfoStr(SLibraryInfo::USign SignInfo)
 	}
 
 	return Str;
+}
+
+QSharedPointer<class CWindowsService> CProgramFile::GetService(const QString& SvcTag) const
+{
+	for (auto pNode : m_Nodes) {
+		CWindowsServicePtr pSvc = pNode.objectCast<CWindowsService>();
+		if (pSvc && pSvc->GetSvcTag() == SvcTag)
+			return pSvc;
+	}
+	return nullptr;
 }

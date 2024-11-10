@@ -23,6 +23,8 @@ quint64 ReadAccessBranch(QMap<quint64, SAccessStatsPtr>& m_AccessStats, const XV
 		case API_V_ACCESS_TIME:		pStats->LastAccessTime = Data.To<uint64>(0); break;
 		case API_V_ACCESS_BLOCKED:	pStats->bBlocked = Data.To<bool>(false); break;
 		case API_V_ACCESS_MASK:		pStats->AccessMask = Data.To<uint32>(0); break;
+		case API_V_ACCESS_STATUS:	pStats->NtStatus = Data.To<uint32>(0); break;
+		case API_V_ACCESS_IS_DIR:	pStats->IsDirectory = Data.To<bool>(false); break;
 
 		case API_V_ACCESS_NODES:
 			Data.ReadRawList([&](const CVariant& vData) {

@@ -24,6 +24,10 @@ QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& Lis
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
+	static QIcon InternetIcon(":/Icons/Internet.png");
+	static QIcon EthetNetIcon(":/Icons/EthSocket2.png");
+	static QIcon LocalHostIcon(":/Icons/Monitor.png");
+
 	for(auto X = List.begin(); X != List.end(); ++X)
 	{
 		QVariant ID = X.key();
@@ -55,10 +59,23 @@ QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& Lis
 		int Col = 0;
 		bool State = false;
 		int Changed = 0;
-		if (pNode->Icon.isNull() && pNode->pItem->pProg && !pNode->pItem->pProg->GetIcon().isNull())
+		if (pNode->Icon.isNull())
 		{
-			pNode->Icon = pNode->pItem->pProg->GetIcon();
-			Changed = 1;
+			if (pNode->pItem->pProg && !pNode->pItem->pProg->GetIcon().isNull()) 
+			{
+				pNode->Icon = pNode->pItem->pProg->GetIcon();
+				Changed = 1;
+			}
+			else
+			{
+				if (pNode->pItem->pEntry->GetNetType() == CTrafficEntry::eLocalHost) 
+					pNode->Icon = LocalHostIcon;
+				else if (pNode->pItem->pEntry->GetNetType() == CTrafficEntry::eInternet) 
+					pNode->Icon = InternetIcon;
+				else
+					pNode->Icon = EthetNetIcon;
+				Changed = 1;
+			}
 		}
 		/*if (pNode->IsGray != ...) {
 			pNode->IsGray = ...;
@@ -141,6 +158,27 @@ STrafficItemPtr CTrafficModel::GetItem(const QModelIndex& index)
 int CTrafficModel::columnCount(const QModelIndex& parent) const
 {
 	return eCount;
+}
+
+QVariant CTrafficModel::NodeData(STreeNode* pNode, int role, int section) const
+{
+	if (pNode->Values.size() <= section)
+		return QVariant();
+
+	switch (role)
+	{
+	case Qt::ToolTipRole:
+		switch(section)
+		{
+		case eName: {
+				STrafficNode* pTrafficNode = static_cast<STrafficNode*>(pNode);
+				return (pTrafficNode->pItem && pTrafficNode->pItem->pEntry && !pTrafficNode->pItem->pProg) ? pTrafficNode->pItem->pEntry->GetIpAddress() : QVariant();
+			}
+		}
+
+	default:
+		return CTreeItemModel::NodeData(pNode, role, section);
+	}
 }
 
 QVariant CTrafficModel::headerData(int section, Qt::Orientation orientation, int role) const

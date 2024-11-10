@@ -13,14 +13,17 @@ CFirewallRule::CFirewallRule()
 
 CFirewallRule::CFirewallRule(const std::shared_ptr<struct SWindowsFwRule>& Rule)
 {
-	std::wstring BinaryPath = Rule->BinaryPath;
-	if (_wcsicmp(BinaryPath.c_str(), L"system") == 0)
-		BinaryPath = L"%SystemRoot%\\system32\\ntoskrnl.exe";
-		
-	//DbgPrint(L"%s\n", BinaryPath.c_str());
-	Update(Rule);
+	m_Data = Rule;
 
-	SetProgID();
+	m_BinaryPath = m_Data->BinaryPath;
+	if (_wcsicmp(m_BinaryPath.c_str(), L"system") == 0)
+		m_BinaryPath = L"%SystemRoot%\\system32\\ntoskrnl.exe";
+	//DbgPrint(L"%s\n", BinaryPath.c_str());
+	
+	std::wstring AppContainerSid = m_Data->AppContainerSid;
+	if(AppContainerSid.empty() && !m_Data->PackageFamilyName.empty())
+		AppContainerSid = GetAppContainerSidFromName(m_Data->PackageFamilyName);
+	m_ProgramID.Set(m_BinaryPath, m_Data->ServiceTag, AppContainerSid);
 }
 
 CFirewallRule::~CFirewallRule()
@@ -69,15 +72,14 @@ bool CFirewallRule::FromVariant(const CVariant& Rule)
 	else
 		return false;
 
-	SetProgID();
-
-	return true;
-}
-
-void CFirewallRule::SetProgID()
-{
 	std::wstring AppContainerSid = m_Data->AppContainerSid;
 	if(AppContainerSid.empty() && !m_Data->PackageFamilyName.empty())
 		AppContainerSid = GetAppContainerSidFromName(m_Data->PackageFamilyName);
-	m_ProgramID.Set(m_Data->BinaryPath, m_Data->ServiceTag, AppContainerSid);
+	m_ProgramID.Set(m_BinaryPath, m_Data->ServiceTag, AppContainerSid);
+
+	m_Data->BinaryPath = m_BinaryPath;
+	if (_wcsicmp(m_Data->BinaryPath.c_str(), L"%SystemRoot%\\system32\\ntoskrnl.exe") == 0)
+		m_Data->BinaryPath = L"system";
+
+	return true;
 }

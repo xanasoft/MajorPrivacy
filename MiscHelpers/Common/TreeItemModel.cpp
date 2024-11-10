@@ -183,6 +183,7 @@ int CTreeItemModel::CountItems(STreeNode* pRoot)
 
 CTreeItemModel::STreeNode* CTreeItemModel::MkVirtualNode(const QVariant& Id, STreeNode* pParent)
 {
+	Q_ASSERT(Id.isValid());
 	STreeNode* pNode = MkNode(Id);
 	pNode->Parent = pParent;
 	pNode->Virtual = true;
@@ -217,7 +218,7 @@ void CTreeItemModel::Purge(STreeNode* pParent, const QModelIndex &parent, QHash<
 				ASSERT(!pNode->Children.isEmpty()); // we wanted to remove it but we have to keep it
 				//m_Map.remove(pNode->ID, pNode);
 				m_Map.remove(pNode->ID);
-				pNode->ID = QVariant();
+				//pNode->ID = QVariant();
 				pNode->Icon.clear();
 			}
 

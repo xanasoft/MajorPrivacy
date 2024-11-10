@@ -19,19 +19,14 @@ CAccessPage::CAccessPage(QWidget* parent)
 
 	//m_pToolBar = new QToolBar();
 	//m_pMainLayout->addWidget(m_pToolBar);
-	
-	m_pVSplitter = new QSplitter(Qt::Vertical);
-	m_pMainLayout->addWidget(m_pVSplitter);
 
 	//m_pRuleTabs = new QTabWidget();
-	//m_pVSplitter->addWidget(m_pRuleTabs);
 
 	m_pRuleView = new CAccessRuleView();
 	//m_pRuleTabs->addTab(m_pAccessRuleView, tr("Access Rules"));
-	m_pVSplitter->addWidget(m_pRuleView);
+
 
 	m_pTabs = new QTabWidget();
-	m_pVSplitter->addWidget(m_pTabs);
 
 	m_pHandleView = new CHandleView();
 	m_pTabs->addTab(m_pHandleView, tr("Open Resources"));
@@ -50,6 +45,34 @@ CAccessPage::CAccessPage(QWidget* parent)
 	m_pTraceView = new CAccessTraceView();
 	m_pTabs->addTab(m_pTraceView, tr("Trace Log"));
 
+
+	m_pVSplitter = new QSplitter(Qt::Vertical);
+	m_pMainLayout->addWidget(m_pVSplitter);
+	//m_pVSplitter->addWidget(m_pRuleTabs);
+	m_pVSplitter->addWidget(m_pRuleView);
+	m_pVSplitter->addWidget(m_pTabs);
+}
+
+void CAccessPage::SetMergePanels(bool bMerge)
+{
+	if (!m_pVSplitter == bMerge)
+		return;
+
+	if (bMerge)
+	{
+		m_pMainLayout->addWidget(m_pTabs);
+		m_pTabs->insertTab(0, m_pRuleView, tr("Access Rules"));
+		delete m_pVSplitter;
+		m_pVSplitter = nullptr;
+	}
+	else
+	{
+		m_pVSplitter = new QSplitter(Qt::Vertical);
+		m_pVSplitter->addWidget(m_pRuleView);
+		m_pRuleView->setVisible(true);
+		m_pVSplitter->addWidget(m_pTabs);
+		m_pMainLayout->addWidget(m_pVSplitter);
+	}
 }
 
 void CAccessPage::Update()

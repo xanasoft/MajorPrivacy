@@ -22,21 +22,16 @@ CNetworkPage::CNetworkPage(QWidget* parent)
 	//m_pToolBar = new QToolBar();
 	//m_pMainLayout->addWidget(m_pToolBar);
 	
-	m_pVSplitter = new QSplitter(Qt::Vertical);
-	m_pMainLayout->addWidget(m_pVSplitter);
-
 	//m_pRuleTabs = new QTabWidget();
-	//m_pVSplitter->addWidget(m_pRuleTabs);
-
+	
 	m_pRuleView = new CFwRuleView();
 	//m_pRuleTabs->addTab(m_pRuleView, tr("Firewall Rules"));
-	m_pVSplitter->addWidget(m_pRuleView);
 	
 	//m_pProxyView = new QWidget();
 	//m_pRuleTabs->addTab(m_pProxyView, tr("Proxy Injection"));
 
+
 	m_pTabs = new QTabWidget();
-	m_pVSplitter->addWidget(m_pTabs);
 
 	m_pSocketView = new CSocketView();
 	m_pTabs->addTab(m_pSocketView, tr("Open Socket"));
@@ -46,10 +41,39 @@ CNetworkPage::CNetworkPage(QWidget* parent)
 
 	m_pTraceView = new CNetTraceView();
 	m_pTabs->addTab(m_pTraceView, tr("Connection Log"));
+
+
+	m_pVSplitter = new QSplitter(Qt::Vertical);
+	m_pMainLayout->addWidget(m_pVSplitter);
+	//m_pVSplitter->addWidget(m_pRuleTabs);
+	m_pVSplitter->addWidget(m_pRuleView);
+	m_pVSplitter->addWidget(m_pTabs);
 }
 
 CNetworkPage::~CNetworkPage()
 {
+}
+
+void CNetworkPage::SetMergePanels(bool bMerge)
+{
+	if (!m_pVSplitter == bMerge)
+		return;
+
+	if (bMerge)
+	{
+		m_pMainLayout->addWidget(m_pTabs);
+		m_pTabs->insertTab(0, m_pRuleView, tr("Firewall Rules"));
+		delete m_pVSplitter;
+		m_pVSplitter = nullptr;
+	}
+	else
+	{
+		m_pVSplitter = new QSplitter(Qt::Vertical);
+		m_pVSplitter->addWidget(m_pRuleView);
+		m_pRuleView->setVisible(true);
+		m_pVSplitter->addWidget(m_pTabs);
+		m_pMainLayout->addWidget(m_pVSplitter);
+	}
 }
 
 void CNetworkPage::Update()

@@ -229,6 +229,7 @@ public:
 
 		m_pTreeView = new QTreeViewEx();
 		m_pMainLayout->addWidget(m_pTreeView);
+		m_pTreeView->setExpandsOnDoubleClick(false);
 
 		m_pItemModel = new M();
 		//connect(m_pItemModel, SIGNAL(CheckChanged(quint64, bool)), this, SLOT(OnCheckChanged(quint64, bool)));
@@ -321,6 +322,25 @@ protected:
 			List.append(GetChildren(ChildIndex));
 		}
 		return List;
+	}
+
+	void ExpandRecursively(const QModelIndex& index, bool bExpand)
+	{
+		if(bExpand)
+			m_pTreeView->expand(index);
+		else
+			m_pTreeView->collapse(index);
+
+		int rowCount = m_pSortProxy->rowCount(index);
+		for (int i = 0; i < rowCount; ++i) {
+			QModelIndex childIndex = m_pSortProxy->index(i, 0, index);
+			ExpandRecursively(childIndex, bExpand);
+		}
+	}
+
+	void OnDoubleClicked(const QModelIndex& index)
+	{
+		ExpandRecursively(index, !m_pTreeView->isExpanded(index));
 	}
 
 	QVBoxLayout*				m_pMainLayout;

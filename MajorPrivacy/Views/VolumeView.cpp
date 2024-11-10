@@ -69,10 +69,10 @@ void CVolumeView::Sync()
 	m_pItemModel->Sync(theCore->VolumeManager()->List());
 }
 
-void CVolumeView::OnDoubleClicked(const QModelIndex& Index)
+/*void CVolumeView::OnDoubleClicked(const QModelIndex& Index)
 {
 
-}
+}*/
 
 void CVolumeView::OnMenu(const QPoint& Point)
 {

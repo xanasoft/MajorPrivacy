@@ -44,7 +44,8 @@ public:
 
 	CDnsProcLog* DnsLog()					{ return &m_DnsLog; }
 
-	uint64	GetLastActivity() const			{ std::shared_lock Lock(m_Mutex); return m_LastActivity;}
+	void UpdateLastNetActivity(uint64 TimeStamp) { std::unique_lock Lock(m_Mutex); if(TimeStamp > m_LastNetActivity) m_LastNetActivity = TimeStamp; }
+	uint64	GetLastNetActivity() const		{ std::shared_lock Lock(m_Mutex); return m_LastNetActivity;}
 
 	uint64	GetUpload() const				{ std::shared_lock StatsLock(m_StatsMutex); return m_Stats.Net.SendRate.Get();}
 	uint64	GetDownload() const				{ std::shared_lock StatsLock(m_StatsMutex); return m_Stats.Net.ReceiveRate.Get();}
@@ -123,7 +124,7 @@ protected:
 
 	std::weak_ptr<class CProgramFile> m_pFileRef; 
 
-	uint64						m_LastActivity = 0;
+	uint64						m_LastNetActivity = 0;
 	// I/O stats
 	mutable std::shared_mutex	m_StatsMutex;
 	SProcStats					m_Stats;

@@ -144,10 +144,10 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms
 	}
 }
 
-void CLibraryView::OnDoubleClicked(const QModelIndex& Index)
+/*void CLibraryView::OnDoubleClicked(const QModelIndex& Index)
 {
 	//QPair<CProgramItemPtr, CTrafficEntryPtr> pItem = m_pItemModel->GetItem(Index);
-}
+}*/
 
 void CLibraryView::OnMenu(const QPoint& Point)
 {

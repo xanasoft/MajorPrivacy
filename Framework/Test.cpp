@@ -159,7 +159,7 @@ extern "C" VOID Test_KTL()
 	g_MemPool.Init();
 
 
-
+/*
 	DefaultMemPool Pool1;
 	DefaultMemPool Pool2;
 
@@ -167,7 +167,7 @@ extern "C" VOID Test_KTL()
 	StringW strTest1(&Pool1, L"test1");
 	FW::AbstractContainer* Containers[] = { &strTest1, NULL };
 	Pool1.MoveTo(Pool2, Containers);
-	return;
+	return;*/
 
 
 #if 0

@@ -113,6 +113,7 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 					case eProfiles:			ColValue.Formatted = pRule->GetProfileStr(); break;
 					case eAction:			ColValue.Formatted = pRule->GetActionStr(); break;
 					case eDirection:		ColValue.Formatted = pRule->GetDirectionStr(); break;
+					case eProtocol:			ColValue.Formatted = CFwRule::ProtocolToStr(pRule->GetProtocol()); break;
 					case eRemoteAddress:	ColValue.Formatted = pRule->GetRemoteAddresses().join(", "); break;
 					case eLocalAddress:		ColValue.Formatted = pRule->GetLocalAddresses().join(", "); break;
 					case eRemotePorts:		ColValue.Formatted = pRule->GetRemotePorts().join(", "); break;

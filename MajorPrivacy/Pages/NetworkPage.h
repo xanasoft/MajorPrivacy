@@ -15,6 +15,8 @@ public:
 	CNetworkPage(QWidget* parent);
 	~CNetworkPage();
 
+	void SetMergePanels(bool bMerge);
+
 public slots:
 	void	Update();
 

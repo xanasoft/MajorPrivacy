@@ -8,6 +8,7 @@
 #include "ProgramLibrary.h"
 #include "..\Processes\ExecLogEntry.h"
 #include "../Access/AccessTree.h"
+#include "../Processes/AccessLog.h"
 
 typedef std::wstring		TFilePath;	// normalized Application Binary file apth
 
@@ -34,35 +35,29 @@ public:
 	//virtual std::map<uint64, SLibraryInfo> GetLibraries() const { std::unique_lock lock(m_Mutex); return m_Libraries; }
 	virtual CVariant DumpLibraries() const;
 
-	struct SExecInfo
-	{
-		TRACK_OBJECT(SExecInfo)
-		uint64						LastExecTime = 0;
-		bool						bBlocked = false;
-		std::wstring				CommandLine;
-	};
+	virtual CVariant StoreLibraries(const SVarWriteOpt& Opts) const;
+	virtual void LoadLibraries(const CVariant& Data);
 
 	virtual void AddExecActor(const std::shared_ptr<CProgramFile>& pActorProgram, const std::wstring& ActorServiceTag, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked);
 	virtual void AddExecTarget(const std::wstring& ActorServiceTag, const std::shared_ptr<CProgramFile>& pProgram, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked);
 	virtual CVariant DumpExecStats() const;
 
-	struct SAccessInfo
-	{
-		TRACK_OBJECT(SAccessInfo)
-		uint64						LastAccessTime = 0;
-		bool						bBlocked = false;
-		uint32						ProcessAccessMask = 0;
-		uint32						ThreadAccessMask = 0;
-	};
-
 	virtual void AddIngressActor(const std::shared_ptr<CProgramFile>& pActorProgram, const std::wstring& ActorServiceTag, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
 	virtual void AddIngressTarget(const std::wstring& ActorServiceTag, const std::shared_ptr<CProgramFile>& pProgram, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
 	virtual CVariant DumpIngress() const;
 
-	virtual void AddAccess(const std::wstring& ActorServiceTag, const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
-	virtual CVariant DumpAccess() const;
+	virtual void AddAccess(const std::wstring& ActorServiceTag, const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked);
+	virtual CVariant DumpAccess(uint64 LastActivity) const;
+
+	virtual CVariant StoreAccess(const SVarWriteOpt& Opts) const;
+	virtual void LoadAccess(const CVariant& Data);
+
+	virtual void UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked);
 
 	virtual CTrafficLog* TrafficLog()							{ return &m_TrafficLog; }
+
+	virtual CVariant StoreTraffic(const SVarWriteOpt& Opts) const;
+	virtual void LoadTraffic(const CVariant& Data);
 
 	struct STraceLog
 	{
@@ -96,19 +91,20 @@ protected:
 	// see CProcess::m_pFileRef for details
 	//
 
+	uint64							m_LastExec = 0;
+
 	std::map<uint64, CProcessPtr>	m_Processes; // key: PID
 
 	std::map<uint64, SLibraryInfo>	m_Libraries; // key: Librars UUID
 
-	std::map<uint64, SExecInfo>		m_ExecActors; // key: Program UUID
-	std::map<uint64, SExecInfo>		m_ExecTargets; // key: Program UUID
-
-	std::map<uint64, SAccessInfo>	m_IngressActors; // key: Program UUID
-	std::map<uint64, SAccessInfo>	m_IngressTargets; // key: Program UUID
+	CAccessLog						m_AccessLog;
 
 	CAccessTree						m_AccessTree;
 
 	CTrafficLog						m_TrafficLog;
+
+	uint64							m_LastFwAllowed = 0;
+	uint64							m_LastFwBlocked = 0;
 
 	//
 	// Note: log entries don't have mutexes, we thread them as read only objects
@@ -121,8 +117,14 @@ private:
 	struct SStats
 	{
 		std::set<uint64> Pids;
+
 		std::set<uint64> SocketRefs;
-		uint64 LastActivity = 0;
+
+		uint64 LastNetActivity = 0;
+
+		uint64 LastFwAllowed = 0;
+		uint64 LastFwBlocked = 0;
+
 		uint64 Upload = 0;
 		uint64 Download = 0;
 		uint64 Uploaded = 0;

@@ -17,6 +17,8 @@ public:
 	CProcessPage(QWidget* parent);
 	~CProcessPage();
 
+	void SetMergePanels(bool bMerge);
+
 public slots:
 	void	Update();
 

@@ -78,6 +78,11 @@ bool CProcess::Init()
 		m_Name = GetFileNameFromPath(m_FileName);
 	}
 
+	if(m_FileName == L"MemCompression")
+		m_FileName = NormalizeFilePath(NtOsKernel_exe) + L"\\MemCompression";
+	else if(m_FileName == L"Registry")
+		m_FileName = NormalizeFilePath(NtOsKernel_exe) + L"\\Registry";
+
 	return InitOther();
 }
 
@@ -218,6 +223,8 @@ bool CProcess::InitLibs()
 	if (!hProcess)
 		return false;
 
+	std::wstring ProgramPath = NormalizeFilePath(GetFileName());
+
 	for (PVOID baseAddress = (PVOID)0;baseAddress != (PVOID)-1;)
 	{
 		MEMORY_BASIC_INFORMATION basicInfo;
@@ -254,6 +261,10 @@ bool CProcess::InitLibs()
 		{
 			auto pUnicodeString = (PUNICODE_STRING)buffer.data();
 			std::wstring ModulePath = NormalizeFilePath(std::wstring(pUnicodeString->Buffer, pUnicodeString->Length / sizeof(wchar_t)));
+
+			bool bIsProcess = ProgramPath == ModulePath;
+			if(bIsProcess)
+				continue;
 
 			CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibrary(ModulePath, true);
 
@@ -390,7 +401,7 @@ void CProcess::AddNetworkIO(int Type, uint32 TransferSize)
 {
 	std::shared_lock StatsLock(m_StatsMutex);
 
-	m_LastActivity = GetTime() * 1000ULL;
+	m_LastNetActivity = GetTime() * 1000ULL;
 
 	switch ((CSocketList::EEventType)Type)
 	{
@@ -438,7 +449,7 @@ CVariant CProcess::ToVariant() const
 
 	Process.Write(API_V_USER_SID, m_UserSid);
 
-	Process.Write(API_V_SOCK_LAST_ACT, m_LastActivity);
+	Process.Write(API_V_SOCK_LAST_ACT, m_LastNetActivity);
 	
 	Lock.unlock();
 

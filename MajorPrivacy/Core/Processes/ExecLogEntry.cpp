@@ -62,6 +62,7 @@ void CExecLogEntry::ReadValue(uint32 Index, const XVariant& Data)
 	case API_V_PROC_EVENT_STATUS:		m_Status = (EEventStatus)Data.To<uint32>(); break;
 	case API_V_PROC_EVENT_MISC:			m_MiscID = Data.To<uint64>(); break;
 	case API_V_PROC_EVENT_ACCESS_MASK:	m_AccessMask = Data.To<uint32>(); break;
+	case API_V_EVENT_STATUS:		    m_NtStatus = Data.To<uint32>(); break;
 	default: CAbstractLogEntry::ReadValue(Index, Data);
 	}
 }

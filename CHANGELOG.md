@@ -7,6 +7,29 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 // TODO 
 
 
+## [0.96.1] - 2024-11-??
+
+### Added
+- access log is now saved to disk
+- added option to trace registry accesses
+- added dat fiel viewer
+- added auto scroll to trace logs
+- added fitlers to program view
+- added new window layouts
+
+### Changed
+- improved tree behavioure (double click to expand/colapse all sub branches)
+- improved access tree behavioure a lot
+- improved traffic view
+- changed Programs.dat format
+  - WARNING: the old file will be discarded and not impprted
+
+### Fixed
+- fixed minor issue in driver post op cleanup
+- fixed driver incompatybility with windows 10
+- fixed issues with slow startup causing error messages
+
+
 
 
 ## [0.96.0] - 2024-10-29

@@ -167,13 +167,13 @@ void CPackageList::Update()
 
 bool CPackageList::LoadFromCache()
 {
-    CBuffer Data;
-    if (!ReadFile(theCore->GetDataFolder() + L"\\AppPackages.dat", 0, Data))
+    CBuffer Buffer;
+    if (!ReadFile(theCore->GetDataFolder() + L"\\AppPackages.dat", 0, Buffer))
         return false;
 
     CVariant List;
     //try {
-    if(List.FromPacket(&Data, true) != CVariant::eErrNone)
+    if(List.FromPacket(&Buffer, true) != CVariant::eErrNone)
 		return false;
     //} catch (const CException&) {
     //    return false;
@@ -225,7 +225,7 @@ void CPackageList::StoreToCache()
         List.Append(Package);
     }
 
-    CBuffer Data;
-    List.ToPacket(&Data);
-    WriteFile(theCore->GetDataFolder() + L"\\AppPackages.dat", 0, Data); 
+    CBuffer Buffer;
+    List.ToPacket(&Buffer);
+    WriteFile(theCore->GetDataFolder() + L"\\AppPackages.dat", 0, Buffer); 
 }

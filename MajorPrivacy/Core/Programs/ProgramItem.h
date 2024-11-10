@@ -6,15 +6,27 @@
 
 struct SProgramStats
 {
+	int				ProgramsCount = 0;
+	int				ServicesCount = 0;
+	int				AppsCount = 0;
+	int				GroupCount = 0;
+
 	int				ProcessCount = 0;
+	uint64			LastExecution = 0;
 	int				ProgRuleCount = 0;
+	int				ProgRuleTotal = 0;
 
 	int				ResRuleCount = 0;
+	int				ResRuleTotal = 0;
 
 	int				FwRuleCount = 0;
+	int				FwRuleTotal = 0;
 	int				SocketCount = 0;
 
-	uint64			LastActivity = 0;
+	uint64			LastNetActivity = 0;
+
+	uint64			LastFwAllowed = 0;
+	uint64			LastFwBlocked = 0;
 
 	uint64			Upload = 0;
 	uint64			Download = 0;

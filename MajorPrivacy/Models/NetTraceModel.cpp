@@ -7,6 +7,7 @@
 #include "../Core/PrivacyCore.h"
 #include "../Core/TraceLogUtils.h"
 #include "../Core/Network/NetLogEntry.h"
+#include "../Core/Network/NetworkManager.h"
 
 
 CNetTraceModel::CNetTraceModel(QObject* parent)
@@ -95,7 +96,7 @@ QVariant CNetTraceModel::NodeData(STraceNode* pTraceNode, int role, int section)
 			+ (!pEntry->GetOwnerService().isEmpty() ? tr(" (%1)").arg(pEntry->GetOwnerService()) : "");
 		case eAction:			return pEntry->GetActionStr();
 		case eDirection:		return pEntry->GetDirectionStr();
-		case eProtocol:			return pEntry->GetProtocolType();
+		case eProtocol:			return CFwRule::ProtocolToStr((EFwKnownProtocols)pEntry->GetProtocolType()); break;
 		case eRAddress: {
 			QString Data = pEntry->GetRemoteAddress().toString();
 			QString Host = pEntry->GetRemoteHostName();

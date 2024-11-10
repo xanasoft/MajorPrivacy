@@ -16,12 +16,13 @@ public:
 	~CPrivacyCore();
 	
 	STATUS Connect();
-	STATUS Reconnect();
+	//STATUS Reconnect();
 	void Disconnect(bool bKeepEngine = false);
 
 	bool IsEngineMode() const					{ return m_bEngineMode; }
 
 	STATUS Update();
+	void ProcessEvents();
 
 	class CProcessList* ProcessList()			{ return m_pProcessList; }
 	class CEnclaveList* EnclaveList()			{ return m_pEnclaveList; }
@@ -183,6 +184,7 @@ public:
 	CSidResolver*		GetSidResolver() {return m_pSidResolver;}
 
 signals:
+	void				ProgramsAdded();
 	void				UnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
 	//void				FwRuleChanged();
 	void				ExecutionEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);

@@ -15,7 +15,7 @@ public:
 	
 	typedef CSocketPtr ItemType;
 
-	QList<QModelIndex>	Sync(const QList<CSocketPtr>& SocketList);
+	QList<QModelIndex>	Sync(const QMap<quint64, CSocketPtr>& SocketList);
 	
 	CSocketPtr		GetItem(const QModelIndex& index);
 

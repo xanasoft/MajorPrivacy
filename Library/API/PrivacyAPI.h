@@ -16,7 +16,7 @@
 
 #pragma once
 
-#define MY_ABI_VERSION  0x009600
+#define MY_ABI_VERSION  0x009601
 
 /////////////////////////////////////////////////////////////////////////////
 // Driver
@@ -264,6 +264,8 @@ API_V_STATIC : unsigned long
 
 	API_V_PROG_ITEMS			= 'pris',	// CVariant
 
+	API_V_PROG_LAST_EXEC		= 'plec',	// uint64	
+
 	// Info
 	API_V_NAME					= 'name',	// String
 	API_V_ICON					= 'icon',	// String
@@ -278,9 +280,9 @@ API_V_STATIC : unsigned long
 	API_V_LIB_LOAD_TIME			= 'lltm',	// uint64
 	API_V_LIB_LOAD_COUNT		= 'llct',	// uint64
 	API_V_SIGN_INFO				= 'sigi',	// SLibraryInfo::USign
-	//API_V_SIGN_INFO_AUTH			= 'lsau',	// KPH_VERIFY_AUTHORITY
-	//API_V_SIGN_INFO_LEVEL		= 'lsle',	// uint32
-	//API_V_SIGN_INFO_POLICY		= 'lspl',	// uint32
+	API_V_SIGN_INFO_AUTH		= 'lsau',	// KPH_VERIFY_AUTHORITY
+	API_V_SIGN_INFO_LEVEL		= 'lsle',	// uint32
+	API_V_SIGN_INFO_POLICY		= 'lspl',	// uint32
 	API_V_LIB_STATUS			= 'lbst',	// CExecLogEntry
 
 	// Rules
@@ -322,13 +324,47 @@ API_V_STATIC : unsigned long
 	API_V_FW_RULE_OS			= 'fwos',
 	API_V_FW_RULE_EDGE			= 'fwet',
 
+	// Processes
+	API_V_PROG_EXEC_ACTORS		= 'peas',
+	API_V_PROG_EXEC_TARGETS		= 'pets',
+	API_V_PROG_INGRESS_ACTORS	= 'pias',
+	API_V_PROG_INGRESS_TARGETS	= 'pits',
+	API_V_PROC_REF				= 'pref',	// uint64
+	API_V_PROC_EVENT_ACTOR		= 'peac',	// uint64
+	API_V_PROC_EVENT_TARGET		= 'petg',	// uint64
+	API_V_PROC_EVENT_LAST_EXEC	= 'pele',	// uint64
+	API_V_PROC_EVENT_BLOCKED	= 'pebl',	// bool
+	API_V_PROC_EVENT_CMD_LINE	= 'pecl',	// String
+	API_V_PROG_SVC_TAG			= 'psvt',	// String
+	API_V_PROC_EVENT_LAST_ACT	= 'pela',	// uint64
+
+	API_V_PROC_TARGETS			= 'ptgs',	// CVariant
+	API_V_PROC_ACTORS			= 'pacs',	// CVariant
+
+	// Access
+	//API_V_ACCESS_TREE			= 'actr',
+	API_V_PROG_RESOURCE_ACCESS	= 'prac',	// CVariant
+	API_V_ACCESS_REF			= 'acrf',	// uint64
+	API_V_ACCESS_NAME			= 'acnm',	// String
+	API_V_ACCESS_TIME			= 'actm',	// uint64
+	API_V_ACCESS_BLOCKED		= 'acbl',	// bool
+	API_V_ACCESS_MASK			= 'acms',	// uint32
+	API_V_ACCESS_STATUS			= 'acst',	// uint32
+	API_V_ACCESS_IS_DIR			= 'acdr',	// bool	
+	API_V_ACCESS_NODES			= 'acns',	// CVariant
+	API_V_ACCESS_LAST_ACT		= 'acac',	// uint64
+
 	// Sockets
+	API_V_PROG_TRAFFIC			= 'ptrf',
 	API_V_PROG_SOCKETS			= 'psck',
 	API_V_SOCK_LAST_ACT			= 'slac',
+	API_V_SOCK_LAST_ALLOW		= 'slal',
+	API_V_SOCK_LAST_BLOCK		= 'slbl',
 	API_V_SOCK_UPLOAD			= 'supl',
 	API_V_SOCK_DOWNLOAD			= 'sdlw',
 	API_V_SOCK_UPLOADED			= 'supd',
 	API_V_SOCK_DOWNLOADED		= 'sddw',
+	API_V_SOCK_RHOST			= 'srhs',
 
 	// Tweaks
 	API_V_TWEAKS				= 'twks',	// CVariant
@@ -411,17 +447,6 @@ API_V_DYNAMIC : unsigned long
 	API_V_ENCLAVE_IMAGE_LOAD_PROTECTION,	// bool
 
 	// Processes
-	API_V_PROC_REF,
-	API_V_PROC_EVENT_ACTOR,
-	API_V_PROC_EVENT_TARGET,
-	API_V_PROC_EVENT_LAST_EXEC,
-	API_V_PROC_EVENT_BLOCKED,
-	API_V_PROC_EVENT_CMD_LINE,
-	API_V_PROG_SVC_TAG,
-	API_V_PROC_EVENT_LAST_ACCESS,
-
-	API_V_PROC_TARGETS,
-	API_V_PROC_ACTORS,
 
 	API_V_PROG_PROC_PIDS,
 
@@ -444,6 +469,7 @@ API_V_DYNAMIC : unsigned long
 	API_V_EVENT_ACCESS,
 	API_V_EVENT_ACCESS_STATUS,
 	API_V_EVENT_STATUS,
+	API_V_EVENT_IS_DIR,
 
 	API_V_EVENT_INDEX,
 	API_V_EVENT_DATA,
@@ -469,12 +495,6 @@ API_V_DYNAMIC : unsigned long
 	API_V_EVENT_ECODE,
 
 	// Access
-	API_V_ACCESS_REF,
-	API_V_ACCESS_NAME,
-	API_V_ACCESS_TIME,
-	API_V_ACCESS_BLOCKED,
-	API_V_ACCESS_MASK,
-	API_V_ACCESS_NODES,
 	API_V_ACCESS_PID,
 
 	// DNS
@@ -498,7 +518,6 @@ API_V_DYNAMIC : unsigned long
 	API_V_SOCK_RSCOPE,
 	API_V_SOCK_PID,
 	API_V_SOCK_SVC_TAG,
-	API_V_SOCK_RHOST,
 	API_V_SOCK_CREATED,
 
 	// Process Events
@@ -533,7 +552,6 @@ API_V_DYNAMIC : unsigned long
 	API_V_LOG_TYPE, // ETraceLogs
 	API_V_LOG_OFFSET,
 	API_V_LOG_DATA,
-	API_V_ROOT,
 
 	// Crypto
 	API_V_PUB_KEY,

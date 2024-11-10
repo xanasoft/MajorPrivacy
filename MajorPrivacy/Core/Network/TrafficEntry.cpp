@@ -32,11 +32,95 @@ void CTrafficEntry::FromVariant(const class XVariant& TrafficEntry)
 		switch (Index)
 		{
 		case API_V_SOCK_RHOST:		m_HostName = Data.AsQStr(); break;
+		case API_V_SOCK_RADDR:		SetIpAddress(Data.AsQStr()); break;
 		case API_V_SOCK_LAST_ACT:	m_LastActivity = Data; break;
 		case API_V_SOCK_UPLOADED:	m_UploadTotal = Data; break;
 		case API_V_SOCK_DOWNLOADED:	m_DownloadTotal = Data; break;
 		}
 	});
+}
+
+void CTrafficEntry::SetIpAddress(const QString& IpAddress)
+{ 
+	if(m_IpAddress == IpAddress)
+		return;
+
+	m_IpAddress = IpAddress;
+	
+    // Create a QHostAddress from the string
+    QHostAddress address(IpAddress);
+
+    if (address.isNull())
+    {
+        // Invalid IP address; default to Internet
+        m_Type = eInternet;
+    }
+    else if (address.isLoopback())
+    {
+        m_Type = eLocalHost;
+    }
+    else if (address.protocol() == QAbstractSocket::IPv4Protocol)
+    {
+        quint32 ipv4 = address.toIPv4Address();
+
+        // Check for broadcast address 255.255.255.255
+        if (ipv4 == 0xFFFFFFFF)
+        {
+            m_Type = eBroadcast;
+        }
+        // Check for multicast addresses 224.0.0.0/4
+        else if ((ipv4 & 0xF0000000) == 0xE0000000)
+        {
+            m_Type = eMulticast;
+        }
+        // Check for local area networks
+        else if (
+            // 10.0.0.0/8
+            (ipv4 & 0xFF000000) == 0x0A000000 ||
+            // 172.16.0.0/12
+            (ipv4 & 0xFFF00000) == 0xAC100000 ||
+            // 192.168.0.0/16
+            (ipv4 & 0xFFFF0000) == 0xC0A80000 ||
+            // Link-local 169.254.0.0/16
+            (ipv4 & 0xFFFF0000) == 0xA9FE0000
+            )
+        {
+            m_Type = eLocalArea;
+        }
+        else
+        {
+            m_Type = eInternet;
+        }
+    }
+    else if (address.protocol() == QAbstractSocket::IPv6Protocol)
+    {
+        Q_IPV6ADDR ipv6 = address.toIPv6Address();
+
+        // Check for multicast addresses FF00::/8
+        if (ipv6[0] == 0xFF)
+        {
+            m_Type = eMulticast;
+        }
+        // Check for local area networks
+        else if (
+            // Link-local addresses FE80::/10
+            (ipv6[0] == 0xFE && (ipv6[1] & 0xC0) == 0x80) ||
+            // Unique local addresses FC00::/7
+            ((ipv6[0] & 0xFE) == 0xFC)
+            )
+        {
+            m_Type = eLocalArea;
+        }
+        else
+        {
+            m_Type = eInternet;
+        }
+    }
+    else
+    {
+        // Default to Internet for other protocols
+        m_Type = eInternet;
+    }
 }
 
 quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const class XVariant& TrafficList)

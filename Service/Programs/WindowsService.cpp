@@ -12,6 +12,8 @@ void CWindowsService::SetProcess(const CProcessPtr& pProcess)
 {
 	std::unique_lock lock(m_Mutex);
 
+	if(pProcess)
+		m_LastExec = pProcess->GetCreateTimeStamp();
 	m_pProcess = pProcess;
 }
 
@@ -19,30 +21,19 @@ void CWindowsService::AddExecTarget(const std::shared_ptr<CProgramFile>& pProgra
 {
 	std::unique_lock lock(m_Mutex);
 
-	CProgramFile::SExecInfo& Info = m_ExecTargets[pProgram->GetUID()];
-	Info.bBlocked = bBlocked;
-	Info.LastExecTime = CreateTime;
-	Info.CommandLine = CmdLine;
+	m_AccessLog.AddExecTarget(pProgram->GetUID(), CmdLine, CreateTime, bBlocked);
 }
 
 CVariant CWindowsService::DumpExecStats() const
 {
 	std::unique_lock lock(m_Mutex);
 
+	SVarWriteOpt Opts;
+
 	CVariant Targets;
 	Targets.BeginList();
-	for (auto& pItem : m_ExecTargets)
-	{
-		CVariant vTarget;
-		vTarget.BeginIMap();
-		vTarget.Write(API_V_PROC_REF, (uint64)&pItem.second);
-		vTarget.Write(API_V_PROC_EVENT_TARGET, pItem.first);
-		vTarget.Write(API_V_PROC_EVENT_LAST_EXEC, pItem.second.LastExecTime);
-		vTarget.Write(API_V_PROC_EVENT_BLOCKED, pItem.second.bBlocked);
-		vTarget.Write(API_V_PROC_EVENT_CMD_LINE, pItem.second.CommandLine);
-		vTarget.Finish();
-		Targets.WriteVariant(vTarget);
-	}
+	m_AccessLog.DumpIngressTargets(Targets, Opts);
+	Targets.Finish();
 
 	CVariant Data;
 	Data.BeginIMap();
@@ -55,32 +46,18 @@ void CWindowsService::AddIngressTarget(const std::shared_ptr<CProgramFile>& pPro
 {
 	std::unique_lock lock(m_Mutex);
 
-	CProgramFile::SAccessInfo& Info = m_IngressTargets[pProgram->GetUID()];
-	Info.bBlocked = bBlocked;
-	Info.LastAccessTime = AccessTime;
-	if(bThread) Info.ThreadAccessMask |= AccessMask;
-	else Info.ProcessAccessMask |= AccessMask;
+	m_AccessLog.AddIngressTarget(pProgram->GetUID(), bThread, AccessMask, AccessTime, bBlocked);
 }
 
 CVariant CWindowsService::DumpIngress() const
 {
 	std::unique_lock lock(m_Mutex);
 
+	SVarWriteOpt Opts;
+
 	CVariant Targets;
 	Targets.BeginList();
-	for (auto& pItem : m_IngressTargets)
-	{
-		CVariant vTarget;
-		vTarget.BeginIMap();
-		vTarget.Write(API_V_PROC_REF, (uint64)&pItem.second);
-		vTarget.Write(API_V_PROC_EVENT_TARGET, pItem.first);
-		vTarget.Write(API_V_THREAD_ACCESS_MASK, pItem.second.ThreadAccessMask);
-		vTarget.Write(API_V_PROCESS_ACCESS_MASK, pItem.second.ProcessAccessMask);
-		vTarget.Write(API_V_PROC_EVENT_LAST_ACCESS, pItem.second.LastAccessTime);
-		vTarget.Write(API_V_PROC_EVENT_BLOCKED, pItem.second.bBlocked);
-		vTarget.Finish();
-		Targets.WriteVariant(vTarget);
-	}
+	m_AccessLog.DumpExecTarget(Targets, Opts);
 	Targets.Finish();
 
 	CVariant Data;
@@ -90,30 +67,78 @@ CVariant CWindowsService::DumpIngress() const
 	return Data;
 }
 
-void CWindowsService::AddAccess(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
+void CWindowsService::AddAccess(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked)
 {
 	std::unique_lock lock(m_Mutex);
 
-	m_AccessTree.Add(Path, AccessMask, AccessTime, bBlocked);
+	m_AccessTree.Add(Path, AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked);
 }
 
-CVariant CWindowsService::DumpAccess() const
+CVariant CWindowsService::StoreAccess(const SVarWriteOpt& Opts) const
 {
 	std::unique_lock lock(m_Mutex); 
 
-	return m_AccessTree.DumpTree();
+	CVariant Data;
+	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
+	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts);
+	Data[API_V_PROG_EXEC_TARGETS] = m_AccessLog.StoreExecTargets(Opts);
+	Data[API_V_PROG_INGRESS_TARGETS] = m_AccessLog.StoreIngressTargets(Opts);
+	return Data;
 }
 
-void CWindowsService::ClearAccess()
+void CWindowsService::LoadAccess(const CVariant& Data)
 {
 	std::unique_lock lock(m_Mutex);
 
-	return m_AccessTree.Clear();
+	m_AccessTree.LoadTree(Data[API_V_PROG_RESOURCE_ACCESS]);
+	m_AccessLog.LoadExecTargets(Data[API_V_PROG_EXEC_TARGETS]);
+	m_AccessLog.LoadIngressTargets(Data[API_V_PROG_INGRESS_TARGETS]);
+}
+
+CVariant CWindowsService::DumpAccess(uint64 LastActivity) const
+{
+	std::unique_lock lock(m_Mutex); 
+
+	return m_AccessTree.DumpTree(LastActivity);
+}
+
+CVariant CWindowsService::StoreTraffic(const SVarWriteOpt& Opts) const
+{
+	std::unique_lock lock(m_Mutex);
+
+	CVariant Data;
+	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
+	Data[API_V_PROG_TRAFFIC] = m_TrafficLog.StoreTraffic(Opts);
+	return Data;
+
+}
+
+void CWindowsService::LoadTraffic(const CVariant& Data)
+{
+	std::unique_lock lock(m_Mutex);
+
+	m_TrafficLog.LoadTraffic(Data[API_V_PROG_TRAFFIC]);
+}
+
+void CWindowsService::UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked)
+{
+	std::unique_lock lock(m_Mutex);
+
+	if (bBlocked) {
+		if (TimeStamp > m_LastFwBlocked)
+			m_LastFwBlocked = TimeStamp;
+	}
+	else {
+		if (TimeStamp > m_LastFwAllowed)
+			m_LastFwAllowed = TimeStamp;
+	}
 }
 
 void CWindowsService::CollectStats(SStats& Stats) const
 {
-	Stats.LastActivity = m_TrafficLog.GetLastActivity();
+	Stats.LastFwAllowed = m_LastFwAllowed;
+	Stats.LastFwBlocked = m_LastFwBlocked;
+	Stats.LastNetActivity = m_TrafficLog.GetLastActivity();
 	Stats.Uploaded = m_TrafficLog.GetUploaded();
 	Stats.Downloaded = m_TrafficLog.GetDownloaded();
 	if (m_pProcess) 
@@ -126,8 +151,9 @@ void CWindowsService::CollectStats(SStats& Stats) const
 
 			Stats.SocketRefs.insert((uint64)pSocket.get());
 
-			if (pSocket->GetLastActivity() > Stats.LastActivity)
-				Stats.LastActivity = pSocket->GetLastActivity();
+			if (pSocket->GetLastActivity() > Stats.LastNetActivity)
+				Stats.LastNetActivity = pSocket->GetLastActivity();
+
 			Stats.Upload += pSocket->GetUpload();
 			Stats.Download += pSocket->GetDownload();
 			Stats.Uploaded += pSocket->GetUploaded();
@@ -141,9 +167,8 @@ void CWindowsService::ClearLogs()
 	m_TrafficLog.Clear();
 
 	std::unique_lock lock(m_Mutex);
+
+	m_AccessLog.Clear();
+
 	m_AccessTree.Clear();
-
-	m_ExecTargets.clear();
-
-	m_IngressTargets.clear();
 }

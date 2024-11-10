@@ -15,14 +15,37 @@ public:
 	bool					IsTree() const					{ return m_bTree; }
 
 	enum EFilters {
-		eAll = 0,
-		ePrograms = 1,
-		eApps = 2,
-		eSystem = 4,
+		eAll = 0x0000,
+
+		ePrograms = 0x0001,
+		eApps = 0x0002,
+		eSystem = 0x0004,
+		eGroups = 0x0008,
+		eTypeFilter = ePrograms | eApps | eSystem | eGroups,
+
+		eRunning = 0x0010,
+		eRanRecently = 0x1000,
+
+		eWithProgRules = 0x0020,
+		eWithResRules = 0x0040,
+		eWithFwRules = 0x0080,
+		eRulesFilter = eWithProgRules | eWithResRules | eWithFwRules,
+
+		eRecentTraffic = 0x0100,
+		eAllowedTraffic = 0x0200,
+		eBlockedTraffic = 0x0400,
+		eTrafficFilter = eRecentTraffic | eAllowedTraffic | eBlockedTraffic,
+
+		eWithSockets = 0x0800,
 	};
 
 	void					SetFilter(int Filter)			{ m_Filter = Filter; }
 	int 					GetFilter() const				{ return m_Filter; }
+
+	void					SetRecentLimit(int Limit)		{ m_RecentLimit = Limit; }
+	quint64					GetRecentLimit() const			{ return m_RecentLimit; }
+
+	bool					TestFilter(EProgramType Type, const SProgramStats* pStats);
 
 	QList<QVariant>			Sync(const CProgramSetPtr& pRoot);
 
@@ -38,8 +61,9 @@ public:
 		eName = 0,
 		eType,
 
-		eRunning, // current running process count
+		eRunningCount, // current running process count
 		eProgramRules,
+		eLastExecution,
 		//eTotalUpTime,
 
 		//eOpenFiles,
@@ -74,8 +98,6 @@ protected:
 		QSet<int>			Bold;
 	};
 
-	bool					FilterByType(EProgramType Type);
-
 	void					Sync(const CProgramSetPtr& pRoot, const QString& RootID, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QSet<QVariant>& Current, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
 
 	virtual QVariant		NodeData(STreeNode* pNode, int role, int section) const;
@@ -85,4 +107,5 @@ protected:
 	bool					m_bTree;
 
 	int						m_Filter;
+	quint64					m_RecentLimit;
 };

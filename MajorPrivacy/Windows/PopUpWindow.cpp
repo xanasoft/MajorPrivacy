@@ -814,7 +814,7 @@ void CPopUpWindow::LoadExecEntry(bool bUpdate)
 			if (pEntry->GetType() == EExecLogType::eImageLoad)
 			{
 				uint64 uLibRef = pEntry->GetMiscID();
-				CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibraryByUID(uLibRef);
+				CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibraryByUID(uLibRef, true);
 				if (pLibrary)
 				{
 					QMap<quint64, SLibraryInfo> Log = pProgram->GetLibraries();
@@ -832,7 +832,7 @@ void CPopUpWindow::LoadExecEntry(bool bUpdate)
 			else if (pEntry->GetType() == EExecLogType::eProcessStarted)
 			{
 				uint64 uID = pEntry->GetMiscID();
-				CProgramFilePtr pExecutable = theCore->ProgramManager()->GetProgramByUID(uID).objectCast<CProgramFile>();
+				CProgramFilePtr pExecutable = theCore->ProgramManager()->GetProgramByUID(uID, true).objectCast<CProgramFile>();
 				if (pExecutable) {
 					pItem->setData(eExecPath, Qt::UserRole, pExecutable->GetPath(EPathType::eDisplay));
 					pItem->setText(eExecName, pExecutable->GetNameEx());

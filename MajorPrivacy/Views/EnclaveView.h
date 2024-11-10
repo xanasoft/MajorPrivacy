@@ -16,8 +16,7 @@ public:
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;
-
-	void					OnDoubleClicked(const QModelIndex& Index) override;
+	//void					OnDoubleClicked(const QModelIndex& Index) override;
 	
 private:
 

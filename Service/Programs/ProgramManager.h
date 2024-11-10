@@ -131,6 +131,7 @@ protected:
 	CInstallationList*						m_InstallationList;
 	CPackageList*							m_PackageList;
 
+	std::wstring							m_OsDrive;
 	std::wstring							m_WinDir;
 	std::wstring							m_ProgDir;
 

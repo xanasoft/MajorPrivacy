@@ -50,10 +50,10 @@ void CHandleView::Sync(const QMap<quint64, CProcessPtr>& Processes)
 	m_pItemModel->Sync(HandleList);
 }
 
-void CHandleView::OnDoubleClicked(const QModelIndex& Index)
+/*void CHandleView::OnDoubleClicked(const QModelIndex& Index)
 {
 
-}
+}*/
 
 void CHandleView::OnMenu(const QPoint& Point)
 {

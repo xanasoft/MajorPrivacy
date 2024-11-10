@@ -21,12 +21,10 @@ CProcessPage::CProcessPage(QWidget* parent)
 	//m_pToolBar = new QToolBar();
 	//m_pMainLayout->addWidget(m_pToolBar);
 
-	m_pVSplitter = new QSplitter(Qt::Vertical);
-	m_pMainLayout->addWidget(m_pVSplitter);
 	m_pRuleView = new CProgramRuleView();
-	m_pVSplitter->addWidget(m_pRuleView);
+
+
 	m_pTabs = new QTabWidget();
-	m_pVSplitter->addWidget(m_pTabs);
 
 	m_pProcessView = new CProcessView();
 	m_pTabs->addTab(m_pProcessView, tr("Running Processes"));
@@ -42,10 +40,37 @@ CProcessPage::CProcessPage(QWidget* parent)
 
 	m_pTraceView = new CProcessTraceView();
 	m_pTabs->addTab(m_pTraceView, tr("Trace Log"));
+
+	m_pVSplitter = new QSplitter(Qt::Vertical);
+	m_pVSplitter->addWidget(m_pRuleView);
+	m_pVSplitter->addWidget(m_pTabs);
+	m_pMainLayout->addWidget(m_pVSplitter);
 }
 
 CProcessPage::~CProcessPage()
 {
+}
+
+void CProcessPage::SetMergePanels(bool bMerge)
+{
+	if (!m_pVSplitter == bMerge)
+		return;
+
+	if (bMerge)
+	{
+		m_pMainLayout->addWidget(m_pTabs);
+		m_pTabs->insertTab(0, m_pRuleView, tr("Process Rules"));
+		delete m_pVSplitter;
+		m_pVSplitter = nullptr;
+	}
+	else
+	{
+		m_pVSplitter = new QSplitter(Qt::Vertical);
+		m_pVSplitter->addWidget(m_pRuleView);
+		m_pRuleView->setVisible(true);
+		m_pVSplitter->addWidget(m_pTabs);
+		m_pMainLayout->addWidget(m_pVSplitter);
+	}
 }
 
 void CProcessPage::Update()

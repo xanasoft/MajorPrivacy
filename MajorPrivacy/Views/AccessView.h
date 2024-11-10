@@ -18,7 +18,7 @@ public:
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;
-	void					OnDoubleClicked(const QModelIndex& Index) override;
+	//void					OnDoubleClicked(const QModelIndex& Index) override;
 
 private slots:
 	//void					OnResetColumns();
@@ -27,8 +27,25 @@ private slots:
 protected:
 
 	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbAccess;
 
 	QSet<CProgramFilePtr>			m_CurPrograms;
 	QSet<CWindowsServicePtr>		m_CurServices;
-	QMap<QString, SAccessItemPtr>	m_CurAccess;
+#ifndef USE_ACCESS_TREE
+	QHash<QString, SAccessItemPtr>	m_CurAccess;
+#else
+	SAccessItemPtr					m_CurRoot;	
+#endif
+	struct SItem
+	{
+		qint64 LastAccess = -1;
+		struct SInt64 {
+			qint64 Value = -1;
+		};
+		QHash<quint64, SInt64> Items;
+	};
+	QHash<quint64, SItem>			m_CurItems;
+
+	int						m_iAccessFilter = 0;
+	quint64					m_RecentLimit = 0;
 };

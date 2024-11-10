@@ -16,6 +16,7 @@ public:
 	std::wstring			GetAppDir() const		{ return m_AppDir; }
 	std::wstring			GetDataFolder() const	{ return m_DataFolder; }
 	CConfigIni*				Config()				{ return m_pConfig; }
+	void					Reconfigure(const std::string& Key);
 
 	class CEventLogger*		Log()					{ return m_pLog; }
 

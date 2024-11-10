@@ -23,6 +23,13 @@ CAccessTraceView::CAccessTraceView(QWidget *parent)
 	connect(m_pCmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbAction);
 
+	m_pBtnScroll = new QToolButton();
+	m_pBtnScroll->setIcon(QIcon(":/Icons/Scroll.png"));
+	m_pBtnScroll->setCheckable(true);
+	m_pBtnScroll->setToolTip(tr("Auto Scroll"));
+	m_pBtnScroll->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnScroll);
+
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	m_pToolBar->addWidget(pSpacer);
@@ -36,6 +43,14 @@ CAccessTraceView::CAccessTraceView(QWidget *parent)
 CAccessTraceView::~CAccessTraceView()
 {
 	theConf->SetBlob("MainWindow/AccessTraceView_Columns", m_pTreeView->saveState());
+}
+
+void CAccessTraceView::Sync(const struct SMergedLog* pLog)
+{
+	CTraceView::Sync(pLog);
+
+	if(m_pBtnScroll->isChecked())
+		m_pTreeView->scrollToBottom();
 }
 
 void CAccessTraceView::UpdateFilter()

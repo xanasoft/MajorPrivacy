@@ -77,12 +77,24 @@ void CWindowsService::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) co
 #ifdef PROG_SVC
 	Data.Write(API_V_PID, m_pProcess ? m_pProcess->GetProcessId() : 0);
 
+	Data.Write(API_V_PROG_LAST_EXEC, m_LastExec);
+
 	SStats Stats;
 	CollectStats(Stats);
 
-	Data.Write(API_V_PROG_SOCKETS, Stats.SocketRefs);
+	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
+	{
+	}
+	else
+	{
+		Data.Write(API_V_PROG_SOCKETS, Stats.SocketRefs);
+	}
 
-	Data.Write(API_V_SOCK_LAST_ACT, Stats.LastActivity);
+	Data.Write(API_V_SOCK_LAST_ACT, Stats.LastNetActivity);
+
+	Data.Write(API_V_SOCK_LAST_ALLOW, Stats.LastFwAllowed);
+	Data.Write(API_V_SOCK_LAST_BLOCK, Stats.LastFwBlocked);
+
 	Data.Write(API_V_SOCK_UPLOAD, Stats.Upload);
 	Data.Write(API_V_SOCK_DOWNLOAD, Stats.Download);
 	Data.Write(API_V_SOCK_UPLOADED, Stats.Uploaded);
@@ -96,12 +108,17 @@ void CWindowsService::ReadIValue(uint32 Index, const XVariant& Data)
 	{
 	case API_V_SVC_TAG:				m_ServiceId = AS_STR(Data); break;
 
+	case API_V_PROG_LAST_EXEC:		m_LastExec = Data; break;
+
 #ifdef PROG_GUI
 	case API_V_PID:					m_ProcessId = Data; break;
 
 	case API_V_PROG_SOCKETS:		m_SocketRefs = Data.AsQSet<quint64>(); break;
 
-	case API_V_SOCK_LAST_ACT:		m_Stats.LastActivity = Data; break;
+	case API_V_SOCK_LAST_ACT:		m_Stats.LastNetActivity = Data; break;
+
+	case API_V_SOCK_LAST_ALLOW:		m_Stats.LastFwAllowed = Data; break;
+	case API_V_SOCK_LAST_BLOCK:		m_Stats.LastFwBlocked = Data; break;
 
 	case API_V_SOCK_UPLOAD:			m_Stats.Upload = Data; break;
 	case API_V_SOCK_DOWNLOAD:		m_Stats.Download = Data; break;
@@ -184,9 +201,22 @@ void CProgramFile::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_V_PROG_PROC_PIDS, Stats.Pids);
 
-	Data.Write(API_V_PROG_SOCKETS, Stats.SocketRefs);
+	Data.Write(API_V_PROG_LAST_EXEC, m_LastExec);
 
-	Data.Write(API_V_SOCK_LAST_ACT, Stats.LastActivity);
+	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
+	{
+		Data.WriteVariant(API_V_LIBRARIES, StoreLibraries(Opts));
+	}
+	else
+	{
+		Data.Write(API_V_PROG_SOCKETS, Stats.SocketRefs);
+	}
+
+	Data.Write(API_V_SOCK_LAST_ACT, Stats.LastNetActivity);
+
+	Data.Write(API_V_SOCK_LAST_ALLOW, Stats.LastFwAllowed);
+	Data.Write(API_V_SOCK_LAST_BLOCK, Stats.LastFwBlocked);
+
 	Data.Write(API_V_SOCK_UPLOAD, Stats.Upload);
 	Data.Write(API_V_SOCK_DOWNLOAD, Stats.Download);
 	Data.Write(API_V_SOCK_UPLOADED, Stats.Uploaded);
@@ -202,12 +232,19 @@ void CProgramFile::ReadIValue(uint32 Index, const XVariant& Data)
 
 	case API_V_SIGN_INFO:		m_SignInfo.Data = Data.To<uint64>(); break;
 
+	case API_V_PROG_LAST_EXEC:	m_LastExec = Data; break;
+
 #ifdef PROG_GUI
 	case API_V_PROG_PROC_PIDS:	m_ProcessPids = Data.AsQSet<quint64>(); break;
 
 	case API_V_PROG_SOCKETS:	m_SocketRefs = Data.AsQSet<quint64>(); break;
 
-	case API_V_SOCK_LAST_ACT:	m_Stats.LastActivity = Data; break;
+	case API_V_LIBRARIES:		break;
+
+	case API_V_SOCK_LAST_ACT:	m_Stats.LastNetActivity = Data; break;
+
+	case API_V_SOCK_LAST_ALLOW:	m_Stats.LastFwAllowed = Data; break;
+	case API_V_SOCK_LAST_BLOCK:	m_Stats.LastFwBlocked = Data; break;
 
 	case API_V_SOCK_UPLOAD:		m_Stats.Upload = Data; break;
 	case API_V_SOCK_DOWNLOAD:	m_Stats.Download = Data; break;
@@ -217,6 +254,8 @@ void CProgramFile::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_PROG_PROC_PIDS: break;
 
 	case API_V_PROG_SOCKETS: break;
+
+	case API_V_LIBRARIES:		LoadLibraries(Data); break;
 
 	case API_V_SOCK_LAST_ACT: break;
 
@@ -340,12 +379,24 @@ void CWindowsService::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) co
 #ifdef PROG_SVC
 	Data.Write(API_S_PID, m_pProcess ? m_pProcess->GetProcessId() : 0);
 
+	Data.Write(API_S_PROG_LAST_EXEC, m_LastExec);
+
 	SStats Stats;
 	CollectStats(Stats);
 
-	Data.Write(API_S_PROG_SOCKETS, Stats.SocketRefs);
+	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
+	{
+	}
+	else
+	{
+		Data.Write(API_S_PROG_SOCKETS, Stats.SocketRefs);
+	}
 
-	Data.Write(API_S_SOCK_LAST_ACT, Stats.LastActivity);
+	Data.Write(API_S_SOCK_LAST_ACT, Stats.LastNetActivity);
+
+	Data.Write(API_S_SOCK_LAST_ALLOW, Stats.LastFwAllowed);
+	Data.Write(API_S_SOCK_LAST_BLOCK, Stats.LastFwBlocked);
+
 	Data.Write(API_S_SOCK_UPLOAD, Stats.Upload);
 	Data.Write(API_S_SOCK_DOWNLOAD, Stats.Download);
 	Data.Write(API_S_SOCK_UPLOADED, Stats.Uploaded);
@@ -357,12 +408,17 @@ void CWindowsService::ReadMValue(const SVarName& Name, const XVariant& Data)
 {
 	if (VAR_TEST_NAME(Name, API_S_SVC_TAG)) m_ServiceId = AS_STR(Data);
 
+	else if (VAR_TEST_NAME(Name, API_S_PROG_LAST_EXEC))		m_LastExec = Data;
+
 #ifdef PROG_GUI
 	else if (VAR_TEST_NAME(Name, API_S_PID))				m_ProcessId = Data;
 
 	else if (VAR_TEST_NAME(Name, API_S_PROG_SOCKETS))		m_SocketRefs = Data.AsQSet<quint64>();
 
-	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ACT))		m_Stats.LastActivity = Data;
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ACT))		m_Stats.LastNetActivity = Data;
+
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ALLOW))	m_Stats.LastFwAllowed = Data;
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_BLOCK))	m_Stats.LastFwBlocked = Data;
 
 	else if (VAR_TEST_NAME(Name, API_S_SOCK_UPLOAD))		m_Stats.Upload = Data;
 	else if (VAR_TEST_NAME(Name, API_S_SOCK_DOWNLOAD))		m_Stats.Download = Data;
@@ -444,9 +500,22 @@ void CProgramFile::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_PIDS, Stats.Pids);
 
-	Data.Write(API_S_PROG_SOCKETS, Stats.SocketRefs);
+	Data.Write(API_S_PROG_LAST_EXEC, m_LastExec);
 
-	Data.Write(API_S_SOCK_LAST_ACT, Stats.LastActivity);
+	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
+	{
+		Data.WriteVariant(API_S_LIBRARIES, StoreLibraries(Opts));
+	}
+	else
+	{
+		Data.Write(API_S_PROG_SOCKETS, Stats.SocketRefs);
+	}
+
+	Data.Write(API_S_SOCK_LAST_ACT, Stats.LastNetActivity);
+
+	Data.Write(API_S_SOCK_LAST_ALLOW, Stats.LastFwAllowed);
+	Data.Write(API_S_SOCK_LAST_BLOCK, Stats.LastFwBlocked);
+
 	Data.Write(API_S_SOCK_UPLOAD, Stats.Upload);
 	Data.Write(API_S_SOCK_DOWNLOAD, Stats.Download);
 	Data.Write(API_S_SOCK_UPLOADED, Stats.Uploaded);
@@ -460,12 +529,19 @@ void CProgramFile::ReadMValue(const SVarName& Name, const XVariant& Data)
 
 	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO))			m_SignInfo.Data = Data.To<uint64>();
 
+	else if (VAR_TEST_NAME(Name, API_S_PROG_LAST_EXEC))		m_LastExec = Data;
+
 #ifdef PROG_GUI
 	else if (VAR_TEST_NAME(Name, API_S_PIDS))				m_ProcessPids = Data.AsQSet<quint64>();
 
 	else if (VAR_TEST_NAME(Name, API_S_PROG_SOCKETS))		m_SocketRefs = Data.AsQSet<quint64>();
 
-	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ACT))		m_Stats.LastActivity = Data;
+	else if (VAR_TEST_NAME(Name, API_S_LIBRARIES))			(void)0;
+
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ACT))		m_Stats.LastNetActivity = Data;
+
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ALLOW))	m_Stats.LastFwAllowed = Data;
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_BLOCK))	m_Stats.LastFwBlocked = Data;
 
 	else if (VAR_TEST_NAME(Name, API_S_SOCK_UPLOAD))		m_Stats.Upload = Data;
 	else if (VAR_TEST_NAME(Name, API_S_SOCK_DOWNLOAD))		m_Stats.Download = Data;
@@ -475,6 +551,8 @@ void CProgramFile::ReadMValue(const SVarName& Name, const XVariant& Data)
 	else if (VAR_TEST_NAME(Name, API_S_PIDS))				(void)0;
 
 	else if (VAR_TEST_NAME(Name, API_S_PROG_SOCKETS))		(void)0;
+
+	else if (VAR_TEST_NAME(Name, API_S_LIBRARIES))			LoadLibraries(Data);
 
 	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ACT))		(void)0;
 

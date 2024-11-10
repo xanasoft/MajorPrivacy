@@ -9,17 +9,17 @@
 #include <sddl.h>
 #include <hndlinfo.h>
 
-std::wstring DosPathToNtPath(const std::wstring &dosPath) 
+std::wstring DosPathToNtPath(const std::wstring &dosPath, bool bAsIsOnError) 
 {
     if (dosPath.size() < 2 || dosPath[1] != ':')
-        return dosPath; // not a DOS path
+        return bAsIsOnError ? dosPath : L""; // not a DOS path
 
     // Extract drive letter
     wchar_t driveLetter[3] = { dosPath[0], ':', '\0' };
 
     wchar_t ntDeviceName[MAX_PATH];
     if (QueryDosDeviceW(driveLetter, ntDeviceName, MAX_PATH) == 0)
-        return dosPath; // Failed to query DOS device
+        return bAsIsOnError ? dosPath : L""; // Failed to query DOS device
 
     // TODO: !!! make this work for folder mounted mounts !!!
 
@@ -28,7 +28,7 @@ std::wstring DosPathToNtPath(const std::wstring &dosPath)
     return ntPath;
 }
 
-std::wstring NtPathToDosPath(const std::wstring& ntPath) 
+std::wstring NtPathToDosPath(const std::wstring& ntPath, bool bAsIsOnError) 
 {
     std::vector<wchar_t> driveStrings(256);
     DWORD driveStringLength = GetLogicalDriveStringsW((DWORD)driveStrings.size() - 1, &driveStrings[0]);
@@ -50,7 +50,7 @@ std::wstring NtPathToDosPath(const std::wstring& ntPath)
             drive += wcslen(drive) + 1;
         }
     }
-    return ntPath;
+    return bAsIsOnError ? ntPath : L"";
 }
 
 sint32 GetLastWin32ErrorAsNtStatus()

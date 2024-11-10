@@ -34,13 +34,13 @@ CProgramFilePtr CWindowsService::GetProgramFile() const
 
 void CWindowsService::CountStats()
 {
+	m_Stats.LastExecution = m_LastExec;
+
 	m_Stats.ProcessCount = m_ProcessId != 0 ? 1 : 0;
 
-	m_Stats.FwRuleCount = m_FwRuleIDs.count();
+	m_Stats.FwRuleTotal = m_Stats.FwRuleCount = m_FwRuleIDs.count();
 	m_Stats.SocketCount = m_SocketRefs.count();
 }
-
-
 
 QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 {
@@ -102,7 +102,7 @@ QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
 				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_TARGET).To<uint64>(0);
 				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
 
-				Info.LastAccessTime = Data.Get(API_V_PROC_EVENT_LAST_ACCESS).To<uint64>(0);
+				Info.LastAccessTime = Data.Get(API_V_PROC_EVENT_LAST_ACT).To<uint64>(0);
 				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
 				Info.ThreadAccessMask = Data.Get(API_V_THREAD_ACCESS_MASK).To<uint32>(0);
 				Info.ProcessAccessMask = Data.Get(API_V_PROCESS_ACCESS_MASK).To<uint32>(0);
@@ -117,10 +117,10 @@ QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
 
 QMap<quint64, SAccessStatsPtr> CWindowsService::GetAccessStats()
 {
-	auto Res = theCore->GetAccessStats(m_ID, m_TrafficLogLastActivity);
+	auto Res = theCore->GetAccessStats(m_ID, m_AccessLastActivity);
 	if (!Res.IsError()) {
 		XVariant Root = Res.GetValue();
-		m_TrafficLogLastActivity = ReadAccessBranch(m_AccessStats, Root);
+		m_AccessLastActivity = ReadAccessBranch(m_AccessStats, Root);
 	}
 	return m_AccessStats;
 }
@@ -145,7 +145,7 @@ void CWindowsService::ClearProcessLogs()
 void CWindowsService::ClearAccessLog()
 {
 	m_AccessStats.clear();
-	m_AccessStatsLastActivity = 0;
+	m_AccessLastActivity = 0;
 }
 
 void CWindowsService::ClearTrafficLog()

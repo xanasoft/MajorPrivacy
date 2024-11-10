@@ -24,6 +24,7 @@ private:
 	{
 		eName = 0,
 		eLastAccess,
+		eAccess,
 		eStatus,
 		eCount
 	};
@@ -32,4 +33,5 @@ private:
 	CPanelWidgetEx*			m_pInfo;
 
 	QToolBar*				m_pToolBar;
+	QToolButton*			m_pBtnExpand;
 };

@@ -3,6 +3,7 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Helpers/AppUtil.h"
+#include "../Programs/ProgramManager.h"
 #include "../ServiceCore.h"
 #include "WindowsService.h"
 
@@ -25,13 +26,15 @@ void CProgramFile::AddProcess(const CProcessPtr& pProcess)
 
 	std::unique_lock lock(m_Mutex);
 
+	if(pProcess)
+		m_LastExec = pProcess->GetCreateTimeStamp();
 	m_Processes.insert(std::make_pair(pid, pProcess));
 }
 
 void CProgramFile::RemoveProcess(const CProcessPtr& pProcess)
 {
 	uint64 pid = pProcess->GetProcessId();
-	uint64 LastActivity = pProcess->GetLastActivity();
+	uint64 LastActivity = pProcess->GetLastNetActivity();
 	uint64 Uploaded = pProcess->GetUploaded();
 	uint64 Downloaded = pProcess->GetDownloaded();
 
@@ -100,10 +103,56 @@ void CProgramFile::AddLibrary(const CProgramLibraryPtr& pLibrary, uint64 LoadTim
 	Info.LastStatus = Status;
 }
 
-CVariant CProgramFile::DumpLibraries() const
+CVariant CProgramFile::StoreLibraries(const SVarWriteOpt& Opts) const
 {
 	std::unique_lock lock(m_Mutex);
 
+	CVariant List;
+	List.BeginList();
+	for (auto pItem: m_Libraries)
+	{
+		CVariant vLib;
+		vLib.BeginMap();
+		CProgramLibraryPtr pLib = theCore->ProgramManager()->GetLibrary(pItem.first);
+		if(!pLib) continue;
+		vLib.Write(API_S_FILE_PATH, pLib->GetPath());
+		vLib.Write(API_S_LIB_LOAD_TIME, pItem.second.LastLoadTime);
+		vLib.Write(API_S_LIB_LOAD_COUNT, pItem.second.TotalLoadCount);
+		vLib.Write(API_S_SIGN_INFO, pItem.second.Sign.Data);
+		vLib.Write(API_S_SIGN_INFO_AUTH, pItem.second.Sign.Authority);
+		vLib.Write(API_S_SIGN_INFO_LEVEL, pItem.second.Sign.Level);
+		vLib.Write(API_S_SIGN_INFO_POLICY, pItem.second.Sign.Policy);
+		vLib.Write(API_S_LIB_STATUS, (uint32)pItem.second.LastStatus);
+		vLib.Finish();
+		List.WriteVariant(vLib);
+	}
+	List.Finish();
+	return List;
+}
+
+void CProgramFile::LoadLibraries(const CVariant& Data)
+{
+	std::unique_lock lock(m_Mutex);
+
+	Data.ReadRawList([&](const CVariant& vData) {
+
+		std::wstring Path = vData[API_S_FILE_PATH].AsStr();
+		if (Path.empty()) return;
+		CProgramLibraryPtr pLib = theCore->ProgramManager()->GetLibrary(Path, true);
+		if (!pLib) return;
+
+		uint64 LoadTime = vData[API_S_LIB_LOAD_TIME];
+		KPH_VERIFY_AUTHORITY SignAuthority = (KPH_VERIFY_AUTHORITY)vData[API_S_SIGN_INFO_AUTH].To<uint32>();
+		uint32 SignLevel = vData[API_S_SIGN_INFO_LEVEL];
+		uint32 SignPolicy = vData[API_S_SIGN_INFO_POLICY];
+		EEventStatus Status = (EEventStatus)vData[API_S_LIB_STATUS].To<uint32>();
+
+		AddLibrary(pLib, LoadTime, SignAuthority, SignLevel, SignPolicy, Status);
+	});
+}
+
+CVariant CProgramFile::DumpLibraries() const
+{
 	CVariant List;
 	List.BeginList();
 	for (auto pItem: m_Libraries)
@@ -114,7 +163,7 @@ CVariant CProgramFile::DumpLibraries() const
 		vLib.Write(API_V_LIB_LOAD_TIME, pItem.second.LastLoadTime);
 		vLib.Write(API_V_LIB_LOAD_COUNT, pItem.second.TotalLoadCount);
 		vLib.Write(API_V_SIGN_INFO, pItem.second.Sign.Data);
-		//vLib.Write(API_V_SIGN_INFO_AUTH, pItem.second.Sign.Authority);
+		vLib.Write(API_V_SIGN_INFO_AUTH, pItem.second.Sign.Authority);
 		//vLib.Write(API_V_SIGN_INFO_LEVEL, pItem.second.Sign.Level);
 		//vLib.Write(API_V_SIGN_INFO_POLICY, pItem.second.Sign.Policy);
 		vLib.Write(API_V_LIB_STATUS, (uint32)pItem.second.LastStatus);
@@ -131,10 +180,7 @@ void CProgramFile::AddExecActor(const std::shared_ptr<CProgramFile>& pActorProgr
 
 	std::unique_lock lock(m_Mutex);
 
-	SExecInfo& Info = m_ExecActors[pActorService ? pActorService->GetUID() : pActorProgram->GetUID()];
-	Info.bBlocked = bBlocked;
-	Info.LastExecTime = CreateTime;
-	Info.CommandLine = CmdLine;
+	m_AccessLog.AddExecActor(pActorService ? pActorService->GetUID() : pActorProgram->GetUID(), CmdLine, CreateTime, bBlocked);
 }
 
 void CProgramFile::AddExecTarget(const std::wstring& ActorServiceTag, const std::shared_ptr<CProgramFile>& pProgram, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked)
@@ -147,64 +193,29 @@ void CProgramFile::AddExecTarget(const std::wstring& ActorServiceTag, const std:
 
 	std::unique_lock lock(m_Mutex);
 
-	SExecInfo& Info = m_ExecTargets[pProgram->GetUID()];
-	Info.bBlocked = bBlocked;
-	Info.LastExecTime = CreateTime;
-	Info.CommandLine = CmdLine;
+	m_AccessLog.AddExecTarget(pProgram->GetUID(), CmdLine, CreateTime, bBlocked);
 }
 
 CVariant CProgramFile::DumpExecStats() const
 {
 	std::unique_lock lock(m_Mutex);
 
+	SVarWriteOpt Opts;
+
 	CVariant Actors;
 	Actors.BeginList();
-	for (auto& pItem : m_ExecActors)
-	{
-		CVariant vActor;
-		vActor.BeginIMap();
-		vActor.Write(API_V_PROC_REF, (uint64)&pItem.second);
-		vActor.Write(API_V_PROC_EVENT_ACTOR, pItem.first);
-		vActor.Write(API_V_PROC_EVENT_LAST_EXEC, pItem.second.LastExecTime);
-		vActor.Write(API_V_PROC_EVENT_BLOCKED, pItem.second.bBlocked);
-		vActor.Write(API_V_PROC_EVENT_CMD_LINE, pItem.second.CommandLine);
-		vActor.Finish();
-		Actors.WriteVariant(vActor);
-	}
+	m_AccessLog.DumpExecActors(Actors, Opts);
 	Actors.Finish();
 
 	CVariant Targets;
 	Targets.BeginList();
-	for (auto& pItem : m_ExecTargets)
-	{
-		CVariant vTarget;
-		vTarget.BeginIMap();
-		vTarget.Write(API_V_PROC_REF, (uint64)&pItem.second);
-		vTarget.Write(API_V_PROC_EVENT_TARGET, pItem.first);
-		vTarget.Write(API_V_PROC_EVENT_LAST_EXEC, pItem.second.LastExecTime);
-		vTarget.Write(API_V_PROC_EVENT_BLOCKED, pItem.second.bBlocked);
-		vTarget.Write(API_V_PROC_EVENT_CMD_LINE, pItem.second.CommandLine);
-		vTarget.Finish();
-		Targets.WriteVariant(vTarget);
-	}
+	m_AccessLog.DumpExecTarget(Targets, Opts);
 
 	for(auto& pNode : m_Nodes)
 	{
 		CWindowsServicePtr pSvc = std::dynamic_pointer_cast<CWindowsService>(pNode);
 		if(!pSvc) continue;
-		for (auto pItem : pSvc->GetExecTargets())
-		{
-			CVariant vTarget;
-			vTarget.BeginIMap();
-			vTarget.Write(API_V_PROC_REF, (uint64)&pItem.second);
-			vTarget.Write(API_V_PROG_SVC_TAG, pSvc->GetSvcTag()); // actor service tag
-			vTarget.Write(API_V_PROC_EVENT_TARGET, pItem.first);
-			vTarget.Write(API_V_PROC_EVENT_LAST_EXEC, pItem.second.LastExecTime);
-			vTarget.Write(API_V_PROC_EVENT_BLOCKED, pItem.second.bBlocked);
-			vTarget.Write(API_V_PROC_EVENT_CMD_LINE, pItem.second.CommandLine);
-			vTarget.Finish();
-			Targets.WriteVariant(vTarget);
-		}
+		m_AccessLog.DumpExecTarget(Targets, Opts, pSvc->GetSvcTag());
 	}
 	Targets.Finish();
 
@@ -222,11 +233,7 @@ void CProgramFile::AddIngressActor(const std::shared_ptr<CProgramFile>& pActorPr
 
 	std::unique_lock lock(m_Mutex);
 
-	SAccessInfo& Info = m_IngressActors[pActorService ? pActorService->GetUID() : pActorProgram->GetUID()];
-	Info.bBlocked = bBlocked;
-	Info.LastAccessTime = AccessTime;
-	if(bThread) Info.ThreadAccessMask |= AccessMask;
-	else Info.ProcessAccessMask |= AccessMask;
+	m_AccessLog.AddIngressActor(pActorService ? pActorService->GetUID() : pActorProgram->GetUID(), bThread, AccessMask, AccessTime, bBlocked);
 }
 
 void CProgramFile::AddIngressTarget(const std::wstring& ActorServiceTag, const std::shared_ptr<CProgramFile>& pProgram, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
@@ -239,68 +246,29 @@ void CProgramFile::AddIngressTarget(const std::wstring& ActorServiceTag, const s
 
 	std::unique_lock lock(m_Mutex);
 
-	SAccessInfo& Info = m_IngressTargets[pProgram->GetUID()];
-	Info.bBlocked = bBlocked;
-	Info.LastAccessTime = AccessTime;
-	if(bThread) Info.ThreadAccessMask |= AccessMask;
-	else Info.ProcessAccessMask |= AccessMask;
+	m_AccessLog.AddIngressTarget(pProgram->GetUID(), bThread, AccessMask, AccessTime, bBlocked);
 }
 
 CVariant CProgramFile::DumpIngress() const
 {
 	std::unique_lock lock(m_Mutex);
 
+	SVarWriteOpt Opts;
+
 	CVariant Actors;
 	Actors.BeginList();
-	for (auto& pItem : m_IngressActors)
-	{
-		CVariant vActor;
-		vActor.BeginIMap();
-		vActor.Write(API_V_PROC_REF, (uint64)&pItem.second);
-		vActor.Write(API_V_PROC_EVENT_ACTOR, pItem.first);
-		vActor.Write(API_V_THREAD_ACCESS_MASK, pItem.second.ThreadAccessMask);
-		vActor.Write(API_V_PROCESS_ACCESS_MASK, pItem.second.ProcessAccessMask);
-		vActor.Write(API_V_PROC_EVENT_LAST_ACCESS, pItem.second.LastAccessTime);
-		vActor.Write(API_V_PROC_EVENT_BLOCKED, pItem.second.bBlocked);
-		vActor.Finish();
-		Actors.WriteVariant(vActor);
-	}
+	m_AccessLog.DumpIngressActors(Actors, Opts);
 	Actors.Finish();
 
 	CVariant Targets;
 	Targets.BeginList();
-	for (auto& pItem : m_IngressTargets)
-	{
-		CVariant vTarget;
-		vTarget.BeginIMap();
-		vTarget.Write(API_V_PROC_REF, (uint64)&pItem.second);
-		vTarget.Write(API_V_PROC_EVENT_TARGET, pItem.first);
-		vTarget.Write(API_V_THREAD_ACCESS_MASK, pItem.second.ThreadAccessMask);
-		vTarget.Write(API_V_PROCESS_ACCESS_MASK, pItem.second.ProcessAccessMask);
-		vTarget.Write(API_V_PROC_EVENT_LAST_ACCESS, pItem.second.LastAccessTime);
-		vTarget.Write(API_V_PROC_EVENT_BLOCKED, pItem.second.bBlocked);
-		vTarget.Finish();
-		Targets.WriteVariant(vTarget);
-	}
+	m_AccessLog.DumpIngressTargets(Targets, Opts);
 
 	for(auto pNode : m_Nodes)
 	{
 		CWindowsServicePtr pSvc = std::dynamic_pointer_cast<CWindowsService>(pNode);
 		if(!pSvc) continue;
-		for (auto& pItem : pSvc->GetIngressTargets())
-		{
-			CVariant vTarget;
-			vTarget.BeginIMap();
-			vTarget.Write(API_V_PROC_REF, (uint64)&pItem.second);
-			vTarget.Write(API_V_PROG_SVC_TAG, pSvc->GetSvcTag()); // actor service tag
-			vTarget.Write(API_V_PROC_EVENT_TARGET, pItem.first);
-			vTarget.Write(API_V_THREAD_ACCESS_MASK, pItem.second.ThreadAccessMask);
-			vTarget.Write(API_V_PROCESS_ACCESS_MASK, pItem.second.ProcessAccessMask);
-			vTarget.Write(API_V_PROC_EVENT_LAST_ACCESS, pItem.second.LastAccessTime);
-			vTarget.Write(API_V_PROC_EVENT_BLOCKED, pItem.second.bBlocked);
-			vTarget.Finish();
-			Targets.WriteVariant(vTarget);
-		}
+		m_AccessLog.DumpIngressTargets(Targets, Opts, pSvc->GetSvcTag());
 	}
 	Targets.Finish();
 	
@@ -312,26 +280,69 @@ CVariant CProgramFile::DumpIngress() const
 	return Data;
 }
 
-void CProgramFile::AddAccess(const std::wstring& ActorServiceTag, const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
+void CProgramFile::AddAccess(const std::wstring& ActorServiceTag, const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked)
 {
 	if (!ActorServiceTag.empty()) {
 		CWindowsServicePtr pActorService = GetService(ActorServiceTag);
 		if (pActorService) {
-			pActorService->AddAccess(Path, AccessMask, AccessTime, bBlocked);
+			pActorService->AddAccess(Path, AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked);
 			return;
 		}
 	}
 
 	std::unique_lock lock(m_Mutex); 
 
-	m_AccessTree.Add(Path, AccessMask, AccessTime, bBlocked);
+	m_AccessTree.Add(Path, AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked);
 }
 
-CVariant CProgramFile::DumpAccess() const
+CVariant CProgramFile::StoreAccess(const SVarWriteOpt& Opts) const
 {
 	std::unique_lock lock(m_Mutex); 
 
-	return m_AccessTree.DumpTree();
+	CVariant Data;
+	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
+	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts);
+	Data[API_V_PROG_EXEC_ACTORS] = m_AccessLog.StoreExecActors(Opts);
+	Data[API_V_PROG_EXEC_TARGETS] = m_AccessLog.StoreExecTargets(Opts);
+	Data[API_V_PROG_INGRESS_ACTORS] = m_AccessLog.StoreIngressActors(Opts);
+	Data[API_V_PROG_INGRESS_TARGETS] = m_AccessLog.StoreIngressTargets(Opts);
+	return Data;
+}
+
+void CProgramFile::LoadAccess(const CVariant& Data)
+{
+	std::unique_lock lock(m_Mutex);
+
+	m_AccessTree.LoadTree(Data[API_V_PROG_RESOURCE_ACCESS]);
+	m_AccessLog.LoadExecActors(Data[API_V_PROG_EXEC_ACTORS]);
+	m_AccessLog.LoadExecTargets(Data[API_V_PROG_EXEC_TARGETS]);
+	m_AccessLog.LoadIngressActors(Data[API_V_PROG_INGRESS_ACTORS]);
+	m_AccessLog.LoadIngressTargets(Data[API_V_PROG_INGRESS_TARGETS]);
+}
+
+CVariant CProgramFile::DumpAccess(uint64 LastActivity) const
+{
+	std::unique_lock lock(m_Mutex); 
+
+	return m_AccessTree.DumpTree(LastActivity);
+}
+
+CVariant CProgramFile::StoreTraffic(const SVarWriteOpt& Opts) const
+{
+	std::unique_lock lock(m_Mutex);
+
+	CVariant Data;
+	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
+	Data[API_V_PROG_TRAFFIC] = m_TrafficLog.StoreTraffic(Opts);
+	return Data;
+
+}
+
+void CProgramFile::LoadTraffic(const CVariant& Data)
+{
+	std::unique_lock lock(m_Mutex);
+
+	m_TrafficLog.LoadTraffic(Data[API_V_PROG_TRAFFIC]);
 }
 
 uint64 CProgramFile::AddTraceLogEntry(const CTraceLogEntryPtr& pLogEntry, ETraceLogs Log)
@@ -392,17 +403,33 @@ void CProgramFile::ClearTraceLog()
 	}
 }
 
+void CProgramFile::UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked)
+{
+	std::unique_lock lock(m_Mutex);
+
+	if (bBlocked) {
+		if (TimeStamp > m_LastFwBlocked)
+			m_LastFwBlocked = TimeStamp;
+	}
+	else {
+		if (TimeStamp > m_LastFwAllowed)
+			m_LastFwAllowed = TimeStamp;
+	}
+}
+
 void CProgramFile::CollectStats(SStats& Stats) const
 {
-	Stats.LastActivity = m_TrafficLog.GetLastActivity();
+	Stats.LastFwAllowed = m_LastFwAllowed;
+	Stats.LastFwBlocked = m_LastFwBlocked;
+	Stats.LastNetActivity = m_TrafficLog.GetLastActivity();
 	Stats.Uploaded = m_TrafficLog.GetUploaded();
 	Stats.Downloaded = m_TrafficLog.GetDownloaded();
 	for (auto I : m_Processes) 
 	{
 		Stats.Pids.insert(I.first);
 
-		if (I.second->GetLastActivity() > Stats.LastActivity)
-			Stats.LastActivity = I.second->GetLastActivity();
+		if (I.second->GetLastNetActivity() > Stats.LastNetActivity)
+			Stats.LastNetActivity = I.second->GetLastNetActivity();
 		Stats.Upload += I.second->GetUpload();
 		Stats.Download += I.second->GetDownload();
 		// Note: this is not the same as the sum of the sockets' upload/download, as it includes data from closed sockets
@@ -431,11 +458,8 @@ void CProgramFile::ClearLogs()
 	m_TrafficLog.Clear();
 
 	std::unique_lock lock(m_Mutex);
+
+	m_AccessLog.Clear();
+
 	m_AccessTree.Clear();
-
-	m_ExecActors.clear();
-	m_ExecTargets.clear();
-
-	m_IngressActors.clear();
-	m_IngressTargets.clear();
 }

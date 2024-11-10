@@ -71,23 +71,99 @@ CProgramView::CProgramView(QWidget* parent)
 	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(CleanUpPrograms()));
 	m_pToolBar->addWidget(m_pBtnClear);*/
 
-	m_pBtnPrograms = new QToolButton();
-	m_pBtnPrograms->setIcon(QIcon(":/Icons/Program.png"));
-	m_pBtnPrograms->setToolTip(tr("Show Win32 Programs"));
-	m_pBtnPrograms->setCheckable(true);
-	m_pToolBar->addWidget(m_pBtnPrograms);
+	m_pTypeFilter = new QToolButton();
+	m_pTypeFilter->setIcon(QIcon(":/Icons/ProgFilter.png"));
+	m_pTypeFilter->setToolTip(tr("Type Filters"));
+	//m_pTypeFilter->setText(tr(""));
+	m_pTypeFilter->setCheckable(true);
+	connect(m_pTypeFilter, SIGNAL(clicked()), this, SLOT(OnTypeFilter()));
+	m_pTypeMenu = new QMenu();
+		m_pPrograms = m_pTypeMenu->addAction(tr("Programs"), this, SLOT(OnTypeFilter()));
+		m_pPrograms->setCheckable(true);
+		m_pApps = m_pTypeMenu->addAction(tr("Apps"), this, SLOT(OnTypeFilter()));
+		m_pApps->setCheckable(true);
+		m_pSystem = m_pTypeMenu->addAction(tr("System"), this, SLOT(OnTypeFilter()));
+		m_pSystem->setCheckable(true);
+		m_pGroups = m_pTypeMenu->addAction(tr("Groups"), this, SLOT(OnTypeFilter()));
+		m_pGroups->setCheckable(true);
+	m_pTypeFilter->setPopupMode(QToolButton::MenuButtonPopup);
+	m_pTypeFilter->setMenu(m_pTypeMenu);
+	m_pToolBar->addWidget(m_pTypeFilter);
 
-	m_pBtnApps = new QToolButton();
-	m_pBtnApps->setIcon(QIcon(":/Icons/StoreApp.png"));
-	m_pBtnApps->setToolTip(tr("Show Modern Apps"));
-	m_pBtnApps->setCheckable(true);
-	m_pToolBar->addWidget(m_pBtnApps);
+	m_pRunFilter = new QToolButton();
+	m_pRunFilter->setIcon(QIcon(":/Icons/RunFilter.png"));
+	m_pRunFilter->setToolTip(tr("Run Filters"));
+	//m_pRunFilter->setText(tr(""));
+	m_pRunFilter->setCheckable(true);
+	connect(m_pRunFilter, SIGNAL(clicked()), this, SLOT(OnRunFilter()));
+	m_pRunMenu = new QMenu();
+		m_pRanRecently = m_pRunMenu->addAction(tr("Ran Recently"), this, SLOT(OnRunFilter()));
+		m_pRanRecently->setCheckable(true);
+	m_pRunFilter->setPopupMode(QToolButton::MenuButtonPopup);
+	m_pRunFilter->setMenu(m_pRunMenu);
+	m_pToolBar->addWidget(m_pRunFilter);
 
-	m_pBtnSystem = new QToolButton();
-	m_pBtnSystem->setIcon(QIcon(":/Icons/System.png"));
-	m_pBtnSystem->setToolTip(tr("Show System Components"));
-	m_pBtnSystem->setCheckable(true);
-	m_pToolBar->addWidget(m_pBtnSystem);
+	m_pRulesFilter = new QToolButton();
+	m_pRulesFilter->setIcon(QIcon(":/Icons/RuleFilter.png"));
+	m_pRulesFilter->setToolTip(tr("Rule Filters"));
+	//m_pRulesFilter->setText(tr(""));
+	m_pRulesFilter->setCheckable(true);
+	connect(m_pRulesFilter, SIGNAL(clicked()), this, SLOT(OnRulesFilter()));
+	m_pRulesMenu = new QMenu();
+		m_pExecRules = m_pRulesMenu->addAction(tr("Execution Rules"), this, SLOT(OnRulesFilter()));
+		m_pExecRules->setCheckable(true);
+		m_pAccessRules = m_pRulesMenu->addAction(tr("Access Rules"), this, SLOT(OnRulesFilter()));
+		m_pAccessRules->setCheckable(true);
+		m_pFwRules = m_pRulesMenu->addAction(tr("Firewall Rules"), this, SLOT(OnRulesFilter()));
+		m_pFwRules->setCheckable(true);
+	m_pRulesFilter->setPopupMode(QToolButton::MenuButtonPopup);
+	m_pRulesFilter->setMenu(m_pRulesMenu);
+	m_pToolBar->addWidget(m_pRulesFilter);
+
+	m_pTrafficFilter = new QToolButton();
+	m_pTrafficFilter->setIcon(QIcon(":/Icons/ActivityFilter.png"));
+	m_pTrafficFilter->setToolTip(tr("Traffic Filters"));
+	//m_pTrafficFilter->setText(tr(""));
+	m_pTrafficFilter->setCheckable(true);
+	connect(m_pTrafficFilter, SIGNAL(clicked()), this, SLOT(OnTrafficFilter()));
+	m_pTrafficMenu = new QMenu();
+		m_pActionGroup = new QActionGroup(this);
+		m_pTrafficRecent = m_pTrafficMenu->addAction(tr("Recent Traffic"), this, SLOT(OnTrafficFilter()));
+		m_pTrafficRecent->setCheckable(true);
+		m_pActionGroup->addAction(m_pTrafficRecent);
+		m_pTrafficBlocked = m_pTrafficMenu->addAction(tr("Blocked Traffic"), this, SLOT(OnTrafficFilter()));
+		m_pTrafficBlocked->setCheckable(true);
+		m_pActionGroup->addAction(m_pTrafficBlocked);
+		m_pTrafficAllowed = m_pTrafficMenu->addAction(tr("Allowed Traffic"), this, SLOT(OnTrafficFilter()));
+		m_pTrafficAllowed->setCheckable(true);
+		m_pActionGroup->addAction(m_pTrafficAllowed);
+	m_pTrafficFilter->setPopupMode(QToolButton::MenuButtonPopup);
+	m_pTrafficFilter->setMenu(m_pTrafficMenu);
+	m_pToolBar->addWidget(m_pTrafficFilter);
+
+	m_pSocketFilter = new QToolButton();
+	m_pSocketFilter->setIcon(QIcon(":/Icons/SocketFilter.png"));
+	m_pSocketFilter->setToolTip(tr("Socket Filters"));
+	//m_pSocketFilter->setText(tr(""));
+	m_pSocketFilter->setCheckable(true);
+	connect(m_pSocketFilter, SIGNAL(clicked()), this, SLOT(OnSocketFilter()));
+	/*m_pSocketMenu = new QMenu();
+		m_pAnySockets = m_pSocketMenu->addAction(tr("Any Sockets"), this, SLOT(OnSocketFilter()));
+		m_pAnySockets->setCheckable(true);
+		m_pWebSockets = m_pSocketMenu->addAction(tr("Web Sockets"), this, SLOT(OnSocketFilter()));
+		m_pWebSockets->setCheckable(true);
+		m_pTcpSockets = m_pSocketMenu->addAction(tr("TCP Sockets"), this, SLOT(OnSocketFilter()));
+		m_pTcpSockets->setCheckable(true);
+		m_pTcpClients = m_pSocketMenu->addAction(tr("TCP Clients"), this, SLOT(OnSocketFilter()));
+		m_pTcpClients->setCheckable(true);
+		m_pTcpServers = m_pSocketMenu->addAction(tr("TCP Servers"), this, SLOT(OnSocketFilter()));
+		m_pTcpServers->setCheckable(true);
+		m_pUdpSockets = m_pSocketMenu->addAction(tr("UDP Sockets"), this, SLOT(OnSocketFilter()));
+		m_pUdpSockets->setCheckable(true);
+	m_pSocketFilter->setPopupMode(QToolButton::MenuButtonPopup);
+	m_pSocketFilter->setMenu(m_pSocketMenu);*/
+	m_pToolBar->addWidget(m_pSocketFilter);
+
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -132,17 +208,135 @@ CProgramView::~CProgramView()
 	theConf->SetBlob("MainWindow/ProgramView_Columns", m_pTreeList->saveState());
 }
 
+void CProgramView::OnTypeFilter()
+{
+	if (sender() == m_pTypeFilter)
+	{
+		if (!m_pPrograms->isChecked() && !m_pApps->isChecked() && !m_pSystem->isChecked() && !m_pGroups->isChecked()) {
+			m_pPrograms->setChecked(true);
+			m_pGroups->setChecked(true);
+		}
+	}
+	else if (qobject_cast<QAction*>(sender())->isChecked())
+	{
+		if (!m_pTypeFilter->isChecked())
+			m_pTypeFilter->setChecked(true);
+	}
+
+	FilterUpdate();
+}
+
+void CProgramView::OnRunFilter()
+{
+	if (sender() == m_pRunFilter)
+		;
+	else if (qobject_cast<QAction*>(sender())->isChecked())
+	{
+		if (!m_pRunFilter->isChecked())
+			m_pRunFilter->setChecked(true);
+	}
+
+	FilterUpdate();
+}
+
+void CProgramView::OnRulesFilter()
+{
+	if (sender() == m_pRulesFilter)
+	{
+		if (!m_pExecRules->isChecked() && !m_pAccessRules->isChecked() && !m_pFwRules->isChecked()) {
+			m_pExecRules->setChecked(true);
+			m_pAccessRules->setChecked(true);
+			m_pFwRules->setChecked(true);
+		}
+	}
+	else if (qobject_cast<QAction*>(sender())->isChecked())
+	{
+		if (!m_pRulesFilter->isChecked())
+			m_pRulesFilter->setChecked(true);
+	}
+
+	FilterUpdate();
+}
+
+void CProgramView::OnTrafficFilter()
+{
+	if (sender() == m_pTrafficFilter) 
+	{
+		if (m_pActionGroup->checkedAction() == nullptr)
+			m_pTrafficRecent->setChecked(true);
+	}
+	else
+	{
+		if (!m_pTrafficFilter->isChecked())
+			m_pTrafficFilter->setChecked(true);
+	}
+
+	FilterUpdate();
+}
+
+void CProgramView::OnSocketFilter()
+{
+	FilterUpdate();
+}
+
+void CProgramView::FilterUpdate()
+{
+	Update();
+
+	m_CurPrograms.clear();
+	emit ProgramsChanged(m_CurPrograms);
+}
+
 void CProgramView::Update()
 {
 	int Filter = CProgramModel::EFilters::eAll;
-	if(m_pBtnPrograms->isChecked())
-		Filter |= CProgramModel::EFilters::ePrograms;
-	if (m_pBtnApps->isChecked())
-		Filter |= CProgramModel::EFilters::eApps;
-	if (m_pBtnSystem->isChecked())
-		Filter |= CProgramModel::EFilters::eSystem;
-	if (Filter != m_pProgramModel->GetFilter()) {
+
+	if (m_pTypeFilter->isChecked())
+	{
+		if (m_pPrograms->isChecked())
+			Filter |= CProgramModel::EFilters::ePrograms;
+		if (m_pApps->isChecked())
+			Filter |= CProgramModel::EFilters::eApps;
+		if (m_pSystem->isChecked())
+			Filter |= CProgramModel::EFilters::eSystem;
+		if (m_pGroups->isChecked())
+			Filter |= CProgramModel::EFilters::eGroups;
+	}
+
+	if (m_pRunFilter->isChecked()) {
+		Filter |= CProgramModel::EFilters::eRunning;
+		if (m_pRanRecently->isChecked())
+			Filter |= CProgramModel::EFilters::eRanRecently;
+	}
+
+
+	if (m_pRulesFilter->isChecked())
+	{
+		if (m_pExecRules->isChecked())
+			Filter |= CProgramModel::EFilters::eWithProgRules;
+		if (m_pAccessRules->isChecked())
+			Filter |= CProgramModel::EFilters::eWithResRules;
+		if (m_pFwRules->isChecked())
+			Filter |= CProgramModel::EFilters::eWithFwRules;
+	}
+
+	if (m_pTrafficFilter->isChecked())
+	{
+		if (m_pTrafficRecent->isChecked())
+			Filter |= CProgramModel::EFilters::eRecentTraffic;
+		if (m_pTrafficBlocked->isChecked())
+			Filter |= CProgramModel::EFilters::eBlockedTraffic;
+		if (m_pTrafficAllowed->isChecked())
+			Filter |= CProgramModel::EFilters::eAllowedTraffic;
+	}
+
+	if (m_pSocketFilter->isChecked())
+		Filter |= CProgramModel::EFilters::eWithSockets;
+
+	quint64 RecentLimit = theGUI->GetRecentLimit();
+	if (Filter != m_pProgramModel->GetFilter() || RecentLimit != m_pProgramModel->GetRecentLimit()) {
 		m_pProgramModel->SetFilter(Filter);
+		m_pProgramModel->SetRecentLimit(RecentLimit);
 		m_pProgramModel->Clear();
 	}
 

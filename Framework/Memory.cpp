@@ -87,7 +87,8 @@ void* MemAlloc(size_t size)
 #elif (NTDDI_VERSION >= NTDDI_WIN10_VB)
 	return ExAllocatePool2(POOL_FLAG_NON_PAGED, size, KPP_TAG);
 #else
-	return ExAllocatePoolWithTag(PagedPool, size, tag);
+#pragma warning(suppress: 4996) // suppress deprecation warning
+	return ExAllocatePoolWithTag(PagedPool, size, KPP_TAG);
 #endif
 }
 

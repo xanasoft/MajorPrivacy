@@ -133,7 +133,11 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.btnDelIgnore, SIGNAL(clicked(bool)), this, SLOT(OnDelIgnore()));
 
 	connect(ui.chkListOpenFiles, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkLogNotFound, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkLogRegistry, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+
 	connect(ui.chkReverseDNS, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkSimpleDomains, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
 	connect(ui.chkDarkTheme, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
 	connect(ui.chkFusionTheme, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
@@ -361,8 +365,10 @@ void CSettingsWindow::LoadSettings()
 
 	ui.chkListOpenFiles->setChecked(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));
 	ui.chkLogNotFound->setChecked(theCore->GetConfigBool("Service/LogNotFound", false));
+	ui.chkLogRegistry->setChecked(theCore->GetConfigBool("Service/LogRegistry", false));
 
-	ui.chkReverseDNS->setChecked(theCore->GetConfigBool("Service/UserReverseDns", false));
+	ui.chkReverseDNS->setChecked(theCore->GetConfigBool("Service/UseReverseDns", false));
+	ui.chkSimpleDomains->setChecked(theCore->GetConfigBool("Service/UseSimpleDomains", true));
 
 	ui.chkDarkTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseDarkTheme", 2)));
 	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseFusionTheme", 1)));
@@ -417,8 +423,10 @@ void CSettingsWindow::SaveSettings()
 
 	theCore->SetConfig("Service/EnumAllOpenFiles", ui.chkListOpenFiles->isChecked());
 	theCore->SetConfig("Service/LogNotFound", ui.chkLogNotFound->isChecked());
+	theCore->SetConfig("Service/LogRegistry", ui.chkLogRegistry->isChecked());
 
-	theCore->SetConfig("Service/UserReverseDns", ui.chkReverseDNS->isChecked());
+	theCore->SetConfig("Service/UseReverseDns", ui.chkReverseDNS->isChecked());
+	theCore->SetConfig("Service/UseSimpleDomains", ui.chkSimpleDomains->isChecked());
 
 	theConf->SetValue("Options/UseDarkTheme", CSettingsWindow__Chk2Int(ui.chkDarkTheme->checkState()));
 	theConf->SetValue("Options/UseFusionTheme", CSettingsWindow__Chk2Int(ui.chkFusionTheme->checkState()));

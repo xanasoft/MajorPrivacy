@@ -412,6 +412,12 @@
     <ClCompile Include="Helpers\SidResolver.cpp">
       <Filter>Helpers</Filter>
     </ClCompile>
+    <ClCompile Include="Helpers\IconCache.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\VariantEditorWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -499,6 +505,9 @@
       <Filter>Core\Access</Filter>
     </ClInclude>
     <ClInclude Include="Helpers\FilePath.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\IconCache.h">
       <Filter>Helpers</Filter>
     </ClInclude>
   </ItemGroup>
@@ -792,6 +801,9 @@
     </QtMoc>
     <QtMoc Include="Helpers\SidResolver.h">
       <Filter>Helpers</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\VariantEditorWnd.h">
+      <Filter>Windows</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

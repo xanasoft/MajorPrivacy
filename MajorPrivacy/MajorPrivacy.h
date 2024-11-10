@@ -67,6 +67,8 @@ public:
 
 	static QString		GetResourceStr(const QString& Name);
 
+	quint64				GetRecentLimit() const { return m_pBtnTime->isChecked() ? m_pCmbRecent->currentData().toULongLong() : 0; }
+
 signals:
 	void				Closed();
 
@@ -75,6 +77,7 @@ signals:
 	void				OnCreateVolume();
 
 public slots:
+	void				OnProgramsAdded();
 	void				OnExecutionEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
 	void				OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
 	void				OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
@@ -95,6 +98,7 @@ private slots:
 
 	void				BuildMenu();
 	void				SetUITheme();
+	void				RebuildGUI();
 	void				BuildGUI();
 
 	void				OnAlwaysTop();
@@ -106,6 +110,10 @@ private slots:
 	void				OnPrivateKey();
 	void				OnMakeKeyPair();
 	void				OnClearKeys();
+
+	void				OnToggleTree();
+	void				OnStackPanels();
+	void				OnMergePanels();
 
 	void				OnFwProfile();
 
@@ -123,13 +131,16 @@ protected:
 
 	void				SetTitle();
 
+	STATUS				Connect();
+	void				Disconnect();
+
 	STATUS				InitSigner(class CPrivateKey& PrivateKey);
 
 	void				CreateTrayIcon();
 	void				CreateTrayMenu();
 
 	SCurrentItems		MakeCurrentItems() const;
-	SCurrentItems		MakeCurrentItems(const QList<CProgramItemPtr>& Progs) const;
+	SCurrentItems		MakeCurrentItems(const QList<CProgramItemPtr>& Progs, std::function<bool(const CProgramItemPtr&)> Filter = nullptr) const;
 	SCurrentItems		m_CurrentItems;
 
 	bool				m_bShowAll = false;
@@ -152,8 +163,6 @@ private:
 	void				LoadState(bool bFull = true);
 	void				StoreState();
 
-	void				Update();
-
 	//Ui::CMajorPrivacyClass ui;
 
 	enum ETabs
@@ -169,80 +178,88 @@ private:
 		eTabCount
 	};
 
-	QWidget*			m_pMainWidget;
-	QGridLayout*		m_pMainLayout;
-	//QTabWidget*			m_pMainTabs;
-	QTabBar*			m_pTabBar;
-	QStackedLayout*		m_pPageStack;
+	QWidget*			m_pMainWidget = nullptr;
+	QGridLayout*		m_pMainLayout = nullptr;
+	//QToolBar*			m_pToolBar = nullptr;
+	//QTabWidget*			m_pMainTabs = nullptr;
+	QTabBar*			m_pTabBar = nullptr;
+	QStackedLayout*		m_pPageStack = nullptr;
 
 	
-	QWidget*			m_pProgramWidget;
-	QVBoxLayout*		m_pProgramLayout;
+	QWidget*			m_pProgramWidget = nullptr;
+	QVBoxLayout*		m_pProgramLayout = nullptr;
 	
-	//QToolBar*			m_pProgramToolBar;
-	//QToolButton*		m_pBtnClear;
+	QToolBar*			m_pProgramToolBar = nullptr;
+	//QToolButton*		m_pBtnClear = nullptr;
+	QToolButton*		m_pBtnTime = nullptr;
+	QComboBox*			m_pCmbRecent = nullptr;
 
-	QSplitter*			m_pProgramSplitter;
-	QWidget*			m_pPageSubWidget;
-	QStackedLayout*		m_pPageSubStack;
+	QSplitter*			m_pProgramSplitter = nullptr;
+	QWidget*			m_pPageSubWidget = nullptr;
+	QStackedLayout*		m_pPageSubStack = nullptr;
 
-	QMenu*				m_pMain;
-	QMenu*				m_pMaintenance;
-	QAction*			m_pImportOptions;
-	QAction*			m_pExportOptions;
-	QAction*			m_pOpenUserFolder;
-	QAction*			m_pOpenSystemFolder;
-	QAction*			m_pExit;
+	QMenu*				m_pMain = nullptr;
+	QMenu*				m_pMaintenance = nullptr;
+	QAction*			m_pImportOptions = nullptr;
+	QAction*			m_pExportOptions = nullptr;
+	QAction*			m_pVariantEditor = nullptr;
+	QAction*			m_pOpenUserFolder = nullptr;
+	QAction*			m_pOpenSystemFolder = nullptr;
+	QAction*			m_pExit = nullptr;
 
-	QMenu*				m_pView;
-	QAction*			m_pTabLabels;
-	QAction*			m_pWndTopMost;
+	QMenu*				m_pView = nullptr;
+	QAction*			m_pProgTree = nullptr;
+	QAction*			m_pStackPanels = nullptr;
+	QAction*			m_pMergePanels = nullptr;
+	//QAction*			m_pShowMenu = nullptr;
+	QAction*			m_pTabLabels = nullptr;
+	QAction*			m_pWndTopMost = nullptr;
 
-	QMenu*				m_pVolumes;
-	QAction*			m_pMountVolume;
-	QAction*			m_pUnmountAllVolumes;
-	QAction*			m_pCreateVolume;
+	QMenu*				m_pVolumes = nullptr;
+	QAction*			m_pMountVolume = nullptr;
+	QAction*			m_pUnmountAllVolumes = nullptr;
+	QAction*			m_pCreateVolume = nullptr;
 
-	QMenu*				m_pSecurity;
-	QAction*			m_pSignFile;
-	QAction*			m_pPrivateKey;
-	QAction*			m_pMakeKeyPair;
-	QAction*			m_pClearKeys;
+	QMenu*				m_pSecurity = nullptr;
+	QAction*			m_pSignFile = nullptr;
+	QAction*			m_pPrivateKey = nullptr;
+	QAction*			m_pMakeKeyPair = nullptr;
+	QAction*			m_pClearKeys = nullptr;
 
-	QMenu*				m_pOptions;
-	QAction*			m_pSettings;
-	//QAction*			m_pClearIgnore;
-	QAction*			m_pClearLogs;
+	QMenu*				m_pOptions = nullptr;
+	QAction*			m_pSettings = nullptr;
+	//QAction*			m_pClearIgnore = nullptr;
+	QAction*			m_pClearLogs = nullptr;
 
-	QMenu*				m_pMenuHelp;
-	QAction*			m_pForum;
-	//QAction*			m_pUpdate;
-	QAction*			m_pAbout;
-	QAction*			m_pAboutQt;
+	QMenu*				m_pMenuHelp = nullptr;
+	QAction*			m_pForum = nullptr;
+	//QAction*			m_pUpdate = nullptr;
+	QAction*			m_pAbout = nullptr;
+	QAction*			m_pAboutQt = nullptr;
 
-	CHomePage*			m_HomePage;
+	CHomePage*			m_HomePage = nullptr;
 
-	CEnclavePage*		m_EnclavePage;
-	CProcessPage*		m_ProcessPage;
-	CAccessPage*		m_AccessPage;
-	CNetworkPage*		m_NetworkPage;
-	CDnsPage*			m_DnsPage;
-	CTweakPage*			m_TweakPage;
-	CVolumePage*		m_VolumePage;
+	CEnclavePage*		m_EnclavePage = nullptr;
+	CProcessPage*		m_ProcessPage = nullptr;
+	CAccessPage*		m_AccessPage = nullptr;
+	CNetworkPage*		m_NetworkPage = nullptr;
+	CDnsPage*			m_DnsPage = nullptr;
+	CTweakPage*			m_TweakPage = nullptr;
+	CVolumePage*		m_VolumePage = nullptr;
 
-	QSplitter*			m_pInfoSplitter;
-	CInfoView*			m_pInfoView;
-	CProgramView*		m_pProgramView;
+	QSplitter*			m_pInfoSplitter = nullptr;
+	CInfoView*			m_pInfoView = nullptr;
+	CProgramView*		m_pProgramView = nullptr;
 
-	CPopUpWindow*		m_pPopUpWindow;
+	CPopUpWindow*		m_pPopUpWindow = nullptr;
 
-	QSystemTrayIcon*	m_pTrayIcon;
-	QMenu*				m_pTrayMenu;
-	QMenu*				m_pFwProfileMenu;
-	QAction*			m_pFwBlockAll;
-	QAction*			m_pFwAllowList;
-	QAction*			m_pFwBlockList;
-	QAction*			m_pFwDisabled;
+	QSystemTrayIcon*	m_pTrayIcon = nullptr;
+	QMenu*				m_pTrayMenu = nullptr;
+	QMenu*				m_pFwProfileMenu = nullptr;
+	QAction*			m_pFwBlockAll = nullptr;
+	QAction*			m_pFwAllowList = nullptr;
+	QAction*			m_pFwBlockList = nullptr;
+	QAction*			m_pFwDisabled = nullptr;
 
 protected:
 	friend class CNativeEventFilter;

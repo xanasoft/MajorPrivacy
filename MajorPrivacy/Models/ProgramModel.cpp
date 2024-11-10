@@ -32,27 +32,93 @@ QList<QVariant> CProgramModel::Sync(const CProgramSetPtr& pRoot)
 	return Added;
 }
 
-bool CProgramModel::FilterByType(EProgramType Type)
+bool CProgramModel::TestFilter(EProgramType Type, const SProgramStats* pStats)
 {
-	switch (Type)
+	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
+
+	if (m_Filter & EFilters::eTypeFilter)
 	{
-	case EProgramType::eProgramFile:	return (m_Filter & EFilters::ePrograms);
+		bool bPass = false;
 
-	case EProgramType::eAllPrograms:
+		if (m_Filter & EFilters::ePrograms) {
+			if (pStats->ProgramsCount > 0 || (Type == EProgramType::eProgramFile))
+				bPass = true;
+		}
+		if (m_Filter & EFilters::eSystem) {
+			if (pStats->ServicesCount > 0 || (Type == EProgramType::eWindowsService))
+				bPass = true;
+		}
+		if (m_Filter & EFilters::eApps) {
+			if (pStats->AppsCount > 0 || (Type == EProgramType::eAppPackage))
+				bPass = true;
+		}
+		if (m_Filter & EFilters::eGroups) {
+			if (pStats->GroupCount > 0 || (Type == EProgramType::eFilePattern || Type == EProgramType::eAppInstallation || Type == EProgramType::eProgramGroup))
+				bPass = true;
+		}
 
-	case EProgramType::eWindowsService: return (m_Filter & EFilters::eSystem);
-
-	case EProgramType::eAppPackage:		return (m_Filter & EFilters::eApps);
-
-	//case EProgramType::eProgramSet:
-	//case EProgramType::eProgramList:
-
-	case EProgramType::eFilePattern:
-	case EProgramType::eAppInstallation:return m_Filter != EFilters::eApps;
-
-	case EProgramType::eProgramGroup:	return true;
+		if(!bPass)
+			return false;
 	}
-	return false;
+
+	if (m_Filter & EFilters::eRunning) {
+		if (pStats->ProcessCount == 0) {
+			if (!(m_Filter & EFilters::eRanRecently))
+				return false;
+			else if (pStats->LastExecution <= uRecentLimit)
+				return false;
+		}
+	}
+
+	if (m_Filter & EFilters::eRulesFilter) 
+	{
+		bool bPass = false;
+
+		if (m_Filter & EFilters::eWithProgRules) {
+			if (pStats->ProgRuleTotal > 0)
+				bPass = true;
+		}
+		if (m_Filter & EFilters::eWithResRules) {
+			if (pStats->ResRuleTotal > 0)
+				bPass = true;
+		}
+		if (m_Filter & EFilters::eWithFwRules) {
+			if (pStats->FwRuleTotal > 0)
+				bPass = true;
+		}
+
+		if (!bPass)
+			return false;
+	}
+
+	if (m_Filter & EFilters::eTrafficFilter)
+	{
+		bool bPass = false;
+
+		if (m_Filter & EFilters::eRecentTraffic) {
+			if (pStats->LastNetActivity > uRecentLimit)
+				bPass = true;
+		}
+		if (m_Filter & EFilters::eBlockedTraffic) {
+			if (pStats->LastFwBlocked > uRecentLimit)
+				bPass = true;
+		}
+		if (m_Filter & EFilters::eAllowedTraffic) {
+			if (pStats->LastFwAllowed > uRecentLimit)
+				bPass = true;
+		}
+
+		if (!bPass)
+			return false;
+	}
+
+	if (m_Filter & EFilters::eWithSockets)
+	{
+		if (pStats->SocketCount == 0)
+			return false;
+	}
+
+	return true;
 }
 
 void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QSet<QVariant>& Current, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
@@ -63,9 +129,14 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 		QString sID = RootID + "/" + QString::number(uID);
 		QVariant ID = sID;
 
+		const SProgramStats* pStats = pItem->GetStats();
+		
+		if (!TestFilter(pItem->GetType(), pStats))
+			continue;
+
 		CProgramSetPtr pGroup = pItem.objectCast<CProgramSet>();
 
-		if (m_Filter) 
+		/*if (m_Filter & EFilters::eByType) 
 		{
 			if(Current.contains(ID))
 				continue;
@@ -78,7 +149,7 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 					Sync(pGroup, RootID, Path, New, Current, Old, Added);
 				continue;
 			}
-		}
+		}*/
 
 
 		QModelIndex Index;
@@ -127,22 +198,23 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 			case eName: 			Value = pItem->GetNameEx(); break;
 			case eType:				Value = pItem->GetTypeStr(); break;
 
-			case eRunning:			Value = pItem->GetStats()->ProcessCount; break;
-			case eProgramRules:		Value = pItem->GetStats()->ProgRuleCount; break;
+			case eRunningCount:		Value = pStats->ProcessCount; break;
+			case eProgramRules:		Value = pStats->ProgRuleTotal; break;
+			case eLastExecution:	Value = pStats->LastExecution; break;
 			//case eTotalUpTime:
 
 			//case eOpenFiles:		break;
 			//case eFsTotalRead:
 			//case eFsTotalWritten:
-			case eAccessRules:		Value = pItem->GetStats()->ResRuleCount; break;
+			case eAccessRules:		Value = pStats->ResRuleTotal; break;
 
-			case eSockets:			Value = pItem->GetStats()->SocketCount; break;
-			case eFwRules:			Value = pItem->GetStats()->FwRuleCount; break;
-			case eLastActivity:		Value = pItem->GetStats()->LastActivity; break;
-			case eUpload:			Value = pItem->GetStats()->Upload; break;
-			case eDownload:			Value = pItem->GetStats()->Download; break;
-			case eUploaded:			Value = pItem->GetStats()->Uploaded; break;
-			case eDownloaded:		Value = pItem->GetStats()->Downloaded; break;
+			case eSockets:			Value = pStats->SocketCount; break;
+			case eFwRules:			Value = pStats->FwRuleTotal; break;
+			case eLastActivity:		Value = pStats->LastNetActivity; break;
+			case eUpload:			Value = pStats->Upload; break;
+			case eDownload:			Value = pStats->Download; break;
+			case eUploaded:			Value = pStats->Uploaded; break;
+			case eDownloaded:		Value = pStats->Downloaded; break;
 
 			case ePath:				Value = pItem->GetPath(EPathType::eDisplay); break;
 
@@ -161,6 +233,12 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 				{
 				//case eName: 		ColValue.Formatted = pItem->GetNameEx(); break;
 
+				case eProgramRules:	if(pStats->ProgRuleCount != pStats->ProgRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ProgRuleCount).arg(pStats->ProgRuleTotal); break;
+				case eLastExecution:ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
+
+				case eAccessRules:	if(pStats->ResRuleCount != pStats->ResRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ResRuleCount).arg(pStats->ResRuleTotal); break;
+
+				case eFwRules:		if(pStats->FwRuleCount != pStats->FwRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->FwRuleCount).arg(pStats->FwRuleTotal); break;
 				case eLastActivity:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
 				case eUpload:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 				case eDownload:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
@@ -234,8 +312,9 @@ QString CProgramModel::GetColumHeader(int section) const
 		case eName:					return tr("Name");
 		case eType:					return tr("Type");
 
-		case eRunning:				return tr("Processes");
+		case eRunningCount:			return tr("Processes");
 		case eProgramRules:			return tr("Program Rules");
+		case eLastExecution:		return tr("Last Execution");
 		//case eTotalUpTime:			return tr("Up Time");
 
 		//case eOpenFiles:			return tr("Open Files");

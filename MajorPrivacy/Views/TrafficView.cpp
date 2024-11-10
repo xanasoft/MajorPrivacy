@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "TrafficView.h"
 #include "../Core/PrivacyCore.h"
+#include "../MajorPrivacy.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
 
 CTrafficView::CTrafficView(QWidget *parent)
@@ -53,13 +54,16 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 {
 	bool bGroupByProgram = m_pCmbGrouping->currentIndex() == 1;
 
-	if (m_CurPrograms != Programs || m_CurServices != Services || bGroupByProgram != m_bGroupByProgram) {
+	if (m_CurPrograms != Programs || m_CurServices != Services || bGroupByProgram != m_bGroupByProgram || m_RecentLimit != theGUI->GetRecentLimit()) {
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
+		m_RecentLimit = theGUI->GetRecentLimit();
 		m_ParentMap.clear();
 		m_TrafficMap.clear();
 		m_pItemModel->Clear();
 	}
+
+	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
 	m_bGroupByProgram = bGroupByProgram;
 
@@ -76,6 +80,7 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 			pItem = STrafficItemPtr(new STrafficItem());
 			pItem->pEntry = CTrafficEntryPtr(new CTrafficEntry());
 			pItem->pEntry->SetHostName(pEntry->GetHostName());
+			pItem->pEntry->SetIpAddress(pEntry->GetIpAddress());
 			m_TrafficMap.insert((uint64)pItem->pEntry.get(), pItem);
 		}
 		else
@@ -102,6 +107,7 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 			pItem->pEntry = CTrafficEntryPtr(new CTrafficEntry());
 			pItem->pProg = pProg;
 			pItem->pEntry->SetHostName(pEntry->GetHostName());
+			pItem->pEntry->SetIpAddress(pEntry->GetIpAddress());
 			m_TrafficMap.insert((uint64)pItem->pEntry.get(), pItem);
 		}
 		else
@@ -120,19 +126,25 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 
 	foreach(const CProgramFilePtr& pProgram, Programs) {
 		QMap<QString, CTrafficEntryPtr> Log = pProgram->GetTrafficLog();
-		for (auto I = Log.begin(); I != Log.end(); I++)
-			if(m_bGroupByProgram)
+		for (auto I = Log.begin(); I != Log.end(); I++) {
+			if (uRecentLimit && I.value()->GetLastActivity() < uRecentLimit)
+				continue;
+			if (m_bGroupByProgram)
 				AddByProgram(pProgram, I.value());
 			else
 				AddByDomain(pProgram, I.value());
+		}
 	}
 	foreach(const CWindowsServicePtr& pService, Services) {
 		QMap<QString, CTrafficEntryPtr> Log = pService->GetTrafficLog();
-		for (auto I = Log.begin(); I != Log.end(); I++)
-			if(m_bGroupByProgram)
+		for (auto I = Log.begin(); I != Log.end(); I++) {
+			if (uRecentLimit && I.value()->GetLastActivity() < uRecentLimit)
+				continue;
+			if (m_bGroupByProgram)
 				AddByProgram(pService, I.value());
 			else
 				AddByDomain(pService, I.value());
+		}
 	}
 
 	foreach(quint64 Key, OldTraffic.keys()) {
@@ -152,10 +164,10 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 	}
 }
 
-void CTrafficView::OnDoubleClicked(const QModelIndex& Index)
+/*void CTrafficView::OnDoubleClicked(const QModelIndex& Index)
 {
 	//QPair<CProgramItemPtr, CTrafficEntryPtr> pItem = m_pItemModel->GetItem(Index);
-}
+}*/
 
 void CTrafficView::OnMenu(const QPoint& Point)
 {

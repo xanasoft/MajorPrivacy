@@ -5,6 +5,7 @@
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Core/PrivacyCore.h"
+#include "../Core/Network/NetworkManager.h"
 
 CSocketModel::CSocketModel(QObject* parent)
 	:CTreeItemModel(parent)
@@ -20,7 +21,7 @@ CSocketModel::~CSocketModel()
 	m_Root = NULL;
 }
 
-QList<QModelIndex>	CSocketModel::Sync(const QList<CSocketPtr>& SocketList)
+QList<QModelIndex>	CSocketModel::Sync(const QMap<quint64, CSocketPtr>& SocketList)
 {
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
 	QHash<QVariant, STreeNode*> Old = m_Map;
@@ -107,6 +108,7 @@ QList<QModelIndex>	CSocketModel::Sync(const QList<CSocketPtr>& SocketList)
 
 				switch (section)
 				{
+				case eProtocol:		ColValue.Formatted = CFwRule::ProtocolToStr((EFwKnownProtocols)pSocket->GetProtocolType()); break;
 				case eState:		ColValue.Formatted = pSocket->GetStateString(); break;
 				case eLastActive:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
 				case eUpload:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;

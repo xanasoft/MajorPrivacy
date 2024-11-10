@@ -88,10 +88,10 @@ void CProcessView::Sync(QMap<quint64, CProcessPtr> ProcessMap)
 	}
 }
 
-void CProcessView::OnDoubleClicked(const QModelIndex& Index)
+/*void CProcessView::OnDoubleClicked(const QModelIndex& Index)
 {
 
-}
+}*/
 
 void CProcessView::OnMenu(const QPoint& Point)
 {

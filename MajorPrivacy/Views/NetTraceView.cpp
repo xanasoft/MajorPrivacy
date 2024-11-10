@@ -33,6 +33,13 @@ CNetTraceView::CNetTraceView(QWidget *parent)
 	connect(m_pCmbType, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbType);
 
+	m_pBtnScroll = new QToolButton();
+	m_pBtnScroll->setIcon(QIcon(":/Icons/Scroll.png"));
+	m_pBtnScroll->setCheckable(true);
+	m_pBtnScroll->setToolTip(tr("Auto Scroll"));
+	m_pBtnScroll->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnScroll);
+
 	int comboBoxHeight = m_pCmbType->sizeHint().height();
 
 	QWidget* pSpacer = new QWidget();
@@ -48,6 +55,14 @@ CNetTraceView::CNetTraceView(QWidget *parent)
 CNetTraceView::~CNetTraceView()
 {
 	theConf->SetBlob("MainWindow/NetTraceView_Columns", m_pTreeView->saveState());
+}
+
+void CNetTraceView::Sync(const struct SMergedLog* pLog)
+{
+	CTraceView::Sync(pLog);
+
+	if(m_pBtnScroll->isChecked())
+		m_pTreeView->scrollToBottom();
 }
 
 void CNetTraceView::UpdateFilter()

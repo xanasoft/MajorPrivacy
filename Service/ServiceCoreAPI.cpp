@@ -213,6 +213,8 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			{
 				auto SectionKey = Split2(vReq[API_V_CONF_KEY], "/");
 				theCore->Config()->SetValue(SectionKey.first, SectionKey.second, vReq[API_V_CONF_VALUE].AsStr());
+				if(SectionKey.first == "Service")
+					theCore->Reconfigure(SectionKey.second);
 			}
 			else
 			{
@@ -366,19 +368,14 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 
-			CTrafficLog* pTrafficLog = NULL;
-			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
-			if (pProgram)
-				pTrafficLog = pProgram->TrafficLog();
-			else {
-				CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem);
-				if (pService) pTrafficLog = pService->TrafficLog();
-			}
-			if(!pTrafficLog)
+			CVariant vRpl;
+			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+				vRpl[API_V_NET_TRAFFIC] = pProgram->TrafficLog()->ToVariant(vReq.Get(API_V_SOCK_LAST_ACT));
+			else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+				vRpl[API_V_NET_TRAFFIC] = pService->TrafficLog()->ToVariant(vReq.Get(API_V_SOCK_LAST_ACT));
+			else
 				return STATUS_OBJECT_TYPE_MISMATCH;
 
-			CVariant vRpl;
-			vRpl[API_V_NET_TRAFFIC] = pTrafficLog->ToVariant(vReq.Get(API_V_SOCK_LAST_ACT));
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
@@ -603,17 +600,12 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				return STATUS_NOT_FOUND;
 
 			CVariant vRpl;
-
-			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
-			if (pProgram)
+			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
 				vRpl = pProgram->DumpExecStats();
-			else {
-				CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem);
-				if (pService)
-					vRpl = pService->DumpExecStats();
-				else
-					return STATUS_OBJECT_TYPE_MISMATCH;
-			}
+			else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+				vRpl = pService->DumpExecStats();
+			else
+				return STATUS_OBJECT_TYPE_MISMATCH;
 
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
@@ -632,17 +624,12 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				return STATUS_NOT_FOUND;
 
 			CVariant vRpl;
-
-			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
-			if (pProgram)
+			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
 				vRpl = pProgram->DumpIngress();
-			else {
-				CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem);
-				if (pService)
-					vRpl = pService->DumpIngress();
-				else
-					return STATUS_OBJECT_TYPE_MISMATCH;
-			}
+			else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+				vRpl = pService->DumpIngress();
+			else
+				return STATUS_OBJECT_TYPE_MISMATCH;
 
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
@@ -661,17 +648,12 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				return STATUS_NOT_FOUND;
 
 			CVariant vRpl;
-
-			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
-			if (pProgram)
-				vRpl[API_V_ROOT] = pProgram->DumpAccess();
-			else {
-				CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem);
-				if (pService)
-					vRpl[API_V_ROOT] = pService->DumpAccess();
-				else
-					return STATUS_OBJECT_TYPE_MISMATCH;
-			}
+			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+				vRpl[API_V_PROG_RESOURCE_ACCESS] = pProgram->DumpAccess(vReq.Get(API_V_ACCESS_LAST_ACT));
+			else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+				vRpl[API_V_PROG_RESOURCE_ACCESS] = pService->DumpAccess(vReq.Get(API_V_ACCESS_LAST_ACT));
+			else
+				return STATUS_OBJECT_TYPE_MISMATCH;
 			
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
@@ -717,11 +699,9 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			{
 				for (auto pItem : theCore->ProgramManager()->GetItems())
 				{
-					CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second);
-					if (pProgram)
+					if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
 						pProgram->ClearLogs();
-					CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second);
-					if (pService)
+					else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
 						pService->ClearLogs();
 				}
 			}
@@ -733,16 +713,12 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
 				if (!pItem)
 					return STATUS_NOT_FOUND;
-				CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
-				if (pProgram)
+				if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
 					pProgram->ClearLogs();
-				else {
-					CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem);
-					if (pService) 
-						pService->ClearLogs();
-					else
-						return STATUS_OBJECT_TYPE_MISMATCH;
-				}
+				else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+					pService->ClearLogs();
+				else
+					return STATUS_OBJECT_TYPE_MISMATCH;
 			}
 			return STATUS_SUCCESS;
 		}

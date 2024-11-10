@@ -32,6 +32,8 @@
 #include "Windows/OptionsTransferWnd.h"
 #include "Helpers/WinHelper.h"
 #include "../Library/Helpers/AppUtil.h"
+#include "Windows/VariantEditorWnd.h"
+#include "Core/Network/NetLogEntry.h"
 
 
 CMajorPrivacy* theGUI = NULL;
@@ -85,6 +87,7 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 	QApplication::instance()->installNativeEventFilter(new CNativeEventFilter);
 #endif
 
+	connect(theCore, SIGNAL(ProgramsAdded()), this, SLOT(OnProgramsAdded()));
 	connect(theCore, SIGNAL(UnruledFwEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnUnruledFwEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
 	connect(theCore, SIGNAL(ExecutionEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnExecutionEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
 	connect(theCore, SIGNAL(AccessEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnAccessEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
@@ -93,6 +96,9 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 
 	m_pMainWidget = NULL;
 	
+	extern QString g_IconCachePath;
+	g_IconCachePath = theConf->GetConfigDir() + "/IconCache/";
+
 	LoadLanguage();
 
 	CFinder::m_CaseInsensitiveIcon = QIcon(":/Icons/CaseSensitive.png");
@@ -117,7 +123,7 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 	if(!IsRunningElevated())
 		QMessageBox::information(this, tr("Major Privacy"), tr("Major Privacy will now attempt to start the Privacy Agent Service, please confirm the UAC prompt."));
 
-	STATUS Status = theCore->Connect();
+	STATUS Status = Connect();
 	CheckResults(QList<STATUS>() << Status, this);
 
 	auto Res = theCore->GetSupportInfo();
@@ -129,8 +135,6 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 
 	if (!g_CertInfo.active)
 		QMessageBox::critical(this, tr("Major Privacy"), tr("Major Privacy is not activated - driver protections disabled!"));
-
-	SetTitle();
 
 #ifdef _DEBUG
 	m_uTimerID = startTimer(500);
@@ -206,6 +210,32 @@ void CMajorPrivacy::SetTitle()
 	setWindowTitle(Title);
 }
 
+STATUS CMajorPrivacy::Connect()
+{
+	STATUS Status;
+	
+	for (int i = 0; i < 3; i++) 
+	{
+		Status = theCore->Connect();
+		if(Status)
+			break;
+		// On failure wait for the Service and Driver a bit logner to finish starting up
+		QThread::sleep(1+i);
+	}
+
+	SetTitle();
+
+	if(Status)
+		OnProgramsAdded();
+
+	return Status;
+}
+
+void CMajorPrivacy::Disconnect()
+{
+	// todo;
+}
+
 void CMajorPrivacy::changeEvent(QEvent* e)
 {
 	if (e->type() == QEvent::WindowStateChange) 
@@ -275,34 +305,33 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 
 	bool bVisible = isVisible() && !isMinimized();
 	if (!bVisible) {
-
 		if (m_bWasVisible)
 			theCore->SetWatchedPrograms(QSet<CProgramItemPtr>());
-	}
-	else {
-
-		Update();
-
+	} else {
 		if (!m_bWasVisible)
 			m_CurrentItems = MakeCurrentItems();
 	}
 	m_bWasVisible = bVisible;
-}
 
-void CMajorPrivacy::Update()
-{
-	STATUS Status = theCore->Update();
-	if (!Status)
-		theCore->Reconnect();
+	if (bVisible) {
+		STATUS Status = theCore->Update();
+		if (!Status)
+			Connect();
+	}
 
-	m_EnclavePage->Update();
-	m_pProgramView->Update();
-	m_ProcessPage->Update();
-	m_AccessPage->Update();
-	m_NetworkPage->Update();
-	m_DnsPage->Update();
-	m_VolumePage->Update();
-	m_TweakPage->Update();
+	theCore->ProcessEvents();
+
+	if (bVisible)
+	{
+		m_EnclavePage->Update();
+		m_pProgramView->Update();
+		m_ProcessPage->Update();
+		m_AccessPage->Update();
+		m_NetworkPage->Update();
+		m_DnsPage->Update();
+		m_VolumePage->Update();
+		m_TweakPage->Update();
+	}
 }
 
 void CMajorPrivacy::LoadState(bool bFull)
@@ -332,6 +361,8 @@ void CMajorPrivacy::BuildMenu()
 		m_pImportOptions = m_pMaintenance->addAction(QIcon(":/Icons/Import.png"), tr("Import Options"), this, SLOT(OnMaintenance()));
 		m_pExportOptions = m_pMaintenance->addAction(QIcon(":/Icons/Export.png"), tr("Export Options"), this, SLOT(OnMaintenance()));
 		m_pMaintenance->addSeparator();
+		m_pVariantEditor = m_pMaintenance->addAction(QIcon(":/Icons/EditIni.png"), tr("Open *.dat Editor"), this, SLOT(OnMaintenance()));
+		m_pMaintenance->addSeparator();
 		m_pOpenUserFolder = m_pMaintenance->addAction(QIcon(":/Icons/Folder.png"), tr("Open User Data Folder"), this, SLOT(OnMaintenance()));
 		m_pOpenSystemFolder = m_pMaintenance->addAction(QIcon(":/Icons/Folder.png"), tr("Open System Data Folder"), this, SLOT(OnMaintenance()));
 	m_pMain->addSeparator();
@@ -339,11 +370,26 @@ void CMajorPrivacy::BuildMenu()
 
 
 	m_pView = menuBar()->addMenu("View");
-	m_pTabLabels = m_pView->addAction(tr("Show Tab Labels"), this, SLOT(BuildGUI()));
+	m_pProgTree = m_pView->addAction(QIcon(":/Icons/Tree.png"), tr("Toggle Program Tree"), this, SLOT(OnToggleTree()));
+	m_pProgTree->setCheckable(true);
+	m_pProgTree->setChecked(theConf->GetBool("Options/ShowProgramTree", true));
+	m_pStackPanels = m_pView->addAction(QIcon(":/Icons/Stack.png"), tr("Stack Panels"), this, SLOT(OnStackPanels()));
+	m_pStackPanels->setCheckable(true);
+	m_pStackPanels->setChecked(theConf->GetBool("Options/StackPanels", false));
+	m_pMergePanels = m_pView->addAction(QIcon(":/Icons/all.png"), tr("Merge Panels"), this, SLOT(OnMergePanels()));
+	m_pMergePanels->setCheckable(true);
+	m_pMergePanels->setChecked(theConf->GetBool("Options/MergePanels", false));
+	m_pView->addSeparator();
+	//m_pShowMenu = m_pView->addAction(tr("Show Program Tool Bar"), this, SLOT(RebuildGUI()));
+	//m_pShowMenu->setCheckable(true);
+	//m_pShowMenu->setChecked(theConf->GetBool("Options/ShowProgramToolbar", true));
+	m_pTabLabels = m_pView->addAction(tr("Show Tab Labels"), this, SLOT(RebuildGUI()));
 	m_pTabLabels->setCheckable(true);
+	m_pTabLabels->setChecked(theConf->GetBool("Options/ShowTabLabels", false));
 	m_pWndTopMost = m_pView->addAction(tr("Always on Top"), this, SLOT(OnAlwaysTop()));
 	m_pWndTopMost->setCheckable(true);
 	m_pWndTopMost->setChecked(theConf->GetBool("Options/AlwaysOnTop", false));
+
 
 	m_pVolumes = menuBar()->addMenu("Volumes");
 	m_pMountVolume = m_pVolumes->addAction(QIcon(":/Icons/AddVolume.png"), tr("Mount Volume"), this, SIGNAL(OnMountVolume()));
@@ -391,6 +437,14 @@ void CMajorPrivacy::SetUITheme()
 	//CPopUpWindow::SetDarkMode(bDark);
 }
 
+void CMajorPrivacy::RebuildGUI()
+{
+	//theConf->SetValue("Options/ShowProgramToolbar", m_pShowMenu->isChecked());
+	theConf->SetValue("Options/ShowTabLabels", m_pTabLabels->isChecked());
+
+	BuildGUI();
+}
+
 void CMajorPrivacy::BuildGUI()
 {
 	SetUITheme();
@@ -407,6 +461,10 @@ void CMajorPrivacy::BuildGUI()
 	m_pMainLayout->setSpacing(0);
 	m_pMainWidget->setLayout(m_pMainLayout);
 	this->setCentralWidget(m_pMainWidget);
+
+	/*m_pToolBar = new QToolBar();
+	m_pToolBar->addAction("test");
+	m_pMainLayout->addWidget(m_pToolBar, 0, 0, 1, 2);*/
 
 	m_pProgramView = new CProgramView();
 
@@ -445,41 +503,77 @@ void CMajorPrivacy::BuildGUI()
 	m_pProgramWidget = new QWidget();
 	m_pProgramLayout = new QVBoxLayout(m_pProgramWidget);
 	m_pProgramLayout->setContentsMargins(0, 0, 0, 0);
-	/*m_pProgramToolBar = new QToolBar();
+	m_pProgramLayout->setSpacing(0);
 
-	m_pBtnClear = new QToolButton();
-	m_pBtnClear->setIcon(QIcon(":/Icons/Clean.png"));
-	m_pBtnClear->setToolTip(tr("Cleanup Program List"));
-	m_pBtnClear->setFixedHeight(22);
-	m_pProgramToolBar->addWidget(m_pBtnClear);
+	//if (m_pShowMenu->isChecked()) 
+	//{
+	m_pProgramToolBar = new QToolBar();
+
+	m_pProgramToolBar->addAction(m_pSettings);
+
+	m_pProgramToolBar->addSeparator();
+
+	m_pBtnTime = new QToolButton();
+	m_pBtnTime->setIcon(QIcon(":/Icons/Time.png"));
+	m_pBtnTime->setToolTip(tr("Set Time Filter"));
+	m_pBtnTime->setCheckable(true);
+	connect(m_pBtnTime, &QToolButton::toggled, this, [&](bool checked) { m_pCmbRecent->setEnabled(checked); });
+	m_pProgramToolBar->addWidget(m_pBtnTime);
+
+	m_pCmbRecent = new QComboBox();
+	m_pCmbRecent->addItem(tr("Any time"),		0ull);
+	m_pCmbRecent->addItem(tr("Last 5 Seconds"),	5*1000ull);
+	m_pCmbRecent->addItem(tr("Last 10 Seconds"),10*1000ull);
+	m_pCmbRecent->addItem(tr("Last 30 Seconds"),30*1000ull);
+	m_pCmbRecent->addItem(tr("Last Minute"),	60*1000ull);
+	m_pCmbRecent->addItem(tr("Last 3 Minutes"), 3*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last 5 Minutes"), 5*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last 15 Minutes"),15*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last 30 Minutes"),30*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last Hour"),		60*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last 3 Hours"),	3*60*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last 12 Hours"),	12*60*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last 24 Hours"),	24*60*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last 48 Hours"),	48*60*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last Week"),		7*24*60*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last 2 Weeks"),	2*7*24*60*60*1000ull);
+	m_pCmbRecent->addItem(tr("Last Month"),		30*24*60*60*1000ull);
+	m_pCmbRecent->setEnabled(false);
+	m_pProgramToolBar->addWidget(m_pCmbRecent);
+	QFont font = m_pCmbRecent->font();
+	font.setPointSizeF(font.pointSizeF() * 1.5);
+	m_pCmbRecent->setFont(font);
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	m_pProgramToolBar->addWidget(pSpacer);
 
-	QAbstractButton* pBtnSearch = m_pProgramView->m_pFinder->GetToggleButton();
-	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
-	pBtnSearch->setFixedHeight(22);
-	m_pProgramToolBar->addWidget(pBtnSearch);
+	m_pProgramToolBar->addAction(m_pProgTree);
+	m_pProgramToolBar->addAction(m_pStackPanels);
+	m_pProgramToolBar->addAction(m_pMergePanels);
 
-
-	m_pProgramLayout->addWidget(m_pProgramToolBar);*/
+	m_pProgramLayout->addWidget(m_pProgramToolBar);
+	//}
+	
 	m_pProgramSplitter = new QSplitter();
 	m_pProgramSplitter->setOrientation(Qt::Horizontal);
 	m_pProgramLayout->addWidget(m_pProgramSplitter);
 	m_pPageStack->addWidget(m_pProgramWidget);
 
 	m_pInfoSplitter = new QSplitter();
+	m_pProgramSplitter->addWidget(m_pInfoSplitter);
 	m_pInfoSplitter->setOrientation(Qt::Vertical);
 	m_pInfoSplitter->addWidget(m_pProgramView);
+#if 0
 	m_pInfoView = new CInfoView();
 	m_pInfoSplitter->addWidget(m_pInfoView);
-	m_pProgramSplitter->addWidget(m_pInfoSplitter);
 	m_pInfoSplitter->setStretchFactor(0, 1);
 	m_pInfoSplitter->setStretchFactor(1, 0);
 	auto Sizes = m_pInfoSplitter->sizes();
 	Sizes[1] = 0;
 	m_pInfoSplitter->setSizes(Sizes);
+#endif
+	m_pInfoSplitter->setVisible(m_pProgTree->isChecked());
 
 	m_pPageSubWidget = new QWidget();
 	m_pPageSubStack = new QStackedLayout(m_pPageSubWidget);
@@ -505,6 +599,9 @@ void CMajorPrivacy::BuildGUI()
 			m_pTabBar->setTabToolTip(i, m_pTabBar->tabText(i));
 	}
 
+	OnStackPanels();
+	OnMergePanels();
+
 	CreateTrayIcon();
 
 	LoadState(bFull);
@@ -512,6 +609,8 @@ void CMajorPrivacy::BuildGUI()
 
 void CMajorPrivacy::CreateTrayIcon()
 {
+	delete m_pTrayIcon;
+
 	m_pTrayIcon = new QSystemTrayIcon(QIcon(":/MajorPrivacy.png"), this);
 	m_pTrayIcon->setToolTip("Major Privacy");
 	connect(m_pTrayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(OnSysTray(QSystemTrayIcon::ActivationReason)));
@@ -860,7 +959,8 @@ void CMajorPrivacy::OnPageChanged(int index)
 
 void CMajorPrivacy::OnProgramsChanged(const QList<CProgramItemPtr>& Programs)
 {
-	m_pInfoView->Sync(m_pProgramView->GetCurrentProgs());
+	if(m_pInfoView)
+		m_pInfoView->Sync(m_pProgramView->GetCurrentProgs());
 	m_CurrentItems = MakeCurrentItems();
 }
 
@@ -876,20 +976,36 @@ void CMajorPrivacy::OnProgSplitter(int pos, int index)
 CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems() const
 {
 	QList<CProgramItemPtr> Progs = m_pProgramView->GetCurrentProgs();
-	bool bShowAll = m_pProgramSplitter->sizes().at(0) < 10;
-	if (bShowAll || Progs.isEmpty()) Progs.append(theCore->ProgramManager()->GetRoot());
+	bool bShowAll = !m_pInfoSplitter->isVisible() || (m_pProgramSplitter->sizes().at(0) < 10);
+	if (bShowAll || Progs.isEmpty())
+	{
+		Progs.clear();
+		auto pAll = theCore->ProgramManager()->GetAll();
+		if(pAll) Progs.append(pAll);
+	}
 
 	SCurrentItems Current = MakeCurrentItems(Progs);
 
 	// special case where the all programs item is selected
-	if (!bShowAll && Current.bAllPrograms)
+	if (Current.bAllPrograms && !bShowAll)
 	{
-		SCurrentItems All = MakeCurrentItems(QList<CProgramItemPtr>() << theCore->ProgramManager()->GetRoot());
-	
-		//Current.Processes = All.Processes;
-		Current.Programs = All.Programs;
-		Current.ServicesEx.clear();
-		Current.ServicesIm = All.ServicesIm;
+		if (!bShowAll && m_pProgramView->GetFilter())
+		{
+			Current = MakeCurrentItems(QList<CProgramItemPtr>() << theCore->ProgramManager()->GetRoot(), [&](const CProgramItemPtr& pItem) {
+				return m_pProgramView->TestFilter(pItem->GetType(), pItem->GetStats());
+			});
+		}
+		else
+		{
+			Current = MakeCurrentItems(QList<CProgramItemPtr>() << theCore->ProgramManager()->GetRoot());
+
+			/*SCurrentItems All = MakeCurrentItems(QList<CProgramItemPtr>() << theCore->ProgramManager()->GetRoot());
+
+			//Current.Processes = All.Processes;
+			Current.Programs = All.Programs;
+			Current.ServicesEx.clear();
+			Current.ServicesIm = All.ServicesIm;*/
+		}
 	}
 
 	theCore->SetWatchedPrograms(Current.Items);
@@ -897,7 +1013,7 @@ CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems() const
 	return Current;
 }
 
-CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems(const QList<CProgramItemPtr>& Progs) const
+CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems(const QList<CProgramItemPtr>& Progs, std::function<bool(const CProgramItemPtr&)> Filter) const
 {
 	SCurrentItems Current;
 
@@ -905,7 +1021,8 @@ CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems(const QList<CProgra
 	{
 		CWindowsServicePtr pService = pItem.objectCast<CWindowsService>();
 		if (pService) {
-			Current.ServicesIm.insert(pService);
+			if (!Filter || Filter(pService))
+				Current.ServicesIm.insert(pService);
 			return;
 		}
 
@@ -913,23 +1030,28 @@ CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems(const QList<CProgra
 		if (!pSet) return;
 		foreach(const CProgramItemPtr& pSubItem, pSet->GetNodes())
 		{
-			Current.Items.insert(pSubItem); // implicite
+			if (!Filter || Filter(pSubItem))
+				Current.Items.insert(pSubItem); // implicite
 
-			AddItem(pSubItem);
+			if (!Filter || Filter(pSubItem))
+				AddItem(pSubItem);
 		}
 	};
 
 	foreach(const CProgramItemPtr& pItem, Progs) 
 	{
-		Current.Items.insert(pItem); // explicite
+		if (!Filter || Filter(pItem))
+			Current.Items.insert(pItem); // explicite
 
 		CWindowsServicePtr pService = pItem.objectCast<CWindowsService>();
 		if (pService) {
-			Current.ServicesEx.insert(pService);
+			if (!Filter || Filter(pService))
+				Current.ServicesEx.insert(pService);
 			continue;
 		}
 
-		AddItem(pItem);
+		if (!Filter || Filter(pItem))
+			AddItem(pItem);
 
 		if(!Current.bAllPrograms && pItem->inherits("CAllPrograms")) // must be on root level
 			Current.bAllPrograms = true;
@@ -941,9 +1063,10 @@ CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems(const QList<CProgra
 	foreach(CProgramItemPtr pItem, Current.Items)
 	{
 		CProgramFilePtr pProgram = pItem.objectCast<CProgramFile>();
-		if (!pProgram)continue;
+		if (!pProgram) continue;
 
-		Current.Programs.insert(pProgram);
+		if (!Filter || Filter(pProgram))
+			Current.Programs.insert(pProgram);
 
 		/*foreach(quint64 Pid, pProgram->GetProcessPids()) {
 			CProcessPtr pProcess = theCore->ProcessList()->GetProcess(Pid);
@@ -1067,7 +1190,7 @@ bool CMajorPrivacy::IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgr
 		if (pEntry->GetType() == EExecLogType::eImageLoad)
 		{
 			uint64 uLibRef = pEntry->GetMiscID();
-			CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibraryByUID(uLibRef);
+			CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibraryByUID(uLibRef, true);
 			if (pLibrary) {
 				Path = pLibrary->GetPath(EPathType::eWin32);
 			}
@@ -1075,7 +1198,7 @@ bool CMajorPrivacy::IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgr
 		else if (pEntry->GetType() == EExecLogType::eProcessStarted)
 		{
 			uint64 uID = pEntry->GetMiscID();
-			CProgramFilePtr pExecutable = theCore->ProgramManager()->GetProgramByUID(uID).objectCast<CProgramFile>();
+			CProgramFilePtr pExecutable = theCore->ProgramManager()->GetProgramByUID(uID, true).objectCast<CProgramFile>();
 			if (pExecutable) {
 				Path = pExecutable->GetPath(EPathType::eWin32);
 			}
@@ -1224,6 +1347,11 @@ void CMajorPrivacy::StoreIgnoreList(ERuleType Type)
 	}
 }
 
+void CMajorPrivacy::OnProgramsAdded()
+{
+	m_CurrentItems = MakeCurrentItems();
+}
+
 void CMajorPrivacy::OnExecutionEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry)
 {
 	if (theConf->GetBool("ProcessProtection/ShowNotifications", true)) {
@@ -1242,6 +1370,10 @@ void CMajorPrivacy::OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEnt
 
 void CMajorPrivacy::OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry)
 {
+	const CNetLogEntry* pEntry = dynamic_cast<const CNetLogEntry*>(pLogEntry.constData());
+	if(pEntry->GetRemoteAddress().isLoopback())
+		return;
+
 	if (theConf->GetBool("NetworkFirewall/ShowNotifications", false)) {
 		if (!IsEventIgnored(ERuleType::eFirewall, pProgram, pLogEntry))
 			m_pPopUpWindow->PushFwEvent(pProgram, pLogEntry);
@@ -1471,6 +1603,12 @@ void CMajorPrivacy::OnMaintenance()
 
 		WriteStringToFile(FileName, Xml);
 	}
+	else if (sender() == m_pVariantEditor)
+	{
+		CVariantEditorWnd* pWnd = new CVariantEditorWnd(this);
+		//connect(this, SIGNAL(Closed()), pWnd, SLOT(close()));
+		SafeShow(pWnd);
+	}
 	else if (sender() == m_pOpenUserFolder)
 		QDesktopServices::openUrl(QUrl::fromLocalFile(theConf->GetConfigDir()));
 	else if (sender() == m_pOpenSystemFolder)
@@ -1495,6 +1633,29 @@ void CMajorPrivacy::OnExit()
 
 	m_bExit = true;
 	close();
+}
+
+void CMajorPrivacy::OnToggleTree()
+{
+	theConf->SetValue("Options/ShowProgramTree", m_pProgTree->isChecked());
+	m_pInfoSplitter->setVisible(m_pProgTree->isChecked());
+	m_CurrentItems = MakeCurrentItems();
+}
+
+void CMajorPrivacy::OnStackPanels()
+{
+	theConf->SetValue("Options/StackPanels", m_pStackPanels->isChecked());
+
+	m_pProgramSplitter->setOrientation(m_pStackPanels->isChecked() ? Qt::Vertical : Qt::Horizontal);
+}
+
+void CMajorPrivacy::OnMergePanels()
+{
+	theConf->SetValue("Options/MergePanels", m_pMergePanels->isChecked());
+
+	m_ProcessPage->SetMergePanels(m_pMergePanels->isChecked());
+	m_AccessPage->SetMergePanels(m_pMergePanels->isChecked());
+	m_NetworkPage->SetMergePanels(m_pMergePanels->isChecked());
 }
 
 QWidget* g_GUIParent = NULL;

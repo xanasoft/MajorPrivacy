@@ -4,7 +4,9 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/AppUtil.h"
 #include "../Core/PrivacyCore.h"
-#include <QFileIconProvider>
+#include "../Helpers/IconCache.h"
+#include "../../Library/Helpers/NtUtil.h"
+#include "..\Core\Access\ResLogEntry.h"
 
 CAccessModel::CAccessModel(QObject* parent)
 	:CTreeItemModel(parent)
@@ -20,42 +22,37 @@ CAccessModel::~CAccessModel()
 	m_Root = NULL;
 }
 
-QList<QModelIndex> CAccessModel::Sync(const QMap<QString, SAccessItemPtr>& List)
+#ifndef USE_ACCESS_TREE
+
+QList<QModelIndex> CAccessModel::Sync(const QHash<QString, SAccessItemPtr>& List)
 {
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
-	QHash<QVariant, STreeNode*> Old = m_Map;
+	QHash<QVariant, STreeNode*> Old;
+	//QHash<QVariant, STreeNode*> Old = m_Map;
 
-	QFileIconProvider IconProvider;
-
-	for(auto X = List.begin(); X != List.end(); ++X)
+	for(auto X = List.constBegin(); X != List.constEnd(); ++X)
 	{
-		QString sID = X.key();
-		if(sID.left(1) != "\\") sID.prepend("\\"); 
+		QVariant ID = X.value()->Path;
 
 		QModelIndex Index;
 
-		QHash<QVariant, STreeNode*>::iterator I = Old.find(sID);
-		STrafficNode* pNode = I != Old.end() ? static_cast<STrafficNode*>(I.value()) : NULL;
+		//QHash<QVariant, STreeNode*>::iterator I = Old.find(ID);
+		//SAccessNode* pNode = I != Old.end() ? static_cast<SAccessNode*>(I.value()) : NULL;
+		QHash<QVariant, STreeNode*>::iterator I = m_Map.find(ID);
+		SAccessNode* pNode = I != m_Map.end() ? static_cast<SAccessNode*>(I.value()) : NULL;
 		if (!pNode)
 		{
-			pNode = static_cast<STrafficNode*>(MkNode(sID));
+			pNode = static_cast<SAccessNode*>(MkNode(ID));
 			pNode->Values.resize(columnCount());
 			pNode->pItem = X.value();
 
-			auto PathName = Split2(sID, "\\", true);	
-			pNode->Name = PathName.second;
-			pNode->bRoot = PathName.first.isEmpty();
-			pNode->bDevice = sID.length() < 3 || sID.at(2) != ":"; // mind the leading '\'
-			if (pNode->bRoot) {
-				if(pNode->bDevice)
-					pNode->Name.prepend("\\");
-				else
-					pNode->Name.append("\\");
-			}
 			QList<QVariant> Path;
 			QString sPath;
-			foreach(const QString& Name, SplitStr(PathName.first, "\\")) {
-				sPath += "\\" + Name;
+			QStringList lPath = X.value()->Path.split("\\");
+			for(int i = 0; i < lPath.count() - 1; i++) {
+				if(!sPath.isEmpty())
+					sPath += "\\";
+				sPath += lPath[i];
 				Path.append(sPath);
 			}
 			pNode->Path = Path;
@@ -63,30 +60,99 @@ QList<QModelIndex> CAccessModel::Sync(const QMap<QString, SAccessItemPtr>& List)
 		}
 		else
 		{
-			I.value() = NULL;
+			//Old.erase(I);
+			//I.value() = NULL;
 			Index = Find(m_Root, pNode);
 		}
 
 		//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
+#else
 
+QList<QModelIndex> CAccessModel::Sync(const SAccessItemPtr& pRoot)
+{
+	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	QHash<QVariant, STreeNode*> Old;// = m_Map;
+
+	SAccessNode* pRootNode = static_cast<SAccessNode*>(m_Root);
+	pRootNode->pItem = pRoot;
+	//Sync(pRootNode, New, Old);
+	Sync(pRootNode, New, m_Map);
+
+	QList<QModelIndex>	NewBranches;
+	//qDebug() << "Sync new" << New.size() << ", old" << Old.size();
+	CTreeItemModel::Sync(New, Old, &NewBranches);
+	return NewBranches;
+}
+
+void CAccessModel::Sync(SAccessNode* pParent, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old)
+{
+	foreach(const SAccessItemPtr& pItem, pParent->pItem->Branches)
+	{
+		QVariant ID = (quint64)pItem.data();
+
+		QModelIndex Index;
+
+		QHash<QVariant, STreeNode*>::iterator I = Old.find(ID);
+		SAccessNode* pNode = I != Old.end() ? static_cast<SAccessNode*>(I.value()) : NULL;
+		if (!pNode)
+		{
+			pNode = static_cast<SAccessNode*>(MkNode(ID));
+			pNode->Values.resize(columnCount());
+			if(pParent->ID.isValid())
+				pNode->Path = QList<QVariant>(pParent->Path) << pParent->ID;
+			pNode->pItem = pItem;
+			New[pNode->Path].append(pNode);
+		}
+		else
+		{
+			//I.value() = NULL;
+			Index = Find(m_Root, pNode);
+		}
+
+		// dont update if nothign changed
+		if(pNode->LastAccess == pNode->pItem->LastAccess)
+			continue;
+		pNode->LastAccess = pNode->pItem->LastAccess;
+
+		Sync(pNode, New, Old);
+
+#endif
 		int Col = 0;
 		bool State = false;
 		int Changed = 0;
+#ifndef USE_ACCESS_TREE
 		if (pNode->Icon.isNull()/* && pNode->pItem->pProg && !pNode->pItem->pProg->GetIcon().isNull()*/ || pNode->ChildrenChanged)
+#else
+		if (pNode->Icon.isNull()/* && pNode->pItem->pProg && !pNode->pItem->pProg->GetIcon().isNull()*/)
+#endif
 		{
 			pNode->ChildrenChanged = false;
 
-			if (pNode->bDevice)
-				pNode->Icon = IconProvider.icon(QFileIconProvider::Computer);
-			else if (pNode->bRoot)
-				pNode->Icon = IconProvider.icon(QFileIconProvider::Drive);
-			else if(!pNode->Children.isEmpty())
-				pNode->Icon = IconProvider.icon(QFileIconProvider::Folder);
-			else {
-				//pNode->Icon = IconProvider.icon(QFileIconProvider::File);
-				QString sPath = pNode->ID.toString().mid(1); // strip leading '\'
-				pNode->Icon = IconProvider.icon(QFileInfo(sPath));
+			switch (pNode->pItem->Type)
+			{
+			case SAccessItem::eDevice:		pNode->Icon = QIcon(":/Icons/CPU.png"); break;
+			case SAccessItem::eComputer:	pNode->Icon = QIcon(":/Icons/Monitor.png"); break;
+			case SAccessItem::eDrive:		pNode->Icon = QIcon(":/Icons/Disk.png"); break;
+			case SAccessItem::eFile: // or folder
+#ifndef USE_ACCESS_TREE
+				if(pNode->Children.isEmpty()) {
+#else
+				if(pNode->pItem->Branches.isEmpty()) {
+#endif
+					if(pNode->pItem->Name.contains("."))
+						pNode->Icon = GetFileIcon(Split2(pNode->pItem->Name, ".", true).second, 16);
+					else
+						pNode->Icon = pNode->Icon = QIcon(":/Icons/File.png");
+					break;
+				}
+			case SAccessItem::eFolder:
+				pNode->Icon = pNode->Icon = QIcon(":/Icons/Directory.png");
+				break;
+			case SAccessItem::eNetwork:		pNode->Icon = QIcon(":/Icons/Network.png"); break;
+			case SAccessItem::eHost:		pNode->Icon = QIcon(":/Icons/Monitor.png"); break;
+			case SAccessItem::eObjects:		pNode->Icon = QIcon(":/Icons/Objects.png"); break;
+			case SAccessItem::eRegistry:	pNode->Icon = QIcon(":/Icons/RegEdit.png"); break;
 			}
 
 			//pNode->Icon = pNode->pItem->pProg->GetIcon();
@@ -105,10 +171,11 @@ QList<QModelIndex> CAccessModel::Sync(const QMap<QString, SAccessItemPtr>& List)
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pNode->Name; break;
+			case eName:				Value = pNode->pItem->Name; break;
+			case eLastAccess:		if(pNode->pItem->LastAccess) Value = pNode->pItem->LastAccess;
 			}
 
-			STrafficNode::SValue& ColValue = pNode->Values[section];
+			SAccessNode::SValue& ColValue = pNode->Values[section];
 
 			if (ColValue.Raw != Value)
 			{
@@ -118,7 +185,10 @@ QList<QModelIndex> CAccessModel::Sync(const QMap<QString, SAccessItemPtr>& List)
 
 				switch (section)
 				{
-				
+				//case eName:			ColValue.Formatted = pNode->Name; break;
+				case eLastAccess:		if(pNode->pItem->LastAccess)
+											ColValue.Formatted = QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pNode->pItem->LastAccess)).toString("dd.MM.yyyy hh:mm:ss.zzz"); 
+										break;
 				}
 			}
 
@@ -137,9 +207,12 @@ QList<QModelIndex> CAccessModel::Sync(const QMap<QString, SAccessItemPtr>& List)
 
 	}
 
+#ifndef USE_ACCESS_TREE
 	QList<QModelIndex>	NewBranches;
+	//qDebug() << "Sync new" << New.size() << ", old" << Old.size();
 	CTreeItemModel::Sync(New, Old, &NewBranches);
 	return NewBranches;
+#endif
 }
 
 CAccessModel::STreeNode* CAccessModel::MkVirtualNode(const QVariant& Id, STreeNode* pParent)
@@ -159,7 +232,7 @@ SAccessItemPtr CAccessModel::GetItem(const QModelIndex& index)
 	if (!index.isValid())
         return SAccessItemPtr();
 
-	STrafficNode* pNode = static_cast<STrafficNode*>(index.internalPointer());
+	SAccessNode* pNode = static_cast<SAccessNode*>(index.internalPointer());
 	ASSERT(pNode);
 
 	return pNode->pItem;
@@ -170,6 +243,58 @@ int CAccessModel::columnCount(const QModelIndex& parent) const
 	return eCount;
 }
 
+QVariant CAccessModel::NodeData(STreeNode* pNode, int role, int section) const
+{
+	if (pNode->Values.size() <= section)
+		return QVariant();
+
+	SAccessNode* pAccessNode = static_cast<SAccessNode*>(pNode);
+
+	switch (role)
+	{
+	case Qt::ToolTipRole:
+		switch(section)
+		{
+		case eName:			return pAccessNode->pItem ? pAccessNode->pItem->NtPath : QVariant();
+		case eLastAccess:	return pAccessNode->pItem ? CResLogEntry::GetAccessStr(pAccessNode->pItem->AccessMask) : QVariant();
+		}
+		
+	case Qt::ForegroundRole:
+		if (section == eLastAccess) 
+		{
+			uint32 uAccessMask = pAccessNode->pItem->AccessMask;
+
+			if((uAccessMask & GENERIC_WRITE) == GENERIC_WRITE
+			|| (uAccessMask & GENERIC_ALL) == GENERIC_ALL
+			|| (uAccessMask & DELETE) == DELETE
+			|| (uAccessMask & WRITE_DAC) == WRITE_DAC
+			|| (uAccessMask & WRITE_OWNER) == WRITE_OWNER
+			|| (uAccessMask & FILE_WRITE_DATA) == FILE_WRITE_DATA
+			|| (uAccessMask & FILE_APPEND_DATA) == FILE_APPEND_DATA)
+				return QColor(Qt::red);
+
+			if((uAccessMask & FILE_WRITE_ATTRIBUTES) == FILE_WRITE_ATTRIBUTES
+			|| (uAccessMask & FILE_WRITE_EA) == FILE_WRITE_EA)
+				return QColor(255, 165, 0);
+
+			if((uAccessMask & GENERIC_READ) == GENERIC_READ
+			|| (uAccessMask & GENERIC_EXECUTE) == GENERIC_EXECUTE
+			|| (uAccessMask & READ_CONTROL) == READ_CONTROL
+			|| (uAccessMask & FILE_READ_DATA) == FILE_READ_DATA
+			|| (uAccessMask & FILE_EXECUTE) == FILE_EXECUTE)
+				return QColor(Qt::green);
+			
+			if((uAccessMask & SYNCHRONIZE) == SYNCHRONIZE
+			|| (uAccessMask & FILE_READ_ATTRIBUTES) == FILE_READ_ATTRIBUTES
+			|| (uAccessMask & FILE_READ_EA) == FILE_READ_EA)
+				return QColor(Qt::blue);
+		}
+
+	default:
+		return CTreeItemModel::NodeData(pNode, role, section);
+	}
+}
+
 QVariant CAccessModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
 	if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
@@ -177,6 +302,7 @@ QVariant CAccessModel::headerData(int section, Qt::Orientation orientation, int 
 		switch (section)
 		{
 		case eName:					return tr("Name");
+		case eLastAccess:			return tr("Last Access");
 		}
 	}
 	return QVariant();

@@ -13,7 +13,7 @@ public:
 	STATUS InstallSvc();
 	STATUS ConnectSvc();
 	STATUS ConnectEngine();
-	STATUS Reconnect();
+	//STATUS Reconnect();
 	void Disconnect();
 
 	RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message);
@@ -31,6 +31,8 @@ protected:
 
 	std::unordered_map<uint32, std::function<void(uint32 msgId, const CBuffer* pEvent)>> m_EventHandlers;
 	std::mutex m_EventHandlersMutex;
+
+	HANDLE hEngineProcess = NULL;
 
 private:
 	class CAbstractClient* m_pClient;

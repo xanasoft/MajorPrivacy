@@ -71,11 +71,11 @@ void CSocketView::Sync(const QMap<quint64, CProcessPtr>& Processes, const QSet<C
 		return true;
 	};
 
-	QList<CSocketPtr> SocketList;
+	QMap<quint64, CSocketPtr> SocketList;
 	foreach(CProcessPtr pProcess, Processes) {
 		foreach(CSocketPtr pSocket, pProcess->GetSockets()) {
 			if (FilterSocket(pSocket))
-				SocketList.append(pSocket);
+				SocketList[pSocket->GetSocketRef()] = pSocket;
 		}
 	}
 	foreach(CWindowsServicePtr pService, ServicesEx) {
@@ -83,17 +83,17 @@ void CSocketView::Sync(const QMap<quint64, CProcessPtr>& Processes, const QSet<C
 		if (!pProcess) continue;
 		foreach(CSocketPtr pSocket, pProcess->GetSockets()) {
 			if (pSocket->GetOwnerService().compare(pService->GetSvcTag(), Qt::CaseInsensitive) == 0 && FilterSocket(pSocket))
-				SocketList.append(pSocket);
+				SocketList[pSocket->GetSocketRef()] = pSocket;
 		}
 	}
 
 	m_pItemModel->Sync(SocketList);
 }
 
-void CSocketView::OnDoubleClicked(const QModelIndex& Index)
+/*void CSocketView::OnDoubleClicked(const QModelIndex& Index)
 {
 
-}
+}*/
 
 void CSocketView::OnMenu(const QPoint& Point)
 {

@@ -290,9 +290,10 @@ struct SVarWriteOpt
 
 	enum EFlags : uint32
 	{
-		eNone = 0,
-		eSaveAll,
-		eSaveNtPaths,
+		eNone = 0x00,
+		eSaveAll = 0x01,
+		eSaveNtPaths = 0x02,
+		eSaveToFile = 0x04,
 	};
 	uint32 Flags = eNone;
 };

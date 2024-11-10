@@ -1,9 +1,9 @@
 #pragma once
 #include "../lib_global.h"
 
-LIBRARY_EXPORT std::wstring DosPathToNtPath(const std::wstring& dosPath);
+LIBRARY_EXPORT std::wstring DosPathToNtPath(const std::wstring& dosPath, bool bAsIsOnError = true);
 
-LIBRARY_EXPORT std::wstring NtPathToDosPath(const std::wstring& ntPath);
+LIBRARY_EXPORT std::wstring NtPathToDosPath(const std::wstring& ntPath, bool bAsIsOnError = true);
 
 LIBRARY_EXPORT sint32 GetLastWin32ErrorAsNtStatus();
 

@@ -11,6 +11,9 @@ public:
 
 	STATUS Init();
 
+	STATUS Load();
+	STATUS Store();
+
 	void Update();
 
 	STATUS LoadRules();

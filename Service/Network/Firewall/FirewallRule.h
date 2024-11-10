@@ -30,10 +30,9 @@ protected:
 	virtual void ReadIValue(uint32 Index, const CVariant& Data);
 	virtual void ReadMValue(const SVarName& Name, const CVariant& Data);
 
-	void SetProgID();
-
 	CProgramID m_ProgramID;
 	
+	std::wstring m_BinaryPath;
 	std::shared_ptr<struct SWindowsFwRule> m_Data;
 
 	int m_HitCount = 0;

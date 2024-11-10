@@ -196,5 +196,59 @@
         <file>Icons/Tool.png</file>
         <file>Icons/System.png</file>
         <file>Icons/StoreApp.png</file>
+        <file>Icons/RamDisk.png</file>
+        <file>Icons/CPU.png</file>
+        <file>Icons/RAM.png</file>
+        <file>Icons/File.png</file>
+        <file>Icons/Directory.png</file>
+        <file>Icons/all.png</file>
+        <file>Icons/Accessibility.png</file>
+        <file>Icons/Box.png</file>
+        <file>Icons/Breakout.png</file>
+        <file>Icons/Cmd_.png</file>
+        <file>Icons/Control3.png</file>
+        <file>Icons/Control4.png</file>
+        <file>Icons/Desktop.png</file>
+        <file>Icons/DisableRecovery.png</file>
+        <file>Icons/Down.png</file>
+        <file>Icons/Editor.png</file>
+        <file>Icons/Editor2.png</file>
+        <file>Icons/Editor3.png</file>
+        <file>Icons/Editor4.png</file>
+        <file>Icons/Email.png</file>
+        <file>Icons/Files.png</file>
+        <file>Icons/Font.png</file>
+        <file>Icons/Force.png</file>
+        <file>Icons/ImmidiateRecovery.png</file>
+        <file>Icons/Job.png</file>
+        <file>Icons/Job2.png</file>
+        <file>Icons/Job3.png</file>
+        <file>Icons/Job4.png</file>
+        <file>Icons/LogAPI.png</file>
+        <file>Icons/NewBox.png</file>
+        <file>Icons/PackBox.png</file>
+        <file>Icons/Pause.png</file>
+        <file>Icons/PauseForce.png</file>
+        <file>Icons/Policy.png</file>
+        <file>Icons/Privilege.png</file>
+        <file>Icons/QuickRecovery.png</file>
+        <file>Icons/ResetFont.png</file>
+        <file>Icons/Rules.png</file>
+        <file>Icons/Snapshots.png</file>
+        <file>Icons/Stack.png</file>
+        <file>Icons/TaskBar.png</file>
+        <file>Icons/Template.png</file>
+        <file>Icons/UnPackBox.png</file>
+        <file>Icons/USB.png</file>
+        <file>Icons/USB2.png</file>
+        <file>Icons/Window.png</file>
+        <file>Icons/ActivityFilter.png</file>
+        <file>Icons/ActionFilter.png</file>
+        <file>Icons/RuleFilter.png</file>
+        <file>Icons/ProgFilter.png</file>
+        <file>Icons/RunFilter.png</file>
+        <file>Icons/SocketFilter.png</file>
+        <file>Icons/Time.png</file>
+        <file>Icons/Scroll.png</file>
     </qresource>
 </RCC>

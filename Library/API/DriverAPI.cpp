@@ -22,6 +22,7 @@ typedef long NTSTATUS;
 
 extern "C" {
 #include "../../Driver/KSI/include/kphmsg.h"
+#define FIX_EVENT(e) (e & 0xBFFFFFFF) // strip 0x40000000
 }
 
 uint32 RuleTypeToMsgType(ERuleType Type)
@@ -196,6 +197,7 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
             Event.AccessMask = vEvent[API_V_EVENT_ACCESS].To<uint32>();
             Event.Status = (EEventStatus)vEvent[API_V_EVENT_ACCESS_STATUS].To<uint32>();
             Event.NtStatus = vEvent[API_V_EVENT_STATUS].To<uint32>();            
+            Event.IsDirectory = vEvent[API_V_EVENT_IS_DIR].To<bool>();            
 
             CDriverAPI__EmitProcess(This, &Event);
             break;
@@ -244,10 +246,10 @@ STATUS CDriverAPI::InstallDrv(uint32 TraceLogLevel)
 
 STATUS CDriverAPI::ConnectDrv()
 {
-    STATUS Status;
-
     if (m_pClient->IsConnected())
-		return OK;
+		m_pClient->Disconnect();
+
+    STATUS Status;
 
     SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
     if ((SvcState & SVC_INSTALLED) != SVC_INSTALLED) {
@@ -282,16 +284,16 @@ bool CDriverAPI::IsConnected()
     return m_pClient->IsConnected();
 }
 
-STATUS CDriverAPI::Reconnect()
-{
-    m_pClient->Disconnect();
-
-    switch (m_Interface) {
-    case EInterface::eFltPort: return m_pClient->Connect(API_DRIVER_PORT); // this require admin rights
-    case EInterface::eDevice: return m_pClient->Connect(API_DEVICE_NAME);
-    default: return ERR(STATUS_NOINTERFACE);
-    }
-}
+//STATUS CDriverAPI::Reconnect()
+//{
+//    m_pClient->Disconnect();
+//
+//    switch (m_Interface) {
+//    case EInterface::eFltPort: return m_pClient->Connect(API_DRIVER_PORT); // this require admin rights
+//    case EInterface::eDevice: return m_pClient->Connect(API_DEVICE_NAME);
+//    default: return ERR(STATUS_NOINTERFACE);
+//    }
+//}
 
 void CDriverAPI::Disconnect()
 {
@@ -492,13 +494,13 @@ STATUS CDriverAPI::GetChallenge(CBuffer& Challenge)
 //    return m_pClient->Call(API_CLEAR_ACCESS_RULE_ALIAS, ReqVar);
 //}
 
-STATUS CDriverAPI::RegisterForProcesses(bool bRegister)
+STATUS CDriverAPI::RegisterForProcesses(uint32 uEvents, bool bRegister)
 {
     CVariant ReqVar;
     if(bRegister)
-        ReqVar[API_V_SET_NOTIFY_BITMASK] = KphMsgProcessCreate | KphMsgProcessExit | KphMsgUntrustedImage | KphMsgImageLoad | KphMsgProcAccess | KphMsgThreadAccess | KphMsgAccessFile | KphMsgAccessReg;
+        ReqVar[API_V_SET_NOTIFY_BITMASK] = FIX_EVENT(uEvents);
     else
-        ReqVar[API_V_CLEAR_NOTIFY_BITMASK] = KphMsgProcessCreate | KphMsgProcessExit | KphMsgUntrustedImage | KphMsgImageLoad | KphMsgProcAccess | KphMsgThreadAccess | KphMsgAccessFile | KphMsgAccessReg;
+        ReqVar[API_V_CLEAR_NOTIFY_BITMASK] = FIX_EVENT(uEvents);
 	return m_pClient->Call(API_REGISTER_FOR_EVENT, ReqVar);
 }
 
@@ -512,9 +514,9 @@ STATUS CDriverAPI::RegisterForRuleEvents(ERuleType Type, bool bRegister)
 {
     CVariant ReqVar;
     if(bRegister)
-        ReqVar[API_V_SET_NOTIFY_BITMASK] = RuleTypeToMsgType(Type);
+        ReqVar[API_V_SET_NOTIFY_BITMASK] = FIX_EVENT(RuleTypeToMsgType(Type));
     else
-        ReqVar[API_V_CLEAR_NOTIFY_BITMASK] = RuleTypeToMsgType(Type);
+        ReqVar[API_V_CLEAR_NOTIFY_BITMASK] = FIX_EVENT(RuleTypeToMsgType(Type));
     return m_pClient->Call(API_REGISTER_FOR_EVENT, ReqVar);
 }
 

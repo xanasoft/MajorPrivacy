@@ -18,7 +18,7 @@ public:
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;
-	void					OnDoubleClicked(const QModelIndex& Index) override;
+	//void					OnDoubleClicked(const QModelIndex& Index) override;
 
 private slots:
 	//void					OnResetColumns();
@@ -36,4 +36,5 @@ private:
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbGrouping;
 	bool					m_bGroupByProgram = false;
+	quint64					m_RecentLimit = 0;
 };

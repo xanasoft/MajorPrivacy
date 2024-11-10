@@ -401,7 +401,7 @@ bool CDnsInspector::ResolveHost(const CAddress& Address, const CHostNamePtr& pHo
 
 	// if we dont have a valid entry start a lookup job and finisch asynchroniously
 	//if (ValidReverseEntries == 0)
-	if(RevHostNames.size() == 0 && theCore->Config()->GetBool("Service", "UserReverseDns", false))
+	if(RevHostNames.size() == 0 && theCore->Config()->GetBool("Service", "UseReverseDns", false))
 	{
 		std::unique_lock Lock(m_JobMutex);
 
@@ -456,6 +456,9 @@ std::wstring CDnsInspector::GetHostNamesSmart(const std::wstring& HostName, int 
 	}
 	if (Domins.empty())
 		return HostName;
+
+	if(theCore->Config()->GetBool("Service", "UseSimpleDomains", true))
+		return Domins.begin()->second;
 
 	// (bla.1.com, blup.1.com) -> 1.com
 	std::wstring HostNames;

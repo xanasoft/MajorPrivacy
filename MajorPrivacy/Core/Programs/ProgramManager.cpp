@@ -56,6 +56,8 @@ STATUS CProgramManager::Update()
 	if (Ret.IsError())
 		return Ret.GetStatus();
 
+	int iAdded = 0;
+
 	//UpdateGroup(m_Root, Ret.GetValue());
 
 	const XVariant& Items = Ret.GetValue();
@@ -82,15 +84,17 @@ STATUS CProgramManager::Update()
 			else if (Type == EProgramType::eWindowsService)		pItem = CProgramItemPtr(new CWindowsService());
 			else if (Type == EProgramType::eAppPackage)			pItem = CProgramItemPtr(new CAppPackage());
 			else if (Type == EProgramType::eProgramGroup)		pItem = CProgramItemPtr(new CProgramGroup());
-			else if (Type == EProgramType::eAllPrograms)		pItem = CProgramItemPtr(new CAllPrograms());
+			else if (Type == EProgramType::eAllPrograms)		pItem = m_pAll = CProgramSetPtr(new CAllPrograms());
 			else if (Type == EProgramType::eProgramRoot)		pItem = CProgramItemPtr(new CProgramRoot()); // used only for root item
 			else 
 				return; // unknown type
 			pItem->SetUID(uId);
 			pItem->SetID(ID);
 			m_Items.insert(uId, pItem);
-			if(ID.GetType() != EProgramType::eUnknown)
+			if (ID.GetType() != EProgramType::eUnknown) {
 				AddProgram(pItem);
+				iAdded++;
+			}
 		}
 
 		pItem->FromVariant(Item);
@@ -141,6 +145,9 @@ STATUS CProgramManager::Update()
 	}
 
 	m_Root->CountStats();
+
+	if(iAdded > 0)
+		emit ProgramsAdded();
 
 	return UpdateLibs();
 }
@@ -196,10 +203,10 @@ void CProgramManager::AddProgram(const CProgramItemPtr& pItem)
 	{
 	case EProgramType::eAllPrograms:			m_pAll = pItem.objectCast<CProgramSet>(); break;
 	case EProgramType::eProgramFile:			m_PathMap.insert(ID.GetFilePath(), pItem.objectCast<CProgramFile>()); break;
-	case EProgramType::eFilePattern:	m_PatternMap.insert(ID.GetFilePath(), pItem.objectCast<CProgramPattern>()); break;
+	case EProgramType::eFilePattern:			m_PatternMap.insert(ID.GetFilePath(), pItem.objectCast<CProgramPattern>()); break;
 	case EProgramType::eAppInstallation:		break;
-	case EProgramType::eWindowsService:		m_ServiceMap.insert(ID.GetServiceTag(), pItem.objectCast<CWindowsService>()); break;
-	case EProgramType::eAppPackage:			m_PackageMap.insert(ID.GetAppContainerSid(), pItem.objectCast<CAppPackage>()); break;
+	case EProgramType::eWindowsService:			m_ServiceMap.insert(ID.GetServiceTag(), pItem.objectCast<CWindowsService>()); break;
+	case EProgramType::eAppPackage:				m_PackageMap.insert(ID.GetAppContainerSid(), pItem.objectCast<CAppPackage>()); break;
 	default: Q_ASSERT(0);
 	}
 }
@@ -210,9 +217,9 @@ void CProgramManager::RemoveProgram(const CProgramItemPtr& pItem)
 	switch (ID.GetType())
 	{
 	case EProgramType::eProgramFile:			m_PathMap.remove(ID.GetFilePath()); break;
-	case EProgramType::eFilePattern:	m_PatternMap.remove(ID.GetFilePath()); break;
-	case EProgramType::eWindowsService:		m_ServiceMap.remove(ID.GetServiceTag()); break;
-	case EProgramType::eAppPackage:			m_PackageMap.remove(ID.GetAppContainerSid()); break;
+	case EProgramType::eFilePattern:			m_PatternMap.remove(ID.GetFilePath()); break;
+	case EProgramType::eWindowsService:			m_ServiceMap.remove(ID.GetServiceTag()); break;
+	case EProgramType::eAppPackage:				m_PackageMap.remove(ID.GetAppContainerSid()); break;
 	//default: Q_ASSERT(0); // ignore
 	}
 }
@@ -223,29 +230,41 @@ CProgramItemPtr CProgramManager::GetProgramByID(const CProgramID& ID)
 	{
 	case EProgramType::eAllPrograms:			return m_pAll;
 	case EProgramType::eProgramFile:			return GetProgramFile(ID.GetFilePath());
-	case EProgramType::eFilePattern:	return GetPattern(ID.GetFilePath());
-	case EProgramType::eWindowsService:		return GetService(ID.GetServiceTag());
-	case EProgramType::eAppPackage:			return GetAppPackage(ID.GetAppContainerSid());
-	default:						Q_ASSERT(0); return NULL;
+	case EProgramType::eFilePattern:			return GetPattern(ID.GetFilePath());
+	case EProgramType::eWindowsService:			return GetService(ID.GetServiceTag());
+	case EProgramType::eAppPackage:				return GetAppPackage(ID.GetAppContainerSid());
+	default: Q_ASSERT(0); return NULL;
 	}
 }
 
-CProgramItemPtr CProgramManager::GetProgramByUID(quint64 UID)
+CProgramItemPtr CProgramManager::GetProgramByUID(quint64 UID, bool bCanUpdate)
 {
 	CProgramItemPtr pProgram = m_Items.value(UID);
 	if(!pProgram){
-		Update();
-		pProgram = m_Items.value(UID);
+		if (bCanUpdate) {
+			Update();
+			pProgram = m_Items.value(UID);
+		}
+#ifdef _DEBUG
+		else
+			qDebug() << "Program not found by UID:" << UID;
+#endif
 	}
 	return pProgram;
 }
 
-CProgramLibraryPtr CProgramManager::GetLibraryByUID(quint64 UID)
+CProgramLibraryPtr CProgramManager::GetLibraryByUID(quint64 UID, bool bCanUpdate)
 {
 	CProgramLibraryPtr pLibrary = m_Libraries.value(UID);
 	if (!pLibrary) {
-		UpdateLibs();
-		pLibrary = m_Libraries.value(UID);
+		if (bCanUpdate) {
+			UpdateLibs();
+			pLibrary = m_Libraries.value(UID);
+		}
+#ifdef _DEBUG
+		else
+			qDebug() << "Library not found by UID:" << UID;
+#endif
 	}
 	return pLibrary;
 }

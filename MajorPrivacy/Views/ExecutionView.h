@@ -17,7 +17,7 @@ public:
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;
-	void					OnDoubleClicked(const QModelIndex& Index) override;
+	//void					OnDoubleClicked(const QModelIndex& Index) override;
 
 private slots:
 	//void					OnResetColumns();
@@ -33,4 +33,5 @@ protected:
 	QMap<SExecutionKey, SExecutionItemPtr>		m_ParentMap;
 	QMap<SExecutionKey, SExecutionItemPtr>		m_ExecutionMap;
 	qint32										m_FilterRole = 0;
+	quint64										m_RecentLimit = 0;
 };

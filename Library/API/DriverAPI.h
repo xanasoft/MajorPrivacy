@@ -112,6 +112,7 @@ struct SResourceAccessEvent : public SProcessEventEx
 	uint32 AccessMask = 0;
 	EEventStatus Status = EEventStatus::eUndefined;
 	NTSTATUS NtStatus = 0;
+	bool IsDirectory = false;
 };
 
 typedef std::shared_ptr<SProcessEvent> SProcessEventPtr;
@@ -138,7 +139,7 @@ public:
 	STATUS InstallDrv(uint32 TraceLogLevel = 0);
 	STATUS ConnectDrv();
 	bool IsConnected();
-	STATUS Reconnect();
+	//STATUS Reconnect();
 	void Disconnect();
 
 	RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message);
@@ -164,7 +165,7 @@ public:
 	//STATUS SetupRuleAlias(const std::wstring& PrefixPath, const std::wstring& DevicePath);
 	//STATUS ClearRuleAlias(const std::wstring& DevicePath);
 
-	STATUS RegisterForProcesses(bool bRegister = true);
+	STATUS RegisterForProcesses(uint32 uEvents, bool bRegister = true);
 	void RegisterProcessHandler(const std::function<sint32(const SProcessEvent* pEvent)>& Handler);
     template<typename T, class C>
     void RegisterProcessHandler(T Handler, C This) { RegisterProcessHandler(std::bind(Handler, This, std::placeholders::_1)); }

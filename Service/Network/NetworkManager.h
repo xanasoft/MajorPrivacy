@@ -46,6 +46,9 @@ public:
 
 	STATUS Init();
 
+	STATUS Load();
+	STATUS Store();
+
 	void Update();
 
 	class CFirewall* Firewall()			{ return m_pFirewall; }
