@@ -2,12 +2,7 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [1.0.0] - 2024-??-??
-
-// TODO 
-
-
-## [0.96.1] - 2024-11-??
+## [0.96.1] - 2024-11-12
 
 ### Added
 - access log is now saved to disk
