@@ -12,17 +12,17 @@ If you want to publicly distribute self-compiled binaries review the LICENSE fil
 
 ## 🚀 Features
 
-* Process Protection - Protect user processes in secure enclaves from other processes including elevated and system processes. (Progress: 90%)
-* Software Restriction - Block undesired processes from starting and undesired Dll’s from loading. (Progress: 90%)
-* File/Folder Protection - Protect selected files and folders from being accessed by unauthorized processes. (Progress: 90%)
-* Registry Protection - like File/Folder Protection just for registry keys. (Progress: 90% not enabled in beta build)
-* Network Firewall - Advanced network firewall to manage outbound and inbound communication. (Progress: 90%)
-* DNS Inspection - Monitor DNS cache and trace events to determine which domains are being accessed by running processes. (Progress: 90%)
-* DNS Fitlering - Filter all DNS requests with a set of pre-defined block lists (pi home compatible) and own custom rules. (Progress: 0%)
-* Proxy Injection - Force arbitrary processes to use pre-defined network proxies. (Progress: 0%)
-* Secure Drives - Create encrypted volumes stored in disk images fully guarded by File/Folder protection to prevent unauthorized access to confidential data. (Progress: 90%)
-* Tweak Engine - Hardens windows configuration by disabling undesired telemetry and cloud features. (Progress: 90%)
-* Integrity level control - set the integrity level of processes in a secure enclave to "Protected" to isolate user objects, including their windows, from other processes（Progress: 0%)
+* Process Protection - Protect user processes in secure enclaves from other processes including elevated and system processes.
+* Software Restriction - Block undesired processes from starting and undesired Dll’s from loading.
+* File/Folder Protection - Protect selected files and folders from being accessed by unauthorized processes.
+* Registry Protection - like File/Folder Protection just for registry keys. (not enabled in beta build)
+* Network Firewall - Advanced network firewall to manage outbound and inbound communication.
+* DNS Inspection - Monitor DNS cache and trace events to determine which domains are being accessed by running processes.
+* DNS Fitlering - Filter all DNS requests with a set of pre-defined block lists (pi home compatible) and own custom rules. (not yet implemented)
+* Proxy Injection - Force arbitrary processes to use pre-defined network proxies. (not yet implemented)
+* Secure Drives - Create encrypted volumes stored in disk images fully guarded by File/Folder protection to prevent unauthorized access to confidential data.
+* Tweak Engine - Hardens windows configuration by disabling undesired telemetry and cloud features.
+* Integrity level control - set the integrity level of processes in a secure enclave to "Protected" to isolate user objects, including their windows, from other processes（not yet implemented)
 
 
 ## 📌 Project support / sponsorship
