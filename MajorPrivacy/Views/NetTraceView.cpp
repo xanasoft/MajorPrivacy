@@ -16,20 +16,27 @@ CNetTraceView::CNetTraceView(QWidget *parent)
 	m_pToolBar = new QToolBar();
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
+	m_pCmbDir = new QComboBox();
+	m_pCmbDir->addItem(QIcon(":/Icons/ArrowUpDown.png"), tr("All Directions"), (qint32)EFwDirections::Bidirectional);
+	m_pCmbDir->addItem(QIcon(":/Icons/ArrowDown.png"), tr("Inbound"), (qint32)EFwDirections::Inbound);
+	m_pCmbDir->addItem(QIcon(":/Icons/ArrowUp.png"), tr("Outbound"), (qint32)EFwDirections::Outbound);
+	connect(m_pCmbDir, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
+	m_pToolBar->addWidget(m_pCmbDir);
+
 	m_pCmbAction = new QComboBox();
-	m_pCmbAction->addItem(tr("Any Action"), (qint32)EEventStatus::eUndefined);
-	m_pCmbAction->addItem(tr("Allowed"), (qint32)EEventStatus::eAllowed);
-	m_pCmbAction->addItem(tr("Blocked"), (qint32)EEventStatus::eBlocked);
+	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Action"), (qint32)EEventStatus::eUndefined);
+	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)EEventStatus::eAllowed);
+	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
 	connect(m_pCmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbAction);
 
 	m_pCmbType = new QComboBox();
-	m_pCmbType->addItem(tr("All Protocols"), (qint32)ENetProtocols::eAny);
-	m_pCmbType->addItem(tr("HTTP(S)"), (qint32)ENetProtocols::eWeb);
-	m_pCmbType->addItem(tr("TCP Sockets"), (qint32)ENetProtocols::eTCP);
-	m_pCmbType->addItem(tr("TCP Clients"), (qint32)ENetProtocols::eTCP_Client);
-	m_pCmbType->addItem(tr("TCP Servers"), (qint32)ENetProtocols::eTCP_Server);
-	m_pCmbType->addItem(tr("UDP Sockets"), (qint32)ENetProtocols::eUDP);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("All Protocols"), (qint32)ENetProtocols::eAny);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("HTTP(S)"), (qint32)ENetProtocols::eWeb);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("TCP Sockets"), (qint32)ENetProtocols::eTCP);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("TCP Clients"), (qint32)ENetProtocols::eTCP_Client);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("TCP Servers"), (qint32)ENetProtocols::eTCP_Server);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("UDP Sockets"), (qint32)ENetProtocols::eUDP);
 	connect(m_pCmbType, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbType);
 
@@ -67,7 +74,7 @@ void CNetTraceView::Sync(const struct SMergedLog* pLog)
 
 void CNetTraceView::UpdateFilter()
 {
-	((CNetTraceModel*)m_pItemModel)->SetFilter((EEventStatus)m_pCmbAction->currentData().toInt(), (ENetProtocols)m_pCmbType->currentData().toInt());
+	((CNetTraceModel*)m_pItemModel)->SetFilter((EFwDirections)m_pCmbDir->currentData().toInt(), (EEventStatus)m_pCmbAction->currentData().toInt(), (ENetProtocols)m_pCmbType->currentData().toInt());
 	m_FullRefresh = true;
 }
 

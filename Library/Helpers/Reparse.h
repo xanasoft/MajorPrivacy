@@ -10,6 +10,8 @@ public:
 
 	static CNtPathMgr* Instance();
 
+	static void Dispose();
+
 	static std::wstring GetNtPathFromHandle(HANDLE hFile);
 
 
@@ -45,9 +47,9 @@ public:
 		std::wstring src;
 	};
 
-	std::wstring TranslateTempLinks(const std::wstring& TruePath, bool StripLastPathComponent = false);
-	std::wstring TranslateDosToNtPath(const std::wstring& DosPath);
-	std::wstring TranslateNtToDosPath(const std::wstring& path);
+	std::wstring TranslateTempLinks(const std::wstring& TruePath, bool bReverse, bool StripLastPathComponent = false);
+	std::wstring TranslateDosToNtPath(const std::wstring& DosPath, bool bAsIsOnError = true);
+	std::wstring TranslateNtToDosPath(const std::wstring& path, bool bAsIsOnError = true);
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 	// Guid Links
@@ -84,11 +86,12 @@ protected:
 	bool AddLink(bool PermLink, const std::wstring& Src, const std::wstring& Dst);
 	void RemovePermLinks(const std::wstring& path);
 	ULONG GetDrivePrefixLength(const std::wstring& work_str);
-	std::wstring TranslateTempLinks_2(const std::wstring& input_str);
+	std::wstring TranslateTempLinks_2(const std::wstring& input_str, bool bReverse);
 	std::shared_ptr<SLink> AddTempLink(const std::wstring&path);
-	std::wstring FixPermLinksForTempLink(const std::wstring& name);
+	std::shared_ptr<SLink> AddReverseTempLink(const std::wstring& path);
+	std::wstring FixPermLinksForTempLink(const std::wstring& name, bool bReverse);
 	void GetDriveAndLinkForPath(const std::wstring& Path, std::shared_ptr<const SDrive>& OutDrive, std::shared_ptr<const SLink>& OutLink);
-	std::shared_ptr<SLink> FindPermLinksForMatchPath(const std::wstring& name);
+	std::shared_ptr<SLink> FindPermLinksForMatchPath(const std::wstring& name, bool bReverse);
 	std::wstring FixPermLinksForMatchPath(const std::wstring& name);
 
 	std::list<std::shared_ptr<SLink>> m_PermLinks;

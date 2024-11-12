@@ -8,9 +8,15 @@
 #include <Aclapi.h>
 #include <sddl.h>
 #include <hndlinfo.h>
+#include "../Library/Helpers/Reparse.h"
 
 std::wstring DosPathToNtPath(const std::wstring &dosPath, bool bAsIsOnError) 
 {
+#if 1
+    std::wstring path = CNtPathMgr::Instance()->TranslateDosToNtPath(dosPath);
+    std::wstring temp = CNtPathMgr::Instance()->TranslateTempLinks(path, false);
+	return temp.empty() ? path : temp;
+#else
     if (dosPath.size() < 2 || dosPath[1] != ':')
         return bAsIsOnError ? dosPath : L""; // not a DOS path
 
@@ -26,10 +32,15 @@ std::wstring DosPathToNtPath(const std::wstring &dosPath, bool bAsIsOnError)
     // Replace drive letter with NT device name
     std::wstring ntPath = ntDeviceName + dosPath.substr(2);
     return ntPath;
+#endif
 }
 
 std::wstring NtPathToDosPath(const std::wstring& ntPath, bool bAsIsOnError) 
 {
+#if 1
+    std::wstring temp = CNtPathMgr::Instance()->TranslateTempLinks(ntPath, true);
+    return CNtPathMgr::Instance()->TranslateNtToDosPath(temp.empty() ? ntPath : temp, bAsIsOnError);
+#else
     std::vector<wchar_t> driveStrings(256);
     DWORD driveStringLength = GetLogicalDriveStringsW((DWORD)driveStrings.size() - 1, &driveStrings[0]);
     if (driveStringLength > 0 && driveStringLength < driveStrings.size()) {
@@ -51,6 +62,7 @@ std::wstring NtPathToDosPath(const std::wstring& ntPath, bool bAsIsOnError)
         }
     }
     return bAsIsOnError ? ntPath : L"";
+#endif
 }
 
 sint32 GetLastWin32ErrorAsNtStatus()
@@ -98,6 +110,8 @@ std::wstring NormalizeFilePath(std::wstring FilePath, bool bLowerCase)
 
 	else if (FilePath.size() > 7 && FilePath.substr(0, 4) == L"\\??\\" && FilePath[5] == L':' && FilePath[6] == L'\\') // \??\X:\...
 		FilePath = DosPathToNtPath(FilePath.substr(4));
+    else if (FilePath.size() > 7 && FilePath.substr(0, 4) == L"\\\\?\\" && FilePath[5] == L':' && FilePath[6] == L'\\') // \\?\X:\...
+        FilePath = DosPathToNtPath(FilePath.substr(4));
 
 	// todo: else if (FilePath.substr(0, 11) == L"\\??\\Volume{")
 

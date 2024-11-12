@@ -5,6 +5,7 @@
 #include "../Core/Processes/ProcessList.h"
 #include "../Core/Programs/ProgramFile.h"
 #include "TraceModel.h"
+#include "../Service/Network/Firewall/FirewallDefs.h"
 
 class CNetTraceModel : public CTraceModel
 {
@@ -16,7 +17,7 @@ public:
 	CNetTraceModel(QObject* parent = 0);
 	~CNetTraceModel();
 
-	void 					SetFilter(EEventStatus Action, ENetProtocols Protocol) { m_Action = Action; m_Protocol = Protocol; }
+	void 					SetFilter(EFwDirections Dir, EEventStatus Action, ENetProtocols Protocol) { m_Dir = Dir; m_Action = Action; m_Protocol = Protocol; }
 
 	virtual int				columnCount(const QModelIndex &parent = QModelIndex()) const;
 	virtual QVariant		headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
@@ -48,6 +49,7 @@ protected:
 		CProgramFilePtr		pProgram;
 	};
 
+	EFwDirections			m_Dir = EFwDirections::Bidirectional;
 	EEventStatus			m_Action = EEventStatus::eUndefined;
 	ENetProtocols           m_Protocol = ENetProtocols::eAny;
 

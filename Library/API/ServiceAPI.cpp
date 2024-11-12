@@ -128,7 +128,11 @@ STATUS CServiceAPI::ConnectEngine()
 	}
 
 
+#ifdef _DEBUG
+	for(;;)
+#else
 	for (int i = 0; i < 10; i++)
+#endif
 	{
 		DWORD exitCode;
 		GetExitCodeProcess(hEngineProcess, &exitCode);

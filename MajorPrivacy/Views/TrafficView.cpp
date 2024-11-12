@@ -28,7 +28,8 @@ CTrafficView::CTrafficView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbGrouping = new QComboBox();
-	m_pCmbGrouping->addItems(QStringList() << tr("By Host") << tr("By Program"));
+	m_pCmbGrouping->addItem(QIcon(":/Icons/Internet.png"), tr("By Host"));
+	m_pCmbGrouping->addItem(QIcon(":/Icons/Process.png"), tr("By Program"));
 	m_pToolBar->addWidget(m_pCmbGrouping);
 
 	int comboBoxHeight = m_pCmbGrouping->sizeHint().height();

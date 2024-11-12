@@ -30,9 +30,9 @@ CIngressView::CIngressView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbRole = new QComboBox();
-	m_pCmbRole->addItem(tr("Any Role"), (qint32)CProgramFile::SInfo::eNone);
-	m_pCmbRole->addItem(tr("Actor"), (qint32)CProgramFile::SInfo::eTarget);
-	m_pCmbRole->addItem(tr("Target"), (qint32)CProgramFile::SInfo::eActor);
+	m_pCmbRole->addItem(QIcon(":/Icons/EFence.png"), tr("Any Role"), (qint32)CProgramFile::SInfo::eNone);
+	m_pCmbRole->addItem(QIcon(":/Icons/Export.png"), tr("Actor"), (qint32)CProgramFile::SInfo::eTarget);
+	m_pCmbRole->addItem(QIcon(":/Icons/Entry.png"), tr("Target"), (qint32)CProgramFile::SInfo::eActor);
 	m_pToolBar->addWidget(m_pCmbRole);
 
 	int comboBoxHeight = m_pCmbRole->sizeHint().height();

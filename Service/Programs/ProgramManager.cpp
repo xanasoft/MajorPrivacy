@@ -112,7 +112,7 @@ STATUS CProgramManager::Init()
 	m_NtOsKernel = CProgramFilePtr(new CProgramFile(NormalizeFilePath(CProcess::NtOsKernel_exe)));
 	m_NtOsKernel->SetName(L"System (NT OS Kernel)");
 	m_PathMap[m_NtOsKernel->GetPath()] = m_NtOsKernel;
-	AddItemToRoot(m_NtOsKernel);
+	//AddItemToRoot(m_NtOsKernel);
 	m_Items.insert(std::make_pair(m_NtOsKernel->GetUID(), m_NtOsKernel));
 
 	WCHAR windir[MAX_PATH + 8];
@@ -124,7 +124,9 @@ STATUS CProgramManager::Init()
 	STATUS Status = Load();
 	if (!Status)
 	{
-		AddPattern(DosPathToNtPath(GetApplicationDirectory()) + L"\\*", L"Major Privacy");
+		AddItemToRoot(m_NtOsKernel);
+
+		//AddPattern(DosPathToNtPath(GetApplicationDirectory()) + L"\\*", L"Major Privacy");
 
 		AddPattern(m_WinDir + L"\\*", L"Windows");
 		//AddPattern(m_WinDir + L"\\System32\\svchost.exe", L"Windows Service Host");
@@ -523,8 +525,11 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID)
 		return ERR(STATUS_ERR_PROG_NOT_FOUND);
 	CProgramItemPtr pItem = F->second;
 
-	if(pItem->HasFwRules() ||  pItem->HasProgRules() || pItem->HasResRules())
-		return ERR(STATUS_ERR_PROG_HAS_RULES); // Can't remove if it has rules
+	if (!ParentUID && pItem->GetGroupCount() == 1) // removing from all groups or from last group
+	{
+		if (pItem->HasFwRules() || pItem->HasProgRules() || pItem->HasResRules())
+			return ERR(STATUS_ERR_PROG_HAS_RULES); // Can't remove if it has rules
+	}
 
 	const CProgramID& ID = pItem->GetID();
 

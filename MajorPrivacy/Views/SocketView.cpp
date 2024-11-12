@@ -25,12 +25,12 @@ CSocketView::CSocketView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbType = new QComboBox();
-	m_pCmbType->addItem(tr("All Protocols"), (qint32)ENetProtocols::eAny);
-	m_pCmbType->addItem(tr("HTTP(S)"), (qint32)ENetProtocols::eWeb);
-	m_pCmbType->addItem(tr("TCP Sockets"), (qint32)ENetProtocols::eTCP);
-	m_pCmbType->addItem(tr("TCP Clients"), (qint32)ENetProtocols::eTCP_Client);
-	m_pCmbType->addItem(tr("TCP Servers"), (qint32)ENetProtocols::eTCP_Server);
-	m_pCmbType->addItem(tr("UDP Sockets"), (qint32)ENetProtocols::eUDP);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("All Protocols"), (qint32)ENetProtocols::eAny);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("HTTP(S)"), (qint32)ENetProtocols::eWeb);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("TCP Sockets"), (qint32)ENetProtocols::eTCP);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("TCP Clients"), (qint32)ENetProtocols::eTCP_Client);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("TCP Servers"), (qint32)ENetProtocols::eTCP_Server);
+	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("UDP Sockets"), (qint32)ENetProtocols::eUDP);
 	m_pToolBar->addWidget(m_pCmbType);
 
 	int comboBoxHeight = m_pCmbType->sizeHint().height();

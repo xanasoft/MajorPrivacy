@@ -17,6 +17,7 @@
 #include "../Library/Common/UIntX.h"
 #include "../Library/Common/Strings.h"
 #include "../Library/API/DriverAPI.h"
+#include "../Library/Helpers/Reparse.h"
 
 EFwProfiles CFirewall__Profiles[] = { EFwProfiles::Private, EFwProfiles::Public, EFwProfiles::Domain };
 
@@ -51,6 +52,7 @@ CFirewall::~CFirewall()
 	delete m_pLog;
 	delete m_pGuard;
 
+	CNtPathMgr::Dispose();
 	CWindowsFirewall::Dispose();
 	CEventLogListener::FreeDll();
 }

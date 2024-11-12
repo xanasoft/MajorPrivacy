@@ -14,6 +14,15 @@ CAccessModel::CAccessModel(QObject* parent)
 	m_Root = MkNode(QVariant());
 
 	m_bUseIcons = true;
+
+	m_DeviceIcon = QIcon(":/Icons/CPU.png");
+	m_MonitorIcon = QIcon(":/Icons/Monitor.png");
+	m_DiskIcon = QIcon(":/Icons/Disk.png");
+	m_FileIcon = QIcon(":/Icons/File.png");
+	m_DirectoryIcon = QIcon(":/Icons/Directory.png");
+	m_NetworkIcon = QIcon(":/Icons/Network.png");
+	m_ObjectsIcon = QIcon(":/Icons/Objects.png");
+	m_RegEditIcon = QIcon(":/Icons/RegEdit.png");
 }
 
 CAccessModel::~CAccessModel()
@@ -131,9 +140,9 @@ void CAccessModel::Sync(SAccessNode* pParent, QMap<QList<QVariant>, QList<STreeN
 
 			switch (pNode->pItem->Type)
 			{
-			case SAccessItem::eDevice:		pNode->Icon = QIcon(":/Icons/CPU.png"); break;
-			case SAccessItem::eComputer:	pNode->Icon = QIcon(":/Icons/Monitor.png"); break;
-			case SAccessItem::eDrive:		pNode->Icon = QIcon(":/Icons/Disk.png"); break;
+			case SAccessItem::eDevice:		pNode->Icon = m_DeviceIcon; break;
+			case SAccessItem::eComputer:	pNode->Icon = m_MonitorIcon; break;
+			case SAccessItem::eDrive:		pNode->Icon = m_DiskIcon; break;
 			case SAccessItem::eFile: // or folder
 #ifndef USE_ACCESS_TREE
 				if(pNode->Children.isEmpty()) {
@@ -143,16 +152,16 @@ void CAccessModel::Sync(SAccessNode* pParent, QMap<QList<QVariant>, QList<STreeN
 					if(pNode->pItem->Name.contains("."))
 						pNode->Icon = GetFileIcon(Split2(pNode->pItem->Name, ".", true).second, 16);
 					else
-						pNode->Icon = pNode->Icon = QIcon(":/Icons/File.png");
+						pNode->Icon = pNode->Icon = m_FileIcon;
 					break;
 				}
 			case SAccessItem::eFolder:
-				pNode->Icon = pNode->Icon = QIcon(":/Icons/Directory.png");
+				pNode->Icon = pNode->Icon = m_DirectoryIcon;
 				break;
-			case SAccessItem::eNetwork:		pNode->Icon = QIcon(":/Icons/Network.png"); break;
-			case SAccessItem::eHost:		pNode->Icon = QIcon(":/Icons/Monitor.png"); break;
-			case SAccessItem::eObjects:		pNode->Icon = QIcon(":/Icons/Objects.png"); break;
-			case SAccessItem::eRegistry:	pNode->Icon = QIcon(":/Icons/RegEdit.png"); break;
+			case SAccessItem::eNetwork:		pNode->Icon = m_NetworkIcon; break;
+			case SAccessItem::eHost:		pNode->Icon = m_MonitorIcon; break;
+			case SAccessItem::eObjects:		pNode->Icon = m_ObjectsIcon; break;
+			case SAccessItem::eRegistry:	pNode->Icon = m_RegEditIcon; break;
 			}
 
 			//pNode->Icon = pNode->pItem->pProg->GetIcon();

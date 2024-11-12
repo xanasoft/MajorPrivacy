@@ -32,9 +32,9 @@ CProcessView::CProcessView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbScope = new QComboBox();
-	m_pCmbScope->addItem(tr("All"), (qint32)EProcessScope::eAll);
-	m_pCmbScope->addItem(tr("User"), (qint32)EProcessScope::eUser);
-	m_pCmbScope->addItem(tr("System"), (qint32)EProcessScope::eSystem);
+	m_pCmbScope->addItem(QIcon(":/Icons/Process.png"), tr("All"), (qint32)EProcessScope::eAll);
+	m_pCmbScope->addItem(QIcon(":/Icons/UserApp.png"), tr("User"), (qint32)EProcessScope::eUser);
+	m_pCmbScope->addItem(QIcon(":/Icons/System.png"), tr("System"), (qint32)EProcessScope::eSystem);
 	m_pToolBar->addWidget(m_pCmbScope);
 
 	int comboBoxHeight = m_pCmbScope->sizeHint().height();

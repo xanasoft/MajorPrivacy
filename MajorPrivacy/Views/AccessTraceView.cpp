@@ -17,9 +17,9 @@ CAccessTraceView::CAccessTraceView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbAction = new QComboBox();
-	m_pCmbAction->addItem(tr("Any Action"), (qint32)EEventStatus::eUndefined);
-	m_pCmbAction->addItem(tr("Allowed"), (qint32)EEventStatus::eAllowed);
-	m_pCmbAction->addItem(tr("Blocked"), (qint32)EEventStatus::eBlocked);
+	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Action"), (qint32)EEventStatus::eUndefined);
+	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)EEventStatus::eAllowed);
+	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
 	connect(m_pCmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbAction);
 

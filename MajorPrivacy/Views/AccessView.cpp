@@ -31,9 +31,9 @@ CAccessView::CAccessView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbAccess = new QComboBox();
-	m_pCmbAccess->addItem(tr("Any Access"), (qint32)EAccessRuleType::eNone);
-	m_pCmbAccess->addItem(tr("Read/Write"), (qint32)EAccessRuleType::eAllow);
-	m_pCmbAccess->addItem(tr("Write Only"), (qint32)EAccessRuleType::eAllowRO); // WO
+	m_pCmbAccess->addItem(QIcon(":/Icons/Fence.png"), tr("Any Access"), (qint32)EAccessRuleType::eNone);
+	m_pCmbAccess->addItem(QIcon(":/Icons/Go.png"), tr("Read/Write"), (qint32)EAccessRuleType::eAllow);
+	m_pCmbAccess->addItem(QIcon(":/Icons/Go3.png"), tr("Write Only"), (qint32)EAccessRuleType::eAllowRO); // WO
 	//connect(m_pCmbAccess, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbAccess);
 

@@ -83,4 +83,13 @@ protected:
 
 	virtual STreeNode*	MkNode(const QVariant& Id) { return new SAccessNode(this, Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
+
+	QIcon m_DeviceIcon;
+	QIcon m_MonitorIcon;
+	QIcon m_DiskIcon;
+	QIcon m_FileIcon;
+	QIcon m_DirectoryIcon;
+	QIcon m_NetworkIcon;
+	QIcon m_ObjectsIcon;
+	QIcon m_RegEditIcon;
 };

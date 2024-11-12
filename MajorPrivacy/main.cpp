@@ -21,12 +21,19 @@ int main(int argc, char *argv[])
 	//NTCRT_DEFINE(MyCRT);
 	//InitGeneralCRT(&MyCRT);
 
-	/*std::wstring path = DosPathToNtPath(L"C:\\test2\\bla");
+	//std::wstring path = CNtPathMgr::Instance()->TranslateDosToNtPath(L"F:\\Projects\\MajorPrivacy");
 
+	//CNtPathMgr::Instance()->InitDrives();
 	//File_InitDrives(0xFFFFFFFF);
 	//std::wstring testOld = File_TranslateTempLinks(path);
 
-	std::wstring testNew = CNtPathMgr::Instance()->TranslateTempLinks(path);*/
+	//std::wstring testNt = CNtPathMgr::Instance()->TranslateTempLinks(path, false);
+
+	/*std::wstring testNt = L"\\Device\\HarddiskVolume9\\MajorPrivacy\\MajorPrivacy\\x64\\Debug\\MajorPrivacy.exe";
+
+	std::wstring testNew = CNtPathMgr::Instance()->TranslateTempLinks(testNt, true);
+
+	std::wstring testDos = CNtPathMgr::Instance()->TranslateNtToDosPath(testNew);*/
 
 	QString AppDir = QString::fromStdWString(GetApplicationDirectory());
 	theConf = new CSettings(AppDir, "MajorPrivacy", "Xanasoft");

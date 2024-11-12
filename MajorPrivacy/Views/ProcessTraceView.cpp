@@ -17,18 +17,18 @@ CProcessTraceView::CProcessTraceView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbRole = new QComboBox();
-	m_pCmbRole->addItem(tr("Any Role"), (qint32)EExecLogRole::eUndefined);
-	m_pCmbRole->addItem(tr("Actor"), (qint32)EExecLogRole::eActor);
-	m_pCmbRole->addItem(tr("Target"), (qint32)EExecLogRole::eTarget);
+	m_pCmbRole->addItem(QIcon(":/Icons/EFence.png"), tr("Any Role"), (qint32)EExecLogRole::eUndefined);
+	m_pCmbRole->addItem(QIcon(":/Icons/Export.png"), tr("Actor"), (qint32)EExecLogRole::eActor);
+	m_pCmbRole->addItem(QIcon(":/Icons/Entry.png"), tr("Target"), (qint32)EExecLogRole::eTarget);
 	connect(m_pCmbRole, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbRole);
 
 	int comboBoxHeight = m_pCmbRole->sizeHint().height();
 
 	m_pCmbAction = new QComboBox();
-	m_pCmbAction->addItem(tr("Any Action"), (qint32)EEventStatus::eUndefined);
-	m_pCmbAction->addItem(tr("Allowed"), (qint32)EEventStatus::eAllowed);
-	m_pCmbAction->addItem(tr("Blocked"), (qint32)EEventStatus::eBlocked);
+	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Action"), (qint32)EEventStatus::eUndefined);
+	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)EEventStatus::eAllowed);
+	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
 	connect(m_pCmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbAction);
 

@@ -22,6 +22,7 @@ private slots:
 protected:
 
 	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbDir;
 	QComboBox*				m_pCmbAction;
 	QComboBox*				m_pCmbType;
 	QToolButton*			m_pBtnScroll;

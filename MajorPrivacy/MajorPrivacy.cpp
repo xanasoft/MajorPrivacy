@@ -564,15 +564,23 @@ void CMajorPrivacy::BuildGUI()
 	m_pProgramSplitter->addWidget(m_pInfoSplitter);
 	m_pInfoSplitter->setOrientation(Qt::Vertical);
 	m_pInfoSplitter->addWidget(m_pProgramView);
-#if 0
+
 	m_pInfoView = new CInfoView();
 	m_pInfoSplitter->addWidget(m_pInfoView);
 	m_pInfoSplitter->setStretchFactor(0, 1);
 	m_pInfoSplitter->setStretchFactor(1, 0);
-	auto Sizes = m_pInfoSplitter->sizes();
+	/*auto Sizes = m_pInfoSplitter->sizes();
 	Sizes[1] = 0;
-	m_pInfoSplitter->setSizes(Sizes);
-#endif
+	m_pInfoSplitter->setSizes(Sizes);*/
+	m_pInfoView->setVisible(false);
+
+	QAction* pToggleInfo = new QAction(this);
+	pToggleInfo->setShortcut(QKeySequence("Ctrl+I"));
+	pToggleInfo->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+	addAction(pToggleInfo);
+	connect(pToggleInfo, &QAction::triggered, this, [&]() { m_pInfoView->setVisible(!m_pInfoView->isVisible()); });
+
+	
 	m_pInfoSplitter->setVisible(m_pProgTree->isChecked());
 
 	m_pPageSubWidget = new QWidget();

@@ -44,6 +44,11 @@ bool CNetTraceModel::FilterNode(const SMergedLog::TLogEntry& Data) const
 		case EFwActions::Block:	return m_Action == EEventStatus::eBlocked;
 		}
 	}
+	if (m_Dir != EFwDirections::Bidirectional)
+	{
+		if (pEntry->GetDirection() != m_Dir)
+			return false;
+	}
 	return true;
 }
 

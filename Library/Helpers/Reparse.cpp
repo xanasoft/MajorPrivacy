@@ -51,6 +51,15 @@ CNtPathMgr* CNtPathMgr::Instance()
 	return m_pInstance;
 }
 
+void CNtPathMgr::Dispose()
+{
+    if (m_pInstance)
+    {
+        delete m_pInstance;
+        m_pInstance = NULL;
+    }
+}
+
 std::wstring CNtPathMgr::GetNtPathFromHandle(HANDLE hFile)
 {
     WCHAR NameBuf[MAX_PATH];
@@ -69,7 +78,6 @@ bool CNtPathMgr::InitDrives(ULONG DriveMask)
     UNICODE_STRING objname;
     ULONG path_len;
     HANDLE handle;
-    ULONG file_drive_len;
     ULONG drive;
     //ULONG drive_count;
     std::wstring path;
@@ -142,7 +150,7 @@ bool CNtPathMgr::InitDrives(ULONG DriveMask)
         //
 
         path = L"\\??\\ :";
-        path[4] = L'A' + drive;
+        path[4] = (wchar_t)(L'A' + drive);
 
         RtlInitUnicodeString(&objname, path.c_str());
 
@@ -227,7 +235,7 @@ bool CNtPathMgr::InitDrives(ULONG DriveMask)
                 // so it need not be explicitly freed)
 
                 std::shared_ptr<SDrive> file_drive = std::make_shared<SDrive>();
-                file_drive->letter = L'A' + drive;
+                file_drive->letter = (wchar_t)(L'A' + drive);
                 file_drive->subst = subst;
                 file_drive->path = path;
                 *file_drive->sn = 0;
@@ -301,7 +309,7 @@ void CNtPathMgr::AdjustDrives(ULONG path_drive_index, bool subst, const std::wst
         if (file_drive_path.length() >= path_len && (file_drive_path[path_len] == L'\0' || file_drive_path[path_len] == L'\\') && _wcsnicmp(file_drive_path.c_str(), path.c_str(), path_len) == 0) {
 
             file_drive = std::make_shared<SDrive>();
-            file_drive->letter = L'A' + drive_index;
+            file_drive->letter = (wchar_t)(L'A' + drive_index);
             file_drive->subst = file_drive_subst;
             file_drive->path = File_BQQB;
             file_drive->path += (WCHAR)(path_drive_index + L'A');
@@ -492,7 +500,6 @@ void CNtPathMgr::InitLinksLocked()
     ULONG index1;
     WCHAR save_char;
     std::shared_ptr<SGuid> guid;
-    ULONG alloc_len;
     WCHAR text[256];
 
     //
@@ -556,7 +563,7 @@ void CNtPathMgr::InitLinksLocked()
             MountPoint->SymbolicLinkNameLength / sizeof(WCHAR);
 
         _snwprintf(text, 256, L"Found Mountpoint: %.*s <-> %.*s", VolumeNameLen, VolumeName, DeviceNameLen, DeviceName);
-        //SbieApi_MonitorPut2(MONITOR_DRIVE | MONITOR_TRACE, text, FALSE);
+        DbgPrint("%S\r\n", text);
 
         if (VolumeNameLen != 48 && VolumeNameLen != 49)
             continue;
@@ -614,7 +621,7 @@ void CNtPathMgr::InitLinksLocked()
                 DosPath += DosPathLen + 1;
                 while (*DosPath) {
                     _snwprintf(text, 256, L"Mountpoint AddLink: %s <-> %s", DosPath, DeviceName);
-                    //SbieApi_MonitorPut2(MONITOR_DRIVE | MONITOR_TRACE, text, FALSE);
+                    DbgPrint("%S\r\n", text);
                     AddLink(TRUE, DosPath, DeviceName);
                     DosPath += wcslen(DosPath) + 1;
                 }
@@ -632,12 +639,12 @@ void CNtPathMgr::InitLinksLocked()
 
                 WCHAR *FirstDosPath = DosPath;
                 _snwprintf(text, 256, L"Mountpoint AddLink: %s <-> %s", FirstDosPath, DeviceName);
-                //SbieApi_MonitorPut2(MONITOR_DRIVE | MONITOR_TRACE, text, FALSE);
+                DbgPrint("%S\r\n", text);
                 AddLink(TRUE, FirstDosPath, DeviceName);
                 DosPath += DosPathLen + 1;
                 while (*DosPath) {
                     _snwprintf(text, 256, L"Mountpoint AddLink: %s <-> %s", DosPath, DeviceName);
-                    //SbieApi_MonitorPut2(MONITOR_DRIVE | MONITOR_TRACE, text, FALSE);
+                    DbgPrint("%S\r\n", text);
                     AddLink(TRUE, DosPath, DeviceName);
                     DosPath += wcslen(DosPath) + 1;
                 }
@@ -661,12 +668,12 @@ void CNtPathMgr::InitLinksLocked()
 
                 WCHAR *FirstDosPath = DosPath;
                 _snwprintf(text, 256, L"Mountpoint AddLink: %s <-> %s", DeviceName, FirstDosPath);
-                //SbieApi_MonitorPut2(MONITOR_DRIVE | MONITOR_TRACE, text, FALSE);
+                DbgPrint("%S\r\n", text);
                 AddLink(TRUE, DeviceName, FirstDosPath);
                 DosPath += DosPathLen + 1;
                 while (*DosPath) {
                     _snwprintf(text, 256, L"Mountpoint AddLink: %s <-> %s", DosPath, FirstDosPath);
-                    //SbieApi_MonitorPut2(MONITOR_DRIVE | MONITOR_TRACE, text, FALSE);
+                    DbgPrint("%S\r\n", text);
                     AddLink(TRUE, DosPath, FirstDosPath);
                     DosPath += wcslen(DosPath) + 1;
                 }
@@ -685,7 +692,7 @@ void CNtPathMgr::InitLinksLocked()
 std::wstring CNtPathMgr::GetName_TranslateSymlinks(const std::wstring& Path, bool *translated)
 {
     const WCHAR *objname_buf = Path.c_str();
-    ULONG objname_len = (ULONG)Path.length() / sizeof(WCHAR);
+    ULONG objname_len = (ULONG)Path.length() * sizeof(WCHAR);
     NTSTATUS status;
     HANDLE handle;
     OBJECT_ATTRIBUTES objattrs;
@@ -839,7 +846,6 @@ bool CNtPathMgr::AddLink(bool PermLink, const std::wstring& Src, const std::wstr
     ULONG src_len;
     ULONG dst_len;
     ULONG drive_letter;
-    ULONG alloc_len;
     std::shared_ptr<SDrive>src_drive;
     std::shared_ptr<SDrive>dst_drive;
     std::shared_ptr<SLink>link;
@@ -858,7 +864,7 @@ bool CNtPathMgr::AddLink(bool PermLink, const std::wstring& Src, const std::wstr
         if (drive_letter >= L'a' && drive_letter <= L'z') {
             src_drive = m_Drives[drive_letter - L'a'];
             if (src_drive)
-                src_len += src_drive->path.length();
+                src_len += (ULONG)src_drive->path.length();
         }
     }
 
@@ -871,7 +877,7 @@ bool CNtPathMgr::AddLink(bool PermLink, const std::wstring& Src, const std::wstr
         if (drive_letter >= L'a' && drive_letter <= L'z') {
             dst_drive = m_Drives[drive_letter - L'a'];
             if (dst_drive)
-                dst_len += dst_drive->path.length();
+                dst_len += (ULONG)dst_drive->path.length();
         }
     }
 
@@ -952,6 +958,8 @@ bool CNtPathMgr::AddLink(bool PermLink, const std::wstring& Src, const std::wstr
         else
             link->same = FALSE;
 
+        if(link->same)
+            return FALSE;
         m_TempLinks.push_front(link);
     }
 
@@ -975,7 +983,7 @@ void CNtPathMgr::RemovePermLinks(const std::wstring& path)
     {
         old_link = *I;
 
-        const ULONG src_len = old_link->src.length();
+        const ULONG src_len = (ULONG)old_link->src.length();
         const WCHAR *src    = old_link->src.c_str();
         if (src_len >= path_len && (src[path_len] == L'\\' || src[path_len] == L'\0') && _wcsnicmp(path.c_str(), src, path_len) == 0) 
         {
@@ -999,12 +1007,12 @@ ULONG CNtPathMgr::GetDrivePrefixLength(const std::wstring& work_str)
     if (!FILE_IS_REDIRECTOR_OR_MUP(work_str.c_str(), work_str.length())) {
         std::shared_ptr<const SDrive> drive = GetDriveForPath(work_str);
         if (drive) {
-            prefix_len = drive->path.length();
+            prefix_len = (ULONG)drive->path.length();
         }
         else {
             std::shared_ptr<const SGuid> guid = GetGuidForPath(work_str);
             if (guid) {
-                prefix_len = guid->path.length();
+                prefix_len = (ULONG)guid->path.length();
             }
         }
     }
@@ -1014,7 +1022,7 @@ ULONG CNtPathMgr::GetDrivePrefixLength(const std::wstring& work_str)
     return prefix_len;
 }
 
-std::wstring CNtPathMgr::TranslateTempLinks(const std::wstring& _TruePath, bool StripLastPathComponent)
+std::wstring CNtPathMgr::TranslateTempLinks(const std::wstring& _TruePath, bool bReverse, bool StripLastPathComponent)
 {
     static ULONG cleanup_ticks = 0;
     std::shared_ptr<SLink> link;
@@ -1085,7 +1093,7 @@ std::wstring CNtPathMgr::TranslateTempLinks(const std::wstring& _TruePath, bool 
     {
         link = *I;
 
-        if (link->src.length() == TruePath.length() && 0 == _wcsnicmp(link->src.c_str(), TruePath.c_str(), TruePath.length())) {
+        if ((bReverse ? link->dst : link->src).length() == TruePath.length() && 0 == _wcsnicmp((bReverse ? link->dst : link->src).c_str(), TruePath.c_str(), TruePath.length())) {
 
             if (! link->same) {
 
@@ -1094,7 +1102,7 @@ std::wstring CNtPathMgr::TranslateTempLinks(const std::wstring& _TruePath, bool 
                 // append the last component to link->dst
                 //
 
-                ret = std::wstring(link->dst.c_str(), link->dst.length());
+                ret = std::wstring((bReverse ? link->src : link->dst).c_str(), (bReverse ? link->src : link->dst).length());
                 ret += TruePath_Sufix;
             }
 
@@ -1106,7 +1114,9 @@ std::wstring CNtPathMgr::TranslateTempLinks(const std::wstring& _TruePath, bool 
     // if there was no exact match then process the path
     //
 
-    ret = TranslateTempLinks_2(TruePath);
+    ret = TranslateTempLinks_2(TruePath, bReverse);
+    if (ret.empty())
+        goto finish;
 
     //
     // add a link from the original true path to the final result
@@ -1117,7 +1127,7 @@ std::wstring CNtPathMgr::TranslateTempLinks(const std::wstring& _TruePath, bool 
     {
         link = *I;
 
-        if (link->src.length() == TruePath.length() && 0 == _wcsnicmp(link->src.c_str(), TruePath.c_str(), TruePath.length()))
+        if ((bReverse ? link->dst : link->src).length() == TruePath.length() && 0 == _wcsnicmp((bReverse ? link->dst : link->src).c_str(), TruePath.c_str(), TruePath.length()))
             break;
         link = NULL;
     }
@@ -1162,7 +1172,7 @@ finish:
     return ret;
 }
 
-std::wstring CNtPathMgr::TranslateTempLinks_2(const std::wstring& input_str)
+std::wstring CNtPathMgr::TranslateTempLinks_2(const std::wstring& input_str, bool bReverse)
 {
     std::shared_ptr<SLink> link;
     std::shared_ptr<SLink> best_link;
@@ -1192,11 +1202,13 @@ std::wstring CNtPathMgr::TranslateTempLinks_2(const std::wstring& input_str)
         {
             link = *I;
 
-            if (link->src.length() <= input_str.length() && link->src.length() > prefix_len 
-                && (work_str[link->src.length()] == L'\\' || work_str[link->src.length()] == L'\0') 
-                && 0 == _wcsnicmp(link->src.c_str(), work_str.c_str(), link->src.length())) {
+			std::wstring& temp = (bReverse ? link->dst : link->src);
 
-                prefix_len = link->src.length();
+            if (temp.length() <= work_str.length() && temp.length() > prefix_len
+                && (work_str[temp.length()] == L'\\' || work_str[temp.length()] == L'\0')
+                && 0 == _wcsnicmp(temp.c_str(), work_str.c_str(), temp.length())) {
+
+                prefix_len = (ULONG)temp.length();
                 best_link = link;
             }
         }
@@ -1213,9 +1225,11 @@ std::wstring CNtPathMgr::TranslateTempLinks_2(const std::wstring& input_str)
 
             if (! link->same) {
 
-                const ULONG dst_len = link->dst.length();
+                std::wstring& temp = (bReverse ? link->src : link->dst);
 
-                work_str = link->dst + work_str.substr(prefix_len);
+                const ULONG dst_len = (ULONG)temp.length();
+
+                work_str = temp + work_str.substr(prefix_len);
 
                 if ((!link->stop) && (input_str.length() - prefix_len + 1 > 1))
                     continue;
@@ -1245,7 +1259,10 @@ std::wstring CNtPathMgr::TranslateTempLinks_2(const std::wstring& input_str)
         if (1) {
 
             size_t bs_pos = work_str.find(L'\\', prefix_len + 1);
-            link = AddTempLink(work_str.substr(0, bs_pos));
+            if (bReverse)
+                link = AddReverseTempLink(work_str.substr(0, bs_pos));
+            else
+                link = AddTempLink(work_str.substr(0, bs_pos));
             if (! link) // this can only happen due to an internal error
                 break;
         }
@@ -1303,13 +1320,13 @@ std::shared_ptr<CNtPathMgr::SLink> CNtPathMgr::AddTempLink(const std::wstring& p
             // convert permanent links (i.e. drive mount points)
             //
 
-            newpath = FixPermLinksForTempLink(newpath);
+            newpath = FixPermLinksForTempLink(newpath, false);
 
             //
             // verify the link points to a local drive
             //
 
-            if (FindPermLinksForMatchPath(newpath))
+            if (FindPermLinksForMatchPath(newpath, false))
                 bPermLinkPath = TRUE;
 
             if (! FILE_IS_REDIRECTOR_OR_MUP(newpath.c_str(), newpath.length()) && !bPermLinkPath) {
@@ -1340,7 +1357,67 @@ std::shared_ptr<CNtPathMgr::SLink> CNtPathMgr::AddTempLink(const std::wstring& p
     return link;
 }
 
-std::wstring CNtPathMgr::FixPermLinksForTempLink(const std::wstring& name) 
+std::shared_ptr<CNtPathMgr::SLink> CNtPathMgr::AddReverseTempLink(const std::wstring& path)
+{
+    std::shared_ptr<SLink> link;
+    std::wstring newpath = path;
+    BOOLEAN stop;
+    BOOLEAN bPermLinkPath = FALSE;
+
+    //
+    // try to open the path
+    //
+
+    stop = TRUE;
+
+    //
+    // make sure path does not contain duplicate backslashes
+    //
+
+    for (size_t i = 0; i < newpath.size(); ++i) {
+        if (newpath[i] == L'\\' && i + 1 < newpath.size() && newpath[i + 1] == L'\\') {
+            newpath.erase(i, 1);
+        }
+    }
+
+    //
+    // convert permanent links (i.e. drive mount points)
+    //
+
+    newpath = FixPermLinksForTempLink(newpath, true);
+
+    //
+    // verify the link points to a local drive
+    //
+
+    if (FindPermLinksForMatchPath(newpath, true))
+        bPermLinkPath = TRUE;
+
+    if (! FILE_IS_REDIRECTOR_OR_MUP(path.c_str(), path.length()) && !bPermLinkPath) {
+        std::shared_ptr<const SDrive> drive = GetDriveForPath(path);
+        if (drive)
+            stop = FALSE;
+    }
+
+
+    //
+    // add the new link and return
+    //
+
+    if (newpath.empty())
+        newpath = path;
+
+    if (AddLink(FALSE, newpath, path)) {
+        link = m_TempLinks.empty() ? NULL : m_TempLinks.front();
+        if(link)
+            link->stop = stop;
+    } else
+        link = NULL;
+
+    return link;
+}
+
+std::wstring CNtPathMgr::FixPermLinksForTempLink(const std::wstring& name, bool bReverse)
 {
     std::wstring result = name;
 
@@ -1350,18 +1427,18 @@ std::wstring CNtPathMgr::FixPermLinksForTempLink(const std::wstring& name)
     {
         std::shared_ptr<SLink> link = *I;
 
-        const ULONG src_len = link->src.length();
-        const ULONG name_len = result.length();
+        const ULONG src_len = (ULONG)(bReverse ? link->dst : link->src).length();
+        const ULONG name_len = (ULONG)result.length();
 
-        if (name_len >= src_len && (result[src_len] == L'\\' || result[src_len] == L'\0') && _wcsnicmp(result.c_str(), link->src.c_str(), src_len) == 0) 
+        if (name_len >= src_len && (result[src_len] == L'\\' || result[src_len] == L'\0') && _wcsnicmp(result.c_str(), (bReverse ? link->dst : link->src).c_str(), src_len) == 0) 
         {
-            const ULONG dst_len = link->dst.length();
+            const ULONG dst_len = (ULONG)(bReverse ? link->src : link->dst).length();
             if (dst_len + name_len - src_len <= result.max_size()) 
             {
                 if (src_len != dst_len)
-                    result.replace(0, src_len, link->dst);
+                    result.replace(0, src_len, (bReverse ? link->src : link->dst));
                 else
-                    result.replace(0, dst_len, link->dst);
+                    result.replace(0, dst_len, (bReverse ? link->src : link->dst));
 
                 I = m_PermLinks.begin();
                 link = *I;
@@ -1389,7 +1466,7 @@ void CNtPathMgr::GetDriveAndLinkForPath(const std::wstring& Path, std::shared_pt
     {
         std::shared_ptr<const SLink> link = *I;
 
-        const ULONG src_len = link->src.length();
+        const ULONG src_len = (ULONG)link->src.length();
 
         if (Path.length() >= src_len && _wcsnicmp(Path.c_str(), link->src.c_str(), src_len) == 0) {
 
@@ -1399,7 +1476,7 @@ void CNtPathMgr::GetDriveAndLinkForPath(const std::wstring& Path, std::shared_pt
     }
 }
 
-std::shared_ptr<CNtPathMgr::SLink> CNtPathMgr::FindPermLinksForMatchPath(const std::wstring& name)
+std::shared_ptr<CNtPathMgr::SLink> CNtPathMgr::FindPermLinksForMatchPath(const std::wstring& name, bool bReverse)
 {
     std::unique_lock lock(m_Mutex);
 
@@ -1407,9 +1484,9 @@ std::shared_ptr<CNtPathMgr::SLink> CNtPathMgr::FindPermLinksForMatchPath(const s
     {
         std::shared_ptr<CNtPathMgr::SLink> link = *I;
 
-        const ULONG dst_len = link->dst.length();
+        const ULONG dst_len = (ULONG)(bReverse ? link->src : link->dst).length();
 
-        if (name.length() >= dst_len && (name[dst_len] == L'\\' || name[dst_len] == L'\0') && _wcsnicmp(name.c_str(), link->dst.c_str(), dst_len) == 0)
+        if (name.length() >= dst_len && (name[dst_len] == L'\\' || name[dst_len] == L'\0') && _wcsnicmp(name.c_str(), (bReverse ? link->src : link->dst).c_str(), dst_len) == 0)
             return link;
     }
 
@@ -1418,10 +1495,10 @@ std::shared_ptr<CNtPathMgr::SLink> CNtPathMgr::FindPermLinksForMatchPath(const s
 
 std::wstring CNtPathMgr::FixPermLinksForMatchPath(const std::wstring& name)
 {
-    std::shared_ptr<CNtPathMgr::SLink> link = FindPermLinksForMatchPath(name);
+    std::shared_ptr<CNtPathMgr::SLink> link = FindPermLinksForMatchPath(name, false);
     if (link)
     {
-        const ULONG dst_len = link->dst.length();
+        const ULONG dst_len = (ULONG)link->dst.length();
 
         return link->src + name.substr(dst_len);
     }
@@ -1486,7 +1563,7 @@ std::wstring CNtPathMgr::TranslateGuidToNtPath(const std::wstring& GuidPath)
 ////////////////////////////////////////////////////////////////////////////////////////////
 // 
 
-std::wstring CNtPathMgr::TranslateDosToNtPath(const std::wstring& DosPath)
+std::wstring CNtPathMgr::TranslateDosToNtPath(const std::wstring& DosPath, bool bAsIsOnError)
 {
     //
     // network path L"\\..."
@@ -1508,10 +1585,10 @@ std::wstring CNtPathMgr::TranslateDosToNtPath(const std::wstring& DosPath)
             return drive->path + DosPath.substr(2);
     }
 
-    return DosPath;
+    return bAsIsOnError ? DosPath : L"";
 }
 
-std::wstring CNtPathMgr::TranslateNtToDosPath(const std::wstring& NtPath)
+std::wstring CNtPathMgr::TranslateNtToDosPath(const std::wstring& NtPath, bool bAsIsOnError)
 {
     // 
     // sometimes we get a DOS path with the \??\ prefix
@@ -1519,6 +1596,8 @@ std::wstring CNtPathMgr::TranslateNtToDosPath(const std::wstring& NtPath)
     // 
 
     if (_wcsnicmp(NtPath.c_str(), L"\\??\\", 4) == 0)
+        return NtPath.substr(4);
+    if (_wcsnicmp(NtPath.c_str(), L"\\\\?\\", 4) == 0)
         return NtPath.substr(4);
 
     if (_wcsnicmp(NtPath.c_str(), File_Mup, File_MupLen) == 0)
@@ -1528,15 +1607,18 @@ std::wstring CNtPathMgr::TranslateNtToDosPath(const std::wstring& NtPath)
     // Find Dos Drive Letter
     //
 
-    ULONG path_len = NtPath.length();
+    ULONG path_len = (ULONG)NtPath.length();
     ULONG prefix_len;
     std::shared_ptr<const SDrive> drive = GetDriveForPath(NtPath);
     if (drive)
-        prefix_len = drive->path.length();
+        prefix_len = (ULONG)drive->path.length();
     else
         drive = GetDriveForUncPath(NtPath, &prefix_len);
     if (drive)
-        return drive->letter + L":" + NtPath.substr(prefix_len);
+        return std::wstring(&drive->letter, 1) + L":" + NtPath.substr(prefix_len);
+
+    if (!bAsIsOnError)
+        return L"";
 
     // 
     // sometimes we have to use a path which has no drive letter

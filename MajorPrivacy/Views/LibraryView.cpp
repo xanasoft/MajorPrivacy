@@ -28,7 +28,8 @@ CLibraryView::CLibraryView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbGrouping = new QComboBox();
-	m_pCmbGrouping->addItems(QStringList() << tr("By Program") << tr("By Library"));
+	m_pCmbGrouping->addItem(QIcon(":/Icons/Process.png"), tr("By Program"));
+	m_pCmbGrouping->addItem(QIcon(":/Icons/Dll.png"), tr("By Library"));
 	m_pToolBar->addWidget(m_pCmbGrouping);
 
 	int comboBoxHeight = m_pCmbGrouping->sizeHint().height();

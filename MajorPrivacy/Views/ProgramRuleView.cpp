@@ -29,10 +29,10 @@ CProgramRuleView::CProgramRuleView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbAction = new QComboBox();
-	m_pCmbAction->addItem(tr("All Actions"), (qint32)EExecRuleType::eUnknown);
-	m_pCmbAction->addItem(tr("Allow"), (qint32)EExecRuleType::eAllow);
-	m_pCmbAction->addItem(tr("Block"), (qint32)EExecRuleType::eBlock);
-	m_pCmbAction->addItem(tr("Protect"), (qint32)EExecRuleType::eProtect);
+	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("All Actions"), (qint32)EExecRuleType::eUnknown);
+	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allow"), (qint32)EExecRuleType::eAllow);
+	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Block"), (qint32)EExecRuleType::eBlock);
+	m_pCmbAction->addItem(QIcon(":/Icons/Shield16.png"), tr("Protect"), (qint32)EExecRuleType::eProtect);
 	m_pToolBar->addWidget(m_pCmbAction);
 
 	int comboBoxHeight = m_pCmbAction->sizeHint().height();

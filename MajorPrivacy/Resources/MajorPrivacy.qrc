@@ -250,5 +250,7 @@
         <file>Icons/SocketFilter.png</file>
         <file>Icons/Time.png</file>
         <file>Icons/Scroll.png</file>
+        <file>Icons/Go2.png</file>
+        <file>Icons/Go3.png</file>
     </qresource>
 </RCC>
