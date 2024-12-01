@@ -65,7 +65,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-
 ## [0.96.0] - 2024-10-29
 
 ### Added
@@ -91,8 +90,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-
-
 ## [0.95.0] - 2024-06-30
 
 ### Added
@@ -115,6 +112,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - added user key generation and file signing mechnism
 
 
+
 ## [0.90.0] - 2023-12-31
 
 ### Added
@@ -123,3 +121,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - Ported PrivateWin10 functionality to C++ 
+
+
+
+## [0.85] - 2021-09-13
+
+See [PrivateWin10 ChangeLog](https://github.com/DavidXanatos/priv10/blob/master/CHANGELOG.md#changelog) for a comprehensive feature list.
