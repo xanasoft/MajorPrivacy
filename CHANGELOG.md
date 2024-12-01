@@ -126,4 +126,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.85] - 2021-09-13
 
-See [PrivateWin10 ChangeLog](https://github.com/DavidXanatos/priv10/blob/master/CHANGELOG.md#changelog) for a comprehensive feature list.
+See [PrivateWin10 ChangeLog](https://github.com/DavidXanatos/priv10/blob/master/CHANGELOG.md#changelog) for details.
