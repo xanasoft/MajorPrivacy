@@ -11,7 +11,7 @@ class CAccessRuleWnd : public QDialog
 	Q_OBJECT
 
 public:
-	CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget *parent = Q_NULLPTR);
+	CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, const QString& VolumeRoot = QString(), const QString& VolumeImage = QString(), QWidget *parent = Q_NULLPTR);
 	~CAccessRuleWnd();
 
 signals:
@@ -30,6 +30,9 @@ protected:
 
 	CAccessRulePtr m_pRule;
 	QList<CProgramItemPtr> m_Items;
+
+	QString m_VolumeRoot;
+	QString m_VolumeImage;
 
 private:
 	Ui::AccessRuleWnd ui;

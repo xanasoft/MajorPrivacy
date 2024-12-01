@@ -49,6 +49,15 @@ CFwRuleView::CFwRuleView(QWidget *parent)
 	m_pBtnEnabled->setMaximumHeight(comboBoxHeight);
 	m_pToolBar->addWidget(m_pBtnEnabled);
 
+	m_pToolBar->addSeparator();
+
+	/*m_pBtnCleanUp = new QToolButton();
+	m_pBtnCleanUp->setIcon(QIcon(":/Icons/Clean.png"));
+	m_pBtnCleanUp->setToolTip(tr("CleanUp Rules"));
+	m_pBtnCleanUp->setFixedHeight(22);
+	connect(m_pBtnCleanUp, SIGNAL(clicked()), this, SLOT(CleanUpRules()));
+	m_pToolBar->addWidget(m_pBtnCleanUp);*/
+
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	m_pToolBar->addWidget(pSpacer);
@@ -58,7 +67,7 @@ CFwRuleView::CFwRuleView(QWidget *parent)
 	pBtnSearch->setMaximumHeight(comboBoxHeight);
 	m_pToolBar->addWidget(pBtnSearch);
 
-	m_pCreateRule = m_pMenu->addAction(QIcon(":/Icons/Plus.png"), tr("Create Rule"), this, SLOT(OnRuleAction()));
+	m_pCreateRule = m_pMenu->addAction(QIcon(":/Icons/Add.png"), tr("Create Rule"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
 	m_pEnableRule = m_pMenu->addAction(QIcon(":/Icons/Enable.png"), tr("Enable Rule"), this, SLOT(OnRuleAction()));
 	m_pDisableRule = m_pMenu->addAction(QIcon(":/Icons/Disable.png"), tr("Disable Rule"), this, SLOT(OnRuleAction()));
@@ -203,3 +212,7 @@ void CFwRuleView::OnRuleAction()
 
 	theGUI->CheckResults(Results, this);
 }
+
+/*void CFwRuleView::CleanUpRules()
+{
+}*/

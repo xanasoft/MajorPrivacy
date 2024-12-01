@@ -82,6 +82,8 @@
 #define API_S_RULE_GROUP					"Group"
 #define API_S_RULE_DESCR					"Description"
 
+#define API_S_ITEM_MISSING					"Missing"
+
 //
 
 // Libraries

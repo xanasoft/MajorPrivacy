@@ -16,8 +16,12 @@ public:
 
 	virtual int									GetSpecificity() const { return (int)m_Path.length(); }
 
+	virtual NTSTATUS FromVariant(const CVariant& Data);
+
 protected:
 	friend class CProgramManager;
+
+	void UpdatePattern();
 
 	void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
 	void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;

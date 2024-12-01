@@ -10,13 +10,18 @@ public:
 	~CProgramID();
 
 	void SetPath(const QString& FilePath);
+	void SetRegKey(const QString& RegKey)						{ Q_ASSERT(m_Type == EProgramType::eAppInstallation); m_AuxValue = RegKey; }
+	void SetServiceTag(const QString& ServiceTag)				{ m_ServiceTag = ServiceTag; }
+	void SetAppContainerSid(const QString& AppContainerSid)		{ Q_ASSERT(m_Type == EProgramType::eAppPackage); m_AuxValue = AppContainerSid; }
+	void SetGuid(const QString& Guid)							{ Q_ASSERT(m_Type == EProgramType::eProgramGroup); m_AuxValue = Guid; }
 
-	inline EProgramType GetType() const							{ return m_Type; }
+	EProgramType GetType() const								{ return m_Type; }
 
-	inline const QString& GetFilePath() const					{ return m_FilePath; }
-	inline const QString& GetServiceTag() const					{ return m_ServiceTag; }
-	inline const QString& GetAppContainerSid() const			{ return m_AppContainerSid; }
-	inline const QString& GetRegKey() const						{ return m_RegKey; }
+	QString GetFilePath() const									{ return m_FilePath; }
+	QString GetServiceTag() const								{ return m_ServiceTag; }
+	QString GetAppContainerSid() const							{ if(m_Type == EProgramType::eAppPackage) return m_AuxValue; return QString(); }
+	QString GetGuid() const										{ if(m_Type == EProgramType::eProgramGroup) return m_AuxValue; return QString();  }
+	QString GetRegKey() const									{ if(m_Type == EProgramType::eAppInstallation) return m_AuxValue; return QString(); }
 
 	QString ToString() const;
 
@@ -34,9 +39,8 @@ protected:
 	EProgramType m_Type = EProgramType::eUnknown;
 
 	QString m_FilePath; // or pattern
-	QString m_RegKey;
 	QString m_ServiceTag;
-	QString m_AppContainerSid;
+	QString m_AuxValue;
 };
 
 bool operator < (const CProgramID& l, const CProgramID& r);

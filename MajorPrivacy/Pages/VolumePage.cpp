@@ -11,14 +11,19 @@ CVolumePage::CVolumePage(QWidget* parent)
 	m_pMainLayout = new QVBoxLayout(this);
 	m_pMainLayout->setContentsMargins(0, 0, 0, 0);
 
-	m_pVolumeView = new CVolumeView(this);
-	m_pMainLayout->addWidget(m_pVolumeView);
-
 	//m_pToolBar = new QToolBar();
 	//m_pMainLayout->addWidget(m_pToolBar);
 	
-	//m_pVSplitter = new QSplitter(Qt::Vertical);
-	//m_pMainLayout->addWidget(m_pVSplitter);
+	m_pHSplitter = new QSplitter(Qt::Horizontal);
+	m_pMainLayout->addWidget(m_pHSplitter);
+
+	m_pVolumeView = new CVolumeView(this);
+	m_pHSplitter->addWidget(m_pVolumeView);
+
+	m_pAccessPage = new CAccessPage(this);
+	m_pAccessPage->setObjectName("VolumeAccess");
+	m_pAccessPage->LoadState();
+	m_pHSplitter->addWidget(m_pAccessPage);
 }
 
 void CVolumePage::Update()
@@ -27,4 +32,6 @@ void CVolumePage::Update()
 		return;
 	
 	m_pVolumeView->Sync();
+
+	m_pAccessPage->Update(m_pVolumeView->GetSelectedVolumePath(), m_pVolumeView->GetSelectedVolumeImage());
 }

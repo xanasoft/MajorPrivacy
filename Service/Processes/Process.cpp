@@ -23,7 +23,7 @@ CProcess::CProcess(uint64 Pid)
 {
 	m_Pid = Pid;
 
-	m_CreateTimeStamp = GetTime() * 1000; // todo
+	m_CreateTimeStamp = GetCurTime() * 1000; // todo
 }
 
 CProcess::~CProcess()
@@ -401,7 +401,7 @@ void CProcess::AddNetworkIO(int Type, uint32 TransferSize)
 {
 	std::shared_lock StatsLock(m_StatsMutex);
 
-	m_LastNetActivity = GetTime() * 1000ULL;
+	m_LastNetActivity = GetCurTime() * 1000ULL;
 
 	switch ((CSocketList::EEventType)Type)
 	{

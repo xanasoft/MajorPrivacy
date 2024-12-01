@@ -26,6 +26,8 @@ private slots:
 
 	void					OnRuleAction();
 
+	//void					CleanUpRules();
+
 private:
 
 	QToolBar*				m_pToolBar;
@@ -41,4 +43,6 @@ private:
 	QAction*				m_pRemoveRule;
 	QAction*				m_pEditRule;
 	QAction*				m_pCloneRule;
+
+	//QToolButton*			m_pBtnCleanUp;
 };

@@ -46,11 +46,11 @@ public:
 protected:
 	struct SExecutionNode : STreeNode
 	{
-		SExecutionNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id) { }
+		SExecutionNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		SExecutionItemPtr pItem;
 	};
 
-	virtual STreeNode*	MkNode(const QVariant& Id) { return new SExecutionNode(this, Id); }
+	virtual STreeNode*	MkNode(const QVariant& Id) { return new SExecutionNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 };

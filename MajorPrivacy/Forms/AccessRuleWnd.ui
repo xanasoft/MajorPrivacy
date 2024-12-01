@@ -60,6 +60,12 @@
           <height>96</height>
          </size>
         </property>
+        <property name="plainText">
+         <string/>
+        </property>
+        <property name="placeholderText">
+         <string>Description...</string>
+        </property>
        </widget>
       </item>
       <item row="0" column="1">

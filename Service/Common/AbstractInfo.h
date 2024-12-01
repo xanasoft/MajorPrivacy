@@ -25,7 +25,7 @@ public:
 	
 	static void					SetPersistenceTime(uint64 time)		{ m_PersistenceTime = time; }
 	static uint64				GetPersistenceTime()				{ return m_PersistenceTime; }
-	void						InitTimeStamp()						{ std::unique_lock Lock(m_Mutex); m_CreateTimeStamp = GetTime() * 1000; }
+	void						InitTimeStamp()						{ std::unique_lock Lock(m_Mutex); m_CreateTimeStamp = GetCurTime() * 1000; }
 	void						MarkForRemoval()					{ std::unique_lock Lock(m_Mutex); m_RemoveTimeStamp = GetCurTick(); }
 	bool						IsMarkedForRemoval() const			{ std::shared_lock Lock(m_Mutex); return m_RemoveTimeStamp != 0; }
 	bool						CanBeRemoved() const;

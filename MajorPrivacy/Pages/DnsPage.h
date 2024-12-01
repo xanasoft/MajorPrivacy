@@ -9,7 +9,6 @@ class CDnsPage : public QWidget
 public:
 	CDnsPage(QWidget* parent);
 
-public slots:
 	void	Update();
 
 private:

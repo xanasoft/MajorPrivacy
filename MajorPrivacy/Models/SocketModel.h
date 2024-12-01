@@ -45,12 +45,12 @@ public:
 protected:
 	struct SSocketNode : STreeNode
 	{
-		SSocketNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id) { }
+		SSocketNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		CSocketPtr pSocket;
 		CProcessPtr pProcess;
 	};
 
-	virtual STreeNode*	MkNode(const QVariant& Id) { return new SSocketNode(this, Id); }
+	virtual STreeNode*	MkNode(const QVariant& Id) { return new SSocketNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 };

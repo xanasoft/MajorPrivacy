@@ -123,8 +123,6 @@ retry:
 
 void CPipeClient::Disconnect() 
 { 
-    m->pPipe.reset();
-
 	HANDLE hThread = InterlockedExchangePointer(&m->hThread, NULL);
 	if (hThread)
 	{
@@ -132,6 +130,8 @@ void CPipeClient::Disconnect()
 			TerminateThread(hThread, 0);
 		NtClose(hThread);
 	}
+
+	m->pPipe.reset();
 }
 
 bool CPipeClient::IsConnected()
@@ -142,8 +142,10 @@ bool CPipeClient::IsConnected()
 STATUS CPipeClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff)
 {
 	if (!m->pPipe) {
-		if(!Connect())
+		if (!m_AutoConnect)
 			return ERR(STATUS_PORT_DISCONNECTED);
+		if (!Connect())
+			return ERR(STATUS_PORT_CONNECTION_REFUSED);
 	}
 
 	m->Mutex.lock();

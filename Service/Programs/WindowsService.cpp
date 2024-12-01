@@ -8,6 +8,17 @@ CWindowsService::CWindowsService(const TServiceId& Id)
 	m_ServiceId = Id;
 }
 
+CProgramFilePtr CWindowsService::GetProgramFile() const
+{
+	std::unique_lock lock(m_Mutex);
+
+	CProgramFilePtr pProgram;
+	auto I = m_Groups.begin();
+	if (I != m_Groups.end())
+		pProgram = std::dynamic_pointer_cast<CProgramFile>(I->second.lock());
+	return pProgram;
+}
+
 void CWindowsService::SetProcess(const CProcessPtr& pProcess)
 {
 	std::unique_lock lock(m_Mutex);
@@ -19,15 +30,11 @@ void CWindowsService::SetProcess(const CProcessPtr& pProcess)
 
 void CWindowsService::AddExecTarget(const std::shared_ptr<CProgramFile>& pProgram, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked)
 {
-	std::unique_lock lock(m_Mutex);
-
 	m_AccessLog.AddExecTarget(pProgram->GetUID(), CmdLine, CreateTime, bBlocked);
 }
 
 CVariant CWindowsService::DumpExecStats() const
 {
-	std::unique_lock lock(m_Mutex);
-
 	SVarWriteOpt Opts;
 
 	CVariant Targets;
@@ -44,15 +51,11 @@ CVariant CWindowsService::DumpExecStats() const
 
 void CWindowsService::AddIngressTarget(const std::shared_ptr<CProgramFile>& pProgram, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
 {
-	std::unique_lock lock(m_Mutex);
-
 	m_AccessLog.AddIngressTarget(pProgram->GetUID(), bThread, AccessMask, AccessTime, bBlocked);
 }
 
 CVariant CWindowsService::DumpIngress() const
 {
-	std::unique_lock lock(m_Mutex);
-
 	SVarWriteOpt Opts;
 
 	CVariant Targets;
@@ -69,15 +72,11 @@ CVariant CWindowsService::DumpIngress() const
 
 void CWindowsService::AddAccess(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked)
 {
-	std::unique_lock lock(m_Mutex);
-
 	m_AccessTree.Add(Path, AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked);
 }
 
 CVariant CWindowsService::StoreAccess(const SVarWriteOpt& Opts) const
 {
-	std::unique_lock lock(m_Mutex); 
-
 	CVariant Data;
 	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts);
@@ -88,8 +87,6 @@ CVariant CWindowsService::StoreAccess(const SVarWriteOpt& Opts) const
 
 void CWindowsService::LoadAccess(const CVariant& Data)
 {
-	std::unique_lock lock(m_Mutex);
-
 	m_AccessTree.LoadTree(Data[API_V_PROG_RESOURCE_ACCESS]);
 	m_AccessLog.LoadExecTargets(Data[API_V_PROG_EXEC_TARGETS]);
 	m_AccessLog.LoadIngressTargets(Data[API_V_PROG_INGRESS_TARGETS]);
@@ -97,8 +94,6 @@ void CWindowsService::LoadAccess(const CVariant& Data)
 
 CVariant CWindowsService::DumpAccess(uint64 LastActivity) const
 {
-	std::unique_lock lock(m_Mutex); 
-
 	return m_AccessTree.DumpTree(LastActivity);
 }
 
@@ -136,8 +131,6 @@ void CWindowsService::UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked)
 
 void CWindowsService::CollectStats(SStats& Stats) const
 {
-	Stats.LastFwAllowed = m_LastFwAllowed;
-	Stats.LastFwBlocked = m_LastFwBlocked;
 	Stats.LastNetActivity = m_TrafficLog.GetLastActivity();
 	Stats.Uploaded = m_TrafficLog.GetUploaded();
 	Stats.Downloaded = m_TrafficLog.GetDownloaded();
@@ -151,8 +144,9 @@ void CWindowsService::CollectStats(SStats& Stats) const
 
 			Stats.SocketRefs.insert((uint64)pSocket.get());
 
-			if (pSocket->GetLastActivity() > Stats.LastNetActivity)
-				Stats.LastNetActivity = pSocket->GetLastActivity();
+			uint64 LastActivity = pSocket->GetLastActivity();
+			if (LastActivity > Stats.LastNetActivity)
+				Stats.LastNetActivity = LastActivity;
 
 			Stats.Upload += pSocket->GetUpload();
 			Stats.Download += pSocket->GetDownload();
@@ -162,13 +156,31 @@ void CWindowsService::CollectStats(SStats& Stats) const
 	}
 }
 
-void CWindowsService::ClearLogs()
+void CWindowsService::ClearLogs(ETraceLogs Log)
 {
-	m_TrafficLog.Clear();
+	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
+		m_TrafficLog.Clear();
 
-	std::unique_lock lock(m_Mutex);
+	if (Log == ETraceLogs::eLogMax || Log == ETraceLogs::eExecLog) {
+		m_AccessLog.Clear();
+		m_LastExec = 0;
+	}
 
-	m_AccessLog.Clear();
+	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
+		m_AccessTree.Clear();
+}
 
-	m_AccessTree.Clear();
+void CWindowsService::TruncateAccessLog()
+{
+	m_AccessLog.Truncate();
+}
+
+void CWindowsService::CleanUpAccessTree(bool* pbCancel, uint32* puCounter)
+{
+	m_AccessTree.CleanUp(pbCancel, puCounter);
+}
+
+void CWindowsService::TruncateAccessTree()
+{
+	m_AccessTree.Truncate();
 }

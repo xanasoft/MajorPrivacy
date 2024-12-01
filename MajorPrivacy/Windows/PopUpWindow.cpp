@@ -607,7 +607,7 @@ void CPopUpWindow::OnResAction()
 
 	QTreeWidgetItem* pItem = ui.treeRes->currentItem();
 	if (!pItem) {
-		QMessageBox::information(this, tr("MajorPrivacy"), tr("Please select a resource to create a rule for."));
+		QMessageBox::information(this, "MajorPrivacy", tr("Please select a resource to create a rule for."));
 		return;
 	}
 	QString NtPath = pItem->data(eResPath, Qt::UserRole).toString();
@@ -877,7 +877,7 @@ void CPopUpWindow::OnExecAction()
 	{
 		QTreeWidgetItem* pItem = ui.treeExec->currentItem();
 		if (!pItem) {
-			QMessageBox::information(this, tr("MajorPrivacy"), tr("Please select a binnary file to sign with the your User Key."));
+			QMessageBox::information(this, "MajorPrivacy", tr("Please select a binnary file to sign with the your User Key."));
 			return;
 		}
 

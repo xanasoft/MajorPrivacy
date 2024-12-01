@@ -40,7 +40,7 @@ protected:
 
 	struct SDnsNode: STreeNode
 	{
-		SDnsNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id), iColor(0) {}
+		SDnsNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id), iColor(0) {}
 
 		CDnsCacheEntryPtr		pEntry;
 
@@ -49,5 +49,5 @@ protected:
 
 	virtual void SyncEntry(QMap<QList<QVariant>, QList<STreeNode*>>& New, QHash<QVariant, STreeNode*>& Old, const CDnsCacheEntryPtr& pEntry/*, const CDnsProcRecordPtr& pRecord = CDnsProcRecordPtr()*/);
 
-	virtual STreeNode* MkNode(const QVariant& Id) { return new SDnsNode(this, Id); }
+	virtual STreeNode* MkNode(const QVariant& Id) { return new SDnsNode(/*this,*/ Id); }
 };

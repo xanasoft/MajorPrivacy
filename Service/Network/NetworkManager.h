@@ -48,6 +48,7 @@ public:
 
 	STATUS Load();
 	STATUS Store();
+	STATUS StoreAsync();
 
 	void Update();
 
@@ -71,4 +72,8 @@ protected:
 	std::shared_mutex		m_AdapterInfoMutex;
 	std::map<CAddress, SAdapterInfoPtr> m_AdapterInfoByIP;
 	EFwProfiles				m_DefaultProfile = EFwProfiles::Invalid;
+
+	friend DWORD CALLBACK CNetworkManager__LoadProc(LPVOID lpThreadParameter);
+	friend DWORD CALLBACK CNetworkManager__StoreProc(LPVOID lpThreadParameter);
+	HANDLE					m_hStoreThread = NULL;
 };

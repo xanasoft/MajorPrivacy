@@ -42,7 +42,14 @@ public:
 	STATUS Store();
 
 	void Update();
-	void Cleanup();
+
+	void TestMissing();
+
+	STATUS CleanUp(bool bPurgeRules = false);
+
+	STATUS ReGroup();
+
+	STATUS TruncateLogs();
 
 	STATUS LoadRules();
 
@@ -58,7 +65,8 @@ public:
 	void RemoveInstallation(const CInstallationList::SInstallationPtr& pInstalledApp);
 
 	RESULT(CProgramItemPtr) CreateProgram(const CProgramID& ID);
-	STATUS RemoveProgramFrom(uint64 UID, uint64 ParentUID);
+	STATUS AddProgramTo(uint64 UID, uint64 ParentUID);
+	STATUS RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRules = false);
 
 	void AddFwRule(const CFirewallRulePtr& pFwRule);
 	void RemoveFwRule(const CFirewallRulePtr& pFwRule);
@@ -70,20 +78,14 @@ public:
 	CProgramSetPtr					GetAllItem() const { std::unique_lock lock(m_Mutex); return m_pAll; }
 	CProgramFilePtr					GetNtOsKernel() const { std::unique_lock lock(m_Mutex); return m_NtOsKernel; }
 
-	enum EAddFlags
-	{
-		eCanAdd = 0,
-		eDontAdd = 1,
-		eDontFill = 2,
-	};
+	CProgramItemPtr					GetProgramByID(const CProgramID& ID, bool bCanAdd = true);
 
-	CProgramItemPtr					GetProgramByID(const CProgramID& ID, EAddFlags AddFlags = eCanAdd);
-
-	CAppPackagePtr					GetAppPackage(const TAppId& Id, EAddFlags AddFlags = eCanAdd);
-	CWindowsServicePtr				GetService(const TServiceId& Id, EAddFlags AddFlags = eCanAdd);
-	CProgramPatternPtr				GetPattern(const TPatternId& Id, EAddFlags AddFlags = eCanAdd);
-	CAppInstallationPtr				GetInstallation(const TInstallId& Id, EAddFlags AddFlags = eCanAdd);
-	CProgramFilePtr					GetProgramFile(const std::wstring& FileName, EAddFlags AddFlags = eCanAdd);
+	CProgramGroupPtr				GetGroup(const TGroupId& Id, bool bCanAdd = true);
+	CAppPackagePtr					GetAppPackage(const TAppId& Id, bool bCanAdd = true);
+	CWindowsServicePtr				GetService(const TServiceId& Id, bool bCanAdd = true);
+	CProgramPatternPtr				GetPattern(const TPatternId& Id, bool bCanAdd = true);
+	CAppInstallationPtr				GetInstallation(const TInstallId& Id, bool bCanAdd = true);
+	CProgramFilePtr					GetProgramFile(const std::wstring& FileName, bool bCanAdd = true);
 
 	//std::map<TAppId, CProgramPatternPtr>	GetPatterns()		{ std::unique_lock lock(m_Mutex); return m_PatternMap; }
 	//std::map<TAppId, CAppPackagePtr>		GetApps()			{ std::unique_lock lock(m_Mutex); return m_PackageMap; }
@@ -104,15 +106,18 @@ public:
 	std::map<std::wstring, CProgramRulePtr> GetProgramRules() { std::unique_lock lock(m_RulesMutex); return m_Rules; }
 
 protected:
-	
-	void CollectData(const CProgramItemPtr& pItem);
+
+	void CollectSoftware();
 
 	bool AddProgramToGroup(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
 	bool RemoveProgramFromGroup(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
 	bool RemoveProgramFromGroupEx(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
 	void AddItemToRoot(const CProgramItemPtr& pItem);
 	bool AddItemToBranch(const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
+	bool AddItemToBranch2(const std::wstring& FilePath, const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
 	void TryAddChildren(const CProgramListPtr& pGroup, const CProgramPatternPtr& pPattern, bool bRemove = false);
+
+	//void BroadcastItemChanged(const CProgramItemPtr& pItem, ERuleEvent Event);
 
 	mutable std::recursive_mutex			m_Mutex;
 
@@ -121,6 +126,7 @@ protected:
 	std::map<TFilePath, CProgramFilePtr>	m_PathMap;
 	std::map<TServiceId, CWindowsServicePtr>m_ServiceMap;
 	std::map<TInstallId, CAppInstallationPtr>m_InstallMap;
+	std::map<TGroupId, CProgramGroupPtr>	m_GroupMap;
 
 	std::map<uint64, CProgramItemPtr>		m_Items;
 
@@ -138,7 +144,9 @@ protected:
 	std::map<TFilePath, CProgramLibraryPtr>	m_LibraryMap;
 	std::map<uint64, CProgramLibraryPtr>	m_Libraries;
 
-	uint64									m_LastCleanup = 0;
+	uint64									m_LastTruncateLogs = 0;
+
+	STATUS									RemoveAllRules(const CProgramItemPtr& pItem);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Rules
@@ -154,5 +162,12 @@ protected:
 	std::map<std::wstring, CProgramRulePtr> m_Rules;
 
 	void OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID);
+
+	//////////////////////////////////////////////////////////////////////////
+	// TruncateLogs
+
+	friend DWORD CALLBACK CProgramManager__TruncateLogs(LPVOID lpThreadParameter);
+	bool					m_bCancelTruncateLogs = false;
+	volatile HANDLE			m_hTruncateLogsThread = NULL;
 };
 

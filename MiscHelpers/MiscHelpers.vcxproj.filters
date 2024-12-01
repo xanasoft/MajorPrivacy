@@ -99,6 +99,9 @@
     <ClCompile Include="Common\CustomTheme.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Common\AbstractTreeModel.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MiscHelpers.h">
@@ -208,6 +211,9 @@
       <Filter>Common</Filter>
     </QtMoc>
     <QtMoc Include="Common\MultiErrorDialog.h">
+      <Filter>Common</Filter>
+    </QtMoc>
+    <QtMoc Include="Common\AbstractTreeModel.h">
       <Filter>Common</Filter>
     </QtMoc>
   </ItemGroup>

@@ -16,6 +16,9 @@ public:
 
 	void					Sync();
 	
+	QString					GetSelectedVolumePath();
+	QString					GetSelectedVolumeImage();
+
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;
 	//void					OnDoubleClicked(const QModelIndex& Index) override;
@@ -29,6 +32,7 @@ private slots:
 	void					OnUnmountAllVolumes();
 	void					OnCreateVolume();
 	void					OnChangeVolumePassword();
+	void					OnRemoveVolume();
 
 	void					MountVolume(QString Path = QString());
 
@@ -38,7 +42,9 @@ private:
 
 	QAction*				m_pMountVolume;
 	QAction*				m_pUnmountVolume;
-	QAction*				m_pUnmountAllVolumes;
 	QAction*				m_pCreateVolume;
 	QAction*				m_pChangeVolumePassword;
+	QAction*				m_pRemoveVolume;
+	QAction*				m_pMountAndAddVolume;
+	QAction*				m_pUnmountAllVolumes;
 };

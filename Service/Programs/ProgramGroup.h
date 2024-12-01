@@ -1,6 +1,7 @@
 #pragma once
 #include "ProgramItem.h"
 
+typedef std::wstring		TGroupId;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CProgramSet
@@ -63,7 +64,9 @@ class CProgramGroup: public CProgramList
 {
 	TRACK_OBJECT(CProgramGroup)
 public:
-	CProgramGroup() {}
+	CProgramGroup(const TGroupId& Guid) {
+		m_ID.Set(EProgramType::eProgramGroup, Guid);
+	}
 
 	virtual EProgramType GetType() const {return EProgramType::eProgramGroup; }
 };

@@ -1,6 +1,12 @@
 #include "pch.h"
 #include "ServiceCore.h"
 #include "../Library/API/PrivacyAPI.h"
+#include "../Library/Helpers/Service.h"
+#include "../Library/API/ServiceAPI.h"
+#include "../Library/Helpers/NtPathMgr.h"
+#include "../Library/Helpers/ScopedHandle.h"
+#include "../Library/Helpers/AppUtil.h"
+#include "../Library/Helpers/NtUtil.h"
 #include <shellapi.h>
 
 #ifdef _DEBUG
@@ -58,7 +64,7 @@ void WINAPI ServiceMain(DWORD argc, WCHAR *argv[])
 
     ULONG status = 0;
 
-    if (! SetServiceStatus(ServiceStatusHandle, &ServiceStatus))
+    if (!SetServiceStatus(ServiceStatusHandle, &ServiceStatus))
         status = GetLastError();
 
     /*while (! IsDebuggerPresent()) {
@@ -107,6 +113,10 @@ int WinMain(
     HINSTANCE hPrevInstance,
     LPSTR lpCmdLine, int nCmdShow)
 {
+#ifdef _DEBUG
+    SetThreadDescription(GetCurrentThread(), L"WinMain");
+#endif
+
 	//NTCRT_DEFINE(MyCRT);
 	//InitGeneralCRT(&MyCRT);
 
@@ -124,24 +134,78 @@ int WinMain(
 		arguments.push_back(szArglist[i]);
 	LocalFree(szArglist);
 
+    STATUS Status = OK;
+
     if (HasFlag(arguments, L"engine"))
     {
-        STATUS Status = CServiceCore::Startup(true);
+        Status = CServiceCore::Startup(true);
+        if(HANDLE hThread = theCore->GetThreadHandle()) 
+            WaitForSingleObject(hThread, INFINITE);
+    }
+    else if (HasFlag(arguments, L"startup"))
+    {
+        SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
 
-        while(theCore)
-            Sleep(1000);
+        //
+        // Check if the service is ours
+        //
 
-        return Status.GetStatus();
+        if ((SvcState & SVC_INSTALLED) == SVC_INSTALLED && (SvcState & SVC_RUNNING) != SVC_RUNNING)
+        {
+            std::wstring BinaryPath = GetServiceBinaryPath(API_SERVICE_NAME);
+
+            std::wstring ServicePath = NormalizeFilePath(GetFileFromCommand(BinaryPath));
+            std::wstring AppDir = NormalizeFilePath(GetApplicationDirectory());
+            if (ServicePath.length() < AppDir.length() || ServicePath.compare(0, AppDir.length(), AppDir) != 0)
+            {
+                RemoveService(API_SERVICE_NAME);
+                SvcState = SVC_NOT_FOUND;
+            }
+        }
+
+        if (SvcState == SVC_NOT_FOUND)
+            Status = CServiceAPI::InstallSvc();
+        if (Status && (SvcState & SVC_RUNNING) == 0)
+            Status = RunService(API_SERVICE_NAME);
+    }
+    else if (HasFlag(arguments, L"install"))
+    {
+        SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+        if ((SvcState & SVC_INSTALLED) == 0)
+            Status = CServiceAPI::InstallSvc();
+    }
+    else if (HasFlag(arguments, L"remove"))
+    {
+        SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+        if ((SvcState & SVC_RUNNING) == SVC_RUNNING)
+            Status = KillService(API_SERVICE_NAME);
+		if (Status && (SvcState & SVC_INSTALLED) == SVC_INSTALLED)
+            Status = RemoveService(API_SERVICE_NAME);
+
+        SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
+        if (Status && (DrvState & SVC_RUNNING) == SVC_RUNNING)
+            Status = KillService(API_DRIVER_NAME);
+        if (Status && (DrvState & SVC_INSTALLED) == SVC_INSTALLED)
+            Status = RemoveService(API_DRIVER_NAME);
+    }
+    else
+    {
+        SERVICE_TABLE_ENTRY myServiceTable[] = {
+            { ServiceName, ServiceMain },
+            { NULL, NULL }
+        };
+
+        if (!StartServiceCtrlDispatcher(myServiceTable)) {
+            DWORD err = GetLastError();
+            if (err == ERROR_FAILED_SERVICE_CONTROLLER_CONNECT)
+            {
+                MessageBoxW(NULL, L"Please run this application as a service, or use the -engine flag to run it as a standalone application.", L"Error", MB_OK | MB_ICONERROR);
+            }
+            return err;
+        }
     }
 
+    CNtPathMgr::Dispose();
 
-    SERVICE_TABLE_ENTRY myServiceTable[] = {
-        { ServiceName, ServiceMain },
-        { NULL, NULL }
-    };
-
-    if (! StartServiceCtrlDispatcher(myServiceTable))
-        return GetLastError();
-
-    return NO_ERROR;
+    return Status.GetStatus();
 }

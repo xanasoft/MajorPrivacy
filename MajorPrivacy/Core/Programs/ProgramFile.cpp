@@ -269,11 +269,22 @@ STraceLogList* CProgramFile::GetTraceLog(ETraceLogs Log)
 	return pLog;
 }
 
-void CProgramFile::ClearTraceLog()
+void CProgramFile::ClearTraceLog(ETraceLogs Log)
 {
-	for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
+	if (Log == ETraceLogs::eLogMax) 
 	{
-		STraceLogList* pLog = &m_Logs[(int)i];
+		for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
+		{
+			STraceLogList* pLog = &m_Logs[i];
+			pLog->Entries.clear();
+			pLog->MissingCount = -1;
+			pLog->IndexOffset = 0;
+			pLog->LastGetLog = 0;
+		}
+	}
+	else 
+	{
+		STraceLogList* pLog = &m_Logs[(int)Log];
 		pLog->Entries.clear();
 		pLog->MissingCount = -1;
 		pLog->IndexOffset = 0;
@@ -288,6 +299,18 @@ void CProgramFile::ClearProcessLogs()
 
 	m_Ingress.clear();
 	m_IngressChanged = true;
+}
+
+void CProgramFile::ClearLogs(ETraceLogs Log)
+{
+	ClearTraceLog(Log);
+
+	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
+		ClearAccessLog();
+	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eExecLog)
+		ClearProcessLogs();
+	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
+		ClearTrafficLog();
 }
 
 void CProgramFile::ClearAccessLog()
@@ -311,6 +334,7 @@ void CProgramFile::CountStats()
 	m_Stats.ProgRuleTotal = m_Stats.ProgRuleCount = m_ProgRuleIDs.count();
 
 	m_Stats.ResRuleTotal = m_Stats.ResRuleCount = m_ResRuleIDs.count();
+	m_Stats.AccessCount = m_AccessCount;
 
 	m_Stats.FwRuleTotal = m_Stats.FwRuleCount = m_FwRuleIDs.count();
 	m_Stats.SocketCount = m_SocketRefs.count();

@@ -43,7 +43,7 @@ public:
 		bool bAllPrograms = false;
 	};
 
-	const SCurrentItems& GetCurrentItems() const {return m_CurrentItems;}
+	const SCurrentItems& GetCurrentItems() const;
 	QMap<quint64, CProcessPtr> GetCurrentProcesses() const;
 
 	int					SafeExec(QDialog* pDialog);
@@ -72,6 +72,8 @@ public:
 signals:
 	void				Closed();
 
+	void				Clear();
+
 	void				OnMountVolume();
 	void				OnUnmountAllVolumes();
 	void				OnCreateVolume();
@@ -82,13 +84,17 @@ public slots:
 	void				OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
 	void				OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
 
+	void				CleanUpPrograms();
+	void				ReGroupPrograms();
+
 	void				OpenSettings();
 
 	void				UpdateSettings(bool bRebuildUI);
 
-	//void				ClearIgnoreLists();
+	void				ClearIgnoreLists();
+	void				ResetPrompts();
 
-	void				ClearLogs();
+	void				ClearTraceLogs();
 
 private slots:
 	void				OnMaintenance();
@@ -101,6 +107,7 @@ private slots:
 	void				RebuildGUI();
 	void				BuildGUI();
 
+	void				OnSplitColumns();
 	void				OnAlwaysTop();
 
 	void				OnShowHide();
@@ -122,6 +129,9 @@ private slots:
 	void				OnProgramsChanged(const QList<CProgramItemPtr>& Programs);
 
 	void				OnProgSplitter(int pos, int index);
+
+	void				OnCleanUpDone();
+	void				OnCleanUpProgress(quint64 Done, quint64 Total);
 
 protected:
 	void				closeEvent(QCloseEvent *e);
@@ -146,6 +156,7 @@ protected:
 	bool				m_bShowAll = false;
 	bool				m_bWasVisible = false;
 	bool				m_bOnTop = false;
+	bool				m_bWasConnected = false;
 	bool				m_bExit = false;
 
 	void				LoadIgnoreList(ERuleType Type);
@@ -205,6 +216,11 @@ private:
 	QAction*			m_pVariantEditor = nullptr;
 	QAction*			m_pOpenUserFolder = nullptr;
 	QAction*			m_pOpenSystemFolder = nullptr;
+	QMenu*				m_pMaintenanceItems = nullptr;
+	QAction*			m_pConnect = nullptr;
+	QAction*			m_pDisconnect = nullptr;
+	QAction*			m_pInstallService = nullptr;
+	QAction*			m_pRemoveService = nullptr;
 	QAction*			m_pExit = nullptr;
 
 	QMenu*				m_pView = nullptr;
@@ -212,6 +228,7 @@ private:
 	QAction*			m_pStackPanels = nullptr;
 	QAction*			m_pMergePanels = nullptr;
 	//QAction*			m_pShowMenu = nullptr;
+	QAction*			m_pSplitColumns = nullptr;
 	QAction*			m_pTabLabels = nullptr;
 	QAction*			m_pWndTopMost = nullptr;
 
@@ -226,10 +243,18 @@ private:
 	QAction*			m_pMakeKeyPair = nullptr;
 	QAction*			m_pClearKeys = nullptr;
 
+	QMenu*				m_pTools = nullptr;
+	QAction*			m_pCleanUpProgs = nullptr;
+	QAction*			m_pReGroupProgs = nullptr;
+	QMenu*				m_pExpTools = nullptr;
+	QAction*			m_pMountMgr = nullptr;
+	QAction*			m_pImDiskCpl = nullptr;
+	QAction*			m_pClearLogs = nullptr;
+
 	QMenu*				m_pOptions = nullptr;
 	QAction*			m_pSettings = nullptr;
-	//QAction*			m_pClearIgnore = nullptr;
-	QAction*			m_pClearLogs = nullptr;
+	QAction*			m_pClearIgnore = nullptr;
+	QAction*			m_pResetPrompts = nullptr;
 
 	QMenu*				m_pMenuHelp = nullptr;
 	QAction*			m_pForum = nullptr;

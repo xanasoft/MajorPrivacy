@@ -15,6 +15,8 @@ public:
 
 	virtual TServiceId GetSvcTag() const { std::unique_lock lock(m_Mutex); return m_ServiceId; }
 
+	virtual CProgramFilePtr GetProgramFile() const;
+
 	virtual void SetProcess(const CProcessPtr& pProcess);
 
 	virtual void AddExecTarget(const std::shared_ptr<CProgramFile>& pProgram, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked);
@@ -37,7 +39,15 @@ public:
 	virtual CVariant StoreTraffic(const SVarWriteOpt& Opts) const;
 	virtual void LoadTraffic(const CVariant& Data);
 
-	virtual void ClearLogs();
+	virtual void ClearLogs(ETraceLogs Log);
+
+	virtual void TruncateAccessLog();
+
+	virtual void CleanUpAccessTree(bool* pbCancel, uint32* puCounter);
+	virtual void TruncateAccessTree();
+	virtual uint32 GetAccessCount() const { return m_AccessTree.GetAccessCount(); }
+
+	virtual bool IsMissing() const { std::unique_lock lock(m_Mutex); return m_IsMissing != ePresent; }
 
 protected:
 
@@ -76,9 +86,6 @@ private:
 		std::set<uint64> SocketRefs;
 
 		uint64 LastNetActivity = 0;
-
-		uint64 LastFwAllowed = 0;
-		uint64 LastFwBlocked = 0;
 
 		uint64 Upload = 0;
 		uint64 Download = 0;

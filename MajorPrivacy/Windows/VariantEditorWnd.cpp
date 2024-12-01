@@ -47,12 +47,16 @@ CVariantEditorWnd::CVariantEditorWnd(QWidget *parent)
 	m_pMainWidget->setLayout(m_pMainLayout);
 	setCentralWidget(m_pMainWidget);
 
-	m_pPropertiesTree = new QTreeWidget();
+	/*m_pPropertiesTree = new QTreeWidget();
 	m_pPropertiesTree->setHeaderLabels(tr("Key|Value|Type").split("|"));
-	//m_pPropertiesTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
+	//m_pPropertiesTree->setSelectionMode(QAbstractItemView::ExtendedSelection);*/
+	m_pPropertiesTree = new QTreeView();
+	m_pVariantModel = new CVariantModel();
+	m_pPropertiesTree->setModel(m_pVariantModel);
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pPropertiesTree->setStyle(pStyle);
 	m_pPropertiesTree->setSortingEnabled(true);
+	m_pPropertiesTree->setUniformRowHeights(true); // critical for good performance with huge data sets
 	
 	m_pPropertiesTree->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(m_pPropertiesTree, SIGNAL(customContextMenuRequested( const QPoint& )), this, SLOT(OnMenuRequested(const QPoint &)));
@@ -109,9 +113,9 @@ void CVariantEditorWnd::OpenFile()
 		return;
 	}
 
-	CVariant Data;
+	//CVariant Data;
 	//try {
-	auto ret = Data.FromPacket(&Buffer, true);
+	auto ret = m_Root.FromPacket(&Buffer, true);
 	//} catch (const CException&) {
 	//	return ERR(STATUS_UNSUCCESSFUL);
 	//}
@@ -120,8 +124,8 @@ void CVariantEditorWnd::OpenFile()
 		return;
 	}
 
-	WriteProperties(Data);
-
+	//WriteProperties(Data);
+	m_pVariantModel->Update(m_Root);
 }
 
 void CVariantEditorWnd::SaveFile()
@@ -130,13 +134,13 @@ void CVariantEditorWnd::SaveFile()
 	if (FileName.isEmpty())
 		return;
 
-	CVariant Data = ReadProperties();
+	//CVariant Data = ReadProperties();
 	CBuffer Buffer;
-	Data.ToPacket(&Buffer);
+	m_Root.ToPacket(&Buffer);
 	WriteFile(FileName.toStdWString(), 0, Buffer);
 }
 
-void CVariantEditorWnd::WriteProperties(const CVariant& Root)
+/*void CVariantEditorWnd::WriteProperties(const CVariant& Root)
 {
 	m_pPropertiesTree->clear();
 
@@ -271,7 +275,7 @@ CVariant CVariantEditorWnd::ReadProperties()
 CVariant CVariantEditorWnd::ReadProperties(QTreeWidgetItem* pItem)
 {
 	return CVariant();
-}
+}*/
 
 /*void CVariantEditorWnd::OnClicked(QAbstractButton* pButton)
 {
@@ -541,12 +545,12 @@ void CVariantEditorWnd::OnMenuRequested(const QPoint &point)
 	if(m_ReadOnly)
 		return;
 
-	QTreeWidgetItem* pItem = m_pPropertiesTree->currentItem();
+	/*QTreeWidgetItem* pItem = m_pPropertiesTree->currentItem();
 
 	m_pRemove->setEnabled(pItem != 0);
 
 	QVariant::Type Type = pItem ? (QVariant::Type)pItem->data(1, Qt::UserRole).toInt() : QVariant::Map;
-	m_pAdd->setEnabled(Type == QVariant::Invalid || Type == QVariant::Map || Type == QVariant::Hash || Type == QVariant::List);
+	m_pAdd->setEnabled(Type == QVariant::Invalid || Type == QVariant::Map || Type == QVariant::Hash || Type == QVariant::List);*/
 
 	m_pMenu->popup(QCursor::pos());	
 }
@@ -651,4 +655,159 @@ void CVariantEditorWnd::OnRemove()
 	pItem->setData(eValue, Qt::UserRole, (int)QVariant::Invalid);
 	pItem->setText(eType, "Removed");
 	m_pPropertiesTree->setItemWidget(pItem, eValue, NULL);*/
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// CVariantModel
+
+
+CVariantModel::CVariantModel(QObject* parent) 
+	: CAbstractTreeModel(parent) 
+{
+}
+
+void CVariantModel::Update(const CVariant& pRoot)
+{
+	CAbstractTreeModel::Update(&pRoot);
+}
+
+CAbstractTreeModel::SAbstractTreeNode* CVariantModel::MkNode(const void* data, const QVariant& key, SAbstractTreeNode* parent)
+{
+	SVariantNode* pNode = new SVariantNode;
+	pNode->data = *(CVariant*)data;
+	pNode->key = key;
+	pNode->parentNode = parent;
+	pNode->values.resize(columnCount());
+	updateNodeData(pNode, data, QModelIndex());
+	return pNode;
+}
+
+void CVariantModel::ForEachChild(SAbstractTreeNode* parentNode, const std::function<void(const QVariant& key, const void* data)>& func)
+{
+	CVariant Value = ((SVariantNode*)parentNode)->data;
+
+	switch (Value.GetType())
+	{
+	case VAR_TYPE_MAP: {
+		for (uint32 i = 0; i < Value.Count(); i++)
+		{
+			const char* Key = Value.Key(i);
+			func(QString(Key), Value[Key].Ptr());
+		}
+		break;
+	}
+	case VAR_TYPE_LIST: {
+		for (uint32 i = 0; i < Value.Count(); i++)
+		{
+			func(QString::number(i), Value[i].Ptr());
+		}
+		break;
+	}
+	case VAR_TYPE_INDEX: {
+		for (uint32 i = 0; i < Value.Count(); i++)
+		{
+			uint32 Id = Value.Id(i);
+			QString Name = QString::fromLatin1((char*)&Id, 4);
+			std::reverse(Name.begin(), Name.end());
+			func(Name, Value[Id].Ptr());
+		}
+		break;
+	}
+	}
+}
+
+void CVariantModel::updateNodeData(SAbstractTreeNode* node, const void* data, const QModelIndex& nodeIndex)
+{
+	SVariantNode* pNode = (SVariantNode*)node;
+	pNode->data = *(CVariant*)data;
+
+	int Col = 0;
+	bool State = false;
+	int Changed = 0;
+
+	for (int section = 0; section < columnCount(); section++)
+	{
+		if (!IsColumnEnabled(section))
+			continue; // ignore columns which are hidden
+
+		QVariant Value;
+		switch (section)
+		{
+		case eName:			Value = node->key; break;
+		case eValue:		Value = ((XVariant*)&pNode->data)->AsQStr(); break;
+		}
+
+		SAbstractTreeNode::SValue& ColValue = pNode->values[section];
+
+		if (ColValue.Raw != Value)
+		{
+			if (Changed == 0)
+				Changed = 1;
+			ColValue.Raw = Value;
+
+			switch (section)
+			{
+			case eValue:
+				break;
+			}
+		}
+
+		if (State != (Changed != 0))
+		{
+			if (State && nodeIndex.isValid())
+				emit dataChanged(createIndex(nodeIndex.row(), Col, pNode), createIndex(nodeIndex.row(), section - 1, pNode));
+			State = (Changed != 0);
+			Col = section;
+		}
+		if (Changed == 1)
+			Changed = 0;
+	}
+	if (State && nodeIndex.isValid())
+		emit dataChanged(createIndex(nodeIndex.row(), Col, pNode), createIndex(nodeIndex.row(), columnCount() - 1, pNode));
+
+	// Check if hasChildren() status has changed
+	bool hadChildren = node->childCount > 0;
+	bool hasChildrenNow = pNode->data.Count() > 0;
+
+	node->childCount = pNode->data.Count();
+
+	// Emit dataChanged() if necessary to update the expand/collapse indicator
+	if (hadChildren != hasChildrenNow && nodeIndex.isValid())
+		emit dataChanged(nodeIndex, nodeIndex);
+}
+
+const void* CVariantModel::childData(SAbstractTreeNode* node, const QVariant& key)
+{
+	CVariant Value = ((SVariantNode*)node)->data;
+
+	switch (Value.GetType())
+	{
+	case VAR_TYPE_MAP: {
+		return Value[key.toString().toStdString().c_str()].Ptr();
+	}
+	case VAR_TYPE_LIST: {
+		return Value[key.toULongLong()].Ptr();
+	}
+	case VAR_TYPE_INDEX: {
+		QString Name = key.toString();
+		std::reverse(Name.begin(), Name.end());
+		uint32 Id = *(uint32*)Name.toStdString().c_str();
+		return Value[Id].Ptr();
+	}
+	}
+	return NULL;
+}
+
+QVariant CVariantModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+	if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
+	{
+		switch (section)
+		{
+		case eName: return tr("Name");
+		case eValue: return tr("Value");
+		}
+	}
+	return QVariant();
 }

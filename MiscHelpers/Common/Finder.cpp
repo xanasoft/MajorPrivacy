@@ -137,7 +137,7 @@ CFinder::CFinder(QObject* pFilterTarget, QWidget *parent, int iOptions)
 	}
 
 	if (pFilterTarget) {
-		QObject::connect(this, SIGNAL(SetFilter(const QString&, int, int)), pFilterTarget, SLOT(SetFilter(const QString&, int, int)));
+		QObject::connect(this, SIGNAL(SetFilter(const QRegularExpression&, int, int)), pFilterTarget, SLOT(SetFilter(const QRegularExpression&, int, int)));
 		//QObject::connect(this, SIGNAL(SelectNext()), pFilterTarget, SLOT(SelectNext()));
 	}
 
@@ -207,7 +207,7 @@ void CFinder::OnUpdate()
 {
 	m_pTimer->stop();
 	if (!isVisible() || m_pSearch->text().isEmpty())
-		SetFilter(QString(), 0, GetColumn());
+		emit SetFilter(QRegularExpression(), 0, GetColumn());
 	int iOptions = 0;
 	if (GetRegExp())
 		iOptions |= eRegExp;
@@ -217,10 +217,17 @@ void CFinder::OnUpdate()
 		iOptions |= eHighLight;
 	QString Exp = m_pSearch->text();
 
-	QString ExpStr = ((iOptions & CFinder::eRegExp) != 0) ? Exp : (".*" + QRegularExpression::escape(Exp).replace("\\","\\\\") + ".*");
+	QString ExpStr;
+	if((iOptions & CFinder::eRegExp) != 0)
+		ExpStr = Exp;
+	else {
+		ExpStr = QRegularExpression::escape(Exp);
+		ExpStr = ".*" + ExpStr.replace("\\*",".*").replace("\\?",".") + ".*";
+	}
+
 	m_RegExp = QRegularExpression(ExpStr, (iOptions & CFinder::eCaseSens) != 0 ? QRegularExpression::NoPatternOption : QRegularExpression::CaseInsensitiveOption);
 
-	SetFilter(Exp, iOptions, GetColumn());
+	emit SetFilter(m_RegExp, iOptions, GetColumn());
 }
 
 void CFinder::OnText()
@@ -238,7 +245,7 @@ void CFinder::OnReturn()
 
 void CFinder::Close()
 {
-	emit SetFilter(QString());
+	emit SetFilter(QRegularExpression());
 	hide();
 
 	if(m_pBtnSearch)

@@ -400,7 +400,7 @@
     <ClCompile Include="Helpers\FilePath.cpp">
       <Filter>Helpers</Filter>
     </ClCompile>
-    <ClCompile Include="Views\AccessInfoView.cpp">
+    <ClCompile Include="Views\AccessListView.cpp">
       <Filter>Views\Access</Filter>
     </ClCompile>
     <ClCompile Include="Core\API_Impl.cpp">
@@ -416,6 +416,12 @@
       <Filter>Helpers</Filter>
     </ClCompile>
     <ClCompile Include="Windows\VariantEditorWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\AccessListModel.cpp">
+      <Filter>Models\Access</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\MountMgrWnd.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
   </ItemGroup>
@@ -793,7 +799,7 @@
     <QtMoc Include="Views\InfoView.h">
       <Filter>Views\Program</Filter>
     </QtMoc>
-    <QtMoc Include="Views\AccessInfoView.h">
+    <QtMoc Include="Views\AccessListView.h">
       <Filter>Views\Access</Filter>
     </QtMoc>
     <QtMoc Include="Windows\OptionsTransferWnd.h">
@@ -803,6 +809,12 @@
       <Filter>Helpers</Filter>
     </QtMoc>
     <QtMoc Include="Windows\VariantEditorWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\AccessListModel.h">
+      <Filter>Models\Access</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\MountMgrWnd.h">
       <Filter>Windows</Filter>
     </QtMoc>
   </ItemGroup>

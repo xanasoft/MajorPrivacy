@@ -47,6 +47,8 @@ CIngressView::CIngressView(QWidget *parent)
 	m_pToolBar->addWidget(pBtnSearch);
 
 	AddPanelItemsToMenu();
+
+	connect(theCore, SIGNAL(CleanUpDone()), this, SLOT(OnCleanUpDone()));
 }
 
 CIngressView::~CIngressView()
@@ -148,3 +150,11 @@ void CIngressView::OnMenu(const QPoint& Point)
 {
 	CPanelView::OnMenu(Point);
 }
+
+void CIngressView::OnCleanUpDone()
+{
+	// refresh
+	m_CurPrograms.clear();
+	m_CurServices.clear();
+}
+

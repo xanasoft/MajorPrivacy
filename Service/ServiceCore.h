@@ -11,7 +11,7 @@ class CServiceCore
 	TRACK_OBJECT(CServiceCore)
 public:
 	static STATUS Startup(bool bEngineMode = false);
-	static void Shutdown();
+	static void Shutdown(bool bWait = true);
 
 	std::wstring			GetAppDir() const		{ return m_AppDir; }
 	std::wstring			GetDataFolder() const	{ return m_DataFolder; }
@@ -40,6 +40,8 @@ public:
 
 	void					BroadcastMessage(uint32 MessageID, const CVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram = NULL);
 
+	HANDLE					GetThreadHandle() const { return m_hThread; }
+
 protected:
 	friend DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter);
 	friend VOID CALLBACK CServiceCore__TimerProc(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue);
@@ -49,11 +51,18 @@ protected:
 
 	STATUS Init();
 
+	STATUS InitDriver();
+	void CloseDriver();
+
+	void StoreRecords(bool bAsync = false);
+
 	void OnTimer();
 
 	void RegisterUserAPI();
 	void OnClient(uint32 uEvent, struct SPipeClientInfo& pClient);
 	uint32 OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, const struct SPipeClientInfo& pClient);
+
+	static void	DeviceChangedCallback(void* param);
 
 	std::wstring			m_AppDir;
 	std::wstring			m_DataFolder;
@@ -101,6 +110,8 @@ protected:
 
 	mutable std::recursive_mutex m_ClientsMutex;
 	std::map<uint32, SClientPtr> m_Clients;
+
+	uint64 m_LastStoreTime = 0;
 };
 
 extern CServiceCore* theCore;

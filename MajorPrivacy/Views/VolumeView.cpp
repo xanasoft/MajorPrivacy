@@ -26,7 +26,9 @@ CVolumeView::CVolumeView(QWidget *parent)
 	m_pMountVolume = m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Mount Volume"), this, SLOT(OnMountVolume()));
 	m_pUnmountVolume = m_pMenu->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount Volume"), this, SLOT(OnUnmountVolume()));
 	m_pChangeVolumePassword = m_pMenu->addAction(QIcon(":/Icons/VolumePW.png"), tr("Change Volume Password"), this, SLOT(OnChangeVolumePassword()));
+	m_pRemoveVolume = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Remove Volume"), this, SLOT(OnRemoveVolume()));
 	m_pMenu->addSeparator();
+	m_pMountAndAddVolume = m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Add and Mount Volume Image"), this, SLOT(MountVolume()));
 	m_pUnmountAllVolumes = m_pMenu->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount All Volumes"), this, SLOT(OnUnmountAllVolumes()));
 
 	QByteArray Columns = theConf->GetBlob("MainWindow/VolumeView_Columns");
@@ -43,7 +45,7 @@ CVolumeView::CVolumeView(QWidget *parent)
 
 	m_pToolBar->addAction(m_pCreateVolume);
 	m_pToolBar->addSeparator();
-	m_pToolBar->addAction(m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Mount Volume"), this, SLOT(MountVolume())));
+	m_pToolBar->addAction(m_pMountAndAddVolume);
 	m_pToolBar->addAction(m_pUnmountAllVolumes);
 
 	QWidget* pSpacer = new QWidget();
@@ -69,6 +71,28 @@ void CVolumeView::Sync()
 	m_pItemModel->Sync(theCore->VolumeManager()->List());
 }
 
+QString CVolumeView::GetSelectedVolumePath()
+{
+	// Note: This function must return an Empty but not a Null string when no volume is selected
+
+	QList<CVolumePtr> Volumes = GetSelectedItems();
+	if (Volumes.count() != 1) return "";
+	QString DevicePath = Volumes.at(0)->GetDevicePath();
+	if(DevicePath.isNull()) return "";
+	return DevicePath;
+}
+
+QString CVolumeView::GetSelectedVolumeImage()
+{
+	// Note: This function must return an Empty but not a Null string when no volume is selected
+
+	QList<CVolumePtr> Volumes = GetSelectedItems();
+	if (Volumes.count() != 1) return "";
+	QString ImagePath = Volumes.at(0)->GetImagePath();
+	if (ImagePath.isNull()) return "";
+	return ImagePath;
+}
+
 /*void CVolumeView::OnDoubleClicked(const QModelIndex& Index)
 {
 
@@ -78,9 +102,18 @@ void CVolumeView::OnMenu(const QPoint& Point)
 {
 	QList<CVolumePtr> Volumes = GetSelectedItems();
 
-	m_pMountVolume->setEnabled(Volumes.count() == 1);
-	m_pUnmountVolume->setEnabled(Volumes.count() > 0);
-	m_pChangeVolumePassword->setEnabled(Volumes.count() == 1);
+	int iMountedCount = 0;
+	int iSelectedCount = 0;
+	foreach(CVolumePtr pVolume, Volumes) {
+		if (pVolume->GetStatus() == CVolume::eMounted)
+			iMountedCount++;
+		iSelectedCount++;
+	}
+
+	m_pMountVolume->setEnabled(iMountedCount == 0 && iSelectedCount == 1);
+	m_pUnmountVolume->setEnabled(iMountedCount > 0);
+	m_pChangeVolumePassword->setEnabled(iMountedCount == 0 && iSelectedCount == 1);
+	m_pRemoveVolume->setEnabled(iMountedCount == 0 && iSelectedCount > 0);
 
 	CPanelView::OnMenu(Point);
 }
@@ -101,7 +134,7 @@ void CVolumeView::MountVolume(QString Path)
 			return;
 	}
 
-	CVolumeWindow window(CVolumeWindow::eMount, this);
+	CVolumeWindow window(tr("Mount Secure Volume"), CVolumeWindow::eMount, this);
 	if (theGUI->SafeExec(&window) != 1)
 		return;
 	QString Password = window.GetPassword();
@@ -137,7 +170,7 @@ void CVolumeView::OnCreateVolume()
 	QString Path = QFileDialog::getSaveFileName(this, tr("Select Private Volume"), QString(), tr("Private Volume Files (*.pv)")).replace("/","\\");
 	if (Path.isEmpty()) return;
 
-	CVolumeWindow window(CVolumeWindow::eNew, this);
+	CVolumeWindow window(tr("Creating new volume image, please enter a secure password, and choose a disk image size."), CVolumeWindow::eNew, this);
 	if (theGUI->SafeExec(&window) != 1)
 		return;
 	QString Password = window.GetPassword();
@@ -170,7 +203,7 @@ void CVolumeView::OnChangeVolumePassword()
 	QString Path = QFileDialog::getOpenFileName(this, tr("Select Private Volume"), QString(), tr("Private Volume Files (*.pv)"));
 	if (Path.isEmpty()) return;
 
-	CVolumeWindow window(CVolumeWindow::eChange, this);
+	CVolumeWindow window(tr("Change Volume Password."), CVolumeWindow::eChange, this);
 	if (theGUI->SafeExec(&window) != 1)
 		return;
 	QString OldPassword = window.GetPassword();
@@ -178,4 +211,20 @@ void CVolumeView::OnChangeVolumePassword()
 
 	STATUS Status = theCore->ChangeVolumePassword(Path, OldPassword, NewPassword);
 	theGUI->CheckResults(QList<STATUS>() << Status, this);
+}
+
+void CVolumeView::OnRemoveVolume()
+{
+	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to remove selected Volumes from list?\nNote: The volume image files will remain intact and must be manually deleted."), QMessageBox::Yes, QMessageBox::No) != QMessageBox::Yes)
+		return;
+
+	//QList<STATUS> Results;
+
+	QList<CVolumePtr> Volumes = GetSelectedItems();
+	foreach(CVolumePtr pVolume, Volumes)
+	{
+		theCore->VolumeManager()->RemoveVolume(pVolume->GetImagePath());
+	}
+
+	//theGUI->CheckResults(Results, this);
 }

@@ -17,6 +17,8 @@ public:
 	int GetFilter() const { return m_pProgramModel->GetFilter(); }
 	bool TestFilter(EProgramType Type, const SProgramStats* pStats) { return m_pProgramModel->TestFilter(Type, pStats); }
 
+	void	SetColumnSet(const QString& ColumnSet);
+
 signals:
 	void	ProgramsChanged(const QList<CProgramItemPtr>& Programs);
 
@@ -27,7 +29,9 @@ public slots:
 private slots:
 	void	OnProgramChanged(const QModelIndexList& Selection);
 	void	OnDoubleClicked(const QModelIndex& Index);
+
 	void	OnProgramAction();
+	void	OnAddToGroup();
 
 	void	OnTypeFilter();
 	void	OnRunFilter();
@@ -64,7 +68,6 @@ private:
 	QSortFilterProxyModel*		m_pSortProxy;
 
 	QToolBar*					m_pToolBar;
-	//QToolButton*				m_pBtnClear;
 
 	QToolButton*				m_pTypeFilter;
 	QMenu*						m_pTypeMenu;
@@ -99,11 +102,17 @@ private:
 	QAction*						m_pTcpServers;
 	QAction*						m_pUdpSockets;*/
 
+	QToolButton*				m_pBtnCleanUp;
+	QMenu*						m_pCleanUpMenu;
+	QAction*						m_pReGroup;
 
 	QAction*					m_pCreateProgram;
-	QAction*					m_pCreateGroup;
-	QAction*					m_pAddToGroup;
+	QMenu*						m_pAddToGroup;
 	QAction*					m_pRenameItem;
 	QAction*					m_pRemoveItem;
+
+	QVector<QAction*>			m_Groups;
+
+	QString						m_ColumnSet;
 };
 

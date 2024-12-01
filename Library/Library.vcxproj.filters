@@ -330,14 +330,14 @@
     <ClInclude Include="API\PrivacyAPIs.h">
       <Filter>API</Filter>
     </ClInclude>
-    <ClInclude Include="Helpers\Reparse.h">
-      <Filter>Helpers</Filter>
-    </ClInclude>
     <ClInclude Include="Common\ObjectTracker.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Common\XVariant.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\NtPathMgr.h">
+      <Filter>Helpers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -524,14 +524,14 @@
     <ClCompile Include="API\API_Programs.cpp">
       <Filter>API</Filter>
     </ClCompile>
-    <ClCompile Include="Helpers\Reparse.cpp">
-      <Filter>Helpers</Filter>
-    </ClCompile>
     <ClCompile Include="Common\ObjectTracker.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="Common\XVariant.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\NtPathMgr.cpp">
+      <Filter>Helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

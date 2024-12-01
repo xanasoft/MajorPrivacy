@@ -97,5 +97,5 @@ protected:
 	QString					m_FilterExp;
 	bool					m_bHighLight;
 
-	virtual bool			TestHighLight(STraceNode* pNode) const;
+	virtual bool			TestHighLight(STraceNode* pNode, int section = -1) const;
 };

@@ -26,6 +26,10 @@ void CPackageList::Init()
 
 //DWORD CALLBACK CPackageList__ThreadProc(LPVOID lpThreadParameter)
 //{
+//#ifdef _DEBUG
+//SetThreadDescription(GetCurrentThread(), L"lpThreadParameter");
+//#endif
+// 
 //    CPackageList* This = (CPackageList*)lpThreadParameter;
 //
 //    This->UpdateAsync();

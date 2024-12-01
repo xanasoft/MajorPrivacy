@@ -49,14 +49,15 @@ XVariant CProgramID::ToVariant(const SVarWriteOpt& Opts) const
 		ID.BeginIMap();
 
 		ID.Write(API_V_PROG_TYPE, (uint32)m_Type);
-		if (m_Type != EProgramType::eAllPrograms)
+		if (m_Type != EProgramType::eAllPrograms && m_Type != EProgramType::eProgramGroup)
 			ID.Write(API_V_FILE_PATH, TO_STR(m_FilePath));
 
 		switch (m_Type)
 		{
-		case EProgramType::eAppInstallation:	ID.Write(API_V_REG_KEY, TO_STR(m_RegKey)); break;
+		case EProgramType::eAppInstallation:	ID.Write(API_V_REG_KEY, TO_STR(m_AuxValue)); break;
 		case EProgramType::eWindowsService:		ID.Write(API_V_SVC_TAG, TO_STR(m_ServiceTag)); break;
-		case EProgramType::eAppPackage:			ID.Write(API_V_APP_SID, TO_STR(m_AppContainerSid)); break;
+		case EProgramType::eProgramGroup:		ID.Write(API_V_RULE_GUID, TO_STR(m_AuxValue)); break;
+		case EProgramType::eAppPackage:			ID.Write(API_V_APP_SID, TO_STR(m_AuxValue)); break;
 		}
 	} 
 	else 
@@ -64,14 +65,15 @@ XVariant CProgramID::ToVariant(const SVarWriteOpt& Opts) const
 		ID.BeginMap();
 
 		ID.Write(API_S_PROG_TYPE, TypeToStr(m_Type));
-		if (m_Type != EProgramType::eAllPrograms)
+		if (m_Type != EProgramType::eAllPrograms && m_Type != EProgramType::eProgramGroup)
 			ID.Write(API_S_FILE_PATH, TO_STR(m_FilePath));
 
 		switch (m_Type)
 		{
-		case EProgramType::eAppInstallation:	ID.Write(API_S_REG_KEY, TO_STR(m_RegKey)); break;
+		case EProgramType::eAppInstallation:	ID.Write(API_S_REG_KEY, TO_STR(m_AuxValue)); break;
 		case EProgramType::eWindowsService:		ID.Write(API_S_SVC_TAG, TO_STR(m_ServiceTag)); break;
-		case EProgramType::eAppPackage:			ID.Write(API_S_APP_SID, TO_STR(m_AppContainerSid)); break;
+		case EProgramType::eProgramGroup:		ID.Write(API_S_RULE_GUID, TO_STR(m_AuxValue)); break;
+		case EProgramType::eAppPackage:			ID.Write(API_S_APP_SID, TO_STR(m_AuxValue)); break;
 		}
 	}
 	ID.Finish();
@@ -83,26 +85,16 @@ bool CProgramID::FromVariant(const class XVariant& ID)
 	SVarWriteOpt::EFormat Format;
 	m_Type = ReadType(ID, Format);
 
+	if (m_Type != EProgramType::eAllPrograms && m_Type != EProgramType::eProgramGroup)
+		m_FilePath = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_FILE_PATH) : ID.Find(API_V_FILE_PATH));
+
 	switch (m_Type)
 	{
-	case EProgramType::eProgramFile:
-	case EProgramType::eFilePattern:
-	case EProgramType::eAppInstallation:
-	case EProgramType::eWindowsService:
-	case EProgramType::eAppPackage:
-		switch (m_Type)
-		{
-		case EProgramType::eAppInstallation:	m_RegKey = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_REG_KEY) : ID.Find(API_V_REG_KEY)); break;
-		case EProgramType::eWindowsService:		m_ServiceTag = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_SVC_TAG) : ID.Find(API_V_SVC_TAG)); break;
-		case EProgramType::eAppPackage:			m_AppContainerSid = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_APP_SID) : ID.Find(API_V_APP_SID)); break;
-		}
-		m_FilePath = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_FILE_PATH) : ID.Find(API_V_FILE_PATH));
-		break;
-	case EProgramType::eAllPrograms:
-		break;
-	default:
-		ASSERT(0);
-		return false;
+	case EProgramType::eAppInstallation:	m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_REG_KEY) : ID.Find(API_V_REG_KEY)); break;
+	case EProgramType::eWindowsService:		m_ServiceTag = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_SVC_TAG) : ID.Find(API_V_SVC_TAG)); break;
+	case EProgramType::eProgramGroup:		m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_RULE_GUID) : ID.Find(API_V_RULE_GUID)); break;
+	case EProgramType::eAppPackage:			m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_APP_SID) : ID.Find(API_V_APP_SID)); break;
 	}
+
 	return true;
 }

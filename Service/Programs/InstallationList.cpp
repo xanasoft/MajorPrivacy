@@ -82,6 +82,9 @@ void CInstallationList::EnumInstallations(const std::wstring& RegKey, VOID(*Call
 
 void CInstallationList::Update()
 {
+    if(!theCore->Config()->GetBool("Service", "EnumInstallations", true))
+        return;
+
     SEnumParams Params;
     Params.pThis = this;
     Params.OldList = m_List;
@@ -96,7 +99,7 @@ void CInstallationList::Update()
     // TODO: enum also per user locations
 
 #ifdef _DEBUG
-    DbgPrint("EnumAllAppPackages took %d ms cycles\r\n", (GetUSTickCount() - start) / 1000);
+    DbgPrint("EnumAllAppPackages took %llu ms cycles\r\n", (GetUSTickCount() - start) / 1000);
 #endif
 
     for(auto E: Params.OldList) {

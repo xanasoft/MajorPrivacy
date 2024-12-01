@@ -113,14 +113,14 @@ public:
 	{
 		m_pFinder = new CFinder(NULL, this, CFinder::eRegExp | CFinder::eCaseSens);
 		m_pMainLayout->addWidget(m_pFinder);
-		QObject::connect(m_pFinder, SIGNAL(SetFilter(const QString&, int, int)), this, SLOT(SetFilter(const QString&, int, int)));
+		QObject::connect(m_pFinder, SIGNAL(SetFilter(const QRegularExpression&, int, int)), this, SLOT(SetFilter(const QRegularExpression&, int, int)));
 	}
 
 	static void ApplyFilter(QTreeWidget* pTree, QTreeWidgetItem* pItem, const QRegularExpression* Exp/*, bool bHighLight = false, int Col = -1*/)
 	{
 		for (int j = 0; j < pTree->columnCount(); j++) {
-			pItem->setForeground(j, (m_DarkMode && Exp && pItem->text(j).contains(*Exp)) ? Qt::yellow : pTree->palette().color(QPalette::WindowText));
-			pItem->setBackground(j, (!m_DarkMode && Exp && pItem->text(j).contains(*Exp)) ? Qt::yellow : pTree->palette().color(QPalette::Base));
+			pItem->setForeground(j, (m_DarkMode && Exp->isValid() && pItem->text(j).contains(*Exp)) ? Qt::yellow : pTree->palette().color(QPalette::WindowText));
+			pItem->setBackground(j, (!m_DarkMode && Exp->isValid() && pItem->text(j).contains(*Exp)) ? Qt::yellow : pTree->palette().color(QPalette::Base));
 		}
 
 		for (int i = 0; i < pItem->childCount(); i++)
@@ -136,14 +136,9 @@ public:
 	CFinder* GetFinder() { return m_pFinder; }
 
 private slots:
-	void SetFilter(const QString& Exp, int iOptions, int Col = -1) // -1 = any
+	void SetFilter(const QRegularExpression& RegExp, int iOptions, int Col = -1) // -1 = any
 	{
-		QScopedPointer<QRegularExpression> pRegExp;
-		if (!Exp.isEmpty()) {
-			QString ExpStr = ((iOptions & CFinder::eRegExp) == 0) ? Exp : (".*" + QRegularExpression::escape(Exp) + ".*");
-			pRegExp.reset(new QRegularExpression(ExpStr, (iOptions & CFinder::eCaseSens) != 0 ? QRegularExpression::NoPatternOption : QRegularExpression::CaseInsensitiveOption));
-		}
-		ApplyFilter(m_pTreeList, pRegExp.data());
+		ApplyFilter(m_pTreeList, &RegExp);
 	}
 
 private:
@@ -261,9 +256,9 @@ public:
 		m_pMainLayout->addWidget(m_pFinder);
 	}
 
-	typename M::ItemType		GetCurrentItem()	{ return m_CurrentItem; }
-	QList<typename M::ItemType>	GetSelectedItems()	{ return m_SelectedItems; }
-	QList<typename M::ItemType>	GetSelectedItemsWithChildren()
+	virtual typename M::ItemType		GetCurrentItem()	{ return m_CurrentItem; }
+	virtual QList<typename M::ItemType>	GetSelectedItems()	{ return m_SelectedItems; }
+	virtual QList<typename M::ItemType>	GetSelectedItemsWithChildren()
 	{
 		QList<typename M::ItemType> List;
 		foreach(const QModelIndex& Index, m_pTreeView->selectedRows())
@@ -324,7 +319,7 @@ protected:
 		return List;
 	}
 
-	void ExpandRecursively(const QModelIndex& index, bool bExpand)
+	void ExpandRecursively(const QModelIndex& index, bool bExpand, int Depth = 5)
 	{
 		if(bExpand)
 			m_pTreeView->expand(index);
@@ -334,7 +329,8 @@ protected:
 		int rowCount = m_pSortProxy->rowCount(index);
 		for (int i = 0; i < rowCount; ++i) {
 			QModelIndex childIndex = m_pSortProxy->index(i, 0, index);
-			ExpandRecursively(childIndex, bExpand);
+			if(Depth > 0 || (QGuiApplication::queryKeyboardModifiers() & Qt::ControlModifier) != 0)
+				ExpandRecursively(childIndex, bExpand, Depth - 1);
 		}
 	}
 

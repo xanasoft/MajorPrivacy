@@ -14,10 +14,12 @@ public:
 	CNetTraceView(QWidget *parent = 0);
 	virtual ~CNetTraceView();
 
-	void					Sync(const struct SMergedLog* pLog);
+	void					Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services);
 
 private slots:
 	void					UpdateFilter();
+	
+	void					OnClearTraceLog();
 
 protected:
 
@@ -25,6 +27,7 @@ protected:
 	QComboBox*				m_pCmbDir;
 	QComboBox*				m_pCmbAction;
 	QComboBox*				m_pCmbType;
+	QToolButton*			m_pBtnClear;
 	QToolButton*			m_pBtnScroll;
 
 };

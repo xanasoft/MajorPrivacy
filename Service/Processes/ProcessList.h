@@ -56,6 +56,7 @@ protected:
 	mutable std::recursive_mutex m_Mutex;
 
 	bool m_bLogNotFound = false;
+	bool m_bLogInvalid = false;
 
 	class CServiceList* m_Services;
 

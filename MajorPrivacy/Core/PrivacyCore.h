@@ -15,14 +15,19 @@ public:
 	CPrivacyCore(QObject* parent = nullptr);
 	~CPrivacyCore();
 	
-	STATUS Connect();
-	//STATUS Reconnect();
-	void Disconnect(bool bKeepEngine = false);
+	STATUS Install();
+	STATUS Uninstall();
+	bool IsInstalled();
+
+	STATUS Connect(bool bEngineMode);
+	void Disconnect(bool bKeepEngine);
 
 	bool IsEngineMode() const					{ return m_bEngineMode; }
 
 	STATUS Update();
 	void ProcessEvents();
+
+	void Clear();
 
 	class CProcessList* ProcessList()			{ return m_pProcessList; }
 	class CEnclaveList* EnclaveList()			{ return m_pEnclaveList; }
@@ -107,8 +112,12 @@ public:
 	RESULT(XVariant)	GetPrograms();
 	RESULT(XVariant)	GetLibraries(uint64 CacheToken = -1);
 
-	STATUS				SetProgram(const CProgramItemPtr& pItem);
-	STATUS				RemoveProgramFrom(uint64 UID, uint64 ParentUID = 0);
+	RESULT(quint64)		SetProgram(const CProgramItemPtr& pItem);
+	STATUS				AddProgramTo(uint64 UID, uint64 ParentUID);
+	STATUS				RemoveProgramFrom(uint64 UID, uint64 ParentUID = 0, bool bDelRules = false);
+
+	STATUS				CleanUpPrograms(bool bPurgeRules = false);
+	STATUS				ReGroupPrograms();
 
 	STATUS				SetAllProgramRules(const XVariant& Rules);
 	RESULT(XVariant)	GetAllProgramRules();
@@ -148,7 +157,9 @@ public:
 	// Access Manager
 	RESULT(XVariant)	GetHandlesFor(const QList<const class CProgramItem*>& Nodes);
 	RESULT(XVariant)	GetAllHandles();
-	STATUS				ClearLogs();
+	STATUS				ClearTraceLog(ETraceLogs Log, const CProgramItemPtr& pItem = CProgramItemPtr());
+
+	STATUS				CleanUpAccessTree();
 
 	// Program Item
 	RESULT(XVariant)	GetLibraryStats(const class CProgramID& ID);
@@ -181,6 +192,8 @@ public:
 	// 
 
 
+	void				OnClearTraceLog(const CProgramItemPtr& pItem, ETraceLogs Log);
+
 	CSidResolver*		GetSidResolver() {return m_pSidResolver;}
 
 signals:
@@ -190,6 +203,10 @@ signals:
 	void				ExecutionEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
 	void				AccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
 
+	void				CleanUpDone();
+	void				CleanUpProgress(quint64 Done, quint64 Total);
+
+	void				DevicesChanged();
 
 protected:
 	//friend class CProcessList;
@@ -198,8 +215,14 @@ protected:
 	//friend class CProcess;
 	friend class CProgramManager;
 
+	//void OnProgEvent(uint32 MessageId, const CBuffer* pEvent);
+
 	void OnSvcEvent(uint32 MessageId, const CBuffer* pEvent);
 	//void OnDrvEvent(const std::wstring& Guid, ERuleEvent Event, ERuleType Type);
+
+	void OnCleanUpDone(uint32 MessageId, const CBuffer* pEvent);
+	
+	static void			DeviceChangedCallback(void* param);
 
 	static XVariant MakeIDs(const QList<const class CProgramItem*>& Nodes);
 

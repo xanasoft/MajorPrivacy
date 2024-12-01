@@ -8,14 +8,18 @@
 #include <Aclapi.h>
 #include <sddl.h>
 #include <hndlinfo.h>
-#include "../Library/Helpers/Reparse.h"
+#include "../Library/Helpers/NtPathMgr.h"
 
 std::wstring DosPathToNtPath(const std::wstring &dosPath, bool bAsIsOnError) 
 {
 #if 1
-    std::wstring path = CNtPathMgr::Instance()->TranslateDosToNtPath(dosPath);
-    std::wstring temp = CNtPathMgr::Instance()->TranslateTempLinks(path, false);
-	return temp.empty() ? path : temp;
+    //std::wstring path = CPathReparse::Instance()->TranslateDosToNtPath(dosPath);
+    //std::wstring temp = CPathReparse::Instance()->TranslateTempLinks(path, false);
+	//return temp.empty() ? path : temp;
+	std::wstring ntPath = CNtPathMgr::Instance()->TranslateDosToNtPath(dosPath);
+	if (ntPath.empty() && bAsIsOnError)
+		return dosPath;
+	return ntPath;
 #else
     if (dosPath.size() < 2 || dosPath[1] != ':')
         return bAsIsOnError ? dosPath : L""; // not a DOS path
@@ -38,8 +42,12 @@ std::wstring DosPathToNtPath(const std::wstring &dosPath, bool bAsIsOnError)
 std::wstring NtPathToDosPath(const std::wstring& ntPath, bool bAsIsOnError) 
 {
 #if 1
-    std::wstring temp = CNtPathMgr::Instance()->TranslateTempLinks(ntPath, true);
-    return CNtPathMgr::Instance()->TranslateNtToDosPath(temp.empty() ? ntPath : temp, bAsIsOnError);
+    //std::wstring temp = CPathReparse::Instance()->TranslateTempLinks(ntPath, true);
+    //return CPathReparse::Instance()->TranslateNtToDosPath(temp.empty() ? ntPath : temp, bAsIsOnError);
+    std::wstring dosPath = CNtPathMgr::Instance()->TranslateNtToDosPath(ntPath);
+	if (dosPath.empty() && bAsIsOnError)
+		return ntPath;
+	return dosPath;
 #else
     std::vector<wchar_t> driveStrings(256);
     DWORD driveStringLength = GetLogicalDriveStringsW((DWORD)driveStrings.size() - 1, &driveStrings[0]);

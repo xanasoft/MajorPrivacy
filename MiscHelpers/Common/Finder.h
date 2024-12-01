@@ -45,7 +45,7 @@ public:
 	static QIcon m_HighlightIcon;
 
 signals:
-	void				SetFilter(const QString& Exp, int iOptions = 0, int Column = -1);
+	void				SetFilter(const QRegularExpression& RegExp, int iOptions = 0, int Column = -1);
 	void				SelectNext();
 
 public slots:

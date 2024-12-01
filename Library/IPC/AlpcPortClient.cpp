@@ -104,8 +104,10 @@ bool CAlpcPortClient::IsConnected()
 STATUS CAlpcPortClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff)
 {
 	if (!m->PortHandle) {
-		if(!Connect())
+		if (!m_AutoConnect)
 			return ERR(STATUS_PORT_DISCONNECTED);
+		if (!Connect())
+			return ERR(STATUS_PORT_CONNECTION_REFUSED);
 	}
 
 	UCHAR RequestBuff[MAX_PORTMSG_LENGTH];

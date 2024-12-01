@@ -3,6 +3,7 @@
 #include "../../MiscHelpers/Common/PanelView.h"
 #include "../../MiscHelpers/Common/TreeviewEx.h"
 #include "../Models/TraceModel.h"
+#include "../Core/TraceLogUtils.h"
 
 class CTraceView : public CPanelView
 {
@@ -12,16 +13,23 @@ public:
 	CTraceView(CTraceModel* pModel, QWidget *parent = 0);
 	virtual ~CTraceView();
 
-	void						Sync(const struct SMergedLog* pLog);
+	void						Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services);
 
 public slots:
-	void						SetFilter(const QString& Exp, int iOptions = 0, int Column = -1);
+	void						SetFilter(const QRegularExpression& RegExp, int iOptions = 0, int Column = -1);
+
+private slots:
+	void						OnCleanUpDone();
 
 protected:
 	virtual void				OnMenu(const QPoint& Point);
 
 	QTreeView*					GetView()			{ return m_pTreeView; }
 	QAbstractItemModel*			GetModel()			{ return m_pItemModel; }
+
+	void						ClearTraceLog(ETraceLogs Log);
+
+	SMergedLog					m_Log;
 
 	QVBoxLayout*				m_pMainLayout;
 

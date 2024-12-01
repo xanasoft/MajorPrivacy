@@ -14,7 +14,27 @@ public:
 	CAccessView(QWidget *parent = 0);
 	virtual ~CAccessView();
 
-	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services);
+	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QString& RootPath = QString());
+
+	QList<SAccessItemPtr>	GetSelectedItemsWithChildren() override
+	{
+		std::function<void(const SAccessItemPtr&, QList<SAccessItemPtr>&)> AddWitnChildren = [&](const SAccessItemPtr& pItem, QList<SAccessItemPtr>& List) {
+			List.append(pItem);
+			foreach(const SAccessItemPtr & pChild, pItem->Branches)
+				AddWitnChildren(pChild, List);
+		};
+
+		QList<SAccessItemPtr> List;
+		foreach(const QModelIndex & Index, m_pTreeView->selectedRows())
+		{
+			QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
+			SAccessItemPtr pItem = m_pItemModel->GetItem(ModelIndex);
+			if (!pItem)
+				continue;
+			AddWitnChildren(pItem, List);
+		}
+		return List;
+	}
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;
@@ -24,18 +44,20 @@ private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
 
+	void					CleanUpTree();
+
+	void					OnCleanUpDone();
+
 protected:
 
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbAccess;
 
+	QToolButton*			m_pBtnCleanUp;
+
 	QSet<CProgramFilePtr>			m_CurPrograms;
 	QSet<CWindowsServicePtr>		m_CurServices;
-#ifndef USE_ACCESS_TREE
-	QHash<QString, SAccessItemPtr>	m_CurAccess;
-#else
-	SAccessItemPtr					m_CurRoot;	
-#endif
+	SAccessItemPtr					m_CurRoot;
 	struct SItem
 	{
 		qint64 LastAccess = -1;

@@ -36,12 +36,12 @@ public:
 protected:
 	struct SRuleNode : STreeNode
 	{
-		SRuleNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id) { }
+		SRuleNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		CProgramRulePtr pRule;
 		CProgramItemPtr pProg;
 	};
 
-	virtual STreeNode*	MkNode(const QVariant& Id) { return new SRuleNode(this, Id); }
+	virtual STreeNode*	MkNode(const QVariant& Id) { return new SRuleNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 };

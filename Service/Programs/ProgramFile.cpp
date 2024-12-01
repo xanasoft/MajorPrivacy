@@ -3,6 +3,9 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Helpers/AppUtil.h"
+#include "../Library/Helpers/NtIo.h"
+#include "../Library/Helpers/NtObj.h"
+#include "../Library/Common/Strings.h"
 #include "../Programs/ProgramManager.h"
 #include "../ServiceCore.h"
 #include "WindowsService.h"
@@ -41,6 +44,14 @@ void CProgramFile::RemoveProcess(const CProcessPtr& pProcess)
 	std::unique_lock lock(m_Mutex);
 
 	m_Processes.erase(pid);
+}
+
+std::wstring CProgramFile::GetNameEx() const
+{ 
+	std::unique_lock lock(m_Mutex); 
+	if (!m_Name.empty())
+		return m_Path + L" (" + m_Name + L")";
+	return m_Path;
 }
 
 CAppPackagePtr CProgramFile::GetAppPackage() const
@@ -178,8 +189,6 @@ void CProgramFile::AddExecActor(const std::shared_ptr<CProgramFile>& pActorProgr
 {
 	CWindowsServicePtr pActorService = pActorProgram->GetService(ActorServiceTag);
 
-	std::unique_lock lock(m_Mutex);
-
 	m_AccessLog.AddExecActor(pActorService ? pActorService->GetUID() : pActorProgram->GetUID(), CmdLine, CreateTime, bBlocked);
 }
 
@@ -191,15 +200,11 @@ void CProgramFile::AddExecTarget(const std::wstring& ActorServiceTag, const std:
 		return;
 	}
 
-	std::unique_lock lock(m_Mutex);
-
 	m_AccessLog.AddExecTarget(pProgram->GetUID(), CmdLine, CreateTime, bBlocked);
 }
 
 CVariant CProgramFile::DumpExecStats() const
 {
-	std::unique_lock lock(m_Mutex);
-
 	SVarWriteOpt Opts;
 
 	CVariant Actors;
@@ -231,8 +236,6 @@ void CProgramFile::AddIngressActor(const std::shared_ptr<CProgramFile>& pActorPr
 {
 	CWindowsServicePtr pActorService = pActorProgram->GetService(ActorServiceTag);
 
-	std::unique_lock lock(m_Mutex);
-
 	m_AccessLog.AddIngressActor(pActorService ? pActorService->GetUID() : pActorProgram->GetUID(), bThread, AccessMask, AccessTime, bBlocked);
 }
 
@@ -244,15 +247,11 @@ void CProgramFile::AddIngressTarget(const std::wstring& ActorServiceTag, const s
 		return;
 	}
 
-	std::unique_lock lock(m_Mutex);
-
 	m_AccessLog.AddIngressTarget(pProgram->GetUID(), bThread, AccessMask, AccessTime, bBlocked);
 }
 
 CVariant CProgramFile::DumpIngress() const
 {
-	std::unique_lock lock(m_Mutex);
-
 	SVarWriteOpt Opts;
 
 	CVariant Actors;
@@ -290,15 +289,11 @@ void CProgramFile::AddAccess(const std::wstring& ActorServiceTag, const std::wst
 		}
 	}
 
-	std::unique_lock lock(m_Mutex); 
-
 	m_AccessTree.Add(Path, AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked);
 }
 
 CVariant CProgramFile::StoreAccess(const SVarWriteOpt& Opts) const
 {
-	std::unique_lock lock(m_Mutex); 
-
 	CVariant Data;
 	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts);
@@ -311,8 +306,6 @@ CVariant CProgramFile::StoreAccess(const SVarWriteOpt& Opts) const
 
 void CProgramFile::LoadAccess(const CVariant& Data)
 {
-	std::unique_lock lock(m_Mutex);
-
 	m_AccessTree.LoadTree(Data[API_V_PROG_RESOURCE_ACCESS]);
 	m_AccessLog.LoadExecActors(Data[API_V_PROG_EXEC_ACTORS]);
 	m_AccessLog.LoadExecTargets(Data[API_V_PROG_EXEC_TARGETS]);
@@ -322,8 +315,6 @@ void CProgramFile::LoadAccess(const CVariant& Data)
 
 CVariant CProgramFile::DumpAccess(uint64 LastActivity) const
 {
-	std::unique_lock lock(m_Mutex); 
-
 	return m_AccessTree.DumpTree(LastActivity);
 }
 
@@ -361,42 +352,69 @@ CProgramFile::STraceLog CProgramFile::GetTraceLog(ETraceLogs Log) const
 	return m_TraceLogs[(int)Log];
 }
 
-void CProgramFile::CleanupTraceLog()
+void CProgramFile::TruncateTraceLog()
 {
 	std::unique_lock lock(m_Mutex); 
 
-	uint64 CleanupCount = theCore->Config()->GetUInt64("Service", "TraceLogRetentionCount", 1000); // keep last 1000 entries by default
-	//uint64 CleanupData = GetCurrentTimeAsFileTime() - theCore->Config()->GetUInt64("Service", "TraceLogRetentionMinutes", 60) * 60 * 10000000ULL; // default 1 hour
+	size_t CleanupCount = theCore->Config()->GetUInt64("Service", "TraceLogRetentionCount", 10000); // keep last 10000 entries by default
+	uint64 CleanupDateMinutes = theCore->Config()->GetUInt64("Service", "TraceLogRetentionMinutes", 60 * 24 * 14); // default 14 days
+	uint64 CleanupDate = GetCurrentTimeAsFileTime() - (CleanupDateMinutes * 60 * 10000000ULL);
 
 	for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
 	{
 		STraceLog& TraceLog = m_TraceLogs[i];
 
-		if(TraceLog.Entries.size() <= CleanupCount)
-			continue;
-#ifdef _DEBUG
-		//DbgPrint("Cleaned up %d log (%d) entries from %S\n", TraceLog.Entries.size() - CleanupCount, i, m_FileName.c_str());
-#endif
-		auto it = TraceLog.Entries.begin() + (TraceLog.Entries.size() - CleanupCount);
+		//
+		// check if we exceed the maximum number of entries
+		//
+		size_t pos = 0;
+		if(TraceLog.Entries.size() > CleanupCount)
+			pos = TraceLog.Entries.size() - CleanupCount;
 
-		/*auto it = std::lower_bound(TraceLog.Entries.begin(), TraceLog.Entries.end(), CleanupData, [](const CTraceLogEntryPtr& entry, uint64 CleanupData) {
+		//
+		// find the first entry older than CleanupDate
+		// note: the entries are sorted by timestamp
+		//
+		auto it = std::lower_bound(TraceLog.Entries.begin(), TraceLog.Entries.end(), CleanupDate, [](const CTraceLogEntryPtr& entry, uint64 CleanupData) {
 			return entry->GetTimeStamp() < CleanupData;
-		});*/
+		});
 
+		//
+		// check if entrys by date require us to clean up more entries than by count alone
+		// 
 		if (it != TraceLog.Entries.begin()) {
-			TraceLog.IndexOffset += std::distance(TraceLog.Entries.begin(), it);
-			TraceLog.Entries.erase(TraceLog.Entries.begin(), it);
+			size_t pos2 = std::distance(TraceLog.Entries.begin(), it);
+			if (pos2 > pos)
+				pos = pos2;
+		}
+
+		//
+		// remove the entries
+		//
+		if(pos > 0){
+			TraceLog.IndexOffset += pos;
+			TraceLog.Entries.erase(TraceLog.Entries.begin(), TraceLog.Entries.begin() + pos);
 		}
 	}
 }
 
-void CProgramFile::ClearTraceLog()
+void CProgramFile::ClearTraceLog(ETraceLogs Log)
 {
 	std::unique_lock lock(m_Mutex);
 
-	for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
+	if (Log == ETraceLogs::eLogMax)
 	{
-		STraceLog& TraceLog = m_TraceLogs[i];
+		for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
+		{
+			STraceLog& TraceLog = m_TraceLogs[i];
+
+			TraceLog.IndexOffset = 0;
+			TraceLog.Entries.clear();
+		}
+	}
+	else
+	{
+		STraceLog& TraceLog = m_TraceLogs[(int)Log];
 
 		TraceLog.IndexOffset = 0;
 		TraceLog.Entries.clear();
@@ -419,8 +437,6 @@ void CProgramFile::UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked)
 
 void CProgramFile::CollectStats(SStats& Stats) const
 {
-	Stats.LastFwAllowed = m_LastFwAllowed;
-	Stats.LastFwBlocked = m_LastFwBlocked;
 	Stats.LastNetActivity = m_TrafficLog.GetLastActivity();
 	Stats.Uploaded = m_TrafficLog.GetUploaded();
 	Stats.Downloaded = m_TrafficLog.GetDownloaded();
@@ -428,8 +444,9 @@ void CProgramFile::CollectStats(SStats& Stats) const
 	{
 		Stats.Pids.insert(I.first);
 
-		if (I.second->GetLastNetActivity() > Stats.LastNetActivity)
-			Stats.LastNetActivity = I.second->GetLastNetActivity();
+		uint64 LastActivity = FILETIME2ms(I.second->GetLastNetActivity());
+		if (LastActivity > Stats.LastNetActivity)
+			Stats.LastNetActivity = LastActivity;
 		Stats.Upload += I.second->GetUpload();
 		Stats.Download += I.second->GetDownload();
 		// Note: this is not the same as the sum of the sockets' upload/download, as it includes data from closed sockets
@@ -441,8 +458,8 @@ void CProgramFile::CollectStats(SStats& Stats) const
 		{
 			Stats.SocketRefs.insert((uint64)pSocket.get());
 
-			//if (pSocket->GetLastActivity() > LastActivity)
-			//	Stats.LastActivity = pSocket->GetLastActivity();
+			if (pSocket->GetLastActivity() > Stats.LastNetActivity)
+				Stats.LastNetActivity = pSocket->GetLastActivity();
 			//Stats.Upload += pSocket->GetUpload();
 			//Stats.Download += pSocket->GetDownload();
 			Stats.Uploaded += pSocket->GetUploaded();
@@ -451,15 +468,38 @@ void CProgramFile::CollectStats(SStats& Stats) const
 	}
 }
 
-void CProgramFile::ClearLogs()
+void CProgramFile::ClearLogs(ETraceLogs Log)
 {
-	ClearTraceLog();
+	ClearTraceLog(Log);
 
-	m_TrafficLog.Clear();
+	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
+		m_TrafficLog.Clear();
 
-	std::unique_lock lock(m_Mutex);
+	if (Log == ETraceLogs::eLogMax || Log == ETraceLogs::eExecLog) {
+		m_AccessLog.Clear();
+		m_LastExec = 0;
+	}
 
-	m_AccessLog.Clear();
+	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
+		m_AccessTree.Clear();
+}
 
-	m_AccessTree.Clear();
+void CProgramFile::TruncateAccessLog()
+{
+	m_AccessLog.Truncate();
+}
+
+void CProgramFile::CleanUpAccessTree(bool* pbCancel, uint32* puCounter)
+{
+	m_AccessTree.CleanUp(pbCancel, puCounter);
+}
+
+void CProgramFile::TruncateAccessTree()
+{
+	m_AccessTree.Truncate();
+}
+
+void CProgramFile::TestMissing()
+{
+	m_IsMissing = NtIo_FileExists(SNtObject(m_Path).Get()) ? ePresent : eMissing;
 }

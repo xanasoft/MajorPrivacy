@@ -14,16 +14,19 @@ public:
 	CProcessTraceView(QWidget *parent = 0);
 	virtual ~CProcessTraceView();
 
-	void					Sync(const struct SMergedLog* pLog);
+	void					Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services);
 
 private slots:
 	void					UpdateFilter();
+
+	void					OnClearTraceLog();
 
 protected:
 
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbRole;
 	QComboBox*				m_pCmbAction;
+	QToolButton*			m_pBtnClear;
 	QToolButton*			m_pBtnScroll;
 
 };

@@ -127,10 +127,10 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	ui.cmbProgram->setEditable(true);
 	ui.cmbProgram->lineEdit()->setReadOnly(true);
 	CProgramItemPtr pItem;
-	if (m_pRule->m_ProgramID.GetType() != EProgramType::eUnknown)
-		pItem = theCore->ProgramManager()->GetProgramByID(m_pRule->m_ProgramID);
-	else
+	if (m_pRule->m_ProgramID.GetType() == EProgramType::eAllPrograms)
 		pItem = theCore->ProgramManager()->GetAll();
+	else if(!bNew)
+		pItem = theCore->ProgramManager()->GetProgramByID(m_pRule->m_ProgramID);
 	int Index = m_Items.indexOf(pItem);
 	ui.cmbProgram->setCurrentIndex(Index);
 
@@ -548,7 +548,7 @@ bool CFirewallRuleWnd::ValidateAddress(const QString& Address, bool bRemote)
 		{
 			QStringList IpNet = SplitStr(Address, "/");
 			if(IpNet.size() != 2) {
-				QMessageBox::critical(this, "Major Privacy", tr("Invalid Sub Net"));
+				QMessageBox::critical(this, "MajorPrivacy", tr("Invalid Sub Net"));
 				return false;
 			}
 
@@ -558,7 +558,7 @@ bool CFirewallRuleWnd::ValidateAddress(const QString& Address, bool bRemote)
 			IP = QHostAddress(Address);
 
 		if (IP.isNull()) {
-			QMessageBox::critical(this, "Major Privacy", tr("Invalid IP Address"));
+			QMessageBox::critical(this, "MajorPrivacy", tr("Invalid IP Address"));
 			return false;
 		}
 	}
@@ -567,16 +567,16 @@ bool CFirewallRuleWnd::ValidateAddress(const QString& Address, bool bRemote)
 		QHostAddress BeginIP(BeginEnd[0]);
 		QHostAddress EndIP(BeginEnd[1]);
 		if (BeginIP.isNull() || EndIP.isNull()) {
-			QMessageBox::critical(this, "Major Privacy", tr("Invalid IP Address"));
+			QMessageBox::critical(this, "MajorPrivacy", tr("Invalid IP Address"));
 			return false;
 		}
 		if(BeginIP < EndIP || BeginIP.protocol() != EndIP.protocol()) {
-			QMessageBox::critical(this, "Major Privacy", tr("Invalid IP Range"));
+			QMessageBox::critical(this, "MajorPrivacy", tr("Invalid IP Range"));
 			return false;
 		}
 	}
 	else {
-		QMessageBox::critical(this, "Major Privacy", tr("Invalid IP Range"));
+		QMessageBox::critical(this, "MajorPrivacy", tr("Invalid IP Range"));
 		return false;
 	}
 	return true;

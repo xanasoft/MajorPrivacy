@@ -14,7 +14,6 @@ enum class EProgramType
 	eAppInstallation	= 'inst',
 	eWindowsService		= 'svc',
 	eAppPackage			= 'app',
-
 	eProgramSet			= 'set',
 	eProgramList		= 'list',
 	eProgramGroup		= 'grp',

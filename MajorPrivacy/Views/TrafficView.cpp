@@ -44,6 +44,8 @@ CTrafficView::CTrafficView(QWidget *parent)
 	m_pToolBar->addWidget(pBtnSearch);
 
 	AddPanelItemsToMenu();
+
+	connect(theCore, SIGNAL(CleanUpDone()), this, SLOT(OnCleanUpDone()));
 }
 
 CTrafficView::~CTrafficView()
@@ -173,4 +175,11 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 void CTrafficView::OnMenu(const QPoint& Point)
 {
 	CPanelView::OnMenu(Point);
+}
+
+void CTrafficView::OnCleanUpDone()
+{
+	// refresh
+	m_CurPrograms.clear();
+	m_CurServices.clear();
 }

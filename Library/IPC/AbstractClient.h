@@ -14,6 +14,8 @@ public:
 	virtual void Disconnect() = 0;
 	virtual bool IsConnected() = 0;
 
+	virtual void SetAutoConnect(bool AutoConnect) { m_AutoConnect = AutoConnect; }
+
     virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff) = 0;
     virtual RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message, size_t RetBufferSize = 0x1000)
     {
@@ -58,4 +60,7 @@ public:
     }
 
 	//virtual bool RegisterHandler(uint32 MessageId, const std::function<uint32(uint32 msgId, const CBuffer* req, CBuffer* rpl)>& Handler) { return false; }
+
+protected:
+	bool m_AutoConnect = false;
 };

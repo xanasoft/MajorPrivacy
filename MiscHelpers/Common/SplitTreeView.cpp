@@ -34,7 +34,8 @@ CSplitTreeView::CSplitTreeView(QAbstractItemModel* pModel, QWidget *parent) : QW
 #endif
 	//m_pTree->setSortingEnabled(true);
 	m_pTree->setSortingEnabled(false);
-	m_pTree->setUniformRowHeights(true);
+	m_pTree->setUniformRowHeights(true); // critical for good performance with huge data sets
+
 	m_pTree->header()->setSortIndicatorShown(true);
 	m_pTree->header()->setSectionsClickable(true);
 	connect(m_pTree->header(), SIGNAL(sectionClicked(int)), this, SLOT(OnTreeCustomSortByColumn(int)));
@@ -63,7 +64,7 @@ CSplitTreeView::CSplitTreeView(QAbstractItemModel* pModel, QWidget *parent) : QW
 	m_pList->setStyle(pStyle);
 #endif
 	m_pList->setSortingEnabled(true);
-	m_pList->setUniformRowHeights(true);
+	m_pList->setUniformRowHeights(true); // critical for good performance with huge data sets
 	connect(m_pList->header(), SIGNAL(sectionClicked(int)), this, SLOT(OnListCustomSortByColumn(int)));
 
 	m_pList->setContextMenuPolicy(Qt::CustomContextMenu);

@@ -18,6 +18,7 @@ struct SProgramStats
 
 	int				ResRuleCount = 0;
 	int				ResRuleTotal = 0;
+	uint32			AccessCount = 0;
 
 	int				FwRuleCount = 0;
 	int				FwRuleTotal = 0;
@@ -48,14 +49,15 @@ public:
 	void SetID(const CProgramID& ID) 				{ m_ID = ID; }
 	const CProgramID& GetID() const					{ return m_ID; }
 
-	void SetName(const QString& Name)				{ m_Name = Name; }
+	virtual void SetName(const QString& Name)		{ m_Name = Name; }
 	virtual QString GetName() const					{ return m_Name; }
 	virtual QString GetNameEx() const				{ return m_Name; }
 	virtual QStringList GetCategories() const		{ return m_Categories; }
 	virtual QIcon DefaultIcon() const;
-	void SetIconFile(const QString& IconFile);
+	virtual void SetIconFile(const QString& IconFile) { m_IconFile = IconFile; UpdateIconFile(); }
+	virtual QString GetIconFile() const				{ return m_IconFile; }
 	virtual QIcon GetIcon() const					{ return m_Icon; }
-	void SetInfo(const QString& Info)				{ m_Info = Info; }
+	virtual void SetInfo(const QString& Info)		{ m_Info = Info; }
 	virtual QString GetInfo() const					{ return m_Info; }
 	virtual QString GetPath(EPathType Type) const	{ return ""; }
 
@@ -70,6 +72,8 @@ public:
 	virtual int GetResRuleCount() const				{ return m_ResRuleIDs.count(); }
 	virtual QSet<QString> GetResRules() const		{ return m_ResRuleIDs; }
 
+	virtual bool IsMissing() const					{ return m_IsMissing; }
+
 	virtual void CountStats() = 0;
 	virtual const SProgramStats* GetStats()			{ return &m_Stats; }
 
@@ -80,6 +84,7 @@ protected:
 	friend class CProgramManager;
 
 	void SetIconFile();
+	void UpdateIconFile();
 
 	virtual void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
 	virtual void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
@@ -99,6 +104,8 @@ protected:
 	QSet<QString>						m_FwRuleIDs;
 	QSet<QString>						m_ProgRuleIDs;
 	QSet<QString>						m_ResRuleIDs;
+
+	bool								m_IsMissing = false;
 
 	SProgramStats						m_Stats;
 };

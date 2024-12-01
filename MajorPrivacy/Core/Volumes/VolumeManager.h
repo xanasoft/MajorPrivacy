@@ -13,6 +13,7 @@ public:
 	QList<CVolumePtr> List() { return m_List.values(); }
 	
 	void AddVolume(const QString& Path);
+	void RemoveVolume(const QString& Path);
 
 	bool LoadVolumes();
 	bool SaveVolumes();

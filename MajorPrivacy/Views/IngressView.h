@@ -23,6 +23,8 @@ private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
 
+	void					OnCleanUpDone();
+
 protected:
 
 	QToolBar*				m_pToolBar;

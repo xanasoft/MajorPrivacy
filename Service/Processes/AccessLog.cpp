@@ -2,6 +2,7 @@
 #include "AccessLog.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Programs/ProgramManager.h"
+#include "../Library/Helpers/NtUtil.h"
 #include "../ServiceCore.h"
 
 CAccessLog::CAccessLog()
@@ -14,6 +15,8 @@ CAccessLog::~CAccessLog()
 
 void CAccessLog::AddExecActor(uint64 UID, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked)
 {
+	std::unique_lock lock(m_Mutex);
+
 	SExecInfo& Info = m_ExecActors[UID];
 	Info.bBlocked = bBlocked;
 	Info.LastExecTime = CreateTime;
@@ -27,7 +30,6 @@ CVariant CAccessLog::StoreExecActors(const SVarWriteOpt& Opts) const
 	DumpExecActors(Actors, Opts);
 	Actors.Finish();
 	return Actors;
-
 }
 
 void CAccessLog::LoadExecActors(const CVariant& Data)
@@ -43,6 +45,8 @@ void CAccessLog::LoadExecActors(const CVariant& Data)
 
 void CAccessLog::DumpExecActors(CVariant& Actors, const SVarWriteOpt& Opts) const
 {
+	std::unique_lock lock(m_Mutex);
+
 	for (auto& pItem : m_ExecActors)
 	{
 		CVariant vActor;
@@ -66,6 +70,8 @@ void CAccessLog::DumpExecActors(CVariant& Actors, const SVarWriteOpt& Opts) cons
 
 void CAccessLog::AddExecTarget(uint64 UID, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked)
 {
+	std::unique_lock lock(m_Mutex);
+
 	SExecInfo& Info = m_ExecTargets[UID];
 	Info.bBlocked = bBlocked;
 	Info.LastExecTime = CreateTime;
@@ -94,6 +100,8 @@ void CAccessLog::LoadExecTargets(const CVariant& Data)
 
 void CAccessLog::DumpExecTarget(CVariant& Targets, const SVarWriteOpt& Opts, const std::wstring& SvcTag) const
 {
+	std::unique_lock lock(m_Mutex);
+
 	for (auto& pItem : m_ExecTargets)
 	{
 		CVariant vTarget;
@@ -118,6 +126,8 @@ void CAccessLog::DumpExecTarget(CVariant& Targets, const SVarWriteOpt& Opts, con
 
 void CAccessLog::AddIngressActor(uint64 UID, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
 {
+	std::unique_lock lock(m_Mutex);
+
 	SAccessInfo& Info = m_IngressActors[UID];
 	Info.bBlocked = bBlocked;
 	Info.LastAccessTime = AccessTime;
@@ -125,7 +135,6 @@ void CAccessLog::AddIngressActor(uint64 UID, bool bThread, uint32 AccessMask, ui
 		Info.ThreadAccessMask |= AccessMask;
 	else
 		Info.ProcessAccessMask |= AccessMask;
-
 }
 
 CVariant CAccessLog::StoreIngressActors(const SVarWriteOpt& Opts) const
@@ -153,6 +162,8 @@ void CAccessLog::LoadIngressActors(const CVariant& Data)
 
 void CAccessLog::DumpIngressActors(CVariant& Actors, const SVarWriteOpt& Opts) const
 {
+	std::unique_lock lock(m_Mutex);
+
 	for (auto& pItem : m_IngressActors)
 	{
 		CVariant vActor;
@@ -177,6 +188,8 @@ void CAccessLog::DumpIngressActors(CVariant& Actors, const SVarWriteOpt& Opts) c
 
 void CAccessLog::AddIngressTarget(uint64 UID, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
 {
+	std::unique_lock lock(m_Mutex);
+
 	SAccessInfo& Info = m_IngressTargets[UID];
 	Info.bBlocked = bBlocked;
 	Info.LastAccessTime = AccessTime;
@@ -211,6 +224,8 @@ void CAccessLog::LoadIngressTargets(const CVariant& Data)
 
 void CAccessLog::DumpIngressTargets(CVariant& Targets, const SVarWriteOpt& Opts, const std::wstring& SvcTag) const
 {
+	std::unique_lock lock(m_Mutex);
+
 	for (auto& pItem : m_IngressTargets)
 	{
 		CVariant vTarget;
@@ -236,9 +251,49 @@ void CAccessLog::DumpIngressTargets(CVariant& Targets, const SVarWriteOpt& Opts,
 
 void CAccessLog::Clear()
 {
+	std::unique_lock lock(m_Mutex);
+
 	m_ExecActors.clear();
 	m_ExecTargets.clear();
 
 	m_IngressActors.clear();
 	m_IngressTargets.clear();
+}
+
+void CAccessLog::Truncate()
+{
+	uint64 CleanupDateMinutes = theCore->Config()->GetUInt64("Service", "TraceLogRetentionMinutes", 60 * 24 * 14); // default 14 days
+	uint64 CleanupDate = GetCurrentTimeAsFileTime() - (CleanupDateMinutes * 60 * 10000000ULL);
+
+	std::unique_lock lock(m_Mutex);
+
+
+	for (auto I = m_ExecActors.begin(); I != m_ExecActors.end();) {
+		if (I->second.LastExecTime < CleanupDate)
+			m_ExecActors.erase(I++);
+		else
+			++I;
+	}
+
+	for (auto I = m_ExecTargets.begin(); I != m_ExecTargets.end();) {
+		if (I->second.LastExecTime < CleanupDate)
+			m_ExecTargets.erase(I++);
+		else
+			++I;
+	}
+
+
+	for (auto I = m_IngressActors.begin(); I != m_IngressActors.end();) {
+		if (I->second.LastAccessTime < CleanupDate)
+			m_IngressActors.erase(I++);
+		else
+			++I;
+	}
+
+	for (auto I = m_IngressTargets.begin(); I != m_IngressTargets.end();) {
+		if (I->second.LastAccessTime < CleanupDate)
+			m_IngressTargets.erase(I++);
+		else
+			++I;
+	}
 }

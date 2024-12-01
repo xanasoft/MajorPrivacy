@@ -44,11 +44,14 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 		else
 		{
 			I.value() = NULL;
+			pNode->pRule = pRule;
 			Index = Find(m_Root, pNode);
 		}
 
-		if (pNode->pProg.isNull())
+		if (pNode->pProg.isNull() || pNode->pRule->GetProgramID() != pNode->pProg->GetID()) {
 			pNode->pProg = theCore->ProgramManager()->GetProgramByID(pNode->pRule->GetProgramID());
+			pNode->Icon.clear();
+		}
 
 		//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));

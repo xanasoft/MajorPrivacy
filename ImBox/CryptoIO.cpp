@@ -29,7 +29,7 @@ struct SSecureBuffer
 #ifdef _M_IX86
 		ptr = (T*)VirtualAlloc(NULL, length, MEM_COMMIT + MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #else
-		ptr = (T*)VirtualAlloc(NULL, length, MEM_COMMIT+MEM_RESERVE, PAGE_READWRITE);
+		ptr = (T*)VirtualAlloc(NULL, length, MEM_COMMIT + MEM_RESERVE, PAGE_READWRITE);
 #endif
 		if(ptr)
 			VirtualLock(ptr, length);

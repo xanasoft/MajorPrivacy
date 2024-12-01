@@ -196,17 +196,36 @@ STATUS  CProgramManager::UpdateLibs()
 	return OK;
 }
 
+void CProgramManager::Clear()
+{
+	m_Root->m_Nodes.clear();
+	m_Items.clear();
+	m_Items.insert(m_Root->GetUID(), m_Root);
+	
+	m_PathMap.clear();
+	m_PatternMap.clear();
+	m_ServiceMap.clear();
+	m_PackageMap.clear();
+	m_Groups.clear();
+
+	//m_ProgramRules.clear();
+
+	m_LibrariesCacheToken = 0;
+	m_Libraries.clear();
+}
+
 void CProgramManager::AddProgram(const CProgramItemPtr& pItem)
 {
 	const CProgramID& ID = pItem->GetID();
 	switch (ID.GetType())
 	{
-	case EProgramType::eAllPrograms:			m_pAll = pItem.objectCast<CProgramSet>(); break;
 	case EProgramType::eProgramFile:			m_PathMap.insert(ID.GetFilePath(), pItem.objectCast<CProgramFile>()); break;
 	case EProgramType::eFilePattern:			m_PatternMap.insert(ID.GetFilePath(), pItem.objectCast<CProgramPattern>()); break;
-	case EProgramType::eAppInstallation:		break;
 	case EProgramType::eWindowsService:			m_ServiceMap.insert(ID.GetServiceTag(), pItem.objectCast<CWindowsService>()); break;
 	case EProgramType::eAppPackage:				m_PackageMap.insert(ID.GetAppContainerSid(), pItem.objectCast<CAppPackage>()); break;
+	case EProgramType::eAppInstallation:		break;
+	case EProgramType::eProgramGroup:			m_Groups.insert(ID.GetAppContainerSid(), pItem.objectCast<CProgramGroup>()); break;
+	case EProgramType::eAllPrograms:			m_pAll = pItem.objectCast<CProgramSet>(); break;
 	default: Q_ASSERT(0);
 	}
 }
@@ -220,6 +239,7 @@ void CProgramManager::RemoveProgram(const CProgramItemPtr& pItem)
 	case EProgramType::eFilePattern:			m_PatternMap.remove(ID.GetFilePath()); break;
 	case EProgramType::eWindowsService:			m_ServiceMap.remove(ID.GetServiceTag()); break;
 	case EProgramType::eAppPackage:				m_PackageMap.remove(ID.GetAppContainerSid()); break;
+	case EProgramType::eProgramGroup:			m_Groups.remove(ID.GetAppContainerSid()); break;
 	//default: Q_ASSERT(0); // ignore
 	}
 }
@@ -309,14 +329,19 @@ CProgramPatternPtr CProgramManager::GetPattern(const QString& Pattern)
 	return pItem;
 }
 
-STATUS CProgramManager::SetProgram(const CProgramItemPtr& pItem)
+RESULT(quint64) CProgramManager::SetProgram(const CProgramItemPtr& pItem)
 {
 	return theCore->SetProgram(pItem);
 }
 
-STATUS CProgramManager::RemoveProgramFrom(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent)
+STATUS CProgramManager::AddProgramTo(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent)
 {
-	return theCore->RemoveProgramFrom(pItem->GetUID(), pParent ? pParent->GetUID() : 0);
+	return theCore->AddProgramTo(pItem->GetUID(), pParent->GetUID());
+}
+
+STATUS CProgramManager::RemoveProgramFrom(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent, bool bDelRules)
+{
+	return theCore->RemoveProgramFrom(pItem->GetUID(), pParent ? pParent->GetUID() : 0, bDelRules);
 }
 
 /////////////////////////////////////////////////////////////////////////////

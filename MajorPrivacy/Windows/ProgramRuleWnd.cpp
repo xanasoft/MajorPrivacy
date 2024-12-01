@@ -90,10 +90,10 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	ui.cmbProgram->setEditable(true);
 	ui.cmbProgram->lineEdit()->setReadOnly(true);
 	CProgramItemPtr pItem;
-	if (m_pRule->m_ProgramID.GetType() != EProgramType::eUnknown)
-		pItem = theCore->ProgramManager()->GetProgramByID(m_pRule->m_ProgramID);
-	else
+	if (m_pRule->m_ProgramID.GetType() == EProgramType::eAllPrograms)
 		pItem = theCore->ProgramManager()->GetAll();
+	else if(!bNew)
+		pItem = theCore->ProgramManager()->GetProgramByID(m_pRule->m_ProgramID);
 	int Index = m_Items.indexOf(pItem);
 	ui.cmbProgram->setCurrentIndex(Index);
 	if(bNew)

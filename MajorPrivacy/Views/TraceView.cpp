@@ -41,6 +41,8 @@ CTraceView::CTraceView(CTraceModel* pModel, QWidget *parent)
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 
 	AddPanelItemsToMenu();
+
+	connect(theCore, SIGNAL(CleanUpDone()), this, SLOT(OnCleanUpDone()));
 }
 
 CTraceView::~CTraceView()
@@ -52,8 +54,18 @@ void CTraceView::OnMenu(const QPoint& Point)
 	CPanelView::OnMenu(Point);
 }
 
-void CTraceView::SetFilter(const QString& Exp, int iOptions, int Column)
+void CTraceView::SetFilter(const QRegularExpression& RegExp, int iOptions, int Column)
 {
+	QString Pattern = RegExp.pattern();
+	QString Exp;
+	if (Pattern.length() > 4) {
+		Exp = Pattern.mid(2, Pattern.length() - 4); // remove leading and tailing ".*" from the pattern
+		// unescape, remove backslashes but not double backslashes
+		for (int i = 0; i < Exp.length(); i++) {
+			if (Exp.at(i) == '\\')
+				Exp.remove(i, 1);
+		}
+	}
 	bool bReset = m_bHighLight != ((iOptions & CFinder::eHighLight) != 0) || (!m_bHighLight && m_FilterExp != Exp);
 
 	//QString ExpStr = ((iOptions & CFinder::eRegExp) == 0) ? Exp : (".*" + QRegularExpression::escape(Exp) + ".*");
@@ -67,8 +79,10 @@ void CTraceView::SetFilter(const QString& Exp, int iOptions, int Column)
 		m_FullRefresh = true;
 }
 
-void CTraceView::Sync(const struct SMergedLog* pLog)
+void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services)
 {
+	MergeTraceLogs(&m_Log, Log, Programs, Services);
+
 	if (m_FullRefresh || m_RecentLimit != theGUI->GetRecentLimit()) 
 	{
 		//quint64 start = GetCurCycle();
@@ -85,7 +99,7 @@ void CTraceView::Sync(const struct SMergedLog* pLog)
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
 	//quint64 start = GetCurCycle();
-	QList<QModelIndex> NewBranches = m_pItemModel->Sync(pLog->List, uRecentLimit);
+	QList<QModelIndex> NewBranches = m_pItemModel->Sync(m_Log.List, uRecentLimit);
 	//qDebug() << "Sync took" << (GetCurCycle() - start) / 1000000.0 << "s";
 
 	/*if (m_pItemModel->IsTree())
@@ -100,4 +114,32 @@ void CTraceView::Sync(const struct SMergedLog* pLog)
 
 	if(m_pAutoScroll->isChecked())
 		m_pTreeList->scrollToBottom();*/
+}
+
+void CTraceView::ClearTraceLog(ETraceLogs Log)
+{
+	if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the trace logs for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+		return;
+
+	auto Current = theGUI->GetCurrentItems();
+	
+	if (Current.bAllPrograms)
+		theCore->ClearTraceLog(Log);
+	else
+	{
+		foreach(CProgramFilePtr pProgram, Current.Programs)
+			theCore->ClearTraceLog(Log, pProgram);
+
+		foreach(CWindowsServicePtr pService, Current.ServicesEx | Current.ServicesIm)
+			theCore->ClearTraceLog(Log, pService);
+	}
+
+	emit theCore->CleanUpDone();
+
+	m_FullRefresh = true;
+}
+
+void CTraceView::OnCleanUpDone()
+{
+	m_FullRefresh = true;
 }

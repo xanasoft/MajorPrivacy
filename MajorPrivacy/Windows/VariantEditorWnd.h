@@ -1,5 +1,7 @@
 #pragma once
 #include "../Library/Common/XVariant.h"
+#include "../../MiscHelpers/Common/AbstractTreeModel.h"
+
 
 class CVariantEditorWnd: public QMainWindow
 {
@@ -30,25 +32,29 @@ protected:
 	void				WriteProperties(QTreeWidgetItem* pItem, const QVariant& Value, QMap<QTreeWidgetItem*,QWidget*>& Widgets);
 	QVariantMap			ReadProperties();
 	QVariant			ReadProperties(QTreeWidgetItem* pItem);*/
-	void				WriteProperties(const CVariant& Root);
+	/*void				WriteProperties(const CVariant& Root);
 	void				WriteProperties(QTreeWidgetItem* pItem, const CVariant& Value, QMap<QTreeWidgetItem*,QWidget*>& Widgets);
 	CVariant			ReadProperties();
-	CVariant			ReadProperties(QTreeWidgetItem* pItem);
+	CVariant			ReadProperties(QTreeWidgetItem* pItem);*/
 
-	enum EColumns
+	/*enum EColumns
 	{
 		eKey = 0,
 		eValue,
 		eType,
-	};
+	};*/
 
-	QVariantMap			m_Request;
+	CVariant			m_Root;	
+
+	//QVariantMap			m_Request;
 	bool				m_ReadOnly;
 
 	QWidget*			m_pMainWidget;
 	QVBoxLayout*		m_pMainLayout;
 
-	QTreeWidget*		m_pPropertiesTree;
+	//QTreeWidget*		m_pPropertiesTree;
+	QTreeView*			m_pPropertiesTree;
+	class CVariantModel*m_pVariantModel;
 
 	//QDialogButtonBox*	m_pButtons;
 
@@ -59,3 +65,44 @@ protected:
 	QAction*			m_pAddRoot;
 	QAction*			m_pRemove;
 };
+
+//////////////////////////////////////////////////////////////////////////
+// CVariantModel
+
+
+
+
+class CVariantModel : public CAbstractTreeModel
+{
+	Q_OBJECT
+public:
+	CVariantModel(QObject* parent = nullptr);
+
+	void			Update(const CVariant& pRoot);
+
+	int				columnCount(const QModelIndex& parent = QModelIndex()) const { return eCount; }
+	QVariant		headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
+
+	enum EColumns
+	{
+		eName = 0,
+		eValue,
+		eCount
+	};
+
+protected:
+
+	struct SVariantNode : SAbstractTreeNode
+	{
+		CVariant data;
+	};
+
+	SAbstractTreeNode* MkNode(const void* data, const QVariant& key = QVariant(), SAbstractTreeNode* parent = nullptr) override;
+
+	void ForEachChild(SAbstractTreeNode* parentNode, const std::function<void(const QVariant& key, const void* data)>& func) override;
+
+	void updateNodeData(SAbstractTreeNode* node, const void* data, const QModelIndex& nodeIndex) override;
+
+	const void* childData(SAbstractTreeNode* node, const QVariant& key) override;
+};
+

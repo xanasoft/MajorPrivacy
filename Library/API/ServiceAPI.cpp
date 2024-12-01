@@ -48,8 +48,8 @@ CServiceAPI::CServiceAPI()
 
 CServiceAPI::~CServiceAPI()
 {
-	if(hEngineProcess)
-		CloseHandle(hEngineProcess);
+	if(m_hEngineProcess)
+		CloseHandle(m_hEngineProcess);
 	delete m_pClient;
 }
 
@@ -94,16 +94,16 @@ STATUS CServiceAPI::ConnectEngine()
 	if (Status)
 		return Status;
 	
-	if (hEngineProcess) {
+	if (m_hEngineProcess) {
 		DWORD exitCode;
-		GetExitCodeProcess(hEngineProcess, &exitCode);
+		GetExitCodeProcess(m_hEngineProcess, &exitCode);
 		if (exitCode != STILL_ACTIVE) {
-			CloseHandle(hEngineProcess);
-			hEngineProcess = NULL;
+			CloseHandle(m_hEngineProcess);
+			m_hEngineProcess = NULL;
 		}
 	}
 
-	if (!hEngineProcess) 
+	if (!m_hEngineProcess) 
 	{
 		/*if (IsRunningElevated())
 		{
@@ -112,7 +112,7 @@ STATUS CServiceAPI::ConnectEngine()
 			STARTUPINFOW si = { sizeof(si) };
 			PROCESS_INFORMATION pi = { 0 };
 			if (CreateProcessW(NULL, (WCHAR*)Command.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-				hEngineProcess = pi.hProcess;
+				m_hEngineProcess = pi.hProcess;
 				CloseHandle(pi.hThread);
 			} else
 				return ERR(PhGetLastWin32ErrorAsNtStatus());
@@ -121,21 +121,21 @@ STATUS CServiceAPI::ConnectEngine()
 		{
 			std::wstring Path = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
 
-			hEngineProcess = RunElevated(Path, L"-engine");
-			if (!hEngineProcess)
+			m_hEngineProcess = RunElevated(Path, L"-engine");
+			if (!m_hEngineProcess)
 				return ERR(PhGetLastWin32ErrorAsNtStatus());
 		}
 	}
 
 
 #ifdef _DEBUG
-	for(;;)
+	for(int i = 1;;)
 #else
-	for (int i = 0; i < 10; i++)
+	for (int i = 1; i < 10; i++)
 #endif
 	{
 		DWORD exitCode;
-		GetExitCodeProcess(hEngineProcess, &exitCode);
+		GetExitCodeProcess(m_hEngineProcess, &exitCode);
 		if (exitCode != STILL_ACTIVE) {
 			Status = ERR(PhDosErrorToNtStatus(exitCode));
 			break; // engine failed to start
@@ -145,25 +145,23 @@ STATUS CServiceAPI::ConnectEngine()
 		Status = m_pClient->Connect(API_SERVICE_PIPE);
 		if (Status)
 			return OK;
-		Sleep(1000);
+		Sleep(1000 * i);
 	}
 
-	TerminateProcess(hEngineProcess, -1);
-	CloseHandle(hEngineProcess);
-	hEngineProcess = NULL;
+	TerminateProcess(m_hEngineProcess, -1);
+	CloseHandle(m_hEngineProcess);
+	m_hEngineProcess = NULL;
 	return ERR(STATUS_INVALID_SYSTEM_SERVICE);
 }
-
-//STATUS CServiceAPI::Reconnect()
-//{
-//	m_pClient->Disconnect();
-//
-//	return m_pClient->Connect(API_SERVICE_PIPE);
-//}
 
 void CServiceAPI::Disconnect()
 {
 	m_pClient->Disconnect();
+}
+
+bool CServiceAPI::IsConnected()
+{
+	return m_pClient->IsConnected();
 }
 
 RESULT(CVariant) CServiceAPI::Call(uint32 MessageId, const CVariant& Message)

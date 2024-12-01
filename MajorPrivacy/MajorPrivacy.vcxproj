@@ -254,6 +254,7 @@
     <ClCompile Include="Helpers\WinHelper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MajorPrivacy.cpp" />
+    <ClCompile Include="Models\AccessListModel.cpp" />
     <ClCompile Include="Models\AccessModel.cpp" />
     <ClCompile Include="Models\DnsCacheModel.cpp" />
     <ClCompile Include="Models\EnclaveModel.cpp" />
@@ -288,7 +289,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Views\AccessInfoView.cpp" />
+    <ClCompile Include="Views\AccessListView.cpp" />
     <ClCompile Include="Views\AccessView.cpp" />
     <ClCompile Include="Views\DnsCacheView.cpp" />
     <ClCompile Include="Views\EnclaveView.cpp" />
@@ -312,6 +313,7 @@
     <ClCompile Include="Views\VolumeView.cpp" />
     <ClCompile Include="Windows\AccessRuleWnd.cpp" />
     <ClCompile Include="Windows\FirewallRuleWnd.cpp" />
+    <ClCompile Include="Windows\MountMgrWnd.cpp" />
     <ClCompile Include="Windows\OptionsTransferWnd.cpp" />
     <ClCompile Include="Windows\PopUpWindow.cpp" />
     <ClCompile Include="Windows\ProgramRuleWnd.cpp" />
@@ -321,9 +323,10 @@
     <ClCompile Include="Windows\VolumeWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Windows\MountMgrWnd.h" />
     <QtMoc Include="Windows\VariantEditorWnd.h" />
     <QtMoc Include="Windows\OptionsTransferWnd.h" />
-    <QtMoc Include="Views\AccessInfoView.h" />
+    <QtMoc Include="Views\AccessListView.h" />
     <QtMoc Include="Views\InfoView.h" />
     <QtMoc Include="Windows\ProgramWnd.h" />
     <QtMoc Include="Views\EnclaveView.h" />
@@ -436,6 +439,7 @@
     <QtMoc Include="Models\AccessTraceModel.h" />
     <QtMoc Include="Models\HandleModel.h" />
     <QtMoc Include="Models\EnclaveModel.h" />
+    <QtMoc Include="Models\AccessListModel.h" />
     <ClInclude Include="version.h" />
     <QtMoc Include="MajorPrivacy.h" />
     <ClInclude Include="Resources\resource.h" />

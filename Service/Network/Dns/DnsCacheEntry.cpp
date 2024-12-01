@@ -4,7 +4,7 @@
 
 CDnsCacheEntry::CDnsCacheEntry(const std::wstring& HostName, uint16 Type, const CAddress& Address, const std::wstring& ResolvedString)
 {
-	m_CreateTimeStamp = GetTime() * 1000;
+	m_CreateTimeStamp = GetCurTime() * 1000;
 
 	m_HostName = HostName;
 	m_Type = Type;

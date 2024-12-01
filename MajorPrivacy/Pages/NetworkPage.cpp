@@ -52,6 +52,12 @@ CNetworkPage::CNetworkPage(QWidget* parent)
 
 CNetworkPage::~CNetworkPage()
 {
+	theConf->SetValue("MainWindow/NetworkTab", m_pTabs->currentIndex());
+}
+
+void CNetworkPage::LoadState()
+{
+	m_pTabs->setCurrentIndex(theConf->GetInt("MainWindow/NetworkTab", 0));
 }
 
 void CNetworkPage::SetMergePanels(bool bMerge)
@@ -74,6 +80,8 @@ void CNetworkPage::SetMergePanels(bool bMerge)
 		m_pVSplitter->addWidget(m_pTabs);
 		m_pMainLayout->addWidget(m_pVSplitter);
 	}
+
+	LoadState();
 }
 
 void CNetworkPage::Update()
@@ -102,8 +110,7 @@ void CNetworkPage::Update()
 
 	if (m_pTraceView->isVisible())
 	{
-		MergeTraceLogs(&m_Log, ETraceLogs::eNetLog, Current.Programs, Current.ServicesEx);
-		m_pTraceView->Sync(&m_Log);
+		m_pTraceView->Sync(ETraceLogs::eNetLog, Current.Programs, Current.ServicesEx);
 	}
 
 	if (m_pTrafficView->isVisible())

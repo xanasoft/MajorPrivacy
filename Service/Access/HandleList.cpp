@@ -31,6 +31,10 @@ STATUS CHandleList::Init()
 
 //DWORD CALLBACK CHandleList__ThreadProc(LPVOID lpThreadParameter)
 //{
+//#ifdef _DEBUG
+//SetThreadDescription(GetCurrentThread(), L"CHandleList__ThreadProc");
+//#endif
+// 
 //	CHandleList* This = (CHandleList*)lpThreadParameter;
 //	This->EnumAllHandlesAsync();
 //	return 0;

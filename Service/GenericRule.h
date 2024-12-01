@@ -37,7 +37,6 @@ public:
 	virtual NTSTATUS FromVariant(const CVariant& Rule);
 
 protected:
-	void MkGuid();
 	void CopyTo(CGenericRule* Rule, bool CloneGuid = false) const;
 
 	virtual void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;

@@ -25,6 +25,7 @@ public:
 
 	virtual std::map<uint64, CProcessPtr> GetProcesses() const	{ std::unique_lock lock(m_Mutex); return m_Processes; }
 	virtual std::wstring GetPath() const						{ std::unique_lock lock(m_Mutex); return m_Path; }
+	virtual std::wstring GetNameEx() const;
 
 	virtual CAppPackagePtr GetAppPackage() const;
 	virtual std::list<std::shared_ptr<class CWindowsService>> GetAllServices() const;
@@ -68,10 +69,18 @@ public:
 
 	virtual uint64 AddTraceLogEntry(const CTraceLogEntryPtr& pLogEntry, ETraceLogs Log);
 	virtual STraceLog GetTraceLog(ETraceLogs Log) const;
-	virtual void CleanupTraceLog();
-	virtual void ClearTraceLog();
+	virtual void TruncateTraceLog();
+	virtual void ClearTraceLog(ETraceLogs Log);
 
-	virtual void ClearLogs();
+	virtual void ClearLogs(ETraceLogs Log);
+
+	virtual void TruncateAccessLog();
+
+	virtual void CleanUpAccessTree(bool* pbCancel, uint32* puCounter);
+	virtual void TruncateAccessTree();
+	virtual uint32 GetAccessCount() const { return m_AccessTree.GetAccessCount(); }
+
+	virtual void TestMissing();
 
 protected:
 	friend class CProgramManager;
@@ -121,9 +130,6 @@ private:
 		std::set<uint64> SocketRefs;
 
 		uint64 LastNetActivity = 0;
-
-		uint64 LastFwAllowed = 0;
-		uint64 LastFwBlocked = 0;
 
 		uint64 Upload = 0;
 		uint64 Download = 0;

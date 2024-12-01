@@ -64,13 +64,6 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pToolBar->setFixedHeight(30);
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
-	/*m_pBtnClear = new QToolButton();
-	m_pBtnClear->setIcon(QIcon(":/Icons/Clean.png"));
-	m_pBtnClear->setToolTip(tr("Cleanup Program List"));
-	m_pBtnClear->setFixedHeight(22);
-	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(CleanUpPrograms()));
-	m_pToolBar->addWidget(m_pBtnClear);*/
-
 	m_pTypeFilter = new QToolButton();
 	m_pTypeFilter->setIcon(QIcon(":/Icons/ProgFilter.png"));
 	m_pTypeFilter->setToolTip(tr("Type Filters"));
@@ -164,6 +157,19 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pSocketFilter->setMenu(m_pSocketMenu);*/
 	m_pToolBar->addWidget(m_pSocketFilter);
 
+	m_pToolBar->addSeparator();
+
+	m_pBtnCleanUp = new QToolButton();
+	m_pBtnCleanUp->setIcon(QIcon(":/Icons/Clean.png"));
+	m_pBtnCleanUp->setToolTip(tr("CleanUp Program List"));
+	m_pBtnCleanUp->setFixedHeight(22);
+	connect(m_pBtnCleanUp, SIGNAL(clicked()), theGUI, SLOT(CleanUpPrograms()));
+	m_pCleanUpMenu = new QMenu();
+	m_pReGroup = m_pCleanUpMenu->addAction(QIcon(":/Icons/ReGroup.png"), tr("Re-Group all Programs"), theGUI, SLOT(ReGroupPrograms()));
+	m_pBtnCleanUp->setPopupMode(QToolButton::MenuButtonPopup);
+	m_pBtnCleanUp->setMenu(m_pCleanUpMenu);
+	m_pToolBar->addWidget(m_pBtnCleanUp);
+
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -193,11 +199,8 @@ CProgramView::CProgramView(QWidget* parent)
 	else
 		m_pTreeList->restoreState(ProgColumns);
 
-	m_pCreateProgram = m_pMenu->addAction(QIcon(":/Icons/Process.png"), tr("Add Program"), this, SLOT(OnProgramAction()));
-	//m_pCreateGroup = m_pMenu->addAction(QIcon(":/Icons/Group.png"), tr("Create Group"), this, SLOT(OnProgramAction())); // todo
-	//m_pMenu->addSeparator();
-	//m_pAddToGroup = m_pMenu->addAction(QIcon(":/Icons/MkLink.png"), tr("Add to Group"), this, SLOT(OnProgramAction())); // todo
-	//m_pRenameItem = m_pMenu->addAction(QIcon(":/Icons/Rename.png"), tr("Rename"), this, SLOT(OnProgramAction()));
+	m_pCreateProgram = m_pMenu->addAction(QIcon(":/Icons/Add.png"), tr("Add Program"), this, SLOT(OnProgramAction()));
+	m_pAddToGroup = m_pMenu->addMenu(QIcon(":/Icons/MkLink.png"), tr("Add to Group"));
 	m_pRemoveItem = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Remove"), this, SLOT(OnProgramAction()));
 
 	AddPanelItemsToMenu();
@@ -205,7 +208,26 @@ CProgramView::CProgramView(QWidget* parent)
 
 CProgramView::~CProgramView()
 {	
+	SetColumnSet("");
 	theConf->SetBlob("MainWindow/ProgramView_Columns", m_pTreeList->saveState());
+}
+
+void CProgramView::SetColumnSet(const QString& ColumnSet)
+{
+	QString CurSet;
+	for (int i = 0; i < m_pProgramModel->columnCount(); i++)
+		CurSet += m_pTreeList->isColumnHidden(i) ? "H" : "V";
+		
+	theConf->SetValue("MainWindow/ProgramView_ColumnSet" + m_ColumnSet, CurSet);
+
+	m_ColumnSet = ColumnSet;
+
+	CurSet = theConf->GetString("MainWindow/ProgramView_ColumnSet" + m_ColumnSet, QString());
+	if (CurSet.count() != m_pProgramModel->columnCount())
+		return;
+	
+	for (int i = 0; i < m_pProgramModel->columnCount(); i++)
+		m_pTreeList->setColumnHidden(i, CurSet[i] == 'H');
 }
 
 void CProgramView::OnTypeFilter()
@@ -337,7 +359,6 @@ void CProgramView::Update()
 	if (Filter != m_pProgramModel->GetFilter() || RecentLimit != m_pProgramModel->GetRecentLimit()) {
 		m_pProgramModel->SetFilter(Filter);
 		m_pProgramModel->SetRecentLimit(RecentLimit);
-		m_pProgramModel->Clear();
 	}
 
 	QList<QVariant> AddedProgs = m_pProgramModel->Sync(theCore->ProgramManager()->GetRoot());
@@ -379,7 +400,62 @@ void CProgramView::OnDoubleClicked(const QModelIndex& Index)
 
 void CProgramView::OnMenu(const QPoint& Point)
 {
+	QMap<QString, CProgramGroupPtr> Groups; // use map to sort groups alphabetically
+	for(auto pGroup: theCore->ProgramManager()->GetGroups())
+		Groups[pGroup->GetNameEx()] = pGroup;
+
+	QVector<QString> Names = Groups.keys().toVector();
+
+	for (int index = 0; index < Names.size() || index < m_Groups.size(); ++index) {
+		bool bMerge = index < Names.size() && index < m_Groups.size();
+		if (index < Names.size() || (bMerge && Names[index] < m_Groups[index]->text())) {
+			QString Name = Names[index];
+			auto pGroup = Groups[Name];
+			QAction* Action = new QAction(pGroup->GetIcon(), Name);
+			connect(Action, SIGNAL(triggered()), this, SLOT(OnAddToGroup()));
+			Action->setData(pGroup->GetUID());
+			if (index < Names.size())
+				m_pAddToGroup->addAction(Action);
+			else
+				m_pAddToGroup->insertAction(m_Groups[index], Action);
+			m_Groups.insert(index, Action);
+		}
+		else if (index < m_Groups.size() || (bMerge && Names[index] > m_Groups[index]->text())) {
+			delete m_Groups[index];
+			m_Groups.removeAt(index);
+			--index;
+		}
+	}
+
 	CPanelView::OnMenu(Point);
+}
+
+void CProgramView::OnAddToGroup()
+{
+	QAction* Action = (QAction*)sender();
+	quint64 UID = Action->data().toUInt();
+	auto pItem = theCore->ProgramManager()->GetProgramByUID(UID);
+	auto pGroup = pItem.objectCast<CProgramGroup>();
+	if(!pGroup) 
+		return;
+
+	QList<STATUS> Results;
+
+	foreach(const QModelIndex& index, m_pTreeList->selectionModel()->selectedIndexes())
+	{
+		if (index.column() != 0)
+			continue;
+
+		QModelIndex ModelIndex = m_pSortProxy->mapToSource(index);
+
+		CProgramItemPtr pProgram = m_pProgramModel->GetItem(ModelIndex);
+		if (pProgram == pItem)
+			continue;
+
+		Results.append(theCore->ProgramManager()->AddProgramTo(pProgram, pGroup));
+	}
+
+	theGUI->CheckResults(Results, this);
 }
 
 void CProgramView::OnProgramAction()
@@ -391,62 +467,116 @@ void CProgramView::OnProgramAction()
 	if (pAction == m_pCreateProgram)
 	{
 		CProgramWnd* pProgramWnd = new CProgramWnd(NULL);
-		pProgramWnd->exec();
-		m_pProgramModel->SetFilter(-1); // force full refresh
+		if (pProgramWnd->exec()) {
+			/*QModelIndexList Sel = m_pTreeList->selectionModel()->selectedIndexes();
+			if (!Sel.isEmpty()) {
+				CProgramItemPtr pParent = m_pProgramModel->GetItem(m_pSortProxy->mapToSource(Sel.first()));
+				CProgramItemPtr pProgram = pProgramWnd->GetProgram();
+				Results.append(theCore->ProgramManager()->AddProgramTo(pProgram, pParent));
+			}*/
+		}
 	} 
-	else if (pAction == m_pCreateGroup)
-	{
-	}
-	else if (pAction == m_pAddToGroup)
-	{
-	}
-	/*else if (pAction == m_pRenameItem)
-	{
-		if (m_CurPrograms.size() != 1)
-			return;
-
-		CProgramItemPtr pItem = m_CurPrograms[0];
-		QString Value = QInputDialog::getText(this, "MajorPrivacy", tr("Please enter a new name"), QLineEdit::Normal, pItem->GetNameEx());
-		if (Value.isEmpty())
-			return;
-
-		pItem->SetName(Value);
-		Results.append(theCore->ProgramManager()->SetProgramInfo(pItem));
-	}*/
 	else if (pAction == m_pRemoveItem)
 	{
-		int Response = QMessageBox::NoButton;
-
-		foreach(const QModelIndex& index, m_pTreeList->selectionModel()->selectedIndexes())
+		bool bMultiGroup = false;
+		bool bHasChildren = false;
+		foreach(const QModelIndex & index, m_pTreeList->selectionModel()->selectedIndexes())
 		{
 			if (index.column() != 0)
 				continue;
 			QModelIndex ModelIndex = m_pSortProxy->mapToSource(index);
 
 			CProgramItemPtr pProgram = m_pProgramModel->GetItem(ModelIndex);
-			CProgramItemPtr pParent = ModelIndex.parent().isValid() 
-				? m_pProgramModel->GetItem(ModelIndex.parent()) 
-				: theCore->ProgramManager()->GetRoot();
-			if (pProgram && pParent)
+			if (pProgram)
 			{
-				if (Response == QMessageBox::NoButton) {
-					if(pProgram->GetGroups().count() > 1)
-						Response = QMessageBox::question(this, "MajorPrivacy", tr("Do you want to delete selected Program Items?\n"
-							"The selected Item belongs to more than one Group, to delete it from all groups press 'Yes to All', pressing 'Yes' will only remove it from the group its sellected in.")
-							, QMessageBox::Yes, QMessageBox::YesToAll, QMessageBox::Cancel);
-					else
-						Response = QMessageBox::question(this, "MajorPrivacy", tr("Do you want to delete selected Program Items?")
-							, QMessageBox::Yes, QMessageBox::Cancel);
-					if(Response == QMessageBox::Cancel)
-						break;
-				}
-
-				Results.append(theCore->ProgramManager()->RemoveProgramFrom(pProgram, Response == QMessageBox::YesToAll ? CProgramItemPtr() : pParent));
+				if (pProgram->GetGroups().count() > 1)
+					bMultiGroup = true;
+				CProgramSetPtr pSet = pProgram.objectCast<CProgramSet>();
+				if (pSet && !pSet->GetNodes().isEmpty())
+					bHasChildren = true;
 			}
 		}
 
-		m_pProgramModel->SetFilter(-1); // force full refresh
+		bool bDeleteChildren = false;
+		bool bDeleteFromAll = false;
+		if (bHasChildren)
+		{
+			int Res = QMessageBox::question(this, "MajorPrivacy", tr("Do you want to delete selected Program Items (Yes)?\n"
+				"The selected Item has children, do you want to delete them as well (Yes to All)?")
+				, QMessageBox::Yes, QMessageBox::YesToAll, QMessageBox::No);
+			if (Res == QMessageBox::No)
+				return;
+			bDeleteChildren = Res == QMessageBox::YesToAll;
+		}
+		else if (bMultiGroup)
+		{
+			int Res = QMessageBox::question(this, "MajorPrivacy", tr("Do you want to delete selected Program Items?\n"
+				"The selected Item belongs to more than one Group, to delete it from all groups press 'Yes to All', pressing 'Yes' will only remove it from the group its sellected in.")
+				, QMessageBox::Yes, QMessageBox::YesToAll, QMessageBox::No);
+			if (Res == QMessageBox::No)
+				return;
+			bDeleteFromAll = Res == QMessageBox::YesToAll;
+		}
+		else
+		{
+			if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to delete selected Program Items?"), QMessageBox::Yes, QMessageBox::No) == QMessageBox::No)
+				return;
+		}
+
+		bool bDelRules = false;
+		bool bCancel = false;
+
+		auto RemoveProgram = [&](const QModelIndex& index)
+		{
+			QModelIndex ModelIndex = m_pSortProxy->mapToSource(index);
+
+			CProgramItemPtr pProgram = m_pProgramModel->GetItem(ModelIndex);
+			CProgramItemPtr pParent = ModelIndex.parent().isValid()
+				? m_pProgramModel->GetItem(ModelIndex.parent())
+				: theCore->ProgramManager()->GetRoot();
+			if (pProgram && pParent) 
+			{
+				STATUS Status = theCore->ProgramManager()->RemoveProgramFrom(pProgram, bDeleteFromAll ? CProgramItemPtr() : pParent, bDelRules);
+
+				if (Status.IsError() && Status.GetStatus() == STATUS_ERR_PROG_HAS_RULES && !bDelRules)
+				{
+					int Res = QMessageBox::question(this, "MajorPrivacy", tr("The selected Program Item has rules, do you want to delete them as well?"), QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
+					if (Res == QMessageBox::Yes)
+					{
+						bDelRules = true;
+						Status = theCore->ProgramManager()->RemoveProgramFrom(pProgram, bDeleteFromAll ? CProgramItemPtr() : pParent, bDelRules);
+					}
+					else if (Res == QMessageBox::Cancel)
+						bCancel = true;
+				}
+
+				return Status;
+			}
+			return ERR(STATUS_UNSUCCESSFUL);
+		};
+
+		std::function<STATUS(const QModelIndex& index)> DeleteRecursivly = [&](const QModelIndex& index)
+		{
+			int rowCount = m_pSortProxy->rowCount(index);
+			for (int i = 0; i < rowCount && !bCancel; ++i) {
+				QModelIndex childIndex = m_pSortProxy->index(i, 0, index);
+				STATUS Status = DeleteRecursivly(childIndex);
+				if(!Status) return Status;
+			}
+			return RemoveProgram(index);
+		};
+
+		foreach(const QModelIndex& index, m_pTreeList->selectionModel()->selectedIndexes())
+		{
+			if (index.column() != 0 || bCancel)
+				continue;
+
+			if(bDeleteChildren)
+				Results.append(DeleteRecursivly(index));
+			else
+				Results.append(RemoveProgram(index));
+		}
 	}
 
 	theGUI->CheckResults(Results, this);
-}	
+}

@@ -73,35 +73,44 @@ void CServiceList::EnumServices()
 
         std::wstring Id = MkLower(service->lpServiceName); // its not case sensitive
 
+        std::wstring BinaryPath;
+
+        // todo: read directly from registyr to spead up
+        CScopedHandle serviceHandle(OpenService(scmHandle, service->lpServiceName, SERVICE_QUERY_CONFIG), CloseServiceHandle);
+        if (serviceHandle) 
+        {
+            bool ok;
+            CBuffer Buffer(0x200);
+            ULONG bufferSize = 0x200;
+            if (!(ok = QueryServiceConfigW(serviceHandle, (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer(), (DWORD)Buffer.GetCapacity(), &bufferSize))) {
+                Buffer.SetSize(bufferSize, true);
+                ok = QueryServiceConfigW(serviceHandle, (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer(), (DWORD)Buffer.GetCapacity(), &bufferSize);
+                Buffer.SetSize(bufferSize);
+            }
+
+            if (ok) {
+                LPQUERY_SERVICE_CONFIGW config = (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer();
+                BinaryPath = DosPathToNtPath(GetFileFromCommand(config->lpBinaryPathName));
+            }
+        }
+
         auto F = OldList.find(Id);
         SServicePtr pService;
         if (F != OldList.end()) {
             pService = F->second;
             OldList.erase(F);
+
+			if (pService->BinaryPath != BinaryPath) {
+				pService->BinaryPath = BinaryPath;
+				theCore->ProgramManager()->AddService(pService); // update the binary path and parent program file
+			}
         }
         else
         {
             pService = SServicePtr(new SService());
             pService->Id = service->lpServiceName;
             pService->Name = service->lpDisplayName;
-
-            CScopedHandle serviceHandle(OpenService(scmHandle, service->lpServiceName, SERVICE_QUERY_CONFIG), CloseServiceHandle);
-            if (serviceHandle) 
-            {
-                bool ok;
-                CBuffer Buffer(0x200);
-                ULONG bufferSize = 0x200;
-                if (!(ok = QueryServiceConfigW(serviceHandle, (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer(), (DWORD)Buffer.GetCapacity(), &bufferSize))) {
-                    Buffer.SetSize(bufferSize, true);
-                    ok = QueryServiceConfigW(serviceHandle, (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer(), (DWORD)Buffer.GetCapacity(), &bufferSize);
-                    Buffer.SetSize(bufferSize);
-                }
-
-                if (ok) {
-                    LPQUERY_SERVICE_CONFIGW config = (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer();
-                    pService->BinaryPath = DosPathToNtPath(GetFileFromCommand(config->lpBinaryPathName));
-                }
-            }
+			pService->BinaryPath = BinaryPath;
 
             m_List.insert(std::make_pair(Id, pService));
             theCore->ProgramManager()->AddService(pService);
@@ -151,7 +160,7 @@ void CServiceList::ClearProcessUnsafe(const SServicePtr& pService)
     CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId);
     if (pProcess) {
         pProcess->RemoveService(Id);
-        CWindowsServicePtr pService = theCore->ProgramManager()->GetService(Id, CProgramManager::eDontAdd);
+        CWindowsServicePtr pService = theCore->ProgramManager()->GetService(Id, false);
         if (pService)
             pService->SetProcess(NULL);
     }

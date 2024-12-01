@@ -83,6 +83,9 @@
           <height>96</height>
          </size>
         </property>
+        <property name="placeholderText">
+         <string>Description...</string>
+        </property>
        </widget>
       </item>
      </layout>
@@ -551,9 +554,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="radProfiles"/>
   <buttongroup name="radNICs"/>
   <buttongroup name="radLocalIP"/>
   <buttongroup name="radRemoteIP"/>
+  <buttongroup name="radProfiles"/>
  </buttongroups>
 </ui>

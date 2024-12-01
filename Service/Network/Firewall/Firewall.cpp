@@ -17,7 +17,6 @@
 #include "../Library/Common/UIntX.h"
 #include "../Library/Common/Strings.h"
 #include "../Library/API/DriverAPI.h"
-#include "../Library/Helpers/Reparse.h"
 
 EFwProfiles CFirewall__Profiles[] = { EFwProfiles::Private, EFwProfiles::Public, EFwProfiles::Domain };
 
@@ -52,7 +51,6 @@ CFirewall::~CFirewall()
 	delete m_pLog;
 	delete m_pGuard;
 
-	CNtPathMgr::Dispose();
 	CWindowsFirewall::Dispose();
 	CEventLogListener::FreeDll();
 }
@@ -149,7 +147,7 @@ void CFirewall::AddRuleUnsafe(const CFirewallRulePtr& pFwRule)
 		m_FileRules.insert(std::make_pair(ProgID.GetFilePath(), pFwRule));
 	if (!ProgID.GetServiceTag().empty())
 		m_SvcRules.insert(std::make_pair(ProgID.GetServiceTag(), pFwRule));
-	if (!ProgID.GetAppContainerSid().empty())
+	if (ProgID.GetType() == EProgramType::eAppPackage)
 		m_AppRules.insert(std::make_pair(ProgID.GetAppContainerSid(), pFwRule));
 
 	//if (ProgID.GetFilePath().empty() && ProgID.GetServiceTag().empty() && ProgID.GetAppContainerSid().empty())
@@ -168,7 +166,7 @@ void CFirewall::RemoveRuleUnsafe(const CFirewallRulePtr& pFwRule)
 		mmap_erase(m_FileRules, ProgID.GetFilePath(), pFwRule);
 	if (!ProgID.GetServiceTag().empty())
 		mmap_erase(m_SvcRules, ProgID.GetServiceTag(), pFwRule);
-	if (!ProgID.GetAppContainerSid().empty())
+	if (ProgID.GetType() == EProgramType::eAppPackage)
 		mmap_erase(m_AppRules, ProgID.GetAppContainerSid(), pFwRule);
 
 	//if (ProgID.GetFilePath().empty() && ProgID.GetServiceTag().empty() && ProgID.GetAppContainerSid().empty())
@@ -220,21 +218,21 @@ STATUS CFirewall::SetRule(const CFirewallRulePtr& pFwRule)
 	std::shared_ptr<struct SWindowsFwRule> pData = pFwRule->GetData();
 
 	if (pData->Direction == EFwDirections::Bidirectional)
-	//{
-	//	if(!pData->guid.empty()) // Bidirectional is only valid when creating a new rule(s)
+	{
+		if(!pData->Guid.empty()) // Bidirectional is only valid when creating a new rule(s)
 			return ERR(STATUS_INVALID_PARAMETER);
-	//
-	//	std::shared_ptr<struct SWindowsFwRule> pData2 = std::make_shared<struct SWindowsFwRule>(*pData); // copy the ruledata
-	//	
-	//	pData2->Direction = EFwDirections::Inbound;
-	//	pData->Direction = EFwDirections::Outbound;
-	//
-	//	STATUS Status = CWindowsFirewall::Instance()->UpdateRule(pData2); // this may set the GUID member
-	//	if (!Status)
-	//		return Status;
-	//
-	//	UpdateFWRule(pData2, pData2->guid);
-	//}
+	
+		std::shared_ptr<struct SWindowsFwRule> pData2 = std::make_shared<struct SWindowsFwRule>(*pData); // copy the ruledata
+		
+		pData2->Direction = EFwDirections::Inbound;
+		pData->Direction = EFwDirections::Outbound;
+	
+		STATUS Status = CWindowsFirewall::Instance()->UpdateRule(pData2); // this may set the GUID member
+		if (!Status)
+			return Status;
+	
+		UpdateFWRule(pData2, pData2->Guid);
+	}
 
 	STATUS Status = CWindowsFirewall::Instance()->UpdateRule(pData); // this may set the GUID member
 	if (!Status)
@@ -277,7 +275,7 @@ bool CFirewall::MatchRuleID(const SWindowsFwRulePtr& pRule, const CFirewallRuleP
 		return false;
 	if (MkLower(pRule->ServiceTag) != ProgID.GetServiceTag())
 		return false;
-	if (MkLower(pRule->AppContainerSid) != ProgID.GetAppContainerSid())
+	if (ProgID.GetType() == EProgramType::eAppPackage ? MkLower(pRule->AppContainerSid) != ProgID.GetAppContainerSid() : !pRule->AppContainerSid.empty())
 		return false;
 
 	return true;

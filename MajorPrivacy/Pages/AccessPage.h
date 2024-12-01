@@ -1,12 +1,11 @@
 #pragma once
 #include <QWidget>
 #include "../../MiscHelpers/Common/TreeViewEx.h"
-#include "../Core/TraceLogUtils.h"
 
 class CAccessRuleView;
 class CHandleView;
 class CAccessView;
-class CAccessInfoView;
+class CAccessListView;
 class CAccessTraceView;
 
 class CAccessPage : public QWidget
@@ -14,11 +13,13 @@ class CAccessPage : public QWidget
 	Q_OBJECT
 public:
 	CAccessPage(QWidget* parent);
+	~CAccessPage();
 
+	void LoadState();
 	void SetMergePanels(bool bMerge);
 
-public slots:
 	void	Update();
+	void	Update(const QString& VolumeRoot, const QString& VolumeImage);
 
 private:
 
@@ -36,9 +37,7 @@ private:
 	CHandleView*			m_pHandleView;
 	QSplitter*				m_pAccessSplitter;
 	CAccessView*			m_pAccessView;
-	CAccessInfoView*		m_pAccessInfoView;
+	CAccessListView*		m_pAccessListView;
 	CAccessTraceView*		m_pTraceView;
-
-	SMergedLog				m_Log;
 };
 

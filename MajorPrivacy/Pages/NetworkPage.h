@@ -1,7 +1,6 @@
 #pragma once
 #include <QWidget>
 #include "../../MiscHelpers/Common/TreeViewEx.h"
-#include "../Core/TraceLogUtils.h"
 
 class CFwRuleView;
 class CSocketView;
@@ -15,9 +14,9 @@ public:
 	CNetworkPage(QWidget* parent);
 	~CNetworkPage();
 
+	void LoadState();
 	void SetMergePanels(bool bMerge);
 
-public slots:
 	void	Update();
 
 private slots:
@@ -37,7 +36,5 @@ private:
 	CSocketView*			m_pSocketView;
 	CNetTraceView*			m_pTraceView;
 	CTrafficView*			m_pTrafficView;
-
-	SMergedLog				m_Log;
 };
 

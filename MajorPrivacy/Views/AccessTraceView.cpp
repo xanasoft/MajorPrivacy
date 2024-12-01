@@ -23,12 +23,23 @@ CAccessTraceView::CAccessTraceView(QWidget *parent)
 	connect(m_pCmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbAction);
 
+	m_pToolBar->addSeparator();
+
 	m_pBtnScroll = new QToolButton();
 	m_pBtnScroll->setIcon(QIcon(":/Icons/Scroll.png"));
 	m_pBtnScroll->setCheckable(true);
 	m_pBtnScroll->setToolTip(tr("Auto Scroll"));
 	m_pBtnScroll->setMaximumHeight(22);
 	m_pToolBar->addWidget(m_pBtnScroll);
+
+	m_pToolBar->addSeparator();
+
+	m_pBtnClear = new QToolButton();
+	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
+	m_pBtnClear->setToolTip(tr("Clear Trace Log"));
+	m_pBtnClear->setFixedHeight(22);
+	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearTraceLog()));
+	m_pToolBar->addWidget(m_pBtnClear);
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -45,9 +56,13 @@ CAccessTraceView::~CAccessTraceView()
 	theConf->SetBlob("MainWindow/AccessTraceView_Columns", m_pTreeView->saveState());
 }
 
-void CAccessTraceView::Sync(const struct SMergedLog* pLog)
+void CAccessTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QString& RootPath)
 {
-	CTraceView::Sync(pLog);
+	CAccessTraceModel* pModel = (CAccessTraceModel*)m_pItemModel;
+
+	pModel->SetPathFilter(RootPath);
+
+	CTraceView::Sync(Log, Programs, Services);
 
 	if(m_pBtnScroll->isChecked())
 		m_pTreeView->scrollToBottom();
@@ -57,4 +72,9 @@ void CAccessTraceView::UpdateFilter()
 {
 	((CAccessTraceModel*)m_pItemModel)->SetFilter((EEventStatus)m_pCmbAction->currentData().toInt());
 	m_FullRefresh = true;
+}
+
+void CAccessTraceView::OnClearTraceLog()
+{
+	ClearTraceLog(ETraceLogs::eResLog);
 }

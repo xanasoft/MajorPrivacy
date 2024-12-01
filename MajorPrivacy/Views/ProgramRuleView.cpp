@@ -53,7 +53,7 @@ CProgramRuleView::CProgramRuleView(QWidget *parent)
 	pBtnSearch->setMaximumHeight(comboBoxHeight);
 	m_pToolBar->addWidget(pBtnSearch);
 
-	m_pCreateRule = m_pMenu->addAction(QIcon(":/Icons/Plus.png"), tr("Create Rule"), this, SLOT(OnRuleAction()));
+	m_pCreateRule = m_pMenu->addAction(QIcon(":/Icons/Add.png"), tr("Create Rule"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
 	m_pEnableRule = m_pMenu->addAction(QIcon(":/Icons/Enable.png"), tr("Enable Rule"), this, SLOT(OnRuleAction()));
 	m_pDisableRule = m_pMenu->addAction(QIcon(":/Icons/Disable.png"), tr("Disable Rule"), this, SLOT(OnRuleAction()));

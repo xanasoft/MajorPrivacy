@@ -38,12 +38,12 @@ protected:
 
 	struct STweakNode : STreeNode
 	{
-		STweakNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id) { }
+		STweakNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		ETweakStatus Status;
 		CTweakPtr pTweak;
 	};
 
-	virtual STreeNode*	MkNode(const QVariant& Id) { return new STweakNode(this, Id); }
+	virtual STreeNode*	MkNode(const QVariant& Id) { return new STweakNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 };

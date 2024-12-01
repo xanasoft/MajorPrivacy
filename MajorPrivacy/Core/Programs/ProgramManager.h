@@ -22,8 +22,11 @@ public:
 	STATUS Update();
 	STATUS UpdateLibs();
 
+	void Clear();
+
 	CProgramSetPtr			GetRoot() const { return m_Root; }
 	CProgramSetPtr			GetAll() const { return m_pAll; }
+	QMap<QString, CProgramGroupPtr>	GetGroups() const { return m_Groups; }
 	CProgramItemPtr			GetProgramByID(const CProgramID& ID);
 	CProgramItemPtr			GetProgramByUID(quint64 UID, bool bCanUpdate = false);
 	CProgramLibraryPtr		GetLibraryByUID(quint64 UID, bool bCanUpdate = false);
@@ -33,8 +36,12 @@ public:
 	CAppPackagePtr			GetAppPackage(const QString& Id);
 	CProgramPatternPtr		GetPattern(const QString& Pattern);
 
-	STATUS SetProgram(const CProgramItemPtr& pItem);
-	STATUS RemoveProgramFrom(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent = CProgramItemPtr());
+	QSet<CProgramFilePtr>	GetPrograms() const { return ListToSet(m_PathMap.values()); }
+	QSet<CWindowsServicePtr> GetServices() const { return ListToSet(m_ServiceMap.values()); }
+
+	RESULT(quint64) SetProgram(const CProgramItemPtr& pItem);
+	STATUS AddProgramTo(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent);
+	STATUS RemoveProgramFrom(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent = CProgramItemPtr(), bool bDelRules = false);
 
 	bool UpdateAllProgramRules();
 	bool UpdateProgramRule(const QString& RuleId);
@@ -68,6 +75,7 @@ protected:
 	CProgramSetPtr							m_pAll;
 	QMap<quint64, CProgramItemPtr>			m_Items;
 
+	QMap<QString, CProgramGroupPtr>			m_Groups;
 	QMap<QString, CProgramFilePtr>			m_PathMap;
 	QMap<QString, CProgramPatternPtr>		m_PatternMap;
 	QMap<QString, CWindowsServicePtr>		m_ServiceMap;

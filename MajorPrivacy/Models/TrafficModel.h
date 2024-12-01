@@ -43,13 +43,13 @@ public:
 protected:
 	struct STrafficNode : STreeNode
 	{
-		STrafficNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id) { }
+		STrafficNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		STrafficItemPtr pItem;
 	};
 
 	QVariant NodeData(STreeNode* pNode, int role, int section) const;
 
-	virtual STreeNode*	MkNode(const QVariant& Id) { return new STrafficNode(this, Id); }
+	virtual STreeNode*	MkNode(const QVariant& Id) { return new STrafficNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 };

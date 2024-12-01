@@ -26,7 +26,7 @@ CDnsCacheView::CDnsCacheView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pBtnClear = new QToolButton();
-	m_pBtnClear->setIcon(QIcon(":/Icons/Clean.png"));
+	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
 	m_pBtnClear->setToolTip(tr("Clear System DNS Cache"));
 	m_pBtnClear->setFixedHeight(22);
 	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(FlushDnsCache()));

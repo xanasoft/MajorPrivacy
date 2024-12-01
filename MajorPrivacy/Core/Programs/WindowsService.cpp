@@ -38,6 +38,11 @@ void CWindowsService::CountStats()
 
 	m_Stats.ProcessCount = m_ProcessId != 0 ? 1 : 0;
 
+	m_Stats.ProgRuleTotal = m_Stats.ProgRuleCount = m_ProgRuleIDs.count();
+
+	m_Stats.ResRuleTotal = m_Stats.ResRuleCount = m_ResRuleIDs.count();
+	m_Stats.AccessCount = m_AccessCount;
+
 	m_Stats.FwRuleTotal = m_Stats.FwRuleCount = m_FwRuleIDs.count();
 	m_Stats.SocketCount = m_SocketRefs.count();
 }
@@ -131,6 +136,16 @@ QMap<QString, CTrafficEntryPtr>	CWindowsService::GetTrafficLog()
 	if (!Res.IsError())
 		m_TrafficLogLastActivity = CTrafficEntry__LoadList(m_TrafficLog, Res.GetValue());
 	return m_TrafficLog;
+}
+
+void CWindowsService::ClearLogs(ETraceLogs Log)
+{
+	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
+		ClearAccessLog();
+	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eExecLog)
+		ClearProcessLogs();
+	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
+		ClearTrafficLog();
 }
 
 void CWindowsService::ClearProcessLogs()

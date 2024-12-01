@@ -55,7 +55,11 @@ void CServiceCore::RegisterUserAPI()
 	m_pUserPipe->RegisterHandler(SVC_API_GET_LIBRARIES, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_SET_PROGRAM, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_ADD_PROGRAM, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_REMOVE_PROGRAM, &CServiceCore::OnRequest, this);
+
+	m_pUserPipe->RegisterHandler(SVC_API_CLEANUP_PROGRAMS, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_REGROUP_PROGRAMS, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_START_SECURE, &CServiceCore::OnRequest, this);
 
@@ -69,6 +73,7 @@ void CServiceCore::RegisterUserAPI()
 	// Access Manager
 	m_pUserPipe->RegisterHandler(SVC_API_GET_HANDLES, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_CLEAR_LOGS, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_CLEANUP_ACCESS_TREE, &CServiceCore::OnRequest, this);
 	
 	// Volume Manager
 	m_pUserPipe->RegisterHandler(SVC_API_VOL_CREATE_IMAGE, &CServiceCore::OnRequest, this);
@@ -102,11 +107,11 @@ void CServiceCore::OnClient(uint32 uEvent, struct SPipeClientInfo& pClient)
 	switch (uEvent)
 	{
 		case CPipeServer::eClientConnected:
-			//DbgPrint("Client connected\n");
+			DbgPrint("Client connected %d %d\n", pClient.PID, pClient.TID);
 			m_Clients[pClient.PID] = std::make_shared<SClient>();
 			break;
 		case CPipeServer::eClientDisconnected:
-			//DbgPrint("Client disconnected\n");
+			DbgPrint("Client disconnected %d %d\n", pClient.PID, pClient.TID);
 			m_Clients.erase(pClient.PID);
 			break;
 	}
@@ -364,7 +369,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CProgramID ID;
 			ID.FromVariant(vReq[API_V_PROG_ID]);
 
-			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
+			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 
@@ -502,8 +507,9 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				CProgramID ID;
 				ID.FromVariant(vReq[API_V_PROG_ID]);
 				auto Ret = theCore->ProgramManager()->CreateProgram(ID);
-				if (Ret.IsError())
-					return Ret.GetStatus();
+				if (Ret.IsError()) {
+					RETURN_STATUS(Ret);
+				}
 				pItem = Ret.GetValue();
 			}
 
@@ -511,7 +517,19 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if(vReq.Has(API_V_ICON)) pItem->SetIcon(vReq[API_V_ICON]);
 			if(vReq.Has(API_V_INFO)) pItem->SetInfo(vReq[API_V_INFO]);
 
+			CVariant vRpl;
+			vRpl[API_V_PROG_UID] = pItem->GetUID();
+			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
+		}
+
+		case SVC_API_ADD_PROGRAM:
+		{
+			CVariant vReq;
+			vReq.FromPacket(req);
+
+			STATUS Status = theCore->ProgramManager()->AddProgramTo(vReq[API_V_PROG_UID], vReq[API_V_PROG_PARENT]);
+			RETURN_STATUS(Status);
 		}
 
 		case SVC_API_REMOVE_PROGRAM:
@@ -519,7 +537,25 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CVariant vReq;
 			vReq.FromPacket(req);
 
-			STATUS Status = theCore->ProgramManager()->RemoveProgramFrom(vReq[API_V_PROG_UID], vReq[API_V_PROG_PARENT]);
+			STATUS Status = theCore->ProgramManager()->RemoveProgramFrom(vReq[API_V_PROG_UID], vReq[API_V_PROG_PARENT], vReq[API_V_DEL_WITH_RULES]);
+			RETURN_STATUS(Status);
+		}
+
+		case SVC_API_CLEANUP_PROGRAMS:
+		{
+			CVariant vReq;
+			vReq.FromPacket(req);
+
+			STATUS Status = theCore->ProgramManager()->CleanUp(vReq[API_V_PURGE_RULES]);
+			RETURN_STATUS(Status);
+		}
+
+		case SVC_API_REGROUP_PROGRAMS:
+		{
+			CVariant vReq;
+			vReq.FromPacket(req);
+
+			STATUS Status = theCore->ProgramManager()->ReGroup();
 			RETURN_STATUS(Status);
 		}
 
@@ -540,7 +576,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CProgramID ID;
 			ID.FromVariant(vReq[API_V_PROG_ID]);
 
-			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
+			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
@@ -574,7 +610,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CProgramID ID;
 			ID.FromVariant(vReq[API_V_PROG_ID]);
 
-			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
+			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
@@ -595,7 +631,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CProgramID ID;
 			ID.FromVariant(vReq[API_V_PROG_ID]);
 
-			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
+			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 
@@ -619,7 +655,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CProgramID ID;
 			ID.FromVariant(vReq[API_V_PROG_ID]);
 
-			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
+			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 
@@ -643,7 +679,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CProgramID ID;
 			ID.FromVariant(vReq[API_V_PROG_ID]);
 
-			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
+			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 
@@ -694,15 +730,17 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CVariant vReq;
 			vReq.FromPacket(req);
 
+			ETraceLogs Log = (ETraceLogs)vReq[API_V_LOG_TYPE].To<int>();
+
 			std::set<CHandlePtr> Handles;
 			if (!vReq.Has(API_V_PROG_ID))
 			{
 				for (auto pItem : theCore->ProgramManager()->GetItems())
 				{
 					if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
-						pProgram->ClearLogs();
+						pProgram->ClearLogs(Log);
 					else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
-						pService->ClearLogs();
+						pService->ClearLogs(Log);
 				}
 			}
 			else
@@ -710,17 +748,23 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				CProgramID ID;
 				ID.FromVariant(vReq[API_V_PROG_ID]);
 
-				CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, CProgramManager::eDontAdd);
+				CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 				if (!pItem)
 					return STATUS_NOT_FOUND;
 				if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
-					pProgram->ClearLogs();
+					pProgram->ClearLogs(Log);
 				else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
-					pService->ClearLogs();
+					pService->ClearLogs(Log);
 				else
 					return STATUS_OBJECT_TYPE_MISMATCH;
 			}
 			return STATUS_SUCCESS;
+		}
+
+		case SVC_API_CLEANUP_ACCESS_TREE:
+		{
+			STATUS Status = theCore->AccessManager()->CleanUp();
+			RETURN_STATUS(Status);
 		}
 
 		// Volume Manager
@@ -868,7 +912,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		case SVC_API_SHUTDOWN:
 		{
 			if (theCore->m_bEngineMode) {
-				CServiceCore::Shutdown();
+				CServiceCore::Shutdown(false);
 				return STATUS_SUCCESS;
 			}
 			return STATUS_INVALID_DEVICE_REQUEST;
@@ -890,7 +934,10 @@ void CServiceCore::BroadcastMessage(uint32 MessageID, const CVariant& MessageDat
 	}
 
 	std::unique_lock Lock(m_ClientsMutex);
-	for(auto& I : m_Clients) {
+	auto Clients = m_Clients;
+	Lock.unlock();
+
+	for(auto& I : Clients) {
 		SClientPtr pClientData = I.second;
 		std::unique_lock Lock(pClientData->Mutex);
 		if(!pClientData->bWatchAllPrograms && pClientData->WatchedPrograms.find(pProgram->GetUID()) == pClientData->WatchedPrograms.end())

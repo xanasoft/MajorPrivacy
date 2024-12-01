@@ -29,8 +29,11 @@ public:
 
 	quint64 GetAccessLastActivity() const { return m_AccessLastActivity; }
 	quint64 GetAccessLastEvent() const { return m_AccessLastEvent; }
+	quint32 GetAccessCount() const { return m_AccessCount; }
 
 	virtual QMap<QString, CTrafficEntryPtr>	GetTrafficLog();
+
+	virtual void ClearLogs(ETraceLogs Log);
 
 	virtual void ClearAccessLog();
 	virtual void ClearProcessLogs();
@@ -59,6 +62,7 @@ protected:
 	QMap<quint64, SAccessStatsPtr> m_AccessStats;
 	quint64						m_AccessLastActivity = 0;
 	quint64						m_AccessLastEvent = 0;
+	quint32						m_AccessCount = 0;
 
 	QSet<quint64>				m_SocketRefs;
 

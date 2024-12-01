@@ -45,6 +45,23 @@ CNetworkManager::~CNetworkManager()
     delete m_pDnsInspector;
 }
 
+DWORD CALLBACK CNetworkManager__LoadProc(LPVOID lpThreadParameter)
+{
+#ifdef _DEBUG
+    SetThreadDescription(GetCurrentThread(), L"CNetworkManager__LoadProc");
+#endif
+
+    CNetworkManager* This = (CNetworkManager*)lpThreadParameter;
+
+    uint64 uStart = GetTickCount64();
+    STATUS Status = This->Load();
+    DbgPrint(L"CNetworkManager::Load() took %llu ms\n", GetTickCount64() - uStart);
+
+    NtClose(This->m_hStoreThread);
+    This->m_hStoreThread = NULL;
+    return 0;
+}
+
 STATUS CNetworkManager::Init()
 {
 	UpdateAdapterInfo();
@@ -53,9 +70,33 @@ STATUS CNetworkManager::Init()
 	m_pFirewall->Init();
 	m_pSocketList->Init();
 
-    Load();
+    m_hStoreThread = CreateThread(NULL, 0, CNetworkManager__LoadProc, (void*)this, 0, NULL);
 
 	return OK;
+}
+
+DWORD CALLBACK CNetworkManager__StoreProc(LPVOID lpThreadParameter)
+{
+#ifdef _DEBUG
+    SetThreadDescription(GetCurrentThread(), L"CNetworkManager__StoreProc");
+#endif
+
+    CNetworkManager* This = (CNetworkManager*)lpThreadParameter;
+
+    uint64 uStart = GetTickCount64();
+    STATUS Status = This->Store();
+    DbgPrint(L"CNetworkManager::Store() took %llu ms\n", GetTickCount64() - uStart);
+
+    NtClose(This->m_hStoreThread);
+    This->m_hStoreThread = NULL;
+    return 0;
+}
+
+STATUS CNetworkManager::StoreAsync()
+{
+    if (m_hStoreThread) return STATUS_ALREADY_COMMITTED;
+    m_hStoreThread = CreateThread(NULL, 0, CNetworkManager__StoreProc, (void*)this, 0, NULL);
+    return STATUS_SUCCESS;
 }
 
 void CNetworkManager::Update()

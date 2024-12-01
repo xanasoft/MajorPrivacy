@@ -61,6 +61,7 @@ STATUS CProcessList::Init()
 void CProcessList::Update()
 {
     m_bLogNotFound = theCore->Config()->GetBool("Service", "LogNotFound", false);
+    m_bLogInvalid = theCore->Config()->GetBool("Service", "LogInvalid", false);
 
     EnumProcesses();
 
@@ -517,11 +518,15 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
 
 void CProcessList::OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory)
 {
-    if (NtStatus == STATUS_INVALID_PARAMETER)
-        return; // ignore invalid parameter errors - WSearch does that a lot
-	if (!m_bLogNotFound && (NtStatus == STATUS_OBJECT_NAME_NOT_FOUND || NtStatus == STATUS_OBJECT_PATH_NOT_FOUND))
+	if (!m_bLogNotFound && (NtStatus == STATUS_UNRECOGNIZED_VOLUME 
+        || NtStatus == STATUS_OBJECT_NAME_NOT_FOUND || NtStatus == STATUS_OBJECT_PATH_NOT_FOUND
+        || NtStatus == STATUS_BAD_NETWORK_PATH || NtStatus == STATUS_BAD_NETWORK_NAME
+      ))
 		return; // ignore not found errors
-
+    if (!m_bLogInvalid && (NtStatus == STATUS_INVALID_PARAMETER || NtStatus == STATUS_OBJECT_TYPE_MISMATCH
+        || NtStatus == STATUS_OBJECT_NAME_INVALID || NtStatus == STATUS_OBJECT_PATH_INVALID || NtStatus == STATUS_OBJECT_PATH_SYNTAX_BAD
+      ))
+        return; // ignore not found errors
     CProcessPtr pActorProcess = GetProcess(ActorPid, true);
     CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
 

@@ -284,17 +284,6 @@ bool CDriverAPI::IsConnected()
     return m_pClient->IsConnected();
 }
 
-//STATUS CDriverAPI::Reconnect()
-//{
-//    m_pClient->Disconnect();
-//
-//    switch (m_Interface) {
-//    case EInterface::eFltPort: return m_pClient->Connect(API_DRIVER_PORT); // this require admin rights
-//    case EInterface::eDevice: return m_pClient->Connect(API_DEVICE_NAME);
-//    default: return ERR(STATUS_NOINTERFACE);
-//    }
-//}
-
 void CDriverAPI::Disconnect()
 {
     m_pClient->Disconnect();

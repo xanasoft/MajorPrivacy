@@ -193,8 +193,6 @@ CTreeItemModel::STreeNode* CTreeItemModel::MkVirtualNode(const QVariant& Id, STr
 
 void CTreeItemModel::Purge(STreeNode* pParent, const QModelIndex &parent, QHash<QVariant, STreeNode*> &Old)
 {
-	int Removed = 0;
-
 	int Begin = -1;
 	int End = -1;
 	for(int i = pParent->Children.count()-1; i >= -1; i--) 
@@ -233,8 +231,17 @@ void CTreeItemModel::Purge(STreeNode* pParent, const QModelIndex &parent, QHash<
 					pNode = pParent->Children.takeAt(j);
 					pParent->ChildrenChanged = true;
 					FreeNode(pNode);
-					Removed++;
 				}
+
+				// CAUTION: all row indexes must be up to date bevore endRemoveRows
+
+				//pParent->Aux.clear();
+				for (int i = pParent->Children.count() - 1; i >= 0; i--)
+				{
+					pParent->Children[i]->Row = i;
+					//pParent->Aux.insert(pParent->Children[i]->ID, i);
+				}
+
 				endRemoveRows();
 
 				End = -1;
@@ -242,16 +249,6 @@ void CTreeItemModel::Purge(STreeNode* pParent, const QModelIndex &parent, QHash<
 			}
 		}
     }
-
-	if(Removed > 0)
-	{
-		//pParent->Aux.clear();
-		for (int i = pParent->Children.count() - 1; i >= 0; i--)
-		{
-			pParent->Children[i]->Row = i;
-			//pParent->Aux.insert(pParent->Children[i]->ID, i);
-		}
-	}
 }
 
 void CTreeItemModel::Fill(STreeNode* pParent, /*const QModelIndex &parent,*/ const QList<QVariant>& Paths, int PathsIndex, const QList<STreeNode*>& New, QList<QModelIndex>* pNewBranches)
@@ -320,6 +317,7 @@ QModelIndex CTreeItemModel::Find(STreeNode* pParent, STreeNode* pNode)
 	// ''find''
 	ASSERT(pNode->Parent->Children[pNode->Row] == pNode);
 	return createIndex(pNode->Row, FIRST_COLUMN, pNode);
+	//return createIndex(pNode->Parent->Children.indexOf(pNode), FIRST_COLUMN, pNode);
 	/*
 	int count = pParent->Children.count();
 	for(int i=0; i < count; i++)
@@ -353,8 +351,8 @@ void CTreeItemModel::RemoveIndex(const QModelIndex &index)
         return;
 
 	STreeNode* pNode = static_cast<STreeNode*>(index.internalPointer());
-	if (!m_Nodes.contains(pNode))
-		return;
+	//if (!m_Nodes.contains(pNode))
+	//	return;
 
 	QHash<QVariant, STreeNode*> Old;
 	Old[pNode->ID] = pNode;
@@ -383,8 +381,8 @@ QVariant CTreeItemModel::GetItemID(const QModelIndex& index) const
 		return QVariant();
 
 	STreeNode* pNode = static_cast<STreeNode*>(index.internalPointer());
-	if (!m_Nodes.contains(pNode))
-		return QVariant();
+	//if (!m_Nodes.contains(pNode))
+	//	return QVariant();
 	return pNode->ID;
 }
 
@@ -394,11 +392,11 @@ QVariant CTreeItemModel::Data(const QModelIndex &index, int role, int section) c
 		return QVariant();
 
 	//if(role == Qt::SizeHintRole)
-	//    return QSize(64,16); // for fixing height
+	//    return QSize(16,16); // for fixing height
 
 	STreeNode* pNode = static_cast<STreeNode*>(index.internalPointer());
-	if (!m_Nodes.contains(pNode))
-		return QVariant();
+	//if (!m_Nodes.contains(pNode))
+	//	return QVariant();
 
 	return NodeData(pNode, role, section);
 }
@@ -426,6 +424,12 @@ QVariant CTreeItemModel::NodeData(STreeNode* pNode, int role, int section) const
 			emit ToolTipCallback(pNode->ID, ToolTip);
 			if(!ToolTip.isNull())
 				return ToolTip;
+#ifdef _DEBUG
+			if (pNode->Values[section].Raw.type() == QVariant::Int || pNode->Values[section].Raw.type() == QVariant::UInt 
+				|| pNode->Values[section].Raw.type() == QVariant::LongLong || pNode->Values[section].Raw.type() == QVariant::ULongLong)
+				return "0x" + QString::number(pNode->Values[section].Raw.toULongLong(), 16);
+			return pNode->Values[section].Raw;
+#endif
 			break;
 		}
 		case Qt::DecorationRole:
@@ -455,13 +459,12 @@ QVariant CTreeItemModel::NodeData(STreeNode* pNode, int role, int section) const
 		}
 		case Qt::ForegroundRole:
 		{
-			if(m_DarkMode)
-				return pNode->Color.isValid() ? pNode->Color : QVariant();
-			else if (pNode->IsGray)
-			{
+			if (pNode->IsGray) {
 				QColor Color = Qt::darkGray;
 				return QBrush(Color);
 			}
+			if(m_DarkMode)
+				return pNode->Color.isValid() ? pNode->Color : QVariant();
 			break;
 		}
 		case Qt::CheckStateRole:
@@ -506,8 +509,8 @@ QModelIndex CTreeItemModel::index(int row, int column, const QModelIndex &parent
         pParent = m_Root;
 	else {
 		pParent = static_cast<STreeNode*>(parent.internalPointer());
-		if (!m_Nodes.contains(pParent))
-			return QModelIndex();
+		//if (!m_Nodes.contains(pParent))
+		//	return QModelIndex();
 	}
 
 	if(STreeNode* pNode = pParent->Children.count() > row ? pParent->Children[row] : NULL)
@@ -521,8 +524,8 @@ QModelIndex CTreeItemModel::parent(const QModelIndex &index) const
         return QModelIndex();
 
     STreeNode* pNode = static_cast<STreeNode*>(index.internalPointer());
-	if (!m_Nodes.contains(pNode))
-		return QModelIndex();
+	//if (!m_Nodes.contains(pNode))
+	//	return QModelIndex();
 	ASSERT(pNode->Parent);
 	STreeNode* pParent = pNode->Parent;
     if (pParent == m_Root)
@@ -531,6 +534,7 @@ QModelIndex CTreeItemModel::parent(const QModelIndex &index) const
 	int row = 0;
 	if (pParent->Parent)
 		row = pParent->Row;
+		//row = pParent->Parent->Children.indexOf(pParent);
     return createIndex(row, 0, pParent);
 }
 
@@ -544,8 +548,8 @@ int CTreeItemModel::rowCount(const QModelIndex &parent) const
         pNode = m_Root;
 	else {
 		pNode = static_cast<STreeNode*>(parent.internalPointer());
-		if (!m_Nodes.contains(pNode))
-			return 0;
+		//if (!m_Nodes.contains(pNode))
+		//	return 0;
 	}
 	return pNode->Children.count();
 }

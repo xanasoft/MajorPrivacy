@@ -12,14 +12,11 @@ class MISCHELPERS_EXPORT CTreeItemDelegate : public QStyledItemDelegate
         opt.state &= ~QStyle::State_HasFocus;
         QStyledItemDelegate::paint(painter, opt, index);
     }
-};
 
-class MISCHELPERS_EXPORT CTreeItemDelegate2 : public CTreeItemDelegate
-{
     QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
     {
         QSize size = QStyledItemDelegate::sizeHint(option, index);
-        size.setHeight(32);
+        size.setHeight(18);
         return size;
     }
 };

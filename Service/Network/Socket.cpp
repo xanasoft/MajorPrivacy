@@ -226,14 +226,14 @@ uint64 CSocket::GetIdleTime() const
 {
 	std::shared_lock StatsLock(m_StatsMutex);
 
-	return GetTime() * 1000ULL - m_LastActivity;
+	return GetCurTime() * 1000ULL - m_LastActivity;
 }
 
 void CSocket::AddNetworkIO(int Type, uint32 TransferSize)
 {
 	std::shared_lock StatsLock(m_StatsMutex);
 
-	m_LastActivity = GetTime() * 1000ULL;
+	m_LastActivity = GetCurTime() * 1000ULL;
 	m_RemoveTimeStamp = 0;
 
 	switch ((CSocketList::EEventType)Type)

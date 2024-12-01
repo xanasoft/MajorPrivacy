@@ -32,12 +32,23 @@ CProcessTraceView::CProcessTraceView(QWidget *parent)
 	connect(m_pCmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbAction);
 
+	m_pToolBar->addSeparator();
+
 	m_pBtnScroll = new QToolButton();
 	m_pBtnScroll->setIcon(QIcon(":/Icons/Scroll.png"));
 	m_pBtnScroll->setCheckable(true);
 	m_pBtnScroll->setToolTip(tr("Auto Scroll"));
 	m_pBtnScroll->setMaximumHeight(22);
 	m_pToolBar->addWidget(m_pBtnScroll);
+
+	m_pToolBar->addSeparator();
+
+	m_pBtnClear = new QToolButton();
+	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
+	m_pBtnClear->setToolTip(tr("Clear Trace Log"));
+	m_pBtnClear->setFixedHeight(22);
+	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearTraceLog()));
+	m_pToolBar->addWidget(m_pBtnClear);
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -54,17 +65,21 @@ CProcessTraceView::~CProcessTraceView()
 	theConf->SetBlob("MainWindow/ProcessTraceView_Columns", m_pTreeView->saveState());
 }
 
-void CProcessTraceView::Sync(const struct SMergedLog* pLog)
+void CProcessTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services)
 {
-	CTraceView::Sync(pLog);
+	CTraceView::Sync(Log, Programs, Services);
 
 	if(m_pBtnScroll->isChecked())
 		m_pTreeView->scrollToBottom();
 }
 
-
 void CProcessTraceView::UpdateFilter()
 {
 	((CProcessTraceModel*)m_pItemModel)->SetFilter((EExecLogRole)m_pCmbRole->currentData().toInt(), (EEventStatus)m_pCmbAction->currentData().toInt());
 	m_FullRefresh = true;
+}
+
+void CProcessTraceView::OnClearTraceLog()
+{
+	ClearTraceLog(ETraceLogs::eExecLog);
 }

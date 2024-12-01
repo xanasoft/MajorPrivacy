@@ -126,7 +126,12 @@ RESULT(PPipeSocket) CPipeServer::MakePipe()
 
 DWORD __stdcall CPipeServer::ServerThreadStub(void* param)
 {
+#ifdef _DEBUG
+    SetThreadDescription(GetCurrentThread(), L"CPipeServer::ServerThreadStub");
+#endif
+
     ((CPipeServer *)param)->RunServerThread();
+
     return 0;
 }
 
@@ -188,6 +193,10 @@ void CPipeServer::ClientConnected(const PPipeSocket& pPipe, uint32 PID, uint32 T
 
 DWORD __stdcall CPipeServer::ClientThreadStub(void *param)
 {
+#ifdef _DEBUG
+    SetThreadDescription(GetCurrentThread(), L"CPipeServer::ClientThreadStub");
+#endif
+
     SPipeClient* pClient = (SPipeClient*)param;
     
     HRESULT result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);

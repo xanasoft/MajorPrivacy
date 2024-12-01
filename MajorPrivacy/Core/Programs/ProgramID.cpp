@@ -37,16 +37,19 @@ QString CProgramID::ToString() const
 		Str = "file:///" + m_FilePath;
 		break;
 	case EProgramType::eAppInstallation:
-		Str = "key:///" + m_RegKey;
+		Str = "key:///" + m_AuxValue;
 		break;
 	case EProgramType::eWindowsService:
 		Str = "svc://" + m_ServiceTag;
 		break;
 	case EProgramType::eAppPackage:
-		Str = "app://" + m_AppContainerSid;
+		Str = "app://" + m_AuxValue;
+		break;
+	case EProgramType::eProgramGroup:
+		Str = "group://" + m_AuxValue;
 		break;
 	case EProgramType::eAllPrograms:
-		Str = "special:all";
+		Str = "all";
 		break;
 	default:
 		ASSERT(0);
@@ -58,9 +61,8 @@ QString CProgramID::ToString() const
 bool operator < (const CProgramID& l, const CProgramID& r)
 {
 	return l.m_Type < r.m_Type ||
-		   l.m_RegKey < r.m_RegKey ||
 		   l.m_ServiceTag < r.m_ServiceTag || 
-		   l.m_AppContainerSid < r.m_AppContainerSid ||
+		   l.m_AuxValue < r.m_AuxValue ||
 		   l.m_FilePath < r.m_FilePath;
 	return false;
 }
@@ -69,7 +71,6 @@ bool operator == (const CProgramID& l, const CProgramID& r)
 {
     return l.m_Type == r.m_Type &&
            l.m_FilePath == r.m_FilePath &&
-           l.m_RegKey == r.m_RegKey &&
            l.m_ServiceTag == r.m_ServiceTag &&
-           l.m_AppContainerSid == r.m_AppContainerSid;
+           l.m_AuxValue == r.m_AuxValue;
 }

@@ -18,6 +18,8 @@
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/API/PrivacyAPI.h"
+#include "../Library/Helpers/Service.h"
+#include "../Library/Helpers/NtPathMgr.h"
 
 #ifdef _DEBUG
 #include "../Library/Crypto/Encryption.h"
@@ -87,6 +89,8 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 	//m_Driver.RegisterRuleEventHandler(ERuleType::eAccess, &CPrivacyCore::OnDrvEvent, this);
 	//m_Driver.RegisterRuleEventHandler(ERuleType::eProgram, &CPrivacyCore::OnDrvEvent, this);
 
+	//m_Service.RegisterEventHandler(SVC_API_EVENT_PROG_ITEM_CHANGED, &CPrivacyCore::OnProgEvent, this);
+
 	m_Service.RegisterEventHandler(SVC_API_EVENT_FW_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_EXEC_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_RES_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
@@ -94,36 +98,101 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 	m_Service.RegisterEventHandler(SVC_API_EVENT_NET_ACTIVITY, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_EXEC_ACTIVITY, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_RES_ACTIVITY, &CPrivacyCore::OnSvcEvent, this);
+
+	m_Service.RegisterEventHandler(SVC_API_EVENT_CLEANUP_PROGRESS, &CPrivacyCore::OnCleanUpDone, this);
+
+	CNtPathMgr::Instance()->RegisterDeviceChangeCallback(DeviceChangedCallback, this);
 }
 
 CPrivacyCore::~CPrivacyCore()
 {
+	CNtPathMgr::Instance()->UnRegisterDeviceChangeCallback(DeviceChangedCallback, this);
 }
 
-STATUS CPrivacyCore::Connect()
+void CPrivacyCore::DeviceChangedCallback(void* param)
+{
+	CPrivacyCore* This = (CPrivacyCore*)param;
+	emit This->DevicesChanged();
+}
+
+STATUS CPrivacyCore__RunAgent(const std::wstring& params)
 {
 	STATUS Status;
-#if 0
-	if (IsRunningElevated()) {
-		m_bEngineMode = true;
-		Status = m_Service.ConnectEngine();
-	}
-	else { // todo: fix me add ability to install and start service as non admin !!!!!
-		m_bEngineMode = false;
-		Status = m_Service.ConnectSvc();
-	}
-#else
-	m_bEngineMode = true;
-	Status = m_Service.ConnectEngine();
-#endif
-	if (Status) {
-		uint32 ServiceABI = m_Service.GetABIVersion();
-		if(!ServiceABI)
-			return ERR(STATUS_PIPE_DISCONNECTED, L"Service NOT Available"); // STATUS_PORT_DISCONNECTED
-		if(ServiceABI != MY_ABI_VERSION)
-			return ERR(STATUS_REVISION_MISMATCH, L"Service ABI Mismatch");
 
+	std::wstring Path = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
+
+	HANDLE hEngineProcess = RunElevated(Path, params);
+	if (!hEngineProcess)
+		return ERR(STATUS_UNSUCCESSFUL);
+	if (WaitForSingleObject(hEngineProcess, 30 * 1000) == WAIT_OBJECT_0) {
+		DWORD exitCode;
+		GetExitCodeProcess(hEngineProcess, &exitCode);
+		if(exitCode != 0)
+			Status = ERR(exitCode);
+	} else
+		Status = ERR(STATUS_TIMEOUT);
+	CloseHandle(hEngineProcess);
+
+	return Status;
+}
+
+STATUS CPrivacyCore::Install()
+{
+	return CPrivacyCore__RunAgent(L"-install");
+}
+
+STATUS CPrivacyCore::Uninstall()
+{
+	return CPrivacyCore__RunAgent(L"-remove");
+}
+
+bool CPrivacyCore::IsInstalled()
+{
+	SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+	return ((SvcState & SVC_INSTALLED) == SVC_INSTALLED);
+}
+
+STATUS CPrivacyCore::Connect(bool bEngineMode)
+{
+	STATUS Status;
+	if (!m_Service.IsConnected())
+	{
+		m_bEngineMode = bEngineMode;
+		if (bEngineMode)
+			Status = m_Service.ConnectEngine();
+		else
+		{
+			SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+			if ((SvcState & SVC_RUNNING) == 0)
+				Status = CPrivacyCore__RunAgent(L"-startup");
+
+			if (Status)
+			{
+				for (int i = 0; i < 10; i++) 
+				{
+					Status = m_Service.ConnectSvc();
+					if(Status)
+						break;
+					QThread::sleep(1+i);
+				}
+			}
+		}
+
+		if (Status) {
+			uint32 ServiceABI = m_Service.GetABIVersion();
+			if(!ServiceABI)
+				return ERR(STATUS_PIPE_DISCONNECTED, L"Service NOT Available"); // STATUS_PORT_DISCONNECTED
+			if(ServiceABI != MY_ABI_VERSION)
+				return ERR(STATUS_REVISION_MISMATCH, L"Service ABI Mismatch");
+		}
+		else 
+			return Status;
+	}
+
+	if (!m_Driver.IsConnected()) 
+	{
 		Status = m_Driver.ConnectDrv();
+
 		if (Status) {
 			uint32 DriverABI = m_Driver.GetABIVersion();
 			if(!DriverABI)
@@ -137,13 +206,6 @@ STATUS CPrivacyCore::Connect()
 	}
 	return Status;
 }
-
-//STATUS CPrivacyCore::Reconnect()
-//{
-//	STATUS Status = m_Service.Reconnect();
-//	if (Status) Status = m_Driver.Reconnect();
-//	return Status;
-//}
 
 void CPrivacyCore::Disconnect(bool bKeepEngine)
 {
@@ -296,6 +358,12 @@ void CPrivacyCore::ProcessEvents()
 	}
 }
 
+//void CPrivacyCore::OnProgEvent(uint32 MessageId, const CBuffer* pEvent)
+//{
+//	// WARNING: this function is invoked from a worker thread !!!
+//
+//}
+
 void CPrivacyCore::OnSvcEvent(uint32 MessageId, const CBuffer* pEvent)
 {
 	// WARNING: this function is invoked from a worker thread !!!
@@ -312,6 +380,41 @@ void CPrivacyCore::OnSvcEvent(uint32 MessageId, const CBuffer* pEvent)
 
 	QMutexLocker Lock(&m_EventQueueMutex);
 	m_SvcEventQueue[MessageId].enqueue(vEvent);
+}
+
+void CPrivacyCore::OnCleanUpDone(uint32 MessageId, const CBuffer* pEvent)
+{
+	// WARNING: this function is invoked from a worker thread !!!
+
+	XVariant vEvent;
+	try {
+		vEvent.FromPacket(pEvent);
+	}
+	catch (const CException&)
+	{
+		ASSERT(0);
+		return;
+	}
+
+	if (vEvent[API_V_PROGRESS_FINISHED].To<bool>())
+		emit CleanUpDone();
+	else
+		emit CleanUpProgress(vEvent[API_V_PROGRESS_DONE].To<quint64>(), vEvent[API_V_PROGRESS_TOTAL].To<quint64>());
+}
+
+void CPrivacyCore::Clear()
+{
+	m_pProgramManager->Clear();
+}
+
+void CPrivacyCore::OnClearTraceLog(const CProgramItemPtr& pItem, ETraceLogs Log)
+{
+	auto pProgram = pItem.objectCast<CProgramFile>();
+	if (pProgram)
+		pProgram->ClearLogs(Log);
+	auto pService = pItem.objectCast<CWindowsService>();
+	if (pService)
+		pService->ClearLogs(Log);
 }
 
 //void CPrivacyCore::OnDrvEvent(const std::wstring& Guid, ERuleEvent Event, ERuleType Type)
@@ -438,17 +541,43 @@ RESULT(XVariant) CPrivacyCore::GetLibraries(uint64 CacheToken)
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_LIBRARIES, Request));
 }
 
-STATUS CPrivacyCore::SetProgram(const CProgramItemPtr& pItem)
+RESULT(quint64) CPrivacyCore::SetProgram(const CProgramItemPtr& pItem)
 {
-	return m_Service.Call(SVC_API_SET_PROGRAM, pItem->ToVariant(SVarWriteOpt()));
+	auto Ret = m_Service.Call(SVC_API_SET_PROGRAM, pItem->ToVariant(SVarWriteOpt()));
+	if (Ret.IsError())
+		return Ret;
+	CVariant& Response = Ret.GetValue();
+	RETURN(Response.Get(API_V_PROG_UID).To<uint64>());
 }
 
-STATUS CPrivacyCore::RemoveProgramFrom(uint64 UID, uint64 ParentUID)
+STATUS CPrivacyCore::AddProgramTo(uint64 UID, uint64 ParentUID)
 {
 	CVariant Request;
 	Request[API_V_PROG_UID] = UID;
 	Request[API_V_PROG_PARENT] = ParentUID;
+	return m_Service.Call(SVC_API_ADD_PROGRAM, Request);
+}
+
+STATUS CPrivacyCore::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRules)
+{
+	CVariant Request;
+	Request[API_V_PROG_UID] = UID;
+	Request[API_V_PROG_PARENT] = ParentUID;
+	Request[API_V_DEL_WITH_RULES] = bDelRules;
 	return m_Service.Call(SVC_API_REMOVE_PROGRAM, Request);
+}
+
+STATUS CPrivacyCore::CleanUpPrograms(bool bPurgeRules)
+{
+	CVariant Request;
+	Request[API_V_PURGE_RULES] = bPurgeRules;
+	return m_Service.Call(SVC_API_CLEANUP_PROGRAMS, Request);
+}
+
+STATUS CPrivacyCore::ReGroupPrograms()
+{
+	CVariant Request;
+	return m_Service.Call(SVC_API_REGROUP_PROGRAMS, Request);
 }
 
 STATUS CPrivacyCore::SetAllProgramRules(const XVariant& Rules)
@@ -639,28 +768,25 @@ RESULT(XVariant) CPrivacyCore::GetAllHandles()
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_HANDLES, Request), API_V_HANDLES);
 }
 
-STATUS CPrivacyCore::ClearLogs()
+STATUS CPrivacyCore::ClearTraceLog(ETraceLogs Log, const CProgramItemPtr& pItem)
 {
-	CVariant Request;
-
-	foreach(auto pItem, m_pProgramManager->GetItems()) 
-	{
-		auto pProgram = pItem.objectCast<CProgramFile>();
-		if (pProgram) {
-			pProgram->ClearTraceLog();
-			pProgram->ClearAccessLog();
-			pProgram->ClearProcessLogs();
-			pProgram->ClearTrafficLog();
-		}
-		auto pService = pItem.objectCast<CWindowsService>();
-		if (pService) {
-			pService->ClearAccessLog();
-			pService->ClearProcessLogs();
-			pService->ClearTrafficLog();
-		}
+	if(pItem)
+		OnClearTraceLog(pItem, Log);
+	else {
+		foreach(auto pItem, m_pProgramManager->GetItems())
+			OnClearTraceLog(pItem, Log);
 	}
 
+	CVariant Request;
+	if(pItem) Request[API_V_PROG_ID] = pItem->GetID().ToVariant(SVarWriteOpt());
+	Request[API_V_LOG_TYPE] = (int)Log;
 	return m_Service.Call(SVC_API_CLEAR_LOGS, Request);
+}
+
+STATUS CPrivacyCore::CleanUpAccessTree()
+{
+	CVariant Request;
+	return m_Service.Call(SVC_API_CLEANUP_ACCESS_TREE, Request);
 }
 
 // Program Item

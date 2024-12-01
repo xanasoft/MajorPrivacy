@@ -44,11 +44,14 @@ QList<QModelIndex>	CAccessRuleModel::Sync(const QList<CAccessRulePtr>& RuleList)
 		else
 		{
 			I.value() = NULL;
+			pNode->pRule = pRule;
 			Index = Find(m_Root, pNode);
 		}
 
-		if (pNode->pProg.isNull())
+		if (pNode->pProg.isNull() || pNode->pRule->GetProgramID() != pNode->pProg->GetID()) {
 			pNode->pProg = theCore->ProgramManager()->GetProgramByID(pNode->pRule->GetProgramID());
+			pNode->Icon.clear();
+		}
 
 		//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
@@ -96,8 +99,10 @@ QList<QModelIndex>	CAccessRuleModel::Sync(const QList<CAccessRulePtr>& RuleList)
 				switch (section)
 				{
 				case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(Value.toString()); break;
-				case ePath:				ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetPath()).arg(pRule->GetNtPath()); break;
-				case eProgram:			ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetProgramPath()).arg(pRule->GetProgramNtPath()); break;
+				//case ePath:				ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetPath()).arg(pRule->GetNtPath()); break;
+				//case eProgram:			ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetProgramPath()).arg(pRule->GetProgramNtPath()); break;
+				case ePath:				ColValue.Formatted = pRule->GetPath(); break;
+				case eProgram:			ColValue.Formatted = pRule->GetProgramPath(); break;
 				}
 			}
 

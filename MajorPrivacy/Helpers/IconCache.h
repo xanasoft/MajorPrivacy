@@ -1,3 +1,3 @@
 #pragma once
 
-QIcon GetFileIcon(const QString& Ext, int Size);
+QIcon GetFileIcon(const QString& FileName, int Size);

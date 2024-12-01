@@ -2,6 +2,45 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+
+
+## [0.96.2] - 2024-12-01
+
+### Added
+- added access tree cleanup, removed all entries refering not longer or never existing reosurces
+- added option to clear individual trace logs of program items
+- added option to ignore invalid resource accessa tempts (bad path syntax, etc)
+- last network activity values are now saved to the programs.dat
+- program item column counting all accessed files for any program item
+- added autoamted Access log and trace log cleanup, default retention time is 14 days
+- added detection of missing program files thay are indicated in gray in the program tree
+- added clean up option to remove missing program items
+- added custom user defined program groups
+- added option to clear teh ignore list
+- added option to run privacy agent as service
+- added mount manager viewer
+- added browse button to program editor window
+- added icon picker to program editor window
+- added secure volume specifiv access panel
+
+### Changed
+- replaced the Access tree with a new dynamic implementaion more siutable for the user case
+- the program tree now can display different column selections for each page
+- reworked nt to dos path resolution
+- enumeration of installed win32 programs can now be disabled
+- improved maintenance menu
+- improved program item deletion
+
+### Fixed
+- improved driver loading added workarounf for outdated driver already being installed
+- fixed consistency issue in CTreeItemModel
+- fixed crash in CTraceModel
+- fixed issue when a service changes its BinaryPath
+- fixed issue not loading patterns for installed win32 programs
+- fixed performance issues with *.dat viewer
+
+
+
 ## [0.96.1] - 2024-11-12
 
 ### Added
@@ -23,6 +62,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - fixed minor issue in driver post op cleanup
 - fixed driver incompatybility with windows 10
 - fixed issues with slow startup causing error messages
+- fixed issues with reparse point resolution
 
 
 

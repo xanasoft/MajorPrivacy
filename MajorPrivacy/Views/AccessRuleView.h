@@ -12,7 +12,7 @@ public:
 	CAccessRuleView(QWidget *parent = 0);
 	virtual ~CAccessRuleView();
 
-	void					Sync(QList<CAccessRulePtr> RuleList);
+	void					Sync(QList<CAccessRulePtr> RuleList, const QString& VolumeRoot = QString(), const QString& VolumeImage = QString());
 
 protected:
 	void					OnMenu(const QPoint& Point) override;
@@ -25,6 +25,10 @@ private slots:
 	//void					OnColumnsChanged();
 
 	void					OnRuleAction();
+
+protected:
+	QString				    m_VolumeRoot;
+	QString				    m_VolumeImage;
 
 private:
 

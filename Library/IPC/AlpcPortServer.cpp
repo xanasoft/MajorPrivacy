@@ -102,6 +102,10 @@ STATUS CAlpcPortServer::Open(const std::wstring& name)
 
 DWORD __stdcall CAlpcPortServer::ThreadStub(void *param)
 {
+#ifdef _DEBUG
+    SetThreadDescription(GetCurrentThread(), L"CAlpcPortServer::ThreadStub");
+#endif
+
     HRESULT result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
     ((CAlpcPortServer *)param)->RunThread();

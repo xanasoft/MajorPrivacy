@@ -25,7 +25,7 @@
 #include "../Library/Helpers/NtObj.h"
 #include "../Library/Common/Exception.h"
 #include "../MajorPrivacy/version.h"
-
+#include "../Library/Helpers/NtPathMgr.h"
 
 CServiceCore* theCore = NULL;
 
@@ -57,6 +57,8 @@ CServiceCore::CServiceCore()
 	m_pEtwEventMonitor = new CEtwEventMonitor();
 
 	RegisterUserAPI();
+
+	CNtPathMgr::Instance()->RegisterDeviceChangeCallback(DeviceChangedCallback, this);
 }
 
 CServiceCore::~CServiceCore()
@@ -82,6 +84,9 @@ CServiceCore::~CServiceCore()
 	delete m_pLog;
 
 	delete m_pConfig; // could be NULL
+
+
+	CNtPathMgr::Instance()->UnRegisterDeviceChangeCallback(DeviceChangedCallback, this);
 }
 
 STATUS CServiceCore::Startup(bool bEngineMode)
@@ -120,8 +125,133 @@ VOID CALLBACK CServiceCore__TimerProc(LPVOID lpArgToCompletionRoutine, DWORD dwT
 	This->OnTimer();
 }
 
+STATUS CServiceCore::InitDriver()
+{
+	SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
+
+	//
+	// Check if the driver is ours
+	//
+
+	if ((DrvState & SVC_INSTALLED) == SVC_INSTALLED && (DrvState & SVC_RUNNING) != SVC_RUNNING)
+	{
+		std::wstring BinaryPath = GetServiceBinaryPath(API_DRIVER_NAME);
+
+		std::wstring ServicePath = NormalizeFilePath(GetFileFromCommand(BinaryPath));
+		std::wstring AppDir = NormalizeFilePath(m_AppDir);
+		if (ServicePath.length() < AppDir.length() || ServicePath.compare(0, AppDir.length(), AppDir) != 0)
+		{
+			theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Updated driver, old path: %s", BinaryPath);
+			RemoveService(API_DRIVER_NAME);
+			DrvState = SVC_NOT_FOUND;
+		}
+	}
+
+	//
+	// Install the driver
+	//
+
+	if ((DrvState & SVC_INSTALLED) == 0)
+	{
+		uint32 TraceLogLevel = m_pConfig->GetInt("Driver", "TraceLogLevel", 0);
+		STATUS Status = m_pDriver->InstallDrv(TraceLogLevel);
+		if (Status) 
+		{
+			CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
+			DWORD disposition;
+			if (RegCreateKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, NULL, 0, KEY_WRITE, NULL, &hKey, &disposition) == ERROR_SUCCESS)
+			{
+				CBuffer Buffer;
+				if (ReadFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Buffer))
+				{
+					CVariant DriverData;
+					//try {
+					auto ret = DriverData.FromPacket(&Buffer, true);
+
+					CVariant ConfigData = DriverData[API_S_CONFIG];
+					CBuffer ConfigBuff;
+					ConfigData.ToPacket(&ConfigBuff);
+
+					RegSet(hKey, L"Config", L"Data", CVariant(ConfigBuff));
+					if (DriverData.Has(API_S_USER_KEY))
+					{
+						CVariant UserKey = DriverData[API_S_USER_KEY];
+						RegSet(hKey, L"UserKey", L"PublicKey", UserKey[API_S_PUB_KEY]);
+						if (UserKey.Has(API_S_KEY_BLOB)) RegSet(hKey, L"UserKey", L"KeyBlob", UserKey[API_S_KEY_BLOB]);
+					}
+					//}
+					//catch (const CException&) {
+					if (ret != CVariant::eErrNone)
+						Status = ERR(STATUS_UNSUCCESSFUL);
+					//}
+				}
+			}
+		}
+		if (Status.IsError()) {
+			theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to install driver, error: 0x%08X", Status.GetStatus());
+			return Status;
+		}
+	}
+
+	//
+	// Connect to the driver, its started when not running
+	//
+
+	return m_pDriver->ConnectDrv();
+}
+
+void CServiceCore::CloseDriver()
+{
+	theCore->m_pDriver->Disconnect();
+
+	if (theCore->m_bEngineMode)
+	{
+		KillService(API_DRIVER_NAME);
+
+		for (;;) {
+			SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
+			if ((SvcState & SVC_RUNNING) == SVC_RUNNING) {
+				Sleep(100);
+				continue;
+			}
+			break;
+		}
+
+		CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
+		if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
+		{
+			CVariant Config = RegQuery(hKey, L"Config", L"Data");
+			CBuffer ConfigBuff = Config;
+			CVariant ConfigData;
+			ConfigData.FromPacket(&ConfigBuff, true);
+
+			CVariant KeyBlob = RegQuery(hKey, L"UserKey", L"KeyBlob");
+			CVariant PublicKey = RegQuery(hKey, L"UserKey", L"PublicKey");
+
+			CVariant DriverData;
+			DriverData[API_S_CONFIG] = ConfigData;
+			if (PublicKey.GetSize() > 0) {
+				CVariant UserKey;
+				UserKey[API_S_PUB_KEY] = PublicKey;
+				if (KeyBlob.GetSize() > 0) UserKey[API_S_KEY_BLOB] = KeyBlob;
+				DriverData[API_S_USER_KEY] = UserKey;
+			}
+
+			CBuffer Buffer;
+			DriverData.ToPacket(&Buffer);
+			WriteFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Buffer);
+
+			RemoveService(API_DRIVER_NAME);
+		}
+	}
+}
+
 DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 {
+#ifdef _DEBUG
+	SetThreadDescription(GetCurrentThread(), L"CServiceCore__ThreadProc");
+#endif
+
 	CServiceCore* This = (CServiceCore*)lpThreadParameter;
 
 	NTSTATUS status;
@@ -169,50 +299,7 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 	// Initialize the driver
 	//
 
-	SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
-	if ((DrvState & SVC_INSTALLED) == 0)
-	{
-		uint32 TraceLogLevel = This->m_pConfig->GetInt("Driver", "TraceLogLevel", 0);
-		This->m_InitStatus = This->m_pDriver->InstallDrv(TraceLogLevel);
-		if (This->m_InitStatus) 
-		{
-			CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
-			DWORD disposition;
-			if (RegCreateKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, NULL, 0, KEY_WRITE, NULL, &hKey, &disposition) == ERROR_SUCCESS)
-			{
-				CBuffer Buffer;
-				if (ReadFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Buffer))
-				{
-					CVariant DriverData;
-					//try {
-					auto ret = DriverData.FromPacket(&Buffer, true);
-
-					CVariant ConfigData = DriverData[API_S_CONFIG];
-					CBuffer ConfigBuff;
-					ConfigData.ToPacket(&ConfigBuff);
-
-					RegSet(hKey, L"Config", L"Data", CVariant(ConfigBuff));
-					if (DriverData.Has(API_S_USER_KEY))
-					{
-						CVariant UserKey = DriverData[API_S_USER_KEY];
-						RegSet(hKey, L"UserKey", L"PublicKey", UserKey[API_S_PUB_KEY]);
-						if (UserKey.Has(API_S_KEY_BLOB)) RegSet(hKey, L"UserKey", L"KeyBlob", UserKey[API_S_KEY_BLOB]);
-					}
-					//}
-					//catch (const CException&) {
-					if (ret != CVariant::eErrNone)
-						This->m_InitStatus = ERR(STATUS_UNSUCCESSFUL);
-					//}
-				}
-			}
-		}
-		if (This->m_InitStatus.IsError()) {
-			theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to install driver, error: 0x%08X", This->m_InitStatus.GetStatus());
-			goto cleanup;
-		}
-	}
-
-	This->m_InitStatus = This->m_pDriver->ConnectDrv();
+	This->m_InitStatus = This->InitDriver();
 	if (This->m_InitStatus.IsError()) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to connect to driver, error: 0x%08X", This->m_InitStatus.GetStatus());
 		goto cleanup;
@@ -290,15 +377,17 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 	CloseHandle(theCore->m_hTimer);
 
-	This->m_pProgramManager->Store();
-
-	This->m_pAccessManager->Store();
-
-	This->m_pNetworkManager->Store();
+	This->m_LastStoreTime = GetTickCount64();
+	This->StoreRecords();
+	DbgPrint(L"StoreRecords took %llu ms\n", GetTickCount64() - This->m_LastStoreTime);
+	
 
 	This->m_pVolumeManager->DismountAll();
 
 cleanup:
+
+	if (theCore->m_pDriver->IsConnected())
+		This->CloseDriver();
 
 	delete theCore;
 	theCore = NULL;
@@ -330,9 +419,15 @@ STATUS CServiceCore::Init()
 
 	m_pConfig = new CConfigIni(m_DataFolder + L"\\" + APP_NAME + L".ini");
 
+	m_LastStoreTime = GetTickCount64();
+
 	m_hThread = CreateThread(NULL, 0, CServiceCore__ThreadProc, (void *)this, 0, NULL);
     if (!m_hThread)
         return ERR(GetLastWin32ErrorAsNtStatus());
+
+	//
+	// Wait for the thread to initialize
+	//
 
 	while (!m_hTimer) {
 		DWORD exitCode;
@@ -340,6 +435,7 @@ STATUS CServiceCore::Init()
 			break; // thread terminated prematurely - init failed
 		Sleep(100);
 	}
+
 	
 	if (!m_InitStatus.IsError())
 		m_InitStatus = m_pUserPipe->Open(API_SERVICE_PIPE);
@@ -350,7 +446,7 @@ STATUS CServiceCore::Init()
 	return m_InitStatus;
 }
 
-void CServiceCore::Shutdown()
+void CServiceCore::Shutdown(bool bWait)
 {
 	if (!theCore || !theCore->m_hThread)
 		return;
@@ -358,52 +454,26 @@ void CServiceCore::Shutdown()
 
 	theCore->m_Terminate = true;
 
-	if (!theCore->m_bEngineMode) {
+	if (bWait) {
 		if (WaitForSingleObject(hThread, 10 * 1000) != WAIT_OBJECT_0)
 			TerminateThread(hThread, -1);
 		CloseHandle(hThread);
 	}
+}
 
-	theCore->m_pDriver->Disconnect();
-	if (theCore->m_bEngineMode)
-	{
-		KillService(API_DRIVER_NAME);
+void CServiceCore::StoreRecords(bool bAsync)
+{
+	m_pProgramManager->Store();
 
-		for (;;) {
-			SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
-			if((SvcState & SVC_RUNNING) == SVC_RUNNING)
-				continue;
-			break;
-		}
+	if(bAsync)
+		m_pAccessManager->StoreAsync();
+	else
+		m_pAccessManager->Store();
 
-		CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
-		if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
-		{
-			CVariant Config = RegQuery(hKey, L"Config", L"Data");
-			CBuffer ConfigBuff = Config;
-			CVariant ConfigData;			
-			ConfigData.FromPacket(&ConfigBuff, true);
-
-			CVariant KeyBlob = RegQuery(hKey, L"UserKey", L"KeyBlob");
-			CVariant PublicKey = RegQuery(hKey, L"UserKey", L"PublicKey");
-
-			CVariant DriverData;
-			DriverData[API_S_CONFIG] = ConfigData;
-			if (PublicKey.GetSize() > 0) {
-				CVariant UserKey;
-				UserKey[API_S_PUB_KEY] = PublicKey;
-				if (KeyBlob.GetSize() > 0) UserKey[API_S_KEY_BLOB] = KeyBlob;
-				DriverData[API_S_USER_KEY] = UserKey;
-			}
-
-			CBuffer Buffer;
-			DriverData.ToPacket(&Buffer);
-			WriteFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Buffer);
-
-			RemoveService(API_DRIVER_NAME);
-		}
-	}
-
+	if (bAsync)
+		m_pNetworkManager->StoreAsync();
+	else
+		m_pNetworkManager->Store();
 }
 
 void CServiceCore::Reconfigure(const std::string& Key)
@@ -447,6 +517,13 @@ void CServiceCore::OnTimer()
 
 	m_pAccessManager->Update();
 
+	if (m_LastStoreTime + 60 * 60 * 1000 < GetTickCount64()) // once per hours
+	{
+		m_LastStoreTime = GetTickCount64();
+		StoreRecords(true);
+		DbgPrint(L"Async StoreRecords took %llu ms\n", GetTickCount64() - m_LastStoreTime);
+	}
+
 #ifdef _DEBUG
 	static uint64 LastObjectDump = GetTickCount64();
 	if (LastObjectDump + 60 * 1000 < GetTickCount64()) {
@@ -457,4 +534,11 @@ void CServiceCore::OnTimer()
 		//DbgPrint(L"USED MEMORY: %llu bytes\n", memoryUsed);
 	}
 #endif
+}
+
+void CServiceCore::DeviceChangedCallback(void* param)
+{
+	CServiceCore* This = (CServiceCore*)param;
+
+	// todo: handle device change
 }

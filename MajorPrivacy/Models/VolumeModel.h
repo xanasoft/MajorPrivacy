@@ -35,11 +35,11 @@ public:
 protected:
 	struct SVolumeNode : STreeNode
 	{
-		SVolumeNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id) { }
+		SVolumeNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		CVolumePtr pVolume;
 	};
 
-	virtual STreeNode*	MkNode(const QVariant& Id) { return new SVolumeNode(this, Id); }
+	virtual STreeNode*	MkNode(const QVariant& Id) { return new SVolumeNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 };

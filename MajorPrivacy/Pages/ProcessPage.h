@@ -1,7 +1,6 @@
 #pragma once
 #include <QWidget>
 #include "../../MiscHelpers/Common/TreeviewEx.h"
-#include "../Core/TraceLogUtils.h"
 
 class CProcessView;
 class CProgramRuleView;
@@ -17,9 +16,9 @@ public:
 	CProcessPage(QWidget* parent);
 	~CProcessPage();
 
+	void LoadState();
 	void SetMergePanels(bool bMerge);
 
-public slots:
 	void	Update();
 
 private slots:
@@ -38,7 +37,5 @@ private:
 	CExecutionView*			m_pExecutionView;
 	CIngressView*			m_pIngressView;
 	CProcessTraceView*		m_pTraceView;
-
-	SMergedLog				m_Log;
 };
 

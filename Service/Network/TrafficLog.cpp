@@ -22,7 +22,10 @@ bool CTrafficLog::RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit)
 	if(bNoCommit || Data.LastActivity == 0)
 		return true;
 	
-	m_Data.Merge(Data);
+	if (Data.LastActivity > m_LastActivity)
+		m_LastActivity = Data.LastActivity;
+	m_Uploaded += Data.Uploaded;
+	m_Downloaded += Data.Downloaded;
 
 	CommitTraffic(pSocket, Data, m_TrafficLog);
 
@@ -64,7 +67,12 @@ void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntr
 void CTrafficLog::Clear()
 {
 	std::unique_lock Lock(m_Mutex);
+
 	m_TrafficLog.clear();
+
+	m_LastActivity = 0;
+	m_Uploaded = 0;
+	m_Downloaded = 0;
 }
 
 CVariant CTrafficLog::StoreTraffic(const SVarWriteOpt& Opts) const

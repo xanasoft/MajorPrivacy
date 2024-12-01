@@ -10,7 +10,6 @@ class CEnclavePage : public QWidget
 public:
 	CEnclavePage(QWidget* parent);
 
-public slots:
 	void	Update();
 
 private:

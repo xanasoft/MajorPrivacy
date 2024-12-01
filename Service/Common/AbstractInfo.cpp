@@ -36,7 +36,7 @@ bool CAbstractInfoEx::IsNewlyCreated() const
 	if (m_NewlyCreated)
 	{
 		// Note: GetTime() is very slow, and there is no point to check it over and over agian once we know that this object is old
-		uint64 curTime = GetTime() * 1000ULL;
+		uint64 curTime = GetCurTime() * 1000ULL;
 		if (!(curTime - m_CreateTimeStamp < m_HighlightTime))
 			m_NewlyCreated = false;
 	}

@@ -1,6 +1,7 @@
 #pragma once
 #include <QWidget>
 #include "../../MiscHelpers/Common/TreeViewEx.h"
+#include "AccessPage.h"
 
 class CVolumeView;
 
@@ -10,7 +11,6 @@ class CVolumePage : public QWidget
 public:
 	CVolumePage(QWidget* parent);
 
-public slots:
 	void	Update();
 
 private:
@@ -21,7 +21,9 @@ private:
 
 	//QToolBar*				m_pToolBar;
 
-	//QSplitter*				m_pVSplitter;
+	QSplitter*				m_pHSplitter;
+
+	CAccessPage*			m_pAccessPage;
 
 };
 

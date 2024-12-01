@@ -252,5 +252,10 @@
         <file>Icons/Scroll.png</file>
         <file>Icons/Go2.png</file>
         <file>Icons/Go3.png</file>
+        <file>Icons/Trash.png</file>
+        <file>Icons/ReGroup.png</file>
+        <file>Icons/ReOrder.png</file>
+        <file>Icons/ClearList.png</file>
+        <file>Icons/Add.png</file>
     </qresource>
 </RCC>

@@ -149,6 +149,8 @@ public:
 		std::vector<T> AsList() const	{ if (m_ptr) return m_ptr->AsList<T>(); return std::vector<T>(); }
 #endif
 
+		CVariant* Ptr() const			{ return m_ptr; }
+
 	protected:
 		friend class CVariant;
 		CVariant* m_ptr = nullptr;

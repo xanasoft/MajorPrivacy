@@ -139,7 +139,6 @@ public:
 	STATUS InstallDrv(uint32 TraceLogLevel = 0);
 	STATUS ConnectDrv();
 	bool IsConnected();
-	//STATUS Reconnect();
 	void Disconnect();
 
 	RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message);

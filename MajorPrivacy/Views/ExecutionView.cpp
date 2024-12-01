@@ -47,6 +47,8 @@ CExecutionView::CExecutionView(QWidget *parent)
 	m_pToolBar->addWidget(pBtnSearch);
 
 	AddPanelItemsToMenu();
+
+	connect(theCore, SIGNAL(CleanUpDone()), this, SLOT(OnCleanUpDone()));
 }
 
 CExecutionView::~CExecutionView()
@@ -147,4 +149,11 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 void CExecutionView::OnMenu(const QPoint& Point)
 {
 	CPanelView::OnMenu(Point);
+}
+
+void CExecutionView::OnCleanUpDone()
+{
+	// refresh
+	m_CurPrograms.clear();
+	m_CurServices.clear();
 }

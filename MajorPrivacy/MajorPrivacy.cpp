@@ -34,6 +34,11 @@
 #include "../Library/Helpers/AppUtil.h"
 #include "Windows/VariantEditorWnd.h"
 #include "Core/Network/NetLogEntry.h"
+#include "../MiscHelpers/Common/CheckableMessageBox.h"
+#include "Windows/MountMgrWnd.h"
+
+#include <Windows.h>
+#include <ShellApi.h>
 
 
 CMajorPrivacy* theGUI = NULL;
@@ -91,8 +96,12 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 	connect(theCore, SIGNAL(UnruledFwEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnUnruledFwEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
 	connect(theCore, SIGNAL(ExecutionEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnExecutionEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
 	connect(theCore, SIGNAL(AccessEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnAccessEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
+	connect(theCore, SIGNAL(CleanUpDone()), this, SLOT(OnCleanUpDone()));
+	connect(theCore, SIGNAL(CleanUpProgress(quint64, quint64)), this, SLOT(OnCleanUpProgress(quint64, quint64)));
 
 	//ui.setupUi(this);
+
+	statusBar()->showMessage(tr("Starting ..."), 10000);
 
 	m_pMainWidget = NULL;
 	
@@ -121,7 +130,7 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 	SafeShow(this);
 
 	if(!IsRunningElevated())
-		QMessageBox::information(this, tr("Major Privacy"), tr("Major Privacy will now attempt to start the Privacy Agent Service, please confirm the UAC prompt."));
+		QMessageBox::information(this, "MajorPrivacy", tr("Major Privacy will now attempt to start the Privacy Agent Service, please confirm the UAC prompt."));
 
 	STATUS Status = Connect();
 	CheckResults(QList<STATUS>() << Status, this);
@@ -134,7 +143,7 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 	}
 
 	if (!g_CertInfo.active)
-		QMessageBox::critical(this, tr("Major Privacy"), tr("Major Privacy is not activated - driver protections disabled!"));
+		QMessageBox::critical(this, "MajorPrivacy", tr("Major Privacy is not activated - driver protections disabled!"));
 
 #ifdef _DEBUG
 	m_uTimerID = startTimer(500);
@@ -161,6 +170,9 @@ void CMajorPrivacy::SetTitle()
 	QString Version = GetVersion();
 	Title += " v" + Version;
 
+	if (!theCore->Service()->IsConnected())
+		Title += "   -   NOT CONNECTED";
+	
 	if (theCore->Driver()->IsConnected())
 	{
 		auto Ret = theCore->Driver()->GetUserKey();
@@ -214,26 +226,48 @@ STATUS CMajorPrivacy::Connect()
 {
 	STATUS Status;
 	
-	for (int i = 0; i < 3; i++) 
+	bool bEngineMode = false;
+	if (!theCore->IsInstalled())
 	{
-		Status = theCore->Connect();
-		if(Status)
-			break;
-		// On failure wait for the Service and Driver a bit logner to finish starting up
-		QThread::sleep(1+i);
+		int iEngineMode = theConf->GetInt("Options/AskAgentMode", -1);
+		if (iEngineMode == -1) {
+			bool State = false;
+			int ret = CCheckableMessageBox::question(this, "MajorPrivacy",
+				tr("The Privacy Agent is not currently installed as a service. Would you like to install it now (Yes), run it without installation (No), or abort the connection attempt (Cancel)?")
+				, tr("Remember this choice."), &State, QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel, QDialogButtonBox::No, QMessageBox::Question);
+
+			if (ret == QMessageBox::Cancel)
+				return ERR(STATUS_CANCELLED);
+
+			bEngineMode = ret == QMessageBox::No;
+
+			if (State)
+				theConf->SetValue("Options/AskAgentMode", bEngineMode ? 1 : 0);
+		}
+		else
+			bEngineMode = iEngineMode == 1;
 	}
+	
+	Status = theCore->Connect(bEngineMode);
 
 	SetTitle();
 
-	if(Status)
+	if (Status) {
+		statusBar()->showMessage(tr("Privacy Agent Ready"), 10000);
 		OnProgramsAdded();
+	}
+	else {
+		statusBar()->showMessage(tr("Privacy Agent Failed: %1").arg(FormatError(Status)));
+	}
 
 	return Status;
 }
 
 void CMajorPrivacy::Disconnect()
 {
-	// todo;
+	theCore->Disconnect(true);
+
+	SetTitle();
 }
 
 void CMajorPrivacy::changeEvent(QEvent* e)
@@ -303,23 +337,48 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 	if (pEvent->timerId() != m_uTimerID)
 		return;
 
+	bool bConnected = theCore->Service()->IsConnected();
+	if (m_bWasConnected != bConnected) {
+		m_bWasConnected = bConnected;
+
+		SetTitle();
+
+		m_pConnect->setEnabled(!bConnected);
+		m_pDisconnect->setEnabled(bConnected);
+
+		bool bInstalled = theCore->IsInstalled();
+		m_pInstallService->setEnabled(!bConnected && !bInstalled);
+		m_pRemoveService->setEnabled(!bConnected && bInstalled);
+
+		if (!bConnected) {
+			theCore->Clear();
+			m_CurrentItems = SCurrentItems();
+			emit Clear();
+		}
+	}
+
 	bool bVisible = isVisible() && !isMinimized();
-	if (!bVisible) {
-		if (m_bWasVisible)
-			theCore->SetWatchedPrograms(QSet<CProgramItemPtr>());
-	} else {
-		if (!m_bWasVisible)
-			m_CurrentItems = MakeCurrentItems();
-	}
-	m_bWasVisible = bVisible;
 
-	if (bVisible) {
-		STATUS Status = theCore->Update();
-		if (!Status)
-			Connect();
-	}
+	if (bConnected)
+	{
+		if (!bVisible) {
+			if (m_bWasVisible)
+				theCore->SetWatchedPrograms(QSet<CProgramItemPtr>());
+		}
+		else {
+			if (!m_bWasVisible)
+				m_CurrentItems = MakeCurrentItems();
+		}
+		m_bWasVisible = bVisible;
 
-	theCore->ProcessEvents();
+		if (bVisible) {
+			STATUS Status = theCore->Update();
+			//if (!Status)
+			//	Connect();
+		}
+
+		theCore->ProcessEvents();
+	}
 
 	if (bVisible)
 	{
@@ -343,6 +402,9 @@ void CMajorPrivacy::LoadState(bool bFull)
 	}
 
 	if(m_pTabBar) m_pTabBar->setCurrentIndex(theConf->GetInt("MainWindow/MainTab", 0));
+	m_AccessPage->LoadState();
+	m_NetworkPage->LoadState();
+	m_ProcessPage->LoadState();
 }
 
 void CMajorPrivacy::StoreState()
@@ -361,10 +423,17 @@ void CMajorPrivacy::BuildMenu()
 		m_pImportOptions = m_pMaintenance->addAction(QIcon(":/Icons/Import.png"), tr("Import Options"), this, SLOT(OnMaintenance()));
 		m_pExportOptions = m_pMaintenance->addAction(QIcon(":/Icons/Export.png"), tr("Export Options"), this, SLOT(OnMaintenance()));
 		m_pMaintenance->addSeparator();
-		m_pVariantEditor = m_pMaintenance->addAction(QIcon(":/Icons/EditIni.png"), tr("Open *.dat Editor"), this, SLOT(OnMaintenance()));
+		m_pMaintenanceItems = m_pMaintenance->addMenu(QIcon(":/Icons/ManMaintenance.png"), tr("&Advanced"));
+			m_pConnect = m_pMaintenanceItems->addAction(QIcon(":/Icons/Connect.png"), tr("Connect"), this, SLOT(OnMaintenance()));
+			m_pDisconnect = m_pMaintenanceItems->addAction(QIcon(":/Icons/Disconnect.png"), tr("Disconnect"), this, SLOT(OnMaintenance()));
+			m_pMaintenance->addSeparator();
+			m_pInstallService = m_pMaintenanceItems->addAction(QIcon(":/Icons/Install.png"), tr("Install Service"), this, SLOT(OnMaintenance()));
+			m_pRemoveService = m_pMaintenanceItems->addAction(QIcon(":/Icons/Stop.png"), tr("Remove Service"), this, SLOT(OnMaintenance()));
+		
 		m_pMaintenance->addSeparator();
 		m_pOpenUserFolder = m_pMaintenance->addAction(QIcon(":/Icons/Folder.png"), tr("Open User Data Folder"), this, SLOT(OnMaintenance()));
 		m_pOpenSystemFolder = m_pMaintenance->addAction(QIcon(":/Icons/Folder.png"), tr("Open System Data Folder"), this, SLOT(OnMaintenance()));
+		m_pVariantEditor = m_pMaintenance->addAction(QIcon(":/Icons/EditIni.png"), tr("Open *.dat Editor"), this, SLOT(OnMaintenance()));
 	m_pMain->addSeparator();
 	m_pExit = m_pMain->addAction(QIcon(":/Icons/Exit.png"), tr("Exit"), this, SLOT(OnExit()));
 
@@ -380,19 +449,26 @@ void CMajorPrivacy::BuildMenu()
 	m_pMergePanels->setCheckable(true);
 	m_pMergePanels->setChecked(theConf->GetBool("Options/MergePanels", false));
 	m_pView->addSeparator();
+
 	//m_pShowMenu = m_pView->addAction(tr("Show Program Tool Bar"), this, SLOT(RebuildGUI()));
 	//m_pShowMenu->setCheckable(true);
 	//m_pShowMenu->setChecked(theConf->GetBool("Options/ShowProgramToolbar", true));
+
+	m_pSplitColumns = m_pView->addAction(tr("Separate Column Sets"), this, SLOT(OnSplitColumns()));
+	m_pSplitColumns->setCheckable(true);
+	m_pSplitColumns->setChecked(theConf->GetBool("Options/SplitColumns", true));
+
 	m_pTabLabels = m_pView->addAction(tr("Show Tab Labels"), this, SLOT(RebuildGUI()));
 	m_pTabLabels->setCheckable(true);
 	m_pTabLabels->setChecked(theConf->GetBool("Options/ShowTabLabels", false));
+
 	m_pWndTopMost = m_pView->addAction(tr("Always on Top"), this, SLOT(OnAlwaysTop()));
 	m_pWndTopMost->setCheckable(true);
 	m_pWndTopMost->setChecked(theConf->GetBool("Options/AlwaysOnTop", false));
 
 
 	m_pVolumes = menuBar()->addMenu("Volumes");
-	m_pMountVolume = m_pVolumes->addAction(QIcon(":/Icons/AddVolume.png"), tr("Mount Volume"), this, SIGNAL(OnMountVolume()));
+	m_pMountVolume = m_pVolumes->addAction(QIcon(":/Icons/AddVolume.png"), tr("Add and Mount Volume Image"), this, SIGNAL(OnMountVolume()));
 	m_pUnmountAllVolumes = m_pVolumes->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount All Volumes"), this, SIGNAL(OnUnmountAllVolumes()));
 	m_pVolumes->addSeparator();
 	m_pCreateVolume = m_pVolumes->addAction(QIcon(":/Icons/MountVolume.png"), tr("Create Volume"), this, SIGNAL(OnCreateVolume()));
@@ -403,10 +479,41 @@ void CMajorPrivacy::BuildMenu()
 	m_pMakeKeyPair = m_pSecurity->addAction(QIcon(":/Icons/AddKey.png"), tr("Setup User Key"), this, SLOT(OnMakeKeyPair()));
 	m_pClearKeys = m_pSecurity->addAction(QIcon(":/Icons/RemoveKey.png"), tr("Remove User Key"), this, SLOT(OnClearKeys()));
 
+	m_pTools = menuBar()->addMenu("Tools");
+	m_pCleanUpProgs = m_pTools->addAction(QIcon(":/Icons/Clean.png"), tr("CleanUp Program List"), this, SLOT(CleanUpPrograms()));
+	m_pReGroupProgs = m_pTools->addAction(QIcon(":/Icons/ReGroup.png"), tr("Re-Group all Programs"), this, SLOT(ReGroupPrograms()));
+
+	m_pTools->addSeparator();
+	m_pExpTools = m_pTools->addMenu(QIcon(":/Icons/Maintenance.png"), tr("&Advanced Tools"));
+		m_pMountMgr = m_pExpTools->addAction(QIcon(":/Icons/Disk.png"), tr("Mount Manager"), this, [this]() {
+			CMountMgrWnd* pWnd = new CMountMgrWnd();
+			pWnd->show();
+		});
+
+		QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+		QString ImDiskCpl = env.value("SystemRoot") + "\\system32\\imdisk.cpl";
+		if (QFile::exists(ImDiskCpl)) {
+			m_pExpTools->addSeparator();
+			m_pImDiskCpl = m_pExpTools->addAction(LoadWindowsIcon(ImDiskCpl, 0), tr("Virtual Disks"), this, [ImDiskCpl]() {
+				std::wstring imDiskCpl = ImDiskCpl.toStdWString();
+				SHELLEXECUTEINFOW si = { 0 };
+				si.cbSize = sizeof(si);
+				si.lpVerb = L"runas";
+				si.lpFile = imDiskCpl.c_str();
+				si.nShow = SW_SHOW;
+				ShellExecuteEx(&si);
+			});
+			//QMessageBox::critical(this, "MajorPrivacy", tr("ImDisk Control Panel not found!"));
+		}
+
+	m_pTools->addSeparator();
+	m_pClearLogs = m_pTools->addAction(QIcon(":/Icons/Trash.png"), tr("Clear All Trace Logs"), this, SLOT(ClearTraceLogs()));
+
 	m_pOptions = menuBar()->addMenu("Options");
 	m_pSettings = m_pOptions->addAction(QIcon(":/Icons/Settings.png"), tr("Settings"), this, SLOT(OpenSettings()));
-	//m_pClearIgnore = m_pOptions->addAction(QIcon(":/Icons/Clean.png"), tr("Clear Ignore List"), this, SLOT(ClearIgnoreLists()));
-	m_pClearLogs = m_pOptions->addAction(QIcon(":/Icons/Clean.png"), tr("Clear Logs"), this, SLOT(ClearLogs()));
+	m_pOptions->addSeparator();
+	m_pClearIgnore = m_pOptions->addAction(QIcon(":/Icons/ClearList.png"), tr("Clear Ignore List"), this, SLOT(ClearIgnoreLists()));
+	m_pResetPrompts = m_pOptions->addAction(QIcon(":/Icons/Refresh.png"), tr("Reset All Prompts"), this, SLOT(ResetPrompts()));
 
 	m_pMenuHelp = menuBar()->addMenu(tr("&Help"));
 	m_pForum = m_pMenuHelp->addAction(QIcon(":/Icons/Forum.png"), tr("Visit Support Forum"), this, SLOT(OnHelp()));
@@ -580,7 +687,7 @@ void CMajorPrivacy::BuildGUI()
 	addAction(pToggleInfo);
 	connect(pToggleInfo, &QAction::triggered, this, [&]() { m_pInfoView->setVisible(!m_pInfoView->isVisible()); });
 
-	
+	m_pStackPanels->setEnabled(m_pProgTree->isChecked());
 	m_pInfoSplitter->setVisible(m_pProgTree->isChecked());
 
 	m_pPageSubWidget = new QWidget();
@@ -620,7 +727,7 @@ void CMajorPrivacy::CreateTrayIcon()
 	delete m_pTrayIcon;
 
 	m_pTrayIcon = new QSystemTrayIcon(QIcon(":/MajorPrivacy.png"), this);
-	m_pTrayIcon->setToolTip("Major Privacy");
+	m_pTrayIcon->setToolTip("MajorPrivacy");
 	connect(m_pTrayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(OnSysTray(QSystemTrayIcon::ActivationReason)));
 
 	CreateTrayMenu();
@@ -664,6 +771,14 @@ void CMajorPrivacy::OnShowHide()
 		show();
 }
 
+void CMajorPrivacy::OnSplitColumns()
+{
+	bool bSplitColumns = m_pSplitColumns->isChecked();
+	theConf->SetValue("Options/SplitColumns", bSplitColumns);
+	if(!bSplitColumns)
+		m_pProgramView->SetColumnSet("");
+}
+
 void CMajorPrivacy::OnAlwaysTop()
 {
 	m_bOnTop = false;
@@ -690,7 +805,7 @@ STATUS CMajorPrivacy::InitSigner(class CPrivateKey& PrivateKey)
 		return Ret.GetStatus();
 	auto pInfo = Ret.GetValue();
 
-	CVolumeWindow window(CVolumeWindow::eGetPW, this);
+	CVolumeWindow window(tr("Enter Secure Configuration Password"), CVolumeWindow::eGetPW, this);
 	if (theGUI->SafeExec(&window) != 1)
 		return OK;
 	QString Password = window.GetPassword();
@@ -793,7 +908,7 @@ void CMajorPrivacy::OnPrivateKey()
 
 void CMajorPrivacy::OnMakeKeyPair()
 {
-	CVolumeWindow window(CVolumeWindow::eSetPW, this);
+	CVolumeWindow window(tr("Set new Secure Configuration Password"), CVolumeWindow::eSetPW, this);
 	if (theGUI->SafeExec(&window) != 1)
 		return;
 	QString Password = window.GetPassword();
@@ -952,9 +1067,18 @@ void CMajorPrivacy::OnPageChanged(int index)
 		m_pPageStack->setCurrentWidget(m_pProgramWidget); 
 		switch (index)
 		{
-		case eProcesses: m_pPageSubStack->setCurrentWidget(m_ProcessPage); break;
-		case eResource: m_pPageSubStack->setCurrentWidget(m_AccessPage); break;
-		case eFirewall: m_pPageSubStack->setCurrentWidget(m_NetworkPage); break;
+		case eProcesses: 
+			if(m_pSplitColumns->isChecked()) m_pProgramView->SetColumnSet("Process");
+			m_pPageSubStack->setCurrentWidget(m_ProcessPage); 
+			break;
+		case eResource: 
+			if(m_pSplitColumns->isChecked()) m_pProgramView->SetColumnSet("Access");
+			m_pPageSubStack->setCurrentWidget(m_AccessPage); 
+			break;
+		case eFirewall: 
+			if(m_pSplitColumns->isChecked()) m_pProgramView->SetColumnSet("Network");
+			m_pPageSubStack->setCurrentWidget(m_NetworkPage); 
+			break;
 		}
 		break;
 	case eEnclaves: m_pPageStack->setCurrentWidget(m_EnclavePage); break;
@@ -995,7 +1119,7 @@ CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems() const
 	SCurrentItems Current = MakeCurrentItems(Progs);
 
 	// special case where the all programs item is selected
-	if (Current.bAllPrograms && !bShowAll)
+	if (Current.bAllPrograms)
 	{
 		if (!bShowAll && m_pProgramView->GetFilter())
 		{
@@ -1085,6 +1209,11 @@ CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems(const QList<CProgra
 	return Current;
 }
 
+const CMajorPrivacy::SCurrentItems& CMajorPrivacy::GetCurrentItems() const 
+{
+	return m_CurrentItems;
+}
+
 QMap<quint64, CProcessPtr> CMajorPrivacy::GetCurrentProcesses() const
 {
 	QMap<quint64, CProcessPtr> Processes;
@@ -1117,11 +1246,11 @@ QString CMajorPrivacy::FormatError(const STATUS& Error)
 		{
 		case STATUS_ERR_PROG_NOT_FOUND:				return tr("Program not found.");
 		case STATUS_ERR_DUPLICATE_PROG:				return tr("Program already exists.");
-		case STATUS_ERR_PROG_HAS_RULES:				return tr("Program has rules.");
+		case STATUS_ERR_PROG_HAS_RULES:				return tr("This Operation can not be performed on a program which has rules.");
 		case STATUS_ERR_PROG_PARENT_NOT_FOUND:		return tr("Parent program not found.");
 		case STATUS_ERR_CANT_REMOVE_FROM_PATTERN:	return tr("Can't remove from pattern.");
 		case STATUS_ERR_PROG_PARENT_NOT_VALID:		return tr("Parent program not valid.");
-		case STATUS_ERR_CANT_REMOVE_DEFAULT_ITEM:	return tr("Can't remove default item.");
+		case STATUS_ERR_CANT_REMOVE_AUTO_ITEM:		return tr("Removing program items which are auto generated and represent found components can not be removed.");
 		case STATUS_ERR_NO_USER_KEY:				return tr("Before you can sign a Binary you need to create your User Key, use the 'Security->Setup User Key' menu comand to do that.");
 		case STATUS_ERR_WRONG_PASSWORD:				return tr("Wrong Password!");
 		}
@@ -1269,23 +1398,27 @@ void CMajorPrivacy::StoreIgnoreList()
 	StoreIgnoreList(ERuleType::eFirewall);
 }
 
-//void CMajorPrivacy::ClearIgnoreLists()
-//{
-//	if(QMessageBox::question(this, tr("MajorPrivacy"), tr("Do you really want to clear the ignore list?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
-//		return;
-//
-//	m_IgnoreEvents[(int)ERuleType::eProgram - 1].clear();
-//	m_IgnoreEvents[(int)ERuleType::eAccess - 1].clear();
-//	m_IgnoreEvents[(int)ERuleType::eFirewall - 1].clear();
-//
-//	QStringList Keys = theConf->ListKeys(IGNORE_LIST_GROUP);
-//	foreach(const QString & Key, Keys)
-//		theConf->DelValue(IGNORE_LIST_GROUP "/" + Key);
-//}
-
-void CMajorPrivacy::ClearLogs()
+void CMajorPrivacy::ClearTraceLogs()
 {
-	theCore->ClearLogs();
+	if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the All trace logs for all program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+		return;
+
+	theCore->ClearTraceLog(ETraceLogs::eLogMax);
+	emit theCore->CleanUpDone();
+}
+
+void CMajorPrivacy::OnCleanUpDone()
+{
+	// clear the log cache on this end to force reload of service date
+	foreach(auto pItem, theCore->ProgramManager()->GetItems()) 
+		theCore->OnClearTraceLog(pItem, ETraceLogs::eLogMax);
+
+	statusBar()->showMessage(tr("Cleanup done."), 5000);
+}
+
+void CMajorPrivacy::OnCleanUpProgress(quint64 Done, quint64 Total)
+{
+	statusBar()->showMessage(tr("Cleanup %1/%2").arg(Done).arg(Total));
 }
 
 QString GetIgnoreTypeName(ERuleType Type)
@@ -1388,6 +1521,24 @@ void CMajorPrivacy::OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLog
 	}
 }
 
+void CMajorPrivacy::CleanUpPrograms()
+{
+	int ret = QMessageBox::question(this, "MajorPrivacy", tr("Do you want to clean up the Program List? Choosing 'Yes' will remove all missing program entries, including those with rules. "
+		"Choosing 'No' will remove only missing entries without rules. Select 'Cancel' to abort the operation."), QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
+	if (ret != QMessageBox::Cancel) {
+		QList<STATUS> Results = QList<STATUS>() << theCore->CleanUpPrograms(ret == QMessageBox::Yes);
+		theGUI->CheckResults(Results, this);
+	}
+}
+
+void CMajorPrivacy::ReGroupPrograms()
+{
+	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to re-group all Program Items? This will remove all program items from all auto assiciated groups and re add it based on the default rules."), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes) {
+		QList<STATUS> Results = QList<STATUS>() << theCore->ReGroupPrograms();
+		theGUI->CheckResults(Results, this);
+	}
+}
+
 void CMajorPrivacy::OpenSettings()
 {
 	static CSettingsWindow* pSettingsWindow = NULL;
@@ -1418,8 +1569,33 @@ void CMajorPrivacy::UpdateSettings(bool bRebuildUI)
 	}
 }
 
+void CMajorPrivacy::ClearIgnoreLists()
+{
+	if(QMessageBox::question(this, "MajorPrivacy", tr("Do you really want to clear the ignore list?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+		return;
+
+	m_IgnoreEvents[(int)ERuleType::eProgram - 1].clear();
+	m_IgnoreEvents[(int)ERuleType::eAccess - 1].clear();
+	m_IgnoreEvents[(int)ERuleType::eFirewall - 1].clear();
+
+	QStringList Keys = theConf->ListKeys(IGNORE_LIST_GROUP);
+	foreach(const QString & Key, Keys)
+		theConf->DelValue(IGNORE_LIST_GROUP "/" + Key);
+}
+
+void CMajorPrivacy::ResetPrompts()
+{
+	if(QMessageBox::question(this, "MajorPrivacy", tr("Do you also want to reset all hidden message boxes?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+		return;
+
+	theConf->DelValue("Options/AskAgentMode");
+	theConf->DelValue("Options/WarnBoxCrypto");
+}
+
 void CMajorPrivacy::OnMaintenance()
 {
+	STATUS Status;
+
 	if (sender() == m_pImportOptions) {
 	
 		QString FileName = QFileDialog::getOpenFileName(this, tr("Import Options"), "", tr("Options Files (*.xml)"));
@@ -1431,7 +1607,7 @@ void CMajorPrivacy::OnMaintenance()
 		XVariant Options;
 		bool bOk = Options.ParseXml(Xml);
 		if(!bOk) {
-			QMessageBox::warning(this, tr("MajorPrivacy"), tr("Failed to parse XML data!"));
+			QMessageBox::warning(this, "MajorPrivacy", tr("Failed to parse XML data!"));
 			return;
 		}
 
@@ -1621,21 +1797,39 @@ void CMajorPrivacy::OnMaintenance()
 		QDesktopServices::openUrl(QUrl::fromLocalFile(theConf->GetConfigDir()));
 	else if (sender() == m_pOpenSystemFolder)
 		QDesktopServices::openUrl(QUrl::fromLocalFile(theCore->GetConfigDir()));
+	else if (sender() == m_pConnect)
+		Status = Connect();
+	else if (sender() == m_pDisconnect)
+		Disconnect();
+	else if (sender() == m_pInstallService)
+		Status = theCore->Install();
+	else if (sender() == m_pRemoveService)
+		theCore->Uninstall();
+
+	CheckResults(QList<STATUS>() << Status, this);
 }
 
 void CMajorPrivacy::OnExit()
 {
 	bool bKeepEngine = false;
-#ifndef _DEBUG
-	if (theCore->IsEngineMode()){
-		switch (QMessageBox::question(this, tr("MajorPrivacy"), tr("Do you want to stop the privacy service and unload the kernel isolator?\n"
-			"CAUTION: This will disable protection."), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel)) {
-		case QMessageBox::Yes:		break;
-		case QMessageBox::No:		bKeepEngine = true; break;
-		case QMessageBox::Cancel:	return;
-		}
+
+	int iKeepEngine = theConf->GetInt("Options/KeepEngine", -1);
+	if (iKeepEngine == -1) {
+		bool State = false;
+		int ret = CCheckableMessageBox::question(this, "MajorPrivacy",
+			tr("Do you want to stop the Privacy Agent and unload the Kernel Isolator?\nCAUTION: This will disable protection.")
+			, tr("Remember this choice."), &State, QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel, QDialogButtonBox::No, QMessageBox::Question);
+
+		if (ret == QMessageBox::Cancel)
+			return;
+
+		bKeepEngine = ret == QMessageBox::No;
+
+		if (State)
+			theConf->SetValue("Options/KeepEngine", bKeepEngine ? 1 : 0);
 	}
-#endif
+	else
+		bKeepEngine = iKeepEngine == 1;
 
 	theCore->Disconnect(bKeepEngine);
 
@@ -1646,6 +1840,7 @@ void CMajorPrivacy::OnExit()
 void CMajorPrivacy::OnToggleTree()
 {
 	theConf->SetValue("Options/ShowProgramTree", m_pProgTree->isChecked());
+	m_pStackPanels->setEnabled(m_pProgTree->isChecked());
 	m_pInfoSplitter->setVisible(m_pProgTree->isChecked());
 	m_CurrentItems = MakeCurrentItems();
 }
@@ -1728,8 +1923,8 @@ void CMajorPrivacy::LoadLanguage()
 	CPanelView::m_CopyRow = tr("Copy Row");
 	CPanelView::m_CopyPanel = tr("Copy Panel");
 	CFinder::m_CaseInsensitive = tr("Case Sensitive");
-	CFinder::m_RegExpStr = tr("RegExp");
-	CFinder::m_Highlight = tr("Highlight");
+	CFinder::m_RegExpStr = tr("Use Regular Expressions");
+	CFinder::m_Highlight = tr("Highlight Items");
 	CFinder::m_CloseStr = tr("Close");
 	CFinder::m_FindStr = tr("&Find ...");
 	CFinder::m_AllColumns = tr("All columns");

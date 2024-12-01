@@ -148,18 +148,18 @@ QVariant CTraceModel::NodeData(STraceNode* pNode, int role, int section) const
 	case Qt::DisplayRole:
 	case Qt::EditRole: // sort role
 	{
-		//
+		break;
 	}
 	case Qt::BackgroundRole:
 	{
 		if(!CTreeItemModel::GetDarkMode())
-			return (m_bHighLight && TestHighLight(pNode)) ? QColor(Qt::yellow) : QVariant();
+			return (m_bHighLight && TestHighLight(pNode, section)) ? QColor(Qt::yellow) : QVariant();
 		break;
 	}
 	case Qt::ForegroundRole:
 	{
 		if(CTreeItemModel::GetDarkMode())
-			return (m_bHighLight && TestHighLight(pNode)) ? QColor(Qt::yellow) : QVariant();
+			return (m_bHighLight && TestHighLight(pNode, section)) ? QColor(Qt::yellow) : QVariant();
 		break;
 	}
 	}
@@ -167,10 +167,15 @@ QVariant CTraceModel::NodeData(STraceNode* pNode, int role, int section) const
 	return QVariant();
 }
 
-bool CTraceModel::TestHighLight(STraceNode* pNode) const
+bool CTraceModel::TestHighLight(STraceNode* pNode, int section) const
 {
 	if (m_FilterExp.isEmpty())
 		return false;
+	
+	//if(section != -1) // test one
+	//	return NodeData(pNode, Qt::DisplayRole, section).toString().contains(m_FilterExp, Qt::CaseInsensitive);
+
+	// test all
 	for (int i = 0; i < columnCount(); i++) {
 		if (NodeData(pNode, Qt::DisplayRole, i).toString().contains(m_FilterExp, Qt::CaseInsensitive))
 			return true;

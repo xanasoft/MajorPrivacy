@@ -35,6 +35,17 @@ bool CAccessTraceModel::FilterNode(const SMergedLog::TLogEntry& Data) const
 		case EEventStatus::eBlocked:	return m_Action == EEventStatus::eBlocked;
 		}
 	}
+
+	if (!m_RootPath.isNull())
+	{
+		if(m_RootPath.isEmpty())
+			return false;
+
+		QString Path = pEntry->GetPath(EPathType::eNative);
+		if (!Path.startsWith(m_RootPath, Qt::CaseInsensitive))
+			return false;
+	}
+
 	return true;
 }
 

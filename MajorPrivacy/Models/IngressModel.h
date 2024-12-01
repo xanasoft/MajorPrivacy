@@ -47,11 +47,11 @@ public:
 protected:
 	struct SIngressNode : STreeNode
 	{
-		SIngressNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id) { }
+		SIngressNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		SIngressItemPtr pItem;
 	};
 
-	virtual STreeNode*	MkNode(const QVariant& Id) { return new SIngressNode(this, Id); }
+	virtual STreeNode*	MkNode(const QVariant& Id) { return new SIngressNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 };

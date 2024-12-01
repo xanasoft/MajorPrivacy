@@ -10,7 +10,6 @@ class CTweakPage : public QWidget
 public:
 	CTweakPage(QWidget* parent);
 
-public slots:
 	void	Update();
 
 private:

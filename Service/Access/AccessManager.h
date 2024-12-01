@@ -13,8 +13,11 @@ public:
 
 	STATUS Load();
 	STATUS Store();
+	STATUS StoreAsync();
 
 	void Update();
+
+	STATUS CleanUp();
 
 	STATUS LoadRules();
 
@@ -46,4 +49,12 @@ protected:
 	std::map<std::wstring, CAccessRulePtr>	m_Rules;
 
 	void OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID);
+
+	friend DWORD CALLBACK CAccessManager__CleanUp(LPVOID lpThreadParameter);
+	bool					m_bCancelCleanUp = false;
+	volatile HANDLE			m_hCleanUpThread = NULL;
+
+	friend DWORD CALLBACK CAccessManager__LoadProc(LPVOID lpThreadParameter);
+	friend DWORD CALLBACK CAccessManager__StoreProc(LPVOID lpThreadParameter);
+	HANDLE					m_hStoreThread = NULL;
 };

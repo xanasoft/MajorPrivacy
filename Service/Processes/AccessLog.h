@@ -48,10 +48,13 @@ public:
 	void LoadIngressTargets(const CVariant& Data);
 	void DumpIngressTargets(CVariant& Targets, const SVarWriteOpt& Opts, const std::wstring& SvcTag = L"") const;
 
-
 	void Clear();
 
+	void Truncate();
+
 protected:
+	mutable std::recursive_mutex	m_Mutex;
+
 	std::map<uint64, SExecInfo>		m_ExecActors; // key: Program UUID
 	std::map<uint64, SExecInfo>		m_ExecTargets; // key: Program UUID
 

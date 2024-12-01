@@ -197,6 +197,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Common\AbstractTreeModel.cpp" />
     <ClCompile Include="Common\CheckableMessageBox.cpp" />
     <ClCompile Include="Common\ComboInputDialog.cpp" />
     <ClCompile Include="Common\Common.cpp" />
@@ -231,6 +232,7 @@
     <QtMoc Include="Common\CheckableMessageBox.h" />
     <QtMoc Include="Common\ComboInputDialog.h" />
     <QtMoc Include="Common\CheckList.h" />
+    <QtMoc Include="Common\AbstractTreeModel.h" />
     <ClInclude Include="Common\Common.h" />
     <ClInclude Include="Common\CustomStyles.h" />
     <ClInclude Include="Common\CustomTheme.h" />

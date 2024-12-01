@@ -21,6 +21,7 @@
 void CAllPrograms::CountStats()
 {
 	m_Stats.ProcessCount = theCore->ProcessList()->GetCount();
+	//m_Stats.AccessCount = // todo
 	m_Stats.SocketCount = theCore->ProcessList()->GetSocketCount();
 }
 
@@ -66,6 +67,7 @@ void CProgramList::CountStats()
 
 	m_Stats.ProcessCount = m_Stats.SocketCount = 0;
 	m_Stats.LastExecution = 0;
+	m_Stats.AccessCount = 0;
 	m_Stats.LastNetActivity = m_Stats.LastFwAllowed = m_Stats.LastFwBlocked = 0;
 	m_Stats.Upload = m_Stats.Download = m_Stats.Uploaded = m_Stats.Downloaded = 0;
 
@@ -105,6 +107,7 @@ void CProgramList::CountStats()
 		m_Stats.ProgRuleTotal += pStats->ProgRuleTotal;
 
 		m_Stats.ResRuleTotal += pStats->ResRuleTotal;
+		m_Stats.AccessCount+= pStats->AccessCount;
 
 		m_Stats.FwRuleTotal += pStats->FwRuleTotal;
 		m_Stats.SocketCount += pStats->SocketCount;

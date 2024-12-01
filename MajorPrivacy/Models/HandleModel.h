@@ -32,12 +32,12 @@ public:
 protected:
 	struct SHandleNode : STreeNode
 	{
-		SHandleNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id) { }
+		SHandleNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		CHandlePtr pHandle;
 		CProcessPtr pProcess;
 	};
 
-	virtual STreeNode*	MkNode(const QVariant& Id) { return new SHandleNode(this, Id); }
+	virtual STreeNode*	MkNode(const QVariant& Id) { return new SHandleNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 };

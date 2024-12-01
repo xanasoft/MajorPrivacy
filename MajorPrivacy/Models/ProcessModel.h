@@ -44,7 +44,7 @@ public:
 protected:
 	struct SProcessNode: STreeNode
 	{
-		SProcessNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id), iColor(0) { }
+		SProcessNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id), iColor(0) { }
 
 		CProcessPtr			pProcess;
 
@@ -55,7 +55,7 @@ protected:
 
 	virtual QVariant		NodeData(STreeNode* pNode, int role, int section) const;
 
-	virtual STreeNode*		MkNode(const QVariant& Id) { return new SProcessNode(this, Id); }
+	virtual STreeNode*		MkNode(const QVariant& Id) { return new SProcessNode(/*this,*/ Id); }
 		
 	void					MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, QList<QVariant>& Path);
 	bool					TestProcPath(const QList<QVariant>& Path, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, int Index = 0);

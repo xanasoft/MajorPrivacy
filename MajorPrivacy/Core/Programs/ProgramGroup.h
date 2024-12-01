@@ -17,6 +17,8 @@ public:
 protected:
 	friend class CProgramManager;
 
+	//virtual void MergeStats();
+
 	void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
 	void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
 	void ReadIValue(uint32 Index, const XVariant& Data) override;

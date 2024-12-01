@@ -16,7 +16,7 @@ public:
 		eChange,
 	};
 
-	CVolumeWindow(EAction Action, QWidget *parent = Q_NULLPTR);
+	CVolumeWindow(const QString& Prompt, EAction Action, QWidget *parent = Q_NULLPTR);
 	~CVolumeWindow();
 
 	QString		GetPassword() const { return m_Password; }

@@ -49,11 +49,11 @@ public:
 protected:
 	struct SLibraryNode : STreeNode
 	{
-		SLibraryNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id) { }
+		SLibraryNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		SLibraryItemPtr pItem;
 	};
 
-	virtual STreeNode*	MkNode(const QVariant& Id) { return new SLibraryNode(this, Id); }
+	virtual STreeNode*	MkNode(const QVariant& Id) { return new SLibraryNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);
 };

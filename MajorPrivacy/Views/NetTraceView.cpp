@@ -40,12 +40,23 @@ CNetTraceView::CNetTraceView(QWidget *parent)
 	connect(m_pCmbType, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbType);
 
+	m_pToolBar->addSeparator();
+
 	m_pBtnScroll = new QToolButton();
 	m_pBtnScroll->setIcon(QIcon(":/Icons/Scroll.png"));
 	m_pBtnScroll->setCheckable(true);
 	m_pBtnScroll->setToolTip(tr("Auto Scroll"));
 	m_pBtnScroll->setMaximumHeight(22);
 	m_pToolBar->addWidget(m_pBtnScroll);
+
+	m_pToolBar->addSeparator();
+
+	m_pBtnClear = new QToolButton();
+	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
+	m_pBtnClear->setToolTip(tr("Clear Trace Log"));
+	m_pBtnClear->setFixedHeight(22);
+	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearTraceLog()));
+	m_pToolBar->addWidget(m_pBtnClear);
 
 	int comboBoxHeight = m_pCmbType->sizeHint().height();
 
@@ -64,9 +75,9 @@ CNetTraceView::~CNetTraceView()
 	theConf->SetBlob("MainWindow/NetTraceView_Columns", m_pTreeView->saveState());
 }
 
-void CNetTraceView::Sync(const struct SMergedLog* pLog)
+void CNetTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services)
 {
-	CTraceView::Sync(pLog);
+	CTraceView::Sync(Log, Programs, Services);
 
 	if(m_pBtnScroll->isChecked())
 		m_pTreeView->scrollToBottom();
@@ -78,3 +89,7 @@ void CNetTraceView::UpdateFilter()
 	m_FullRefresh = true;
 }
 
+void CNetTraceView::OnClearTraceLog()
+{
+	ClearTraceLog(ETraceLogs::eNetLog);
+}

@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "VolumeWindow.h"
+#include "../Core/PrivacyCore.h"
+#include "../MajorPrivacy.h"
 #include "../MiscHelpers/Common/Settings.h"
 #include "../MiscHelpers/Common/Common.h"
 #include <QStorageInfo>
 
 
-CVolumeWindow::CVolumeWindow(EAction Action, QWidget *parent)
+CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *parent)
 	: QDialog(parent)
 {
 	Qt::WindowFlags flags = windowFlags();
@@ -20,7 +22,7 @@ CVolumeWindow::CVolumeWindow(EAction Action, QWidget *parent)
 	setWindowFlags(flags);
 
 	ui.setupUi(this);
-	this->setWindowTitle(tr("MajorPrivacy - Password Entry"));
+	this->setWindowTitle("MajorPrivacy");
 
 	m_Action = Action;
 
@@ -32,27 +34,8 @@ CVolumeWindow::CVolumeWindow(EAction Action, QWidget *parent)
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(CheckPassword()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
 
-	switch (m_Action)
-	{
-	case eSetPW:
-		ui.lblInfo->setText(tr("Enter new config password"));
-		ui.lblIcon->setPixmap(QPixmap::fromImage(QImage(":/Actions/LockClosed.png")));
-		break;
-	case eNew:
-		ui.lblInfo->setText(tr("Creating new box image, please enter a secure password, and choose a disk image size."));
-		ui.lblIcon->setPixmap(QPixmap::fromImage(QImage(":/Actions/LockClosed.png")));
-		break;
-	case eGetPW:
-	case eMount:
-		ui.lblInfo->setText(tr("Enter Box Image password:"));
-		ui.lblIcon->setPixmap(QPixmap::fromImage(QImage(":/Actions/LockOpen.png")));
-		break;
-	case eChange:
-		ui.lblInfo->setText(tr("Enter Box Image passwords:"));
-		ui.lblIcon->setPixmap(QPixmap::fromImage(QImage(":/Actions/LockClosed.png")));
-		break;
-	}
-
+	ui.lblInfo->setText(Prompt);
+	ui.lblIcon->setPixmap(QPixmap::fromImage(QImage(m_Action == eMount ? ":/Actions/LockOpen.png" : ":/Actions/LockClosed.png")));
 
 	if (m_Action == eNew || m_Action == eSetPW) 
 	{
@@ -122,6 +105,9 @@ CVolumeWindow::CVolumeWindow(EAction Action, QWidget *parent)
 		ui.chkProtect->setVisible(false);
 
 	//restoreGeometry(theConf->GetBlob("VolumeWindow/Window_Geometry"));
+
+	// Adjust the size of the dialog
+	this->adjustSize();
 }
 
 CVolumeWindow::~CVolumeWindow()

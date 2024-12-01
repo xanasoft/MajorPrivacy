@@ -49,7 +49,7 @@ protected:
 
 	struct SEnclaveNode: STreeNode
 	{
-		SEnclaveNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id) { }
+		SEnclaveNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		CEnclavePtr	pEnclave;
 
@@ -58,7 +58,7 @@ protected:
 
 	virtual QVariant		NodeData(STreeNode* pNode, int role, int section) const;
 
-	virtual STreeNode*		MkNode(const QVariant& Id) { return new SEnclaveNode(this, Id); }
+	virtual STreeNode*		MkNode(const QVariant& Id) { return new SEnclaveNode(/*this,*/ Id); }
 
 	QList<QVariant>			MakeProcPath(const quint64 EnclaveId, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList);
 	void					MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, QList<QVariant>& Path);

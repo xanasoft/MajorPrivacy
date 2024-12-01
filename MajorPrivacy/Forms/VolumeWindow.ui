@@ -176,7 +176,7 @@
      <item row="8" column="2" colspan="4">
       <widget class="QCheckBox" name="chkProtect">
        <property name="text">
-        <string>Protect from untrusted processes</string>
+        <string>Load volume access protection rules</string>
        </property>
        <property name="checked">
         <bool>true</bool>

@@ -195,7 +195,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -232,7 +232,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -265,7 +265,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>
       </EntryPointSymbol>
       <DelayLoadDLLs>
@@ -298,7 +298,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -330,7 +330,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -366,7 +366,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -402,7 +402,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -437,7 +437,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -516,9 +516,9 @@
     <ClInclude Include="Helpers\NetUtil.h" />
     <ClInclude Include="Helpers\NtIO.h" />
     <ClInclude Include="Helpers\NtObj.h" />
+    <ClInclude Include="Helpers\NtPathMgr.h" />
     <ClInclude Include="Helpers\NtUtil.h" />
     <ClInclude Include="Helpers\RegUtil.h" />
-    <ClInclude Include="Helpers\Reparse.h" />
     <ClInclude Include="Helpers\SchdUtil.h" />
     <ClInclude Include="Helpers\Scoped.h" />
     <ClInclude Include="Helpers\ScopedHandle.h" />
@@ -721,9 +721,9 @@
     <ClCompile Include="Helpers\MiscHelpers.cpp" />
     <ClCompile Include="Helpers\NetUtil.cpp" />
     <ClCompile Include="Helpers\NtIO.cpp" />
+    <ClCompile Include="Helpers\NtPathMgr.cpp" />
     <ClCompile Include="Helpers\NtUtil.cpp" />
     <ClCompile Include="Helpers\RegUtil.cpp" />
-    <ClCompile Include="Helpers\Reparse.cpp" />
     <ClCompile Include="Helpers\SchdUtil.cpp" />
     <ClCompile Include="Helpers\Service.cpp" />
     <ClCompile Include="Helpers\SID.cpp" />

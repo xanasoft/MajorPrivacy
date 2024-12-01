@@ -26,7 +26,13 @@ public:
 	typedef std::shared_ptr<SAccessStats> SAccessStatsPtr;
 
 	void Add(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked);
+
+	uint32 GetAccessCount() const { std::unique_lock lock(m_Mutex); return m_Root->TotalCount; }
+
 	void Clear();
+
+	void CleanUp(bool* pbCancel, uint32* puCounter);
+	void Truncate();
 	
 	struct SPathNode
 	{
@@ -36,6 +42,7 @@ public:
 		std::wstring Name;
 		std::map<std::wstring, std::shared_ptr<SPathNode>> Branches;
 		SAccessStatsPtr pStats;
+		uint32 TotalCount = 0;
 	};
 
 	typedef std::shared_ptr<SPathNode> SPathNodePtr;
@@ -45,13 +52,17 @@ public:
 	CVariant DumpTree(uint64 LastActivity) const;
 
 protected:
+	mutable std::recursive_mutex	m_Mutex;
 
-	void Add(const SAccessStatsPtr& pStat, SPathNodePtr& pParent, const std::wstring& Path, size_t uOffset = 0);
+	bool Add(const SAccessStatsPtr& pStat, SPathNodePtr& pParent, const std::wstring& Path, size_t uOffset = 0);
 
 	CVariant StoreTree(const SPathNodePtr& pParent) const;
 	CVariant StoreNode(const SPathNodePtr& pParent, const CVariant& Children) const;
-	void LoadTree(const CVariant& Data, SPathNodePtr& pParent);
+	uint32 LoadTree(const CVariant& Data, SPathNodePtr& pParent);
 	CVariant DumpTree(const SPathNodePtr& pParent, uint64 LastActivity) const;
+
+	bool CleanUp(SPathNodePtr& pParent, const std::wstring& Path, bool* pbCancel, uint32* puCounter);
+	uint64 Truncate(SPathNodePtr& pParent, uint64 CleanupDate);
 
 	SPathNodePtr			m_Root;
 };

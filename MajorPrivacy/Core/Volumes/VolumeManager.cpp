@@ -57,6 +57,11 @@ void CVolumeManager::AddVolume(const QString& Path)
 	m_List.insert(Path.toLower(), pVolume);
 }
 
+void CVolumeManager::RemoveVolume(const QString& Path)
+{
+	m_List.remove(Path.toLower());
+}
+
 bool CVolumeManager::LoadVolumes()
 {
 	foreach(const QString & Key, theConf->ListKeys("SecureVolumes"))

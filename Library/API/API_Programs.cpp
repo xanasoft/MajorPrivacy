@@ -37,6 +37,14 @@ void CProgramItem::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 	Data.WriteVariant(API_V_FW_RULES, CollectFwRules());
 	Data.WriteVariant(API_V_PROGRAM_RULES, CollectProgRules());
 	Data.WriteVariant(API_V_ACCESS_RULES, CollectResRules());
+
+	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
+	{
+	}
+	else
+	{
+		Data.Write(API_V_ITEM_MISSING, IsMissing());
+	}
 #endif
 }
 
@@ -56,6 +64,8 @@ void CProgramItem::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_FW_RULES:		m_FwRuleIDs = Data.AsQSet(); break;
 	case API_V_PROGRAM_RULES:	m_ProgRuleIDs = Data.AsQSet(); break;
 	case API_V_ACCESS_RULES:	m_ResRuleIDs = Data.AsQSet(); break;
+
+	case API_V_ITEM_MISSING:	m_IsMissing = Data; break;
 #else
 	case API_V_FW_RULES: break;
 	case API_V_PROGRAM_RULES: break;
@@ -87,13 +97,14 @@ void CWindowsService::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) co
 	}
 	else
 	{
+		Data.Write(API_V_ACCESS_COUNT, m_AccessTree.GetAccessCount());
 		Data.Write(API_V_PROG_SOCKETS, Stats.SocketRefs);
 	}
 
 	Data.Write(API_V_SOCK_LAST_ACT, Stats.LastNetActivity);
 
-	Data.Write(API_V_SOCK_LAST_ALLOW, Stats.LastFwAllowed);
-	Data.Write(API_V_SOCK_LAST_BLOCK, Stats.LastFwBlocked);
+	Data.Write(API_V_SOCK_LAST_ALLOW, m_LastFwAllowed);
+	Data.Write(API_V_SOCK_LAST_BLOCK, m_LastFwBlocked);
 
 	Data.Write(API_V_SOCK_UPLOAD, Stats.Upload);
 	Data.Write(API_V_SOCK_DOWNLOAD, Stats.Download);
@@ -114,6 +125,7 @@ void CWindowsService::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_PID:					m_ProcessId = Data; break;
 
 	case API_V_PROG_SOCKETS:		m_SocketRefs = Data.AsQSet<quint64>(); break;
+	case API_V_ACCESS_COUNT:		m_AccessCount = Data; break;
 
 	case API_V_SOCK_LAST_ACT:		m_Stats.LastNetActivity = Data; break;
 
@@ -127,14 +139,18 @@ void CWindowsService::ReadIValue(uint32 Index, const XVariant& Data)
 #else
 	case API_V_PID: break;
 
+	case API_V_ACCESS_COUNT: break;
 	case API_V_PROG_SOCKETS: break;
 
-	case API_V_SOCK_LAST_ACT: break;
+	case API_V_SOCK_LAST_ACT:		m_TrafficLog.SetLastActivity(Data); break;
+
+	case API_V_SOCK_LAST_ALLOW:		m_LastFwAllowed = Data; break;
+	case API_V_SOCK_LAST_BLOCK:		m_LastFwBlocked = Data; break;
 
 	case API_V_SOCK_UPLOAD: break;
 	case API_V_SOCK_DOWNLOAD: break;
-	case API_V_SOCK_UPLOADED: break;
-	case API_V_SOCK_DOWNLOADED: break;
+	case API_V_SOCK_UPLOADED:		m_TrafficLog.SetUploaded(Data); break;
+	case API_V_SOCK_DOWNLOADED:		m_TrafficLog.SetDownloaded(Data); break;
 #endif
 	default: CProgramItem::ReadIValue(Index, Data);
 	}
@@ -209,13 +225,14 @@ void CProgramFile::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 	}
 	else
 	{
+		Data.Write(API_V_ACCESS_COUNT, m_AccessTree.GetAccessCount());
 		Data.Write(API_V_PROG_SOCKETS, Stats.SocketRefs);
 	}
 
 	Data.Write(API_V_SOCK_LAST_ACT, Stats.LastNetActivity);
 
-	Data.Write(API_V_SOCK_LAST_ALLOW, Stats.LastFwAllowed);
-	Data.Write(API_V_SOCK_LAST_BLOCK, Stats.LastFwBlocked);
+	Data.Write(API_V_SOCK_LAST_ALLOW, m_LastFwAllowed);
+	Data.Write(API_V_SOCK_LAST_BLOCK, m_LastFwBlocked);
 
 	Data.Write(API_V_SOCK_UPLOAD, Stats.Upload);
 	Data.Write(API_V_SOCK_DOWNLOAD, Stats.Download);
@@ -237,6 +254,7 @@ void CProgramFile::ReadIValue(uint32 Index, const XVariant& Data)
 #ifdef PROG_GUI
 	case API_V_PROG_PROC_PIDS:	m_ProcessPids = Data.AsQSet<quint64>(); break;
 
+	case API_V_ACCESS_COUNT:	m_AccessCount = Data; break;
 	case API_V_PROG_SOCKETS:	m_SocketRefs = Data.AsQSet<quint64>(); break;
 
 	case API_V_LIBRARIES:		break;
@@ -253,16 +271,20 @@ void CProgramFile::ReadIValue(uint32 Index, const XVariant& Data)
 #else
 	case API_V_PROG_PROC_PIDS: break;
 
+	case API_V_ACCESS_COUNT: break;
 	case API_V_PROG_SOCKETS: break;
 
 	case API_V_LIBRARIES:		LoadLibraries(Data); break;
 
-	case API_V_SOCK_LAST_ACT: break;
+	case API_V_SOCK_LAST_ACT:	m_TrafficLog.SetLastActivity(Data); break;
+
+	case API_V_SOCK_LAST_ALLOW:	m_LastFwAllowed = Data; break;
+	case API_V_SOCK_LAST_BLOCK:	m_LastFwBlocked = Data; break;
 
 	case API_V_SOCK_UPLOAD: break;
 	case API_V_SOCK_DOWNLOAD: break;
-	case API_V_SOCK_UPLOADED: break;
-	case API_V_SOCK_DOWNLOADED: break;
+	case API_V_SOCK_UPLOADED:	m_TrafficLog.SetUploaded(Data); break;
+	case API_V_SOCK_DOWNLOADED: m_TrafficLog.SetDownloaded(Data); break;
 #endif
 	default: CProgramSet::ReadIValue(Index, Data);
 	}
@@ -342,6 +364,14 @@ void CProgramItem::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 	Data.WriteVariant(API_S_FW_RULES, CollectFwRules());
 	Data.WriteVariant(API_S_PROGRAM_RULES, CollectProgRules());
 	Data.WriteVariant(API_S_ACCESS_RULES, CollectResRules());
+
+	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
+	{
+	}
+	else
+	{
+		Data.Write(API_S_ITEM_MISSING, IsMissing());
+	}
 #endif
 }
 
@@ -358,6 +388,8 @@ void CProgramItem::ReadMValue(const SVarName& Name, const XVariant& Data)
 	else if (VAR_TEST_NAME(Name, API_S_FW_RULES))			m_FwRuleIDs = Data.AsQSet();
 	else if (VAR_TEST_NAME(Name, API_S_PROGRAM_RULES))		m_ProgRuleIDs = Data.AsQSet();
 	else if (VAR_TEST_NAME(Name, API_S_ACCESS_RULES))		m_ResRuleIDs = Data.AsQSet();
+
+	else if (VAR_TEST_NAME(Name, API_S_ITEM_MISSING))		m_IsMissing = Data;
 
 #else
 	else if (VAR_TEST_NAME(Name, API_S_FW_RULES))			(void)0;
@@ -394,8 +426,8 @@ void CWindowsService::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) co
 
 	Data.Write(API_S_SOCK_LAST_ACT, Stats.LastNetActivity);
 
-	Data.Write(API_S_SOCK_LAST_ALLOW, Stats.LastFwAllowed);
-	Data.Write(API_S_SOCK_LAST_BLOCK, Stats.LastFwBlocked);
+	Data.Write(API_S_SOCK_LAST_ALLOW, m_LastFwAllowed);
+	Data.Write(API_S_SOCK_LAST_BLOCK, m_LastFwBlocked);
 
 	Data.Write(API_S_SOCK_UPLOAD, Stats.Upload);
 	Data.Write(API_S_SOCK_DOWNLOAD, Stats.Download);
@@ -429,12 +461,15 @@ void CWindowsService::ReadMValue(const SVarName& Name, const XVariant& Data)
 
 	else if (VAR_TEST_NAME(Name, API_S_PROG_SOCKETS))		(void)0;
 
-	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ACT))		(void)0;
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ACT))		m_TrafficLog.SetLastActivity(Data);
+
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ALLOW))	m_LastFwAllowed = Data;
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_BLOCK))	m_LastFwBlocked = Data;
 
 	else if (VAR_TEST_NAME(Name, API_S_SOCK_UPLOAD))		(void)0;
 	else if (VAR_TEST_NAME(Name, API_S_SOCK_DOWNLOAD))		(void)0;
-	else if (VAR_TEST_NAME(Name, API_S_SOCK_UPLOADED))		(void)0;
-	else if (VAR_TEST_NAME(Name, API_S_SOCK_DOWNLOADED))	(void)0;
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_UPLOADED))		m_TrafficLog.SetUploaded(Data);
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_DOWNLOADED))	m_TrafficLog.SetDownloaded(Data);
 #endif
 
 	else
@@ -513,8 +548,8 @@ void CProgramFile::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_SOCK_LAST_ACT, Stats.LastNetActivity);
 
-	Data.Write(API_S_SOCK_LAST_ALLOW, Stats.LastFwAllowed);
-	Data.Write(API_S_SOCK_LAST_BLOCK, Stats.LastFwBlocked);
+	Data.Write(API_S_SOCK_LAST_ALLOW, m_LastFwAllowed);
+	Data.Write(API_S_SOCK_LAST_BLOCK, m_LastFwBlocked);
 
 	Data.Write(API_S_SOCK_UPLOAD, Stats.Upload);
 	Data.Write(API_S_SOCK_DOWNLOAD, Stats.Download);
@@ -554,12 +589,15 @@ void CProgramFile::ReadMValue(const SVarName& Name, const XVariant& Data)
 
 	else if (VAR_TEST_NAME(Name, API_S_LIBRARIES))			LoadLibraries(Data);
 
-	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ACT))		(void)0;
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ACT))		m_TrafficLog.SetLastActivity(Data);
+
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ALLOW))	m_LastFwAllowed = Data;
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_BLOCK))	m_LastFwBlocked = Data;
 
 	else if (VAR_TEST_NAME(Name, API_S_SOCK_UPLOAD))		(void)0;
 	else if (VAR_TEST_NAME(Name, API_S_SOCK_DOWNLOAD))		(void)0;
-	else if (VAR_TEST_NAME(Name, API_S_SOCK_UPLOADED))		(void)0;
-	else if (VAR_TEST_NAME(Name, API_S_SOCK_DOWNLOADED))	(void)0;
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_UPLOADED))		m_TrafficLog.SetUploaded(Data);
+	else if (VAR_TEST_NAME(Name, API_S_SOCK_DOWNLOADED))	m_TrafficLog.SetDownloaded(Data);
 #endif
 	else
 		CProgramSet::ReadMValue(Name, Data);

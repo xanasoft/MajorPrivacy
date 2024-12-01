@@ -13,9 +13,12 @@ public:
 	void AddSocket(const CSocketPtr& pSocket);
 	bool RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit = false);
 
-	uint64 GetLastActivity() const	{ std::shared_lock Lock(m_Mutex); return m_Data.LastActivity; }
-	uint64 GetUploaded() const		{ std::shared_lock Lock(m_Mutex); return m_Data.Uploaded; }
-	uint64 GetDownloaded() const	{ std::shared_lock Lock(m_Mutex); return m_Data.Downloaded; }
+	void SetLastActivity(uint64 TimeStamp)	{ std::unique_lock Lock(m_Mutex); m_LastActivity = TimeStamp; }
+	uint64 GetLastActivity() const			{ std::shared_lock Lock(m_Mutex); return m_LastActivity; }
+	void SetUploaded(uint64 Uploaded)		{ std::unique_lock Lock(m_Mutex); m_Uploaded = Uploaded; }
+	uint64 GetUploaded() const				{ std::shared_lock Lock(m_Mutex); return m_Uploaded; }
+	void SetDownloaded(uint64 Downloaded)	{ std::unique_lock Lock(m_Mutex); m_Downloaded = Downloaded; }
+	uint64 GetDownloaded() const			{ std::shared_lock Lock(m_Mutex); return m_Downloaded; }
 
 	void Clear();
 
@@ -53,5 +56,7 @@ protected:
 
 	std::set<CSocketPtr> m_SocketList;
 
-	STrafficLogEntry m_Data;
+	uint64 m_LastActivity = 0;
+	uint64 m_Uploaded = 0;
+	uint64 m_Downloaded = 0;
 };

@@ -49,6 +49,12 @@ CProcessPage::CProcessPage(QWidget* parent)
 
 CProcessPage::~CProcessPage()
 {
+	theConf->SetValue("MainWindow/ProcessTab", m_pTabs->currentIndex());
+}
+
+void CProcessPage::LoadState()
+{
+	m_pTabs->setCurrentIndex(theConf->GetInt("MainWindow/ProcessTab", 0));
 }
 
 void CProcessPage::SetMergePanels(bool bMerge)
@@ -71,6 +77,8 @@ void CProcessPage::SetMergePanels(bool bMerge)
 		m_pVSplitter->addWidget(m_pTabs);
 		m_pMainLayout->addWidget(m_pVSplitter);
 	}
+
+	LoadState();
 }
 
 void CProcessPage::Update()
@@ -114,7 +122,6 @@ void CProcessPage::Update()
 
 	if (m_pTraceView->isVisible())
 	{
-		MergeTraceLogs(&m_Log, ETraceLogs::eExecLog, Current.Programs, Current.ServicesEx);
-		m_pTraceView->Sync(&m_Log);
+		m_pTraceView->Sync(ETraceLogs::eExecLog, Current.Programs, Current.ServicesEx);
 	}
 }

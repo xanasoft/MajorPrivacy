@@ -2,12 +2,13 @@
 #include "MajorPrivacy.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Processes/ProcessList.h"
+#include "../Core/Programs/ProgramManager.h"
 #include "../../MiscHelpers/Common/SortFilterProxyModel.h"
 #include "AccessPage.h"
 #include "../Views/AccessTraceView.h"
 #include "../Views/AccessRuleView.h"
 #include "../Views/AccessView.h"
-#include "../Views/AccessInfoView.h"
+#include "../Views/AccessListView.h"
 #include "../Views/HandleView.h"
 
 
@@ -37,10 +38,10 @@ CAccessPage::CAccessPage(QWidget* parent)
 	m_pAccessView = new CAccessView();
 	m_pAccessSplitter->addWidget(m_pAccessView);
 
-	m_pAccessInfoView = new CAccessInfoView();
-	m_pAccessSplitter->addWidget(m_pAccessInfoView);
+	m_pAccessListView = new CAccessListView();
+	m_pAccessSplitter->addWidget(m_pAccessListView);
 
-	connect(m_pAccessView, &CAccessView::SelectionChanged, m_pAccessInfoView, &CAccessInfoView::OnSelectionChanged);
+	connect(m_pAccessView, &CAccessView::SelectionChanged, m_pAccessListView, &CAccessListView::OnSelectionChanged);
 
 	m_pTraceView = new CAccessTraceView();
 	m_pTabs->addTab(m_pTraceView, tr("Trace Log"));
@@ -51,6 +52,22 @@ CAccessPage::CAccessPage(QWidget* parent)
 	//m_pVSplitter->addWidget(m_pRuleTabs);
 	m_pVSplitter->addWidget(m_pRuleView);
 	m_pVSplitter->addWidget(m_pTabs);
+}
+
+CAccessPage::~CAccessPage()
+{
+	QString Name = this->objectName();
+	if(Name.isEmpty())
+		Name = "Access";
+	theConf->SetValue(QString("MainWindow/" + Name + "Tab").toStdString().c_str(), m_pTabs->currentIndex());
+}
+
+void CAccessPage::LoadState()
+{
+	QString Name = this->objectName();
+	if(Name.isEmpty())
+		Name = "Access";
+	m_pTabs->setCurrentIndex(theConf->GetInt(QString("MainWindow/" + Name + "Tab").toStdString().c_str(), 0));
 }
 
 void CAccessPage::SetMergePanels(bool bMerge)
@@ -73,6 +90,8 @@ void CAccessPage::SetMergePanels(bool bMerge)
 		m_pVSplitter->addWidget(m_pTabs);
 		m_pMainLayout->addWidget(m_pVSplitter);
 	}
+
+	LoadState();
 }
 
 void CAccessPage::Update()
@@ -106,7 +125,34 @@ void CAccessPage::Update()
 
 	if (m_pTraceView->isVisible())
 	{
-		MergeTraceLogs(&m_Log, ETraceLogs::eResLog, Current.Programs, Current.ServicesEx);
-		m_pTraceView->Sync(&m_Log);
+		m_pTraceView->Sync(ETraceLogs::eResLog, Current.Programs, Current.ServicesEx);
+	}
+}
+
+void CAccessPage::Update(const QString& VolumeRoot, const QString& VolumeImage)
+{
+	if (!isVisible())
+		return;
+
+	auto Current = theGUI->GetCurrentItems();
+
+	if (m_pRuleView->isVisible())
+	{
+		m_pRuleView->Sync(theCore->AccessManager()->GetAccessRules(), VolumeRoot, VolumeImage);
+	}
+
+	if(m_pHandleView->isVisible())
+	{
+		m_pHandleView->Sync(theCore->ProcessList()->List(), VolumeRoot);
+	}
+
+	if(m_pAccessView->isVisible())
+	{
+		m_pAccessView->Sync(theCore->ProgramManager()->GetPrograms(), theCore->ProgramManager()->GetServices(), VolumeRoot);
+	}
+
+	if (m_pTraceView->isVisible())
+	{
+		m_pTraceView->Sync(ETraceLogs::eResLog, theCore->ProgramManager()->GetPrograms(), theCore->ProgramManager()->GetServices(), VolumeRoot);
 	}
 }

@@ -18,8 +18,12 @@ public:
 
 	inline const std::wstring& GetFilePath() const				{ return m_FilePath; }
 	inline const std::wstring& GetServiceTag() const			{ return m_ServiceTag; }
-	inline const std::wstring& GetAppContainerSid() const		{ return m_AppContainerSid; }
-	inline const std::wstring& GetRegKey() const				{ return m_RegKey; }
+	inline const std::wstring& GetAppContainerSid() const		{ if(m_Type == EProgramType::eAppPackage) return m_AuxValue; 
+	return m_empty; }
+	inline const std::wstring& GetGuid() const					{ if(m_Type == EProgramType::eProgramGroup) return m_AuxValue; 
+	return m_empty; }
+	inline const std::wstring& GetRegKey() const				{ if(m_Type == EProgramType::eAppInstallation) return m_AuxValue; 
+	return m_empty; }
 
 	static EProgramType ReadType(const CVariant& Data, SVarWriteOpt::EFormat& Format);
 	static std::string TypeToStr(EProgramType Type);
@@ -29,12 +33,13 @@ public:
 
 protected:
 
+	static const std::wstring m_empty;
+
 	EProgramType m_Type = EProgramType::eUnknown;
 
 	std::wstring m_FilePath; // or pattern
-	std::wstring m_RegKey;
 	std::wstring m_ServiceTag;
-	std::wstring m_AppContainerSid;
+	std::wstring m_AuxValue;
 };
 
 //typedef std::shared_ptr<CProgramID> CProgramIDPtr;

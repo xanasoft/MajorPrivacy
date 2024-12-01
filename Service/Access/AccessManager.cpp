@@ -20,7 +20,33 @@ CAccessManager::CAccessManager()
 
 CAccessManager::~CAccessManager()
 {
+	if (m_hCleanUpThread) {
+		m_bCancelCleanUp = true;
+		HANDLE hCleanUpThread = InterlockedCompareExchangePointer((PVOID*)&m_hCleanUpThread, NULL, m_hCleanUpThread);
+		if (hCleanUpThread) {
+			WaitForSingleObject(hCleanUpThread, INFINITE);
+			NtClose(hCleanUpThread);
+		}
+	}
+
 	delete m_pHandleList;
+}
+
+DWORD CALLBACK CAccessManager__LoadProc(LPVOID lpThreadParameter)
+{
+#ifdef _DEBUG
+	SetThreadDescription(GetCurrentThread(), L"CAccessManager__LoadProc");
+#endif
+
+	CAccessManager* This = (CAccessManager*)lpThreadParameter;
+
+	uint64 uStart = GetTickCount64();
+	STATUS Status = This->Load();
+	DbgPrint(L"CAccessManager::Load() took %llu ms\n", GetTickCount64() - uStart);
+
+	NtClose(This->m_hStoreThread);
+	This->m_hStoreThread = NULL;
+	return 0;
 }
 
 STATUS CAccessManager::Init()
@@ -29,11 +55,35 @@ STATUS CAccessManager::Init()
 	theCore->Driver()->RegisterForRuleEvents(ERuleType::eAccess);
 	LoadRules();
 
-	Load();
+	m_hStoreThread = CreateThread(NULL, 0, CAccessManager__LoadProc, (void*)this, 0, NULL);
 
 	m_pHandleList->Init();
 
 	return OK;
+}
+
+DWORD CALLBACK CAccessManager__StoreProc(LPVOID lpThreadParameter)
+{
+#ifdef _DEBUG
+	SetThreadDescription(GetCurrentThread(), L"CAccessManager__StoreProc");
+#endif
+
+	CAccessManager* This = (CAccessManager*)lpThreadParameter;
+
+	uint64 uStart = GetTickCount64();
+	STATUS Status = This->Store();
+	DbgPrint(L"CAccessManager::Store() took %llu ms\n", GetTickCount64() - uStart);
+
+	NtClose(This->m_hStoreThread);
+	This->m_hStoreThread = NULL;
+	return 0;
+}
+
+STATUS CAccessManager::StoreAsync()
+{
+	if (m_hStoreThread) return STATUS_ALREADY_COMMITTED;
+	m_hStoreThread = CreateThread(NULL, 0, CAccessManager__StoreProc, (void*)this, 0, NULL);
+	return STATUS_SUCCESS;
 }
 
 void CAccessManager::Update()
@@ -44,6 +94,69 @@ void CAccessManager::Update()
 	if(theCore->Config()->GetBool("Service", "EnumAllOpenFiles", false))
 		m_pHandleList->Update();
 }
+
+DWORD CALLBACK CAccessManager__CleanUp(LPVOID lpThreadParameter)
+{
+#ifdef _DEBUG
+	SetThreadDescription(GetCurrentThread(), L"CAccessManager__CleanUp");
+#endif
+
+	CAccessManager* This = (CAccessManager*)lpThreadParameter;
+	
+	std::map<uint64, CProgramItemPtr> Items = theCore->ProgramManager()->GetItems();
+
+	uint64 uTotalCounter = 0;
+	for (auto pItem : Items)
+	{
+		if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+			uTotalCounter += pProgram->GetAccessCount();
+		else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+			uTotalCounter += pService->GetAccessCount();
+	}
+
+	uint64 uDoneCounter = 0;
+	for (auto pItem : Items)
+	{
+		if(This->m_bCancelCleanUp)
+			break;
+		uint32 uCounter = 0;
+		if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+			pProgram->CleanUpAccessTree(&This->m_bCancelCleanUp, &uCounter);
+		else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+			pService->CleanUpAccessTree(&This->m_bCancelCleanUp, &uCounter);
+		uDoneCounter += uCounter;
+
+		//DbgPrint("CAccessManager__CleanUp completed %llu of %llu\r\n", uDoneCounter, uTotalCounter);
+
+		CVariant Event;
+		Event[API_V_PROGRESS_FINISHED] = false;
+		Event[API_V_PROGRESS_TOTAL] = uTotalCounter;
+		Event[API_V_PROGRESS_DONE] = uDoneCounter;
+		theCore->BroadcastMessage(SVC_API_EVENT_CLEANUP_PROGRESS, Event);
+	}
+
+	if (!This->m_bCancelCleanUp) {
+		CVariant Event;
+		Event[API_V_PROGRESS_FINISHED] = true;
+		theCore->BroadcastMessage(SVC_API_EVENT_CLEANUP_PROGRESS, Event);
+	}
+
+	HANDLE hCleanUpThread = InterlockedCompareExchangePointer((PVOID*)&This->m_hCleanUpThread, NULL, This->m_hCleanUpThread);
+	if(hCleanUpThread)
+		NtClose(hCleanUpThread);
+	return 0;
+}
+
+STATUS CAccessManager::CleanUp()
+{
+	if(m_hCleanUpThread) return STATUS_DEVICE_BUSY;
+	//m_bCancelCleanUp = false; // only true on destruction
+	m_hCleanUpThread = CreateThread(NULL, 0, CAccessManager__CleanUp, (void *)this, 0, NULL);
+	return STATUS_SUCCESS;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Rules
 
 std::map<std::wstring, CAccessRulePtr> CAccessManager::GetAllRules()
 {
@@ -80,9 +193,6 @@ STATUS CAccessManager::RemoveRule(const std::wstring& Guid)
 	//	UpdateRule(nullptr, Guid);
 	return Res;
 }
-
-//////////////////////////////////////////////////////////////////////////
-// Rules
 
 STATUS CAccessManager::LoadRules()
 {

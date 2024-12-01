@@ -66,6 +66,7 @@ public:
 		eLastExecution,
 		//eTotalUpTime,
 
+		eOpenedFiles,
 		//eOpenFiles,
 		//eFsTotalRead,
 		//eFsTotalWritten,
@@ -73,7 +74,7 @@ public:
 
 		eSockets,
 		eFwRules,
-		eLastActivity,
+		eLastNetActivity,
 		eUpload,
 		eDownload,
 		eUploaded,
@@ -89,9 +90,11 @@ public:
 protected:
 	struct SProgramNode: STreeNode
 	{
-		SProgramNode(CTreeItemModel* pModel, const QVariant& Id) : STreeNode(pModel, Id), iColor(0) { }
+		SProgramNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id), iColor(0) { }
 
 		CProgramItemPtr		pItem;
+
+		QString				IconFile;
 
 		int					iColor;
 
@@ -102,7 +105,7 @@ protected:
 
 	virtual QVariant		NodeData(STreeNode* pNode, int role, int section) const;
 
-	virtual STreeNode*		MkNode(const QVariant& Id) { return new SProgramNode(this, Id); }
+	virtual STreeNode*		MkNode(const QVariant& Id) { return new SProgramNode(/*this,*/ Id); }
 
 	bool					m_bTree;
 

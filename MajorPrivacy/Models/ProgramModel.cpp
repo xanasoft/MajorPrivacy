@@ -2,6 +2,7 @@
 #include "ProgramModel.h"
 #include "../Core/PrivacyCore.h"
 #include "../../MiscHelpers/Common/Common.h"
+#include "../../Library/Helpers/NtUtil.h"
 
 
 CProgramModel::CProgramModel(QObject *parent)
@@ -100,11 +101,11 @@ bool CProgramModel::TestFilter(EProgramType Type, const SProgramStats* pStats)
 				bPass = true;
 		}
 		if (m_Filter & EFilters::eBlockedTraffic) {
-			if (pStats->LastFwBlocked > uRecentLimit)
+			if (FILETIME2ms(pStats->LastFwBlocked) > uRecentLimit)
 				bPass = true;
 		}
 		if (m_Filter & EFilters::eAllowedTraffic) {
-			if (pStats->LastFwAllowed > uRecentLimit)
+			if (FILETIME2ms(pStats->LastFwAllowed) > uRecentLimit)
 				bPass = true;
 		}
 
@@ -181,10 +182,16 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 		int Col = 0;
 		bool State = false;
 		int Changed = 0;
-		if (pNode->Icon.isNull() && !pItem->GetIcon().isNull())
+		if (pNode->Icon.isNull() && !pItem->GetIcon().isNull() || pNode->IconFile != pItem->GetIconFile())
 		{
+			pNode->IconFile = pItem->GetIconFile();
 			pNode->Icon = pItem->GetIcon();
 			Changed = 1;
+		}
+		if (pNode->IsGray != pItem->IsMissing()) 
+		{
+			pNode->IsGray = pItem->IsMissing();
+			Changed = 2; // set change for all columns
 		}
 
 		for (int section = 0; section < columnCount(); section++)
@@ -203,6 +210,7 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 			case eLastExecution:	Value = pStats->LastExecution; break;
 			//case eTotalUpTime:
 
+			case eOpenedFiles:		Value = pStats->AccessCount; break;
 			//case eOpenFiles:		break;
 			//case eFsTotalRead:
 			//case eFsTotalWritten:
@@ -210,7 +218,7 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 
 			case eSockets:			Value = pStats->SocketCount; break;
 			case eFwRules:			Value = pStats->FwRuleTotal; break;
-			case eLastActivity:		Value = pStats->LastNetActivity; break;
+			case eLastNetActivity:	Value = pStats->LastNetActivity; break;
 			case eUpload:			Value = pStats->Upload; break;
 			case eDownload:			Value = pStats->Download; break;
 			case eUploaded:			Value = pStats->Uploaded; break;
@@ -233,17 +241,17 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 				{
 				//case eName: 		ColValue.Formatted = pItem->GetNameEx(); break;
 
-				case eProgramRules:	if(pStats->ProgRuleCount != pStats->ProgRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ProgRuleCount).arg(pStats->ProgRuleTotal); break;
-				case eLastExecution:ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
+				case eProgramRules:		if(pStats->ProgRuleCount != pStats->ProgRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ProgRuleCount).arg(pStats->ProgRuleTotal); break;
+				case eLastExecution:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
 
-				case eAccessRules:	if(pStats->ResRuleCount != pStats->ResRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ResRuleCount).arg(pStats->ResRuleTotal); break;
+				case eAccessRules:		if(pStats->ResRuleCount != pStats->ResRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ResRuleCount).arg(pStats->ResRuleTotal); break;
 
-				case eFwRules:		if(pStats->FwRuleCount != pStats->FwRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->FwRuleCount).arg(pStats->FwRuleTotal); break;
-				case eLastActivity:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
-				case eUpload:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
-				case eDownload:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
-				case eUploaded:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
-				case eDownloaded:	ColValue.Formatted = FormatSize(Value.toULongLong()); break;
+				case eFwRules:			if(pStats->FwRuleCount != pStats->FwRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->FwRuleCount).arg(pStats->FwRuleTotal); break;
+				case eLastNetActivity:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
+				case eUpload:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
+				case eDownload:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
+				case eUploaded:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
+				case eDownloaded:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 				}
 			}
 
@@ -264,17 +272,23 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 
 QVariant CProgramModel::NodeData(STreeNode* pNode, int role, int section) const
 {
+	SProgramNode* pProcessNode = static_cast<SProgramNode*>(pNode);
     switch(role)
 	{
 		case Qt::FontRole:
 		{
-			SProgramNode* pProcessNode = static_cast<SProgramNode*>(pNode);
 			if (pProcessNode->Bold.contains(section))
 			{
 				QFont fnt;
 				fnt.setBold(true);
 				return fnt;
 			}
+			break;
+		}
+		case Qt::ToolTipRole:
+		{
+			if(section == ePath)
+				return pProcessNode->pItem->GetPath(EPathType::eNative);
 			break;
 		}
 	}
@@ -317,6 +331,7 @@ QString CProgramModel::GetColumHeader(int section) const
 		case eLastExecution:		return tr("Last Execution");
 		//case eTotalUpTime:			return tr("Up Time");
 
+		case eOpenedFiles:			return tr("Accessed Files");
 		//case eOpenFiles:			return tr("Open Files");
 		//case eFsTotalRead:
 		//case eFsTotalWritten:
@@ -324,7 +339,7 @@ QString CProgramModel::GetColumHeader(int section) const
 		
 		case eSockets:				return tr("Open Sockets");
 		case eFwRules:				return tr("FW Rules");
-		case eLastActivity:			return tr("Last Net Activity");
+		case eLastNetActivity:		return tr("Last Net Activity");
 		case eUpload:				return tr("Upload");
 		case eDownload:				return tr("Download");
 		case eUploaded:				return tr("Uploaded");

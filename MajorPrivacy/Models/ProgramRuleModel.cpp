@@ -44,11 +44,14 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 		else
 		{
 			I.value() = NULL;
+			pNode->pRule = pRule;
 			Index = Find(m_Root, pNode);
 		}
 
-		if (pNode->pProg.isNull())
+		if (pNode->pProg.isNull() || pNode->pRule->GetProgramID() != pNode->pProg->GetID()) {
 			pNode->pProg = theCore->ProgramManager()->GetProgramByID(pNode->pRule->GetProgramID());
+			pNode->Icon.clear();
+		}
 
 		//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
@@ -99,7 +102,8 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 				case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(Value.toString()); break;
 				case eSignature:		ColValue.Formatted = CProgramRule::GetSignatureLevelStr((KPH_VERIFY_AUTHORITY)Value.toUInt()); break;
 				case eOnSpawn:			ColValue.Formatted = CProgramRule::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() >> 16)) + "/" + CProgramRule::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() & 0xFFFF)); break;
-				case eProgram:			ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetProgramPath()).arg(pRule->GetProgramNtPath()); break;
+				//case eProgram:			ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetProgramPath()).arg(pRule->GetProgramNtPath()); break;
+				case eProgram:			ColValue.Formatted = pRule->GetProgramPath(); break;
 				}
 			}
 

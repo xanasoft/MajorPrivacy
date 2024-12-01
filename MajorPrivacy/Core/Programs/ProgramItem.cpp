@@ -28,27 +28,31 @@ QIcon CProgramItem::DefaultIcon() const
 
 void CProgramItem::SetIconFile()
 {
-	if(!m_Icon.isNull())
+	if (!m_Icon.isNull())
 		return;
 
 	if (!m_IconFile.isEmpty())
-	{
-		QString Path = QString::fromStdWString(NtPathToDosPath(m_IconFile.toStdWString()));
-
-		StrPair NameIndex = Split2(Path, ",", true);
-		if (NameIndex.second.length() > 2) { // todo improve
-			NameIndex.first = Path;
-			NameIndex.second = "0";
-		}
-		QString Ext = Split2(NameIndex.first, ".", true).second;
-		if (Ext.compare("exe", Qt::CaseInsensitive) == 0 || Ext.compare("dll", Qt::CaseInsensitive) == 0)
-			m_Icon = LoadWindowsIconEx(NameIndex.first, NameIndex.second.toInt());
-		else
-			m_Icon = QIcon(QPixmap(Path));
-	}
+		UpdateIconFile();
 
 	if (m_Icon.availableSizes().isEmpty())
 		m_Icon = DefaultIcon();
+}
+
+void CProgramItem::UpdateIconFile()
+{
+	QString Path = QString::fromStdWString(NtPathToDosPath(m_IconFile.toStdWString())); // todo
+	int Index = 0;
+
+	StrPair PathIndex = Split2(Path, ",", true);
+	if (!PathIndex.second.isEmpty() && !PathIndex.second.contains(".")) {
+		Path = PathIndex.first;
+		Index = PathIndex.second.toInt();
+	}
+	QString Ext = Split2(Path, ".", true).second;
+	if (Ext.compare("exe", Qt::CaseInsensitive) == 0 || Ext.compare("dll", Qt::CaseInsensitive) == 0)
+		m_Icon = LoadWindowsIconEx(Path, Index);
+	else
+		m_Icon = QIcon(QPixmap(Path));
 }
 
 XVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const

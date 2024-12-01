@@ -18,6 +18,8 @@ public:
 	CAccessTraceModel(QObject* parent = 0);
 	~CAccessTraceModel();
 
+	void					SetPathFilter(const QString& RootPath) { m_RootPath = RootPath; }
+
 	void					SetFilter(EEventStatus Action) { m_Action = Action; }
 
 	virtual int				columnCount(const QModelIndex &parent = QModelIndex()) const;
@@ -43,6 +45,8 @@ protected:
 
 		CProgramFilePtr		pProgram;
 	};
+
+	QString					m_RootPath;
 
 	EEventStatus			m_Action = EEventStatus::eUndefined;
 

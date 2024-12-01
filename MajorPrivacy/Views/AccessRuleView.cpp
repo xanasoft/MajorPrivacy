@@ -55,7 +55,7 @@ CAccessRuleView::CAccessRuleView(QWidget *parent)
 	pBtnSearch->setMaximumHeight(comboBoxHeight);
 	m_pToolBar->addWidget(pBtnSearch);
 
-	m_pCreateRule = m_pMenu->addAction(QIcon(":/Icons/Plus.png"), tr("Create Rule"), this, SLOT(OnRuleAction()));
+	m_pCreateRule = m_pMenu->addAction(QIcon(":/Icons/Add.png"), tr("Create Rule"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
 	m_pEnableRule = m_pMenu->addAction(QIcon(":/Icons/Enable.png"), tr("Enable Rule"), this, SLOT(OnRuleAction()));
 	m_pDisableRule = m_pMenu->addAction(QIcon(":/Icons/Disable.png"), tr("Disable Rule"), this, SLOT(OnRuleAction()));
@@ -72,18 +72,28 @@ CAccessRuleView::~CAccessRuleView()
 	theConf->SetBlob("MainWindow/AccessRuleView_Columns", m_pTreeView->saveState());
 }
 
-void CAccessRuleView::Sync(QList<CAccessRulePtr> RuleList)
+void CAccessRuleView::Sync(QList<CAccessRulePtr> RuleList, const QString& VolumeRoot, const QString& VolumeImage)
 {
+	m_VolumeRoot = VolumeRoot;
+	m_VolumeImage = VolumeImage;
+
 	bool bHideDisabled = m_pBtnEnabled->isChecked();
 	EAccessRuleType Type = (EAccessRuleType)m_pCmbAction->currentData().toInt();
 
-	if (bHideDisabled || Type != EAccessRuleType::eNone) 
+	if (bHideDisabled || Type != EAccessRuleType::eNone || !VolumeImage.isNull()) 
 	{
+		if(!VolumeImage.isNull() && VolumeImage.isEmpty())
+			RuleList.clear();
+		else
+
 		for (auto I = RuleList.begin(); I != RuleList.end();)
 		{
 			if (bHideDisabled && !(*I)->IsEnabled())
 				I = RuleList.erase(I);
 			else if (Type != EAccessRuleType::eNone && (*I)->GetType() != Type)
+				I = RuleList.erase(I);
+			else if (!VolumeImage.isEmpty() && !(*I)->GetPath().startsWith(VolumeImage + "/", Qt::CaseInsensitive)
+			  && (VolumeRoot.isEmpty() || !(*I)->GetPath().startsWith(VolumeRoot, Qt::CaseInsensitive)))
 				I = RuleList.erase(I);
 			else
 				++I;
@@ -112,7 +122,7 @@ void CAccessRuleView::OpenRullDialog(const CAccessRulePtr& pRule)
 		Items = theCore->ProgramManager()->GetItems();
 	else
 		Items = Current.Items;
-	CAccessRuleWnd* pAccessRuleWnd = new CAccessRuleWnd(pRule, Items);
+	CAccessRuleWnd* pAccessRuleWnd = new CAccessRuleWnd(pRule, Items, m_VolumeRoot, m_VolumeImage);
 	pAccessRuleWnd->show();
 }
 

@@ -11,7 +11,7 @@
 #include "../MajorPrivacy.h"
 #include "../Core/Volumes/VolumeManager.h"
 
-CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget* parent)
+CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, const QString& VolumeRoot, const QString& VolumeImage, QWidget* parent)
 	: QDialog(parent)
 {
 	Qt::WindowFlags flags = windowFlags();
@@ -54,6 +54,9 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 		m_pRule->m_Name = tr("New Access Rule");
 	}
 
+	m_VolumeRoot = VolumeRoot;
+	m_VolumeImage = VolumeImage;
+
 	connect(ui.cmbProgram, SIGNAL(currentIndexChanged(int)), this, SLOT(OnProgramChanged()));
 
 
@@ -78,10 +81,10 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 	ui.cmbProgram->setEditable(true);
 	ui.cmbProgram->lineEdit()->setReadOnly(true);
 	CProgramItemPtr pItem;
-	if (m_pRule->m_ProgramID.GetType() != EProgramType::eUnknown)
-		pItem = theCore->ProgramManager()->GetProgramByID(m_pRule->m_ProgramID);
-	else
+	if (m_pRule->m_ProgramID.GetType() == EProgramType::eAllPrograms)
 		pItem = theCore->ProgramManager()->GetAll();
+	else if(!bNew)
+		pItem = theCore->ProgramManager()->GetProgramByID(m_pRule->m_ProgramID);
 	int Index = m_Items.indexOf(pItem);
 	ui.cmbProgram->setCurrentIndex(Index);
 	if(bNew)
@@ -89,7 +92,12 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 	else
 		ui.txtProgPath->setText(m_pRule->GetProgramPath());
 
-	ui.txtPath->setText(m_pRule->m_AccessPath);
+	if(!m_pRule->m_AccessPath.isEmpty())
+		ui.txtPath->setText(m_pRule->m_AccessPath);
+	else if(!m_VolumeRoot.isEmpty())
+		ui.txtPath->setText(m_VolumeRoot + "\\");
+	else if (!m_VolumeImage.isEmpty())
+		ui.txtPath->setText(m_VolumeImage + "/");
 
 	SetComboBoxValue(ui.cmbAction, (int)m_pRule->m_Type);
 }
@@ -152,7 +160,14 @@ bool CAccessRuleWnd::Save()
 	m_pRule->m_ProgramID.SetPath(QString::fromStdWString(DosPathToNtPath(ui.txtProgPath->text().toStdWString())));
 	m_pRule->m_ProgramPath = ui.txtProgPath->text();
 
-	m_pRule->m_AccessPath = ui.txtPath->text();
+	QString Path = ui.txtPath->text();
+	if (!m_VolumeImage.isEmpty() && (Path.length() < m_VolumeImage.length() + 2 || !Path.startsWith(m_VolumeImage + "/", Qt::CaseInsensitive))
+		&& (m_VolumeRoot.isEmpty() || Path.length() < m_VolumeRoot.length() + 2 || !Path.startsWith(m_VolumeRoot + "\\", Qt::CaseInsensitive))) {
+		QMessageBox::information(this, "MajorPrivacy", tr("The path must be contained within the volume."));
+		return false;
+	}
+
+	m_pRule->m_AccessPath = Path;
 
 	m_pRule->m_Type = (EAccessRuleType)GetComboBoxValue(ui.cmbAction).toInt();
 

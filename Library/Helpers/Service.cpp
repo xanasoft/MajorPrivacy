@@ -250,11 +250,42 @@ std::wstring GetServiceNameFromTag(HANDLE ProcessId, ULONG ServiceTag)
 
     if (nameFromTag.OutParams.pszName)
     {
+/*#ifdef _DEBUG
+        DbgPrint("SVC: %S = %u\n", nameFromTag.OutParams.pszName, ServiceTag);
+#endif*/
         serviceName = nameFromTag.OutParams.pszName;
         LocalFree(nameFromTag.OutParams.pszName);
     }
 
     return serviceName;
+}
+
+std::wstring GetServiceBinaryPath(PCWSTR Name)
+{
+    CScopedHandle scmHandle(OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE), CloseServiceHandle);
+
+    if (scmHandle)
+    {
+        CScopedHandle serviceHandle(OpenService(scmHandle, Name, SERVICE_QUERY_CONFIG), CloseServiceHandle);
+        if (serviceHandle)
+        {
+            bool ok;
+            CBuffer Buffer(0x200);
+            ULONG bufferSize = 0x200;
+            if (!(ok = QueryServiceConfigW(serviceHandle, (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer(), (DWORD)Buffer.GetCapacity(), &bufferSize))) {
+                Buffer.SetSize(bufferSize, true);
+                ok = QueryServiceConfigW(serviceHandle, (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer(), (DWORD)Buffer.GetCapacity(), &bufferSize);
+                Buffer.SetSize(bufferSize);
+            }
+
+            if (ok) 
+            {
+                LPQUERY_SERVICE_CONFIGW config = (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer();
+
+                return config->lpBinaryPathName;
+            }
+        }
+    }
 }
 
 STATUS RemoveService(PCWSTR Name)

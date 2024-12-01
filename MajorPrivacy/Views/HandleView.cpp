@@ -41,11 +41,26 @@ CHandleView::~CHandleView()
 	theConf->SetBlob("MainWindow/HandleView_Columns", m_pTreeView->saveState());
 }
 
-void CHandleView::Sync(const QMap<quint64, CProcessPtr>& Processes)
+void CHandleView::Sync(const QMap<quint64, CProcessPtr>& Processes, const QString& RootPath)
 {
 	QList<CHandlePtr> HandleList;
 	foreach(CProcessPtr pProcess, Processes)
 		HandleList.append(pProcess->GetHandles());
+
+	if (!RootPath.isNull())
+	{
+		if(RootPath.isEmpty())
+			HandleList.clear();
+		else
+
+		for (auto I = HandleList.begin(); I != HandleList.end();)
+		{
+			if (!(*I)->GetPath(EPathType::eNative).startsWith(RootPath, Qt::CaseInsensitive))
+				I = HandleList.erase(I);
+			else
+				++I;
+		}
+	}
 
 	m_pItemModel->Sync(HandleList);
 }
