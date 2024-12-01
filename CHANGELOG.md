@@ -27,7 +27,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - replaced the Access tree with a new dynamic implementaion more siutable for the user case
 - the program tree now can display different column selections for each page
 - reworked nt to dos path resolution
-- enumeration of installed win32 programs can now be disabled
 - improved maintenance menu
 - improved program item deletion
 
