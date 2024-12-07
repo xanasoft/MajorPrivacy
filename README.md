@@ -22,7 +22,9 @@ If you want to publicly distribute self-compiled binaries review the LICENSE fil
 * Proxy Injection - Force arbitrary processes to use pre-defined network proxies. (not yet implemented)
 * Secure Drives - Create encrypted volumes stored in disk images fully guarded by File/Folder protection to prevent unauthorized access to confidential data.
 * Tweak Engine - Hardens windows configuration by disabling undesired telemetry and cloud features.
-* Integrity level control - set the integrity level of processes in a secure enclave to "Protected" to isolate user objects, including their windows, from other processes（not yet implemented)
+* Integrity level control - set the integrity level of processes in a secure enclave to "Protected" to isolate user objects, including their windows, from other processes(not yet implemented)
+* Isoated Desktop - Run protected processes in a isoated desktop to prevent their windows from being controlled by untrusted programs.(not yet implemented)
+* Time-Effect Rules - Grant processes only within certain period.
 
 
 ## 📌 Project support / sponsorship
