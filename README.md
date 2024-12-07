@@ -24,7 +24,7 @@ If you want to publicly distribute self-compiled binaries review the LICENSE fil
 * Tweak Engine - Hardens windows configuration by disabling undesired telemetry and cloud features.
 * Integrity level control - set the integrity level of processes in a secure enclave to "Protected" to isolate user objects, including their windows, from other processes(not yet implemented)
 * Isoated Desktop - Run protected processes in a isoated desktop to prevent their windows from being controlled by untrusted programs.(not yet implemented)
-* Time-Effect Rules - Grant processes only within certain period.
+* Time-Effect Rules - Grant processes only within certain period.(not yet implemented)
 
 
 ## 📌 Project support / sponsorship
