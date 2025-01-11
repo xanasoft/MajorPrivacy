@@ -1,15 +1,18 @@
 #include "pch.h"
 #include "ProgramPattern.h"
 #include "../../Library/API/PrivacyAPI.h"
+#include "../Library/Common/Strings.h"
+#include "../Programs/ProgramManager.h"
+#include "../ServiceCore.h"
 
 CProgramPattern::CProgramPattern(const std::wstring& Pattern)
 {
-    m_ID.Set(EProgramType::eFilePattern, Pattern);
+    m_ID = CProgramID(MkLower(Pattern));
 
-    SetPathPattern(Pattern);
+    SetDosPattern(Pattern);
 }
 
-void CProgramPattern::SetPathPattern(const std::wstring& Pattern)
+void CProgramPattern::SetDosPattern(const std::wstring& Pattern)
 {
 	m_Pattern = Pattern; 
 
@@ -26,10 +29,10 @@ void CProgramPattern::SetPathPattern(const std::wstring& Pattern)
     size_t pos = Pattern.find(L'*');
     if (pos == std::wstring::npos)
         pos = Pattern.length();
-    m_Specificity = (int)pos;
+    //m_Specificity = (int)pos;
 }
 
-bool CProgramPattern::MatchFileName(const std::wstring& FileName)
+bool CProgramPattern::MatchFileName(const std::wstring& FileName) const
 {
 	std::unique_lock lock(m_Mutex);
 

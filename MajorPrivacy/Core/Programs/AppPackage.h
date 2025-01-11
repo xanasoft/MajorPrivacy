@@ -14,7 +14,7 @@ public:
 	virtual QString GetNameEx() const;
 	virtual QString GetAppSid() const				{ return m_AppContainerSid; }
 	virtual QString GetContainerName() const		{ return m_AppContainerName; }
-	virtual QString GetPath(EPathType Type) const	{ return m_Path.Get(Type); }
+	virtual QString GetPath() const					{ return m_Path; }
 
 protected:
 
@@ -25,7 +25,7 @@ protected:
 
 	QString m_AppContainerSid;
 	QString m_AppContainerName;
-	CFilePath m_Path;
+	QString m_Path;
 };
 
 typedef QSharedPointer<CAppPackage> CAppPackagePtr;

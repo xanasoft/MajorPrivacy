@@ -3,6 +3,7 @@
 #include "../../MiscHelpers/Common/TreeItemModel.h"
 #include "../Core/Programs/ProgramManager.h"
 #include "../Core/Programs/ProgramItem.h"
+#include "../Core/Enclaves/EnclaveManager.h"
 
 
 class CProgramRuleModel : public CTreeItemModel
@@ -27,8 +28,8 @@ public:
 		eName = 0,
 		eEnabled,
 		eAction,
-		eSignature,
-		eOnSpawn,
+		eTrustLevel,
+		eEnclave,
 		eProgram,
 		eCount
 	};
@@ -40,6 +41,7 @@ protected:
 
 		CProgramRulePtr pRule;
 		CProgramItemPtr pProg;
+		CEnclavePtr pEnclave;
 	};
 
 	virtual STreeNode*	MkNode(const QVariant& Id) { return new SRuleNode(/*this,*/ Id); }

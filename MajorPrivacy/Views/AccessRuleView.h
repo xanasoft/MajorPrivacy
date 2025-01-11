@@ -24,17 +24,26 @@ private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
 
+	void					OnAddRule();
 	void					OnRuleAction();
 
+	void					Refresh();
+	void					CleanTemp();
+
 protected:
+	QList<CAccessRulePtr>	m_RuleList;
 	QString				    m_VolumeRoot;
 	QString				    m_VolumeImage;
 
 private:
 
 	QToolBar*				m_pToolBar;
+	QToolButton*			m_pBtnAdd;
 	QComboBox*				m_pCmbAction;
 	QToolButton*			m_pBtnEnabled;
+	QToolButton*			m_pBtnTemp;
+	QToolButton*			m_pBtnRefresh;
+	QToolButton*			m_pBtnCleanUp;
 
 	QAction*				m_pCreateRule;
 	QAction*				m_pEnableRule;

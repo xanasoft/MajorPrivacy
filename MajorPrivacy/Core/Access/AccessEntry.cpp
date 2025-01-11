@@ -9,7 +9,15 @@ quint64 ReadAccessBranch(QMap<quint64, SAccessStatsPtr>& m_AccessStats, const XV
 	SAccessStatsPtr& pStats = m_AccessStats[Ref];
 	if (!pStats) {
 		pStats = SAccessStatsPtr(new SAccessStats());
-		pStats->Path.Set(Path, EPathType::eNative);
+		QString Name = Data.Find(API_V_ACCESS_NAME).AsQStr();
+		if (!Name.isEmpty()) {
+			if (!Path.isEmpty())
+				pStats->Path = Path + "\\" + Name;
+			else if (Name.size() == 2 && Name[1] == ':')
+				pStats->Path = Name;
+			else
+				pStats->Path = "\\" + Name;
+		}
 	}
 
 	quint64 LastActivity = 0;
@@ -20,16 +28,15 @@ quint64 ReadAccessBranch(QMap<quint64, SAccessStatsPtr>& m_AccessStats, const XV
 		{
 		case API_V_ACCESS_NAME: break; //pStats->FullPath = Path + "\\" + Data.AsQStr();
 
-		case API_V_ACCESS_TIME:		pStats->LastAccessTime = Data.To<uint64>(0); break;
-		case API_V_ACCESS_BLOCKED:	pStats->bBlocked = Data.To<bool>(false); break;
+		case API_V_LAST_ACTIVITY:	pStats->LastAccessTime = Data.To<uint64>(0); break;
+		case API_V_WAS_BLOCKED:		pStats->bBlocked = Data.To<bool>(false); break;
 		case API_V_ACCESS_MASK:		pStats->AccessMask = Data.To<uint32>(0); break;
-		case API_V_ACCESS_STATUS:	pStats->NtStatus = Data.To<uint32>(0); break;
-		case API_V_ACCESS_IS_DIR:	pStats->IsDirectory = Data.To<bool>(false); break;
+		case API_V_NT_STATUS:		pStats->NtStatus = Data.To<uint32>(0); break;
+		case API_V_IS_DIRECTORY:	pStats->IsDirectory = Data.To<bool>(false); break;
 
 		case API_V_ACCESS_NODES:
 			Data.ReadRawList([&](const CVariant& vData) {
-				const XVariant& Data = *(XVariant*)&vData;
-				quint64 CurActivity = ReadAccessBranch(m_AccessStats, Data, Path + "\\" + Data.Find(API_V_ACCESS_NAME).AsQStr());
+				quint64 CurActivity = ReadAccessBranch(m_AccessStats, *(XVariant*)&vData, pStats->Path);
 				if (CurActivity > LastActivity)
 					LastActivity = CurActivity;
 			});

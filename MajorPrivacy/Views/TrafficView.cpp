@@ -32,7 +32,19 @@ CTrafficView::CTrafficView(QWidget *parent)
 	m_pCmbGrouping->addItem(QIcon(":/Icons/Process.png"), tr("By Program"));
 	m_pToolBar->addWidget(m_pCmbGrouping);
 
-	int comboBoxHeight = m_pCmbGrouping->sizeHint().height();
+	m_pToolBar->addSeparator();
+	m_pBtnExpand = new QToolButton();
+	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
+	m_pBtnExpand->setCheckable(true);
+	m_pBtnExpand->setToolTip(tr("Auto Expand"));
+	m_pBtnExpand->setMaximumHeight(22);
+	connect(m_pBtnExpand, &QToolButton::toggled, this, [&](bool checked) {
+		if(checked)
+			m_pTreeView->expandAll();
+		else
+			m_pTreeView->collapseAll();
+	});
+	m_pToolBar->addWidget(m_pBtnExpand);
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -40,7 +52,7 @@ CTrafficView::CTrafficView(QWidget *parent)
 
 	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
 	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
-	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	pBtnSearch->setMaximumHeight(22);
 	m_pToolBar->addWidget(pBtnSearch);
 
 	AddPanelItemsToMenu();
@@ -158,7 +170,7 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 
 	QList<QModelIndex> Added = m_pItemModel->Sync(m_TrafficMap);
 
-	if (m_CurPrograms.count() + m_CurServices.count() > 1)
+	if (m_pBtnExpand->isChecked()) 
 	{
 		QTimer::singleShot(10, this, [this, Added]() {
 			foreach(const QModelIndex & Index, Added)

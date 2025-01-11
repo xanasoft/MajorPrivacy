@@ -1,5 +1,5 @@
 ﻿/*
-* Copyright (c) 2023-2024 David Xanatos, xanasoft.com
+* Copyright (c) 2023-2025 David Xanatos, xanasoft.com
 * All rights reserved.
 *
 * This file is part of MajorPrivacy.
@@ -117,7 +117,7 @@ public:
 		return Keys;
 	}
 
-	const V* GetContrPtr(const K& Key, size_t Index = 0) const	
+	V* GetContrPtr(const K& Key, size_t Index = 0) const	
 	{ 
 		SBucketEntry* pEntry = FindEntry(Key, Index);
 		return pEntry ? &pEntry->Value : nullptr;
@@ -130,8 +130,9 @@ public:
 		SBucketEntry* pEntry = FindEntry(Key, Index);
 		return pEntry ? &pEntry->Value : nullptr;
 	}
-	const SafeRef<V> GetValue(const K& Key) const	{ return GetContrPtr(Key); }
-	SafeRef<V> GetValue(const K& Key)				{ return SetValuePtr(Key, nullptr).first; }
+	const SafeRef<V> FindValue(const K& Key) const { return GetContrPtr(Key); }
+	SafeRef<V> FindValue(const K& Key) { return GetContrPtr(Key); }
+	SafeRef<V> GetOrAddValue(const K& Key) { return SetValuePtr(Key, nullptr).first; }
 
 	Pair<V*, bool> SetValuePtr(const K& Key, const V* pValue) 
 	{

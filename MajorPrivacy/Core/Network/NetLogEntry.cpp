@@ -38,6 +38,9 @@ void CNetLogEntry::ReadValue(uint32 Index, const XVariant& Data)
 	case API_V_FW_RULE_REMOTE_PORT:		m_RemotePort = Data; break;
 	case API_V_FW_RULE_REMOTE_HOST:		m_RemoteHostName = Data.AsQStr(); break;
 
+	case API_V_FW_ALLOW_RULES:			m_AllowRules = QFlexGuid::ReadVariantSet(Data); break;
+	case API_V_FW_BLOCK_RULES:			m_BlockRules = QFlexGuid::ReadVariantSet(Data); break;
+
 	default: CAbstractLogEntry::ReadValue(Index, Data);
 	}
 }

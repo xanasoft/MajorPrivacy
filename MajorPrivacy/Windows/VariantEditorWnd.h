@@ -12,47 +12,25 @@ public:
 	~CVariantEditorWnd();
 
 private slots:
-	//void				OnClicked(QAbstractButton* pButton);
-	//void				UpdateSettings();
-	//void				ApplySettings();
 
 	void				OpenFile();
 	void				SaveFile();
 
 	void				OnMenuRequested(const QPoint &point);
 
-	void				OnAdd();
-	void				OnAddRoot();
-	void				OnRemove();
+	void				OnDoubleClicked(const QModelIndex& index);
 
 protected:
-	friend class CPropertiesGetJob;
-
-	/*void				WriteProperties(const QVariantMap& Root);
-	void				WriteProperties(QTreeWidgetItem* pItem, const QVariant& Value, QMap<QTreeWidgetItem*,QWidget*>& Widgets);
-	QVariantMap			ReadProperties();
-	QVariant			ReadProperties(QTreeWidgetItem* pItem);*/
-	/*void				WriteProperties(const CVariant& Root);
-	void				WriteProperties(QTreeWidgetItem* pItem, const CVariant& Value, QMap<QTreeWidgetItem*,QWidget*>& Widgets);
-	CVariant			ReadProperties();
-	CVariant			ReadProperties(QTreeWidgetItem* pItem);*/
-
-	/*enum EColumns
-	{
-		eKey = 0,
-		eValue,
-		eType,
-	};*/
+	
+	void				ExpandRecursively(const QModelIndex& index, quint64 TimeOut = -1);
 
 	CVariant			m_Root;	
 
-	//QVariantMap			m_Request;
 	bool				m_ReadOnly;
 
 	QWidget*			m_pMainWidget;
 	QVBoxLayout*		m_pMainLayout;
 
-	//QTreeWidget*		m_pPropertiesTree;
 	QTreeView*			m_pPropertiesTree;
 	class CVariantModel*m_pVariantModel;
 
@@ -69,9 +47,6 @@ protected:
 //////////////////////////////////////////////////////////////////////////
 // CVariantModel
 
-
-
-
 class CVariantModel : public CAbstractTreeModel
 {
 	Q_OBJECT
@@ -86,6 +61,7 @@ public:
 	enum EColumns
 	{
 		eName = 0,
+		eType,
 		eValue,
 		eCount
 	};

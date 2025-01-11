@@ -11,9 +11,16 @@ public:
 	~CFirewallRule();
 
 	void Update(const std::shared_ptr<struct SWindowsFwRule>& Rule);
+	void Update(const std::shared_ptr<CFirewallRule>& pRule);
 
-	std::wstring GetGuid() const;
+	std::wstring GetGuidStr() const;
 	const CProgramID& GetProgramID() { return m_ProgramID; }
+
+	bool IsTemporary() const				{ std::shared_lock Lock(m_Mutex); return m_bTemporary; }
+	void SetTemporary(bool bTemporary)		{ std::unique_lock Lock(m_Mutex); m_bTemporary = bTemporary; }
+
+	bool HasTimeOut() const					{ std::shared_lock Lock(m_Mutex); return m_uTimeOut != -1; }
+	bool IsExpired() const;
 
 	std::shared_ptr<struct SWindowsFwRule> GetData() { std::shared_lock Lock(m_Mutex); return m_Data; }
 
@@ -34,6 +41,9 @@ protected:
 	
 	std::wstring m_BinaryPath;
 	std::shared_ptr<struct SWindowsFwRule> m_Data;
+
+	bool m_bTemporary = false;
+	uint64 m_uTimeOut = -1;
 
 	int m_HitCount = 0;
 };

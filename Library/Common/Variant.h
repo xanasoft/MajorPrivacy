@@ -145,6 +145,10 @@ public:
 #endif
 
 #ifndef VAR_NO_STL_VECT
+		std::vector<byte> AsBytes() const { if (m_ptr) return m_ptr->AsBytes(); return std::vector<byte>(); }
+#endif
+
+#ifndef VAR_NO_STL_VECT
 		template<typename T>
 		std::vector<T> AsList() const	{ if (m_ptr) return m_ptr->AsList<T>(); return std::vector<T>(); }
 #endif

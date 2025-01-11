@@ -5,28 +5,67 @@
 #include <QDateTimeEdit>
 #include "../MiscHelpers/Common/SettingsWidgets.h"
 #include "../Library/Common/FileIO.h"
+#include "../Library/API/PrivacyAPI.h"
 
-/*QMap<QString, QVariant::Type> InitVarTypes() 
+QString VariantTypeToString(uint8_t type)
 {
-    QMap<QString, QVariant::Type> VarTypes;
-	VarTypes["Map"] = QVariant::Map;
-	VarTypes["List"] = QVariant::List;
-	VarTypes["StringList"] = QVariant::StringList;
-	VarTypes["Bool"] = QVariant::Bool;
-	VarTypes["Char"] = QVariant::Char;
-	VarTypes["Int"] = QVariant::Int;
-	VarTypes["UInt"] = QVariant::UInt;
-	VarTypes["LongLong"] = QVariant::LongLong;
-	VarTypes["ULongLong"] = QVariant::ULongLong;
-	VarTypes["Double"] = QVariant::Double;
-	VarTypes["String"] = QVariant::String;
-	VarTypes["ByteArray"] = QVariant::ByteArray;
-	VarTypes["Date"] = QVariant::Date;
-	VarTypes["Time"] = QVariant::Time;
-	VarTypes["DateTime"] = QVariant::DateTime;
-    return VarTypes;
+	switch (type) {
+	case VAR_TYPE_EMPTY:
+		return "Empty";
+	case VAR_TYPE_MAP:
+		return "Dictionary";
+	case VAR_TYPE_LIST:
+		return "List";
+	case VAR_TYPE_INDEX:
+		return "Index";
+	case VAR_TYPE_BYTES:
+		return "Binary BLOB";
+	case VAR_TYPE_ASCII:
+		return "String ASCII";
+	case VAR_TYPE_UTF8:
+		return "String UTF8";
+	case VAR_TYPE_UNICODE:
+		return "String UTF16";
+	case VAR_TYPE_UINT:
+		return "Unsigned Int";
+	case VAR_TYPE_SINT:
+		return "Signed Int";
+	case VAR_TYPE_DOUBLE:
+		return "Floating";
+	case VAR_TYPE_CUSTOM:
+		return "Custom";
+	default:
+		return "Unknown Type";
+	}
 }
-QMap<QString, QVariant::Type> g_VarTypes = InitVarTypes();*/
+
+QString VariantFormatInt(const CVariant& Value)
+{
+	QString Number = ((XVariant*)&Value)->AsQStr();
+	size_t Size = Value.GetSize();
+	if (Size <= 4) {
+		union {
+			uint32 Index;
+			uint8 Chars[4];
+		};
+		Index = Value.To<uint32>();
+
+		size_t i = 0;
+		for (; i < 4; i++) {
+			if (Chars[i] < 32 || Chars[i] >= 127)
+				break;
+		}
+
+		if (i >= 2) {
+			QString Id = QString::fromLatin1((char*)&Index, sizeof(Index));
+			std::reverse(Id.begin(), Id.end());
+			return QString("%1 ('%2')").arg(Number).arg(Id);
+		}
+	}
+	return Number;
+}
+
+QString VariantIndexToNameEx(uint32 Index);
 
 CVariantEditorWnd::CVariantEditorWnd(QWidget *parent)
 :QMainWindow(parent)
@@ -58,6 +97,9 @@ CVariantEditorWnd::CVariantEditorWnd(QWidget *parent)
 	m_pPropertiesTree->setSortingEnabled(true);
 	m_pPropertiesTree->setUniformRowHeights(true); // critical for good performance with huge data sets
 	
+	m_pPropertiesTree->setExpandsOnDoubleClick(false);
+	connect(m_pPropertiesTree, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(OnDoubleClicked(const QModelIndex&)));
+
 	m_pPropertiesTree->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(m_pPropertiesTree, SIGNAL(customContextMenuRequested( const QPoint& )), this, SLOT(OnMenuRequested(const QPoint &)));
 
@@ -101,6 +143,28 @@ CVariantEditorWnd::~CVariantEditorWnd()
 	theConf->SetBlob("VariantEditor/Window_State", saveState());
 }
 
+void CVariantEditorWnd::ExpandRecursively(const QModelIndex& index, quint64 TimeOut)
+{
+	if (TimeOut < GetTickCount64())
+		return;
+
+	m_pPropertiesTree->expand(index);
+
+	int rowCount = m_pVariantModel->rowCount(index);
+	for (int i = 0; i < rowCount; ++i) {
+		QModelIndex childIndex = m_pVariantModel->index(i, 0, index);
+		ExpandRecursively(childIndex, TimeOut);
+	}
+}
+
+void CVariantEditorWnd::OnDoubleClicked(const QModelIndex& index)
+{
+	if(!m_pPropertiesTree->isExpanded(index))
+		ExpandRecursively(index, GetTickCount64() + 10*1000);
+	else
+		m_pPropertiesTree->collapse(index);
+}
+
 void CVariantEditorWnd::OpenFile()
 {
 	QString FileName = QFileDialog::getOpenFileName(this, tr("Open File"), theCore->GetConfigDir(), tr("All Files (*.dat)"));
@@ -134,527 +198,16 @@ void CVariantEditorWnd::SaveFile()
 	if (FileName.isEmpty())
 		return;
 
-	//CVariant Data = ReadProperties();
 	CBuffer Buffer;
 	m_Root.ToPacket(&Buffer);
 	WriteFile(FileName.toStdWString(), 0, Buffer);
 }
 
-/*void CVariantEditorWnd::WriteProperties(const CVariant& Root)
-{
-	m_pPropertiesTree->clear();
-
-	QMap<QTreeWidgetItem*,QWidget*> Widgets; // cache for performance
-
-	QList<QTreeWidgetItem*> Items;
-	for(int i=0; i < Root.Count(); i++)
-	{
-		QTreeWidgetItem* pItem = new QTreeWidgetItem();
-		const char* Key = Root.Key(i);
-		pItem->setText(eKey, Key);
-		WriteProperties(pItem, Root[Key], Widgets);
-		Items.append(pItem);
-	}
-	m_pPropertiesTree->addTopLevelItems(Items);
-
-	foreach(QTreeWidgetItem* pNewItem, Widgets.keys())
-	{
-		if(m_ReadOnly)
-		{
-			if(QLineEdit* pEdit = qobject_cast<QLineEdit*>(Widgets[pNewItem]))
-				pEdit->setReadOnly(true);
-			else if(QPlainTextEdit* pEdit = qobject_cast<QPlainTextEdit*>(Widgets[pNewItem]))
-				pEdit->setReadOnly(true);
-			else if(QDateTimeEdit* pEdit = qobject_cast<QDateTimeEdit*>(Widgets[pNewItem]))
-				pEdit->setReadOnly(true);
-			else if(QCheckBox* pCheck = qobject_cast<QCheckBox*>(Widgets[pNewItem]))
-				pEdit->setEnabled(false);
-		}
-
-		m_pPropertiesTree->setItemWidget(pNewItem, eValue, Widgets[pNewItem]);
-	}
-
-	//m_pPropertiesTree->expandAll();
-	//m_pPropertiesTree->resizeColumnToContents(eKey);
-	//m_pPropertiesTree->resizeColumnToContents(eValue);
-	//m_pPropertiesTree->resizeColumnToContents(eType);
-}
-
-void CVariantEditorWnd::WriteProperties(QTreeWidgetItem* pItem, const CVariant& Value, QMap<QTreeWidgetItem*, QWidget*>& Widgets)
-{
-#ifdef _DEBUG
-	if(QApplication::keyboardModifiers() & Qt::ControlModifier)
-		return;
-#endif
-
-	CVariant::EType Type = Value.GetType();	
-	pItem->setData(eValue, Qt::UserRole, (int)Type);
-	//pItem->setText(eType, );
-	QList<QTreeWidgetItem*> Items;
-	switch(Value.GetType())
-	{
-		case VAR_TYPE_MAP: {
-			for(int i=0; i < Value.Count(); i++)
-			{
-				QTreeWidgetItem* pSubItem = new QTreeWidgetItem();
-				const char* Key = Value.Key(i);
-				pSubItem->setText(eKey, Key);
-				WriteProperties(pSubItem, Value[Key], Widgets);
-				Items.append(pSubItem);
-			}
-			break;
-		}
-		case VAR_TYPE_LIST: {
-			for(int i=0; i < Value.Count(); i++)
-			{
-				QTreeWidgetItem* pSubItem = new QTreeWidgetItem();
-				pSubItem->setText(eKey, QString::number(i));
-				WriteProperties(pSubItem, Value[i], Widgets);
-				Items.append(pSubItem);
-			}
-			break;
-		}
-		case VAR_TYPE_INDEX: {
-			for(int i=0; i < Value.Count(); i++)
-			{
-				QTreeWidgetItem* pSubItem = new QTreeWidgetItem();
-				uint32 Id = Value.Id(i);
-				QString Name = QString::fromLatin1((char*)&Id, 4);
-				std::reverse(Name.begin(), Name.end());
-				pSubItem->setText(eKey, Name);
-				WriteProperties(pSubItem, Value[Id], Widgets);
-				Items.append(pSubItem);
-			}
-			break;
-		}
-
-		case VAR_TYPE_BYTES: {
-			QLineEdit* pEdit = new QLineEdit();
-			pEdit->setText(QByteArray((char*)Value.GetData(), Value.GetSize()).toBase64());
-			Widgets[pItem] = pEdit;
-			break;
-		}
-
-		case VAR_TYPE_UNICODE:
-		case VAR_TYPE_UTF8:
-		case VAR_TYPE_ASCII: {
-			QLineEdit* pEdit = new QLineEdit();
-			pEdit->setText(QString::fromStdWString(Value.AsStr()));
-			Widgets[pItem] = pEdit;
-			break;
-		}
-
-		case VAR_TYPE_SINT: {
-			QLineEdit* pEdit = new QLineEdit();
-			pEdit->setText(QString::number(Value.AsNum<sint64>()));
-			Widgets[pItem] = pEdit;
-			break;
-		}
-		case VAR_TYPE_UINT: {
-			QLineEdit* pEdit = new QLineEdit();
-			pEdit->setText(QString::number(Value.AsNum<uint64>()));
-			Widgets[pItem] = pEdit;
-			break;
-		}
-
-		//case VAR_TYPE_DOUBLE: // todo
-		//	return double(*this);
-
-		case VAR_TYPE_EMPTY:
-		default:
-			break;
-	}
-	pItem->addChildren(Items);
-}
-
-CVariant CVariantEditorWnd::ReadProperties() 
-{
-	return CVariant();
-}
-
-CVariant CVariantEditorWnd::ReadProperties(QTreeWidgetItem* pItem)
-{
-	return CVariant();
-}*/
-
-/*void CVariantEditorWnd::OnClicked(QAbstractButton* pButton)
-{
-	ASSERT(m_pButtons);
-	switch(m_pButtons->buttonRole(pButton))
-	{
-	case QDialogButtonBox::ApplyRole:
-		ApplySettings();
-	case QDialogButtonBox::ResetRole: // reset after apply to check if all values ware accepted properly
-		UpdateSettings();
-		break;
-	}
-}*/
-
-/*void CVariantEditorWnd::UpdateSettings()
-{
-	if(m_ReadOnly)
-		return;
-
-	// todo
-}*/
-
-/*void CVariantEditorWnd::WriteProperties(const QVariantMap& Root)
-{
-	m_pPropertiesTree->clear();
-
-	QMap<QTreeWidgetItem*,QWidget*> Widgets; // cache for performance
-
-	foreach(const QString& Key, Root.keys())
-	{
-		QTreeWidgetItem* pItem = new QTreeWidgetItem();
-		pItem->setText(eKey, Key);
-		WriteProperties(pItem, Root[Key], Widgets);
-		m_pPropertiesTree->addTopLevelItem(pItem);
-	}
-
-	foreach(QTreeWidgetItem* pNewItem, Widgets.keys())
-	{
-		if(m_ReadOnly)
-		{
-			if(QLineEdit* pEdit = qobject_cast<QLineEdit*>(Widgets[pNewItem]))
-				pEdit->setReadOnly(true);
-			else if(QPlainTextEdit* pEdit = qobject_cast<QPlainTextEdit*>(Widgets[pNewItem]))
-				pEdit->setReadOnly(true);
-			else if(QDateTimeEdit* pEdit = qobject_cast<QDateTimeEdit*>(Widgets[pNewItem]))
-				pEdit->setReadOnly(true);
-			else if(QCheckBox* pCheck = qobject_cast<QCheckBox*>(Widgets[pNewItem]))
-				pEdit->setEnabled(false);
-		}
-
-		m_pPropertiesTree->setItemWidget(pNewItem, eValue, Widgets[pNewItem]);
-	}
-
-	m_pPropertiesTree->expandAll();
-	m_pPropertiesTree->resizeColumnToContents(eKey);
-	m_pPropertiesTree->resizeColumnToContents(eValue);
-	m_pPropertiesTree->resizeColumnToContents(eType);
-}
-
-void CVariantEditorWnd::WriteProperties(QTreeWidgetItem* pItem, const QVariant& Value, QMap<QTreeWidgetItem*,QWidget*>& Widgets)
-{
-	QVariant::Type Type = Value.type();
-	pItem->setData(eValue, Qt::UserRole, (int)Type);
-	pItem->setText(eType, g_VarTypes.key(Type));
-	switch(Type)
-	{
-		case QVariant::Invalid:
-			pItem->setText(eType, "Missing");
-			break;
-		case QVariant::Map:
-		//case QVariant::Hash:
-		{
-			QVariantMap Map = Value.toMap();
-			foreach(const QString& Key, Map.keys())
-			{
-				QTreeWidgetItem* pSubItem = new QTreeWidgetItem();
-				pSubItem->setText(eKey, Key);
-				pItem->addChild(pSubItem);
-				WriteProperties(pSubItem, Map[Key], Widgets);
-			}
-			break;
-		}
-		case QVariant::List:
-		{
-			QVariantList List = Value.toList();
-			foreach(const QVariant& SubValue, List)
-			{
-				QTreeWidgetItem* pSubItem = new QTreeWidgetItem();
-				pSubItem->setText(eKey, "");
-				pItem->addChild(pSubItem);
-				WriteProperties(pSubItem, SubValue, Widgets);
-			}
-			break;
-		}
-		case QVariant::StringList:
-		{
-			CMultiLineEdit* pMultiLineEdit = new CMultiLineEdit();
-			pMultiLineEdit->SetLines(Value.toStringList());	
-			Widgets[pItem] = pMultiLineEdit;
-			break;
-		}
-		case QVariant::Bool:
-		{
-			QCheckBox* pCheck = new QCheckBox();
-			pCheck->setChecked(Value.toBool());
-			Widgets[pItem] = pCheck;
-			break;
-		}
-		case QVariant::Char:
-		case QVariant::Int:
-		case QVariant::UInt:
-		case QVariant::LongLong:
-		case QVariant::ULongLong:
-		case QVariant::Double:
-		{
-			QLineEdit* pEdit = new QLineEdit();
-			pEdit->setText(Value.toString());
-			Widgets[pItem] = pEdit;
-			break;
-		}
-		case QVariant::String:
-		{
-			QLineEdit* pEdit = new QLineEdit();
-			pEdit->setText(Value.toString());
-			Widgets[pItem] = pEdit;
-			break;
-		}
-		case QVariant::ByteArray:
-		{
-			QLineEdit* pEdit = new QLineEdit();
-			pEdit->setText(Value.toByteArray().toBase64());
-			Widgets[pItem] = pEdit;
-			break;
-		}
-		//case QVariant::BitArray:
-		//case QVariant::Url:
-		case QVariant::Date:
-		{
-			QDateTimeEdit* pDateTimeEdit = new QDateTimeEdit();
-			pDateTimeEdit->setDate(Value.toDate());
-			Widgets[pItem] = pDateTimeEdit;
-			break;
-		}
-		case QVariant::Time:
-		{
-			QDateTimeEdit* pDateTimeEdit = new QDateTimeEdit();
-			pDateTimeEdit->setTime(Value.toTime());
-			Widgets[pItem] = pDateTimeEdit;
-			break;
-		}
-		case QVariant::DateTime:
-		{
-			QDateTimeEdit* pDateTimeEdit = new QDateTimeEdit();
-			pDateTimeEdit->setDateTime(Value.toDateTime());
-			Widgets[pItem] = pDateTimeEdit;
-			break;
-		}
-		default:
-			ASSERT(0);
-	}
-}
-
-QVariantMap CVariantEditorWnd::ReadProperties()
-{
-	QVariantMap Root;
-	for(int i=0; i < m_pPropertiesTree->topLevelItemCount(); i++)
-	{
-		QTreeWidgetItem* pItem = m_pPropertiesTree->topLevelItem(i);
-		Root[pItem->text(0)] = ReadProperties(pItem);
-	}
-	return Root;
-}
-
-QVariant CVariantEditorWnd::ReadProperties(QTreeWidgetItem* pItem)
-{
-	QVariant::Type Type = (QVariant::Type)pItem->data(1, Qt::UserRole).toInt();
-	switch(Type)
-	{
-		case QVariant::Invalid:
-			return QVariant(); // this means delete the value
-		case QVariant::Map:
-		//case QVariant::Hash:
-		{
-			QVariantMap Map;
-			for(int i=0; i < pItem->childCount(); i++)
-			{
-				QTreeWidgetItem* pSubItem = pItem->child(i);
-				Map.insert(pSubItem->text(0), ReadProperties(pSubItem));
-			}
-			return Map;
-		}
-		case QVariant::List:
-		{
-			QVariantList List;
-			for(int i=0; i < pItem->childCount(); i++)
-			{
-				QTreeWidgetItem* pSubItem = pItem->child(i);
-				List.append(ReadProperties(pSubItem));
-			}
-			return List;
-		}
-		case QVariant::StringList:
-		{
-			CMultiLineEdit* pMultiLineEdit = (CMultiLineEdit*)m_pPropertiesTree->itemWidget(pItem, 1);
-			return pMultiLineEdit->GetLines();
-		}
-		case QVariant::Bool:
-		{
-			QCheckBox* pCheck = (QCheckBox*)m_pPropertiesTree->itemWidget(pItem, 1);
-			return pCheck->isChecked();
-		}
-		case QVariant::Char:
-		case QVariant::Int:
-		case QVariant::UInt:
-		case QVariant::LongLong:
-		case QVariant::ULongLong:
-		case QVariant::Double:
-		{
-			QLineEdit* pEdit = (QLineEdit*)m_pPropertiesTree->itemWidget(pItem, 1);
-			QVariant Value = pEdit->text();
-			Value.convert(Type);
-			return Value;
-		}
-		case QVariant::String:
-		{
-			QLineEdit* pEdit = (QLineEdit*)m_pPropertiesTree->itemWidget(pItem, 1);
-			return pEdit->text();
-		}
-		case QVariant::ByteArray:
-		{
-			QLineEdit* pEdit = (QLineEdit*)m_pPropertiesTree->itemWidget(pItem, 1);
-			return QByteArray::fromBase64(pEdit->text().toLatin1());
-		}
-		//case QVariant::BitArray:
-		//case QVariant::Url:
-		case QVariant::Date:
-		{
-			QDateTimeEdit* pDateTimeEdit = (QDateTimeEdit*)m_pPropertiesTree->itemWidget(pItem, 1);
-			return pDateTimeEdit->date();
-		}
-		case QVariant::Time:
-		{
-			QDateTimeEdit* pDateTimeEdit = (QDateTimeEdit*)m_pPropertiesTree->itemWidget(pItem, 1);
-			return pDateTimeEdit->time();
-		}
-		case QVariant::DateTime:
-		{
-			QDateTimeEdit* pDateTimeEdit = (QDateTimeEdit*)m_pPropertiesTree->itemWidget(pItem, 1);
-			return pDateTimeEdit->dateTime();
-		}
-		default:
-			ASSERT(0);
-	}
-	return QVariant();
-}*/
-
-/*void CVariantEditorWnd::ApplySettings()
-{
-	if(m_ReadOnly)
-		return;
-
-	// todo
-}*/
-
 void CVariantEditorWnd::OnMenuRequested(const QPoint &point)
 {
 	if(m_ReadOnly)
 		return;
-
-	/*QTreeWidgetItem* pItem = m_pPropertiesTree->currentItem();
-
-	m_pRemove->setEnabled(pItem != 0);
-
-	QVariant::Type Type = pItem ? (QVariant::Type)pItem->data(1, Qt::UserRole).toInt() : QVariant::Map;
-	m_pAdd->setEnabled(Type == QVariant::Invalid || Type == QVariant::Map || Type == QVariant::Hash || Type == QVariant::List);*/
-
 	m_pMenu->popup(QCursor::pos());	
-}
-
-/*class CAddValueDialog : public QDialog
-{
-	//Q_OBJECT
-
-public:
-	CAddValueDialog(bool bNamed, QWidget *pMainWindow = NULL)
-		: QDialog(pMainWindow)
-	{
-		setWindowTitle(CVariantEditorWnd::tr("Add Value"));
-
-		m_pMainLayout = new QFormLayout(this);
-
-		if(bNamed)
-		{
-			m_pName = new QLineEdit();
-			m_pName->setMaximumWidth(200);
-			m_pMainLayout->setWidget(0, QFormLayout::LabelRole, new QLabel(CVariantEditorWnd::tr("Name:")));
-			m_pMainLayout->setWidget(0, QFormLayout::FieldRole, m_pName);
-		}
-		else
-			m_pName = NULL;
-
-		m_pType = new QComboBox();
-		m_pType->addItems(g_VarTypes.keys());
-		m_pType->setMaximumWidth(200);
-		m_pMainLayout->setWidget(1, QFormLayout::LabelRole, new QLabel(CVariantEditorWnd::tr("Type:")));
-		m_pMainLayout->setWidget(1, QFormLayout::FieldRole, m_pType);
-
-		m_pButtonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, this);
-		QObject::connect(m_pButtonBox, SIGNAL(accepted()), this, SLOT(accept()));
-		QObject::connect(m_pButtonBox, SIGNAL(rejected()), this, SLOT(reject()));
-		m_pMainLayout->setWidget(2, QFormLayout::FieldRole, m_pButtonBox);
-	}
-
-	QString				GetName()	{return m_pName ? m_pName->text() : "";}
-	QVariant::Type		GetType()	{return g_VarTypes.value(m_pType->currentText(), QVariant::Invalid);}
-
-protected:
-	QComboBox*			m_pType;
-	QLineEdit*			m_pName;
-	QDialogButtonBox*	m_pButtonBox;
-	QFormLayout*		m_pMainLayout;
-};*/
-
-void CVariantEditorWnd::OnAdd()
-{
-	/*QTreeWidgetItem* pItem = m_pPropertiesTree->currentItem();
-
-	QVariant::Type Type = pItem ? (QVariant::Type)pItem->data(1, Qt::UserRole).toInt() : QVariant::Map;
-	CAddValueDialog AddValueDialog(Type != QVariant::List && Type != QVariant::Invalid);
-	if(!AddValueDialog.exec())
-		return;
-
-	QTreeWidgetItem* pNewItem;
-	if(Type == QVariant::Invalid)
-		pNewItem = pItem;
-	else
-	{
-		pNewItem = new QTreeWidgetItem();
-		pNewItem->setText(eKey, AddValueDialog.GetName());
-		if(pItem)
-			pItem->addChild(pNewItem);
-		else
-			m_pPropertiesTree->addTopLevelItem(pNewItem);
-	}
-
-	QVariant NewValue(AddValueDialog.GetType());
-	QMap<QTreeWidgetItem*,QWidget*> Widgets;
-	WriteProperties(pNewItem, NewValue, Widgets); // add proper controll element
-	foreach(QTreeWidgetItem* pNewItem, Widgets.keys())
-		m_pPropertiesTree->setItemWidget(pNewItem, eValue, Widgets[pNewItem]);*/
-}
-
-void CVariantEditorWnd::OnAddRoot()
-{
-	/*CAddValueDialog AddValueDialog(true);
-	if(!AddValueDialog.exec())
-		return;
-
-	QTreeWidgetItem* pNewItem;
-	pNewItem = new QTreeWidgetItem();
-	pNewItem->setText(eKey, AddValueDialog.GetName());
-	m_pPropertiesTree->addTopLevelItem(pNewItem);
-
-	QVariant NewValue(AddValueDialog.GetType());
-	QMap<QTreeWidgetItem*,QWidget*> Widgets;
-	WriteProperties(pNewItem, NewValue, Widgets); // add proper controll element
-	foreach(QTreeWidgetItem* pNewItem, Widgets.keys())
-		m_pPropertiesTree->setItemWidget(pNewItem, eValue, Widgets[pNewItem]);*/
-}
-
-void CVariantEditorWnd::OnRemove()
-{
-	/*QTreeWidgetItem* pItem = m_pPropertiesTree->currentItem();
-	for(int i=0; i < pItem->childCount(); i++)
-		delete pItem->child(i);
-
-	pItem->setData(eValue, Qt::UserRole, (int)QVariant::Invalid);
-	pItem->setText(eType, "Removed");
-	m_pPropertiesTree->setItemWidget(pItem, eValue, NULL);*/
 }
 
 
@@ -708,9 +261,10 @@ void CVariantModel::ForEachChild(SAbstractTreeNode* parentNode, const std::funct
 		for (uint32 i = 0; i < Value.Count(); i++)
 		{
 			uint32 Id = Value.Id(i);
-			QString Name = QString::fromLatin1((char*)&Id, 4);
-			std::reverse(Name.begin(), Name.end());
-			func(Name, Value[Id].Ptr());
+			//QString Name = QString::fromLatin1((char*)&Id, 4);
+			//std::reverse(Name.begin(), Name.end());
+			//func(Name, Value[Id].Ptr());
+			func(Id, Value[Id].Ptr());
 		}
 		break;
 	}
@@ -734,7 +288,8 @@ void CVariantModel::updateNodeData(SAbstractTreeNode* node, const void* data, co
 		QVariant Value;
 		switch (section)
 		{
-		case eName:			Value = node->key; break;
+		case eName:			Value = pNode->key; break;
+		case eType:			Value = pNode->data.GetType(); break;
 		case eValue:		Value = ((XVariant*)&pNode->data)->AsQStr(); break;
 		}
 
@@ -748,8 +303,9 @@ void CVariantModel::updateNodeData(SAbstractTreeNode* node, const void* data, co
 
 			switch (section)
 			{
-			case eValue:
-				break;
+				case eName: ColValue.Formatted = pNode->key.type() == QVariant::UInt ? VariantIndexToNameEx(Value.toUInt()) : Value; break;
+				case eType: ColValue.Formatted = VariantTypeToString(pNode->data.GetType()); break;
+				case eValue: ColValue.Formatted = (pNode->data.GetType() == VAR_TYPE_UINT || pNode->data.GetType() == VAR_TYPE_SINT) ? VariantFormatInt(pNode->data) : Value; break;
 			}
 		}
 
@@ -787,13 +343,14 @@ const void* CVariantModel::childData(SAbstractTreeNode* node, const QVariant& ke
 		return Value[key.toString().toStdString().c_str()].Ptr();
 	}
 	case VAR_TYPE_LIST: {
-		return Value[key.toULongLong()].Ptr();
+		return Value[key.toUInt()].Ptr();
 	}
 	case VAR_TYPE_INDEX: {
-		QString Name = key.toString();
-		std::reverse(Name.begin(), Name.end());
-		uint32 Id = *(uint32*)Name.toStdString().c_str();
-		return Value[Id].Ptr();
+		//QString Name = key.toString();
+		//std::reverse(Name.begin(), Name.end());
+		//uint32 Id = *(uint32*)Name.toStdString().c_str();
+		//return Value[Id].Ptr();
+		return Value[key.toUInt()].Ptr();
 	}
 	}
 	return NULL;
@@ -806,8 +363,638 @@ QVariant CVariantModel::headerData(int section, Qt::Orientation orientation, int
 		switch (section)
 		{
 		case eName: return tr("Name");
+		case eType: return tr("Type");
 		case eValue: return tr("Value");
 		}
 	}
 	return QVariant();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// 
+
+
+QString VariantIndexToName(uint32 Index)
+{
+	switch (Index)
+	{
+		////////////////////////////
+		// Config
+	case API_V_CONFIG:
+		return "Config";
+	case API_V_VERSION:
+		return "Version";
+
+	case API_V_KEY:
+		return "Key";
+	case API_V_VALUE:
+		return "Value";
+	case API_V_DATA:
+		return "Data";
+	case API_V_FOLDER:
+		return "Folder";
+	case API_V_ENTRY:
+		return "Entry";
+
+		//
+	case API_V_GUI_CONFIG:
+		return "GUI Config";
+	case API_V_DRIVER_CONFIG:
+		return "Driver Config";
+	case API_V_USER_KEY:
+		return "User Key";
+	case API_V_SERVICE_CONFIG:
+		return "Service Config";
+	case API_V_PROGRAM_RULES:
+		return "Program Rules";
+	case API_V_ACCESS_RULES:
+		return "Access Rules";
+	case API_V_FW_RULES:
+		return "Firewall Rules";
+	case API_V_PROGRAMS:
+		return "Programs";
+	case API_V_LIBRARIES:
+		return "Libraries";
+
+
+		////////////////////////////
+		// Crypto & Protection
+	case API_V_PUB_KEY:
+		return "Public Key";
+	case API_V_PRIV_KEY:
+		return "Private Key";
+	case API_V_HASH:
+		return "Hash";
+	case API_V_KEY_BLOB:
+		return "Key Blob";
+	case API_V_LOCK:
+		return "Lock";
+	case API_V_UNLOCK:
+		return "Unlock";
+	case API_V_RAND:
+		return "Random";
+	case API_V_SIGNATURE:
+		return "Signature";
+
+
+		////////////////////////////
+		// Generic Info
+
+	case API_V_NAME:
+		return "Name";
+	case API_V_ICON:
+		return "Icon";
+	case API_V_INFO:
+		return "Info";
+	case API_V_RULE_GROUP:
+		return "Rule Group";
+	case API_V_RULE_DESCR:
+		return "Rule Description";
+	case API_V_CMD_LINE:
+		return "Command Line";
+
+
+		////////////////////////////
+		// Generic Fields
+	case API_V_ENUM_ALL:
+		return "Enum All";
+	case API_V_COUNT:
+		return "Count";
+	case API_V_RELOAD:
+		return "Reload";
+	case API_V_GET_DATA:
+		return "Get Data";
+
+
+		////////////////////////////
+		// Program ID
+	case API_V_PROG_ID:
+		return "Program ID";
+	case API_V_PROG_IDS:
+		return "Program IDs";
+
+	case API_V_PROG_TYPE:
+		return "Program Type";
+		// ...
+
+	case API_V_FILE_PATH:
+		return "File Path";
+	case API_V_FILE_NT_PATH:
+		return "File NT Path";
+	case API_V_SERVICE_TAG:
+		return "Service Tag";
+	case API_V_APP_SID:
+		return "App SID"; // App Container SID
+	case API_V_APP_NAME:
+		return "App Name"; // App Container Name
+	case API_V_PACK_NAME:
+		return "Package Name"; // Package Name
+	case API_V_REG_KEY:
+		return "Registry Key";
+	case API_V_PROG_PATTERN:
+		return "Program Pattern"; // like API_V_FILE_PATH but with wildcards
+	case API_V_OWNER:
+		return "Owner"; // used by firewall rules
+
+
+		////////////////////////////
+		// Programs
+	case API_V_PROG_ITEMS:
+		return "Program Items";
+
+	case API_V_PROG_UID:
+		return "Program UID";
+	case API_V_PROG_UIDS:
+		return "Program UIDs";
+
+		// Status
+	case API_V_PROG_ACCESS_COUNT:
+		return "Program Access Count";
+	case API_V_PROG_SOCKET_REFS:
+		return "Program Socket References";
+	case API_V_PROG_LAST_EXEC:
+		return "Program Last Execution";
+	case API_V_PROG_ITEM_MISSING:
+		return "Program Item Missing";
+
+		// Mgmt Fields
+	case API_V_PROG_PARENT:
+		return "Program Parent";
+	case API_V_PURGE_RULES:
+		return "Purge Rules";
+	case API_V_DEL_WITH_RULES:
+		return "Delete with Rules";
+
+
+		////////////////////////////
+		// Libraries
+	case API_V_LIB_REF:
+		return "Library Reference";
+	case API_V_LIB_LOAD_TIME:
+		return "Library Load Time";
+	case API_V_LIB_LOAD_COUNT:
+		return "Library Load Count";
+	case API_V_LIB_STATUS:
+		return "Library Status";
+
+
+		////////////////////////////
+		// Generic Rules
+	case API_V_TYPE:
+		return "Rule Type";
+	case API_V_GUID:
+		return "Rule GUID";
+	case API_V_INDEX:
+		return "Rule Index";
+	case API_V_ENABLED:
+		return "Rule Enabled";
+
+		// Accompanying Data & Fields
+	case API_V_RULE_REF_GUID:
+		return "Rule Reference GUID";
+	case API_V_RULE_HIT_COUNT:
+		return "Rule Hit Count";
+
+
+		////////////////////////////
+		// Access Rules
+	case API_V_ACCESS_RULE_ACTION:
+		return "Access Rule Action";
+		// ...
+	case API_V_ACCESS_PATH:
+		return "Access Path";
+	case API_V_ACCESS_NT_PATH:
+		return "Access NT Path";
+	case API_V_VOL_RULE:
+		return "Volume Rule";
+
+		////////////////////////////
+		// Execution Rules
+	case API_V_EXEC_RULE_ACTION:
+		return "Execution Rule Action";
+		// ...
+	case API_V_EXEC_SIGN_REQ:
+		return "Execution Sign Requirement";
+		// ...
+	case API_V_EXEC_ON_TRUSTED_SPAWN:
+		return "Execution on Trusted Spawn";
+		// ...
+	case API_V_EXEC_ON_SPAWN:
+		return "Execution on Spawn";
+		// ...
+	case API_V_IMAGE_LOAD_PROTECTION:
+		return "Image Load Protection";
+		//API_V_PATH_PREFIX,
+		//API_V_DEVICE_PATH,
+
+		////////////////////////////
+		// Firewall Rules
+	case API_V_FW_RULE_ACTION:
+		return "Firewall Rule Action";
+		// ...
+	case API_V_FW_RULE_DIRECTION:
+		return "Firewall Rule Direction";
+		// ...
+	case API_V_FW_RULE_PROFILE:
+		return "Firewall Rule Profile";
+		// ...
+	case API_V_FW_RULE_PROTOCOL:
+		return "Firewall Rule Protocol";
+	case API_V_FW_RULE_INTERFACE:
+		return "Firewall Rule Interface";
+		// ...
+	case API_V_FW_RULE_LOCAL_ADDR:
+		return "Firewall Rule Local Address";
+	case API_V_FW_RULE_REMOTE_ADDR:
+		return "Firewall Rule Remote Address";
+	case API_V_FW_RULE_LOCAL_PORT:
+		return "Firewall Rule Local Port";
+	case API_V_FW_RULE_REMOTE_PORT:
+		return "Firewall Rule Remote Port";
+	case API_V_FW_RULE_REMOTE_HOST:
+		return "Firewall Rule Remote Host";
+	case API_V_FW_RULE_ICMP:
+		return "Firewall Rule ICMP";
+	case API_V_FW_RULE_OS:
+		return "Firewall Rule OS";
+	case API_V_FW_RULE_EDGE:
+		return "Firewall Rule Edge";
+
+
+		////////////////////////////
+		// Firewall Config
+	case API_V_FW_AUDIT_MODE:
+		return "Firewall Audit Mode";			// FwAuditPolicy
+	case API_V_FW_RULE_FILTER_MODE:
+		return "Firewall Rule Filter Mode";		// FwFilterMode
+	case API_V_FW_EVENT_STATE:
+		return "Firewall Event State";			// FwEventState
+
+
+		////////////////////////////
+		// Process Info
+	case API_V_PROCESSES:
+		return "Processes"; // Process List
+	case API_V_PROCESS_REF:
+		return "Process Reference"; // Internal Process Reference
+
+	case API_V_PID:
+		return "PID";
+	case API_V_PIDS:
+		return "PIDs";
+
+	case API_V_CREATE_TIME:
+		return "Create Time";
+	case API_V_PARENT_PID:
+		return "Parent PID";
+	case API_V_CREATOR_PID:
+		return "Creator PID"; // API_V_EVENT_ACTOR_PID
+	case API_V_CREATOR_TID:
+		return "Creator TID"; // API_V_EVENT_ACTOR_TID
+	case API_V_ENCLAVE:
+		return "Enclave";
+
+	case API_V_KPP_STATE:
+		return "KPP State";
+	case API_V_FLAGS:
+		return "Flags";
+	case API_V_SFLAGS:
+		return "SFlags";
+
+	case API_V_NUM_THREADS:
+		return "Number of Threads";
+	case API_V_SERVICES:
+		return "Services";
+	case API_V_HANDLES:
+		return "Handles";
+	case API_V_SOCKETS:
+		return "Sockets";
+
+	case API_V_USER_SID:
+		return "User SID";
+
+	case API_V_NUM_IMG:
+		return "Number of Images";
+	case API_V_NUM_MS_IMG:
+		return "Number of MS Images";
+	case API_V_NUM_AV_IMG:
+		return "Number of AV Images";
+	case API_V_NUM_V_IMG:
+		return "Number of V Images";
+	case API_V_NUM_S_IMG:
+		return "Number of S Images";
+	case API_V_NUM_U_IMG:
+		return "Number of U Images";
+
+	case API_V_UW_REFS:
+		return "UW References";
+
+
+		////////////////////////////
+		// Handle Info
+	case API_V_HANDLE:
+		return "Handle";
+	case API_V_HANDLE_TYPE:
+		return "Handle Type";
+
+
+		////////////////////////////
+		// Event Logging
+
+		// Program Access Log
+	case API_V_ACCESS_LOG:
+		return "Access Log";
+
+	case API_V_PROG_RESOURCE_ACCESS:
+		return "Program Resource Access";
+	case API_V_PROG_EXEC_PARENTS:
+		return "Program Execution Actors";
+	case API_V_PROG_EXEC_CHILDREN:
+		return "Program Execution Targets";
+	case API_V_PROG_INGRESS_ACTORS:
+		return "Program Ingress Actors";
+	case API_V_PROG_INGRESS_TARGETS:
+		return "Program Ingress Targets";
+
+		// Resource Access
+	case API_V_ACCESS_REF:
+		return "Access Reference";
+	case API_V_ACCESS_NAME:
+		return "Access Name";
+	case API_V_ACCESS_NODES:
+		return "Access Nodes";
+
+		// Exec/Ingress
+	case API_V_EVENT_ACTOR_UID:
+		return "Process Event Actor";	// UID
+	case API_V_EVENT_TARGET_UID:
+		return "Process Event Target";	// UID
+
+		// Network Traffic Log
+	case API_V_TRAFFIC_LOG:
+		return "Traffic Log";
+
+	case API_V_SOCK_REF:
+		return "Socket Reference";		// Internal Socket Reference
+	case API_V_SOCK_TYPE:
+		return "Socket Type";
+	case API_V_SOCK_LADDR:
+		return "Socket Local Address";
+	case API_V_SOCK_LPORT:
+		return "Socket Local Port";
+	case API_V_SOCK_RADDR:
+		return "Socket Remote Address";
+	case API_V_SOCK_RPORT:
+		return "Socket Remote Port";
+	case API_V_SOCK_STATE:
+		return "Socket State";
+	case API_V_SOCK_LSCOPE:
+		return "Socket Local Scope";
+	case API_V_SOCK_RSCOPE:
+		return "Socket Remote Scope";
+	case API_V_SOCK_LAST_NET_ACT:
+		return "Socket Last Network Activity";
+	case API_V_SOCK_LAST_ALLOW:
+		return "Socket Last Allow";
+	case API_V_SOCK_LAST_BLOCK:
+		return "Socket Last Block";
+	case API_V_SOCK_UPLOAD:
+		return "Socket Upload";
+	case API_V_SOCK_DOWNLOAD:
+		return "Socket Download";
+	case API_V_SOCK_UPLOADED:
+		return "Socket Uploaded";
+	case API_V_SOCK_DOWNLOADED:
+		return "Socket Downloaded";
+	case API_V_SOCK_RHOST:
+		return "Socket Remote Host";
+
+
+		////////////////////////////
+		// Event Info
+	case API_V_EVENT_REF:
+		return "Event Reference";
+	case API_V_EVENT_TYPE:
+		return "Event Type";
+	case API_V_EVENT_INDEX:
+		return "Event Index";
+	case API_V_EVENT_DATA:
+		return "Event Data";
+
+	case API_V_EVENT_ACTOR_PID:
+		return "Event Actor PID";
+	case API_V_EVENT_ACTOR_TID:
+		return "Event Actor TID";
+	case API_V_EVENT_ACTOR_EID:
+		return "Event Actor EID";
+	case API_V_EVENT_ACTOR_SVC:
+		return "Event Actor Service"; // uint32 tag
+	case API_V_EVENT_TARGET_PID:
+		return "Event Target PID";
+	case API_V_EVENT_TARGET_TID:
+		return "Event Target TID";
+	case API_V_EVENT_TARGET_EID:
+		return "Event Target EID";
+	case API_V_EVENT_TIME_STAMP:
+		return "Event Time Stamp";
+
+	case API_V_OPERATION:
+		return "Operation";
+	case API_V_ACCESS_MASK:
+		return "Access Mask";  // desired access
+	case API_V_NT_STATUS:
+		return "NT Status"; // NTSTATUS
+	case API_V_EVENT_STATUS:
+		return "Event Status"; // EEventStatus
+	case API_V_IS_DIRECTORY:
+		return "Is Directory";
+	case API_V_WAS_BLOCKED:
+		return "Was Blocked"; // <- API_V_EVENT_STATUS
+
+	case API_V_LAST_ACTIVITY:
+		return "Last Activity"; // <-  API_V_EVENT_TIME_STAMP
+
+		// Process Termination Event
+	case API_V_EVENT_ECODE:
+		return "Event ECode";
+
+		// Process Ingress Event
+	case API_V_EVENT_ROLE:
+		return "Event Role"; // EExecLogRole
+	case API_V_PROC_MISC_ID:
+		return "Process Misc ID"; // Program UID or Library UID
+	case API_V_THREAD_ACCESS_MASK:
+		return "Thread Access Mask"; // desired access
+	case API_V_PROCESS_ACCESS_MASK:
+		return "Process Access Mask"; // desired access
+
+		// Image Load Event
+	case API_V_EVENT_IMG_BASE:
+		return "Event Image Base";
+	case API_V_EVENT_NO_PROTECT:
+		return "Event No Protect";
+	case API_V_EVENT_IMG_PROPS:
+		return "Event Image Properties";
+	case API_V_EVENT_IMG_SEL:
+		return "Event Image Selector";
+	case API_V_EVENT_IMG_SECT_NR:
+		return "Event Image Section Number";
+
+		// Network Firewall Event
+	case API_V_FW_ALLOW_RULES:
+		return "Firewall Allow Rules";
+	case API_V_FW_BLOCK_RULES:
+		return "Firewall Block Rules";
+
+		// Event Configuration
+	case API_V_SET_NOTIFY_BITMASK:
+		return "Set Notify Bitmask";
+	case API_V_CLEAR_NOTIFY_BITMASK:
+		return "Clear Notify Bitmask";
+
+		////////////////////////////
+		// Event Trace Log
+	case API_V_LOG_TYPE:
+		return "Log Type"; // ETraceLogs
+	case API_V_LOG_OFFSET:
+		return "Log Offset";
+	case API_V_LOG_DATA:
+		return "Log Data";
+
+
+		////////////////////////////
+		// CI Info
+	case API_V_SIGN_INFO:
+		return "Sign Info";
+	case API_V_SIGN_FLAGS:
+		return "Sign Flags"; // --> API_V_CERT_STATUS
+	case API_V_IMG_SIGN_AUTH:
+		return "Image Sign Authority";
+	case API_V_IMG_SIGN_LEVEL:
+		return "Image Sign Level";
+	case API_V_IMG_SIGN_POLICY:
+		return "Image Sign Policy";
+	case API_V_FILE_HASH:
+		return "File Hash";
+	case API_V_FILE_HASH_ALG:
+		return "File Hash Algorithm";
+	case API_V_CERT_STATUS:
+		return "Certificate Status";
+	case API_V_IMG_SIGN_NAME:
+		return "Image Sign Name";
+	case API_V_IMG_CERT_ALG:
+		return "Image Certificate Algorithm";
+	case API_V_IMG_CERT_HASH:
+		return "Image Certificate Hash";
+
+
+		////////////////////////////
+		// DNS Cache
+	case API_V_DNS_CACHE:
+		return "DNS Cache";
+	case API_V_DNS_CACHE_REF:
+		return "DNS Cache Reference";
+	case API_V_DNS_HOST:
+		return "DNS Host";
+	case API_V_DNS_TYPE:
+		return "DNS Type";
+	case API_V_DNS_ADDR:
+		return "DNS Address";
+	case API_V_DNS_DATA:
+		return "DNS Data";
+	case API_V_DNS_TTL:
+		return "DNS TTL";
+	case API_V_DNS_QUERY_COUNT:
+		return "DNS Query Count";
+
+
+		////////////////////////////
+		// Volume
+	case API_V_VOLUMES:
+		return "Volumes";
+	case API_V_VOL_REF:
+		return "Volume Reference";
+	case API_V_VOL_PATH:
+		return "Volume Path";
+	case API_V_VOL_DEVICE_PATH:
+		return "Volume Device Path";
+	case API_V_VOL_MOUNT_POINT:
+		return "Volume Mount Point";
+	case API_V_VOL_SIZE:
+		return "Volume Size";
+	case API_V_VOL_PASSWORD:
+		return "Volume Password";
+	case API_V_VOL_PROTECT:
+		return "Volume Protect";
+	case API_V_VOL_CIPHER:
+		return "Volume Cipher";
+	case API_V_VOL_OLD_PASS:
+		return "Volume Old Password";
+	case API_V_VOL_NEW_PASS:
+		return "Volume New Password";
+
+
+		////////////////////////////
+		// Tweaks
+	case API_V_TWEAKS:
+		return "Tweaks";
+	case API_V_TWEAK_HINT:
+		return "Tweak Hint";
+		// ...
+	case API_V_TWEAK_STATUS:
+		return "Tweak Status";
+		// ...
+	case API_V_TWEAK_LIST:
+		return "Tweak List";
+	case API_V_TWEAK_TYPE:
+		return "Tweak Type";
+		// ...
+	case API_V_TWEAK_IS_SET:
+		return "Tweak Is Set";
+
+
+		////////////////////////////
+		// Support
+	case API_V_SUPPORT_NAME:
+		return "Support Name";
+	case API_V_SUPPORT_STATUS:
+		return "Support Status";
+	case API_V_SUPPORT_HWID:
+		return "Support HWID";
+
+
+		////////////////////////////
+		// Progress Info
+	case API_V_PROGRESS_FINISHED:
+		return "Progress Finished";
+	case API_V_PROGRESS_TOTAL:
+		return "Progress Total";
+	case API_V_PROGRESS_DONE:
+		return "Progress Done";
+
+
+		////////////////////////////
+		// Basic
+	case API_V_CACHE_TOKEN:
+		return "Cache Token";
+	case API_V_ERR_CODE:
+		return "Error Code";
+	case API_V_ERR_MSG:
+		return "Error Message";
+
+	default:
+		return "";
+	}
+}
+
+QString VariantIndexToNameEx(quint32 Index)
+{
+	QString Id = QString::fromLatin1((char*)&Index, sizeof(Index));
+	std::reverse(Id.begin(), Id.end());
+	
+	QString Name = VariantIndexToName(Index);
+	if (Name.isEmpty())
+		return QString("'%1'").arg(Id);
+	return QString("%1 ('%2')").arg(Name).arg(Id);
 }

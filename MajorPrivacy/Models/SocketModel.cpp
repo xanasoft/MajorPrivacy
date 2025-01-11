@@ -23,7 +23,10 @@ CSocketModel::~CSocketModel()
 
 QList<QModelIndex>	CSocketModel::Sync(const QMap<quint64, CSocketPtr>& SocketList)
 {
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	foreach(const CSocketPtr& pSocket, SocketList)
@@ -95,7 +98,7 @@ QList<QModelIndex>	CSocketModel::Sync(const QMap<quint64, CSocketPtr>& SocketLis
 			case eUploaded:			Value = pSocket->GetUploadTotal(); break;
 			case eDownloaded:		Value = pSocket->GetDownloadTotal(); break;
 			case eTimeStamp:		Value = pSocket->GetCreateTimeStamp(); break;
-			case eProgram:			Value = pNode->pProcess ? pNode->pProcess->GetPath(EPathType::eDisplay) : tr("PROCESS MISSING"); break;
+			case eProgram:			Value = pNode->pProcess ? pNode->pProcess->GetNtPath() : tr("PROCESS MISSING"); break;
 			}
 
 			SSocketNode::SValue& ColValue = pNode->Values[section];
@@ -116,6 +119,7 @@ QList<QModelIndex>	CSocketModel::Sync(const QMap<quint64, CSocketPtr>& SocketLis
 				case eUploaded:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 				case eDownloaded:	ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 				case eTimeStamp:	ColValue.Formatted = QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss"); break;
+				case eProgram:		ColValue.Formatted = pNode->pProcess ? theCore->NormalizePath(pNode->pProcess->GetNtPath()) : tr("PROCESS MISSING"); break;
 				}
 			}
 

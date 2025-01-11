@@ -55,6 +55,8 @@ public:
 
 	static ULONG GetVolumeSN(const std::wstring& DriveNtPath);
 
+	static bool IsDosPath(const std::wstring& Path);
+
 protected:
 	static CNtPathMgr* m_pInstance;
 

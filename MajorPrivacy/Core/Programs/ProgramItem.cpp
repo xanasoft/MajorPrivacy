@@ -31,7 +31,7 @@ void CProgramItem::SetIconFile()
 	if (!m_Icon.isNull())
 		return;
 
-	if (!m_IconFile.isEmpty())
+	if (!GetIconFile().isEmpty())
 		UpdateIconFile();
 
 	if (m_Icon.availableSizes().isEmpty())
@@ -40,7 +40,7 @@ void CProgramItem::SetIconFile()
 
 void CProgramItem::UpdateIconFile()
 {
-	QString Path = QString::fromStdWString(NtPathToDosPath(m_IconFile.toStdWString())); // todo
+	QString Path = GetIconFile();
 	int Index = 0;
 
 	StrPair PathIndex = Split2(Path, ",", true);

@@ -20,7 +20,9 @@ public:
 
 	uint32 GetABIVersion();
 
-	void TestSvc();
+	uint32 GetConfigStatus();
+	STATUS CommitConfigChanges(const CBuffer& ConfigSignature = CBuffer());
+	STATUS DiscardConfigChanges();
 
 	bool RegisterEventHandler(uint32 MessageId, const std::function<void(uint32 msgId, const CBuffer* pEvent)>& Handler);
     template<typename T, class C>

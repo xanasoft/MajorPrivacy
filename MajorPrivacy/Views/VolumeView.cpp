@@ -6,6 +6,10 @@
 #include "Windows/VolumeWindow.h"
 #include "../MajorPrivacy.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
+#include "../Library/Helpers/NtUtil.h"
+#include "../Core/Access/AccessManager.h"
+#include "../Core/Programs/ProgramManager.h"
+#include "../Library/Helpers/NtPathMgr.h"
 
 CVolumeView::CVolumeView(QWidget *parent)
 	:CPanelViewEx<CVolumeModel>(parent)
@@ -21,14 +25,18 @@ CVolumeView::CVolumeView(QWidget *parent)
 	connect(theGUI, SIGNAL(OnUnmountAllVolumes()), this, SLOT(OnUnmountAllVolumes()));
 	connect(theGUI, SIGNAL(OnCreateVolume()), this, SLOT(OnCreateVolume()));
 
-	m_pCreateVolume = m_pMenu->addAction(QIcon(":/Icons/AddVolume.png"), tr("Create Volume"), this, SLOT(OnCreateVolume()));
-	m_pMenu->addSeparator();
 	m_pMountVolume = m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Mount Volume"), this, SLOT(OnMountVolume()));
 	m_pUnmountVolume = m_pMenu->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount Volume"), this, SLOT(OnUnmountVolume()));
 	m_pChangeVolumePassword = m_pMenu->addAction(QIcon(":/Icons/VolumePW.png"), tr("Change Volume Password"), this, SLOT(OnChangeVolumePassword()));
+	m_pRenameVolume = m_pMenu->addAction(QIcon(":/Icons/Rename.png"), tr("Rename Volume"), this, SLOT(OnRenameVolume()));
 	m_pRemoveVolume = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Remove Volume"), this, SLOT(OnRemoveVolume()));
+	m_pRemoveVolume->setShortcut(QKeySequence::Delete);
+	m_pRemoveVolume->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+	this->addAction(m_pRemoveVolume);
 	m_pMenu->addSeparator();
+	m_pCreateVolume = m_pMenu->addAction(QIcon(":/Icons/AddVolume.png"), tr("Create Volume"), this, SLOT(OnCreateVolume()));
 	m_pMountAndAddVolume = m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Add and Mount Volume Image"), this, SLOT(MountVolume()));
+	m_pAddFolder = m_pMenu->addAction(QIcon(":/Icons/AddFolder.png"), tr("Add Folder"), this, SLOT(OnAddFolder()));
 	m_pUnmountAllVolumes = m_pMenu->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount All Volumes"), this, SLOT(OnUnmountAllVolumes()));
 
 	QByteArray Columns = theConf->GetBlob("MainWindow/VolumeView_Columns");
@@ -44,8 +52,9 @@ CVolumeView::CVolumeView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pToolBar->addAction(m_pCreateVolume);
-	m_pToolBar->addSeparator();
 	m_pToolBar->addAction(m_pMountAndAddVolume);
+	m_pToolBar->addAction(m_pAddFolder);
+	m_pToolBar->addSeparator();
 	m_pToolBar->addAction(m_pUnmountAllVolumes);
 
 	QWidget* pSpacer = new QWidget();
@@ -77,7 +86,11 @@ QString CVolumeView::GetSelectedVolumePath()
 
 	QList<CVolumePtr> Volumes = GetSelectedItems();
 	if (Volumes.count() != 1) return "";
-	QString DevicePath = Volumes.at(0)->GetDevicePath();
+	QString DevicePath;
+	if (Volumes.at(0)->IsFolder()) 
+		DevicePath = QString::fromStdWString(CNtPathMgr::Instance()->TranslateDosToNtPath(Volumes.at(0)->GetImagePath().toStdWString()));
+	else
+		DevicePath = Volumes.at(0)->GetDevicePath();
 	if(DevicePath.isNull()) return "";
 	return DevicePath;
 }
@@ -93,10 +106,21 @@ QString CVolumeView::GetSelectedVolumeImage()
 	return ImagePath;
 }
 
-/*void CVolumeView::OnDoubleClicked(const QModelIndex& Index)
+void CVolumeView::OnDoubleClicked(const QModelIndex& Index)
 {
+	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
+	CVolumePtr pVolume = m_pItemModel->GetItem(ModelIndex);
+	if (pVolume.isNull() || pVolume->IsFolder())
+		return;
 
-}*/
+	if (!pVolume->IsMounted())
+		MountVolume(pVolume->GetImagePath());
+	else if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to unmount the selected volume?"), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
+	{
+		STATUS Status = theCore->DismountVolume(pVolume->GetDevicePath());
+		theGUI->CheckResults(QList<STATUS>() << Status, this);
+	}
+}
 
 void CVolumeView::OnMenu(const QPoint& Point)
 {
@@ -113,6 +137,7 @@ void CVolumeView::OnMenu(const QPoint& Point)
 	m_pMountVolume->setEnabled(iMountedCount == 0 && iSelectedCount == 1);
 	m_pUnmountVolume->setEnabled(iMountedCount > 0);
 	m_pChangeVolumePassword->setEnabled(iMountedCount == 0 && iSelectedCount == 1);
+	m_pRenameVolume->setEnabled(iSelectedCount == 1);
 	m_pRemoveVolume->setEnabled(iMountedCount == 0 && iSelectedCount > 0);
 
 	CPanelView::OnMenu(Point);
@@ -213,6 +238,18 @@ void CVolumeView::OnChangeVolumePassword()
 	theGUI->CheckResults(QList<STATUS>() << Status, this);
 }
 
+void CVolumeView::OnRenameVolume()
+{
+	QList<CVolumePtr> Volumes = GetSelectedItems();
+	if (Volumes.count() != 1) return;
+
+	QString Value = QInputDialog::getText(this, "MajorPrivacy", tr("Please enter a name for the item"), QLineEdit::Normal, Volumes.at(0)->GetName());
+	if (Value.isEmpty())
+		return;
+
+	Volumes.at(0)->SetName(Value);
+}
+
 void CVolumeView::OnRemoveVolume()
 {
 	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to remove selected Volumes from list?\nNote: The volume image files will remain intact and must be manually deleted."), QMessageBox::Yes, QMessageBox::No) != QMessageBox::Yes)
@@ -227,4 +264,36 @@ void CVolumeView::OnRemoveVolume()
 	}
 
 	//theGUI->CheckResults(Results, this);
+}
+
+void CVolumeView::OnAddFolder()
+{
+	if (theConf->GetBool("Options/WarnFolderProtection", true)) {
+		bool State = false;
+		if(CCheckableMessageBox::question(this, "MajorPrivacy",
+			tr("The security of files and folders on unencrypted volumes cannot be guaranteed if Major Privacy is not running or if the Kernel Isolator driver is not loaded. In this state, folder access control will not be enforced.\n"
+				"For non-critical data, folder protection may still provide a basic level of security. However, for highly confidential or sensitive information, it is strongly recommended to use a secure, encrypted volume to ensure robust protection against unauthorized access.")
+			, tr("Don't show this message again."), &State, QDialogButtonBox::Ok | QDialogButtonBox::Cancel, QDialogButtonBox::Cancel, QMessageBox::Warning) != QDialogButtonBox::Ok)
+			return;
+
+		if (State)
+			theConf->SetValue("Options/WarnFolderProtection", false);
+	}
+
+	QString Value = QFileDialog::getExistingDirectory(this, tr("Select Directory")).replace("/", "\\");
+	if (Value.isEmpty())
+		return;
+
+	if (!Value.endsWith("\\"))
+		Value.append("\\");
+
+	CAccessRulePtr pRule = CAccessRulePtr(new CAccessRule(theCore->ProgramManager()->GetAll()->GetID()));
+	pRule->SetType(EAccessRuleType::eProtect);
+	pRule->SetEnabled(true);
+	pRule->SetName(tr("%1 - Protection").arg(Value));
+	pRule->SetPath(Value + "*");
+	STATUS Status = theCore->AccessManager()->SetAccessRule(pRule);
+	if(Status)
+		theCore->VolumeManager()->AddVolume(Value);
+	theGUI->CheckResults(QList<STATUS>() << Status, this);
 }

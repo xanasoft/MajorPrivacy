@@ -22,10 +22,10 @@ CNetworkPage::CNetworkPage(QWidget* parent)
 	//m_pToolBar = new QToolBar();
 	//m_pMainLayout->addWidget(m_pToolBar);
 	
-	//m_pRuleTabs = new QTabWidget();
+	m_pRuleTabs = new QTabWidget();
 	
 	m_pRuleView = new CFwRuleView();
-	//m_pRuleTabs->addTab(m_pRuleView, tr("Firewall Rules"));
+	m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Firewall Rules"));
 	
 	//m_pProxyView = new QWidget();
 	//m_pRuleTabs->addTab(m_pProxyView, tr("Proxy Injection"));
@@ -34,20 +34,21 @@ CNetworkPage::CNetworkPage(QWidget* parent)
 	m_pTabs = new QTabWidget();
 
 	m_pSocketView = new CSocketView();
-	m_pTabs->addTab(m_pSocketView, tr("Open Socket"));
+	m_pTabs->addTab(m_pSocketView, QIcon(":/Icons/Port.png"), tr("Open Socket"));
 
 	m_pTrafficView = new CTrafficView();
-	m_pTabs->addTab(m_pTrafficView, tr("Traffic Monitor"));
+	m_pTabs->addTab(m_pTrafficView, QIcon(":/Icons/Internet.png"), tr("Traffic Monitor"));
 
 	m_pTraceView = new CNetTraceView();
-	m_pTabs->addTab(m_pTraceView, tr("Connection Log"));
+	m_pTabs->addTab(m_pTraceView, QIcon(":/Icons/SetLogging.png"), tr("Connection Log"));
 
 
 	m_pVSplitter = new QSplitter(Qt::Vertical);
 	m_pMainLayout->addWidget(m_pVSplitter);
-	//m_pVSplitter->addWidget(m_pRuleTabs);
-	m_pVSplitter->addWidget(m_pRuleView);
+	m_pVSplitter->addWidget(m_pRuleTabs);
+	m_pVSplitter->setCollapsible(0, false);
 	m_pVSplitter->addWidget(m_pTabs);
+	m_pVSplitter->setCollapsible(1, false);
 }
 
 CNetworkPage::~CNetworkPage()
@@ -68,16 +69,20 @@ void CNetworkPage::SetMergePanels(bool bMerge)
 	if (bMerge)
 	{
 		m_pMainLayout->addWidget(m_pTabs);
-		m_pTabs->insertTab(0, m_pRuleView, tr("Firewall Rules"));
+		m_pTabs->insertTab(0, m_pRuleView, QIcon(":/Icons/Rules.png"), tr("Firewall Rules"));
 		delete m_pVSplitter;
 		m_pVSplitter = nullptr;
 	}
 	else
 	{
 		m_pVSplitter = new QSplitter(Qt::Vertical);
-		m_pVSplitter->addWidget(m_pRuleView);
+		m_pRuleTabs = new QTabWidget();
+		m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Firewall Rules"));
+		m_pVSplitter->addWidget(m_pRuleTabs);
 		m_pRuleView->setVisible(true);
+		m_pVSplitter->setCollapsible(0, false);
 		m_pVSplitter->addWidget(m_pTabs);
+		m_pVSplitter->setCollapsible(1, false);
 		m_pMainLayout->addWidget(m_pVSplitter);
 	}
 
@@ -88,6 +93,7 @@ void CNetworkPage::Update()
 {
 	if (!isVisible())
 		return;
+	m_pTraceView->setEnabled(theCore->GetConfigBool("Service/NetLog", false));
 
 	auto Current = theGUI->GetCurrentItems();
 
@@ -96,7 +102,7 @@ void CNetworkPage::Update()
 		if(Current.bAllPrograms)
 			m_pRuleView->Sync(theCore->NetworkManager()->GetFwRules());
 		else {
-			QSet<QString> RuleIDs;
+			QSet<QFlexGuid> RuleIDs;
 			foreach(CProgramItemPtr pItem, Current.Items)
 				RuleIDs.unite(pItem->GetFwRules());
 			m_pRuleView->Sync(theCore->NetworkManager()->GetFwRules(RuleIDs));

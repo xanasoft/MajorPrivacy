@@ -49,7 +49,7 @@ CVariant CProgramItem::CollectFwRules() const
 	CVariant FwRules;
 	FwRules.BeginList();
 	for (auto FwRule : m_FwRules)
-		FwRules.Write(FwRule->GetGuid());
+		FwRules.Write(FwRule->GetGuidStr());
 	FwRules.Finish();
 	return FwRules;
 }
@@ -59,7 +59,7 @@ CVariant CProgramItem::CollectProgRules() const
 	CVariant ProgRules;
 	ProgRules.BeginList();
 	for (auto ProgRule : m_ProgRules)
-		ProgRules.Write(ProgRule->GetGuid());
+		ProgRules.WriteVariant(ProgRule->GetGuid().ToVariant(false));
 	ProgRules.Finish();
 	return ProgRules;
 }
@@ -69,7 +69,7 @@ CVariant CProgramItem::CollectResRules() const
 	CVariant ResRules;
 	ResRules.BeginList();
 	for (auto ResRule : m_ResRules)
-		ResRules.Write(ResRule->GetGuid());
+		ResRules.WriteVariant(ResRule->GetGuid().ToVariant(false));
 	ResRules.Finish();
 	return ResRules;
 }

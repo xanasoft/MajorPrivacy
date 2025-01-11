@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "ProgramFile.h"
 #include "../Library/API/PrivacyAPI.h"
+#include "../Library/API/DriverAPI.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Helpers/AppUtil.h"
+#include "../Library/Helpers/NtPathMgr.h"
 #include "../Library/Helpers/NtIo.h"
 #include "../Library/Helpers/NtObj.h"
 #include "../Library/Common/Strings.h"
@@ -13,14 +15,12 @@
 CProgramFile::CProgramFile(const std::wstring& FileName)
 {
 	ASSERT(!FileName.empty());
-	if (!FileName.empty()) {
-		m_ID.Set(EProgramType::eProgramFile, FileName);
-		SImageVersionInfoPtr pInfo = GetImageVersionInfoNt(FileName);
-		m_Name = pInfo ? pInfo->FileDescription : FileName;
-		//m_IconFile = NtPathToDosPath(FileName);
-		m_IconFile = FileName;
-	}
+
 	m_Path = FileName;
+	m_ID = CProgramID(MkLower(m_Path), EProgramType::eProgramFile);
+
+	SImageVersionInfoPtr pInfo = GetImageVersionInfo(m_Path);
+	m_Name = pInfo ? pInfo->FileDescription : FileName;
 }
 
 void CProgramFile::AddProcess(const CProcessPtr& pProcess)
@@ -86,54 +86,151 @@ CWindowsServicePtr CProgramFile::GetService(const std::wstring& SvcTag) const
 
 	for (auto pNode : m_Nodes) {
 		CWindowsServicePtr pSvc = std::dynamic_pointer_cast<CWindowsService>(pNode);
-		if (pSvc && pSvc->GetSvcTag() == SvcTag)
+		if (pSvc && pSvc->GetServiceTag() == SvcTag)
 			return pSvc;
 	}
 	return nullptr;
 }
 
-void CProgramFile::UpdateSignInfo(KPH_VERIFY_AUTHORITY SignAuthority, uint32 SignLevel, uint32 SignPolicy)
+void CProgramFile::UpdateSignInfo(const struct SVerifierInfo* pVerifyInfo, bool bUpdateProcesses)
 {
 	std::unique_lock lock(m_Mutex);
 
-	m_SignInfo.Authority = (uint8)SignAuthority;
-	if(SignLevel) m_SignInfo.Level = (uint8)SignLevel;
-	if(SignPolicy) m_SignInfo.Policy = SignPolicy;
+	m_SignInfo.Update(pVerifyInfo);
+
+	if (bUpdateProcesses) {
+		for (auto& IProcess : m_Processes)
+			IProcess.second->UpdateSignInfo(pVerifyInfo);
+	}
 }
 
-void CProgramFile::AddLibrary(const CProgramLibraryPtr& pLibrary, uint64 LoadTime, KPH_VERIFY_AUTHORITY SignAuthority, uint32 SignLevel, uint32 SignPolicy, EEventStatus Status)
+bool CProgramFile::HashInfoUnknown() const
 {
 	std::unique_lock lock(m_Mutex);
 
+	return m_SignInfo.GetHashStatus() == EHashStatus::eHashUnknown;
+}
+
+bool CProgramFile::HashInfoUnknown(const CProgramLibraryPtr& pLibrary) const
+{
+	std::unique_lock lock(m_Mutex);
+
+	auto F = m_Libraries.find(pLibrary->GetUID());
+	if (F == m_Libraries.end())
+		return true;
+	return F->second.SignInfo.GetHashStatus() == EHashStatus::eHashUnknown;
+}
+
+void CProgramFile__UpdateLibraryInfo(SLibraryInfo& Info, uint64 LoadTime, const struct SVerifierInfo* pVerifyInfo, EEventStatus Status)
+{
+	if (LoadTime) {
+		Info.LastLoadTime = LoadTime;
+		Info.TotalLoadCount++;
+	}
+	if (pVerifyInfo)
+		Info.SignInfo.Update(pVerifyInfo);
+	if (Status != EEventStatus::eUndefined)
+		Info.LastStatus = Status;
+}
+
+void CProgramFile::AddLibrary(const CFlexGuid& EnclaveGuid, const CProgramLibraryPtr& pLibrary, uint64 LoadTime, const struct SVerifierInfo* pVerifyInfo, EEventStatus Status)
+{
+	std::unique_lock lock(m_Mutex);
 	SLibraryInfo& Info = m_Libraries[pLibrary->GetUID()];
-	Info.LastLoadTime = LoadTime;
-	Info.TotalLoadCount++;
-	Info.Sign.Authority = (uint8)SignAuthority;
-	if(SignLevel) Info.Sign.Level = (uint8)SignLevel;
-	if(SignPolicy) Info.Sign.Policy = SignPolicy;
-	Info.LastStatus = Status;
+	CProgramFile__UpdateLibraryInfo(Info, LoadTime, pVerifyInfo, Status);
+
+	if (!EnclaveGuid.IsNull()) {
+		SEnclaveRecordPtr pRecord = GetEnclaveRecord(EnclaveGuid);
+		SLibraryInfo& Info = pRecord->Libraries[pLibrary->GetUID()];
+		CProgramFile__UpdateLibraryInfo(Info, LoadTime, pVerifyInfo, Status);
+	}
+}
+
+CVariant CProgramFile::DumpLibraries() const
+{
+	std::unique_lock lock(m_Mutex);
+
+	auto DumpLibrary = [](CVariant& List, uint64 Ref, const SLibraryInfo& Info, const CFlexGuid& EnclaveGuid) {
+		CVariant vLib;
+		vLib.BeginIMap();
+		vLib.Write(API_V_LIB_REF, Ref);
+		if (!EnclaveGuid.IsNull())
+			vLib.WriteVariant(API_V_ENCLAVE, EnclaveGuid.ToVariant(false));
+		vLib.Write(API_V_LIB_LOAD_TIME, Info.LastLoadTime);
+		vLib.Write(API_V_LIB_LOAD_COUNT, Info.TotalLoadCount);
+		vLib.Write(API_V_LIB_STATUS, (uint32)Info.LastStatus);
+		vLib.WriteVariant(API_V_SIGN_INFO, Info.SignInfo.ToVariant(SVarWriteOpt()));
+		vLib.Finish();
+		List.WriteVariant(vLib);
+	};
+
+
+
+	CVariant List;
+	List.BeginList();
+
+	for (auto& Lib : m_Libraries)
+		DumpLibrary(List, Lib.first, Lib.second, CFlexGuid());
+
+	for (auto& Record : m_EnclaveRecord) {
+		for (auto& Lib : Record.second->Libraries) 
+			DumpLibrary(List, Lib.first, Lib.second, Record.first);
+	}
+
+	List.Finish();
+	return List;
 }
 
 CVariant CProgramFile::StoreLibraries(const SVarWriteOpt& Opts) const
 {
 	std::unique_lock lock(m_Mutex);
 
+	std::map<uint64, std::list<std::pair<CFlexGuid, SLibraryInfo>>> Libraries;
+
+	for (auto& Lib : m_Libraries) {
+		Libraries[Lib.first].push_back(std::make_pair(CFlexGuid(), Lib.second));
+	}
+
+	for (auto& Enclave : m_EnclaveRecord)
+	{
+		for (auto& Lib : Enclave.second->Libraries) {
+			Libraries[Lib.first].push_back(std::make_pair(Enclave.first, Lib.second));
+		}
+	}
+
+	lock.unlock();
+
 	CVariant List;
 	List.BeginList();
-	for (auto pItem: m_Libraries)
+	for (auto& Lib : Libraries) 
 	{
 		CVariant vLib;
 		vLib.BeginMap();
-		CProgramLibraryPtr pLib = theCore->ProgramManager()->GetLibrary(pItem.first);
+		CProgramLibraryPtr pLib = theCore->ProgramManager()->GetLibrary(Lib.first);
 		if(!pLib) continue;
 		vLib.Write(API_S_FILE_PATH, pLib->GetPath());
-		vLib.Write(API_S_LIB_LOAD_TIME, pItem.second.LastLoadTime);
-		vLib.Write(API_S_LIB_LOAD_COUNT, pItem.second.TotalLoadCount);
-		vLib.Write(API_S_SIGN_INFO, pItem.second.Sign.Data);
-		vLib.Write(API_S_SIGN_INFO_AUTH, pItem.second.Sign.Authority);
-		vLib.Write(API_S_SIGN_INFO_LEVEL, pItem.second.Sign.Level);
-		vLib.Write(API_S_SIGN_INFO_POLICY, pItem.second.Sign.Policy);
-		vLib.Write(API_S_LIB_STATUS, (uint32)pItem.second.LastStatus);
+		
+		CVariant vLog;
+		vLog.BeginList();
+
+		for (auto& Entry : Lib.second)
+		{
+			CVariant vEntry;
+			vEntry.BeginMap();
+			if (!Entry.first.IsNull())
+				vEntry.WriteVariant(API_S_ENCLAVE, Entry.first.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+			vEntry.Write(API_S_LIB_LOAD_TIME, Entry.second.LastLoadTime);
+			vEntry.Write(API_S_LIB_LOAD_COUNT, Entry.second.TotalLoadCount);
+			vEntry.Write(API_S_LIB_STATUS, (uint32)Entry.second.LastStatus);
+			vEntry.WriteVariant(API_S_SIGN_INFO, Entry.second.SignInfo.ToVariant(Opts));
+			vEntry.Finish();
+			vLog.WriteVariant(vEntry);
+		}
+
+		vLog.Finish();
+
+		vLib.WriteVariant(API_S_LIB_LOAD_LOG, vLog);
+
 		vLib.Finish();
 		List.WriteVariant(vLib);
 	}
@@ -152,135 +249,180 @@ void CProgramFile::LoadLibraries(const CVariant& Data)
 		CProgramLibraryPtr pLib = theCore->ProgramManager()->GetLibrary(Path, true);
 		if (!pLib) return;
 
-		uint64 LoadTime = vData[API_S_LIB_LOAD_TIME];
-		KPH_VERIFY_AUTHORITY SignAuthority = (KPH_VERIFY_AUTHORITY)vData[API_S_SIGN_INFO_AUTH].To<uint32>();
-		uint32 SignLevel = vData[API_S_SIGN_INFO_LEVEL];
-		uint32 SignPolicy = vData[API_S_SIGN_INFO_POLICY];
-		EEventStatus Status = (EEventStatus)vData[API_S_LIB_STATUS].To<uint32>();
+		CVariant vLog = vData[API_S_LIB_LOAD_LOG];
+		vLog.ReadRawList([&](const CVariant& vEntry) {
 
-		AddLibrary(pLib, LoadTime, SignAuthority, SignLevel, SignPolicy, Status);
+			CFlexGuid EnclaveGuid;
+			EnclaveGuid.FromVariant(vEntry[API_S_ENCLAVE]);
+
+			SLibraryInfo* pInfo;
+			if (!EnclaveGuid.IsNull()){
+				SEnclaveRecordPtr pRecord = GetEnclaveRecord(EnclaveGuid);
+				pInfo = &pRecord->Libraries[pLib->GetUID()];
+			} else
+				pInfo = &m_Libraries[pLib->GetUID()];
+
+			pInfo->LastLoadTime = vEntry[API_S_LIB_LOAD_TIME];
+			pInfo->TotalLoadCount = vEntry[API_S_LIB_LOAD_COUNT];
+			pInfo->LastStatus = (EEventStatus)vEntry[API_S_LIB_STATUS].To<uint32>();
+			pInfo->SignInfo.FromVariant(vEntry[API_S_SIGN_INFO]);
+		});
 	});
 }
 
-CVariant CProgramFile::DumpLibraries() const
+void CProgramFile::CleanUpLibraries()
 {
-	CVariant List;
-	List.BeginList();
-	for (auto pItem: m_Libraries)
+	std::unique_lock lock(m_Mutex);
+
+	std::set<CProgramLibraryPtr> UsedLibraries;
+	for (auto& IProcess : m_Processes)
+		UsedLibraries.merge(IProcess.second->GetLibraries());
+
+	for (auto I = m_Libraries.begin(); I != m_Libraries.end();)
 	{
-		CVariant vLib;
-		vLib.BeginIMap();
-		vLib.Write(API_V_LIB_REF, pItem.first);
-		vLib.Write(API_V_LIB_LOAD_TIME, pItem.second.LastLoadTime);
-		vLib.Write(API_V_LIB_LOAD_COUNT, pItem.second.TotalLoadCount);
-		vLib.Write(API_V_SIGN_INFO, pItem.second.Sign.Data);
-		vLib.Write(API_V_SIGN_INFO_AUTH, pItem.second.Sign.Authority);
-		//vLib.Write(API_V_SIGN_INFO_LEVEL, pItem.second.Sign.Level);
-		//vLib.Write(API_V_SIGN_INFO_POLICY, pItem.second.Sign.Policy);
-		vLib.Write(API_V_LIB_STATUS, (uint32)pItem.second.LastStatus);
-		vLib.Finish();
-		List.WriteVariant(vLib);
+		if (UsedLibraries.find(theCore->ProgramManager()->GetLibrary(I->first)) == UsedLibraries.end())
+			m_Libraries.erase(I++);
+		else
+			++I;
 	}
-	List.Finish();
-	return List;
 }
 
-void CProgramFile::AddExecActor(const std::shared_ptr<CProgramFile>& pActorProgram, const std::wstring& ActorServiceTag, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked)
+CProgramFile::SEnclaveRecordPtr CProgramFile::GetEnclaveRecord(const CFlexGuid& EnclaveGuid)
+{
+	std::unique_lock lock(m_Mutex);
+	SEnclaveRecordPtr& pRecord = m_EnclaveRecord[EnclaveGuid];
+	if(!pRecord)
+		pRecord = std::make_shared<SEnclaveRecord>();
+	return pRecord;
+}
+
+void CProgramFile::AddExecParent(const CFlexGuid& TargetEnclave, 
+	const std::shared_ptr<CProgramFile>& pActorProgram, const CFlexGuid& ActorEnclave, const SProcessUID& ProcessUID, const std::wstring& ActorServiceTag, 
+	const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked)
 {
 	CWindowsServicePtr pActorService = pActorProgram->GetService(ActorServiceTag);
 
-	m_AccessLog.AddExecActor(pActorService ? pActorService->GetUID() : pActorProgram->GetUID(), CmdLine, CreateTime, bBlocked);
+	m_AccessLog.AddExecParent(pActorService ? pActorService->GetUID() : pActorProgram->GetUID(), ActorEnclave, ProcessUID, CmdLine, CreateTime, bBlocked);
+
+	if (!TargetEnclave.IsNull()) {
+		SEnclaveRecordPtr pRecord = GetEnclaveRecord(TargetEnclave);
+		pRecord->AccessLog.AddExecParent(pActorService ? pActorService->GetUID() : pActorProgram->GetUID(), ActorEnclave, ProcessUID, CmdLine, CreateTime, bBlocked);
+	}
 }
 
-void CProgramFile::AddExecTarget(const std::wstring& ActorServiceTag, const std::shared_ptr<CProgramFile>& pProgram, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked)
+void CProgramFile::AddExecChild(const CFlexGuid& ActorEnclave, const std::wstring& ActorServiceTag, 
+	const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
+	const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked)
 {
 	CWindowsServicePtr pActorService = GetService(ActorServiceTag);
 	if (pActorService) {
-		pActorService->AddExecTarget(pProgram, CmdLine, CreateTime, bBlocked);
+		pActorService->AddExecChild(pTargetProgram, TargetEnclave, ProcessUID, CmdLine, CreateTime, bBlocked);
 		return;
 	}
 
-	m_AccessLog.AddExecTarget(pProgram->GetUID(), CmdLine, CreateTime, bBlocked);
+	m_AccessLog.AddExecChild(pTargetProgram->GetUID(), TargetEnclave, ProcessUID, CmdLine, CreateTime, bBlocked);
+
+	if (!ActorEnclave.IsNull()) {
+		SEnclaveRecordPtr pRecord = GetEnclaveRecord(ActorEnclave);
+		pRecord->AccessLog.AddExecChild(pTargetProgram->GetUID(), TargetEnclave, ProcessUID, CmdLine, CreateTime, bBlocked);
+	}
 }
 
 CVariant CProgramFile::DumpExecStats() const
 {
 	SVarWriteOpt Opts;
 
-	CVariant Actors;
-	Actors.BeginList();
-	m_AccessLog.DumpExecActors(Actors, Opts);
-	Actors.Finish();
+	CVariant ExecParents;
+	ExecParents.BeginList();
+	StoreExecParents(ExecParents, Opts);
+	ExecParents.Finish();
 
-	CVariant Targets;
-	Targets.BeginList();
-	m_AccessLog.DumpExecTarget(Targets, Opts);
+	CVariant ExecChildren;
+	ExecChildren.BeginList();
+	StoreExecChildren(ExecChildren, Opts);
 
 	for(auto& pNode : m_Nodes)
 	{
 		CWindowsServicePtr pSvc = std::dynamic_pointer_cast<CWindowsService>(pNode);
 		if(!pSvc) continue;
-		m_AccessLog.DumpExecTarget(Targets, Opts, pSvc->GetSvcTag());
+		pSvc->StoreExecChildren(ExecChildren, Opts, pSvc->GetServiceTag());
 	}
-	Targets.Finish();
+	ExecChildren.Finish();
 
 	CVariant Data;
 	Data.BeginIMap();
-	Data.WriteVariant(API_V_PROC_TARGETS, Targets);
-	Data.WriteVariant(API_V_PROC_ACTORS, Actors);
+	Data.WriteVariant(API_V_PROG_EXEC_PARENTS, ExecParents);
+	Data.WriteVariant(API_V_PROG_EXEC_CHILDREN, ExecChildren);
 	Data.Finish();
 	return Data;
 }
 
-void CProgramFile::AddIngressActor(const std::shared_ptr<CProgramFile>& pActorProgram, const std::wstring& ActorServiceTag, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
+void CProgramFile::AddIngressActor(const CFlexGuid& TargetEnclave, 
+	const std::shared_ptr<CProgramFile>& pActorProgram, const CFlexGuid& ActorEnclave, const SProcessUID& ProcessUID, const std::wstring& ActorServiceTag, 
+	bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
 {
 	CWindowsServicePtr pActorService = pActorProgram->GetService(ActorServiceTag);
 
-	m_AccessLog.AddIngressActor(pActorService ? pActorService->GetUID() : pActorProgram->GetUID(), bThread, AccessMask, AccessTime, bBlocked);
+	m_AccessLog.AddIngressActor(pActorService ? pActorService->GetUID() : pActorProgram->GetUID(), ActorEnclave, ProcessUID, bThread, AccessMask, AccessTime, bBlocked);
+
+	if (!TargetEnclave.IsNull()) {
+		SEnclaveRecordPtr pRecord = GetEnclaveRecord(TargetEnclave);
+		pRecord->AccessLog.AddIngressActor(pActorService ? pActorService->GetUID() : pActorProgram->GetUID(), ActorEnclave, ProcessUID, bThread, AccessMask, AccessTime, bBlocked);
+	}
 }
 
-void CProgramFile::AddIngressTarget(const std::wstring& ActorServiceTag, const std::shared_ptr<CProgramFile>& pProgram, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
+void CProgramFile::AddIngressTarget(const CFlexGuid& ActorEnclave, const std::wstring& ActorServiceTag, 
+	const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
+	bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked)
 {
 	CWindowsServicePtr pActorService = GetService(ActorServiceTag);
 	if (pActorService) {
-		pActorService->AddIngressTarget(pProgram, bThread, AccessMask, AccessTime, bBlocked);
+		pActorService->AddIngressTarget(pTargetProgram, TargetEnclave, ProcessUID, bThread, AccessMask, AccessTime, bBlocked);
 		return;
 	}
 
-	m_AccessLog.AddIngressTarget(pProgram->GetUID(), bThread, AccessMask, AccessTime, bBlocked);
+	m_AccessLog.AddIngressTarget(pTargetProgram->GetUID(), TargetEnclave, ProcessUID, bThread, AccessMask, AccessTime, bBlocked);
+
+	if (!ActorEnclave.IsNull()) {
+		SEnclaveRecordPtr pRecord = GetEnclaveRecord(ActorEnclave);
+		pRecord->AccessLog.AddIngressTarget(pTargetProgram->GetUID(), TargetEnclave, ProcessUID, bThread, AccessMask, AccessTime, bBlocked);
+	}
 }
 
 CVariant CProgramFile::DumpIngress() const
 {
 	SVarWriteOpt Opts;
 
-	CVariant Actors;
-	Actors.BeginList();
-	m_AccessLog.DumpIngressActors(Actors, Opts);
-	Actors.Finish();
+	CVariant IngressActors;
+	IngressActors.BeginList();
+	StoreIngressActors(IngressActors, Opts);
+	IngressActors.Finish();
 
-	CVariant Targets;
-	Targets.BeginList();
-	m_AccessLog.DumpIngressTargets(Targets, Opts);
+	CVariant IngressTargets;
+	IngressTargets.BeginList();
+	StoreIngressTargets(IngressTargets, Opts);
 
 	for(auto pNode : m_Nodes)
 	{
 		CWindowsServicePtr pSvc = std::dynamic_pointer_cast<CWindowsService>(pNode);
 		if(!pSvc) continue;
-		m_AccessLog.DumpIngressTargets(Targets, Opts, pSvc->GetSvcTag());
+		pSvc->StoreIngressTargets(IngressTargets, Opts, pSvc->GetServiceTag());
 	}
-	Targets.Finish();
+	IngressTargets.Finish();
 	
 	CVariant Data;
 	Data.BeginIMap();
-	Data.WriteVariant(API_V_PROC_TARGETS, Targets);
-	Data.WriteVariant(API_V_PROC_ACTORS, Actors);
+	Data.WriteVariant(API_V_PROG_INGRESS_ACTORS, IngressActors);
+	Data.WriteVariant(API_V_PROG_INGRESS_TARGETS, IngressTargets);
 	Data.Finish();
 	return Data;
 }
 
 void CProgramFile::AddAccess(const std::wstring& ActorServiceTag, const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked)
 {
+	if (!theCore->Config()->GetBool("Service", "ResTrace", true))
+		return;
+
 	if (!ActorServiceTag.empty()) {
 		CWindowsServicePtr pActorService = GetService(ActorServiceTag);
 		if (pActorService) {
@@ -292,28 +434,172 @@ void CProgramFile::AddAccess(const std::wstring& ActorServiceTag, const std::wst
 	m_AccessTree.Add(Path, AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked);
 }
 
+void CProgramFile::StoreExecParents(CVariant& ExecParents, const SVarWriteOpt& Opts) const
+{
+	m_AccessLog.StoreAllExecParents(ExecParents, CFlexGuid(), Opts);
+
+	std::unique_lock lock(m_Mutex);
+	auto EnclaveRecord = m_EnclaveRecord;
+	lock.unlock();
+
+	for (auto& Record : EnclaveRecord)
+		Record.second->AccessLog.StoreAllExecParents(ExecParents, Record.first, Opts);
+}
+
+bool CProgramFile::LoadExecParents(const CVariant& ExecParents)
+{
+	ExecParents.ReadRawList([&](const CVariant& vData) {
+
+		CFlexGuid EnclaveGuid;
+		EnclaveGuid.FromVariant(vData.Find(API_V_EVENT_TARGET_EID));
+		if (EnclaveGuid.IsNull())
+			m_AccessLog.LoadExecParent(vData);
+		else {
+			SEnclaveRecordPtr pRecord = GetEnclaveRecord(EnclaveGuid);
+			pRecord->AccessLog.LoadExecParent(vData);
+		}
+	});
+	return true;
+}
+
+void CProgramFile::StoreExecChildren(CVariant& ExecChildren, const SVarWriteOpt& Opts) const
+{
+	m_AccessLog.StoreAllExecChildren(ExecChildren, CFlexGuid(), Opts);
+
+	std::unique_lock lock(m_Mutex);
+	auto EnclaveRecord = m_EnclaveRecord;
+	lock.unlock();
+
+	for (auto& Record : EnclaveRecord)
+		Record.second->AccessLog.StoreAllExecChildren(ExecChildren, Record.first, Opts);
+}
+
+bool CProgramFile::LoadExecChildren(const CVariant& ExecChildren)
+{
+	ExecChildren.ReadRawList([&](const CVariant& vData) {
+
+		CFlexGuid EnclaveGuid;
+		EnclaveGuid.FromVariant(vData.Find(API_V_EVENT_ACTOR_EID));
+		if (EnclaveGuid.IsNull())
+			m_AccessLog.LoadExecChild(vData);
+		else {
+			SEnclaveRecordPtr pRecord = GetEnclaveRecord(EnclaveGuid);
+			pRecord->AccessLog.LoadExecChild(vData);
+		}
+	});
+	return true;
+}
+
+void CProgramFile::StoreIngressActors(CVariant& IngressActors, const SVarWriteOpt& Opts) const
+{
+	m_AccessLog.StoreAllIngressActors(IngressActors, CFlexGuid(), Opts);
+
+	std::unique_lock lock(m_Mutex);
+	auto EnclaveRecord = m_EnclaveRecord;
+	lock.unlock();
+
+	for (auto& Record : EnclaveRecord)
+		Record.second->AccessLog.StoreAllIngressActors(IngressActors, Record.first, Opts);
+}
+
+bool CProgramFile::LoadIngressActors(const CVariant& IngressActors)
+{
+	IngressActors.ReadRawList([&](const CVariant& vData) {
+
+		CFlexGuid EnclaveGuid;
+		EnclaveGuid.FromVariant(vData.Find(API_V_EVENT_TARGET_EID));
+		if (EnclaveGuid.IsNull())
+			m_AccessLog.LoadIngressActor(vData);
+		else {
+			SEnclaveRecordPtr pRecord = GetEnclaveRecord(EnclaveGuid);
+			pRecord->AccessLog.LoadIngressActor(vData);
+		}
+	});
+	return true;
+}
+
+void CProgramFile::StoreIngressTargets(CVariant& IngressTargets, const SVarWriteOpt& Opts) const
+{
+	m_AccessLog.StoreAllIngressTargets(IngressTargets, CFlexGuid(), Opts);
+
+	std::unique_lock lock(m_Mutex);
+	auto EnclaveRecord = m_EnclaveRecord;
+	lock.unlock();
+
+	for (auto& Record : EnclaveRecord)
+		Record.second->AccessLog.StoreAllIngressTargets(IngressTargets, Record.first, Opts);
+}
+
+bool CProgramFile::LoadIngressTargets(const CVariant& IngressTargets)
+{
+	IngressTargets.ReadRawList([&](const CVariant& vData) {
+
+		CFlexGuid EnclaveGuid;
+		EnclaveGuid.FromVariant(vData.Find(API_V_EVENT_ACTOR_EID));
+		if (EnclaveGuid.IsNull())
+			m_AccessLog.LoadIngressTarget(vData);
+		else {
+			SEnclaveRecordPtr pRecord = GetEnclaveRecord(EnclaveGuid);
+			pRecord->AccessLog.LoadIngressTarget(vData);
+		}
+	});
+	return true;
+}
+
+CVariant CProgramFile::StoreAccessLog(const SVarWriteOpt& Opts) const
+{
+	CVariant ExecParents;
+	ExecParents.BeginList();
+	StoreExecParents(ExecParents, Opts);
+	ExecParents.Finish();
+
+	CVariant ExecChildren;
+	ExecChildren.BeginList();
+	StoreExecChildren(ExecChildren, Opts);
+	ExecChildren.Finish();
+
+	CVariant IngressActors;
+	IngressActors.BeginList();
+	StoreIngressActors(IngressActors, Opts);
+	IngressActors.Finish();
+
+	CVariant IngressTargets;
+	IngressTargets.BeginList();
+	StoreIngressTargets(IngressTargets, Opts);
+	IngressTargets.Finish();
+
+	CVariant Data;
+	Data[API_V_PROG_EXEC_PARENTS] = ExecParents;
+	Data[API_V_PROG_EXEC_CHILDREN] = ExecChildren;
+	Data[API_V_PROG_INGRESS_ACTORS] = IngressActors;
+	Data[API_V_PROG_INGRESS_TARGETS] = IngressTargets;
+	return Data;
+}
+
+void CProgramFile::LoadAccessLog(const CVariant& Data)
+{
+	LoadExecParents(Data[API_V_PROG_EXEC_PARENTS]);
+	LoadExecChildren(Data[API_V_PROG_EXEC_CHILDREN]);
+	LoadIngressActors(Data[API_V_PROG_INGRESS_ACTORS]);
+	LoadIngressTargets(Data[API_V_PROG_INGRESS_TARGETS]);
+}
+
 CVariant CProgramFile::StoreAccess(const SVarWriteOpt& Opts) const
 {
 	CVariant Data;
 	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts);
-	Data[API_V_PROG_EXEC_ACTORS] = m_AccessLog.StoreExecActors(Opts);
-	Data[API_V_PROG_EXEC_TARGETS] = m_AccessLog.StoreExecTargets(Opts);
-	Data[API_V_PROG_INGRESS_ACTORS] = m_AccessLog.StoreIngressActors(Opts);
-	Data[API_V_PROG_INGRESS_TARGETS] = m_AccessLog.StoreIngressTargets(Opts);
+	Data[API_V_PROG_PROCESS_ACCESS] = StoreAccessLog(Opts);
 	return Data;
 }
 
 void CProgramFile::LoadAccess(const CVariant& Data)
 {
 	m_AccessTree.LoadTree(Data[API_V_PROG_RESOURCE_ACCESS]);
-	m_AccessLog.LoadExecActors(Data[API_V_PROG_EXEC_ACTORS]);
-	m_AccessLog.LoadExecTargets(Data[API_V_PROG_EXEC_TARGETS]);
-	m_AccessLog.LoadIngressActors(Data[API_V_PROG_INGRESS_ACTORS]);
-	m_AccessLog.LoadIngressTargets(Data[API_V_PROG_INGRESS_TARGETS]);
+	LoadAccessLog(Data[API_V_PROG_PROCESS_ACCESS]);
 }
 
-CVariant CProgramFile::DumpAccess(uint64 LastActivity) const
+CVariant CProgramFile::DumpResAccess(uint64 LastActivity) const
 {
 	return m_AccessTree.DumpTree(LastActivity);
 }
@@ -324,21 +610,36 @@ CVariant CProgramFile::StoreTraffic(const SVarWriteOpt& Opts) const
 
 	CVariant Data;
 	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
-	Data[API_V_PROG_TRAFFIC] = m_TrafficLog.StoreTraffic(Opts);
+	Data[API_V_TRAFFIC_LOG] = m_TrafficLog.StoreTraffic(Opts);
 	return Data;
-
 }
 
 void CProgramFile::LoadTraffic(const CVariant& Data)
 {
 	std::unique_lock lock(m_Mutex);
 
-	m_TrafficLog.LoadTraffic(Data[API_V_PROG_TRAFFIC]);
+	m_TrafficLog.LoadTraffic(Data[API_V_TRAFFIC_LOG]);
 }
 
 uint64 CProgramFile::AddTraceLogEntry(const CTraceLogEntryPtr& pLogEntry, ETraceLogs Log)
 {
 	std::unique_lock lock(m_Mutex); 
+
+	switch (Log)
+	{
+	case ETraceLogs::eExecLog:
+		if (!theCore->Config()->GetBool("Service", "ExecLog", true))
+			return -1;
+		break;
+	case ETraceLogs::eResLog:
+		if (!theCore->Config()->GetBool("Service", "ResLog", true))
+			return -1;
+		break;
+	case ETraceLogs::eNetLog:
+		if (!theCore->Config()->GetBool("Service", "NetLog", true))
+			return -1;
+		break;
+	}
 
 	STraceLog& TraceLog = m_TraceLogs[(int)Log];
 	TraceLog.Entries.push_back(pLogEntry);
@@ -501,5 +802,6 @@ void CProgramFile::TruncateAccessTree()
 
 void CProgramFile::TestMissing()
 {
-	m_IsMissing = NtIo_FileExists(SNtObject(m_Path).Get()) ? ePresent : eMissing;
+	std::wstring NtPath = CNtPathMgr::Instance()->TranslateDosToNtPath(m_Path);
+	m_IsMissing = (!NtPath.empty() && NtIo_FileExists(SNtObject(NtPath).Get())) ? ePresent : eMissing;
 }

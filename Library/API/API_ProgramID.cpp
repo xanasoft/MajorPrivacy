@@ -1,4 +1,9 @@
 
+
+/////////////////////////////////////////////////////////////////////////////
+// CProgramID
+//
+
 EProgramType CProgramID::ReadType(const XVariant& Data, SVarWriteOpt::EFormat& Format)
 {
 	EProgramType Type = EProgramType::eUnknown;
@@ -55,8 +60,8 @@ XVariant CProgramID::ToVariant(const SVarWriteOpt& Opts) const
 		switch (m_Type)
 		{
 		case EProgramType::eAppInstallation:	ID.Write(API_V_REG_KEY, TO_STR(m_AuxValue)); break;
-		case EProgramType::eWindowsService:		ID.Write(API_V_SVC_TAG, TO_STR(m_ServiceTag)); break;
-		case EProgramType::eProgramGroup:		ID.Write(API_V_RULE_GUID, TO_STR(m_AuxValue)); break;
+		case EProgramType::eWindowsService:		ID.Write(API_V_SERVICE_TAG, TO_STR(m_ServiceTag)); break;
+		case EProgramType::eProgramGroup:		ID.Write(API_V_GUID, TO_STR(m_AuxValue)); break;
 		case EProgramType::eAppPackage:			ID.Write(API_V_APP_SID, TO_STR(m_AuxValue)); break;
 		}
 	} 
@@ -71,8 +76,8 @@ XVariant CProgramID::ToVariant(const SVarWriteOpt& Opts) const
 		switch (m_Type)
 		{
 		case EProgramType::eAppInstallation:	ID.Write(API_S_REG_KEY, TO_STR(m_AuxValue)); break;
-		case EProgramType::eWindowsService:		ID.Write(API_S_SVC_TAG, TO_STR(m_ServiceTag)); break;
-		case EProgramType::eProgramGroup:		ID.Write(API_S_RULE_GUID, TO_STR(m_AuxValue)); break;
+		case EProgramType::eWindowsService:		ID.Write(API_S_SERVICE_TAG, TO_STR(m_ServiceTag)); break;
+		case EProgramType::eProgramGroup:		ID.Write(API_S_GUID, TO_STR(m_AuxValue)); break;
 		case EProgramType::eAppPackage:			ID.Write(API_S_APP_SID, TO_STR(m_AuxValue)); break;
 		}
 	}
@@ -91,8 +96,8 @@ bool CProgramID::FromVariant(const class XVariant& ID)
 	switch (m_Type)
 	{
 	case EProgramType::eAppInstallation:	m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_REG_KEY) : ID.Find(API_V_REG_KEY)); break;
-	case EProgramType::eWindowsService:		m_ServiceTag = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_SVC_TAG) : ID.Find(API_V_SVC_TAG)); break;
-	case EProgramType::eProgramGroup:		m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_RULE_GUID) : ID.Find(API_V_RULE_GUID)); break;
+	case EProgramType::eWindowsService:		m_ServiceTag = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_SERVICE_TAG) : ID.Find(API_V_SERVICE_TAG)); break;
+	case EProgramType::eProgramGroup:		m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_GUID) : ID.Find(API_V_GUID)); break;
 	case EProgramType::eAppPackage:			m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_APP_SID) : ID.Find(API_V_APP_SID)); break;
 	}
 

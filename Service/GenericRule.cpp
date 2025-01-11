@@ -2,10 +2,29 @@
 #include "GenericRule.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/MiscHelpers.h"
+#include "../Library/Helpers/NtUtil.h"
 
 CGenericRule::CGenericRule(const CProgramID& ID)
 {
     m_ProgramID = ID;
+}
+
+bool CGenericRule::IsExpired() const
+{
+    std::shared_lock Lock(m_Mutex); 
+    if(m_uTimeOut == -1)
+        return false;
+    uint64 CurrentTime = FILETIME2time(GetCurrentTimeAsFileTime());
+    if (m_uTimeOut < CurrentTime) {
+//#ifdef _DEBUG
+//        DbgPrint("Rule %S has expired\r\n", m_Name.c_str());
+//#endif
+        return true;
+    }
+//#ifdef _DEBUG
+//    DbgPrint("Rule %S will expire in %llu seconds\r\n", m_Name.c_str(), m_uTimeOut - CurrentTime);
+//#endif
+    return false;
 }
 
 void CGenericRule::CopyTo(CGenericRule* Rule, bool CloneGuid) const
@@ -15,12 +34,16 @@ void CGenericRule::CopyTo(CGenericRule* Rule, bool CloneGuid) const
     if(CloneGuid)
         Rule->m_Guid = m_Guid;
 	else
-		Rule->m_Guid = MkGuid();
+		Rule->m_Guid.FromWString(MkGuid());
+    Rule->m_bEnabled = m_bEnabled;
 
-	Rule->m_Name = m_Name;
-
-	Rule->m_bEnabled = m_bEnabled;
+    Rule->m_Enclave = m_Enclave;
+	
 	Rule->m_bTemporary = m_bTemporary;
+
+    Rule->m_Name = m_Name;
+    //Rule->m_Grouping = v;
+	Rule->m_Description = m_Description;
 
 	Rule->m_Data = m_Data.Clone();
 }
@@ -30,10 +53,15 @@ void CGenericRule::Update(const std::shared_ptr<CGenericRule>& Rule)
     std::unique_lock Lock(m_Mutex);
 
 	m_Guid = Rule->m_Guid;
-	m_Name = Rule->m_Name;
-
 	m_bEnabled = Rule->m_bEnabled;
+
+	m_Enclave = Rule->m_Enclave;
+
     m_bTemporary = Rule->m_bTemporary;
+
+	m_Name = Rule->m_Name;
+	//m_Grouping = Rule->m_Grouping;
+	m_Description = Rule->m_Description;
 
     m_Data = Rule->m_Data;
 }

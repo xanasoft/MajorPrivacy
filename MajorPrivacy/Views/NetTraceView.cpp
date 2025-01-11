@@ -24,7 +24,7 @@ CNetTraceView::CNetTraceView(QWidget *parent)
 	m_pToolBar->addWidget(m_pCmbDir);
 
 	m_pCmbAction = new QComboBox();
-	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Action"), (qint32)EEventStatus::eUndefined);
+	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Status"), (qint32)EEventStatus::eUndefined);
 	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)EEventStatus::eAllowed);
 	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
 	connect(m_pCmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
@@ -49,6 +49,13 @@ CNetTraceView::CNetTraceView(QWidget *parent)
 	m_pBtnScroll->setMaximumHeight(22);
 	m_pToolBar->addWidget(m_pBtnScroll);
 
+	m_pBtnHold = new QToolButton();
+	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
+	m_pBtnHold->setCheckable(true);
+	m_pBtnHold->setToolTip(tr("Hold updates"));
+	m_pBtnHold->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnHold);
+
 	m_pToolBar->addSeparator();
 
 	m_pBtnClear = new QToolButton();
@@ -58,15 +65,13 @@ CNetTraceView::CNetTraceView(QWidget *parent)
 	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearTraceLog()));
 	m_pToolBar->addWidget(m_pBtnClear);
 
-	int comboBoxHeight = m_pCmbType->sizeHint().height();
-
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	m_pToolBar->addWidget(pSpacer);
 
 	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
 	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
-	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	pBtnSearch->setMaximumHeight(22);
 	m_pToolBar->addWidget(pBtnSearch);
 }
 
@@ -78,9 +83,6 @@ CNetTraceView::~CNetTraceView()
 void CNetTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services)
 {
 	CTraceView::Sync(Log, Programs, Services);
-
-	if(m_pBtnScroll->isChecked())
-		m_pTreeView->scrollToBottom();
 }
 
 void CNetTraceView::UpdateFilter()

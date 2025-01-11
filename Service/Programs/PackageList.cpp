@@ -151,7 +151,7 @@ void CPackageList::Update()
 		    pAppPackage->PackageName = pPackage->PackageName;
 		    pAppPackage->PackageDisplayName = pPackage->PackageDisplayName;
 		    pAppPackage->PackageFamilyName = pPackage->PackageFamilyName;
-		    pAppPackage->PackageInstallPath = DosPathToNtPath(pPackage->PackageInstallPath);
+		    pAppPackage->PackageInstallPath = pPackage->PackageInstallPath;
             pAppPackage->PackageFullName = pPackage->PackageFullName;
 		    pAppPackage->PackageVersion = pPackage->PackageVersion;
 		    pAppPackage->SmallLogoPath = pPackage->SmallLogoPath;

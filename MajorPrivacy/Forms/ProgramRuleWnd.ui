@@ -14,7 +14,7 @@
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="5" column="0">
+   <item row="4" column="0">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
@@ -33,23 +33,24 @@
       <string>Program</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
-      <item row="0" column="1">
-       <widget class="QComboBox" name="cmbProgram"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_6">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
+      <item row="1" column="2">
+       <widget class="QToolButton" name="btnProg">
         <property name="text">
-         <string>Path Pattern</string>
+         <string>...</string>
         </property>
        </widget>
       </item>
       <item row="1" column="1">
+       <widget class="QComboBox" name="cmbProgram">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1" colspan="2">
        <widget class="QLineEdit" name="txtProgPath">
         <property name="enabled">
          <bool>true</bool>
@@ -65,7 +66,20 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_6">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Path Pattern</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
        <widget class="QLabel" name="label_2">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
@@ -78,53 +92,15 @@
         </property>
        </widget>
       </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QGroupBox" name="groupBox_4">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Action</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_5">
-      <item row="0" column="1" colspan="2">
-       <widget class="QComboBox" name="cmbAction"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Require Signature</string>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
+       <widget class="QLabel" name="label_5">
         <property name="text">
-         <string>Action</string>
+         <string>Enclave</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="1" colspan="2">
-       <widget class="QComboBox" name="cmbSignature"/>
-      </item>
-      <item row="2" column="1" colspan="2">
-       <widget class="QCheckBox" name="chkImageProtection">
-        <property name="text">
-         <string>Image Load Protection</string>
-        </property>
-       </widget>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="cmbEnclave"/>
       </item>
      </layout>
     </widget>
@@ -183,36 +159,55 @@
      </layout>
     </widget>
    </item>
-   <item row="3" column="0">
-    <widget class="QGroupBox" name="groupBox_2">
-     <property name="title">
-      <string>Child Spawn Protection</string>
+   <item row="2" column="0">
+    <widget class="QGroupBox" name="groupBox_4">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
-     <layout class="QGridLayout" name="gridLayout_3">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>On Trusted</string>
-        </property>
-       </widget>
+     <property name="title">
+      <string>Action</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_5">
+      <item row="0" column="1" colspan="2">
+       <widget class="QComboBox" name="cmbAction"/>
       </item>
       <item row="1" column="0">
-       <widget class="QLabel" name="label_8">
+       <widget class="QLabel" name="label_4">
         <property name="text">
-         <string>On UN Trusted</string>
+         <string>Require Signature</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="1" colspan="3">
-       <widget class="QComboBox" name="cmbOnTrustedExec"/>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Action</string>
+        </property>
+       </widget>
       </item>
-      <item row="1" column="1" colspan="3">
-       <widget class="QComboBox" name="cmbOnUnTrustedExec"/>
+      <item row="1" column="1" colspan="2">
+       <widget class="QComboBox" name="cmbSignature"/>
+      </item>
+      <item row="2" column="1" colspan="2">
+       <widget class="QCheckBox" name="chkImageProtection">
+        <property name="text">
+         <string>Image Load Protection</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
    </item>
-   <item row="4" column="0">
+   <item row="3" column="0">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

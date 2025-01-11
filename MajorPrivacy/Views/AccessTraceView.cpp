@@ -17,7 +17,7 @@ CAccessTraceView::CAccessTraceView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbAction = new QComboBox();
-	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Action"), (qint32)EEventStatus::eUndefined);
+	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Status"), (qint32)EEventStatus::eUndefined);
 	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)EEventStatus::eAllowed);
 	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
 	connect(m_pCmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
@@ -31,6 +31,13 @@ CAccessTraceView::CAccessTraceView(QWidget *parent)
 	m_pBtnScroll->setToolTip(tr("Auto Scroll"));
 	m_pBtnScroll->setMaximumHeight(22);
 	m_pToolBar->addWidget(m_pBtnScroll);
+
+	m_pBtnHold = new QToolButton();
+	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
+	m_pBtnHold->setCheckable(true);
+	m_pBtnHold->setToolTip(tr("Hold updates"));
+	m_pBtnHold->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnHold);
 
 	m_pToolBar->addSeparator();
 
@@ -63,9 +70,6 @@ void CAccessTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Program
 	pModel->SetPathFilter(RootPath);
 
 	CTraceView::Sync(Log, Programs, Services);
-
-	if(m_pBtnScroll->isChecked())
-		m_pTreeView->scrollToBottom();
 }
 
 void CAccessTraceView::UpdateFilter()

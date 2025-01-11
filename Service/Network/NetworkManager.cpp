@@ -16,7 +16,7 @@
 #include "../Library/Common/FileIO.h"
 
 #define API_TRAFFIC_LOG_FILE_NAME L"TrafficLog.dat"
-#define API_TRAFFIC_LOG_FILE_VERSION 1
+#define API_TRAFFIC_LOG_FILE_VERSION 2
 
 
 CNetworkManager::CNetworkManager()

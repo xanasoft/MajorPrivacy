@@ -22,8 +22,10 @@ void CTweakList::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	CVariant List;
 	List.BeginList();
-	for (auto I : m_List)
-		List.WriteVariant(I->ToVariant(Opts));
+	for (auto I : m_List) {
+		if (I->IsAvailable())
+			List.WriteVariant(I->ToVariant(Opts));
+	}
 	List.Finish();
 	Data.WriteVariant(API_V_TWEAK_LIST, List);
 }
@@ -55,9 +57,9 @@ void CRegTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eReg);
 
-	Data.Write(API_V_TWEAK_KEY, m_Key);
-	Data.Write(API_V_TWEAK_VALUE, m_Value);
-	Data.WriteVariant(API_V_TWEAK_DATA, m_Data);
+	Data.Write(API_V_REG_KEY, m_Key);
+	Data.Write(API_V_VALUE, m_Value);
+	Data.WriteVariant(API_V_DATA, m_Data);
 }
 
 void CGpoTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -66,9 +68,9 @@ void CGpoTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eGpo);
 
-	Data.Write(API_V_TWEAK_KEY, m_Key);
-	Data.Write(API_V_TWEAK_VALUE, m_Value);
-	Data.WriteVariant(API_V_TWEAK_DATA, m_Data);
+	Data.Write(API_V_REG_KEY, m_Key);
+	Data.Write(API_V_VALUE, m_Value);
+	Data.WriteVariant(API_V_DATA, m_Data);
 }
 
 void CSvcTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -77,7 +79,7 @@ void CSvcTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eSvc);
 
-	Data.Write(API_V_SVC_TAG, m_SvcTag);
+	Data.Write(API_V_SERVICE_TAG, m_SvcTag);
 }
 
 void CTaskTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -86,8 +88,8 @@ void CTaskTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eTask);
 
-	Data.Write(API_V_TWEAK_FOLDER, m_Folder);
-	Data.Write(API_V_TWEAK_ENTRY, m_Entry);
+	Data.Write(API_V_FOLDER, m_Folder);
+	Data.Write(API_V_ENTRY, m_Entry);
 }
 
 void CFSTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -96,7 +98,7 @@ void CFSTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eFS);
 
-	Data.Write(API_V_TWEAK_PATH, m_PathPattern);
+	Data.Write(API_V_FILE_PATH, m_PathPattern);
 }
 
 void CExecTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -105,7 +107,7 @@ void CExecTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eExec);
 
-	Data.Write(API_V_TWEAK_PATH, m_PathPattern);
+	Data.Write(API_V_FILE_PATH, m_PathPattern);
 }
 
 void CFwTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -114,7 +116,7 @@ void CFwTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eFw);
 
-	Data.WriteVariant(API_V_TWEAK_PROG_ID, m_ProgID.ToVariant(Opts));
+	Data.WriteVariant(API_V_PROG_ID, m_ProgID.ToVariant(Opts));
 }
 
 #endif
@@ -181,8 +183,10 @@ void CTweakList::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	CVariant List;
 	List.BeginList();
-	for (auto I : m_List)
-		List.WriteVariant(I->ToVariant(Opts));
+	for (auto I : m_List) {
+		if (I->IsAvailable())
+			List.WriteVariant(I->ToVariant(Opts));
+	}
 	List.Finish();
 	Data.WriteVariant(API_S_TWEAK_LIST, List);
 }
@@ -214,9 +218,9 @@ void CRegTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_REG);
 
-	Data.Write(API_S_TWEAK_KEY, m_Key);
-	Data.Write(API_S_TWEAK_VALUE, m_Value);
-	Data.WriteVariant(API_S_TWEAK_DATA, m_Data);
+	Data.Write(API_S_REG_KEY, m_Key);
+	Data.Write(API_S_VALUE, m_Value);
+	Data.WriteVariant(API_S_DATA, m_Data);
 }
 
 void CGpoTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -225,9 +229,9 @@ void CGpoTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_GPO);
 
-	Data.Write(API_S_TWEAK_KEY, m_Key);
-	Data.Write(API_S_TWEAK_VALUE, m_Value);
-	Data.WriteVariant(API_S_TWEAK_DATA, m_Data);
+	Data.Write(API_S_REG_KEY, m_Key);
+	Data.Write(API_S_VALUE, m_Value);
+	Data.WriteVariant(API_S_DATA, m_Data);
 }
 
 void CSvcTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -236,7 +240,7 @@ void CSvcTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_SVC);
 
-	Data.Write(API_S_TWEAK_SVC_TAG, m_SvcTag);
+	Data.Write(API_S_SERVICE_TAG, m_SvcTag);
 }
 
 void CTaskTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -245,8 +249,8 @@ void CTaskTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_TASK);
 
-	Data.Write(API_S_TWEAK_FOLDER, m_Folder);
-	Data.Write(API_S_TWEAK_ENTRY, m_Entry);
+	Data.Write(API_S_FOLDER, m_Folder);
+	Data.Write(API_S_ENTRY, m_Entry);
 }
 
 void CFSTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -255,7 +259,7 @@ void CFSTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_FS);
 
-	Data.Write(API_S_TWEAK_PATH, m_PathPattern);
+	Data.Write(API_S_FILE_PATH, m_PathPattern);
 }
 
 void CExecTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -264,7 +268,7 @@ void CExecTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_EXEC);
 
-	Data.Write(API_S_TWEAK_PATH, m_PathPattern);
+	Data.Write(API_S_FILE_PATH, m_PathPattern);
 }
 
 void CFwTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
@@ -273,7 +277,7 @@ void CFwTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_FW);
 
-	Data.WriteVariant(API_S_TWEAK_PROG_ID, m_ProgID.ToVariant(Opts));
+	Data.WriteVariant(API_S_PROG_ID, m_ProgID.ToVariant(Opts));
 }
 
 #endif
@@ -326,39 +330,39 @@ void CTweak::FromVariant(const class XVariant& Tweak)
 		if (Type == ETweakType::eReg)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_TWEAK_KEY).AsQStr() + "\n" +
-				Tweak.Find(API_S_TWEAK_VALUE).AsQStr() + " = " + Tweak.Find(API_S_TWEAK_DATA).AsQStr();
+				Tweak.Find(API_S_REG_KEY).AsQStr() + "\n" +
+				Tweak.Find(API_S_VALUE).AsQStr() + " = " + Tweak.Find(API_S_DATA).AsQStr();
 		}
 		else if (m_Type == ETweakType::eGpo)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_TWEAK_KEY).AsQStr() + "\n" +
-				Tweak.Find(API_S_TWEAK_VALUE).AsQStr() + " = " + Tweak.Find(API_S_TWEAK_DATA).AsQStr();
+				Tweak.Find(API_S_REG_KEY).AsQStr() + "\n" +
+				Tweak.Find(API_S_VALUE).AsQStr() + " = " + Tweak.Find(API_S_DATA).AsQStr();
 		}
 		else if (m_Type == ETweakType::eSvc)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_TWEAK_SVC_TAG).AsQStr();
+				Tweak.Find(API_S_SERVICE_TAG).AsQStr();
 		}
 		else if (m_Type == ETweakType::eTask)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_TWEAK_FOLDER).AsQStr() + "\\" + Tweak.Find(API_S_TWEAK_ENTRY).AsQStr();
+				Tweak.Find(API_S_FOLDER).AsQStr() + "\\" + Tweak.Find(API_S_ENTRY).AsQStr();
 		}
 		else if (m_Type == ETweakType::eFS)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_TWEAK_PATH).AsQStr();
+				Tweak.Find(API_S_FILE_PATH).AsQStr();
 		}
 		else if (m_Type == ETweakType::eExec)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_TWEAK_PATH).AsQStr();
+				Tweak.Find(API_S_FILE_PATH).AsQStr();
 		}
 		else if (m_Type == ETweakType::eFw)
 		{
 			CProgramID ID;
-			ID.FromVariant(Tweak.Find(API_S_TWEAK_PROG_ID));
+			ID.FromVariant(Tweak.Find(API_S_PROG_ID));
 			m_Info = GetTypeStr() + ":\n" +
 				ID.ToString();
 		}
@@ -369,39 +373,39 @@ void CTweak::FromVariant(const class XVariant& Tweak)
 		if (Type == ETweakType::eReg)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_TWEAK_KEY).AsQStr() + "\n" +
-				Tweak.Find(API_V_TWEAK_VALUE).AsQStr() + " = " + Tweak.Find(API_V_TWEAK_DATA).AsQStr();
+				Tweak.Find(API_V_REG_KEY).AsQStr() + "\n" +
+				Tweak.Find(API_V_VALUE).AsQStr() + " = " + Tweak.Find(API_V_DATA).AsQStr();
 		}
 		else if (m_Type == ETweakType::eGpo)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_TWEAK_KEY).AsQStr() + "\n" +
-				Tweak.Find(API_V_TWEAK_VALUE).AsQStr() + " = " + Tweak.Find(API_V_TWEAK_DATA).AsQStr();
+				Tweak.Find(API_V_REG_KEY).AsQStr() + "\n" +
+				Tweak.Find(API_V_VALUE).AsQStr() + " = " + Tweak.Find(API_V_DATA).AsQStr();
 		}
 		else if (m_Type == ETweakType::eSvc)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_TWEAK_SVC_TAG).AsQStr();
+				Tweak.Find(API_V_SERVICE_TAG).AsQStr();
 		}
 		else if (m_Type == ETweakType::eTask)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_TWEAK_FOLDER).AsQStr() + "\\" + Tweak.Find(API_V_TWEAK_ENTRY).AsQStr();
+				Tweak.Find(API_V_FOLDER).AsQStr() + "\\" + Tweak.Find(API_V_ENTRY).AsQStr();
 		}
 		else if (m_Type == ETweakType::eFS)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_TWEAK_PATH).AsQStr();
+				Tweak.Find(API_V_FILE_PATH).AsQStr();
 		}
 		else if (m_Type == ETweakType::eExec)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_TWEAK_PATH).AsQStr();
+				Tweak.Find(API_V_FILE_PATH).AsQStr();
 		}
 		else if (m_Type == ETweakType::eFw)
 		{
 			CProgramID ID;
-			ID.FromVariant(Tweak.Find(API_V_TWEAK_PROG_ID));
+			ID.FromVariant(Tweak.Find(API_V_PROG_ID));
 			m_Info = GetTypeStr() + ":\n" +
 				ID.ToString();
 		}

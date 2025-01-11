@@ -71,7 +71,7 @@ void CServiceList::EnumServices()
         //if (service->ServiceStatusProcess.dwServiceType & SERVICE_DRIVER)
         //    continue; // for now we dont care about drivers
 
-        std::wstring Id = MkLower(service->lpServiceName); // its not case sensitive
+        std::wstring Key = MkLower(service->lpServiceName); // its not case sensitive
 
         std::wstring BinaryPath;
 
@@ -90,11 +90,11 @@ void CServiceList::EnumServices()
 
             if (ok) {
                 LPQUERY_SERVICE_CONFIGW config = (LPQUERY_SERVICE_CONFIGW)Buffer.GetBuffer();
-                BinaryPath = DosPathToNtPath(GetFileFromCommand(config->lpBinaryPathName));
+                BinaryPath = GetFileFromCommand(config->lpBinaryPathName);
             }
         }
 
-        auto F = OldList.find(Id);
+        auto F = OldList.find(Key);
         SServicePtr pService;
         if (F != OldList.end()) {
             pService = F->second;
@@ -108,11 +108,11 @@ void CServiceList::EnumServices()
         else
         {
             pService = SServicePtr(new SService());
-            pService->Id = service->lpServiceName;
+            pService->ServiceTag = service->lpServiceName;
             pService->Name = service->lpDisplayName;
 			pService->BinaryPath = BinaryPath;
 
-            m_List.insert(std::make_pair(Id, pService));
+            m_List.insert(std::make_pair(Key, pService));
             theCore->ProgramManager()->AddService(pService);
         }
         
@@ -140,28 +140,44 @@ void CServiceList::EnumServices()
 
 void CServiceList::SetProcessUnsafe(const SServicePtr& pService)
 {
-    std::wstring Id = MkLower(pService->Id);
+    std::wstring Key = MkLower(pService->ServiceTag);
 
-    m_Pids.insert(std::make_pair(pService->ProcessId, Id));
+    m_Pids.insert(std::make_pair(pService->ProcessId, Key));
     CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId, true);
     if (pProcess) {
-        pProcess->AddService(Id);
-        CWindowsServicePtr pService = theCore->ProgramManager()->GetService(Id);
-        pService->SetProcess(pProcess);
+        pProcess->AddService(Key);
+        CWindowsServicePtr pWinService = theCore->ProgramManager()->GetService(pService->ServiceTag);
+        pWinService->SetProcess(pProcess);
     }
 }
 
 void CServiceList::ClearProcessUnsafe(const SServicePtr& pService)
 {
-    std::wstring Id = MkLower(pService->Id);
+    std::wstring Key = MkLower(pService->ServiceTag);
 
-    mmap_erase(m_Pids, pService->ProcessId, Id);
+    mmap_erase(m_Pids, pService->ProcessId, Key);
 
     CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId);
     if (pProcess) {
-        pProcess->RemoveService(Id);
-        CWindowsServicePtr pService = theCore->ProgramManager()->GetService(Id, false);
-        if (pService)
-            pService->SetProcess(NULL);
+        pProcess->RemoveService(Key);
+        CWindowsServicePtr pWinService = theCore->ProgramManager()->GetService(pService->ServiceTag, false);
+        if (pWinService)
+            pWinService->SetProcess(NULL);
     }
+}
+
+std::set<std::wstring> CServiceList::GetServicesByPid(uint64 Pid) 
+{ 
+    std::unique_lock Lock(m_Mutex);
+    std::set<std::wstring> Services;
+    for (auto I = m_Pids.find(Pid); I != m_Pids.end() && I->first == Pid; ++I)
+        Services.insert(I->second);
+    return Services;
+}
+
+CServiceList::SServicePtr CServiceList::GetService(const std::wstring& ServiceTag) 
+{ 
+    std::unique_lock Lock(m_Mutex);
+    auto F = m_List.find(MkLower(ServiceTag)); 
+    return F != m_List.end() ? F->second : SServicePtr(); 
 }

@@ -1,5 +1,5 @@
 ﻿/*
-* Copyright (c) 2023-2024 David Xanatos, xanasoft.com
+* Copyright (c) 2023-2025 David Xanatos, xanasoft.com
 * All rights reserved.
 *
 * This file is part of MajorPrivacy.
@@ -173,8 +173,28 @@ public:
 	// replace
 	// split
 	// trim
-	// tolower
-	// toupper
+
+	void MakeUpper()
+	{
+		MakeExclusive();
+		if (!m_ptr || !m_ptr->Data)
+			return;
+		for (size_t i = 0; i < m_ptr->Length; i++) {
+			if((m_ptr->Data[i] >= (C)'a') && (m_ptr->Data[i] <= (C)'z'))
+				m_ptr->Data[i] -= 32;
+		}
+	}
+
+	void MakeLower()
+	{
+		MakeExclusive();
+		if (!m_ptr || !m_ptr->Data)
+			return;
+		for (size_t i = 0; i < m_ptr->Length; i++) {
+			if ((m_ptr->Data[i] >= (C)'A') && (m_ptr->Data[i] <= (C)'Z'))
+				m_ptr->Data[i] += 32;
+		}
+	}
 
 	size_t Find(const String& Str, size_t uStart = 0) const
 	{

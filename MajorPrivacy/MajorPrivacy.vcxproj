@@ -125,7 +125,7 @@
       <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -151,7 +151,7 @@
       <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -176,7 +176,7 @@
       <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -201,7 +201,7 @@
       <AdditionalDependencies>ntdll.lib;GeneralLibrary.lib;MiscHelpers.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -218,6 +218,8 @@
     <ClCompile Include="Core\Access\Handle.cpp" />
     <ClCompile Include="Core\Access\ResLogEntry.cpp" />
     <ClCompile Include="Core\API_Impl.cpp" />
+    <ClCompile Include="Core\Enclaves\Enclave.cpp" />
+    <ClCompile Include="Core\Enclaves\EnclaveManager.cpp" />
     <ClCompile Include="Core\GenericRule.cpp" />
     <ClCompile Include="Core\Network\DnsCacheEntry.cpp" />
     <ClCompile Include="Core\Network\FwRule.cpp" />
@@ -226,13 +228,12 @@
     <ClCompile Include="Core\Network\Socket.cpp" />
     <ClCompile Include="Core\Network\TrafficEntry.cpp" />
     <ClCompile Include="Core\PrivacyCore.cpp" />
-    <ClCompile Include="Core\Processes\Enclave.cpp" />
-    <ClCompile Include="Core\Processes\EnclaveList.cpp" />
     <ClCompile Include="Core\Processes\ExecLogEntry.cpp" />
     <ClCompile Include="Core\Processes\Process.cpp" />
     <ClCompile Include="Core\Processes\ProcessList.cpp" />
     <ClCompile Include="Core\Programs\AppInstallation.cpp" />
     <ClCompile Include="Core\Programs\AppPackage.cpp" />
+    <ClCompile Include="Core\Programs\ImageSignInfo.cpp" />
     <ClCompile Include="Core\Programs\ProgramLibrary.cpp" />
     <ClCompile Include="Core\Programs\ProgramRule.cpp" />
     <ClCompile Include="Core\Programs\ProgramFile.cpp" />
@@ -243,12 +244,10 @@
     <ClCompile Include="Core\Programs\ProgramPattern.cpp" />
     <ClCompile Include="Core\Programs\WindowsService.cpp" />
     <ClCompile Include="Core\TraceLogEntry.cpp" />
-    <ClCompile Include="Core\TraceLogUtils.cpp" />
     <ClCompile Include="Core\Tweaks\Tweak.cpp" />
     <ClCompile Include="Core\Tweaks\TweakManager.cpp" />
     <ClCompile Include="Core\Volumes\Volume.cpp" />
     <ClCompile Include="Core\Volumes\VolumeManager.cpp" />
-    <ClCompile Include="Helpers\FilePath.cpp" />
     <ClCompile Include="Helpers\IconCache.cpp" />
     <ClCompile Include="Helpers\SidResolver.cpp" />
     <ClCompile Include="Helpers\WinHelper.cpp" />
@@ -297,6 +296,7 @@
     <ClCompile Include="Views\HandleView.cpp" />
     <ClCompile Include="Views\InfoView.cpp" />
     <ClCompile Include="Views\IngressView.cpp" />
+    <ClCompile Include="Views\LibraryInfoView.cpp" />
     <ClCompile Include="Views\LibraryView.cpp" />
     <ClCompile Include="Views\ProgramRuleView.cpp" />
     <ClCompile Include="Views\ProcessTraceView.cpp" />
@@ -309,20 +309,29 @@
     <ClCompile Include="Views\SocketView.cpp" />
     <ClCompile Include="Views\TraceView.cpp" />
     <ClCompile Include="Views\TrafficView.cpp" />
+    <ClCompile Include="Views\TweakInfo.cpp" />
     <ClCompile Include="Views\TweakView.cpp" />
     <ClCompile Include="Views\VolumeView.cpp" />
     <ClCompile Include="Windows\AccessRuleWnd.cpp" />
+    <ClCompile Include="Windows\EnclaveWnd.cpp" />
     <ClCompile Include="Windows\FirewallRuleWnd.cpp" />
     <ClCompile Include="Windows\MountMgrWnd.cpp" />
     <ClCompile Include="Windows\OptionsTransferWnd.cpp" />
     <ClCompile Include="Windows\PopUpWindow.cpp" />
+    <ClCompile Include="Windows\ProgramPicker.cpp" />
     <ClCompile Include="Windows\ProgramRuleWnd.cpp" />
     <ClCompile Include="Windows\ProgramWnd.cpp" />
     <ClCompile Include="Windows\SettingsWindow.cpp" />
+    <ClCompile Include="Windows\SignatureDbWnd.cpp" />
     <ClCompile Include="Windows\VariantEditorWnd.cpp" />
     <ClCompile Include="Windows\VolumeWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Windows\SignatureDbWnd.h" />
+    <QtMoc Include="Windows\EnclaveWnd.h" />
+    <QtMoc Include="Views\LibraryInfoView.h" />
+    <QtMoc Include="Windows\ProgramPicker.h" />
+    <QtMoc Include="Views\TweakInfo.h" />
     <QtMoc Include="Windows\MountMgrWnd.h" />
     <QtMoc Include="Windows\VariantEditorWnd.h" />
     <QtMoc Include="Windows\OptionsTransferWnd.h" />
@@ -360,19 +369,19 @@
     <QtMoc Include="Core\Access\Handle.h" />
     <ClInclude Include="Core\Access\ResLogEntry.h" />
     <QtMoc Include="Core\GenericRule.h" />
+    <QtMoc Include="Core\Enclaves\Enclave.h" />
+    <QtMoc Include="Core\Enclaves\EnclaveManager.h" />
     <ClInclude Include="Core\Network\NetLogEntry.h" />
     <QtMoc Include="Windows\SettingsWindow.h" />
     <QtMoc Include="Core\Network\TrafficEntry.h" />
     <QtMoc Include="Core\Network\NetworkManager.h" />
     <QtMoc Include="Core\Programs\ProgramRule.h" />
-    <QtMoc Include="Core\Processes\Enclave.h" />
-    <QtMoc Include="Core\Processes\EnclaveList.h" />
     <ClInclude Include="Core\Processes\ExecLogEntry.h" />
     <QtMoc Include="Core\Processes\Process.h" />
     <QtMoc Include="Core\Processes\ProcessList.h" />
     <QtMoc Include="Core\Programs\ProgramLibrary.h" />
+    <ClInclude Include="Core\Programs\ImageSignInfo.h" />
     <ClInclude Include="Core\TraceLogEntry.h" />
-    <ClInclude Include="Core\TraceLogUtils.h" />
     <QtMoc Include="Models\TrafficModel.h" />
     <QtMoc Include="Views\TrafficView.h" />
     <QtMoc Include="Core\Tweaks\Tweak.h" />
@@ -429,7 +438,6 @@
     <QtMoc Include="Models\FwRuleModel.h" />
     <QtMoc Include="Models\SocketModel.h" />
     <QtMoc Include="Models\NetTraceModel.h" />
-    <ClInclude Include="Helpers\FilePath.h" />
     <QtMoc Include="Helpers\SidResolver.h" />
     <ClInclude Include="Helpers\IconCache.h" />
     <ClInclude Include="Helpers\WinHelper.h" />
@@ -447,9 +455,11 @@
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="Forms\AccessRuleWnd.ui" />
+    <QtUic Include="Forms\EnclaveWnd.ui" />
     <QtUic Include="Forms\FirewallRuleWnd.ui" />
     <QtUic Include="Forms\OptionsTransferWnd.ui" />
     <QtUic Include="Forms\PopUpWindow.ui" />
+    <QtUic Include="Forms\ProgramPicker.ui" />
     <QtUic Include="Forms\ProgramRuleWnd.ui" />
     <QtUic Include="Forms\ProgramWnd.ui" />
     <QtUic Include="Forms\SettingsWindow.ui" />

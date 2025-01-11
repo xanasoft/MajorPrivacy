@@ -14,17 +14,31 @@ public:
 	CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, const QString& VolumeRoot = QString(), const QString& VolumeImage = QString(), QWidget *parent = Q_NULLPTR);
 	~CAccessRuleWnd();
 
+	static QColor GetActionColor(EAccessRuleType Action);
+	static QColor GetStatusColor(EEventStatus Status);
+	static QString GetStatusStr(EEventStatus Status);
+
 signals:
 	void Closed();
 
 private slots:
 
+	void OnNameChanged(const QString& Text);
+	void OnPickProgram();
+	void OnPathChanged();
 	void OnProgramChanged();
+	void OnProgramPathChanged();
+	void OnActionChanged();
+
+	void BrowseFolder();
+	void BrowseFile();
 
 	void OnSaveAndClose();
 
 protected:
 	void closeEvent(QCloseEvent* e);
+
+	bool AddProgramItem(const CProgramItemPtr& pItem);
 
 	bool Save();
 
@@ -37,4 +51,9 @@ protected:
 private:
 	Ui::AccessRuleWnd ui;
 
+	bool m_HoldProgramPath = false;
+
+	void TryMakeName();
+	bool m_NameHold = true;
+	bool m_NameChanged = false;
 };

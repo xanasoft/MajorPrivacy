@@ -4,6 +4,7 @@
 #include "../Library/Common/Variant.h"
 #include "../Library/Helpers/ConfigIni.h"
 #include "../Library/Helpers/EvtUtil.h"
+#include "../Library/Common/ThreadPool.h"
 
 
 class CServiceCore
@@ -18,12 +19,20 @@ public:
 	CConfigIni*				Config()				{ return m_pConfig; }
 	void					Reconfigure(const std::string& Key);
 
+	bool					IsConfigDirty() const	{ return m_bConfigDirty; }
+	void					SetConfigDirty(bool bDirty = true) { m_bConfigDirty = bDirty; }
+	STATUS					CommitConfig();
+	STATUS					DiscardConfig();
+
 	class CEventLogger*		Log()					{ return m_pLog; }
 
 	class CPipeServer*		UserPipe()				{ return m_pUserPipe; }
 	class CAlpcPortServer*	UserPort()				{ return m_pUserPort; }
 
+	class CEnclaveManager*	EnclaveManager()		{ return m_pEnclaveManager; }
+
 	class CProgramManager*	ProgramManager()		{ return m_pProgramManager; }
+
 	class CProcessList*		ProcessList()			{ return m_pProcessList; }
 
 	class CAccessManager*	AccessManager()			{ return m_pAccessManager; }
@@ -41,6 +50,10 @@ public:
 	void					BroadcastMessage(uint32 MessageID, const CVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram = NULL);
 
 	HANDLE					GetThreadHandle() const { return m_hThread; }
+
+	static std::wstring		NormalizePath(std::wstring FilePath, bool bLowerCase = true);
+
+	CThreadPool*			ThreadPool()			{ return &m_Pool; }
 
 protected:
 	friend DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter);
@@ -70,15 +83,19 @@ protected:
 
 	HANDLE					m_hThread = NULL;
     HANDLE					m_hTimer = NULL;
-	bool					m_Terminate = false;
+	int						m_Shutdown = 0;
 	STATUS					m_InitStatus;
+	bool					m_bConfigDirty = false;	
 	
 	class CEventLogger*		m_pLog = NULL;
 
 	class CPipeServer*		m_pUserPipe = NULL;
 	class CAlpcPortServer*	m_pUserPort = NULL;
 	
+	class CEnclaveManager*	m_pEnclaveManager = NULL;
+
 	class CProgramManager*	m_pProgramManager = NULL;
+
 	class CProcessList*		m_pProcessList = NULL;
 
 	class CAccessManager*	m_pAccessManager = NULL;
@@ -112,6 +129,9 @@ protected:
 	std::map<uint32, SClientPtr> m_Clients;
 
 	uint64 m_LastStoreTime = 0;
+
+
+	CThreadPool				m_Pool;
 };
 
 extern CServiceCore* theCore;

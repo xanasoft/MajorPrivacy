@@ -27,7 +27,7 @@ public:
 		eName = 0,
 		eGrouping,
 		eIndex,
-		eStatus,
+		eEnabled,
 		eHitCount,
 		eProfiles,
 		eAction,

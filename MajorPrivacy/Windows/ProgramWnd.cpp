@@ -65,14 +65,14 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 		ui.txtName->setText(pProgram->GetName());
 		ui.txtInfo->setPlainText(pProgram->GetInfo());
 		ui.btnIcon->setIcon(pProgram->GetIcon());
-		m_IconFile = QString::fromStdWString(NtPathToDosPath(pProgram->GetIconFile().toStdWString())); // todo
+		m_IconFile = pProgram->GetIconFile();
 
-		QString Path = pProgram->GetPath(EPathType::eDisplay);
+		QString Path = pProgram->GetPath();
 		ui.txtPath->setText(Path);
 		
 		CWindowsServicePtr pService = pProgram.objectCast<CWindowsService>();
 		if(pService)
-			ui.txtService->setText(pService->GetSvcTag());
+			ui.txtService->setText(pService->GetServiceTag());
 		
 		CAppPackagePtr pPackage = pProgram.objectCast<CAppPackage>();
 		if(pPackage)
@@ -161,13 +161,13 @@ void CProgramWnd::OnSaveAndClose()
 		else if (Path.contains("*"))
 		{	
 			CProgramPatternPtr pPattern = CProgramPatternPtr(new CProgramPattern());
-			pPattern->SetPattern(Path, EPathType::eAuto);
+			pPattern->SetPattern(Path);
 			pProgram = pPattern;
 		}
 		else
 		{
 			CProgramFilePtr pFile = CProgramFilePtr(new CProgramFile());
-			pFile->SetPath(Path, EPathType::eAuto);
+			pFile->SetPath(Path);
 			pProgram = pFile;
 		}
 		CProgramID ID(pProgram->GetType());

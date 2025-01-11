@@ -16,6 +16,75 @@
 #include "../../Library/Helpers/SID.h"
 #include "../../Library/Helpers/AppUtil.h"
 #include "../../Library/Helpers/NtUtil.h"
+#include "../../Library/Helpers/CertUtil.h"
+
+//static inline uint16_t reverseBits16(uint16_t x)
+//{
+//	x = (uint16_t)(((x & 0x5555U) << 1) | ((x & 0xAAAAU) >> 1));
+//	x = (uint16_t)(((x & 0x3333U) << 2) | ((x & 0xCCCCU) >> 2));
+//	x = (uint16_t)(((x & 0x0F0FU) << 4) | ((x & 0xF0F0U) >> 4));
+//	x = (uint16_t)((x << 8) | (x >> 8));
+//	return x;
+//}
+//
+//static inline uint32_t reverseBits32(uint32_t x)
+//{
+//	x = ((x & 0x55555555UL) << 1)  | ((x & 0xAAAAAAAAUL) >> 1);
+//	x = ((x & 0x33333333UL) << 2)  | ((x & 0xCCCCCCCCUL) >> 2);
+//	x = ((x & 0x0F0F0F0FUL) << 4)  | ((x & 0xF0F0F0F0UL) >> 4);
+//	x = ((x & 0x00FF00FFUL) << 8)  | ((x & 0xFF00FF00UL) >> 8);
+//	x = (x << 16) | (x >> 16);
+//	return x;
+//}
+//
+//static inline uint64_t reverseBits64(uint64_t x)
+//{
+//	x = ((x & 0x5555555555555555ULL) << 1)  | ((x & 0xAAAAAAAAAAAAAAAAULL) >> 1); // Swap odd and even bits
+//	x = ((x & 0x3333333333333333ULL) << 2)  | ((x & 0xCCCCCCCCCCCCCCCCULL) >> 2); // Swap consecutive pairs (2-bit groups)
+//	x = ((x & 0x0F0F0F0F0F0F0F0FULL) << 4)  | ((x & 0xF0F0F0F0F0F0F0F0ULL) >> 4); // Swap nibbles (4-bit groups)
+//	x = ((x & 0x00FF00FF00FF00FFULL) << 8)  | ((x & 0xFF00FF00FF00FF00ULL) >> 8); // Swap bytes
+//	x = ((x & 0x0000FFFF0000FFFFULL) << 16) | ((x & 0xFFFF0000FFFF0000ULL) >> 16); // Swap 16-bit halves
+//	x = (x << 32) | (x >> 32); 	// Swap 32-bit halves
+//	return x;
+//}
+
+SProcessUID::SProcessUID(uint64 uPid, uint64 msTime)
+{
+	//
+	// Note: On Windows PID's are 32-bit and word aligned i.e. the least significant 2 bits are always 0 hence we can drop them
+	//
+
+	// Variant A
+	//
+	// 11111111 11111111 1111 1111 111111 00                                     - PID
+	// 00000000 00000000 0000(0000 000000)00 00000000 00000000 00000000 00000000 - uint64 - PID (shared msb bits) timestamp in miliseconds
+	//					      1111 111111 11 11111111 11111111 11111111 11111111 - unix timestamp (Jun 2527)
+	//                           1 100101 00 00100110 01000000 01010010 01111101 - unix timestamp (Jan 2025)
+	//
+	// rev_PID_LSB       (rev_PID_MSB Time_MSB)                         Time_LSB
+	//
+	//PUID = reverseBits64(((uPid & 0xFFFFFFFC) >> 2)) ^ (msTime & 0x00000FFFFFFFFFFF);
+
+	// Variant B
+	//
+	// 11111111 11111111 11111111 11111100                                     - PID
+	// 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 - uint64 - 30 bit Pid, 34 bit timestamp in seconds
+	//                                  11 11111111 11111111 11111111 11111111 - unix timestamp (May 2514)
+	//										1100111 01110110 01010110 00011001 - unix timestamp (Jan 2025)
+	//
+	//PUID = ((uPid & 0xFFFFFFFC) << 32) | ((msTime/1000llu) & 0x00000003FFFFFFFF);
+
+	// Variant C
+	//
+	// 11111111 11111111 11111100                                              - PID
+	// 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 - uint64 - 22 bit Pid, 42 bit timestamp in seconds
+	//                         11 11111111 11111111 11111111 11111111 11111111 - unix timestamp (May 2109) - 3FFFFFFFFFF - 4398046511103
+	//                         01 10010100 00100110 01000000 01010010 01111101 - unix timestamp (Jan 2025)
+	//
+	PUID = (((uPid) << 40) & 0xFFFFFC0000000000) ^ (msTime & 0x000003FFFFFFFFFF);
+
+	// Variant C seams best, 2109 is far enough in the future and we have no slow integer division, even though the PID gets truncated a bit
+}
 
 const wchar_t* CProcess::NtOsKernel_exe = L"\\SystemRoot\\System32\\ntoskrnl.exe";
 
@@ -45,19 +114,17 @@ bool CProcess::Init()
 
 		m_ParentPid = Data->ParentPid;
 		m_Name = Data->ImageName;
-		m_FileName = Data->FileName;
-		if(m_FileName.empty() && m_Pid == NT_OS_KERNEL_PID)
-			m_FileName = NormalizeFilePath(NtOsKernel_exe);
+		m_NtFilePath = Data->FileName;
+		if(m_NtFilePath.empty() && m_Pid == NT_OS_KERNEL_PID)
+			m_NtFilePath = std::wstring(NtOsKernel_exe);
 		ASSERT(!m_Name.empty());
-		ASSERT(!m_FileName.empty());
-		if (m_FileName.empty())
-			m_FileName = L"UNKNOWN_FILENAME";
+		ASSERT(!m_NtFilePath.empty());
+		if (m_NtFilePath.empty())
+			m_NtFilePath = L"UNKNOWN_FILENAME";
 
 		// driver specific fields
-		//m_ImageHash = Data->FileHash;
-		m_EnclaveId = Data->EnclaveId;
+		m_EnclaveGuid = Data->Enclave;
 		m_SecState = Data->SecState;
-
 		m_Flags = Data->Flags;
 		m_SecFlags = Data->SecFlags;
 
@@ -70,18 +137,18 @@ bool CProcess::Init()
 	}
 	else
 	{
-		m_FileName = GetProcessImageFileNameByProcessId((HANDLE)m_Pid);
-		if (m_FileName.empty()) {
-			m_Name = m_FileName = L"UNKNOWN_FILENAME";
+		m_NtFilePath = GetProcessImageFileNameByProcessId((HANDLE)m_Pid);
+		if (m_NtFilePath.empty()) {
+			m_Name = m_NtFilePath = L"UNKNOWN_FILENAME";
 			return false;
 		}
-		m_Name = GetFileNameFromPath(m_FileName);
+		m_Name = GetFileNameFromPath(m_NtFilePath);
 	}
 
-	if(m_FileName == L"MemCompression")
-		m_FileName = NormalizeFilePath(NtOsKernel_exe) + L"\\MemCompression";
-	else if(m_FileName == L"Registry")
-		m_FileName = NormalizeFilePath(NtOsKernel_exe) + L"\\Registry";
+	if(m_NtFilePath == L"MemCompression")
+		m_NtFilePath = std::wstring(NtOsKernel_exe) + L"\\MemCompression";
+	else if(m_NtFilePath == L"Registry")
+		m_NtFilePath = std::wstring(NtOsKernel_exe) + L"\\Registry";
 
 	return InitOther();
 }
@@ -95,13 +162,13 @@ bool CProcess::Init(PSYSTEM_PROCESS_INFORMATION process, bool bFullProcessInfo)
 	m_ParentPid = (uint64)process->InheritedFromUniqueProcessId;
 	if (bFullProcessInfo)
 	{
-		m_FileName = std::wstring(process->ImageName.Buffer, process->ImageName.Length / sizeof(wchar_t));
+		m_NtFilePath = std::wstring(process->ImageName.Buffer, process->ImageName.Length / sizeof(wchar_t));
 
-		m_Name = GetFileNameFromPath(m_FileName);
+		m_Name = GetFileNameFromPath(m_NtFilePath);
 	}
 	else
 	{
-		m_FileName = GetProcessImageFileNameByProcessId((HANDLE)m_Pid);
+		m_NtFilePath = GetProcessImageFileNameByProcessId((HANDLE)m_Pid);
 
 		m_Name = std::wstring(process->ImageName.Buffer, process->ImageName.Length / sizeof(wchar_t));
 	}
@@ -116,8 +183,6 @@ bool CProcess::Init(PSYSTEM_PROCESS_INFORMATION process, bool bFullProcessInfo)
 
 	SetRawCreationTime(process->CreateTime.QuadPart);
 
-	//m_ImageHash = // compute ourselves?
-
 	return InitOther();
 }
 
@@ -130,7 +195,7 @@ void CProcess::SetRawCreationTime(uint64 TimeStamp)
 bool CProcess::InitOther()
 {
 	if (m_Pid == NT_OS_KERNEL_PID)
-		m_FileName = NormalizeFilePath(NtOsKernel_exe);
+		m_NtFilePath = std::wstring(NtOsKernel_exe);
 
 	CScopedHandle hProcess = CScopedHandle(OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, (DWORD)m_Pid), CloseHandle);
 	if (!hProcess) // try with less rights
@@ -223,7 +288,7 @@ bool CProcess::InitLibs()
 	if (!hProcess)
 		return false;
 
-	std::wstring ProgramPath = NormalizeFilePath(GetFileName());
+	std::wstring ProgramPath = theCore->NormalizePath(GetNtFilePath());
 
 	for (PVOID baseAddress = (PVOID)0;baseAddress != (PVOID)-1;)
 	{
@@ -260,15 +325,25 @@ bool CProcess::InitLibs()
 		if (NT_SUCCESS(status))
 		{
 			auto pUnicodeString = (PUNICODE_STRING)buffer.data();
-			std::wstring ModulePath = NormalizeFilePath(std::wstring(pUnicodeString->Buffer, pUnicodeString->Length / sizeof(wchar_t)));
+			std::wstring ModulePath = theCore->NormalizePath(std::wstring(pUnicodeString->Buffer, pUnicodeString->Length / sizeof(wchar_t)), false);
+		
+			CProgramFilePtr pProgram = GetProgram();
+			bool bIsProcess = ProgramPath == MkLower(ModulePath);
+			if (!bIsProcess && pProgram) 
+			{
+				CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibrary(ModulePath, true);
 
-			bool bIsProcess = ProgramPath == ModulePath;
-			if(bIsProcess)
-				continue;
-
-			CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibrary(ModulePath, true);
-
-			GetProgram()->AddLibrary(pLibrary, GetCurrentTimeAsFileTime(), KphUntestedAuthority, 0, 0, EEventStatus::eUntrusted);
+				AddLibrary(pLibrary);
+				pProgram->AddLibrary(m_EnclaveGuid, pLibrary, GetCurrentTimeAsFileTime());
+				//if (pProgram->HashInfoUnknown(pLibrary))
+				//{
+				//	theCore->ThreadPool()->enqueueTask([pProgram, pLibrary](const std::wstring& ModulePath) {
+				//		SVerifierInfo VerifyInfo;
+				//		MakeVerifyInfo(ModulePath, VerifyInfo);
+				//		pProgram->AddLibrary(pLibrary, 0, &VerifyInfo);
+				//	}, ModulePath);
+				//}
+			}
 		}
 	}
 	return true;
@@ -283,13 +358,69 @@ std::wstring CProcess::GetWorkDir() const
 	return GetPebString(hProcess, AppCurrentDirectory);
 }
 
-void CProcess::UpdateSignInfo(KPH_VERIFY_AUTHORITY SignAuthority, uint32 SignLevel, uint32 SignPolicy)
+void CProcess::UpdateSignInfo(const struct SVerifierInfo* pVerifyInfo)
 {
 	std::unique_lock lock(m_Mutex);
 
-	m_SignInfo.Authority = (uint8)SignAuthority;
-	if(SignLevel) m_SignInfo.Level = (uint8)SignLevel;
-	if(SignPolicy) m_SignInfo.Policy = SignPolicy;
+	m_SignInfo.Update(pVerifyInfo);
+}
+
+bool CProcess::HashInfoUnknown() const
+{
+	std::shared_lock lock(m_Mutex);
+
+	return m_SignInfo.GetHashStatus() == EHashStatus::eHashUnknown;
+}
+
+bool CProcess::MakeVerifyInfo(const std::wstring& ModulePath, SVerifierInfo& VerifyInfo)
+{
+	/*SVerifierInfo VerifyInfo;
+	SEmbeddedCIInfoPtr pEmbeddedInfo = GetEmbeddedCIInfo(ModulePath);
+	if (pEmbeddedInfo && pEmbeddedInfo->EmbeddedSignatureValid && !pEmbeddedInfo->EmbeddedSigners.empty()) 
+	{
+		VerifyInfo.VerificationFlags |= KPH_VERIFY_FLAG_CI_SIG_DUMMY;
+		if (!pEmbeddedInfo->EmbeddedSigners[0]->SHA256.empty())
+			VerifyInfo.SignerHash = pEmbeddedInfo->EmbeddedSigners[0]->SHA256;
+		else
+			VerifyInfo.SignerHash = pEmbeddedInfo->EmbeddedSigners[0]->SHA1;
+		VerifyInfo.SignerName = std::string(pEmbeddedInfo->EmbeddedSigners[0]->Subject.begin(), pEmbeddedInfo->EmbeddedSigners[0]->Subject.end());
+	}
+	else 
+	{
+		SCatalogCIInfoPtr pCatalogInfo = GetCatalogCIInfo(ModulePath);
+		if (pCatalogInfo && !pCatalogInfo->CatalogSigners.empty()) 
+		{
+			auto pCatalog = pCatalogInfo->CatalogSigners.begin()->second;
+			if (!pCatalog.empty()) 
+			{
+				VerifyInfo.VerificationFlags |= KPH_VERIFY_FLAG_CI_SIG_DUMMY;
+				if (!pCatalog[0]->SHA256.empty())
+					VerifyInfo.SignerHash = pCatalog[0]->SHA256;
+				else
+					VerifyInfo.SignerHash = pCatalog[0]->SHA1;
+				VerifyInfo.SignerName = std::string(pCatalog[0]->Subject.begin(), pCatalog[0]->Subject.end());
+			}
+		}
+	}*/
+
+	SCICertificatePtr pCIInfo = GetCIInfo(ModulePath);
+	VerifyInfo.VerificationFlags |= KPH_VERIFY_FLAG_CI_SIG_DUMMY;
+
+	// todo hash file
+
+	if (!pCIInfo) 
+		return false;
+
+	if (!pCIInfo->SHA256.empty())
+		VerifyInfo.SignerHash = pCIInfo->SHA256;
+	else
+		VerifyInfo.SignerHash = pCIInfo->SHA1;
+#pragma warning(push)
+#pragma warning(disable : 4244)
+	VerifyInfo.SignerName = std::string(pCIInfo->Subject.begin(), pCIInfo->Subject.end());
+#pragma warning(pop)
+
+	return true;
 }
 
 bool CProcess::Update()
@@ -324,8 +455,16 @@ void CProcess::UpdateMisc()
 		auto Data = Result.GetValue();
 
 		// driver specific fields
-		//m_ImageHash = Data->FileHash;
-		m_EnclaveId = Data->EnclaveId;
+		if (m_EnclaveGuid.IsNull() && !Data->Enclave.empty()) {
+
+			//
+			// With the new driver behavioure this should no logner happen
+			//
+
+			DbgPrint(L"Enclave GUID selayed set for process %s\n", m_Name.c_str());
+
+			m_EnclaveGuid = Data->Enclave;
+		}
 		m_SecState = Data->SecState;
 
 		m_Flags = Data->Flags;
@@ -338,10 +477,10 @@ void CProcess::UpdateMisc()
 		m_NumberOfSignedImageLoads = Data->NumberOfSignedImageLoads;
 		m_NumberOfUntrustedImageLoads = Data->NumberOfUntrustedImageLoads;
 
-		if (!m_SignInfo.Data) {
+		if (!m_SignInfo.GetRawInfo()) {
 			KPH_PROCESS_SFLAGS kSFlags;
 			kSFlags.SecFlags = m_SecFlags;
-			m_SignInfo.Authority = kSFlags.SignatureAuthority;
+			m_SignInfo.SetAuthority(kSFlags.SignatureAuthority);
 		}
 	}
 
@@ -410,7 +549,7 @@ void CProcess::AddNetworkIO(int Type, uint32 TransferSize)
 	}
 }
 
-CVariant CProcess::ToVariant() const
+CVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
 {
 	std::shared_lock Lock(m_Mutex);
 
@@ -423,25 +562,24 @@ CVariant CProcess::ToVariant() const
 	Process.Write(API_V_PARENT_PID, m_ParentPid);
 	
 	Process.Write(API_V_NAME, m_Name);
-	Process.Write(API_V_FILE_PATH, m_FileName);
+	Process.Write(API_V_FILE_NT_PATH, m_NtFilePath);
 	Process.Write(API_V_CMD_LINE, m_CommandLine);
-	//Process.Write(API_V_HASH, m_ImageHash);
 
-	Process.Write(API_V_EID, m_EnclaveId);
-	Process.Write(API_V_SEC, m_SecState);
+	Process.WriteVariant(API_V_ENCLAVE, m_EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+	Process.Write(API_V_KPP_STATE, m_SecState);
 
 	Process.Write(API_V_FLAGS, m_Flags);
 	Process.Write(API_V_SFLAGS, m_SecFlags);
 	
-	Process.Write(API_V_SIGN_INFO, m_SignInfo.Data);
-	Process.Write(API_V_N_IMG, m_NumberOfImageLoads);
-	Process.Write(API_V_N_MS_IMG, m_NumberOfMicrosoftImageLoads);
-	Process.Write(API_V_N_AV_IMG, m_NumberOfAntimalwareImageLoads);
-	Process.Write(API_V_N_V_IMG, m_NumberOfVerifiedImageLoads);
-	Process.Write(API_V_N_S_IMG, m_NumberOfSignedImageLoads);
-	Process.Write(API_V_N_U_IMG, m_NumberOfUntrustedImageLoads);
+	Process.WriteVariant(API_V_SIGN_INFO, m_SignInfo.ToVariant(Opts));
+	Process.Write(API_V_NUM_IMG, m_NumberOfImageLoads);
+	Process.Write(API_V_NUM_MS_IMG, m_NumberOfMicrosoftImageLoads);
+	Process.Write(API_V_NUM_AV_IMG, m_NumberOfAntimalwareImageLoads);
+	Process.Write(API_V_NUM_V_IMG, m_NumberOfVerifiedImageLoads);
+	Process.Write(API_V_NUM_S_IMG, m_NumberOfSignedImageLoads);
+	Process.Write(API_V_NUM_U_IMG, m_NumberOfUntrustedImageLoads);
 
-	Process.Write(API_V_SVCS, m_ServiceList);
+	Process.Write(API_V_SERVICES, m_ServiceList);
 
 	Process.Write(API_V_APP_SID, m_AppContainerSid);
 	Process.Write(API_V_APP_NAME, m_AppContainerName);
@@ -449,7 +587,7 @@ CVariant CProcess::ToVariant() const
 
 	Process.Write(API_V_USER_SID, m_UserSid);
 
-	Process.Write(API_V_SOCK_LAST_ACT, m_LastNetActivity);
+	Process.Write(API_V_SOCK_LAST_NET_ACT, m_LastNetActivity);
 	
 	Lock.unlock();
 

@@ -16,10 +16,6 @@ public:
 	EExecRuleType GetType() const					{return m_Type;}
 	QString GetTypeStr() const;
 	KPH_VERIFY_AUTHORITY GetSignatureLevel() const	{return m_SignatureLevel;}
-	static QString GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority);
-	EProgramOnSpawn GetOnTrustedSpawn() const		{return m_OnTrustedSpawn;}
-	EProgramOnSpawn GetOnSpawn() const				{return m_OnSpawn;}
-	static QString GetOnSpawnStr(EProgramOnSpawn OnSpawn);
 	bool GetImageLoadProtection() const				{return m_ImageLoadProtection;}
 
 	CProgramRule* Clone() const;
@@ -36,8 +32,6 @@ protected:
 	QString m_ProgramPath;
 	QString m_ProgramNtPath;
 	KPH_VERIFY_AUTHORITY m_SignatureLevel = KPH_VERIFY_AUTHORITY::KphUntestedAuthority;
-	EProgramOnSpawn m_OnTrustedSpawn = EProgramOnSpawn::eAllow;
-	EProgramOnSpawn m_OnSpawn = EProgramOnSpawn::eEject;
 	bool m_ImageLoadProtection = true;
 };
 

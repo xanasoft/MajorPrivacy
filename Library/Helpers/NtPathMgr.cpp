@@ -94,16 +94,16 @@ std::wstring CNtPathMgr::TranslateDosToNtPath(std::wstring DosPath)
     // Network path L"\\..."
     //
 
-    if (DosPath.size() >= 2 && DosPath[0] == L'\\' && DosPath[1] == L'\\')
-    {
-        return CNtPathMgr__Mup + DosPath.substr(2);
-    }
+    //if (DosPath.length() >= 2 && DosPath[0] == L'\\' && DosPath[1] == L'\\')
+    //{
+    //    return CNtPathMgr__Mup + DosPath.substr(2);
+    //}
 
     //
 	// Dos Path L"X:\..."
     //
 
-    if (!(DosPath.size() >= 3 && DosPath[1] == L':' && (DosPath[2] == L'\\' || DosPath[2] == L'\0')))
+    if (!(DosPath.length() >= 2 && DosPath[1] == L':' && (DosPath.length() == 2 || DosPath[2] == L'\\')))
 		return L"";
 
     //
@@ -154,10 +154,10 @@ std::wstring CNtPathMgr::TranslateNtToDosPath(std::wstring NtPath)
     // Network path L"\device\mup\..."
     //
 
-    if (_wcsnicmp(NtPath.c_str(), CNtPathMgr__Mup, CNtPathMgr__MupLen) == 0)
-    {
-        return L"\\\\" + NtPath.substr(CNtPathMgr__MupLen);
-    }
+    //if (_wcsnicmp(NtPath.c_str(), CNtPathMgr__Mup, CNtPathMgr__MupLen) == 0)
+    //{
+    //    return L"\\\\" + NtPath.substr(CNtPathMgr__MupLen);
+    //}
 
     //
     // Find Drive Letter
@@ -431,6 +431,13 @@ ULONG CNtPathMgr::GetVolumeSN(const std::wstring& DriveNtPath)
     }
 
     return sn;
+}
+
+bool CNtPathMgr::IsDosPath(const std::wstring& Path)
+{
+	if (!(Path.length() >= 2 && Path[1] == L':' && (Path.length() == 2 || Path[2] == L'\\')))
+		return false;
+    return (Path[0] >= L'A' && Path[0] <= L'Z') || (Path[0] >= L'a' && Path[0] <= L'z');
 }
 
 void CNtPathMgr::AddDrive(WCHAR DriveLetter, const std::wstring& DevicePath, bool subst)

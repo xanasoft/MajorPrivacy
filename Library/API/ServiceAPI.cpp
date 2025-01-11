@@ -187,7 +187,31 @@ uint32 CServiceAPI::GetABIVersion()
 	return version;
 }
 
-void CServiceAPI::TestSvc()
+uint32 CServiceAPI::GetConfigStatus()
 {
+    CVariant ReqVar;
 
+    auto Ret = m_pClient->Call(SVC_API_GET_CONFIG_STATUS, ReqVar);
+    if (Ret.IsError())
+        return false;
+
+    CVariant ResVar = Ret.GetValue();
+
+    return ResVar.To<uint32>();
+}
+
+STATUS CServiceAPI::CommitConfigChanges(const CBuffer& ConfigSignature)
+{
+	CVariant ReqVar;
+    if(ConfigSignature.GetSize() > 0)
+	    ReqVar[API_V_SIGNATURE] = ConfigSignature;
+
+	return m_pClient->Call(SVC_API_COMMIT_CONFIG, ReqVar);
+}
+
+STATUS CServiceAPI::DiscardConfigChanges()
+{
+	CVariant ReqVar;
+
+	return m_pClient->Call(SVC_API_DISCARD_CHANGES, ReqVar);
 }

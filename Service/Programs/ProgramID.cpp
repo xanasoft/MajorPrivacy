@@ -7,8 +7,32 @@
 
 const std::wstring CProgramID::m_empty;
 
-CProgramID::CProgramID()
+CProgramID::CProgramID(EProgramType Type)
 {
+	m_Type = Type;
+}
+
+CProgramID::CProgramID(const std::wstring& Value, EProgramType Type)
+{
+	if (Type == EProgramType::eUnknown) {
+		if(Value.empty() || Value == L"*")
+			m_Type = EProgramType::eAllPrograms;
+		else if (Value.find(L'*') != std::wstring::npos)
+			m_Type = EProgramType::eFilePattern;
+		else
+			m_Type = EProgramType::eProgramFile;
+	} else
+		m_Type = Type;
+
+	switch (m_Type)
+	{
+	case EProgramType::eProgramFile:		m_FilePath = Value; break;
+	case EProgramType::eFilePattern:		m_FilePath = Value; break;
+	case EProgramType::eWindowsService:		m_ServiceTag = Value; break;
+	case EProgramType::eAppInstallation:
+	case EProgramType::eAppPackage:
+	case EProgramType::eProgramGroup:		m_AuxValue = Value; break;
+	}
 }
 
 CProgramID::~CProgramID()
@@ -28,42 +52,45 @@ bool CProgramID::operator ==(const CProgramID& ID) const
 	return true;
 }
 
-void CProgramID::Set(EProgramType Type, const std::wstring& Value)
+CProgramID CProgramID::FromFw(const std::wstring& FilePath, const std::wstring& ServiceTag, const std::wstring& AppContainerSid)
 {
-	m_Type = Type;
-	switch (m_Type)
-	{
-	case EProgramType::eProgramFile:		m_FilePath = NormalizeFilePath(Value); break;
-	case EProgramType::eFilePattern:		m_FilePath = NormalizeFilePath(Value); break;
-	case EProgramType::eAppInstallation:	m_AuxValue = MkLower(Value); break;
-	case EProgramType::eWindowsService:		m_ServiceTag = MkLower(Value); break;
-	case EProgramType::eProgramGroup:		m_AuxValue = MkLower(Value); break;
-	case EProgramType::eAppPackage:			m_AuxValue = MkLower(Value); break;
-	}
-}
-
-void CProgramID::Set(const std::wstring& FilePath, const std::wstring& ServiceTag, const std::wstring& AppContainerSid)
-{
+	CProgramID ID;
 	if (!AppContainerSid.empty())
-		m_Type = EProgramType::eAppPackage;
+		ID.m_Type = EProgramType::eAppPackage;
 	else if (!ServiceTag.empty())
-		m_Type = EProgramType::eWindowsService;
+		ID.m_Type = EProgramType::eWindowsService;
 	else if (!FilePath.empty())
-		m_Type = EProgramType::eProgramFile;
+		ID.m_Type = EProgramType::eProgramFile;
 	else
-		m_Type = EProgramType::eAllPrograms;
+		ID.m_Type = EProgramType::eAllPrograms;
 
-	m_FilePath = NormalizeFilePath(FilePath);
-	m_ServiceTag = MkLower(ServiceTag);
-	m_AuxValue = MkLower(AppContainerSid);
+	ID.m_FilePath = theCore->NormalizePath(FilePath);
+	ID.m_ServiceTag = MkLower(ServiceTag);
+	ID.m_AuxValue = MkLower(AppContainerSid);
+
+	return ID;
 }
 
-void CProgramID::SetPath(const std::wstring& FilePath)
+const std::wstring& CProgramID::GetAppContainerSid() const 
 {
-	if(FilePath.empty() || FilePath == L"*")
-		m_Type = EProgramType::eAllPrograms;
-	else {
-		m_Type = FilePath.find(L"*") != -1 ? EProgramType::eFilePattern : EProgramType::eProgramFile;
-		m_FilePath = NormalizeFilePath(FilePath);
-	}
+	if (m_Type == EProgramType::eAppPackage) 
+		return m_AuxValue;
+	ASSERT(0);
+	return m_empty;
+}
+
+const std::wstring& CProgramID::GetGuid() const 
+{
+	if (m_Type == EProgramType::eProgramGroup) 
+		return m_AuxValue;
+	ASSERT(0);
+	return m_empty;
+}
+
+const std::wstring& CProgramID::GetRegKey() const 
+{
+	if (m_Type == EProgramType::eAppInstallation) 
+		return m_AuxValue;
+	ASSERT(0);
+	return m_empty;
 }

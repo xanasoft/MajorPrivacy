@@ -7,6 +7,7 @@
 #include "../../Helpers/WinHelper.h"
 #include "../Driver/KSI/include/kphapi.h"
 #include "../../Library/Helpers/SID.h"
+#include "../Enclaves/EnclaveManager.h"
 
 
 CProcess::CProcess(quint32 Pid, QObject* parent)
@@ -50,32 +51,30 @@ void CProcess::FromVariant(const class XVariant& Process)
 		case API_V_CREATE_TIME:		m_CreationTime = Data; break;
 		case API_V_PARENT_PID:		m_ParentPid = Data; break;
 
-		case API_V_NAME:		m_Name = Data.AsQStr(); break;
-		case API_V_FILE_PATH:
+		case API_V_NAME:			m_Name = Data.AsQStr(); break;
+		case API_V_FILE_NT_PATH:
 		{
-			bool bInitIcon = m_Path.IsEmpty();
-			m_Path.Set(Data.AsQStr(), EPathType::eNative);
-
-			if (bInitIcon && !m_Path.IsEmpty())
+			QString NtFileName = Data.AsQStr();
+			if (m_NtFileName != NtFileName)
 			{
-				QString Path = m_Path.Get(EPathType::eWin32);
-				m_Icon = LoadWindowsIconEx(Path, 0);
-				if (m_Icon.availableSizes().isEmpty())
-					m_Icon = DefaultIcon();
+				if (m_NtFileName.isEmpty() && !NtFileName.isEmpty()) {
+					m_Icon = LoadWindowsIconEx(theCore->NormalizePath(NtFileName), 0);
+					if (m_Icon.availableSizes().isEmpty())
+						m_Icon = DefaultIcon();
+				}
+				m_NtFileName = NtFileName;
 			}
 			break;
 		}
 
 		case API_V_CMD_LINE:	m_CmdLine = Data.AsQStr(); break;
 
-		//case API_V_HASH:		m_ImageHash = Data.AsQBytes(); break;
-
 		case API_V_APP_SID:		m_AppContainerSid = Data.AsQStr(); break;
 		case API_V_APP_NAME:	m_AppContainerName = Data.AsQStr(); break;
 		case API_V_PACK_NAME:	m_PackageFullName = Data.AsQStr(); break;
 
-		case API_V_EID:			m_EnclaveId = Data; break;
-		case API_V_SEC:			m_SecState = Data; break;
+		case API_V_ENCLAVE:		m_EnclaveGuid.FromVariant(Data); break;
+		case API_V_KPP_STATE:	m_SecState = Data; break;
 
 		case API_V_USER_SID: {
 			m_UserSid = Data.AsQStr(); 
@@ -89,15 +88,16 @@ void CProcess::FromVariant(const class XVariant& Process)
 		case API_V_FLAGS:		m_Flags = Data; break;
 		case API_V_SFLAGS:		m_SecFlags = Data; break;
 
-		case API_V_SIGN_INFO:	m_SignInfo.Data = Data.To<uint64>(); break;
-		case API_V_N_IMG:		m_NumberOfImageLoads = Data; break;
-		case API_V_N_MS_IMG:	m_NumberOfMicrosoftImageLoads = Data; break;
-		case API_V_N_AV_IMG:	m_NumberOfAntimalwareImageLoads = Data; break;
-		case API_V_N_V_IMG:		m_NumberOfVerifiedImageLoads = Data; break;
-		case API_V_N_S_IMG:		m_NumberOfSignedImageLoads = Data; break;
-		case API_V_N_U_IMG:		m_NumberOfUntrustedImageLoads = Data; break;
+		case API_V_SIGN_INFO:	m_SignInfo.FromVariant(Data); break;
+		
+		case API_V_NUM_IMG:		m_NumberOfImageLoads = Data; break;
+		case API_V_NUM_MS_IMG:	m_NumberOfMicrosoftImageLoads = Data; break;
+		case API_V_NUM_AV_IMG:	m_NumberOfAntimalwareImageLoads = Data; break;
+		case API_V_NUM_V_IMG:	m_NumberOfVerifiedImageLoads = Data; break;
+		case API_V_NUM_S_IMG:	m_NumberOfSignedImageLoads = Data; break;
+		case API_V_NUM_U_IMG:	m_NumberOfUntrustedImageLoads = Data; break;
 
-		case API_V_SVCS:		m_ServiceList = Data.AsQList(); break;
+		case API_V_SERVICES:	m_ServiceList = Data.AsQList(); break;
 
 		case API_V_HANDLES:		UpdateHandles(Data); break;
 

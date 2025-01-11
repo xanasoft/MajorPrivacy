@@ -5,6 +5,7 @@
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
 #include "../MajorPrivacy.h"
+#include "../Windows/FirewallRuleWnd.h"
 
 CFwRuleModel::CFwRuleModel(QObject* parent)
 	:CTreeItemModel(parent)
@@ -22,12 +23,15 @@ CFwRuleModel::~CFwRuleModel()
 
 QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 {
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	foreach(const CFwRulePtr& pRule, RuleList)
 	{
-		QVariant Guid = pRule->GetGuid();
+		QVariant Guid = pRule->GetGuid().ToQV();
 
 		QModelIndex Index;
 
@@ -81,11 +85,11 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pRule->GetName(); break;
+			case eName:				Value = tr("%1 - %2").arg(pRule->GetName()).arg(pRule->GetGuid().ToQS()); break;
 			case eGrouping:			Value = pRule->GetGrouping(); break;
 			case eIndex:			Value = pRule->GetIndex(); break;
-			case eStatus:			break; // todo
-			case eHitCount:			break; // todo
+			case eEnabled:			Value = pRule->IsEnabled(); break;
+			case eHitCount:			Value = pRule->GetHitCount(); break;
 			case eProfiles:			Value = pRule->GetProfile(); break;
 			case eAction:			Value = (uint32)pRule->GetAction(); break;
 			case eDirection:		Value = (uint32)pRule->GetDirection(); break;
@@ -110,12 +114,12 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 
 				switch (section)
 				{
-					case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(Value.toString()); break;
-					case eGrouping:			ColValue.Formatted = CMajorPrivacy::GetResourceStr(Value.toString()); break;
-
+					case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(pRule->GetName()); break;
+					case eGrouping:			ColValue.Formatted = pRule->GetGrouping().isEmpty() ? "" : CMajorPrivacy::GetResourceStr(pRule->GetGrouping()); break;
+					case eEnabled:			ColValue.Formatted = (pRule->IsEnabled() ? tr("Yes") : tr("No")) + (pRule->IsTemporary() ? tr(" (Temporary)") : ""); break;
 					case eProfiles:			ColValue.Formatted = pRule->GetProfileStr(); break;
-					case eAction:			ColValue.Formatted = pRule->GetActionStr(); break;
-					case eDirection:		ColValue.Formatted = pRule->GetDirectionStr(); break;
+					case eAction:			ColValue.Formatted = pRule->GetActionStr(); { QColor Color = CFirewallRuleWnd::GetActionColor(pRule->GetAction()); if(Color.isValid()) ColValue.Color = Color; } break;
+					case eDirection:		ColValue.Formatted = pRule->GetDirectionStr(); { QColor Color = CFirewallRuleWnd::GetDirectionColor(pRule->GetDirection()); if(Color.isValid()) ColValue.Color = Color; } break;
 					case eProtocol:			ColValue.Formatted = CFwRule::ProtocolToStr(pRule->GetProtocol()); break;
 					case eRemoteAddress:	ColValue.Formatted = pRule->GetRemoteAddresses().join(", "); break;
 					case eLocalAddress:		ColValue.Formatted = pRule->GetLocalAddresses().join(", "); break;
@@ -183,7 +187,7 @@ QVariant CFwRuleModel::headerData(int section, Qt::Orientation orientation, int 
 		case eName:					return tr("Name");
 		case eGrouping:				return tr("Grouping");
 		case eIndex:				return tr("Index");
-		case eStatus:				return tr("Status");
+		case eEnabled:				return tr("Enabled");
 		case eHitCount:				return tr("Hit Count");
 		case eProfiles:				return tr("Profiles");
 		case eAction:				return tr("Action");

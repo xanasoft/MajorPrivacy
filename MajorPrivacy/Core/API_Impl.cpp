@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023-2024 David Xanatos, xanasoft.com
+* Copyright (c) 2023-2025 David Xanatos, xanasoft.com
 * All rights reserved.
 *
 * This file is part of MajorPrivacy.
@@ -16,6 +16,7 @@
 #include "pch.h"
 
 #include "../../Library/API/PrivacyAPI.h"
+#include "Enclaves/Enclave.h"
 #include "Access/AccessRule.h"
 #include "Programs/ProgramID.h"
 #include "Programs/ProgramRule.h"
@@ -30,14 +31,19 @@
 
 #define TO_STR(x) (x).toStdWString()
 #define AS_STR(x) (x).AsQStr()
+#define AS_ASTR AS_STR
+#define TO_BYTES(x) (x).AsQBytes()
 #define AS_LIST(x) (x).AsQList()
 #define AS_ALIST(x) (x).AsQList()
 #define IS_EMPTY(x) (x).isEmpty()
-#define GET_PATH(x) (x).Get(EPathType::eNative).toStdWString()
-#define SET_PATH(x, y) (x).Set(y.AsQStr(), EPathType::eNative)
+#define GET_BYTES(x) (XVariant(x))
+#define GET_PATH(x) (x).toStdWString()
+#define SET_PATH(x, y) x = y.AsQStr()
 #define ASTR std::string
 
 #define LOAD_NT_PATHS
+
+#include "../../Library/API/API_Enclave.cpp"
 
 #include "../../Library/API/API_GenericRule.cpp"
 

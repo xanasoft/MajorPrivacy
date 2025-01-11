@@ -24,10 +24,13 @@ public:
 	{
 		eUnmounted,
 		eMounted,
+		eFolder,
+		eSecFolder,
 	};
 	EStatus GetStatus() const						{ return m_Status; }
 	QString GetStatusStr() const;
 	void SetStatus(EStatus Status)					{ m_Status = Status; }
+	bool IsFolder() const							{ return m_Status == eFolder || m_Status == eSecFolder; }
 	bool IsMounted() const							{ return m_Status == eMounted; }
 	void SetMounted(bool Mounted);
 

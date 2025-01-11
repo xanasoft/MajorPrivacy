@@ -1,26 +1,8 @@
 
 
 /////////////////////////////////////////////////////////////////////////////
-// Index Serializer
+// CProgramItem 
 //
-
-void CProgramLibrary::WriteIVariant(XVariant& Entry, const SVarWriteOpt& Opts) const
-{
-	Entry.Write(API_V_PROG_UID, m_UID);
-	Entry.Write(API_V_FILE_PATH, GET_PATH(m_Path));
-}
-
-void CProgramLibrary::ReadIValue(uint32 Index, const XVariant& Data)
-{
-	switch (Index)
-	{
-	case API_V_PROG_UID: m_UID = Data.To<uint64>(); break;
-	case API_V_FILE_PATH: SET_PATH(m_Path, Data); break;
-	default: break;
-	}
-}
-
-// CProgramItem
 
 void CProgramItem::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 {
@@ -43,7 +25,7 @@ void CProgramItem::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 	}
 	else
 	{
-		Data.Write(API_V_ITEM_MISSING, IsMissing());
+		Data.Write(API_V_PROG_ITEM_MISSING, IsMissing());
 	}
 #endif
 }
@@ -61,11 +43,11 @@ void CProgramItem::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_INFO:			m_Info = AS_STR(Data); break;
 
 #ifdef PROG_GUI
-	case API_V_FW_RULES:		m_FwRuleIDs = Data.AsQSet(); break;
-	case API_V_PROGRAM_RULES:	m_ProgRuleIDs = Data.AsQSet(); break;
-	case API_V_ACCESS_RULES:	m_ResRuleIDs = Data.AsQSet(); break;
+	case API_V_FW_RULES:		m_FwRuleIDs = QFlexGuid::ReadVariantSet(Data); break;
+	case API_V_PROGRAM_RULES:	m_ProgRuleIDs = QFlexGuid::ReadVariantSet(Data); break;
+	case API_V_ACCESS_RULES:	m_ResRuleIDs = QFlexGuid::ReadVariantSet(Data); break;
 
-	case API_V_ITEM_MISSING:	m_IsMissing = Data; break;
+	case API_V_PROG_ITEM_MISSING:	m_IsMissing = Data; break;
 #else
 	case API_V_FW_RULES: break;
 	case API_V_PROGRAM_RULES: break;
@@ -76,278 +58,7 @@ void CProgramItem::ReadIValue(uint32 Index, const XVariant& Data)
 	}
 }
 
-// CWindowsService
-
-void CWindowsService::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
-{
-	CProgramItem::WriteIVariant(Data, Opts);
-
-	Data.Write(API_V_SVC_TAG, TO_STR(m_ServiceId));
-
-#ifdef PROG_SVC
-	Data.Write(API_V_PID, m_pProcess ? m_pProcess->GetProcessId() : 0);
-
-	Data.Write(API_V_PROG_LAST_EXEC, m_LastExec);
-
-	SStats Stats;
-	CollectStats(Stats);
-
-	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
-	{
-	}
-	else
-	{
-		Data.Write(API_V_ACCESS_COUNT, m_AccessTree.GetAccessCount());
-		Data.Write(API_V_PROG_SOCKETS, Stats.SocketRefs);
-	}
-
-	Data.Write(API_V_SOCK_LAST_ACT, Stats.LastNetActivity);
-
-	Data.Write(API_V_SOCK_LAST_ALLOW, m_LastFwAllowed);
-	Data.Write(API_V_SOCK_LAST_BLOCK, m_LastFwBlocked);
-
-	Data.Write(API_V_SOCK_UPLOAD, Stats.Upload);
-	Data.Write(API_V_SOCK_DOWNLOAD, Stats.Download);
-	Data.Write(API_V_SOCK_UPLOADED, Stats.Uploaded);
-	Data.Write(API_V_SOCK_DOWNLOADED, Stats.Downloaded);
-#endif
-}
-
-void CWindowsService::ReadIValue(uint32 Index, const XVariant& Data)
-{
-	switch (Index)
-	{
-	case API_V_SVC_TAG:				m_ServiceId = AS_STR(Data); break;
-
-	case API_V_PROG_LAST_EXEC:		m_LastExec = Data; break;
-
-#ifdef PROG_GUI
-	case API_V_PID:					m_ProcessId = Data; break;
-
-	case API_V_PROG_SOCKETS:		m_SocketRefs = Data.AsQSet<quint64>(); break;
-	case API_V_ACCESS_COUNT:		m_AccessCount = Data; break;
-
-	case API_V_SOCK_LAST_ACT:		m_Stats.LastNetActivity = Data; break;
-
-	case API_V_SOCK_LAST_ALLOW:		m_Stats.LastFwAllowed = Data; break;
-	case API_V_SOCK_LAST_BLOCK:		m_Stats.LastFwBlocked = Data; break;
-
-	case API_V_SOCK_UPLOAD:			m_Stats.Upload = Data; break;
-	case API_V_SOCK_DOWNLOAD:		m_Stats.Download = Data; break;
-	case API_V_SOCK_UPLOADED:		m_Stats.Uploaded = Data; break;
-	case API_V_SOCK_DOWNLOADED:		m_Stats.Downloaded = Data; break;
-#else
-	case API_V_PID: break;
-
-	case API_V_ACCESS_COUNT: break;
-	case API_V_PROG_SOCKETS: break;
-
-	case API_V_SOCK_LAST_ACT:		m_TrafficLog.SetLastActivity(Data); break;
-
-	case API_V_SOCK_LAST_ALLOW:		m_LastFwAllowed = Data; break;
-	case API_V_SOCK_LAST_BLOCK:		m_LastFwBlocked = Data; break;
-
-	case API_V_SOCK_UPLOAD: break;
-	case API_V_SOCK_DOWNLOAD: break;
-	case API_V_SOCK_UPLOADED:		m_TrafficLog.SetUploaded(Data); break;
-	case API_V_SOCK_DOWNLOADED:		m_TrafficLog.SetDownloaded(Data); break;
-#endif
-	default: CProgramItem::ReadIValue(Index, Data);
-	}
-}
-
-// CProgramSet
-
-void CProgramSet::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
-{
-	CProgramItem::WriteIVariant(Data, Opts);
-
-	XVariant Items;
-	Items.BeginList();
-	for (auto pItem : m_Nodes) {
-		//Items.Write(pItem->ToVariant());
-		XVariant Item;
-		Item[API_V_PROG_UID] = pItem->GetUID();
-		Item[API_V_PROG_ID] = pItem->GetID().ToVariant(Opts);	
-		Items.WriteVariant(Item);
-	}
-	Items.Finish();
-	Data.WriteVariant(API_V_PROG_ITEMS, Items);
-}
-
-void CProgramSet::ReadIValue(uint32 Index, const XVariant& Data)
-{
-	switch (Index) {
-	case API_V_PROG_ITEMS: break;
-	default: CProgramItem::ReadIValue(Index, Data);
-	}
-}
-
-// CProgramPattern
-
-void CProgramPattern::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
-{
-	CProgramList::WriteIVariant(Data, Opts);
-
-	Data.Write(API_V_PROG_PATTERN, GET_PATH(m_Pattern));
-}
-
-void CProgramPattern::ReadIValue(uint32 Index, const XVariant& Data)
-{
-	switch (Index)
-	{
-	case API_V_PROG_PATTERN: SET_PATH(m_Pattern,Data); break;
-	default: CProgramList::ReadIValue(Index, Data);
-	}
-}
-
-// CProgramFile
-
-void CProgramFile::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
-{
-	CProgramSet::WriteIVariant(Data, Opts);
-
-	Data.Write(API_V_FILE_PATH, GET_PATH(m_Path));
-
-	Data.Write(API_V_SIGN_INFO, m_SignInfo.Data);
-
-#ifdef PROG_SVC
-	SStats Stats;
-	CollectStats(Stats);
-
-	Data.Write(API_V_PROG_PROC_PIDS, Stats.Pids);
-
-	Data.Write(API_V_PROG_LAST_EXEC, m_LastExec);
-
-	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
-	{
-		Data.WriteVariant(API_V_LIBRARIES, StoreLibraries(Opts));
-	}
-	else
-	{
-		Data.Write(API_V_ACCESS_COUNT, m_AccessTree.GetAccessCount());
-		Data.Write(API_V_PROG_SOCKETS, Stats.SocketRefs);
-	}
-
-	Data.Write(API_V_SOCK_LAST_ACT, Stats.LastNetActivity);
-
-	Data.Write(API_V_SOCK_LAST_ALLOW, m_LastFwAllowed);
-	Data.Write(API_V_SOCK_LAST_BLOCK, m_LastFwBlocked);
-
-	Data.Write(API_V_SOCK_UPLOAD, Stats.Upload);
-	Data.Write(API_V_SOCK_DOWNLOAD, Stats.Download);
-	Data.Write(API_V_SOCK_UPLOADED, Stats.Uploaded);
-	Data.Write(API_V_SOCK_DOWNLOADED, Stats.Downloaded);
-#endif
-}
-
-void CProgramFile::ReadIValue(uint32 Index, const XVariant& Data)
-{
-	switch (Index)
-	{
-	case API_V_FILE_PATH:		SET_PATH(m_Path, Data); break;
-
-	case API_V_SIGN_INFO:		m_SignInfo.Data = Data.To<uint64>(); break;
-
-	case API_V_PROG_LAST_EXEC:	m_LastExec = Data; break;
-
-#ifdef PROG_GUI
-	case API_V_PROG_PROC_PIDS:	m_ProcessPids = Data.AsQSet<quint64>(); break;
-
-	case API_V_ACCESS_COUNT:	m_AccessCount = Data; break;
-	case API_V_PROG_SOCKETS:	m_SocketRefs = Data.AsQSet<quint64>(); break;
-
-	case API_V_LIBRARIES:		break;
-
-	case API_V_SOCK_LAST_ACT:	m_Stats.LastNetActivity = Data; break;
-
-	case API_V_SOCK_LAST_ALLOW:	m_Stats.LastFwAllowed = Data; break;
-	case API_V_SOCK_LAST_BLOCK:	m_Stats.LastFwBlocked = Data; break;
-
-	case API_V_SOCK_UPLOAD:		m_Stats.Upload = Data; break;
-	case API_V_SOCK_DOWNLOAD:	m_Stats.Download = Data; break;
-	case API_V_SOCK_UPLOADED:	m_Stats.Uploaded = Data; break;
-	case API_V_SOCK_DOWNLOADED:	m_Stats.Downloaded = Data; break;
-#else
-	case API_V_PROG_PROC_PIDS: break;
-
-	case API_V_ACCESS_COUNT: break;
-	case API_V_PROG_SOCKETS: break;
-
-	case API_V_LIBRARIES:		LoadLibraries(Data); break;
-
-	case API_V_SOCK_LAST_ACT:	m_TrafficLog.SetLastActivity(Data); break;
-
-	case API_V_SOCK_LAST_ALLOW:	m_LastFwAllowed = Data; break;
-	case API_V_SOCK_LAST_BLOCK:	m_LastFwBlocked = Data; break;
-
-	case API_V_SOCK_UPLOAD: break;
-	case API_V_SOCK_DOWNLOAD: break;
-	case API_V_SOCK_UPLOADED:	m_TrafficLog.SetUploaded(Data); break;
-	case API_V_SOCK_DOWNLOADED: m_TrafficLog.SetDownloaded(Data); break;
-#endif
-	default: CProgramSet::ReadIValue(Index, Data);
-	}
-}
-
-// CAppPackage
-
-void CAppPackage::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
-{
-	CProgramList::WriteIVariant(Data, Opts);
-
-	Data.Write(API_V_APP_SID, TO_STR(m_AppContainerSid));
-	Data.Write(API_V_APP_NAME, TO_STR(m_AppContainerName));
-	Data.Write(API_V_FILE_PATH, GET_PATH(m_Path));
-}
-
-void CAppPackage::ReadIValue(uint32 Index, const XVariant& Data)
-{
-	switch (Index)
-	{
-	case API_V_APP_SID: m_AppContainerSid = AS_STR(Data); break;
-	case API_V_APP_NAME: m_AppContainerName = AS_STR(Data); break;
-	case API_V_FILE_PATH: SET_PATH(m_Path, Data); break;
-	default: CProgramList::ReadIValue(Index, Data);
-	}
-}
-
-// SAppInstallation
-
-void CAppInstallation::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
-{
-	CProgramPattern::WriteIVariant(Data, Opts);
-
-	Data.Write(API_V_REG_KEY, TO_STR(m_RegKey));
-	Data.Write(API_V_FILE_PATH, GET_PATH(m_Path));
-}
-
-void CAppInstallation::ReadIValue(uint32 Index, const XVariant& Data)
-{
-	switch (Index) {
-	case API_V_REG_KEY: m_RegKey = AS_STR(Data); break;
-	case API_V_FILE_PATH: SET_PATH(m_Path, Data); break;
-	default: CProgramPattern::ReadIValue(Index, Data);
-	}
-}
-
 /////////////////////////////////////////////////////////////////////////////
-// Map Serializer
-//
-
-void CProgramLibrary::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
-{
-	Data.Write(API_S_PROG_UID, m_UID);
-	Data.Write(API_S_FILE_PATH, GET_PATH(m_Path));
-}
-
-void CProgramLibrary::ReadMValue(const SVarName& Name, const XVariant& Data)
-{
-	if (VAR_TEST_NAME(Name, API_S_PROG_UID))				m_UID = Data.To<uint64>();
-	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH))			SET_PATH(m_Path, Data);
-}
-
-// CProgramItem
 
 void CProgramItem::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 {
@@ -385,9 +96,9 @@ void CProgramItem::ReadMValue(const SVarName& Name, const XVariant& Data)
 	else if (VAR_TEST_NAME(Name, API_S_INFO))				m_Info = AS_STR(Data);
 
 #ifdef PROG_GUI
-	else if (VAR_TEST_NAME(Name, API_S_FW_RULES))			m_FwRuleIDs = Data.AsQSet();
-	else if (VAR_TEST_NAME(Name, API_S_PROGRAM_RULES))		m_ProgRuleIDs = Data.AsQSet();
-	else if (VAR_TEST_NAME(Name, API_S_ACCESS_RULES))		m_ResRuleIDs = Data.AsQSet();
+	else if (VAR_TEST_NAME(Name, API_S_FW_RULES))			m_FwRuleIDs = QFlexGuid::ReadVariantSet(Data);
+	else if (VAR_TEST_NAME(Name, API_S_PROGRAM_RULES))		m_ProgRuleIDs = QFlexGuid::ReadVariantSet(Data);
+	else if (VAR_TEST_NAME(Name, API_S_ACCESS_RULES))		m_ResRuleIDs = QFlexGuid::ReadVariantSet(Data);
 
 	else if (VAR_TEST_NAME(Name, API_S_ITEM_MISSING))		m_IsMissing = Data;
 
@@ -400,18 +111,97 @@ void CProgramItem::ReadMValue(const SVarName& Name, const XVariant& Data)
 	// else unknown tag
 }
 
+/////////////////////////////////////////////////////////////////////////////
 // CWindowsService
+//
+
+void CWindowsService::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+{
+	CProgramItem::WriteIVariant(Data, Opts);
+
+	Data.Write(API_V_SERVICE_TAG, TO_STR(m_ServiceTag));
+
+#ifdef PROG_SVC
+	Data.Write(API_V_PID, m_pProcess ? m_pProcess->GetProcessId() : 0);
+
+	Data.Write(API_V_PROG_LAST_EXEC, m_LastExec);
+
+	SStats Stats;
+	CollectStats(Stats);
+
+	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
+	{
+	}
+	else
+	{
+		Data.Write(API_V_PROG_ACCESS_COUNT, m_AccessTree.GetAccessCount());
+		Data.Write(API_V_PROG_SOCKET_REFS, Stats.SocketRefs);
+	}
+
+	Data.Write(API_V_SOCK_LAST_NET_ACT, Stats.LastNetActivity);
+	Data.Write(API_V_SOCK_LAST_ALLOW, m_LastFwAllowed);
+	Data.Write(API_V_SOCK_LAST_BLOCK, m_LastFwBlocked);
+
+	Data.Write(API_V_SOCK_UPLOAD, Stats.Upload);
+	Data.Write(API_V_SOCK_DOWNLOAD, Stats.Download);
+	Data.Write(API_V_SOCK_UPLOADED, Stats.Uploaded);
+	Data.Write(API_V_SOCK_DOWNLOADED, Stats.Downloaded);
+#endif
+}
+
+void CWindowsService::ReadIValue(uint32 Index, const XVariant& Data)
+{
+	switch (Index)
+	{
+	case API_V_SERVICE_TAG:				m_ServiceTag = AS_STR(Data); break;
+
+	case API_V_PROG_LAST_EXEC:			m_LastExec = Data; break;
+
+#ifdef PROG_GUI
+	case API_V_PID:					m_ProcessId = Data; break;
+
+	case API_V_PROG_SOCKET_REFS:	m_SocketRefs = Data.AsQSet<quint64>(); break;
+	case API_V_PROG_ACCESS_COUNT:	m_AccessCount = Data; break;
+
+	case API_V_SOCK_LAST_NET_ACT:	m_Stats.LastNetActivity = Data; break;
+	case API_V_SOCK_LAST_ALLOW:		m_Stats.LastFwAllowed = Data; break;
+	case API_V_SOCK_LAST_BLOCK:		m_Stats.LastFwBlocked = Data; break;
+
+	case API_V_SOCK_UPLOAD:			m_Stats.Upload = Data; break;
+	case API_V_SOCK_DOWNLOAD:		m_Stats.Download = Data; break;
+	case API_V_SOCK_UPLOADED:		m_Stats.Uploaded = Data; break;
+	case API_V_SOCK_DOWNLOADED:		m_Stats.Downloaded = Data; break;
+#else
+	case API_V_PID: break;
+
+	case API_V_PROG_ACCESS_COUNT: break;
+	case API_V_PROG_SOCKET_REFS: break;
+
+	case API_V_SOCK_LAST_NET_ACT:	m_TrafficLog.SetLastActivity(Data); break;
+	case API_V_SOCK_LAST_ALLOW:		m_LastFwAllowed = Data; break;
+	case API_V_SOCK_LAST_BLOCK:		m_LastFwBlocked = Data; break;
+
+	case API_V_SOCK_UPLOAD: break;
+	case API_V_SOCK_DOWNLOAD: break;
+	case API_V_SOCK_UPLOADED:		m_TrafficLog.SetUploaded(Data); break;
+	case API_V_SOCK_DOWNLOADED:		m_TrafficLog.SetDownloaded(Data); break;
+#endif
+	default: CProgramItem::ReadIValue(Index, Data);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 void CWindowsService::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramItem::WriteMVariant(Data, Opts);
 
-	Data.Write(API_S_SVC_TAG, TO_STR(m_ServiceId));
+	Data.Write(API_S_SERVICE_TAG, TO_STR(m_ServiceTag));
 
 #ifdef PROG_SVC
 	Data.Write(API_S_PID, m_pProcess ? m_pProcess->GetProcessId() : 0);
 
-	Data.Write(API_S_PROG_LAST_EXEC, m_LastExec);
+	Data.Write(API_S_LAST_EXEC, m_LastExec);
 
 	SStats Stats;
 	CollectStats(Stats);
@@ -438,9 +228,9 @@ void CWindowsService::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) co
 
 void CWindowsService::ReadMValue(const SVarName& Name, const XVariant& Data)
 {
-	if (VAR_TEST_NAME(Name, API_S_SVC_TAG)) m_ServiceId = AS_STR(Data);
+	if (VAR_TEST_NAME(Name, API_S_SERVICE_TAG))					m_ServiceTag = AS_STR(Data);
 
-	else if (VAR_TEST_NAME(Name, API_S_PROG_LAST_EXEC))		m_LastExec = Data;
+	else if (VAR_TEST_NAME(Name, API_S_LAST_EXEC))			m_LastExec = Data;
 
 #ifdef PROG_GUI
 	else if (VAR_TEST_NAME(Name, API_S_PID))				m_ProcessId = Data;
@@ -476,7 +266,36 @@ void CWindowsService::ReadMValue(const SVarName& Name, const XVariant& Data)
 		CProgramItem::ReadMValue(Name, Data);
 }
 
-// CProgramSet
+/////////////////////////////////////////////////////////////////////////////
+// CProgramSet 
+//
+
+void CProgramSet::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+{
+	CProgramItem::WriteIVariant(Data, Opts);
+
+	XVariant Items;
+	Items.BeginList();
+	for (auto pItem : m_Nodes) {
+		//Items.Write(pItem->ToVariant());
+		XVariant Item;
+		Item[API_V_PROG_UID] = pItem->GetUID();
+		Item[API_V_PROG_ID] = pItem->GetID().ToVariant(Opts);	
+		Items.WriteVariant(Item);
+	}
+	Items.Finish();
+	Data.WriteVariant(API_V_PROG_ITEMS, Items);
+}
+
+void CProgramSet::ReadIValue(uint32 Index, const XVariant& Data)
+{
+	switch (Index) {
+	case API_V_PROG_ITEMS: break;
+	default: CProgramItem::ReadIValue(Index, Data);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 void CProgramSet::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 {
@@ -503,7 +322,27 @@ void CProgramSet::ReadMValue(const SVarName& Name, const XVariant& Data)
 		CProgramItem::ReadMValue(Name, Data);
 }
 
+/////////////////////////////////////////////////////////////////////////////
 // CProgramPattern
+//
+
+void CProgramPattern::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+{
+	CProgramList::WriteIVariant(Data, Opts);
+
+	Data.Write(API_V_PROG_PATTERN, GET_PATH(m_Pattern));
+}
+
+void CProgramPattern::ReadIValue(uint32 Index, const XVariant& Data)
+{
+	switch (Index)
+	{
+	case API_V_PROG_PATTERN: SET_PATH(m_Pattern,Data); break;
+	default: CProgramList::ReadIValue(Index, Data);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 void CProgramPattern::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 {
@@ -519,7 +358,95 @@ void CProgramPattern::ReadMValue(const SVarName& Name, const XVariant& Data)
 		CProgramList::ReadMValue(Name, Data);
 }
 
+/////////////////////////////////////////////////////////////////////////////
 // CProgramFile
+//
+
+void CProgramFile::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+{
+	CProgramSet::WriteIVariant(Data, Opts);
+
+	Data.Write(API_V_FILE_PATH, GET_PATH(m_Path));
+
+	Data.WriteVariant(API_V_SIGN_INFO, m_SignInfo.ToVariant(Opts));
+
+#ifdef PROG_SVC
+	SStats Stats;
+	CollectStats(Stats);
+
+	Data.Write(API_V_PIDS, Stats.Pids);
+
+	Data.Write(API_V_PROG_LAST_EXEC, m_LastExec);
+
+	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
+	{
+		Data.WriteVariant(API_V_LIBRARIES, StoreLibraries(Opts));
+	}
+	else
+	{
+		Data.Write(API_V_PROG_ACCESS_COUNT, m_AccessTree.GetAccessCount());
+		Data.Write(API_V_PROG_SOCKET_REFS, Stats.SocketRefs);
+	}
+
+	Data.Write(API_V_SOCK_LAST_NET_ACT, Stats.LastNetActivity);
+	Data.Write(API_V_SOCK_LAST_ALLOW, m_LastFwAllowed);
+	Data.Write(API_V_SOCK_LAST_BLOCK, m_LastFwBlocked);
+
+	Data.Write(API_V_SOCK_UPLOAD, Stats.Upload);
+	Data.Write(API_V_SOCK_DOWNLOAD, Stats.Download);
+	Data.Write(API_V_SOCK_UPLOADED, Stats.Uploaded);
+	Data.Write(API_V_SOCK_DOWNLOADED, Stats.Downloaded);
+#endif
+}
+
+void CProgramFile::ReadIValue(uint32 Index, const XVariant& Data)
+{
+	switch (Index)
+	{
+	case API_V_FILE_PATH:		SET_PATH(m_Path, Data); break;
+
+	case API_V_SIGN_INFO:		m_SignInfo.FromVariant(Data); break;
+
+	case API_V_PROG_LAST_EXEC:		m_LastExec = Data; break;
+
+#ifdef PROG_GUI
+	case API_V_PIDS:			m_ProcessPids = Data.AsQSet<quint64>(); break;
+
+	case API_V_PROG_ACCESS_COUNT: m_AccessCount = Data; break;
+	case API_V_PROG_SOCKET_REFS: m_SocketRefs = Data.AsQSet<quint64>(); break;
+
+	case API_V_LIBRARIES:		break;
+
+	case API_V_SOCK_LAST_NET_ACT: m_Stats.LastNetActivity = Data; break;
+	case API_V_SOCK_LAST_ALLOW:	m_Stats.LastFwAllowed = Data; break;
+	case API_V_SOCK_LAST_BLOCK:	m_Stats.LastFwBlocked = Data; break;
+
+	case API_V_SOCK_UPLOAD:		m_Stats.Upload = Data; break;
+	case API_V_SOCK_DOWNLOAD:	m_Stats.Download = Data; break;
+	case API_V_SOCK_UPLOADED:	m_Stats.Uploaded = Data; break;
+	case API_V_SOCK_DOWNLOADED:	m_Stats.Downloaded = Data; break;
+#else
+	case API_V_PIDS: break;
+
+	case API_V_PROG_ACCESS_COUNT: break;
+	case API_V_PROG_SOCKET_REFS: break;
+
+	case API_V_LIBRARIES:		LoadLibraries(Data); break;
+
+	case API_V_SOCK_LAST_NET_ACT: m_TrafficLog.SetLastActivity(Data); break;
+	case API_V_SOCK_LAST_ALLOW:	m_LastFwAllowed = Data; break;
+	case API_V_SOCK_LAST_BLOCK:	m_LastFwBlocked = Data; break;
+
+	case API_V_SOCK_UPLOAD: break;
+	case API_V_SOCK_DOWNLOAD: break;
+	case API_V_SOCK_UPLOADED:	m_TrafficLog.SetUploaded(Data); break;
+	case API_V_SOCK_DOWNLOADED: m_TrafficLog.SetDownloaded(Data); break;
+#endif
+	default: CProgramSet::ReadIValue(Index, Data);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 void CProgramFile::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 {
@@ -527,7 +454,7 @@ void CProgramFile::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_FILE_PATH, GET_PATH(m_Path));
 
-	Data.Write(API_S_SIGN_INFO, m_SignInfo.Data);
+	Data.WriteVariant(API_S_SIGN_INFO, m_SignInfo.ToVariant(Opts));
 
 #ifdef PROG_SVC
 	SStats Stats;
@@ -535,7 +462,7 @@ void CProgramFile::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 
 	Data.Write(API_S_PIDS, Stats.Pids);
 
-	Data.Write(API_S_PROG_LAST_EXEC, m_LastExec);
+	Data.Write(API_S_LAST_EXEC, m_LastExec);
 
 	if (Opts.Flags & SVarWriteOpt::eSaveToFile)
 	{
@@ -562,9 +489,9 @@ void CProgramFile::ReadMValue(const SVarName& Name, const XVariant& Data)
 {
 	if (VAR_TEST_NAME(Name, API_S_FILE_PATH)) SET_PATH(m_Path, Data);
 
-	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO))			m_SignInfo.Data = Data.To<uint64>();
+	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO))			m_SignInfo.FromVariant(Data);
 
-	else if (VAR_TEST_NAME(Name, API_S_PROG_LAST_EXEC))		m_LastExec = Data;
+	else if (VAR_TEST_NAME(Name, API_S_LAST_EXEC))			m_LastExec = Data;
 
 #ifdef PROG_GUI
 	else if (VAR_TEST_NAME(Name, API_S_PIDS))				m_ProcessPids = Data.AsQSet<quint64>();
@@ -603,7 +530,31 @@ void CProgramFile::ReadMValue(const SVarName& Name, const XVariant& Data)
 		CProgramSet::ReadMValue(Name, Data);
 }
 
+/////////////////////////////////////////////////////////////////////////////
 // CAppPackage
+//
+
+void CAppPackage::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+{
+	CProgramList::WriteIVariant(Data, Opts);
+
+	Data.Write(API_V_APP_SID, TO_STR(m_AppContainerSid));
+	Data.Write(API_V_APP_NAME, TO_STR(m_AppContainerName));
+	Data.Write(API_V_FILE_PATH, GET_PATH(m_Path));
+}
+
+void CAppPackage::ReadIValue(uint32 Index, const XVariant& Data)
+{
+	switch (Index)
+	{
+	case API_V_APP_SID: m_AppContainerSid = AS_STR(Data); break;
+	case API_V_APP_NAME: m_AppContainerName = AS_STR(Data); break;
+	case API_V_FILE_PATH: SET_PATH(m_Path, Data); break;
+	default: CProgramList::ReadIValue(Index, Data);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 void CAppPackage::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 {
@@ -623,11 +574,33 @@ void CAppPackage::ReadMValue(const SVarName& Name, const XVariant& Data)
 		CProgramList::ReadMValue(Name, Data);
 }
 
+
+/////////////////////////////////////////////////////////////////////////////
 // SAppInstallation
+//
+
+void CAppInstallation::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+{
+	CProgramList::WriteIVariant(Data, Opts);
+
+	Data.Write(API_V_REG_KEY, TO_STR(m_RegKey));
+	Data.Write(API_V_FILE_PATH, GET_PATH(m_Path));
+}
+
+void CAppInstallation::ReadIValue(uint32 Index, const XVariant& Data)
+{
+	switch (Index) {
+	case API_V_REG_KEY: m_RegKey = AS_STR(Data); break;
+	case API_V_FILE_PATH: SET_PATH(m_Path, Data); break;
+	default: CProgramList::ReadIValue(Index, Data);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 void CAppInstallation::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 {
-	CProgramPattern::WriteMVariant(Data, Opts);
+	CProgramList::WriteMVariant(Data, Opts);
 
 	Data.Write(API_S_REG_KEY, TO_STR(m_RegKey));
 	Data.Write(API_S_FILE_PATH, GET_PATH(m_Path));
@@ -638,6 +611,105 @@ void CAppInstallation::ReadMValue(const SVarName& Name, const XVariant& Data)
 	if (VAR_TEST_NAME(Name, API_S_REG_KEY))			m_RegKey = AS_STR(Data);
 	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH))	SET_PATH(m_Path, Data);
 	else
-		CProgramPattern::ReadMValue(Name, Data);
+		CProgramList::ReadMValue(Name, Data);
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// CProgramLibrary
+//
+
+void CProgramLibrary::WriteIVariant(XVariant& Entry, const SVarWriteOpt& Opts) const
+{
+	Entry.Write(API_V_PROG_UID, m_UID);
+	Entry.Write(API_V_FILE_PATH, GET_PATH(m_Path));
+}
+
+void CProgramLibrary::ReadIValue(uint32 Index, const XVariant& Data)
+{
+	switch (Index)
+	{
+	case API_V_PROG_UID: m_UID = Data.To<uint64>(); break;
+	case API_V_FILE_PATH: SET_PATH(m_Path, Data); break;
+	default: break;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CProgramLibrary::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+{
+	Data.Write(API_S_PROG_UID, m_UID);
+	Data.Write(API_S_FILE_PATH, GET_PATH(m_Path));
+}
+
+void CProgramLibrary::ReadMValue(const SVarName& Name, const XVariant& Data)
+{
+	if (VAR_TEST_NAME(Name, API_S_PROG_UID))				m_UID = Data.To<uint64>();
+	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH))			SET_PATH(m_Path, Data);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CImageSignInfo
+//
+
+void CImageSignInfo::WriteIVariant(XVariant& Entry, const SVarWriteOpt& Opts) const
+{
+	Entry.Write(API_V_IMG_SIGN_AUTH, m_SignInfo.Authority);
+	Entry.Write(API_V_IMG_SIGN_LEVEL, m_SignInfo.Level);
+	Entry.Write(API_V_IMG_SIGN_POLICY, m_SignInfo.Policy);
+
+	Entry.WriteVariant(API_V_FILE_HASH, XVariant(m_FileHash));
+
+	Entry.Write(API_V_CERT_STATUS, (uint8)m_HashStatus);
+	if (m_HashStatus != EHashStatus::eHashNone && m_HashStatus != EHashStatus::eHashUnknown) {
+		Entry.WriteVariant(API_V_IMG_CERT_ALG, XVariant(m_SignerHash));
+		Entry.Write(API_V_IMG_SIGN_NAME, TO_STR(m_SignerName));
+	}
+}
+
+void CImageSignInfo::ReadIValue(uint32 Index, const XVariant& Data)
+{
+	switch (Index)
+	{
+	case API_V_IMG_SIGN_AUTH: m_SignInfo.Authority = Data.To<uint8>(); break;
+	case API_V_IMG_SIGN_LEVEL: m_SignInfo.Level = Data.To<uint8>(); break;
+	case API_V_IMG_SIGN_POLICY: m_SignInfo.Policy = Data.To<uint32>(); break;
+
+	case API_V_FILE_HASH: m_FileHash = TO_BYTES(Data); break;
+
+	case API_V_CERT_STATUS: m_HashStatus = (EHashStatus)Data.To<uint8>(); break;
+	case API_V_IMG_CERT_ALG: m_SignerHash = TO_BYTES(Data); break;
+	case API_V_IMG_SIGN_NAME: m_SignerName = AS_ASTR(Data); break;
+	default: break;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CImageSignInfo::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+{
+	Data.Write(API_S_SIGN_INFO_AUTH, m_SignInfo.Authority);
+	Data.Write(API_S_SIGN_INFO_LEVEL, m_SignInfo.Level);
+	Data.Write(API_S_SIGN_INFO_POLICY, m_SignInfo.Policy);
+
+	Data.WriteVariant(API_S_FILE_HASH, XVariant(m_FileHash));
+
+	Data.Write(API_S_CERT_STATUS, (uint8)m_HashStatus);
+	if (m_HashStatus != EHashStatus::eHashNone && m_HashStatus != EHashStatus::eHashUnknown) {
+		Data.WriteVariant(API_S_CERT_HASH, XVariant(m_SignerHash));
+		Data.Write(API_S_SIGNER_NAME, TO_STR(m_SignerName));
+	}
+}
+
+void CImageSignInfo::ReadMValue(const SVarName& Name, const XVariant& Data)
+{
+	if (VAR_TEST_NAME(Name, API_S_SIGN_INFO_AUTH))			m_SignInfo.Authority = Data.To<uint8>();
+	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO_LEVEL))	m_SignInfo.Level = Data.To<uint8>();
+	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO_POLICY))	m_SignInfo.Policy = Data.To<uint32>();
+
+	else if (VAR_TEST_NAME(Name, API_S_FILE_HASH))			m_FileHash = TO_BYTES(Data);
+
+	else if (VAR_TEST_NAME(Name, API_S_CERT_STATUS))		m_HashStatus = (EHashStatus)Data.To<uint8>();
+	else if (VAR_TEST_NAME(Name, API_S_CERT_HASH))			m_SignerHash = TO_BYTES(Data);
+	else if (VAR_TEST_NAME(Name, API_S_SIGNER_NAME))		m_SignerName = AS_ASTR(Data);
+}

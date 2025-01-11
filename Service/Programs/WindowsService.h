@@ -4,33 +4,39 @@
 #include "../Network/TrafficLog.h"
 #include "ProgramFile.h"
 
-typedef std::wstring		TServiceId;	// Service name as string
-
 class CWindowsService : public CProgramItem
 {
 public:
-	CWindowsService(const TServiceId& Id);
+	CWindowsService(const std::wstring& ServiceTag);
 
 	virtual EProgramType GetType() const { return EProgramType::eWindowsService; }
 
-	virtual TServiceId GetSvcTag() const { std::unique_lock lock(m_Mutex); return m_ServiceId; }
+	virtual std::wstring GetServiceTag() const { std::unique_lock lock(m_Mutex); return m_ServiceTag; }
 
 	virtual CProgramFilePtr GetProgramFile() const;
 
 	virtual void SetProcess(const CProcessPtr& pProcess);
 
-	virtual void AddExecTarget(const std::shared_ptr<CProgramFile>& pProgram, const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked);
-	//virtual std::map<uint64, CAccessLog::SExecInfo> GetExecTargets() const { std::unique_lock lock(m_Mutex); return m_AccessLog.GetExecTargets(); }
+	virtual void AddExecChild(
+		const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
+		const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked);
+	//virtual std::map<uint64, CAccessLog::SExecInfo> GetExecChildren() const { std::unique_lock lock(m_Mutex); return m_AccessLog.GetExecChildren(); }
 	virtual CVariant DumpExecStats() const;
 
-	virtual void AddIngressTarget(const std::shared_ptr<CProgramFile>& pProgram, bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
+	virtual void AddIngressTarget(
+		const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
+		bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
 	//virtual std::map<uint64, CAccessLog::SAccessInfo> GetIngressTargets() const { std::unique_lock lock(m_Mutex); return m_AccessLog.GetIngressTargets(); }
 	virtual CVariant DumpIngress() const;
 
 	virtual void AddAccess(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked);
+	virtual CVariant DumpResAccess(uint64 LastActivity) const;
+
+	virtual CVariant StoreAccessLog(const SVarWriteOpt& Opts) const;
+	virtual void LoadAccessLog(const CVariant& Data);
+
 	virtual CVariant StoreAccess(const SVarWriteOpt& Opts) const;
 	virtual void LoadAccess(const CVariant& Data);
-	virtual CVariant DumpAccess(uint64 LastActivity) const;
 
 	virtual void UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked);
 
@@ -50,13 +56,14 @@ public:
 	virtual bool IsMissing() const { std::unique_lock lock(m_Mutex); return m_IsMissing != ePresent; }
 
 protected:
+	friend class CProgramFile;
 
 	void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
 	void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
 	void ReadIValue(uint32 Index, const CVariant& Data) override;
 	void ReadMValue(const SVarName& Name, const CVariant& Data) override;
 
-	TServiceId						m_ServiceId;
+	std::wstring					m_ServiceTag;
 
 	//
 	// Note: A service can have only one process,
@@ -79,6 +86,11 @@ public:
 
 	uint64							m_LastFwAllowed = 0;
 	uint64							m_LastFwBlocked = 0;
+
+	virtual void StoreExecChildren(CVariant& ExecChildren, const SVarWriteOpt& Opts, const std::wstring& SvcTag = L"") const;
+	virtual bool LoadExecChildren(const CVariant& ExecChildren);
+	virtual void StoreIngressTargets(CVariant& IngressTargets, const SVarWriteOpt& Opts, const std::wstring& SvcTag = L"") const;
+	virtual bool LoadIngressTargets(const CVariant& IngressTargets);
 
 private:
 	struct SStats

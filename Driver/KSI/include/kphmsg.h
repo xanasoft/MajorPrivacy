@@ -45,8 +45,10 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgAccessFile    = 0x40000040,
     KphMsgAccessReg     = 0x40000080,
 
-    KphMsgProgramRules  = 0x40000100,
-    KphMsgAccessRules   = 0x40000200,
+	KphMsgSecureEnclave = 0x40000100,
+    KphMsgProgramRules  = 0x40000200,
+    KphMsgAccessRules   = 0x40000400,
+	KphMsgFirewallRules = 0x40000800, // todo
 
     MaxKphMsg
 } KPH_MESSAGE_ID, *PKPH_MESSAGE_ID;

@@ -10,17 +10,23 @@ CVolume::CVolume(QObject* parent)
 QString CVolume::GetStatusStr() const
 {
 	switch (m_Status) {
-	case eMounted:			return tr("Mounted");
-	case eUnmounted:		return tr("Unmounted");
+	case eUnmounted:		return tr("Unmounted Volume");
+	case eMounted:			return tr("Mounted Volume");
+	case eFolder:			return tr("Unprotected Folder");
+	case eSecFolder:		return tr("Protected Folder");
 	}
-	return "Unknown";
+	return tr("Unknown");
 }
 
 void CVolume::SetImagePath(const QString& ImagePath)
 {
 	m_ImagePath = ImagePath;
+	if (ImagePath.endsWith("\\"))
+		m_Status = eFolder;
+	else
+		m_Status = eUnmounted;
 	if(m_Name.isEmpty()) 
-		m_Name = QFileInfo(m_ImagePath).fileName(); 
+		m_Name = m_Status == eFolder ? m_ImagePath : QFileInfo(m_ImagePath).fileName(); 
 }
 
 void CVolume::SetMounted(bool Mounted)
@@ -43,10 +49,13 @@ void CVolume::FromVariant(const class XVariant& Volume)
 		switch (Index)
 		{
 		case API_V_VOL_REF:			m_VolumeRef = Data; break;
-		case API_V_VOL_PATH:		SetImagePath(Data.AsQStr()); break;
+		case API_V_VOL_PATH:		m_ImagePath = Data.AsQStr(); break;
 		case API_V_VOL_DEVICE_PATH:	m_DevicePath = Data.AsQStr(); break;
 		case API_V_VOL_MOUNT_POINT:	m_MountPoint = Data.AsQStr(); break;
 		case API_V_VOL_SIZE:		m_VolumeSize = Data; break;
 		}
 	});
+
+	if(m_Name.isEmpty()) 
+		m_Name = QFileInfo(m_ImagePath).fileName(); 
 }

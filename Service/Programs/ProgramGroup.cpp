@@ -3,6 +3,7 @@
 #include "../../Library/API/PrivacyAPI.h"
 #include "../Processes/ProcessList.h"
 #include "../ServiceCore.h"
+#include "../Library/Common/Strings.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CProgramSet
@@ -15,4 +16,28 @@ bool CProgramSet::ContainsNode(const CProgramItemPtr& Item) const
 			return true;
 	}
 	return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+// CAllPrograms
+
+CAllPrograms::CAllPrograms() 
+{ 
+	m_ID = CProgramID(EProgramType::eAllPrograms); 
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+// CProgramGroup
+
+CProgramGroup::CProgramGroup(const std::wstring& Guid) 
+{
+	m_ID = CProgramID(MkLower(Guid), EProgramType::eProgramGroup);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+// CProgramRoot
+
+CProgramRoot::CProgramRoot() 
+{ 
+	m_ID = CProgramID(EProgramType::eProgramRoot); 
 }

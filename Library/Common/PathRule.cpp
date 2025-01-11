@@ -11,7 +11,6 @@
 CPathRule::CPathRule(FW::AbstractMemPool* pMem)
 	: FW::Object(pMem), m_PathPattern(pMem), m_Guid(pMem)
 {
-	SetNewGuid();
 }
 
 //CPathRule::CPathRule(FW::AbstractMemPool* pMem, const FW::StringW & Path)
@@ -22,34 +21,6 @@ CPathRule::CPathRule(FW::AbstractMemPool* pMem)
 
 CPathRule::~CPathRule()
 {
-}
-
-void CPathRule::SetNewGuid()
-{
-#ifdef KERNEL_MODE
-	NTSTATUS status;
-	GUID myGuid;
-	status = ExUuidCreate(&myGuid);
-	if (NT_SUCCESS(status)) {
-		UNICODE_STRING guidString;
-		status = RtlStringFromGUID(myGuid, &guidString);
-		if (NT_SUCCESS(status)) {
-			m_Guid.Assign(guidString.Buffer, guidString.Length / sizeof(wchar_t));
-			RtlFreeUnicodeString(&guidString);
-		}
-	}
-#else
-	GUID myGuid;
-	RPC_STATUS status = UuidCreate(&myGuid);
-	if (status == RPC_S_OK || status == RPC_S_UUID_LOCAL_ONLY) {
-		RPC_WSTR guidString = NULL;
-		status = UuidToStringW(&myGuid, &guidString);
-		if (status == RPC_S_OK) {
-			m_Guid.Assign((wchar_t*)guidString, wcslen((wchar_t*)guidString));
-			RpcStringFreeW(&guidString);
-		}
-	}
-#endif
 }
 
 ULONG CPathRule::GetMatch(const FW::StringW& Path, size_t uOffset) const
@@ -78,8 +49,7 @@ bool CPathRuleList::Add(const CPathRulePtr& pRule)
 	if(m_Map.Insert(pRule->GetGuid(), pRule, FW::EMapInsertMode::eNoReplace) != FW::EMapResult::eOK)
 		return false;
 	FW::StringW Path = pRule->GetPath();
-	if(wchar_t* pstr = Path.Data())
-		_wcslwr(pstr); // make string lower // todo
+	Path.MakeLower();
 	return Add(pRule, m_Root, Path);
 }
 
@@ -127,8 +97,7 @@ bool CPathRuleList::Remove(const FW::StringW& Guid)
 	if (!pRule)
 		return false;
 	FW::StringW Path = pRule->GetPath();
-	if(wchar_t* pstr = Path.Data())
-		_wcslwr(pstr); // make string lower // todo
+	Path.MakeLower();
 	Remove(pRule, m_Root, Path);
 	return true;
 }
@@ -178,8 +147,7 @@ void CPathRuleList::Clear()
 
 FW::List<CPathRuleList::SFoundRule> CPathRuleList::GetRules(FW::StringW Path) const
 { 
-	if(wchar_t* pstr = Path.Data())
-		_wcslwr(pstr); // make string lower // todo
+	Path.MakeLower();
 	return GetRules(m_Root, Path); 
 }
 
@@ -212,7 +180,7 @@ FW::List<CPathRuleList::SFoundRule> CPathRuleList::GetRules(const FW::SharedPtr<
 			Rules.Append(SFoundRule { pRule, uMatch, pRule->IsExact(), pRule->GetWildcardCount() });
 	}
 
-	FW::SharedPtr<SPathNode> pNode = pParent->Branches.GetValue(Name);
+	FW::SharedPtr<SPathNode> pNode = pParent->Branches.FindValue(Name);
 	if (pNode)
 		Rules.Append(GetRules(pNode, Path, uPos + 1));
 	

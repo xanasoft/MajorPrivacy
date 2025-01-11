@@ -5,6 +5,10 @@
 #include "..\..\Processes\Process.h"
 #include "../Library/Common/Strings.h"
 #include "../../Library/Helpers/AppUtil.h"
+#include "../../ServiceCore.h"
+#include "../../Programs/ProgramManager.h"
+#include "../Library/Helpers/NtUtil.h"
+
 
 CFirewallRule::CFirewallRule()
 {
@@ -13,17 +17,17 @@ CFirewallRule::CFirewallRule()
 
 CFirewallRule::CFirewallRule(const std::shared_ptr<struct SWindowsFwRule>& Rule)
 {
-	m_Data = Rule;
+	Update(Rule);
 
 	m_BinaryPath = m_Data->BinaryPath;
 	if (_wcsicmp(m_BinaryPath.c_str(), L"system") == 0)
-		m_BinaryPath = L"%SystemRoot%\\system32\\ntoskrnl.exe";
+		m_BinaryPath = CProcess::NtOsKernel_exe;
 	//DbgPrint(L"%s\n", BinaryPath.c_str());
 	
 	std::wstring AppContainerSid = m_Data->AppContainerSid;
 	if(AppContainerSid.empty() && !m_Data->PackageFamilyName.empty())
 		AppContainerSid = GetAppContainerSidFromName(m_Data->PackageFamilyName);
-	m_ProgramID.Set(m_BinaryPath, m_Data->ServiceTag, AppContainerSid);
+	m_ProgramID = CProgramID::FromFw(m_BinaryPath, m_Data->ServiceTag, AppContainerSid);
 }
 
 CFirewallRule::~CFirewallRule()
@@ -36,13 +40,41 @@ void CFirewallRule::Update(const std::shared_ptr<struct SWindowsFwRule>& Rule)
 	std::unique_lock Lock(m_Mutex);
 
 	m_Data = Rule;
+
+	m_bTemporary = _wcsnicmp(m_Data->Grouping.c_str(), L"&Temporary", 10) == 0;
 }
 
-std::wstring CFirewallRule::GetGuid() const
+void CFirewallRule::Update(const std::shared_ptr<CFirewallRule>& pRule)
+{
+	std::unique_lock Lock(m_Mutex);
+
+	m_bTemporary = pRule->m_bTemporary;
+	m_uTimeOut = pRule->m_uTimeOut;
+}
+
+std::wstring CFirewallRule::GetGuidStr() const
 {
 	std::shared_lock Lock(m_Mutex);
 
 	return m_Data->Guid;
+}
+
+bool CFirewallRule::IsExpired() const
+{ 
+	std::shared_lock Lock(m_Mutex); 
+	if(m_uTimeOut == -1)
+		return false;
+	uint64 CurrentTime = FILETIME2time(GetCurrentTimeAsFileTime());
+	if (m_uTimeOut < CurrentTime) {
+//#ifdef _DEBUG
+//		DbgPrint("Firewall Rule %S has expired\r\n", m_Data->Name.c_str());
+//#endif
+		return true;
+	}
+//#ifdef _DEBUG
+//	DbgPrint("Firewall Rule %S will expire in %llu seconds\r\n", m_Data->Name.c_str(), m_uTimeOut - CurrentTime);
+//#endif
+	return false;
 }
 
 CVariant CFirewallRule::ToVariant(const SVarWriteOpt& Opts) const
@@ -75,10 +107,10 @@ bool CFirewallRule::FromVariant(const CVariant& Rule)
 	std::wstring AppContainerSid = m_Data->AppContainerSid;
 	if(AppContainerSid.empty() && !m_Data->PackageFamilyName.empty())
 		AppContainerSid = GetAppContainerSidFromName(m_Data->PackageFamilyName);
-	m_ProgramID.Set(m_BinaryPath, m_Data->ServiceTag, AppContainerSid);
+	m_ProgramID = CProgramID::FromFw(m_BinaryPath, m_Data->ServiceTag, AppContainerSid);
 
 	m_Data->BinaryPath = m_BinaryPath;
-	if (_wcsicmp(m_Data->BinaryPath.c_str(), L"%SystemRoot%\\system32\\ntoskrnl.exe") == 0)
+	if (theCore->ProgramManager()->IsNtOsKrnl(m_BinaryPath))
 		m_Data->BinaryPath = L"system";
 
 	return true;

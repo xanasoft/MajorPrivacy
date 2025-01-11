@@ -21,7 +21,10 @@ CTrafficModel::~CTrafficModel()
 
 QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& List)
 {
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	static QIcon InternetIcon(":/Icons/Internet.png");

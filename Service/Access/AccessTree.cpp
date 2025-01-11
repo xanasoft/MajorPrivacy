@@ -4,6 +4,8 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NtObj.h"
 #include "../Library/Helpers/NtUtil.h"
+#include "../Library/Helpers/NtPathMgr.h"
+#include "../Library/Helpers/MiscHelpers.h"
 #include "../ServiceCore.h"
 
 CAccessTree::CAccessTree()
@@ -94,7 +96,7 @@ void CAccessTree::LoadTree(const CVariant& Data)
 uint32 CAccessTree::LoadTree(const CVariant& Data, SPathNodePtr& pParent)
 {
 	uint32 Count = 0;
-	pParent->pStats = std::make_shared<SAccessStats>(Data[API_V_ACCESS_MASK], Data[API_V_ACCESS_TIME], Data[API_V_ACCESS_STATUS], Data[API_V_ACCESS_IS_DIR], Data[API_V_ACCESS_BLOCKED]);
+	pParent->pStats = std::make_shared<SAccessStats>(Data[API_V_ACCESS_MASK], Data[API_V_LAST_ACTIVITY], Data[API_V_NT_STATUS], Data[API_V_IS_DIRECTORY], Data[API_V_WAS_BLOCKED]);
 	CVariant Nodes = Data[API_V_ACCESS_NODES];
 	for (uint32 i = 0; i < Nodes.Count(); i++)
 	{
@@ -151,11 +153,11 @@ CVariant CAccessTree::StoreNode(const SPathNodePtr& pParent, const CVariant& Chi
 
 	if (pParent->pStats)
 	{
-		Node.Write(API_V_ACCESS_TIME, pParent->pStats->LastAccessTime);
-		Node.Write(API_V_ACCESS_BLOCKED, pParent->pStats->bBlocked);
+		Node.Write(API_V_LAST_ACTIVITY, pParent->pStats->LastAccessTime);
+		Node.Write(API_V_WAS_BLOCKED, pParent->pStats->bBlocked);
 		Node.Write(API_V_ACCESS_MASK, pParent->pStats->AccessMask);
-		Node.Write(API_V_ACCESS_STATUS, pParent->pStats->NtStatus);
-		Node.Write(API_V_ACCESS_IS_DIR, pParent->pStats->IsDirectory);
+		Node.Write(API_V_NT_STATUS, pParent->pStats->NtStatus);
+		Node.Write(API_V_IS_DIRECTORY, pParent->pStats->IsDirectory);
 	}
 
 	if(Children.IsValid())
@@ -176,26 +178,34 @@ bool CAccessTree::CleanUp(SPathNodePtr& pParent, const std::wstring& Path, bool*
 	{
 		HANDLE handle = NULL;
 		NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+		IO_STATUS_BLOCK Iosb;
 
-		if (Path.length() > 8 && _wcsnicmp(Path.c_str(), L"\\Device\\", 8) == 0)
+		if (CNtPathMgr::IsDosPath(Path))
 		{
-			if(Path.length() == 17 && _wcsicmp(Path.c_str(), L"\\Device\\NamedPipe") == 0)
+			std::wstring NtPath = CNtPathMgr::Instance()->TranslateDosToNtPath(Path);
+			if (NtPath.empty())
+				status = STATUS_UNRECOGNIZED_VOLUME;
+			else if (NtPath.find_first_of(L"<>:\"/|?*") != std::wstring::npos)
+				status = STATUS_OBJECT_PATH_SYNTAX_BAD; // this can provoke a BSOD!!!
+			else
+				status = NtCreateFile(&handle, /*FILE_READ_ATTRIBUTES |*/ SYNCHRONIZE, SNtObject(NtPath).Get(), &Iosb, NULL, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, FILE_OPEN, 0, NULL, 0);
+		}
+		else if (MatchPathPrefix(Path, L"\\Device"))
+		{
+			if(MatchPathPrefix(Path, L"\\Device\\NamedPipe"))
 				return false; // always clean up named pipes we dont show them in the gui anyways
 
 			if (Path.find_first_of(L"<>:\"/|?*") != std::wstring::npos)
 				status = STATUS_OBJECT_PATH_SYNTAX_BAD; // this can provoke a BSOD!!!
 			else
 
-			//if (Path.length() > 16 && _wcsnicmp(Path.c_str(), L"\\Device\\Harddisk", 16) == 0)
-			//if (Path.length() > 16 && _wcsnicmp(Path.c_str(), L"\\Device\\HarddiskVolume", 22) == 0)
-			{
-				IO_STATUS_BLOCK Iosb;
+			//if (MatchPathPrefix(Path, L"\\Device\\Harddisk", 16))
+			//if (MatchPathPrefix(Path, L"\\Device\\HarddiskVolume", 22))
 				status = NtCreateFile(&handle, /*FILE_READ_ATTRIBUTES |*/ SYNCHRONIZE, SNtObject(Path).Get(), &Iosb, NULL, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, FILE_OPEN, 0, NULL, 0);
-			}
 		}
-		else if (Path.length() > 10 && _wcsnicmp(Path.c_str(), L"\\REGISTRY\\", 10) == 0)
+		else if (MatchPathPrefix(Path, L"\\REGISTRY"))
 		{
-			if(Path.length() == 11 && _wcsicmp(Path.c_str(), L"\\REGISTRY\\A") == 0)
+			if(MatchPathPrefix(Path.c_str(), L"\\REGISTRY\\A"))
 				return false; // always clean up app exclusive hives
 
 			status = NtOpenKey(&handle, SYNCHRONIZE, SNtObject(Path).Get());
@@ -232,7 +242,14 @@ bool CAccessTree::CleanUp(SPathNodePtr& pParent, const std::wstring& Path, bool*
 		if (pbCancel && *pbCancel)
 			break;
 
-		bool bOk = CleanUp(Branch.second, Path + L"\\" + Branch.first, pbCancel, puCounter);
+		std::wstring ChildPath;
+		if (!Path.empty())
+			ChildPath = Path + L"\\" + Branch.first;
+		else if (Branch.first.size() == 2 && Branch.first[1] == L':')
+			ChildPath = Branch.first;
+		else
+			ChildPath = L"\\" + Branch.first;
+		bool bOk = CleanUp(Branch.second, ChildPath, pbCancel, puCounter);
 
 		if (puCounter) {
 			*puCounter += 1;

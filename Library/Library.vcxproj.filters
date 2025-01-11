@@ -339,6 +339,21 @@
     <ClInclude Include="Helpers\NtPathMgr.h">
       <Filter>Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="Helpers\CertUtil.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\verify.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="PHlib\include\verifyp.h">
+      <Filter>PHlib\include</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ThreadPool.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\FlexGuid.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -532,6 +547,21 @@
     </ClCompile>
     <ClCompile Include="Helpers\NtPathMgr.cpp">
       <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\CertUtil.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="PHlib\verify.c">
+      <Filter>PHlib</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\ThreadPool.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="API\API_Enclave.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\FlexGuid.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -22,7 +22,10 @@ CVolumeModel::~CVolumeModel()
 
 QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 {
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	foreach(const CVolumePtr& pVolume, VolumeList)
@@ -55,13 +58,13 @@ QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 		int Changed = 0;
 		if (pNode->Icon.isNull())
 		{
-			pNode->Icon = QIcon(":/Icons/SecureDisk.png");
+			pNode->Icon = pNode->pVolume->IsFolder() ? pNode->Icon = QIcon(":/Icons/Folder.png") :QIcon(":/Icons/SecureDisk.png");
 			Changed = 1;
 		}
-		/*if (pNode->IsGray != ...) {
-			pNode->IsGray = ...;
+		if (pNode->IsGray != (pNode->pVolume->GetStatus() == CVolume::eFolder)) {
+			pNode->IsGray = (pNode->pVolume->GetStatus() == CVolume::eFolder);
 			Changed = 2; // set change for all columns
-		}*/
+		}
 
 		for (int section = 0; section < columnCount(); section++)
 		{

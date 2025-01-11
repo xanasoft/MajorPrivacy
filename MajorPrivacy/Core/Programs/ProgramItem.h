@@ -2,7 +2,7 @@
 
 //#include "../Process.h"
 #include "ProgramID.h"
-#include "../../Helpers/FilePath.h"
+#include "../../Library/Common/FlexGuid.h"
 
 struct SProgramStats
 {
@@ -52,25 +52,25 @@ public:
 	virtual void SetName(const QString& Name)		{ m_Name = Name; }
 	virtual QString GetName() const					{ return m_Name; }
 	virtual QString GetNameEx() const				{ return m_Name; }
-	virtual QStringList GetCategories() const		{ return m_Categories; }
+	//virtual QStringList GetCategories() const		{ return m_Categories; }
 	virtual QIcon DefaultIcon() const;
 	virtual void SetIconFile(const QString& IconFile) { m_IconFile = IconFile; UpdateIconFile(); }
 	virtual QString GetIconFile() const				{ return m_IconFile; }
 	virtual QIcon GetIcon() const					{ return m_Icon; }
 	virtual void SetInfo(const QString& Info)		{ m_Info = Info; }
 	virtual QString GetInfo() const					{ return m_Info; }
-	virtual QString GetPath(EPathType Type) const	{ return ""; }
+	virtual QString GetPath() const					{ return ""; }
 
 	virtual QList<QWeakPointer<QObject>> GetGroups() const	{ return m_Groups; }
 
 	virtual int GetFwRuleCount() const				{ return m_FwRuleIDs.count(); }
-	virtual QSet<QString> GetFwRules() const		{ return m_FwRuleIDs; }
+	virtual QSet<QFlexGuid> GetFwRules() const		{ return m_FwRuleIDs; }
 
 	virtual int GetProgRuleCount() const			{ return m_ProgRuleIDs.count(); }
-	virtual QSet<QString> GetProgRules() const		{ return m_ProgRuleIDs; }
+	virtual QSet<QFlexGuid> GetProgRules() const	{ return m_ProgRuleIDs; }
 
 	virtual int GetResRuleCount() const				{ return m_ResRuleIDs.count(); }
-	virtual QSet<QString> GetResRules() const		{ return m_ResRuleIDs; }
+	virtual QSet<QFlexGuid> GetResRules() const		{ return m_ResRuleIDs; }
 
 	virtual bool IsMissing() const					{ return m_IsMissing; }
 
@@ -94,16 +94,16 @@ protected:
 	quint64								m_UID = 0;
 	CProgramID							m_ID;
 	QString								m_Name;
-	QStringList							m_Categories;
+	//QStringList							m_Categories;
 	QString								m_IconFile;
 	QIcon								m_Icon;
 	QString								m_Info;
 
 	QList<QWeakPointer<QObject>>		m_Groups;
 
-	QSet<QString>						m_FwRuleIDs;
-	QSet<QString>						m_ProgRuleIDs;
-	QSet<QString>						m_ResRuleIDs;
+	QSet<QFlexGuid>						m_FwRuleIDs;
+	QSet<QFlexGuid>						m_ProgRuleIDs;
+	QSet<QFlexGuid>						m_ResRuleIDs;
 
 	bool								m_IsMissing = false;
 

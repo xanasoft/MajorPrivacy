@@ -20,10 +20,16 @@ CVolumePage::CVolumePage(QWidget* parent)
 	m_pVolumeView = new CVolumeView(this);
 	m_pHSplitter->addWidget(m_pVolumeView);
 
-	m_pAccessPage = new CAccessPage(this);
-	m_pAccessPage->setObjectName("VolumeAccess");
+	m_pAccessPage = new CAccessPage(true, this);
 	m_pAccessPage->LoadState();
 	m_pHSplitter->addWidget(m_pAccessPage);
+
+	m_pHSplitter->restoreState(theConf->GetBlob("MainWindow/VolumeSplitter"));
+}
+
+CVolumePage::~CVolumePage()
+{
+	theConf->SetBlob("MainWindow/VolumeSplitter", m_pHSplitter->saveState());
 }
 
 void CVolumePage::Update()

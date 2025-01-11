@@ -261,10 +261,10 @@ SImageVersionInfoPtr GetImageVersionInfo(const std::wstring& FileName)
     return pVersionInfo;
 }
 
-SImageVersionInfoPtr GetImageVersionInfoNt(const std::wstring& FileName)
+/*SImageVersionInfoPtr GetImageVersionInfoNt(const std::wstring& FileName)
 {
     return GetImageVersionInfo(NtPathToDosPath(FileName));
-}
+}*/
 
 
 //typedef struct _STRING32

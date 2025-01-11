@@ -3,7 +3,8 @@
 #include "../Programs/ProgramId.h"
 #include "../Access/Handle.h"
 #include "../Network/Socket.h"
-#include "../../Helpers/FilePath.h"
+#include "../Programs/ImageSignInfo.h"
+#include "../Library/Common/FlexGuid.h"
 
 class CProcess : public QObject
 {
@@ -17,13 +18,20 @@ public:
 	quint64 GetCreationTime() const { return m_CreationTime; }
 	quint64 GetParentId() const { return m_ParentPid; }
 	QString GetName() const { return m_Name; }
-	QString GetPath(EPathType Type) const { return m_Path.Get(Type); }
+	QString GetNtPath() const { return m_NtFileName; }
 	QString GetCmdLine() const { return m_CmdLine; }
-	QIcon GetIcon() const { return m_Icon; }
-	quint64 GetEnclaveId() const { return m_EnclaveId; }
-	bool IsProtected(bool bAlsoLite = false) const;
 
-	SLibraryInfo::USign GetSignInfo() const	{ return m_SignInfo; }
+	quint32 GetSecState() const { return m_SecState; }
+	quint32 GetFlags() const { return m_Flags; }
+	quint32 GetSecFlags() const { return m_SecFlags; }
+
+	QIcon GetIcon() const { return m_Icon; }
+	bool IsProtected(bool bAlsoLite = false) const;
+	QFlexGuid GetEnclaveGuid() const { return m_EnclaveGuid; }
+	QSharedPointer<class CEnclave> GetEnclave() const { return m_pEnclave; }
+	void SetEnclave(const QSharedPointer<class CEnclave>& pEnclave) { m_pEnclave = pEnclave; }
+
+	const CImageSignInfo& GetSignInfo() const { return m_SignInfo; }
 
 	QString GetStatus() const;
 	QString GetImgStats() const;
@@ -55,15 +63,15 @@ protected:
 	quint64 m_CreationTime = 0;
 	quint64 m_ParentPid = 0;
 	QString m_Name;
-	CFilePath m_Path;
+	QString m_NtFileName;
 	QIcon m_Icon;
 	QString m_CmdLine;
-	//m_ImageHash;
-	quint64 m_EnclaveId = 0;
 	quint32 m_SecState = 0;
 	quint32 m_Flags = 0;
 	quint32 m_SecFlags = 0;
-	SLibraryInfo::USign m_SignInfo = {0};
+	QFlexGuid m_EnclaveGuid;
+	QSharedPointer<class CEnclave> m_pEnclave;
+	CImageSignInfo m_SignInfo;
 	quint32 m_NumberOfImageLoads = 0;
 	quint32 m_NumberOfMicrosoftImageLoads = 0;
 	quint32 m_NumberOfAntimalwareImageLoads = 0;

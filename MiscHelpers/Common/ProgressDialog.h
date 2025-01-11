@@ -39,7 +39,7 @@ public:
  
 		//setFixedSize(sizeHint());
 
-		connect(m_pButtonBox,SIGNAL(rejected()),this,SIGNAL(Cancel()));
+		connect(m_pButtonBox,SIGNAL(rejected()),this,SLOT(OnCancel()));
 
 		m_TimerId = startTimer(1000);
 		m_CountDown = 0;
@@ -49,11 +49,14 @@ public:
 		killTimer(m_TimerId);
 	}
 
+	void		ResetCanceled()		{ m_Cancelled = false; }
+	bool		IsCancelled() const { return m_Cancelled; }
+
 signals:
 	void		Cancel();
 
 public slots:
-	void		OnProgressMessage(const QString& Message, int Progress = -1)
+	void		ShowProgress(const QString& Message, int Progress = -1)
 	{
 		if(!Message.isEmpty())
 			m_pMessageLabel->setText(Message);
@@ -72,7 +75,7 @@ public slots:
 		}
 	}
 
-	void		OnStatusMessage(const QString& Message, int Code = 0)
+	void		ShowStatus(const QString& Message, int Code = 0)
 	{
 		//if(Code == 0)
 			m_pMessageLabel->setText(Message);
@@ -84,6 +87,14 @@ public slots:
 	{
 		m_pButtonBox->button(QDialogButtonBox::Cancel)->setEnabled(false);
 		m_CountDown = 3;
+	}
+
+private slots:
+
+	void OnCancel()
+	{
+		m_Cancelled = true;
+		emit Cancel();
 	}
 
 protected:
@@ -111,6 +122,7 @@ protected:
 
 	int					m_TimerId;
 	int					m_CountDown;
+	bool				m_Cancelled;
 
 	QWidget*			m_pMainWidget;
 	QGridLayout*		m_pMainLayout;

@@ -3,12 +3,13 @@
 #include "../Library/Common/Address.h"
 #include "Firewall/FirewallDefs.h"
 #include "Dns/DnsHostName.h"
+#include "../Library/Common/FlexGuid.h"
 
 class CNetLogEntry: public CTraceLogEntry
 {
 	TRACK_OBJECT(CNetLogEntry)
 public:
-	CNetLogEntry(const struct SWinFwLogEvent* pEvent, EFwEventStates State, const CHostNamePtr& pRemoteHostName, uint64 PID, const std::wstring& ServiceTag = L"", const std::wstring& AppSid = L"");
+	CNetLogEntry(const struct SWinFwLogEvent* pEvent, EFwEventStates State, const CHostNamePtr& pRemoteHostName, const std::vector<CFlexGuid>& AllowRules, const std::vector<CFlexGuid>& BlockRules, uint64 PID, const std::wstring& ServiceTag = L"", const std::wstring& AppSid = L"");
 
 	virtual void WriteVariant(CVariant& Entry) const;
 
@@ -27,6 +28,9 @@ protected:
     EFwRealms			m_Realm = EFwRealms::Undefined;
 
 	CHostNamePtr		m_pRemoteHostName;
+
+	std::vector<CFlexGuid> m_AllowRules;
+	std::vector<CFlexGuid> m_BlockRules;
 };
 
 typedef std::shared_ptr<CNetLogEntry> CNetLogEntryPtr;

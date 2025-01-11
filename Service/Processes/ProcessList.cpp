@@ -11,6 +11,7 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "ServiceList.h"
 #include "../Library/Helpers/NtUtil.h"
+#include "../Library/Helpers/NtPathMgr.h"
 #include "../Library/Helpers/AppUtil.h"
 #include "../Programs/ProgramManager.h"
 #include "../Library/Common/Strings.h"
@@ -62,6 +63,7 @@ void CProcessList::Update()
 {
     m_bLogNotFound = theCore->Config()->GetBool("Service", "LogNotFound", false);
     m_bLogInvalid = theCore->Config()->GetBool("Service", "LogInvalid", false);
+	m_bLogPipes = theCore->Config()->GetBool("Service", "LogPipes", false);
 
     EnumProcesses();
 
@@ -114,16 +116,7 @@ STATUS CProcessList::EnumProcesses()
             pProcess->Update();
 
             if (bAdd) 
-            {
-                AddProcessUnsafe(pProcess);
-                theCore->ProgramManager()->AddProcess(pProcess);
-                pProcess->InitLibs();
-
-                //if (!theCore->AppIsolator()->AllowProcessStart(pProcess)) {
-                //    TerminateProcess(Pid, pProcess->GetFileName());
-                //    continue;
-                //}
-            }
+				AddProcessImpl(pProcess);
         }
     }
     else
@@ -157,14 +150,7 @@ STATUS CProcessList::EnumProcesses()
                 pProcess = CProcessPtr(new CProcess(Pid));
                 pProcess->Init(process, bFullProcessInfo);
 
-                AddProcessUnsafe(pProcess);
-                theCore->ProgramManager()->AddProcess(pProcess);
-                pProcess->InitLibs();
-
-                //if (!theCore->AppIsolator()->AllowProcessStart(pProcess)) {
-                //    TerminateProcess(Pid, pProcess->GetFileName());
-                //    continue;
-                //}
+                AddProcessImpl(pProcess);
             }
 
             pProcess->Update(process, bFullProcessInfo);
@@ -193,6 +179,32 @@ STATUS CProcessList::EnumProcesses()
 #endif
 
 	return OK;
+}
+
+void CProcessList::AddProcessImpl(const CProcessPtr& pProcess)
+{
+    AddProcessUnsafe(pProcess);
+    CProgramFilePtr pProgram = theCore->ProgramManager()->AddProcess(pProcess);
+    pProcess->InitLibs();
+
+    if (pProcess->HashInfoUnknown()) {
+        if (!pProgram->HashInfoUnknown())
+            pProcess->SetSignInfo(pProgram->GetSignInfo());
+        //else
+        //{
+        //    theCore->ThreadPool()->enqueueTask([pProcess, pProgram](const std::wstring& ModulePath) {
+        //        SVerifierInfo VerifyInfo;
+        //        CProcess::MakeVerifyInfo(ModulePath, VerifyInfo);
+        //        pProcess->UpdateSignInfo(&VerifyInfo);
+        //        pProgram->UpdateSignInfo(&VerifyInfo);
+        //    }, pProgram->GetPath());
+        //}
+    }
+
+    //if (!theCore->AppIsolator()->AllowProcessStart(pProcess)) {
+    //    TerminateProcess(Pid, pProcess->GetFileName());
+    //    continue;
+    //}
 }
 
 CProcessPtr CProcessList::GetProcess(uint64 Pid, bool bCanAdd) 
@@ -233,9 +245,9 @@ void CProcessList::AddProcessUnsafe(const CProcessPtr& pProcess)
     std::wstring AppContainerSID = pProcess->GetAppContainerSid();
     if (!AppContainerSID.empty())
         m_Apps.insert(std::make_pair(MkLower(AppContainerSID), pProcess));
-    std::wstring FilePath = pProcess->GetFileName();
-    if(!FilePath.empty())
-        m_ByPath.insert(std::make_pair(NormalizeFilePath(FilePath), pProcess));
+    std::wstring FilePath = pProcess->GetNtFilePath();
+    ASSERT(!FilePath.empty());
+    m_ByPath.insert(std::make_pair(theCore->NormalizePath(FilePath), pProcess));
 }
 
 void CProcessList::RemoveProcessUnsafe(const CProcessPtr& pProcess)
@@ -244,9 +256,9 @@ void CProcessList::RemoveProcessUnsafe(const CProcessPtr& pProcess)
     std::wstring AppContainerSID = pProcess->GetAppContainerSid();
     if (!AppContainerSID.empty())
         mmap_erase(m_Apps, MkLower(AppContainerSID), pProcess);
-    std::wstring FilePath = pProcess->GetFileName();
-    if(!FilePath.empty())
-        mmap_erase(m_ByPath, NormalizeFilePath(FilePath), pProcess);
+    std::wstring FilePath = pProcess->GetNtFilePath();
+    ASSERT(!FilePath.empty())
+    mmap_erase(m_ByPath, theCore->NormalizePath(FilePath), pProcess);
 }
 
 std::map<uint64, CProcessPtr> CProcessList::FindProcesses(const CProgramID& ID)
@@ -363,18 +375,27 @@ std::wstring CProcessList::GetPathFromCmd(const std::wstring &CommandLine, const
     return FindInPath(filePath + L".exe");
 }
 
-bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& FileName, const std::wstring& Command, uint64 CreateTime, EEventStatus Status, bool bETW)
+bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& FileName, const std::wstring& Command, const struct SVerifierInfo* pVerifyInfo, uint64 CreateTime, EEventStatus Status, bool bETW)
 {
-    CProcessPtr pProcess = GetProcess(Pid, true);
-    if (!pProcess->IsInitDone()) {
+    CProcessPtr pChildProcess = GetProcess(Pid, true);
 
-        std::unique_lock Lock(pProcess->m_Mutex);
+    //
+    // Note: It's possible to receive an event for a process before the OnProcessStarted is called.
+    // Therefore, we need to update the process information here to ensure it stays in sync with the drivers protection status.
+    //
+    // This situation can occur, for instance, if a task manager detects the process and opens it before the process creation is fully completed.
+    //
+    pChildProcess->UpdateMisc();
 
-        bool bInitDone = pProcess->m_ParentPid != -1;
-        pProcess->m_ParentPid = ParentPid;
+    if (!pChildProcess->IsInitDone()) {
 
-        if (pProcess->m_CreationTime == 0)
-            pProcess->SetRawCreationTime(CreateTime);
+        std::unique_lock Lock(pChildProcess->m_Mutex);
+
+        bool bInitDone = pChildProcess->m_ParentPid != -1;
+        pChildProcess->m_ParentPid = ParentPid;
+
+        if (pChildProcess->m_CreationTime == 0)
+            pChildProcess->SetRawCreationTime(CreateTime);
 
         if (bETW)
         {
@@ -383,45 +404,63 @@ bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPi
             // we try to recover the full path from the command line
             //
 
-            pProcess->m_Name = FileName;
+            pChildProcess->m_Name = FileName;
 
             std::wstring FilePath = GetPathFromCmd(Command, FileName, ParentPid);
-            if (!FilePath.empty())
-                pProcess->m_FileName = DosPathToNtPath(FilePath);
+            if (!FilePath.empty()) {
+                std::wstring NtPath = CNtPathMgr::Instance()->TranslateDosToNtPath(FilePath);
+                if(NtPath.empty()) // fallback
+                    pChildProcess->m_NtFilePath = L"\\??\\" + FilePath;
+                else
+                    pChildProcess->m_NtFilePath = NtPath;
+            }
         }
         else
-            pProcess->m_FileName = FileName;
+            pChildProcess->m_NtFilePath = FileName;
 
-        if (pProcess->m_CommandLine.empty())
-            pProcess->m_CommandLine = Command;
+        if (pChildProcess->m_CommandLine.empty())
+            pChildProcess->m_CommandLine = Command;
 
         Lock.unlock();
 
         if (!bInitDone) {
             std::unique_lock Lock(m_Mutex);
 
-            AddProcessUnsafe(pProcess); // Note: at this point its already listed in m_List but as its not a multi map its fine
-            theCore->ProgramManager()->AddProcess(pProcess);
+            AddProcessUnsafe(pChildProcess); // Note: at this point its already listed in m_List but as its not a multi map its fine
+            theCore->ProgramManager()->AddProcess(pChildProcess);
         }
     }
 
-    CProgramFilePtr pProgram = pProcess->GetProgram();
+    CProgramFilePtr pProgram = pChildProcess->GetProgram();
 
-    CProcessPtr pActorProcess = GetProcess(ActorPid, true);
-    CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
+    if (pVerifyInfo) 
+    {
+        pChildProcess->UpdateSignInfo(pVerifyInfo);
+        pProgram->UpdateSignInfo(pVerifyInfo);
+    }
+
+    CProcessPtr pParentProcess = GetProcess(ActorPid, true);
+    CProgramFilePtr pActorProgram = pParentProcess ? pParentProcess->GetProgram() : NULL;
     if (pProgram && pActorProgram)
     {
-        pProgram->AddExecActor(pActorProgram, ActorServiceTag, Command, CreateTime, (Status != EEventStatus::eAllowed));
-        pActorProgram->AddExecTarget(ActorServiceTag, pProgram, Command, CreateTime, (Status != EEventStatus::eAllowed));
+		CFlexGuid TargetEnclave = pChildProcess->GetEnclave();
+		CFlexGuid ActorEnclave = pParentProcess->GetEnclave();
 
-        CExecLogEntryPtr pLogActorEntry = CExecLogEntryPtr(new CExecLogEntry(EExecLogRole::eActor, EExecLogType::eProcessStarted, Status, pProgram->GetUID(), ActorServiceTag, CreateTime, Pid));
+        pProgram->AddExecParent(TargetEnclave, 
+            pActorProgram, ActorEnclave, pParentProcess->GetProcessUID(), ActorServiceTag, 
+            Command, CreateTime, (Status != EEventStatus::eAllowed));
+        pActorProgram->AddExecChild(ActorEnclave, ActorServiceTag, 
+            pProgram, TargetEnclave, pChildProcess->GetProcessUID(), 
+            Command, CreateTime, (Status != EEventStatus::eAllowed));
+
+        CExecLogEntryPtr pLogActorEntry = CExecLogEntryPtr(new CExecLogEntry(ActorEnclave, EExecLogRole::eActor, EExecLogType::eProcessStarted, Status, pProgram->GetUID(), TargetEnclave, ActorServiceTag, CreateTime, Pid));
         AddExecLogEntry(pActorProgram, pLogActorEntry);
 
-        CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EExecLogRole::eTarget, EExecLogType::eProcessStarted, Status, pActorProgram->GetUID(), ActorServiceTag, CreateTime, Pid));
+        CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(TargetEnclave, EExecLogRole::eTarget, EExecLogType::eProcessStarted, Status, pActorProgram->GetUID(), ActorEnclave, ActorServiceTag, CreateTime, Pid));
         AddExecLogEntry(pProgram, pLogEntry);
     }
 
-    //return theCore->AppIsolator()->AllowProcessStart(pProcess);
+    //return theCore->AppIsolator()->AllowProcessStart(pChildProcess);
     return true;
 }
 
@@ -440,23 +479,39 @@ void CProcessList::OnProcessStopped(uint64 Pid, uint32 ExitCode)
 
 void CProcessList::OnProcessAccessed(uint64 Pid, uint64 ActorPid, const std::wstring& ActorServiceTag, bool bThread, uint32 AccessMask, uint64 AccessTime, EEventStatus Status)
 {
-    CProcessPtr pProcess = GetProcess(Pid, true);
-    CProgramFilePtr pProgram = pProcess ? pProcess->GetProgram() : NULL;
+    CProcessPtr pTargetProcess = GetProcess(Pid, true);
+    CProgramFilePtr pTargetProgram = pTargetProcess ? pTargetProcess->GetProgram() : NULL;
 
     CProcessPtr pActorProcess = GetProcess(ActorPid, true);
     CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
 
-    if (!pProgram || !pActorProgram || pProgram == pActorProgram) // discard self accesses
+    if (!pTargetProgram || !pActorProgram || pTargetProgram == pActorProgram) // discard self accesses
         return;
 
-    pProgram->AddIngressActor(pActorProgram, ActorServiceTag, bThread, AccessMask, AccessTime, (Status != EEventStatus::eAllowed));
-    pActorProgram->AddIngressTarget(ActorServiceTag, pProgram, bThread, AccessMask, AccessTime, (Status != EEventStatus::eAllowed));
+    //
+	// Record Interprocess Access Events 
+    // the Actor is the process executing the access
+	// the Target is the process being accessed
+    // 
+    // A Program item records IngressActors i.e. a list of processes which accessed it
+	// As well as IngressTargets i.e. a list of programs it accessed
+    //
 
-    CExecLogEntryPtr pLogActorEntry = CExecLogEntryPtr(new CExecLogEntry(EExecLogRole::eActor, bThread ? EExecLogType::eThreadAccess : EExecLogType::eProcessAccess, Status, pProgram->GetUID(), ActorServiceTag, AccessTime, Pid, AccessMask));
+    CFlexGuid TargetEnclave = pTargetProcess->GetEnclave();
+    CFlexGuid ActorEnclave = pActorProcess->GetEnclave();
+
+    pTargetProgram->AddIngressActor(TargetEnclave, 
+        pActorProgram, ActorEnclave, pActorProcess->GetProcessUID(), ActorServiceTag, 
+        bThread, AccessMask, AccessTime, (Status != EEventStatus::eAllowed));
+    pActorProgram->AddIngressTarget(ActorEnclave, ActorServiceTag, 
+        pTargetProgram, TargetEnclave, pTargetProcess->GetProcessUID(), 
+        bThread, AccessMask, AccessTime, (Status != EEventStatus::eAllowed));
+
+    CExecLogEntryPtr pLogActorEntry = CExecLogEntryPtr(new CExecLogEntry(ActorEnclave, EExecLogRole::eActor, bThread ? EExecLogType::eThreadAccess : EExecLogType::eProcessAccess, Status, pTargetProgram->GetUID(), TargetEnclave, ActorServiceTag, AccessTime, Pid, AccessMask));
     AddExecLogEntry(pActorProgram, pLogActorEntry);
 
-    CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EExecLogRole::eTarget, bThread ? EExecLogType::eThreadAccess : EExecLogType::eProcessAccess, Status, pActorProgram->GetUID(), ActorServiceTag, AccessTime, Pid, AccessMask));
-    AddExecLogEntry(pProgram, pLogEntry);
+    CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(TargetEnclave, EExecLogRole::eTarget, bThread ? EExecLogType::eThreadAccess : EExecLogType::eProcessAccess, Status, pActorProgram->GetUID(), ActorEnclave, ActorServiceTag, AccessTime, Pid, AccessMask));
+    AddExecLogEntry(pTargetProgram, pLogEntry);
 }
 
 void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
@@ -465,19 +520,19 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
     if(!pProcess)
         return;
 
-    std::wstring ProgramPath = NormalizeFilePath(pProcess->GetFileName());
-    std::wstring ModulePath = NormalizeFilePath(pImageEvent->FileName);
+    std::wstring ProgramPath = theCore->NormalizePath(pProcess->GetNtFilePath(), false);
+    std::wstring ModulePath = theCore->NormalizePath(pImageEvent->FileName, false);
 
-    bool bIsProcess = ProgramPath == ModulePath;
+    bool bIsProcess = MkLower(ProgramPath) == MkLower(ModulePath);
     if (bIsProcess)
-        pProcess->UpdateSignInfo(pImageEvent->SignAuthority, pImageEvent->SignLevel, pImageEvent->SignPolicy);
+        pProcess->UpdateSignInfo(&pImageEvent->VerifierInfo);
 
     CProgramFilePtr pProgram = pProcess->GetProgram();
     if (!pProgram)
         return;
 
     if (bIsProcess) {
-        pProgram->UpdateSignInfo(pImageEvent->SignAuthority, pImageEvent->SignLevel, pImageEvent->SignPolicy);
+        pProgram->UpdateSignInfo(&pImageEvent->VerifierInfo);
         return;
     }
 
@@ -499,6 +554,7 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
     // Note: an image may receive a loaded event folowed by an unloaded event
     // this means the library was unloaded bevore controll was returned to user space
     // in which case we handle it as if it would have been unloaded instantly.
+    // Note: this shoudl no longer be the case, we now issue the event once all is checked and final
     //
 
     EEventStatus Status;
@@ -510,13 +566,16 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
     } else // image was loaded, we do not know if it was trusted or not
         Status = Status = EEventStatus::eAllowed;
 	
-    pProgram->AddLibrary(pLibrary, pImageEvent->TimeStamp, pImageEvent->SignAuthority, pImageEvent->SignLevel, pImageEvent->SignPolicy, Status);
+    CFlexGuid EnclaveGuid = pProcess->GetEnclave();
 
-    CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EExecLogRole::eBooth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId));
+    pProcess->AddLibrary(pLibrary);
+    pProgram->AddLibrary(EnclaveGuid, pLibrary, pImageEvent->TimeStamp, &pImageEvent->VerifierInfo, Status);
+
+    CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EnclaveGuid, EExecLogRole::eBooth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId));
     AddExecLogEntry(pProgram, pLogEntry);
 }
 
-void CProcessList::OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory)
+void CProcessList::OnResourceAccessed(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory)
 {
 	if (!m_bLogNotFound && (NtStatus == STATUS_UNRECOGNIZED_VOLUME 
         || NtStatus == STATUS_OBJECT_NAME_NOT_FOUND || NtStatus == STATUS_OBJECT_PATH_NOT_FOUND
@@ -527,15 +586,24 @@ void CProcessList::OnResourceAccessed(const std::wstring& Path, uint64 ActorPid,
         || NtStatus == STATUS_OBJECT_NAME_INVALID || NtStatus == STATUS_OBJECT_PATH_INVALID || NtStatus == STATUS_OBJECT_PATH_SYNTAX_BAD
       ))
         return; // ignore not found errors
+
+	if (MatchPathPrefix(NtPath, L"\\device\\mup\\;lanmanredirector") || MatchPathPrefix(NtPath, L"\\device\\mup\\;webdavredirector"))
+		return; // ignore network redirectors
+
+	if (!m_bLogPipes && MatchPathPrefix(NtPath, L"\\Device\\NamedPipe"))
+		return; // ignore named pipes
+
     CProcessPtr pActorProcess = GetProcess(ActorPid, true);
     CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
 
     if (!pActorProgram)
         return;
 
-    pActorProgram->AddAccess(ActorServiceTag, Path, AccessMask, AccessTime, NtStatus, IsDirectory, (Status != EEventStatus::eAllowed));
+    std::wstring DosPath = theCore->NormalizePath(NtPath);
 
-    CResLogEntryPtr pLogEntry = CResLogEntryPtr(new CResLogEntry(Path, ActorServiceTag, AccessMask, Status, AccessTime, ActorPid));
+    pActorProgram->AddAccess(ActorServiceTag, DosPath, AccessMask, AccessTime, NtStatus, IsDirectory, (Status != EEventStatus::eAllowed));
+
+    CResLogEntryPtr pLogEntry = CResLogEntryPtr(new CResLogEntry(pActorProcess->GetEnclave(), NtPath, ActorServiceTag, AccessMask, Status, AccessTime, ActorPid));
     
     uint64 LogIndex = pActorProgram->AddTraceLogEntry(pLogEntry, ETraceLogs::eResLog);
 
@@ -574,7 +642,7 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
         case SProcessEvent::EType::ProcessStarted: 
         {
             const SProcessStartEvent* pStartEvent = (SProcessStartEvent*)(pEvent);
-            OnProcessStarted(pStartEvent->ProcessId, pStartEvent->ParentId, pStartEvent->ActorProcessId, pStartEvent->ActorServiceTag, pStartEvent->FileName, pStartEvent->CommandLine, pStartEvent->TimeStamp, pStartEvent->Status);
+            OnProcessStarted(pStartEvent->ProcessId, pStartEvent->ParentId, pStartEvent->ActorProcessId, pStartEvent->ActorServiceTag, pStartEvent->FileName, pStartEvent->CommandLine, &pStartEvent->VerifierInfo, pStartEvent->TimeStamp, pStartEvent->Status);
 
             //
             // Note: this triggers before teh process is started, during early process initialization
@@ -636,7 +704,7 @@ void CProcessList::OnProcessEtwEvent(const struct SEtwProcessEvent* pEvent)
     //DbgPrint("CProcessList::OnProcessEtwEvent (%d) %S\r\n", pEvent->ProcessId, pEvent->CommandLine.c_str());
 #endif
 
-    OnProcessStarted(pEvent->ProcessId, pEvent->ParentId, pEvent->ParentId, L"", pEvent->FileName, pEvent->CommandLine, pEvent->TimeStamp, EEventStatus::eAllowed, true);
+    OnProcessStarted(pEvent->ProcessId, pEvent->ParentId, pEvent->ParentId, L"", pEvent->FileName, pEvent->CommandLine, NULL, pEvent->TimeStamp, EEventStatus::eAllowed, true);
     //if (!OnProcessStarted(pEvent->ProcessId, pEvent->ParentId, pEvent->FileName, pEvent->CommandLine, pEvent->TimeStamp, true))
     //    TerminateProcess(pEvent->ProcessId, pEvent->FileName);
 }

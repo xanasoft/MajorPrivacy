@@ -15,8 +15,8 @@ void CHandle::FromVariant(const class XVariant& Handle)
 		switch (Index)
 		{
 		case API_V_ACCESS_REF:			m_HandleRef = Data; break;
-		case API_V_ACCESS_PATH:			m_Path.Set(Data.AsQStr(), EPathType::eNative); break;
-		case API_V_ACCESS_PID:			m_ProcessId = Data; break;
+		case API_V_ACCESS_PATH:			m_NtPath = Data.AsQStr(); break;
+		case API_V_PID:					m_ProcessId = Data; break;
 		}
 	});
 }

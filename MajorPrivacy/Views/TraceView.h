@@ -2,8 +2,8 @@
 
 #include "../../MiscHelpers/Common/PanelView.h"
 #include "../../MiscHelpers/Common/TreeviewEx.h"
+#include "../Core/Programs/windowsService.h"
 #include "../Models/TraceModel.h"
-#include "../Core/TraceLogUtils.h"
 
 class CTraceView : public CPanelView
 {
@@ -13,7 +13,7 @@ public:
 	CTraceView(CTraceModel* pModel, QWidget *parent = 0);
 	virtual ~CTraceView();
 
-	void						Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services);
+	void						Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QFlexGuid& EnclaveGuid = QString());
 
 public slots:
 	void						SetFilter(const QRegularExpression& RegExp, int iOptions = 0, int Column = -1);
@@ -39,10 +39,12 @@ protected:
 	CFinder*					m_pFinder;
 
 	bool						m_FullRefresh;
+	QFlexGuid					m_EnclaveGuid;
 
 	quint64						m_RecentLimit = 0;
 
-	//QAction*					m_pAutoScroll; // todo
+	QToolButton*				m_pBtnScroll = nullptr;
+	QToolButton*				m_pBtnHold = nullptr;
 	//QRegularExpression		m_FilterExp;
 	QString						m_FilterExp;
 	bool						m_bHighLight;

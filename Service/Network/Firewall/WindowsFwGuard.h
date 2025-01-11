@@ -7,7 +7,7 @@
 
 struct SWinFwGuardEvent
 {
-	ERuleEvent Type = ERuleEvent::eUnknown;
+	EConfigEvent Type = EConfigEvent::eUnknown;
     std::wstring ProfileChanged;
     std::wstring RuleId;
     std::wstring RuleName;

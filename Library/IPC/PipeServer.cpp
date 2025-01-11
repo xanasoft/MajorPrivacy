@@ -336,9 +336,9 @@ STATUS SPipeSocket::ReadPacket(CBuffer& recvBuff)
             DWORD dwError = GetLastError();
             if (dwError == ERROR_IO_PENDING)
             {
-                if(WaitForSingleObject(olRead.hEvent, 30*1000) != WAIT_OBJECT_0)
+                DWORD Ret = WaitForSingleObject(olRead.hEvent, INFINITE);
+                if(Ret != WAIT_OBJECT_0)
 					return ERR(PhDosErrorToNtStatus(dwError));
-                //WaitForSingleObject(olRead.hEvent, INFINITE); // todo fix me why does the pipe sometimes fails?
                 if (!GetOverlappedResult(hPipe, &olRead, &bytesRead, FALSE))
                     return ERR(PhDosErrorToNtStatus(dwError));
             }

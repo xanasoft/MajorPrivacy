@@ -2,6 +2,7 @@
 #include "ProcessModel.h"
 #include "../Core/PrivacyCore.h"
 #include "../../MiscHelpers/Common/Common.h"
+#include "../Core/Enclaves/Enclave.h"
 
 
 CProcessModel::CProcessModel(QObject *parent)
@@ -48,7 +49,10 @@ bool CProcessModel::TestProcPath(const QList<QVariant>& Path, const CProcessPtr&
 QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 {
 	QSet<quint64> Added;
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	//bool bClearZeros = theConf->GetBool("Options/ClearZeros", true);
@@ -114,12 +118,12 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 				case eProcess:				Value = pProcess->GetName(); break;
 				case ePID:					Value = pProcess->GetProcessId(); break;
 				case eParentPID:			Value = pProcess->GetParentId(); break;
-				case eEnclaveID:			Value = (qint64)pProcess->GetEnclaveId(); break;
-				case eSignAuthority:		Value = pProcess->GetSignInfo().Data; break;
+				case eEnclave:				Value = pProcess->GetEnclaveGuid().ToQV(); break;
+				case eTrustLevel:			Value = pProcess->GetSignInfo().GetRawInfo(); break;
 				case eSID:					Value = pProcess->GetUserName(); break;
 				case eStatus:				Value = pProcess->GetStatus(); break;
 				case eImageStats:			Value = pProcess->GetImgStats(); break;
-				case eFileName:				Value = pProcess->GetPath(EPathType::eDisplay); break;
+				case eFileName:				Value = pProcess->GetNtPath(); break;
 			}
 
 			SProcessNode::SValue& ColValue = pNode->Values[section];
@@ -142,7 +146,9 @@ QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
 				switch(section)
 				{
 					//case ePID:				if (Value.toLongLong() < 0) ColValue.Formatted = ""; break;
-					case eSignAuthority:	ColValue.Formatted = CProgramFile::GetSignatureInfoStr(SLibraryInfo::USign{Value.toULongLong()}); break;
+					case eEnclave:				if(pProcess->GetEnclave()) ColValue.Formatted = pProcess->GetEnclave()->GetName(); break;
+					case eTrustLevel:			ColValue.Formatted = CProgramFile::GetSignatureInfoStr(UCISignInfo{Value.toULongLong()}); break;
+					case eFileName:				ColValue.Formatted = theCore->NormalizePath(pProcess->GetNtPath()); break;
 				}
 			}
 
@@ -260,8 +266,8 @@ QString CProcessModel::GetColumHeader(int section) const
 		case eProcess:				return tr("Process");
 		case ePID:					return tr("PID");
 		case eParentPID:			return tr("Parent PID");
-		case eEnclaveID:			return tr("Enclave ID");
-		case eSignAuthority:		return tr("Signature");
+		case eEnclave:				return tr("Enclave");
+		case eTrustLevel:			return tr("Trust Level");
 		case eSID:					return tr("User Name");	
 		case eStatus:				return tr("Status");
 		case eImageStats:			return tr("Image Loads (MS/V/S/U)");

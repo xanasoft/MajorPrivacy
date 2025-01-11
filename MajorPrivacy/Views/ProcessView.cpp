@@ -37,7 +37,21 @@ CProcessView::CProcessView(QWidget *parent)
 	m_pCmbScope->addItem(QIcon(":/Icons/System.png"), tr("System"), (qint32)EProcessScope::eSystem);
 	m_pToolBar->addWidget(m_pCmbScope);
 
-	int comboBoxHeight = m_pCmbScope->sizeHint().height();
+	m_pToolBar->addSeparator();
+	m_pBtnTree = new QToolButton();
+	m_pBtnTree->setIcon(QIcon(":/Icons/Tree.png"));
+	m_pBtnTree->setCheckable(true);
+	m_pBtnTree->setToolTip(tr("Show Tree"));
+	m_pBtnTree->setMaximumHeight(22);
+	m_pItemModel->SetTree(theConf->GetBool("Options/UseProcessTree", false));
+	m_pBtnTree->setChecked(m_pItemModel->IsTree());
+	connect(m_pBtnTree, &QToolButton::toggled, this, [&](bool checked) {
+		theConf->SetValue("Options/UseProcessTree", checked);
+		m_pItemModel->SetTree(checked);
+		if(checked)
+			m_pTreeView->expandAll();
+	});
+	m_pToolBar->addWidget(m_pBtnTree);
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -45,7 +59,7 @@ CProcessView::CProcessView(QWidget *parent)
 
 	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
 	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
-	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	pBtnSearch->setMaximumHeight(22);
 	m_pToolBar->addWidget(pBtnSearch);
 
 	AddPanelItemsToMenu();

@@ -5,9 +5,11 @@
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Core/PrivacyCore.h"
-#include "../Core/TraceLogUtils.h"
 #include "../Core/Processes/ExecLogEntry.h"
 #include "../Core/Programs/ProgramManager.h"
+#include "../Core/Enclaves/EnclaveManager.h"
+#include "../Windows/AccessRuleWnd.h"
+#include "../Windows/ProgramRuleWnd.h"
 
 CProcessTraceModel::CProcessTraceModel(QObject* parent)
 	:CTraceModel(parent)
@@ -88,34 +90,67 @@ QVariant CProcessTraceModel::NodeData(STraceNode* pTraceNode, int role, int sect
 	STreeNode* pNode = (STreeNode*)pTraceNode;
 	const CExecLogEntry* pEntry = dynamic_cast<const CExecLogEntry*>(pNode->pLogEntry.constData());
 
-	switch (role)
+	EExecLogRole Role = pEntry->GetRole();
+	CProgramFilePtr	pProgram = Role == EExecLogRole::eTarget ? pNode->pTarget : pNode->pActor;
+	CProgramFilePtr pSubject = Role == EExecLogRole::eTarget ? pNode->pActor : pNode->pTarget;
+
+	if (role == (CTreeItemModel::GetDarkMode() ? Qt::ForegroundRole : Qt::BackgroundRole))
+	{
+		QColor Color;
+		switch (section)
+		{
+		case eRole:				Color = CProgramRuleWnd::GetRoleColor(Role); break;
+		case eOperation:		Color = pEntry->GetTypeColor(); break;
+		case eStatus:			Color = CAccessRuleWnd::GetStatusColor(pEntry->GetStatus()); break;
+		}
+		if (Color.isValid())
+			return Color;
+	}
+	else switch (role)
 	{
 	case Qt::DisplayRole:
 	case Qt::EditRole: // sort role
-	{
 		switch (section)
 		{
-		case eName:				if (pEntry->GetType() == EExecLogType::eProcessStarted && pEntry->GetRole() == EExecLogRole::eTarget)
-			return (pNode->pTarget ? pNode->pTarget->GetNameEx() : tr("Unknown Program"));
-				  else
-			return (pNode->pActor ? pNode->pActor->GetNameEx() : tr("Unknown Program"))
-			+ (!pEntry->GetOwnerService().isEmpty() ? tr(" (%1)").arg(pEntry->GetOwnerService()) : "");
-		case eRole:				return pEntry->GetRoleStr();
-		case eType:				return pEntry->GetTypeStr();
-		case eStatus:			return pEntry->GetStatusStr();
-		case eTarget:			if (pEntry->GetType() == EExecLogType::eImageLoad)
-			return pNode->pLibrary ? pNode->pLibrary->GetPath(EPathType::eDisplay) : tr("MODULE MISSING");
-			return pNode->pTarget ? pNode->pTarget->GetPath(EPathType::eDisplay) : tr("PROCESS MISSING");
-		case eTimeStamp:		return QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pEntry->GetTimeStamp())).toString("dd.MM.yyyy hh:mm:ss.zzz");
-		case eProgram:			return pNode->pActor ? pNode->pActor->GetPath(EPathType::eDisplay) : tr("PROCESS MISSING");
+		case eName:
+			if (Role == EExecLogRole::eTarget)
+				return (pProgram ? pProgram->GetNameEx() : tr("PROGRAM MISSING"));
+			else
+				return (pProgram ? pProgram->GetNameEx() : tr("PROGRAM MISSING")) + (!pEntry->GetOwnerService().isEmpty() ? tr(" [%1]").arg(pEntry->GetOwnerService()) : "");
+		case eEnclave: {
+			QFlexGuid Enclave = pEntry->GetEnclaveGuid();
+			if (!Enclave.IsNull()) {
+				CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(Enclave);
+				if (pEnclave)
+					return pEnclave->GetName();
+				return Enclave.ToQS();
+			}
+			break;
 		}
-	}
-	case Qt::DecorationRole:
-	{
-		if (section == 0)
-			return pNode->pActor ? pNode->pActor->GetIcon() : CProcess::DefaultIcon();
+		case eRole:				return pEntry->GetRoleStr();
+		case eOperation:		return pEntry->GetTypeStr();
+		case eStatus:			return pEntry->GetStatusStr();
+		case eSubject:			
+			if (pEntry->GetType() == EExecLogType::eImageLoad)
+				return pNode->pLibrary ? pNode->pLibrary->GetPath() : tr("MODULE MISSING");
+			if (Role == EExecLogRole::eActor)
+				return (pSubject ? pSubject->GetPath() : tr("PROGRAM MISSING"));
+			else
+				return (pSubject ? pSubject->GetPath() : tr("PROGRAM MISSING")) + (!pEntry->GetOwnerService().isEmpty() ? tr(" [%1]").arg(pEntry->GetOwnerService()) : "");
+		case eTimeStamp:		return QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pEntry->GetTimeStamp())).toString("dd.MM.yyyy hh:mm:ss.zzz");
+		case eProgram:			return pProgram ? pProgram->GetPath() : tr("PROGRAM MISSING");
+		}
 		break;
-	}
+	case Qt::ToolTipRole:
+		switch (section)
+		{
+		case eOperation:		return pEntry->GetTypeStrEx();
+		}
+		break;
+	case Qt::DecorationRole:
+		if (section == 0)
+			return pProgram ? pProgram->GetIcon() : CProcess::DefaultIcon();
+		break;
 	}
 
 	return CTraceModel::NodeData(pTraceNode, role, section);
@@ -133,12 +168,13 @@ QVariant CProcessTraceModel::headerData(int section, Qt::Orientation orientation
 		switch (section)
 		{
 		case eName:					return tr("Name");
+		case eEnclave:				return tr("Enclave");
 		case eRole:					return tr("Role");
-		case eType:					return tr("Type");
+		case eOperation:			return tr("Operation");
 		case eStatus:				return tr("Status");
-		case eTarget:				return tr("Target");
+		case eSubject:				return tr("Subject");
 		case eTimeStamp:			return tr("Time Stamp");
-		case eProgram:				return tr("Program (Actor)");
+		case eProgram:				return tr("Program");
 		}
 	}
 	return QVariant();

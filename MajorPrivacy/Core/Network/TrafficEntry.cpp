@@ -33,7 +33,7 @@ void CTrafficEntry::FromVariant(const class XVariant& TrafficEntry)
 		{
 		case API_V_SOCK_RHOST:		m_HostName = Data.AsQStr(); break;
 		case API_V_SOCK_RADDR:		SetIpAddress(Data.AsQStr()); break;
-		case API_V_SOCK_LAST_ACT:	m_LastActivity = Data; break;
+		case API_V_SOCK_LAST_NET_ACT: m_LastActivity = Data; break;
 		case API_V_SOCK_UPLOADED:	m_UploadTotal = Data; break;
 		case API_V_SOCK_DOWNLOADED:	m_DownloadTotal = Data; break;
 		}

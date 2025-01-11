@@ -1,6 +1,5 @@
 #pragma once
 #include "ProgramGroup.h"
-#include "../../Helpers/FilePath.h"
 
 class CProgramPattern: public CProgramList
 {
@@ -12,11 +11,11 @@ public:
 
 	virtual QIcon DefaultIcon() const;
 
-	void SetPattern(const QString& Pattern, EPathType Type);
-	QString GetPattern() const							{ return m_Pattern.Get(EPathType::eWin32); }
+	void SetPattern(const QString& Pattern);
+	QString GetPattern() const					{ return m_Pattern; }
 	//bool MatchFileName(const QString& FileName);
 
-	virtual QString GetPath(EPathType Type) const		{ return m_Pattern.Get(Type); }
+	virtual QString GetPath() const				{ return m_Pattern; }
 	
 protected:
 
@@ -25,7 +24,7 @@ protected:
 	void ReadIValue(uint32 Index, const XVariant& Data) override;
 	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
 
-	CFilePath m_Pattern;
+	QString m_Pattern;
 	//QRegularExpression m_RegExp;
 };
 

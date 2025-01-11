@@ -28,7 +28,7 @@ private:
 	//QToolBar*				m_pToolBar;	
 	QSplitter*				m_pVSplitter;
 	
-	//QTabWidget*				m_pRuleTabs;
+	QTabWidget*				m_pRuleTabs;
 	CFwRuleView*			m_pRuleView;
 	//QWidget*				m_pProxyView;
 

@@ -55,14 +55,14 @@ void CSocket::FromVariant(const class XVariant& Socket)
 		case API_V_SOCK_LSCOPE:		m_LocalScopeId = Data; break; // Ipv6
 		case API_V_SOCK_RSCOPE:		m_RemoteScopeId = Data; break; // Ipv6
 
-		case API_V_SOCK_PID:		m_ProcessId = Data; break;
-		case API_V_SOCK_SVC_TAG:	m_OwnerService = Data.AsQStr(); break;
+		case API_V_PID:				m_ProcessId = Data; break;
+		case API_V_SERVICE_TAG:			m_OwnerService = Data.AsQStr(); break;
 
 		case API_V_SOCK_RHOST:		m_RemoteHostName = Data.AsQStr(); break;
 
-		case API_V_SOCK_CREATED:	m_CreateTimeStamp = Data; break;
+		case API_V_CREATE_TIME:		m_CreateTimeStamp = Data; break;
 
-		case API_V_SOCK_LAST_ACT:	m_LastActivity = Data; break;
+		case API_V_SOCK_LAST_NET_ACT: m_LastActivity = Data; break;
 
 		case API_V_SOCK_UPLOAD:		m_UploadRate = Data; break;
 		case API_V_SOCK_DOWNLOAD:	m_DownloadRate = Data; break;

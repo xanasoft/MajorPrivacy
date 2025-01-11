@@ -4,7 +4,22 @@
 #include "../Library/Common/PoolAllocator.h"
 #include "../Core/Processes/ProcessList.h"
 #include "../Core/Programs/ProgramFile.h"
-#include "../Core/TraceLogUtils.h"
+
+struct SMergedLog {
+
+	struct SLogState {
+		int LastCount = 0;
+	};
+
+	QMap<CProgramItemPtr, SLogState> States;
+
+	typedef QPair<CProgramFilePtr, CLogEntryPtr> TLogEntry;
+
+	QList<TLogEntry> List;
+
+	quint64 MergeSeqNr = 0;
+	int LastCount = 0;
+};
 
 class CTraceModel : public QAbstractItemModelEx
 {
@@ -21,7 +36,7 @@ public:
 	
 	void					SetTextFilter(const QString& Exp, bool bHighLight) { m_FilterExp = Exp; m_bHighLight = bHighLight; }
 
-	virtual QList<QModelIndex> Sync(const QVector<SMergedLog::TLogEntry>& List, quint64 uRecentLimit);
+	virtual QList<QModelIndex> Sync(const QList<SMergedLog::TLogEntry>& List, quint64 uRecentLimit);
 
 	CLogEntryPtr			GetItem(const QModelIndex& index) const;
 	QVariant				GetItemID(const QModelIndex& index) const;

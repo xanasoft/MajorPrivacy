@@ -10,7 +10,7 @@ struct SAccessItem
 	QString Name;
 	quint64 LastAccess = 0;
 	uint32 AccessMask = 0;
-	QString NtPath;
+	QString Path;
 	enum EType {
 		eDevice = 0,
 		eObjects,

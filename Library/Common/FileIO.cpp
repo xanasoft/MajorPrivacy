@@ -41,9 +41,28 @@ namespace fs = std::filesystem;
 //	return Path;
 //}
 
+bool FileExists(const std::wstring& Path)
+{
+    if (GetFileAttributesW(Path.c_str()) == INVALID_FILE_ATTRIBUTES)
+    {
+        DWORD err = GetLastError();
+        if(err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND)
+            return false;
+    }
+    return true;
+}
+
 bool RemoveFile(const std::wstring& Path) 
 {
-    return fs::remove(Path);
+    try 
+    {
+        return fs::remove(Path);
+    } 
+    catch (const std::exception& e) 
+    {
+        // Optionally log the error message: e.what()
+        return false;
+    }
 }
 
 bool RenameFile(const std::wstring& OldPath, const std::wstring& NewPath) 
@@ -171,6 +190,33 @@ bool ReadFile(const std::wstring& path, std::uint64_t offset, CBuffer& data)
     return file.good();
 }
 
+bool WriteFile(const std::wstring& Path, const std::vector<BYTE>& Data)
+{
+    fs::remove(Path);
+
+	std::ofstream f(Path, std::ios::binary);
+	if (!f) return false;
+
+	f.write(reinterpret_cast<const char*>(Data.data()), Data.size());
+
+	return true;
+}
+
+bool ReadFile(const std::wstring& Path, std::vector<BYTE>& Data)
+{
+	std::ifstream f(Path, std::ios::binary);
+	if (!f) return false;
+
+	f.seekg(0, std::ios::end);
+	std::size_t Size = f.tellg();
+	f.seekg(0, std::ios::beg);
+
+	Data.resize(Size);
+	f.read(reinterpret_cast<char*>(Data.data()), Size);
+
+	return true;
+}
+
 bool ListDir(const std::wstring& Path, std::vector<std::wstring>& Entries, const wchar_t* Filter)
 {
     ASSERT(Path.back() == L'\\');
@@ -195,7 +241,28 @@ bool ListDir(const std::wstring& Path, std::vector<std::wstring>& Entries, const
     return true;
 }
 
-long GetFileSize(const std::wstring& Path)
+unsigned long long GetFileSize(const std::wstring& Path)
 {
-    return static_cast<long>(fs::file_size(Path));
+    return fs::file_size(Path);
+}
+
+bool CreateFullPath(std::wstring Path) 
+{
+    wchar_t* tempPath = (wchar_t*)Path.c_str();
+    
+    // Iterate through the path and create each folder
+    for (wchar_t* p = tempPath + 1; *p; p++) {
+        if (*p == L'\\' || *p == L'/') {
+            *p = L'\0'; // Temporarily terminate the string
+            if (!CreateDirectoryW(tempPath, NULL) && GetLastError() != ERROR_ALREADY_EXISTS)
+                return false;
+            *p = L'\\'; // Restore the original character
+        }
+    }
+
+    // Create the final directory in the path
+    if (!CreateDirectoryW(tempPath, NULL) && GetLastError() != ERROR_ALREADY_EXISTS)
+        return false;
+
+    return true;
 }

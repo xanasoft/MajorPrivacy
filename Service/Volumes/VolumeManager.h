@@ -38,7 +38,7 @@ protected:
 	STATUS UnProtectVolume(const std::wstring& DevicePath);
 	STATUS TryAddRule(const CAccessRulePtr& pRule, const std::wstring& Path, const std::wstring& DevicePath);
 
-	void OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID);
+	void UpdateRule(const CAccessRulePtr& pRule, enum class EConfigEvent Event, uint64 PID);
 
 	STATUS LoadVolumeRules(const std::shared_ptr<CVolume>& pMount);
 	STATUS SaveVolumeRules(const std::shared_ptr<CVolume>& pMount);

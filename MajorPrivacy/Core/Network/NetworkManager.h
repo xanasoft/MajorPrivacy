@@ -10,17 +10,17 @@ class CNetworkManager : public QObject
 public:
     CNetworkManager(QObject *parent = nullptr);
 
-	bool UpdateAllFwRules();
-	bool UpdateFwRule(const QString& RuleId);
-	void RemoveFwRule(const QString& RuleId);
+	bool UpdateAllFwRules(bool bReLoad = false);
+	bool UpdateFwRule(const QFlexGuid& Guid);
+	void RemoveFwRule(const QFlexGuid& Guid);
 
-	QSet<QString> GetFwRuleIDs() const;
+	QSet<QFlexGuid> GetFwRuleIDs() const;
 	QList<CFwRulePtr> GetFwRules() const { return m_FwRules.values(); }
 	//QList<CFwRulePtr> GetFwRulesFor(const QList<const class CProgramItem*>& Nodes);
-	QList<CFwRulePtr> GetFwRules(const QSet<QString> &FwRuleIDs);
+	QList<CFwRulePtr> GetFwRules(const QSet<QFlexGuid> &FwRuleIDs);
 
 	STATUS SetFwRule(const CFwRulePtr& pRule);
-	RESULT(CFwRulePtr) GetProgramRule(QString Guid);
+	RESULT(CFwRulePtr) GetProgramRule(const QFlexGuid& Guid);
 	STATUS DelFwRule(const CFwRulePtr& pRule);
 
 	void UpdateDnsCache();
@@ -31,7 +31,7 @@ protected:
 	void AddFwRule(const CFwRulePtr& pFwRule);
 	void RemoveFwRule(const CFwRulePtr& pFwRule);
 
-	QMap<QString, CFwRulePtr> m_FwRules;
+	QMap<QFlexGuid, CFwRulePtr> m_FwRules;
 
 	//QMultiMap<QString, CFwRulePtr>	m_FileRules;
 	//QMultiMap<QString, CFwRulePtr>	m_SvcRules;

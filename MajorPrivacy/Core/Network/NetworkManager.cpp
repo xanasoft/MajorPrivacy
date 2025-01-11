@@ -10,29 +10,30 @@ CNetworkManager::CNetworkManager(QObject *parent)
     
 }
 
-bool CNetworkManager::UpdateAllFwRules()
+bool CNetworkManager::UpdateAllFwRules(bool bReLoad)
 {
-	auto Ret = theCore->GetAllFwRules();
+	auto Ret = theCore->GetAllFwRules(bReLoad);
 	if (Ret.IsError())
 		return false;
 
 	XVariant& Rules = Ret.GetValue();
 
-	QMap<QString, CFwRulePtr> OldRules = m_FwRules;
+	QMap<QFlexGuid, CFwRulePtr> OldRules = m_FwRules;
 
 	for (int i = 0; i < Rules.Count(); i++)
 	{
 		const XVariant& Rule = Rules[i];
 
-		QString RuleID = Rule[API_V_RULE_GUID].AsQStr();
+		QFlexGuid Guid;
+		Guid.FromVariant(Rule[API_V_GUID]);
 
 		CProgramID ID;
 		ID.FromVariant(Rule[API_V_PROG_ID]);
 
-		CFwRulePtr pRule = OldRules.value(RuleID);
+		CFwRulePtr pRule = OldRules.value(Guid);
 		if (pRule) {
 			if(ID == pRule->GetProgramID())
-				OldRules.remove(RuleID);
+				OldRules.remove(Guid);
 			else // on ID change compeltely re add the rule as if it would be new
 			{
 				RemoveFwRule(pRule);
@@ -52,21 +53,21 @@ bool CNetworkManager::UpdateAllFwRules()
 			AddFwRule(pRule);
 	}
 
-	foreach(const QString& RuleID, OldRules.keys())
-		RemoveFwRule(OldRules.take(RuleID));
+	foreach(const QFlexGuid& Guid, OldRules.keys())
+		RemoveFwRule(OldRules.take(Guid));
 
 	return true;
 }
 
-bool CNetworkManager::UpdateFwRule(const QString& RuleId)
+bool CNetworkManager::UpdateFwRule(const QFlexGuid& Guid)
 {
-	auto Ret = theCore->GetFwRule(RuleId);
+	auto Ret = theCore->GetFwRule(Guid);
 	if (Ret.IsError())
 		return false;
 
 	XVariant& Rule = Ret.GetValue();
 
-	QString RuleID = Rule[API_V_RULE_GUID].AsQStr();
+	QString RuleID = Rule[API_V_GUID].AsQStr();
 
 	CProgramID ID;
 	ID.FromVariant(Rule[API_V_PROG_ID]);
@@ -94,9 +95,9 @@ bool CNetworkManager::UpdateFwRule(const QString& RuleId)
 	return true;
 }
 
-void CNetworkManager::RemoveFwRule(const QString& RuleId)
+void CNetworkManager::RemoveFwRule(const QFlexGuid& Guid)
 {
-	CFwRulePtr pFwRule = m_FwRules.value(RuleId);
+	CFwRulePtr pFwRule = m_FwRules.value(Guid);
 	if (pFwRule)
 		RemoveFwRule(pFwRule);
 }
@@ -129,7 +130,7 @@ void CNetworkManager::RemoveFwRule(const CFwRulePtr& pFwRule)
 	//	m_AppRules.remove(ProgID.GetAppContainerSid(), pFwRule);
 }
 
-QSet<QString> CNetworkManager::GetFwRuleIDs() const 
+QSet<QFlexGuid> CNetworkManager::GetFwRuleIDs() const 
 {	
 	return ListToSet(m_FwRules.keys()); 
 }
@@ -139,11 +140,11 @@ QSet<QString> CNetworkManager::GetFwRuleIDs() const
 //	return QList<CFwRulePtr>();
 //}
 
-QList<CFwRulePtr> CNetworkManager::GetFwRules(const QSet<QString>& FwRuleIDs)
+QList<CFwRulePtr> CNetworkManager::GetFwRules(const QSet<QFlexGuid>& FwRuleIDs)
 {
 	QList<CFwRulePtr> List;
-	foreach(const QString & FwRuleID, FwRuleIDs) {
-		CFwRulePtr pFwRule = m_FwRules.value(FwRuleID);
+	foreach(const QFlexGuid& Guid, FwRuleIDs) {
+		CFwRulePtr pFwRule = m_FwRules.value(Guid);
 		if (pFwRule)List.append(pFwRule);
 	}
 	return List;
@@ -151,10 +152,13 @@ QList<CFwRulePtr> CNetworkManager::GetFwRules(const QSet<QString>& FwRuleIDs)
 
 STATUS CNetworkManager::SetFwRule(const CFwRulePtr& pRule)
 {
-	return theCore->SetFwRule(pRule->ToVariant(SVarWriteOpt()));
+	SVarWriteOpt Opts;
+	Opts.Flags = SVarWriteOpt::eTextGuids;
+
+	return theCore->SetFwRule(pRule->ToVariant(Opts));
 }
 
-RESULT(CFwRulePtr) CNetworkManager::GetProgramRule(QString Guid)
+RESULT(CFwRulePtr) CNetworkManager::GetProgramRule(const QFlexGuid& Guid)
 {
 	auto Ret = theCore->GetFwRule(Guid);
 	if (Ret.IsError())

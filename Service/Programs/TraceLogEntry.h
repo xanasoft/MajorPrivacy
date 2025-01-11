@@ -1,6 +1,7 @@
 #pragma once
 #include "../Library/Common/Variant.h"
 #include "../../Library/API/PrivacyAPI.h"
+#include "../Library/Common/FlexGuid.h"
 
 class CTraceLogEntry
 {
@@ -20,6 +21,7 @@ protected:
 
 	std::wstring		m_ServiceTag;
 	std::wstring		m_AppSid;
+	CFlexGuid			m_EnclaveGuid;
 
 	uint64              m_TimeStamp = 0;
 };

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023-2024 David Xanatos, xanasoft.com
+* Copyright (c) 2023-2025 David Xanatos, xanasoft.com
 * All rights reserved.
 *
 * This file is part of MajorPrivacy.
@@ -26,13 +26,17 @@
 #include "Programs/WindowsService.h"
 #include "Programs/ProgramPattern.h"
 #include "Programs/AppInstallation.h"
+#include "Programs/ImageSignInfo.h"
 
 #define XVariant CVariant
 #define TO_STR(x) (x)
 #define AS_STR(x) (x).AsStr()
+#define AS_ASTR(x) (x).To<std::string>()
+#define TO_BYTES(x) (x).AsBytes()
 #define AS_LIST(x) (x).AsList<std::wstring>()
 #define AS_ALIST(x) (x).AsList<std::string>()
 #define IS_EMPTY(x) (x).empty()
+#define GET_BYTES(x) (CVariant(x))
 #define GET_PATH TO_STR
 #define SET_PATH(x, y) (x) = (y)
 #define ASTR std::string

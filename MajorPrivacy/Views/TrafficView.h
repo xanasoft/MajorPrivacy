@@ -36,6 +36,7 @@ protected:
 private:
 
 	QToolBar*				m_pToolBar;
+	QToolButton*			m_pBtnExpand;
 	QComboBox*				m_pCmbGrouping;
 	bool					m_bGroupByProgram = false;
 	quint64					m_RecentLimit = 0;

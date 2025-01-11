@@ -5,6 +5,7 @@
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
 #include "../MajorPrivacy.h"
+#include "../Windows/ProgramRuleWnd.h"
 
 CProgramRuleModel::CProgramRuleModel(QObject* parent)
 	:CTreeItemModel(parent)
@@ -22,12 +23,15 @@ CProgramRuleModel::~CProgramRuleModel()
 
 QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleList)
 {
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	foreach(const CProgramRulePtr& pRule, RuleList)
 	{
-		QVariant Guid = pRule->GetGuid();
+		QVariant Guid = pRule->GetGuid().ToQV();
 
 		QModelIndex Index;
 
@@ -52,6 +56,12 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 			pNode->pProg = theCore->ProgramManager()->GetProgramByID(pNode->pRule->GetProgramID());
 			pNode->Icon.clear();
 		}
+
+		if (pNode->pRule->GetType() == EExecRuleType::eProtect) {
+			if(!pNode->pEnclave || pNode->pEnclave->GetGuid() != pNode->pRule->GetEnclave())
+				pNode->pEnclave = theCore->EnclaveManager()->GetEnclave(pNode->pRule->GetEnclave(), true);
+		} else if(pNode->pEnclave)
+			pNode->pEnclave.clear();
 
 		//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
@@ -81,11 +91,11 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pRule->GetName(); break;
+			case eName:				Value = tr("%1 - %2").arg(pRule->GetName()).arg(pRule->GetGuid().ToQS()); break;
 			case eEnabled:			Value = pRule->IsEnabled(); break;
-			case eAction:			Value = pRule->GetTypeStr(); break;
-			case eSignature:		Value = pRule->GetSignatureLevel(); break;
-			case eOnSpawn:			Value = ((uint32)pRule->GetOnTrustedSpawn()) << 16 | ((uint32)pRule->GetOnSpawn()); break;
+			case eAction:			Value = (int)pRule->GetType(); break;
+			case eTrustLevel:		Value = pNode->pEnclave ? pNode->pEnclave->GetSignatureLevel() : pRule->GetSignatureLevel(); break;
+			case eEnclave:			Value = pRule->GetEnclave().ToQV(); break;
 			case eProgram:			Value = pRule->GetProgramNtPath(); break;
 			}
 
@@ -99,10 +109,30 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 
 				switch (section)
 				{
-				case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(Value.toString()); break;
-				case eSignature:		ColValue.Formatted = CProgramRule::GetSignatureLevelStr((KPH_VERIFY_AUTHORITY)Value.toUInt()); break;
-				case eOnSpawn:			ColValue.Formatted = CProgramRule::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() >> 16)) + "/" + CProgramRule::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() & 0xFFFF)); break;
+				case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(pRule->GetName()); break;
+				case eEnabled:			ColValue.Formatted = pRule->IsEnabled() ? tr("Yes") : tr("No"); break;
+				case eAction:			ColValue.Formatted = pRule->GetTypeStr(); { QColor Color = CProgramRuleWnd::GetActionColor(pRule->GetType()); if(Color.isValid()) ColValue.Color = Color; } break;
+				case eTrustLevel:
+					if (auto Leven = pNode->pEnclave ? pNode->pEnclave->GetSignatureLevel() : pRule->GetSignatureLevel()) {
+						ColValue.Formatted = CEnclave::GetSignatureLevelStr(Leven);
+						QColor Color = CProgramRuleWnd::GetAuthorityColor(Leven); if (Color.isValid()) ColValue.Color = Color;
+					} else {
+						ColValue.Formatted = "";
+						ColValue.Color = QVariant();
+					}
+					break;
 				//case eProgram:			ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetProgramPath()).arg(pRule->GetProgramNtPath()); break;
+				case eEnclave: {
+					QFlexGuid Enclave = pRule->GetEnclave();
+					if (!Enclave.IsNull()) {
+						CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(Enclave);
+						if (pEnclave)
+							ColValue.Formatted = pEnclave->GetName();
+						else
+							ColValue.Formatted = Enclave.ToQS();
+					}
+					break;
+				}
 				case eProgram:			ColValue.Formatted = pRule->GetProgramPath(); break;
 				}
 			}
@@ -164,8 +194,8 @@ QVariant CProgramRuleModel::headerData(int section, Qt::Orientation orientation,
 		case eName:					return tr("Name");
 		case eEnabled:				return tr("Enabled");
 		case eAction:				return tr("Action");
-		case eSignature:			return tr("Signature");
-		case eOnSpawn:				return tr("Trusted Spawn/UnTrusted");
+		case eTrustLevel:			return tr("Trust Level");
+		case eEnclave:				return tr("Enclave");
 		case eProgram:				return tr("Program");
 		}
 	}

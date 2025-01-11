@@ -1,6 +1,7 @@
 #pragma once
 #include "../Library/Common/Variant.h"
 #include "Programs/ProgramID.h"
+#include "../Library/Common/FlexGuid.h"
 
 class CGenericRule
 {
@@ -14,7 +15,10 @@ public:
 	bool IsTemporary() const				{ std::shared_lock Lock(m_Mutex); return m_bTemporary; }
 	void SetTemporary(bool bTemporary)		{ std::unique_lock Lock(m_Mutex); m_bTemporary = bTemporary; }
 
-	std::wstring GetGuid() const			{ std::shared_lock Lock(m_Mutex); return m_Guid; }
+	bool HasTimeOut() const					{ std::shared_lock Lock(m_Mutex); return m_uTimeOut != -1; }
+	bool IsExpired() const;
+
+	CFlexGuid GetGuid() const				{ std::shared_lock Lock(m_Mutex); return m_Guid; }
 	
 	void SetName(const std::wstring& Name)	{ std::unique_lock Lock(m_Mutex); m_Name = Name; }
 	std::wstring GetName() const			{ std::shared_lock Lock(m_Mutex); return m_Name; }
@@ -46,10 +50,13 @@ protected:
 
 	mutable std::shared_mutex  m_Mutex;
 
-	std::wstring m_Guid;
-
+	CFlexGuid m_Guid;
 	bool m_bEnabled = true;
+
+	CFlexGuid m_Enclave;
+
 	bool m_bTemporary = true;
+	uint64 m_uTimeOut = -1;
 
 	std::wstring m_Name;
 	//std::wstring m_Grouping;

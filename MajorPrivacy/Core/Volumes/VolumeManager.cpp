@@ -5,6 +5,7 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Common/XVariant.h"
 #include "../../MiscHelpers/Common/Common.h"
+#include "Core/Access/AccessManager.h"
 
 CVolumeManager::CVolumeManager(QObject* parent)
  : QObject(parent)
@@ -92,4 +93,31 @@ bool CVolumeManager::SaveVolumes()
 	}
 
 	return true;
+}
+
+void CVolumeManager::UpdateProtectedFolders()
+{
+	QMap<CVolumePtr, bool> Folders;
+
+	for (auto pRule : theCore->AccessManager()->GetAccessRules()) 
+	{
+		if (pRule->GetType() != EAccessRuleType::eProtect || pRule->IsVolumeRule())
+			continue;
+
+		QString Path = pRule->GetPath();
+		if(Path.startsWith("\\") || !Path.endsWith("*") || Path.contains("/"))
+			continue;
+		Path.truncate(Path.length() - 1);
+
+		CVolumePtr& pVolume = m_List[Path.toLower()];
+		if (pVolume.isNull())
+		{
+			pVolume = CVolumePtr(new CVolume());
+			pVolume->SetImagePath(Path);
+		}
+		Folders[pVolume] |= pRule->IsEnabled();
+	}
+
+	for(auto I = Folders.begin(); I != Folders.end(); ++I)
+		I.key()->SetStatus(I.value() ? CVolume::eSecFolder : CVolume::eFolder);
 }

@@ -28,6 +28,9 @@ COptionsTransferWnd::COptionsTransferWnd(EAction Action, quint32 Options, QWidge
 	if (Options & eUserKeys)
 		ui.chkUserKey->setChecked(true);
 
+	if (Options & eEnclaves)
+		ui.chkEnclaves->setChecked(true);
+
 	if (Options & eExecRules)
 		ui.chkExecRules->setChecked(true);
 
@@ -72,6 +75,9 @@ void COptionsTransferWnd::Disable(quint32 Options)
 	if (Options & eUserKeys)
 		ui.chkUserKey->setEnabled(false);
 
+	if (Options & eEnclaves)
+		ui.chkEnclaves->setEnabled(false);
+
 	if (Options & eExecRules)
 		ui.chkExecRules->setEnabled(false);
 
@@ -103,6 +109,9 @@ quint32 COptionsTransferWnd::GetOptions() const
 
 	if (ui.chkUserKey->isChecked() && ui.chkUserKey->isEnabled())
 		Options |= eUserKeys;
+
+	if (ui.chkEnclaves->isChecked() && ui.chkEnclaves->isEnabled())
+		Options |= eEnclaves;
 
 	if (ui.chkExecRules->isChecked() && ui.chkExecRules->isEnabled())
 		Options |= eExecRules;

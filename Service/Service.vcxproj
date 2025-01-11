@@ -152,7 +152,7 @@
       <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -178,7 +178,7 @@
       <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -201,7 +201,7 @@
       <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -222,6 +222,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -246,7 +249,7 @@
       <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -271,6 +274,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Access\AccessRule.cpp" />
@@ -281,6 +287,8 @@
     <ClCompile Include="Access\ResLogEntry.cpp" />
     <ClCompile Include="API_Impl.cpp" />
     <ClCompile Include="Common\AbstractInfo.cpp" />
+    <ClCompile Include="Enclaves\Enclave.cpp" />
+    <ClCompile Include="Enclaves\EnclaveManager.cpp" />
     <ClCompile Include="Etw\EtwEventMonitor.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
@@ -319,6 +327,7 @@
     <ClCompile Include="Processes\ServiceList.cpp" />
     <ClCompile Include="Programs\AppInstallation.cpp" />
     <ClCompile Include="Programs\AppPackage.cpp" />
+    <ClCompile Include="Programs\ImageSignInfo.cpp" />
     <ClCompile Include="Programs\InstallationList.cpp" />
     <ClCompile Include="Programs\PackageList.cpp" />
     <ClCompile Include="Programs\ProgramFile.cpp" />
@@ -348,6 +357,8 @@
     <ClInclude Include="Access\HandleList.h" />
     <ClInclude Include="Access\ResLogEntry.h" />
     <ClInclude Include="Common\AbstractInfo.h" />
+    <ClInclude Include="Enclaves\Enclave.h" />
+    <ClInclude Include="Enclaves\EnclaveManager.h" />
     <ClInclude Include="Etw\EtwEventMonitor.h" />
     <ClInclude Include="Etw\krabs.hpp" />
     <ClInclude Include="Etw\krabs\client.hpp" />
@@ -402,6 +413,7 @@
     <ClInclude Include="Processes\ServiceList.h" />
     <ClInclude Include="Programs\AppInstallation.h" />
     <ClInclude Include="Programs\AppPackage.h" />
+    <ClInclude Include="Programs\ImageSignInfo.h" />
     <ClInclude Include="Programs\InstallationList.h" />
     <ClInclude Include="Programs\PackageList.h" />
     <ClInclude Include="Programs\ProgramFile.h" />

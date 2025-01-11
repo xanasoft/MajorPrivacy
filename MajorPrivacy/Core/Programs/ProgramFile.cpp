@@ -9,6 +9,7 @@
 #include "../MiscHelpers/Common/Common.h"
 #include "ProgramRule.h"
 #include "WindowsService.h"
+#include "../Enclaves/Enclave.h"
 
 
 CProgramFile::CProgramFile(QObject* parent)
@@ -18,13 +19,14 @@ CProgramFile::CProgramFile(QObject* parent)
 
 QString CProgramFile::GetNameEx() const
 { 
-	QString FileName = QFileInfo(m_Path.Get(EPathType::eDisplay)).fileName();
+	auto PathName = Split2(m_Path, "\\", true);
+	QString FileName = PathName.second.isEmpty() ? m_Path : PathName.second;
 	if(m_Name.isEmpty())
 		return FileName;
 	return QString("%1 (%2)").arg(FileName).arg(m_Name); // todo make switchable
 }
 
-QMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
+QMultiMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
 {
 	if (m_LibrariesChanged)
 	{
@@ -40,14 +42,12 @@ QMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
 				quint64 LibraryRef = Data.Get(API_V_LIB_REF).To<uint64>(0);
 
 				SLibraryInfo Info;
+				Info.EnclaveGuid.FromVariant(Data.Get(API_V_ENCLAVE));
 				Info.LastLoadTime = Data.Get(API_V_LIB_LOAD_TIME).To<uint64>(0);
 				Info.TotalLoadCount = Data.Get(API_V_LIB_LOAD_COUNT).To<uint32>(0);
-				Info.Sign.Data = Data.Get(API_V_SIGN_INFO).To<uint64>(0);
-				//Info.Sign.Authority = Data.Get(API_V_SIGN_INFO_AUTH).To<uint8>();
-				//Info.Sign.Level = Data.Get(API_V_SIGN_INFO_LEVEL).To<uint8>(0);
-				//Info.Sign.Policy = Data.Get(API_V_SIGN_INFO_POLICY).To<uint32>(0);
+				Info.SignInfo.FromVariant(Data.Get(API_V_SIGN_INFO));
 				Info.LastStatus = (EEventStatus)Data.Get(API_V_LIB_STATUS).To<uint32>();
-				m_Libraries[LibraryRef] = Info;
+				m_Libraries.insert(LibraryRef, Info);
 			});
 		}
 	}
@@ -67,40 +67,48 @@ QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 
 			auto Data = Res.GetValue();
 
-			auto Targets = Data.Get(API_V_PROC_TARGETS);
+			auto Targets = Data.Get(API_V_PROG_EXEC_CHILDREN);
 			Targets.ReadRawList([&](const CVariant& vData) {
 				const XVariant& Data = *(XVariant*)&vData;
 
-				quint64 Ref = Data.Get(API_V_PROC_REF).To<uint64>(0);
+				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
 				SExecutionInfo Info;
-				Info.eRole = SExecutionInfo::eTarget;
+				Info.Role = EExecLogRole::eTarget;
 
-				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_TARGET).To<uint64>(0);
-				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
+				Info.EnclaveGuid.FromVariant(Data.Get(API_V_EVENT_ACTOR_EID));
 
-				Info.LastExecTime = Data.Get(API_V_PROC_EVENT_LAST_EXEC).To<uint64>(0);
-				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
-				Info.CommandLine = Data.Get(API_V_PROC_EVENT_CMD_LINE).AsQStr();
+				Info.SubjectUID = Data.Get(API_V_EVENT_TARGET_UID).To<uint64>(0);
+				Info.SubjectPID = Data.Get(API_V_PID).To<uint64>(0);
+				Info.SubjectEnclave.FromVariant(Data.Get(API_V_EVENT_TARGET_EID));
+				Info.ActorSvcTag = Data.Get(API_V_SERVICE_TAG).AsQStr();
+
+				Info.LastExecTime = Data.Get(API_V_PROG_LAST_EXEC).To<uint64>(0);
+				Info.bBlocked = Data.Get(API_V_WAS_BLOCKED).To<bool>(false);
+				Info.CommandLine = Data.Get(API_V_CMD_LINE).AsQStr();
 
 				m_ExecStats[Ref] = Info;
 			});
 
-			auto Actors = Data.Get(API_V_PROC_ACTORS);
+			auto Actors = Data.Get(API_V_PROG_EXEC_PARENTS);
 			Actors.ReadRawList([&](const CVariant& vData) {
 				const XVariant& Data = *(XVariant*)&vData;
 
-				quint64 Ref = Data.Get(API_V_PROC_REF).To<uint64>(0);
+				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
 				SExecutionInfo Info;
-				Info.eRole = SExecutionInfo::eActor;
+				Info.Role = EExecLogRole::eActor;
 
-				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_ACTOR).To<uint64>(0);
-				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
+				Info.EnclaveGuid.FromVariant(Data.Get(API_V_EVENT_TARGET_EID));
 
-				Info.LastExecTime = Data.Get(API_V_PROC_EVENT_LAST_EXEC).To<uint64>(0);
-				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
-				Info.CommandLine = Data.Get(API_V_PROC_EVENT_CMD_LINE).AsQStr();
+				Info.SubjectUID = Data.Get(API_V_EVENT_ACTOR_UID).To<uint64>(0);
+				Info.SubjectPID = Data.Get(API_V_PID).To<uint64>(0);
+				Info.SubjectEnclave.FromVariant(Data.Get(API_V_EVENT_ACTOR_EID));
+				Info.ActorSvcTag = Data.Get(API_V_SERVICE_TAG).AsQStr();
+
+				Info.LastExecTime = Data.Get(API_V_PROG_LAST_EXEC).To<uint64>(0);
+				Info.bBlocked = Data.Get(API_V_WAS_BLOCKED).To<bool>(false);
+				Info.CommandLine = Data.Get(API_V_CMD_LINE).AsQStr();
 
 				m_ExecStats[Ref] = Info;
 			});	
@@ -123,40 +131,48 @@ QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 
 			auto Data = Res.GetValue();
 
-			auto Targets = Data.Get(API_V_PROC_TARGETS);
+			auto Targets = Data.Get(API_V_PROG_INGRESS_TARGETS);
 			Targets.ReadRawList([&](const CVariant& vData) {
 				const XVariant& Data = *(XVariant*)&vData;
 
-				quint64 Ref = Data.Get(API_V_PROC_REF).To<uint64>(0);
+				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
 				SIngressInfo Info;
-				Info.eRole = SIngressInfo::eTarget;
+				Info.Role = EExecLogRole::eTarget;
 
-				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_TARGET).To<uint64>(0);
-				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
+				Info.EnclaveGuid.FromVariant(Data.Get(API_V_EVENT_ACTOR_EID));
 
-				Info.LastAccessTime = Data.Get(API_V_PROC_EVENT_LAST_ACT).To<uint64>(0);
-				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
+				Info.SubjectUID = Data.Get(API_V_EVENT_TARGET_UID).To<uint64>(0);
+				Info.SubjectPID = Data.Get(API_V_PID).To<uint64>(0);
+				Info.SubjectEnclave.FromVariant(Data.Get(API_V_EVENT_TARGET_EID));
+				Info.ActorSvcTag = Data.Get(API_V_SERVICE_TAG).AsQStr();
+
+				Info.LastAccessTime = Data.Get(API_V_LAST_ACTIVITY).To<uint64>(0);
+				Info.bBlocked = Data.Get(API_V_WAS_BLOCKED).To<bool>(false);
 				Info.ThreadAccessMask = Data.Get(API_V_THREAD_ACCESS_MASK).To<uint32>(0);
 				Info.ProcessAccessMask = Data.Get(API_V_PROCESS_ACCESS_MASK).To<uint32>(0);
 
 				m_Ingress[Ref] = Info;
 			});
 
-			auto Actors = Data.Get(API_V_PROC_ACTORS);
+			auto Actors = Data.Get(API_V_PROG_INGRESS_ACTORS);
 			Actors.ReadRawList([&](const CVariant& vData) {
 				const XVariant& Data = *(XVariant*)&vData;
 
-				quint64 Ref = Data.Get(API_V_PROC_REF).To<uint64>(0);
+				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
 				SIngressInfo Info;
-				Info.eRole = SIngressInfo::eActor;
+				Info.Role = EExecLogRole::eActor;
 
-				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_ACTOR).To<uint64>(0);
-				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
+				Info.EnclaveGuid.FromVariant(Data.Get(API_V_EVENT_TARGET_EID));
 
-				Info.LastAccessTime = Data.Get(API_V_PROC_EVENT_LAST_ACT).To<uint64>(0);
-				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
+				Info.SubjectUID = Data.Get(API_V_EVENT_ACTOR_UID).To<uint64>(0);
+				Info.SubjectPID = Data.Get(API_V_PID).To<uint64>(0);
+				Info.SubjectEnclave.FromVariant(Data.Get(API_V_EVENT_ACTOR_EID));
+				Info.ActorSvcTag = Data.Get(API_V_SERVICE_TAG).AsQStr();
+
+				Info.LastAccessTime = Data.Get(API_V_LAST_ACTIVITY).To<uint64>(0);
+				Info.bBlocked = Data.Get(API_V_WAS_BLOCKED).To<bool>(false);
 				Info.ThreadAccessMask = Data.Get(API_V_THREAD_ACCESS_MASK).To<uint32>(0);
 				Info.ProcessAccessMask = Data.Get(API_V_PROCESS_ACCESS_MASK).To<uint32>(0);
 
@@ -377,19 +393,6 @@ QMap<QString, CTrafficEntryPtr>	CProgramFile::GetTrafficLog()
 	return m_TrafficLog;
 }
 
-
-
-QString CProgramFile::GetLibraryStatusStr(EEventStatus Status) // todo: CExecLogEntry::GetStatusStr() xxxxxx
-{
-	switch (Status)
-	{
-	case EEventStatus::eBlocked: return QObject::tr("Blocked");
-	case EEventStatus::eAllowed: return QObject::tr("Allowed");
-	case EEventStatus::eUntrusted: return QObject::tr("UNTRUSTED (Allowed)");
-	}
-	return QObject::tr("Unknown");
-}
-
 //
 // Self-signed
 //
@@ -432,9 +435,9 @@ QString CProgramFile::GetLibraryStatusStr(EEventStatus Status) // todo: CExecLog
 #define MINCRYPT_POLICY_TEST_WIN81_ROOT   0x1000
 #define MINCRYPT_POLICY_OTHER_ROOT        0x2000
 
-QString CProgramFile::GetSignatureInfoStr(SLibraryInfo::USign SignInfo)
+QString CProgramFile::GetSignatureInfoStr(UCISignInfo SignInfo)
 {
-	QString Str = CProgramRule::GetSignatureLevelStr((KPH_VERIFY_AUTHORITY)SignInfo.Authority);
+	QString Str = CEnclave::GetSignatureLevelStr((KPH_VERIFY_AUTHORITY)SignInfo.Authority);
 
 	switch (SignInfo.Level) {
 	case SE_SIGNING_LEVEL_UNSIGNED:			Str += tr(" (CI: Level 0)"); break;
@@ -488,7 +491,7 @@ QSharedPointer<class CWindowsService> CProgramFile::GetService(const QString& Sv
 {
 	for (auto pNode : m_Nodes) {
 		CWindowsServicePtr pSvc = pNode.objectCast<CWindowsService>();
-		if (pSvc && pSvc->GetSvcTag() == SvcTag)
+		if (pSvc && pSvc->GetServiceTag() == SvcTag)
 			return pSvc;
 	}
 	return nullptr;

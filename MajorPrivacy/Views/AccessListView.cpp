@@ -83,7 +83,7 @@ void CAccessListView::OnSelectionChanged()
 		QTimer::singleShot(10, this, [this, Added]() {
 			foreach(const QModelIndex & Index, Added)
 				m_pTreeView->expand(m_pSortProxy->mapFromSource(Index));
-			});
+		});
 	}
 }
 

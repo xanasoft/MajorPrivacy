@@ -11,7 +11,7 @@
 #include "../Library/Common/FileIO.h"
 
 #define API_ACCESS_LOG_FILE_NAME L"AccessLog.dat"
-#define API_ACCESS_LOG_FILE_VERSION 1
+#define API_ACCESS_LOG_FILE_VERSION 2
 
 CAccessManager::CAccessManager()
 {
@@ -51,8 +51,8 @@ DWORD CALLBACK CAccessManager__LoadProc(LPVOID lpThreadParameter)
 
 STATUS CAccessManager::Init()
 {
-	theCore->Driver()->RegisterRuleEventHandler(ERuleType::eAccess, &CAccessManager::OnRuleChanged, this);
-	theCore->Driver()->RegisterForRuleEvents(ERuleType::eAccess);
+	theCore->Driver()->RegisterConfigEventHandler(EConfigGroup::eAccessRules, &CAccessManager::OnRuleChanged, this);
+	theCore->Driver()->RegisterForConfigEvents(EConfigGroup::eAccessRules);
 	LoadRules();
 
 	m_hStoreThread = CreateThread(NULL, 0, CAccessManager__LoadProc, (void*)this, 0, NULL);
@@ -93,6 +93,10 @@ void CAccessManager::Update()
 
 	if(theCore->Config()->GetBool("Service", "EnumAllOpenFiles", false))
 		m_pHandleList->Update();
+
+	// purge rules once per minute
+	if(m_LastRulePurge + 60*1000 < GetTickCount64())
+		PurgeExpired();
 }
 
 DWORD CALLBACK CAccessManager__CleanUp(LPVOID lpThreadParameter)
@@ -158,13 +162,13 @@ STATUS CAccessManager::CleanUp()
 //////////////////////////////////////////////////////////////////////////
 // Rules
 
-std::map<std::wstring, CAccessRulePtr> CAccessManager::GetAllRules()
+std::map<CFlexGuid, CAccessRulePtr> CAccessManager::GetAllRules()
 {
 	std::unique_lock Lock(m_RulesMutex);
 	return m_Rules;
 }
 
-CAccessRulePtr CAccessManager::GetRule(const std::wstring& Guid)
+CAccessRulePtr CAccessManager::GetRule(const CFlexGuid& Guid)
 {
 	std::unique_lock Lock(m_RulesMutex);
 	auto F = m_Rules.find(Guid);
@@ -175,7 +179,10 @@ CAccessRulePtr CAccessManager::GetRule(const std::wstring& Guid)
 
 RESULT(std::wstring) CAccessManager::AddRule(const CAccessRulePtr& pRule)
 {
-	CVariant Request = pRule->ToVariant(SVarWriteOpt());
+	SVarWriteOpt Opts;
+	Opts.Flags = SVarWriteOpt::eTextGuids;
+
+	CVariant Request = pRule->ToVariant(Opts);
 	auto Res = theCore->Driver()->Call(API_SET_ACCESS_RULE, Request);
 	//if (Res.IsSuccess()) // will be done by the notification event
 	//	UpdateRule(pRule, pRule->GetGuid());
@@ -184,10 +191,10 @@ RESULT(std::wstring) CAccessManager::AddRule(const CAccessRulePtr& pRule)
 	RETURN(Res.GetValue().AsStr());
 }
 
-STATUS CAccessManager::RemoveRule(const std::wstring& Guid)
+STATUS CAccessManager::RemoveRule(const CFlexGuid& Guid)
 {
 	CVariant Request;
-	Request[API_V_RULE_GUID] = Guid;
+	Request[API_V_GUID] = Guid.ToVariant(true);
 	auto Res = theCore->Driver()->Call(API_DEL_ACCESS_RULE, Request);
 	//if (Res.IsSuccess()) // will be done by the notification event
 	//	UpdateRule(nullptr, Guid);
@@ -204,19 +211,17 @@ STATUS CAccessManager::LoadRules()
 
 	std::unique_lock lock(m_RulesMutex);
 
-	std::map<std::wstring, CAccessRulePtr> OldRules = m_Rules;
+	std::map<CFlexGuid, CAccessRulePtr> OldRules = m_Rules;
 
 	CVariant Rules = Res.GetValue();
 	for(uint32 i=0; i < Rules.Count(); i++)
 	{
 		CVariant Rule = Rules[i];
 
-		std::wstring Guid = Rule[API_V_RULE_GUID].AsStr();
-
-		std::wstring ProgramPath = NormalizeFilePath(Rule[API_V_FILE_PATH].AsStr());
-
-		CProgramID ID;
-		ID.SetPath(ProgramPath);
+		CFlexGuid Guid;
+		Guid.FromVariant(Rule[API_V_GUID]);
+		std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
+		CProgramID ID(ProgramPath);
 
 		CAccessRulePtr pRule;
 		auto I = OldRules.find(Guid);
@@ -224,7 +229,7 @@ STATUS CAccessManager::LoadRules()
 		{
 			pRule = I->second;
 			OldRules.erase(I);
-			if (pRule->GetProgramPath() != ProgramPath) // todo
+			if (theCore->NormalizePath(pRule->GetProgramPath()) != ProgramPath)
 			{
 				RemoveRuleUnsafe(I->second);
 				pRule.reset();
@@ -248,6 +253,20 @@ STATUS CAccessManager::LoadRules()
 	return OK;
 }
 
+void CAccessManager::PurgeExpired()
+{
+	std::unique_lock Lock(m_RulesMutex);
+	for (auto I = m_Rules.begin(); I != m_Rules.end(); ) {
+		auto J = I++;
+		if (J->second->IsExpired()) {
+			theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, 1, StrLine(L"Removed expired Resouce Access Rule: %s", J->second->GetName().c_str()).c_str());
+			RemoveRule(J->first);
+		}
+	}
+
+	m_LastRulePurge = GetTickCount64();
+}
+
 void CAccessManager::AddRuleUnsafe(const CAccessRulePtr& pRule)
 {
 	m_Rules.insert(std::make_pair(pRule->GetGuid(), pRule));
@@ -262,12 +281,12 @@ void CAccessManager::RemoveRuleUnsafe(const CAccessRulePtr& pRule)
 	theCore->ProgramManager()->RemoveResRule(pRule);
 }
 
-void CAccessManager::UpdateRule(const CAccessRulePtr& pRule, const std::wstring& Guid)
+void CAccessManager::UpdateRule(const CAccessRulePtr& pRule, const CFlexGuid& Guid)
 {
 	std::unique_lock Lock(m_RulesMutex);
 
 	CAccessRulePtr pOldRule;
-	if (!Guid.empty()) {
+	if (!Guid.IsNull()) {
 		auto F = m_Rules.find(Guid);
 		if (F != m_Rules.end())
 			pOldRule = F->second;
@@ -281,38 +300,41 @@ void CAccessManager::UpdateRule(const CAccessRulePtr& pRule, const std::wstring&
 	}
 }
 
-void CAccessManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID)
+void CAccessManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEvent Event, enum class EConfigGroup Type, uint64 PID)
 {
-	ASSERT(Type == ERuleType::eAccess);
+	ASSERT(Type == EConfigGroup::eAccessRules);
 
-	if(Event == ERuleEvent::eAllChanged) {
+	if(Event == EConfigEvent::eAllChanged)
 		LoadRules();
-		return;
-	}
-
-	CAccessRulePtr pRule;
-	if (Event != ERuleEvent::eRemoved) {
-		CVariant Request;
-		Request[API_V_RULE_GUID] = Guid;
-		auto Res = theCore->Driver()->Call(API_GET_ACCESS_RULE, Request);
-		if (Res.IsSuccess()) {
-			CVariant Rule = Res.GetValue();
-			CProgramID ID;
-			ID.SetPath(Rule[API_V_FILE_PATH].AsStr());
-			pRule = std::make_shared<CAccessRule>(ID);
-			pRule->FromVariant(Rule);
+	else
+	{
+		CAccessRulePtr pRule;
+		if (Event != EConfigEvent::eRemoved) {
+			CVariant Request;
+			Request[API_V_GUID] = Guid.ToVariant(true);
+			auto Res = theCore->Driver()->Call(API_GET_ACCESS_RULE, Request);
+			if (Res.IsSuccess()) {
+				CVariant Rule = Res.GetValue();
+				std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
+				CProgramID ID(ProgramPath);
+				pRule = std::make_shared<CAccessRule>(ID);
+				pRule->FromVariant(Rule);
+			}
 		}
+
+		CAccessRulePtr pRule2 = pRule;
+		if (Event == EConfigEvent::eRemoved)
+			pRule2 = GetRule(Guid);
+		if (pRule2)
+			theCore->VolumeManager()->UpdateRule(pRule2, Event, PID);
+
+		UpdateRule(pRule, Guid);
 	}
-
-	UpdateRule(pRule, Guid);
-
-	theCore->VolumeManager()->OnRuleChanged(Guid, Event, Type, PID);
 
 	CVariant vEvent;
-	vEvent[API_V_RULE_GUID] = Guid;
-	//vEvent[API_V_RULE_TYPE] = (uint32)ERuleType::eAccess;
+	vEvent[API_V_GUID] = Guid.ToVariant(false);
 	//vEvent[API_V_NAME] = ;
-	vEvent[API_V_EVENT] = (uint32)Event;
+	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_RES_RULE_CHANGED, vEvent);
 }

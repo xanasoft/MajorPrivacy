@@ -10,6 +10,7 @@ class CVolumePage : public QWidget
 	Q_OBJECT
 public:
 	CVolumePage(QWidget* parent);
+	~CVolumePage();
 
 	void	Update();
 

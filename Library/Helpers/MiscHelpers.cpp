@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "MiscHelpers.h"
 #include <Rpc.h>
+#include "..\Common\Strings.h"
 
 unsigned __int64 GetCurTime()
 {
@@ -37,9 +38,15 @@ std::wstring MkGuid()
 		RPC_WSTR guidString = NULL;
 		status = UuidToStringW(&myGuid, &guidString);
 		if (status == RPC_S_OK) {
-			Guid = std::wstring((wchar_t*)guidString, wcslen((wchar_t*)guidString));
+			Guid = MkUpper(std::wstring((wchar_t*)guidString, wcslen((wchar_t*)guidString)));
 			RpcStringFreeW(&guidString);
 		}
 	}
 	return Guid;
+}
+
+bool MatchPathPrefix(const std::wstring& Path, const wchar_t* pPrefix)
+{
+	size_t len = wcslen(pPrefix);
+	return Path.length() >= len && _wcsnicmp(Path.c_str(), pPrefix, len) == 0 && (Path.length() == len || Path.at(len) == L'\\');
 }

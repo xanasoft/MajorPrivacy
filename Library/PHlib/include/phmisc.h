@@ -319,6 +319,62 @@ NTSTATUS PhGetTokenUser(
 /** The PID of the system process. */
 #define SYSTEM_PROCESS_ID ((HANDLE)4)
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ PPH_STRINGREF FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions
+);
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateFileWin32(
+    _Out_ PHANDLE FileHandle,
+    _In_ PWSTR FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions
+);
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetFileSize(
+    _In_ HANDLE FileHandle,
+    _Out_ PLARGE_INTEGER Size
+);
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetFileUsn(
+    _In_ HANDLE FileHandle,
+    _Out_ PLONGLONG Usn
+);
+
+#include "verify.h"
+
+VERIFY_RESULT PhVerifyFileCached(
+    _In_ PPH_STRING FileName,
+    _In_opt_ PPH_STRING PackageFullName,
+    _Out_opt_ PPH_STRING *SignerName,
+    _Out_opt_ BYTE* SignerSHA1Hash,
+    _Out_opt_ PDWORD SignerSHA1HashSize,
+    _Out_opt_ BYTE* SignerSHAXHash,
+    _Out_opt_ PDWORD SignerSHAXHashSize,
+    _In_ BOOLEAN NativeFileName,
+    _In_ BOOLEAN CachedOnly
+);
+
 #ifdef __cplusplus
 }
 #endif

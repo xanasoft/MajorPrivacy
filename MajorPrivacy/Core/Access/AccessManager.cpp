@@ -30,18 +30,18 @@ bool CAccessManager::UpdateAllAccessRules()
 
 	XVariant& Rules = Ret.GetValue();
 
-	QMap<QString, CAccessRulePtr> OldRules = m_AccessRules;
+	QMap<QFlexGuid, CAccessRulePtr> OldRules = m_AccessRules;
 
 	for (int i = 0; i < Rules.Count(); i++)
 	{
 		const XVariant& Rule = Rules[i];
 
-		QString Guid = Rule[API_V_RULE_GUID].AsQStr();
+		QFlexGuid Guid;
+		Guid.FromVariant(Rule[API_V_GUID]);
 
-		QString ProgramPath = QString::fromStdWString(NormalizeFilePath(Rule[API_V_FILE_PATH].AsStr()));
-
+		QString ProgramPath = Rule[API_V_FILE_PATH].AsQStr();
 		CProgramID ID;
-		ID.SetPath(ProgramPath);
+		ID.SetPath(theCore->NormalizePath(ProgramPath, true));
 
 		CAccessRulePtr pRule = OldRules.value(Guid);
 		if (pRule) {
@@ -66,28 +66,30 @@ bool CAccessManager::UpdateAllAccessRules()
 			AddAccessRule(pRule);
 	}
 
-	foreach(const QString& Guid, OldRules.keys())
+	foreach(const QFlexGuid& Guid, OldRules.keys())
 		RemoveAccessRule(OldRules.take(Guid));
 
 	return true;
 }
 
-bool CAccessManager::UpdateAccessRule(const QString& RuleId)
+bool CAccessManager::UpdateAccessRule(const QFlexGuid& Guid)
 {
-	auto Ret = theCore->GetAccessRule(RuleId);
+	auto Ret = theCore->GetAccessRule(Guid);
 	if (Ret.IsError())
 		return false;
 
 	XVariant& Rule = Ret.GetValue();
 
-	QString RuleID = Rule[API_V_RULE_GUID].AsQStr();
+	QFlexGuid Guid2;
+	Guid2.FromVariant(Rule[API_V_GUID]);
+	if (Guid2 != Guid)
+		return false;
 
-	QString ProgramPath = QString::fromStdWString(NormalizeFilePath(Rule[API_V_FILE_PATH].AsStr()));
-
+	QString ProgramPath = Rule[API_V_FILE_PATH].AsQStr();
 	CProgramID ID;
-	ID.SetPath(ProgramPath);
+	ID.SetPath(theCore->NormalizePath(ProgramPath, true));
 
-	CAccessRulePtr pRule = m_AccessRules.value(RuleID);
+	CAccessRulePtr pRule = m_AccessRules.value(Guid);
 	if (pRule) {
 		if(ID != pRule->GetProgramID()) // on ID change compeltely re add the rule as if it would be new
 		{
@@ -110,23 +112,23 @@ bool CAccessManager::UpdateAccessRule(const QString& RuleId)
 	return true;
 }
 
-void CAccessManager::RemoveAccessRule(const QString& RuleId)
+void CAccessManager::RemoveAccessRule(const QFlexGuid& Guid)
 {
-	CAccessRulePtr pRule = m_AccessRules.take(RuleId);
+	CAccessRulePtr pRule = m_AccessRules.take(Guid);
 	if(pRule)
 		RemoveAccessRule(pRule);
 }
 
-QSet<QString> CAccessManager::GetAccessRuleIDs() const
+QSet<QFlexGuid> CAccessManager::GetAccessRuleIDs() const
 {
 	return ListToSet(m_AccessRules.keys()); 
 }
 
-QList<CAccessRulePtr> CAccessManager::GetAccessRules(const QSet<QString>& AccessRuleIDs)
+QList<CAccessRulePtr> CAccessManager::GetAccessRules(const QSet<QFlexGuid>& AccessRuleIDs)
 {
 	QList<CAccessRulePtr> List;
-	foreach(const QString& RuleName, AccessRuleIDs) {
-		CAccessRulePtr pAccessRulePtr = m_AccessRules.value(RuleName);
+	foreach(const QFlexGuid& Guid, AccessRuleIDs) {
+		CAccessRulePtr pAccessRulePtr = m_AccessRules.value(Guid);
 		if (pAccessRulePtr) List.append(pAccessRulePtr);
 	}
 	return List;
@@ -134,10 +136,13 @@ QList<CAccessRulePtr> CAccessManager::GetAccessRules(const QSet<QString>& Access
 
 STATUS CAccessManager::SetAccessRule(const CAccessRulePtr& pRule)
 {
-	return theCore->SetAccessRule(pRule->ToVariant(SVarWriteOpt()));
+	SVarWriteOpt Opts;
+	Opts.Flags = SVarWriteOpt::eTextGuids;
+
+	return theCore->SetAccessRule(pRule->ToVariant(Opts));
 }
 
-RESULT(CAccessRulePtr) CAccessManager::GetAccessRule(QString Guid)
+RESULT(CAccessRulePtr) CAccessManager::GetAccessRule(const QFlexGuid& Guid)
 {
 	auto Ret = theCore->GetAccessRule(Guid);
 	if (Ret.IsError())
@@ -145,10 +150,9 @@ RESULT(CAccessRulePtr) CAccessManager::GetAccessRule(QString Guid)
 
 	XVariant& Rule = Ret.GetValue();
 
-	QString ProgramPath = QString::fromStdWString(NormalizeFilePath(Rule[API_V_FILE_PATH].AsStr()));
-
+	QString ProgramPath = Rule[API_V_FILE_PATH].AsQStr();
 	CProgramID ID;
-	ID.SetPath(ProgramPath);
+	ID.SetPath(theCore->NormalizePath(ProgramPath, true));
 	
 	CAccessRulePtr pRule = CAccessRulePtr(new CAccessRule(ID));
 	pRule->FromVariant(Rule);

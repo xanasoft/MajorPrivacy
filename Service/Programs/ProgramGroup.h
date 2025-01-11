@@ -1,8 +1,6 @@
 #pragma once
 #include "ProgramItem.h"
 
-typedef std::wstring		TGroupId;
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // CProgramSet
 
@@ -15,8 +13,6 @@ public:
 
 	virtual std::vector<CProgramItemPtr>		GetNodes() const			{ std::unique_lock lock(m_Mutex); return m_Nodes; }
 	virtual bool								ContainsNode(const CProgramItemPtr& Item) const;
-
-	virtual int									GetSpecificity() const { return 0; }	
 
 protected:
 	friend class CProgramManager;
@@ -38,7 +34,7 @@ typedef std::weak_ptr<CProgramSet> CProgramSetRef;
 class CAllPrograms : public CProgramSet
 {
 public:
-	CAllPrograms() { m_ID.Set(EProgramType::eAllPrograms, L""); }
+	CAllPrograms();
 
 	virtual EProgramType GetType() const {return EProgramType::eAllPrograms; }
 };
@@ -58,16 +54,29 @@ typedef std::shared_ptr<CProgramList> CProgramListPtr;
 typedef std::weak_ptr<CProgramList> CProgramListRef;
 
 ///////////////////////////////////////////////////////////////////////////////////////
+// CProgramListEx
+
+class CProgramListEx : public CProgramList
+{
+public:
+	CProgramListEx() {}
+
+	virtual std::wstring GetPath() const = 0;
+	virtual bool MatchFileName(const std::wstring& FileName) const = 0;
+};
+
+typedef std::shared_ptr<CProgramListEx> CProgramListExPtr;
+typedef std::weak_ptr<CProgramListEx> CProgramListExRef;
+
+///////////////////////////////////////////////////////////////////////////////////////
 // CProgramGroup
 
 class CProgramGroup: public CProgramList
 {
 	TRACK_OBJECT(CProgramGroup)
 public:
-	CProgramGroup(const TGroupId& Guid) {
-		m_ID.Set(EProgramType::eProgramGroup, Guid);
-	}
-
+	CProgramGroup(const std::wstring& Guid);
+	
 	virtual EProgramType GetType() const {return EProgramType::eProgramGroup; }
 };
 
@@ -80,7 +89,9 @@ typedef std::weak_ptr<CProgramGroup> CProgramGroupRef;
 class CProgramRoot : public CProgramList
 {
 public:
-	CProgramRoot() { m_ID.Set(EProgramType::eProgramRoot, L""); }
+	CProgramRoot();
+
+
 
 	virtual EProgramType GetType() const {return EProgramType::eProgramRoot; }
 

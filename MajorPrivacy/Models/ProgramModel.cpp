@@ -23,7 +23,10 @@ CProgramModel::~CProgramModel()
 QList<QVariant> CProgramModel::Sync(const CProgramSetPtr& pRoot)
 {
 	QList<QVariant> Added;
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QSet<QVariant> Current;
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -224,7 +227,7 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 			case eUploaded:			Value = pStats->Uploaded; break;
 			case eDownloaded:		Value = pStats->Downloaded; break;
 
-			case ePath:				Value = pItem->GetPath(EPathType::eDisplay); break;
+			case ePath:				Value = pItem->GetPath(); break;
 
 			//case eInfo:				Value = pItem->GetInfo(); break;
 			}
@@ -288,7 +291,7 @@ QVariant CProgramModel::NodeData(STreeNode* pNode, int role, int section) const
 		case Qt::ToolTipRole:
 		{
 			if(section == ePath)
-				return pProcessNode->pItem->GetPath(EPathType::eNative);
+				return pProcessNode->pItem->GetPath();
 			break;
 		}
 	}

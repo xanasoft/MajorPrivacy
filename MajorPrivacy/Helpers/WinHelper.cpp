@@ -144,11 +144,11 @@ QIcon LoadWindowsIconEx(const QString &Path, quint32 Index)
     return icon;
 }
 
-void WindowsMoveFile(const QString& From, const QString& To)
+bool WindowsMoveFile(const QString& From, const QString& To)
 {
-    std::wstring from = From.toStdWString();
+    std::wstring from = QString(From).replace("/", "\\").toStdWString();
     from.append(L"\0", 1);
-    std::wstring to = To.toStdWString();
+    std::wstring to = QString(To).replace("/", "\\").toStdWString();
     to.append(L"\0", 1);
 
     SHFILEOPSTRUCTW SHFileOp;
@@ -160,5 +160,65 @@ void WindowsMoveFile(const QString& From, const QString& To)
     SHFileOp.fFlags = NULL;    
 
     //The Copying Function
-    SHFileOperationW(&SHFileOp);
+    return SHFileOperationW(&SHFileOp) == 0;
+}
+
+bool OpenFileProperties(const QString& Path) 
+{
+    std::wstring path = Path.toStdWString();
+
+    // Initialize the SHELLEXECUTEINFO structure
+    SHELLEXECUTEINFOW sei = { 0 };
+    sei.cbSize = sizeof(SHELLEXECUTEINFOW);
+    sei.fMask = SEE_MASK_INVOKEIDLIST;
+    sei.hwnd = NULL; // Parent window handle, can be NULL
+    sei.lpVerb = L"properties"; // Action to perform
+    sei.lpFile = path.c_str(); // File path
+    sei.nShow = SW_SHOW; // Show the dialog
+
+    // Execute the command
+    return ShellExecuteExW(&sei) == 0;
+}
+
+bool OpenFileFolder(const QString& Path)
+{
+    std::wstring command = L"/select,\"" + Path.toStdWString() + L"\"";
+
+    // Execute the command
+    return ShellExecuteW(NULL, L"open", L"explorer.exe", command.c_str(), NULL, SW_SHOWNORMAL) == 0;
+}
+
+HANDLE ShellExecuteQ(const QString& Command)
+{
+    QString File;
+    QString Params;
+    if (Command.left(1) == "\"") {
+        int Pos = Command.indexOf("\"", 1);
+        if (Pos == -1)
+            return INVALID_HANDLE_VALUE;
+        File = Command.mid(1, Pos - 1);
+        Params = Command.mid(Pos + 2);
+    }
+    else {
+        int Pos = Command.indexOf(" ");
+        if (Pos == -1)
+            File = Command;
+        else {
+            File = Command.left(Pos);
+            Params = Command.mid(Pos + 1);
+        }
+    }
+
+    SHELLEXECUTEINFOW shex;
+    memset(&shex, 0, sizeof(SHELLEXECUTEINFOW));
+    shex.cbSize = sizeof(SHELLEXECUTEINFO);
+    shex.fMask = SEE_MASK_NOCLOSEPROCESS;
+    shex.hwnd = NULL;
+    shex.lpFile = (wchar_t*)File.utf16();
+    shex.lpParameters = (wchar_t*)File.utf16();
+    shex.nShow = SW_SHOWNORMAL;
+
+    if(ShellExecuteExW(&shex))
+		return shex.hProcess;
+	return INVALID_HANDLE_VALUE;
 }

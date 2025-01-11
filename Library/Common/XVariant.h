@@ -61,9 +61,9 @@ public:
 		else if (Type == VAR_TYPE_DOUBLE)
 			return QString::number(To<double>());
 		else if (Type == VAR_TYPE_SINT)
-			return QString::number(To<sint32>());
+			return QString::number(To<sint64>());
 		else if (Type == VAR_TYPE_UINT)
-			return QString::number(To<uint32>());
+			return QString::number(To<uint64>());
 		else
 			return QString();
 	}

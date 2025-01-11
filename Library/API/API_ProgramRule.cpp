@@ -1,7 +1,7 @@
 
 
 /////////////////////////////////////////////////////////////////////////////
-// Index Serializer
+// CProgramRule
 //
 
 void CProgramRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
@@ -12,13 +12,11 @@ void CProgramRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 	Rule.Write(API_V_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
 	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
-		Rule.Write(API_V_FILE_PATH2, TO_STR(m_PathPattern.Get()));
+		Rule.Write(API_V_FILE_NT_PATH, TO_STR(m_PathPattern.Get()));
 	}
 #endif
 	if (m_Type == EExecRuleType::eAllow || m_Type == EExecRuleType::eProtect)
 		Rule.Write(API_V_EXEC_SIGN_REQ, (uint32)m_SignatureLevel);
-	Rule.Write(API_V_EXEC_ON_TRUSTED_SPAWN, (uint32)m_OnTrustedSpawn);
-	Rule.Write(API_V_EXEC_ON_SPAWN, (uint32)m_OnSpawn);
 	Rule.Write(API_V_IMAGE_LOAD_PROTECTION, m_ImageLoadProtection);
 }
 
@@ -29,20 +27,15 @@ void CProgramRule::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_EXEC_RULE_ACTION: m_Type = (EExecRuleType)Data.To<uint32>(); break;
 	case API_V_FILE_PATH: m_ProgramPath = AS_STR(Data); break;
 #ifdef LOAD_NT_PATHS
-	case API_V_FILE_PATH2: m_ProgramNtPath = AS_STR(Data); break;
+	case API_V_FILE_NT_PATH: m_ProgramNtPath = AS_STR(Data); break;
 #endif
 	case API_V_EXEC_SIGN_REQ: m_SignatureLevel = (KPH_VERIFY_AUTHORITY)Data.To<uint32>(); break;
-	case API_V_EXEC_ON_TRUSTED_SPAWN: m_OnTrustedSpawn = (EProgramOnSpawn)Data.To<uint32>(); break;
-	case API_V_EXEC_ON_SPAWN: m_OnSpawn = (EProgramOnSpawn)Data.To<uint32>(); break;
 	case API_V_IMAGE_LOAD_PROTECTION: m_ImageLoadProtection = Data.To<bool>(); break;
 	default: CGenericRule::ReadIValue(Index, Data);
 	}
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
-// Map Serializer
-//
 
 void CProgramRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 {
@@ -54,13 +47,14 @@ void CProgramRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 	case EExecRuleType::eBlock:		Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_BLOCK); break;
 	case EExecRuleType::eProtect:	Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_PROTECT); break;
 	case EExecRuleType::eIsolate:	Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_ISOLATE); break;
-		// todo other:
+	case EExecRuleType::eAudit:		Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_AUDIT); break;
+	// todo other:
 	}
 
 	Rule.Write(API_S_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
 	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
-		Rule.Write(API_S_FILE_PATH2, TO_STR(m_PathPattern.Get()));
+		Rule.Write(API_S_FILE_NT_PATH, TO_STR(m_PathPattern.Get()));
 	}
 #endif
 
@@ -83,20 +77,6 @@ void CProgramRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 		}
 	}
 
-	switch (m_OnTrustedSpawn)
-	{
-	case EProgramOnSpawn::eAllow:	Rule.Write(API_S_EXEC_ON_TRUSTED_SPAWN, API_S_EXEC_ON_SPAWN_ALLOW); break;
-	case EProgramOnSpawn::eBlock:	Rule.Write(API_S_EXEC_ON_TRUSTED_SPAWN, API_S_EXEC_ON_SPAWN_BLOCK); break;
-	case EProgramOnSpawn::eEject:	Rule.Write(API_S_EXEC_ON_TRUSTED_SPAWN, API_S_EXEC_ON_SPAWN_EJECT); break;
-	}
-
-	switch(m_OnSpawn)
-	{
-	case EProgramOnSpawn::eAllow:	Rule.Write(API_S_EXEC_ON_SPAWN, API_S_EXEC_ON_SPAWN_ALLOW); break;
-	case EProgramOnSpawn::eBlock:	Rule.Write(API_S_EXEC_ON_SPAWN, API_S_EXEC_ON_SPAWN_BLOCK); break;
-	case EProgramOnSpawn::eEject:	Rule.Write(API_S_EXEC_ON_SPAWN, API_S_EXEC_ON_SPAWN_EJECT); break;
-	}
-
 	Rule.Write(API_S_IMAGE_LOAD_PROTECTION, m_ImageLoadProtection);
 }
 
@@ -113,6 +93,8 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 			m_Type = EExecRuleType::eProtect;
 		else if (Type == API_S_EXEC_RULE_ACTION_ISOLATE)
 			m_Type = EExecRuleType::eIsolate;
+		else if (Type == API_S_EXEC_RULE_ACTION_AUDIT)
+			m_Type = EExecRuleType::eAudit;
 		//else // todo other
 		//	return STATUS_INVALID_PARAMETER;
 	}
@@ -122,7 +104,7 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 		m_ProgramPath = AS_STR(Data);
 	}
 #ifdef LOAD_NT_PATHS
-	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH2))	m_ProgramNtPath = AS_STR(Data);
+	else if (VAR_TEST_NAME(Name, API_S_FILE_NT_PATH))	m_ProgramNtPath = AS_STR(Data);
 #endif
 
 	else if (VAR_TEST_NAME(Name, API_S_EXEC_SIGN_REQ))
@@ -140,32 +122,6 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 		//	m_SignatureLevel = KphNoAuthority; // dont require signature
 		//else
 		//	return STATUS_INVALID_PARAMETER; // todo
-	}
-
-	else if (VAR_TEST_NAME(Name, API_S_EXEC_ON_TRUSTED_SPAWN))
-	{
-		ASTR OnTrustedSpawn = Data;
-		if (OnTrustedSpawn == API_S_EXEC_ON_SPAWN_ALLOW)
-			m_OnTrustedSpawn = EProgramOnSpawn::eAllow;
-		else if (OnTrustedSpawn == API_S_EXEC_ON_SPAWN_BLOCK)
-			m_OnTrustedSpawn = EProgramOnSpawn::eBlock;
-		else if (OnTrustedSpawn == API_S_EXEC_ON_SPAWN_EJECT)
-			m_OnTrustedSpawn = EProgramOnSpawn::eEject;
-		//else // todo other
-		//	return STATUS_INVALID_PARAMETER;
-	}
-
-	else if (VAR_TEST_NAME(Name, API_S_EXEC_ON_SPAWN))
-	{
-		ASTR OnSpawn = Data;
-		if (OnSpawn == API_S_EXEC_ON_SPAWN_ALLOW)
-			m_OnSpawn = EProgramOnSpawn::eAllow;
-		else if (OnSpawn == API_S_EXEC_ON_SPAWN_BLOCK)
-			m_OnSpawn = EProgramOnSpawn::eBlock;
-		else if (OnSpawn == API_S_EXEC_ON_SPAWN_EJECT)
-			m_OnSpawn = EProgramOnSpawn::eEject;
-		//else // todo other
-		//	return STATUS_INVALID_PARAMETER;
 	}
 
 	else if (VAR_TEST_NAME(Name, API_S_IMAGE_LOAD_PROTECTION))	m_ImageLoadProtection = Data.To<bool>();

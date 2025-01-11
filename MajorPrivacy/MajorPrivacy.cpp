@@ -2,6 +2,7 @@
 #include "MajorPrivacy.h"
 #include "Core/PrivacyCore.h"
 #include "Core/Processes/ProcessList.h"
+#include "Core/Enclaves/EnclaveManager.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "version.h"
 #include "Pages/HomePage.h"
@@ -36,12 +37,15 @@
 #include "Core/Network/NetLogEntry.h"
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include "Windows/MountMgrWnd.h"
+#include "Windows/SignatureDbWnd.h"
 
 #include <Windows.h>
 #include <ShellApi.h>
 
 
 CMajorPrivacy* theGUI = NULL;
+
+BOOLEAN OnWM_Notify(NMHDR *Header, LRESULT *Result);
 
 class CNativeEventFilter : public QAbstractNativeEventFilter
 {
@@ -61,7 +65,10 @@ public:
 
 			if (msg->message == WM_NOTIFY)
 			{
-				//return true;
+				LRESULT ret;
+				if (OnWM_Notify((NMHDR*)msg->lParam, &ret))
+					*result = ret;
+				return true;
 			}
 			else if (msg->message == WM_SETTINGCHANGE)
 			{
@@ -120,30 +127,21 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 
 	m_pPopUpWindow = new CPopUpWindow();
 
+	m_pProgressDialog = new CProgressDialog("");
+	m_pProgressDialog->setWindowTitle("MajorPrivacy");
+	m_pProgressDialog->setWindowModality(Qt::ApplicationModal);
+
 	bool bAlwaysOnTop = theConf->GetBool("Options/AlwaysOnTop", false);
 	this->setWindowFlag(Qt::WindowStaysOnTopHint, bAlwaysOnTop);
 	//m_pPopUpWindow->setWindowFlag(Qt::WindowStaysOnTopHint, bAlwaysOnTop);
-	//m_pProgressDialog->setWindowFlag(Qt::WindowStaysOnTopHint, bAlwaysOnTop);
+	m_pProgressDialog->setWindowFlag(Qt::WindowStaysOnTopHint, bAlwaysOnTop);
 
 	LoadIgnoreList();
 
 	SafeShow(this);
 
-	if(!IsRunningElevated())
-		QMessageBox::information(this, "MajorPrivacy", tr("Major Privacy will now attempt to start the Privacy Agent Service, please confirm the UAC prompt."));
-
 	STATUS Status = Connect();
 	CheckResults(QList<STATUS>() << Status, this);
-
-	auto Res = theCore->GetSupportInfo();
-	if (Res) {
-		XVariant Info = Res.GetValue();
-		g_CertName = Info[API_V_SUPPORT_NAME].AsQStr();
-		g_CertInfo.State = Info[API_V_SUPPORT_STATUS].To<uint64>();
-	}
-
-	if (!g_CertInfo.active)
-		QMessageBox::critical(this, "MajorPrivacy", tr("Major Privacy is not activated - driver protections disabled!"));
 
 #ifdef _DEBUG
 	m_uTimerID = startTimer(500);
@@ -175,51 +173,104 @@ void CMajorPrivacy::SetTitle()
 	
 	if (theCore->Driver()->IsConnected())
 	{
-		auto Ret = theCore->Driver()->GetUserKey();
+		auto Res = theCore->GetSupportInfo();
+		if (Res) {
+			XVariant Info = Res.GetValue();
+			g_CertName = Info[API_V_SUPPORT_NAME].AsQStr();
+			g_CertInfo.State = Info[API_V_SUPPORT_STATUS].To<uint64>();
+		}
 
-		m_pSignFile->setEnabled(!Ret.IsError());
-		m_pClearKeys->setEnabled(!Ret.IsError());
-		m_pMakeKeyPair->setEnabled(Ret.IsError());
-
-		if (!Ret.IsError()) 
+		if (!g_CertInfo.active)
+			Title += "   -   !!! NOT ACTIVATED !!!";
+		else
 		{
-			m_pMakeKeyPair->setEnabled(false);
+			auto Ret = theCore->Driver()->GetUserKey();
 
-			auto pInfo = Ret.GetValue();
+			m_pSignFile->setEnabled(!Ret.IsError());
+			m_pClearKeys->setEnabled(!Ret.IsError());
+			m_pMakeKeyPair->setEnabled(Ret.IsError());
 
-			//
-			// We want to show the private key fingerprint in the title bar
-			//
-
-			if (theConf->GetBool("Options/ShowShortKey", true))
+			if (!Ret.IsError())
 			{
-				
-				//
-				// We want it to be short enough to be easily recognizable. 
-				// Hence we use a 64 bit hash of the private key as the fingerprint.
-				// To improve security we use a key derivation function to make it harder to brute force.
-				//
+				m_pMakeKeyPair->setEnabled(false);
 
-				CBuffer FP(8); // 64 bits
-				CEncryption::GetKeyFromPW(pInfo->PubKey, FP, 1048576); // 2^20 iterations
+				auto pInfo = Ret.GetValue();
 
-				Title += "   -   USER KEY: " + QByteArray((char*)FP.GetBuffer(), (int)FP.GetSize()).toHex().toUpper();
-			}
-			else
-			{
 				//
-				// Alternatively we can also show the full SHA246 Hash of the private key.
+				// We want to show the private key fingerprint in the title bar
 				//
 
-				CBuffer Hash(64);
-				CHashFunction::Hash(pInfo->PubKey, Hash);
+				if (theConf->GetBool("Options/ShowShortKey", true))
+				{
 
-				Title += "   -   USER KEY: " + QByteArray((char*)Hash.GetBuffer(), (int)Hash.GetSize()).toHex().toUpper();
+					//
+					// We want it to be short enough to be easily recognizable. 
+					// Hence we use a 64 bit hash of the private key as the fingerprint.
+					// To improve security we use a key derivation function to make it harder to brute force.
+					//
+
+					CBuffer FP(8); // 64 bits
+					CEncryption::GetKeyFromPW(pInfo->PubKey, FP, 1048576); // 2^20 iterations
+
+					Title += "   -   USER KEY: " + QByteArray((char*)FP.GetBuffer(), (int)FP.GetSize()).toHex().toUpper();
+				}
+				else
+				{
+					//
+					// Alternatively we can also show the full SHA246 Hash of the private key.
+					//
+
+					CBuffer Hash(64);
+					CHashFunction::Hash(pInfo->PubKey, Hash);
+
+					Title += "   -   USER KEY: " + QByteArray((char*)Hash.GetBuffer(), (int)Hash.GetSize()).toHex().toUpper();
+				}
 			}
 		}
 	}
+	else
+	{
+		m_pSignFile->setEnabled(false);
+		m_pClearKeys->setEnabled(false);
+		m_pMakeKeyPair->setEnabled(false);
+	}
 
 	setWindowTitle(Title);
+}
+
+void CMajorPrivacy::UpdateLockStatus(bool bOnConnect)
+{
+	bool bConnected = theCore->Driver()->IsConnected();
+
+	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
+	uConfigStatus |= theCore->Service()->GetConfigStatus();
+
+	if (uConfigStatus & CONFIG_STATUS_KEYLOCKED)
+		m_pClearKeys->setEnabled(false);
+
+	bool bProtected = (uConfigStatus & CONFIG_STATUS_PROTECTED) != 0;
+	m_pProtectConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && !bProtected);
+	m_pUnprotectConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && bProtected);
+	bool bLocked = (uConfigStatus & CONFIG_STATUS_LOCKED) != 0;
+	m_pUnlockConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && bProtected && bLocked);
+
+	bool bDirty = (uConfigStatus & CONFIG_STATUS_DIRTY) != 0;
+	m_pCommitConfig->setEnabled(bConnected && bDirty);
+	m_pDiscardConfig->setEnabled(bConnected && (bDirty || (bProtected && !bLocked)));
+
+	if (bOnConnect) 
+	{
+		if ((uConfigStatus & CONFIG_STATUS_CORRUPT) != 0)
+			QMessageBox::warning(this, "MajorPrivacy", tr("The driver configuration is corrupted, and could not be loaded, plrease restore from a backup."));
+		else if ((uConfigStatus & CONFIG_STATUS_BAD) != 0)
+		{
+			if (QMessageBox::question(this, "MajorPrivacy", tr("The driver configuration is Untrusted (INVALID Signature, or Sequence). Do you want to load ir anyways?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+			{
+				// Loads, ignoreing the signature and unlocks the config
+				OnUnlockConfig();
+			}
+		}
+	}
 }
 
 STATUS CMajorPrivacy::Connect()
@@ -247,16 +298,24 @@ STATUS CMajorPrivacy::Connect()
 		else
 			bEngineMode = iEngineMode == 1;
 	}
+
+	if(!theCore->SvcIsRunning() && !IsRunningElevated())
+		QMessageBox::information(this, "MajorPrivacy", tr("Major Privacy will now attempt to start the Privacy Agent, please confirm the UAC prompt."));
 	
 	Status = theCore->Connect(bEngineMode);
 
 	SetTitle();
 
-	if (Status) {
+	if (Status) 
+	{
 		statusBar()->showMessage(tr("Privacy Agent Ready"), 10000);
+
+		UpdateLockStatus(true);
+
 		OnProgramsAdded();
 	}
-	else {
+	else 
+	{
 		statusBar()->showMessage(tr("Privacy Agent Failed: %1").arg(FormatError(Status)));
 	}
 
@@ -268,6 +327,8 @@ void CMajorPrivacy::Disconnect()
 	theCore->Disconnect(true);
 
 	SetTitle();
+
+	UpdateLockStatus();
 }
 
 void CMajorPrivacy::changeEvent(QEvent* e)
@@ -338,6 +399,17 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 		return;
 
 	bool bConnected = theCore->Service()->IsConnected();
+
+	// Try reconnect if we lost connection
+	if (m_iReConnected == 1 && !bConnected) {
+		STATUS Status = theCore->Connect(theCore->IsEngineMode());
+		if (Status) 
+			bConnected = true;
+		else // on failure go back to disconnected state
+			m_iReConnected = 2; 
+	}
+
+	// handle connection state change
 	if (m_bWasConnected != bConnected) {
 		m_bWasConnected = bConnected;
 
@@ -354,6 +426,12 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 			theCore->Clear();
 			m_CurrentItems = SCurrentItems();
 			emit Clear();
+
+			if (m_iReConnected != 0) {
+				CExitDialog ReconnectDialog(tr("Lost connection to Service, do you want to reconnect?"));
+				if (ReconnectDialog.exec())
+					Connect();
+			}
 		}
 	}
 
@@ -382,6 +460,8 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 
 	if (bVisible)
 	{
+		UpdateLockStatus();
+
 		m_EnclavePage->Update();
 		m_pProgramView->Update();
 		m_ProcessPage->Update();
@@ -401,6 +481,8 @@ void CMajorPrivacy::LoadState(bool bFull)
 		restoreState(theConf->GetBlob("MainWindow/Window_State"));
 	}
 
+	m_pProgramSplitter->restoreState(theConf->GetBlob("MainWindow/ProgramSplitter"));
+
 	if(m_pTabBar) m_pTabBar->setCurrentIndex(theConf->GetInt("MainWindow/MainTab", 0));
 	m_AccessPage->LoadState();
 	m_NetworkPage->LoadState();
@@ -411,6 +493,8 @@ void CMajorPrivacy::StoreState()
 {
 	theConf->SetBlob("MainWindow/Window_Geometry", saveGeometry());
 	theConf->SetBlob("MainWindow/Window_State", saveState());
+
+	theConf->SetBlob("MainWindow/ProgramSplitter", m_pProgramSplitter->saveState());
 
 	if(m_pTabBar) theConf->SetValue("MainWindow/MainTab", m_pTabBar->currentIndex());
 }
@@ -474,10 +558,19 @@ void CMajorPrivacy::BuildMenu()
 	m_pCreateVolume = m_pVolumes->addAction(QIcon(":/Icons/MountVolume.png"), tr("Create Volume"), this, SIGNAL(OnCreateVolume()));
 
 	m_pSecurity = menuBar()->addMenu("Security");
-	m_pSignFile = m_pSecurity->addAction(QIcon(":/Icons/SignFile.png"), tr("Sign File"), this, SLOT(OnSignFile()));
-	//m_pPrivateKey = m_pSecurity->addAction(tr("Unlock Key"), this, SLOT(OnPrivateKey())); // todo
+	m_pSignFile = m_pSecurity->addAction(QIcon(":/Icons/Cert.png"), tr("Sign File"), this, SLOT(OnSignFile()));
+	m_pSignDb  = m_pSecurity->addAction(QIcon(":/Icons/CertDB.png"), tr("Signature Database"), this, [this]() {
+		CSignatureDbWnd* pWnd = new CSignatureDbWnd();
+		pWnd->show();
+	});
+	m_pSecurity->addSeparator();
+	m_pProtectConfig = m_pSecurity->addAction(QIcon(":/Icons/LockClosed.png"), tr("Enable Rule Protection"), this, SLOT(OnProtectConfig()));
+	m_pUnprotectConfig = m_pSecurity->addAction(QIcon(":/Icons/LockOpen2.png"), tr("Disable Rules Protection"), this, SLOT(OnUnprotectConfig()));
+	m_pSecurity->addSeparator();
 	m_pMakeKeyPair = m_pSecurity->addAction(QIcon(":/Icons/AddKey.png"), tr("Setup User Key"), this, SLOT(OnMakeKeyPair()));
 	m_pClearKeys = m_pSecurity->addAction(QIcon(":/Icons/RemoveKey.png"), tr("Remove User Key"), this, SLOT(OnClearKeys()));
+	
+
 
 	m_pTools = menuBar()->addMenu("Tools");
 	m_pCleanUpProgs = m_pTools->addAction(QIcon(":/Icons/Clean.png"), tr("CleanUp Program List"), this, SLOT(CleanUpPrograms()));
@@ -493,7 +586,7 @@ void CMajorPrivacy::BuildMenu()
 		QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 		QString ImDiskCpl = env.value("SystemRoot") + "\\system32\\imdisk.cpl";
 		if (QFile::exists(ImDiskCpl)) {
-			m_pExpTools->addSeparator();
+			//m_pExpTools->addSeparator();
 			m_pImDiskCpl = m_pExpTools->addAction(LoadWindowsIcon(ImDiskCpl, 0), tr("Virtual Disks"), this, [ImDiskCpl]() {
 				std::wstring imDiskCpl = ImDiskCpl.toStdWString();
 				SHELLEXECUTEINFOW si = { 0 };
@@ -501,7 +594,7 @@ void CMajorPrivacy::BuildMenu()
 				si.lpVerb = L"runas";
 				si.lpFile = imDiskCpl.c_str();
 				si.nShow = SW_SHOW;
-				ShellExecuteEx(&si);
+				ShellExecuteExW(&si);
 			});
 			//QMessageBox::critical(this, "MajorPrivacy", tr("ImDisk Control Panel not found!"));
 		}
@@ -511,6 +604,10 @@ void CMajorPrivacy::BuildMenu()
 
 	m_pOptions = menuBar()->addMenu("Options");
 	m_pSettings = m_pOptions->addAction(QIcon(":/Icons/Settings.png"), tr("Settings"), this, SLOT(OpenSettings()));
+	m_pOptions->addSeparator();
+	m_pUnlockConfig = m_pOptions->addAction(QIcon(":/Icons/LockOpen.png"), tr("Unlock Config"), this, SLOT(OnUnlockConfig()));
+	m_pCommitConfig = m_pOptions->addAction(QIcon(":/Icons/Approve.png"), tr("Commit Changes"), this, SLOT(OnCommitConfig()));
+	m_pDiscardConfig = m_pOptions->addAction(QIcon(":/Icons/Uninstall.png"), tr("Discard Changes"), this, SLOT(OnDiscardConfig()));
 	m_pOptions->addSeparator();
 	m_pClearIgnore = m_pOptions->addAction(QIcon(":/Icons/ClearList.png"), tr("Clear Ignore List"), this, SLOT(ClearIgnoreLists()));
 	m_pResetPrompts = m_pOptions->addAction(QIcon(":/Icons/Refresh.png"), tr("Reset All Prompts"), this, SLOT(ResetPrompts()));
@@ -569,18 +666,14 @@ void CMajorPrivacy::BuildGUI()
 	m_pMainWidget->setLayout(m_pMainLayout);
 	this->setCentralWidget(m_pMainWidget);
 
-	/*m_pToolBar = new QToolBar();
-	m_pToolBar->addAction("test");
-	m_pMainLayout->addWidget(m_pToolBar, 0, 0, 1, 2);*/
-
 	m_pProgramView = new CProgramView();
 
 	connect(m_pProgramView, SIGNAL(ProgramsChanged(const QList<CProgramItemPtr>&)), this, SLOT(OnProgramsChanged(const QList<CProgramItemPtr>&)));
 
 	m_HomePage = new CHomePage(this);
 	m_EnclavePage = new CEnclavePage(this);
-	m_ProcessPage = new CProcessPage(this);
-	m_AccessPage = new CAccessPage(this);
+	m_ProcessPage = new CProcessPage(false, this);
+	m_AccessPage = new CAccessPage(false, this);
 	m_NetworkPage = new CNetworkPage(this);
 	m_DnsPage = new CDnsPage(this);
 	m_TweakPage = new CTweakPage(this);
@@ -592,16 +685,23 @@ void CMajorPrivacy::BuildGUI()
 	m_pTabBar->addTab(QIcon(":/Icons/Process.png"), tr("Process Security"));
 	m_pTabBar->addTab(QIcon(":/Icons/Enclave.png"), tr("Secure Enclaves"));
 	m_pTabBar->addTab(QIcon(":/Icons/Ampel.png"), tr("Resource Protection"));
-	m_pTabBar->addTab(QIcon(":/Icons/SecureDisk.png"), tr("Secure Drive"));
+	m_pTabBar->addTab(QIcon(":/Icons/SecureDisk.png"), tr("Secure Volumes"));
 	m_pTabBar->addTab(QIcon(":/Icons/Wall3.png"), tr("Network Firewall"));
 	m_pTabBar->addTab(QIcon(":/Icons/Network2.png"), tr("DNS Filtering"));
 	m_pTabBar->addTab(QIcon(":/Icons/Tweaks.png"), tr("Privacy Tweaks"));
-	m_pMainLayout->addWidget(m_pTabBar, 0, 0);
+	m_pMainLayout->addWidget(m_pTabBar, 0, 0, 2, 1);
 
 	connect(m_pTabBar, SIGNAL(currentChanged(int)), this, SLOT(OnPageChanged(int)));
 
+	m_pToolBar = new QToolBar();
+	m_pMainLayout->addWidget(m_pToolBar, 0, 1, 1, 1);
+
 	m_pPageStack = new QStackedLayout();
-	m_pMainLayout->addLayout(m_pPageStack, 0, 1, 2, 1);
+	m_pMainLayout->addLayout(m_pPageStack, 1, 1, 2, 1);
+
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
+	m_pMainLayout->addWidget(pSpacer, 2, 0, 1, 1);
 
 	m_pPageStack->addWidget(m_HomePage);
 
@@ -612,20 +712,31 @@ void CMajorPrivacy::BuildGUI()
 	m_pProgramLayout->setContentsMargins(0, 0, 0, 0);
 	m_pProgramLayout->setSpacing(0);
 
-	//if (m_pShowMenu->isChecked()) 
-	//{
-	m_pProgramToolBar = new QToolBar();
 
-	m_pProgramToolBar->addAction(m_pSettings);
+	//m_pProgramToolBar = new QToolBar();
 
-	m_pProgramToolBar->addSeparator();
+	m_pToolBar->addAction(m_pSettings);
+
+	QWidget* pSpacer1 = new QWidget();
+	pSpacer1->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	pSpacer1->setMaximumWidth(50);
+	m_pToolBar->addWidget(pSpacer1);
+
+	m_pToolBar->addAction(m_pUnlockConfig);
+	m_pToolBar->addAction(m_pCommitConfig);
+	m_pToolBar->addAction(m_pDiscardConfig);
+
+	QWidget* pSpacer2 = new QWidget();
+	pSpacer2->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer2);
+
 
 	m_pBtnTime = new QToolButton();
 	m_pBtnTime->setIcon(QIcon(":/Icons/Time.png"));
 	m_pBtnTime->setToolTip(tr("Set Time Filter"));
 	m_pBtnTime->setCheckable(true);
 	connect(m_pBtnTime, &QToolButton::toggled, this, [&](bool checked) { m_pCmbRecent->setEnabled(checked); });
-	m_pProgramToolBar->addWidget(m_pBtnTime);
+	m_pToolBar->addWidget(m_pBtnTime);
 
 	m_pCmbRecent = new QComboBox();
 	m_pCmbRecent->addItem(tr("Any time"),		0ull);
@@ -646,49 +757,32 @@ void CMajorPrivacy::BuildGUI()
 	m_pCmbRecent->addItem(tr("Last 2 Weeks"),	2*7*24*60*60*1000ull);
 	m_pCmbRecent->addItem(tr("Last Month"),		30*24*60*60*1000ull);
 	m_pCmbRecent->setEnabled(false);
-	m_pProgramToolBar->addWidget(m_pCmbRecent);
+	m_pToolBar->addWidget(m_pCmbRecent);
 	QFont font = m_pCmbRecent->font();
 	font.setPointSizeF(font.pointSizeF() * 1.5);
 	m_pCmbRecent->setFont(font);
 
-	QWidget* pSpacer = new QWidget();
-	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	m_pProgramToolBar->addWidget(pSpacer);
+	QWidget* pSpacer3 = new QWidget();
+	pSpacer3->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	pSpacer3->setMaximumWidth(50);
+	m_pToolBar->addWidget(pSpacer3);
 
-	m_pProgramToolBar->addAction(m_pProgTree);
-	m_pProgramToolBar->addAction(m_pStackPanels);
-	m_pProgramToolBar->addAction(m_pMergePanels);
+	m_pToolBar->addAction(m_pProgTree);
+	m_pToolBar->addAction(m_pStackPanels);
+	m_pToolBar->addAction(m_pMergePanels);
 
-	m_pProgramLayout->addWidget(m_pProgramToolBar);
-	//}
+	//m_pProgramLayout->addWidget(m_pProgramToolBar);
+
 	
 	m_pProgramSplitter = new QSplitter();
 	m_pProgramSplitter->setOrientation(Qt::Horizontal);
 	m_pProgramLayout->addWidget(m_pProgramSplitter);
 	m_pPageStack->addWidget(m_pProgramWidget);
 
-	m_pInfoSplitter = new QSplitter();
-	m_pProgramSplitter->addWidget(m_pInfoSplitter);
-	m_pInfoSplitter->setOrientation(Qt::Vertical);
-	m_pInfoSplitter->addWidget(m_pProgramView);
-
-	m_pInfoView = new CInfoView();
-	m_pInfoSplitter->addWidget(m_pInfoView);
-	m_pInfoSplitter->setStretchFactor(0, 1);
-	m_pInfoSplitter->setStretchFactor(1, 0);
-	/*auto Sizes = m_pInfoSplitter->sizes();
-	Sizes[1] = 0;
-	m_pInfoSplitter->setSizes(Sizes);*/
-	m_pInfoView->setVisible(false);
-
-	QAction* pToggleInfo = new QAction(this);
-	pToggleInfo->setShortcut(QKeySequence("Ctrl+I"));
-	pToggleInfo->setShortcutContext(Qt::WidgetWithChildrenShortcut);
-	addAction(pToggleInfo);
-	connect(pToggleInfo, &QAction::triggered, this, [&]() { m_pInfoView->setVisible(!m_pInfoView->isVisible()); });
+	m_pProgramSplitter->addWidget(m_pProgramView);
 
 	m_pStackPanels->setEnabled(m_pProgTree->isChecked());
-	m_pInfoSplitter->setVisible(m_pProgTree->isChecked());
+	m_pProgramView->setVisible(m_pProgTree->isChecked());
 
 	m_pPageSubWidget = new QWidget();
 	m_pPageSubStack = new QStackedLayout(m_pPageSubWidget);
@@ -790,7 +884,8 @@ void CMajorPrivacy::OnAlwaysTop()
 	LoadState();
 	SafeShow(this); // why is this needed?
 
-	m_pPopUpWindow->setWindowFlag(Qt::WindowStaysOnTopHint, bAlwaysOnTop);
+	//m_pPopUpWindow->setWindowFlag(Qt::WindowStaysOnTopHint, bAlwaysOnTop);
+	m_pProgressDialog->setWindowFlag(Qt::WindowStaysOnTopHint, bAlwaysOnTop);
 }
 
 bool CMajorPrivacy::IsAlwaysOnTop() const
@@ -798,14 +893,14 @@ bool CMajorPrivacy::IsAlwaysOnTop() const
 	return m_bOnTop || theConf->GetBool("Options/AlwaysOnTop", false);
 }
 
-STATUS CMajorPrivacy::InitSigner(class CPrivateKey& PrivateKey)
+STATUS CMajorPrivacy::InitSigner(const QString& Prompt, class CPrivateKey& PrivateKey)
 {
 	auto Ret = theCore->Driver()->GetUserKey();
 	if(Ret.IsError())
 		return Ret.GetStatus();
 	auto pInfo = Ret.GetValue();
 
-	CVolumeWindow window(tr("Enter Secure Configuration Password"), CVolumeWindow::eGetPW, this);
+	CVolumeWindow window(Prompt, CVolumeWindow::eGetPW, this);
 	if (theGUI->SafeExec(&window) != 1)
 		return OK;
 	QString Password = window.GetPassword();
@@ -856,54 +951,182 @@ void CMajorPrivacy::OnSignFile()
 STATUS CMajorPrivacy::SignFiles(const QStringList& Paths)
 {
 	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(PrivateKey);
+	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to sign a file"), PrivateKey);
 	if (!PrivateKey.IsPrivateKeySet())
 		return Status;
-	
-	foreach(const QString & Path, Paths)
-	{
-		QFile File(Path);
-		if (!File.open(QIODevice::ReadOnly))
-			continue;
 
-		CHashFunction HashFunction;
-		Status = HashFunction.InitHash();
-		if (Status.IsError()) continue;
+	Status = theCore->SignFiles(Paths, &PrivateKey);
 
-		CBuffer Buffer(0x1000);
-		for (;;) {
-			int Read = File.read((char*)Buffer.GetBuffer(), Buffer.GetCapacity());
-			if (Read <= 0) break;
-			Buffer.SetSize(Read);
-			Status = HashFunction.UpdateHash(Buffer);
-			if (Status.IsError()) break;
-		}
-		if (Status.IsError()) continue;
-
-		CBuffer Hash;
-		Status = HashFunction.FinalizeHash(Hash);
-		if (Status.IsError()) continue;
-
-		CBuffer Signature;
-		Status = PrivateKey.Sign(Hash, Signature);
-		if (Status.IsError()) continue;
-
-		QString TempPath = QDir::tempPath() + "/" + Split2(Path, "/", true).second + ".sig";
-		QFile SignatureFile(TempPath);
-		if (SignatureFile.open(QIODevice::WriteOnly)) {
-			SignatureFile.write((char*)Signature.GetBuffer(), Signature.GetSize());
-			SignatureFile.close();
-		}
-
-		QString SignaturePath = Split2(Path, ".", true).first + ".sig";
-		WindowsMoveFile(TempPath.replace("/", "\\"), SignaturePath.replace("/", "\\"));
-	}
-
-	return OK;
+	return Status;
 }
 
-void CMajorPrivacy::OnPrivateKey()
+STATUS CMajorPrivacy::SignCerts(const QMap<QByteArray, QString>& Certs)
 {
+	CPrivateKey PrivateKey;
+	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to sign a certificate"), PrivateKey);
+	if (!PrivateKey.IsPrivateKeySet())
+		return Status;
+
+	Status = theCore->SignCerts(Certs, &PrivateKey);
+
+	return Status;
+
+}
+
+void CMajorPrivacy::OnProtectConfig()
+{
+	bool bHardLock = false;
+    int ret = QMessageBox::warning(this, "MajorPrivacy", tr("Would you like to lock down the user key (Yes), or only enable user key signature-based rule protection (No)?"
+						"\n\nLocking down the user key will prevent it from being removed or changed, and rule protection cannot be disabled until the system is rebooted."
+						"\n\nIf the driver is set to auto-start, it will automatically re-lock the key on reboot!"), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel, QMessageBox::No);
+	if (ret == QMessageBox::Cancel)
+		return;
+	bHardLock = (ret == QMessageBox::Yes);
+
+
+	CPrivateKey PrivateKey;
+	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to enable rule protection."
+		"\nOnce that is done you can not change rules (except windows firewall) without using the user key."), PrivateKey);
+	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
+		CheckResults(QList<STATUS>() << Status, this);
+		return;
+	}
+
+	CBuffer ConfigHash;
+	Status = theCore->Driver()->GetConfigHash(ConfigHash);
+	if (!Status.IsError())
+	{
+		CBuffer ConfigSignature;
+		PrivateKey.Sign(ConfigHash, ConfigSignature);
+
+		Status = theCore->Driver()->ProtectConfig(ConfigSignature, bHardLock);
+
+	}
+	UpdateLockStatus();
+	CheckResults(QList<STATUS>() << Status, this);
+}
+
+void CMajorPrivacy::OnUnprotectConfig()
+{
+	CPrivateKey PrivateKey;
+	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to disable rule protection."), PrivateKey);
+	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
+		CheckResults(QList<STATUS>() << Status, this);
+		return;
+	}
+
+	CBuffer ConfigHash;
+	CVariant Data;
+	if (!m_pClearKeys->isEnabled()) {
+        QMessageBox::warning(this, "MajorPrivacy", tr("The user key is locked. Please reboot the system to complete the removal of the config protection."));
+		Data[API_S_UNLOCK] = true;
+	}
+	Status = theCore->Driver()->GetConfigHash(ConfigHash, Data);
+	if (!Status.IsError())
+	{
+		CBuffer ConfigSignature;
+		PrivateKey.Sign(ConfigHash, ConfigSignature);
+
+		Status = theCore->Driver()->UnprotectConfig(ConfigSignature);
+
+	}
+	UpdateLockStatus();
+	CheckResults(QList<STATUS>() << Status, this);
+}
+
+void CMajorPrivacy::OnUnlockConfig()
+{
+	CPrivateKey PrivateKey;
+	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to allow rule editing."), PrivateKey);
+	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
+		CheckResults(QList<STATUS>() << Status, this);
+		return;
+	}
+
+	CBuffer Challenge;
+	Status = theCore->Driver()->GetChallenge(Challenge);
+	if (!Status.IsError())
+	{
+		CBuffer Hash;
+		CHashFunction::Hash(Challenge, Hash);
+
+		CBuffer ChallengeResponse;
+		PrivateKey.Sign(Hash, ChallengeResponse);
+
+		Status = theCore->Driver()->UnlockConfig(ChallengeResponse);
+
+	}
+	UpdateLockStatus();
+	CheckResults(QList<STATUS>() << Status, this);
+}
+
+void CMajorPrivacy::OnCommitConfig()
+{
+	QList<STATUS> Results;
+
+	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
+	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
+	{
+		if ((uConfigStatus & CONFIG_STATUS_PROTECTED) == 0)
+		{
+			STATUS Status = theCore->Driver()->CommitConfigChanges();
+			Results.append(Status);
+		}
+		else
+		{
+			CPrivateKey PrivateKey;
+			STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to commit all changes."), PrivateKey);
+			if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
+				CheckResults(QList<STATUS>() << Status, this);
+				return;
+			}
+
+			CBuffer ConfigHash;
+			Status = theCore->Driver()->GetConfigHash(ConfigHash);
+			if (!Status.IsError())
+			{
+				CBuffer ConfigSignature;
+				PrivateKey.Sign(ConfigHash, ConfigSignature);
+
+				Status = theCore->Driver()->CommitConfigChanges(ConfigSignature);
+
+			}
+			Results.append(Status);
+		}
+	}
+
+	uConfigStatus = theCore->Service()->GetConfigStatus();
+	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
+	{
+		STATUS Status = theCore->Service()->CommitConfigChanges();
+		Results.append(Status);
+	}
+
+	CheckResults(Results, this);
+}
+
+void CMajorPrivacy::OnDiscardConfig()
+{
+	if (m_pCommitConfig->isEnabled() && QMessageBox::question(this, "MajorPrivacy", tr("Do you really want to discard all changes?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+		return;
+	
+	QList<STATUS> Results;
+
+	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
+	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
+	{
+		STATUS Status = theCore->Driver()->DiscardConfigChanges();
+		Results.append(Status);
+	}
+
+	uConfigStatus = theCore->Service()->GetConfigStatus();
+	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
+	{
+		STATUS Status = theCore->Service()->DiscardConfigChanges();
+		Results.append(Status);
+	}
+
+	CheckResults(Results, this);
 }
 
 void CMajorPrivacy::OnMakeKeyPair()
@@ -957,17 +1180,16 @@ void CMajorPrivacy::OnMakeKeyPair()
 void CMajorPrivacy::OnClearKeys()
 {
 	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(PrivateKey);
+	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to clear all user keys"), PrivateKey);
 	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
 		CheckResults(QList<STATUS>() << Status, this);
 		return;
 	}
 
-	do {
-		CBuffer Challenge;
-		Status = theCore->Driver()->GetChallenge(Challenge);
-		if(Status.IsError()) break;
-
+	CBuffer Challenge;
+	Status = theCore->Driver()->GetChallenge(Challenge);
+	if (!Status.IsError()) 
+	{
 		CBuffer Hash;
 		CHashFunction::Hash(Challenge, Hash);
 
@@ -975,8 +1197,7 @@ void CMajorPrivacy::OnClearKeys()
 		PrivateKey.Sign(Hash, Response);
 
 		Status = theCore->Driver()->ClearUserKey(Response);
-
-	} while(0);
+	}
 	CheckResults(QList<STATUS>() << Status, this);
 
 	SetTitle();
@@ -1091,24 +1312,22 @@ void CMajorPrivacy::OnPageChanged(int index)
 
 void CMajorPrivacy::OnProgramsChanged(const QList<CProgramItemPtr>& Programs)
 {
-	if(m_pInfoView)
-		m_pInfoView->Sync(m_pProgramView->GetCurrentProgs());
 	m_CurrentItems = MakeCurrentItems();
 }
 
 void CMajorPrivacy::OnProgSplitter(int pos, int index)
 {
-	bool bShowAll = m_pProgramSplitter->sizes().at(0) < 10;
-	if(m_bShowAll != bShowAll) {
-		m_bShowAll = bShowAll;
-		m_CurrentItems = MakeCurrentItems();
-	}
+	//bool bShowAll = m_pProgramSplitter->sizes().at(0) < 10;
+	//if(m_bShowAll != bShowAll) {
+	//	m_bShowAll = bShowAll;
+	//	m_CurrentItems = MakeCurrentItems();
+	//}
 }
 
 CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems() const
 {
 	QList<CProgramItemPtr> Progs = m_pProgramView->GetCurrentProgs();
-	bool bShowAll = !m_pInfoSplitter->isVisible() || (m_pProgramSplitter->sizes().at(0) < 10);
+	bool bShowAll = !m_pProgramView->isVisible();// || (m_pProgramSplitter->sizes().at(0) < 10);
 	if (bShowAll || Progs.isEmpty())
 	{
 		Progs.clear();
@@ -1301,9 +1520,9 @@ void CMajorPrivacy::IgnoreEvent(ERuleType Type, const CProgramFilePtr& pProgram,
 {
 	if (Path.isEmpty()) {
 		ASSERT(!pProgram.isNull());
-		m_IgnoreEvents[(int)Type - 1][pProgram.isNull() ? "" : pProgram->GetPath(EPathType::eWin32).toLower()].bAllPaths = true;
+		m_IgnoreEvents[(int)Type - 1][pProgram.isNull() ? "" : pProgram->GetPath().toLower()].bAllPaths = true;
 	} else
-		m_IgnoreEvents[(int)Type - 1][pProgram.isNull() ? "" : pProgram->GetPath(EPathType::eWin32).toLower()].Paths.insert(Path);
+		m_IgnoreEvents[(int)Type - 1][pProgram.isNull() ? "" : pProgram->GetPath().toLower()].Paths.insert(Path);
 
 	StoreIgnoreList(Type);
 }
@@ -1314,7 +1533,7 @@ bool CMajorPrivacy::IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgr
 	if (Map.isEmpty())
 		return false;
 
-	SIgnoreEvent Ignore = Map.value(pProgram->GetPath(EPathType::eWin32).toLower());
+	SIgnoreEvent Ignore = Map.value(pProgram->GetPath().toLower());
 
 	if (Ignore.bAllPaths)
 		return true;
@@ -1328,26 +1547,23 @@ bool CMajorPrivacy::IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgr
 		{
 			uint64 uLibRef = pEntry->GetMiscID();
 			CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibraryByUID(uLibRef, true);
-			if (pLibrary) {
-				Path = pLibrary->GetPath(EPathType::eWin32);
-			}
+			if (pLibrary)
+				Path = pLibrary->GetPath();
 		}
 		else if (pEntry->GetType() == EExecLogType::eProcessStarted)
 		{
 			uint64 uID = pEntry->GetMiscID();
 			CProgramFilePtr pExecutable = theCore->ProgramManager()->GetProgramByUID(uID, true).objectCast<CProgramFile>();
-			if (pExecutable) {
-				Path = pExecutable->GetPath(EPathType::eWin32);
-			}
+			if (pExecutable)
+				Path = pExecutable->GetPath();
 		}
 	}
 	else if (Type == ERuleType::eAccess)
 	{
 		const CResLogEntry* pEntry = dynamic_cast<const CResLogEntry*>(pLogEntry.constData());
 		QTreeWidgetItem* pItem = new QTreeWidgetItem();
-		if (pEntry) {
-			Path = pEntry->GetPath(EPathType::eWin32);
-		}
+		if (pEntry)
+			Path = theCore->NormalizePath(pEntry->GetNtPath());
 	}
 
 
@@ -1590,6 +1806,8 @@ void CMajorPrivacy::ResetPrompts()
 
 	theConf->DelValue("Options/AskAgentMode");
 	theConf->DelValue("Options/WarnBoxCrypto");
+	theConf->DelValue("Options/WarnFolderProtection");
+	theConf->DelValue("Options/WarnTerminate");
 }
 
 void CMajorPrivacy::OnMaintenance()
@@ -1597,7 +1815,7 @@ void CMajorPrivacy::OnMaintenance()
 	STATUS Status;
 
 	if (sender() == m_pImportOptions) {
-	
+
 		QString FileName = QFileDialog::getOpenFileName(this, tr("Import Options"), "", tr("Options Files (*.xml)"));
 		if (FileName.isEmpty())
 			return;
@@ -1606,30 +1824,30 @@ void CMajorPrivacy::OnMaintenance()
 
 		XVariant Options;
 		bool bOk = Options.ParseXml(Xml);
-		if(!bOk) {
+		if (!bOk) {
 			QMessageBox::warning(this, "MajorPrivacy", tr("Failed to parse XML data!"));
 			return;
 		}
 
 		quint32 Selection = 0;
-		if(Options.Has(API_S_GUI_CONFIG))
+		if (Options.Has(API_S_GUI_CONFIG))
 			Selection |= COptionsTransferWnd::eGUI;
-		if(Options.Has(API_S_DRIVER_CONFIG))
+		if (Options.Has(API_S_DRIVER_CONFIG))
 			Selection |= COptionsTransferWnd::eDriver;
-		 if(Options.Has(API_S_USER_KEY))
-			 Selection |= COptionsTransferWnd::eUserKeys;
-		 if(Options.Has(API_S_PROGRAM_RULES))
+		if (Options.Has(API_S_USER_KEY))
+			Selection |= COptionsTransferWnd::eUserKeys;
+		if (Options.Has(API_S_ENCLAVES))
+			Selection |= COptionsTransferWnd::eEnclaves;
+		if (Options.Has(API_S_PROGRAM_RULES))
 			Selection |= COptionsTransferWnd::eExecRules;
-		 if(Options.Has(API_S_ACCESS_RULES))
+		if (Options.Has(API_S_ACCESS_RULES))
 			Selection |= COptionsTransferWnd::eResRules;
-		if(Options.Has(API_S_SERVICE_CONFIG))
+		if (Options.Has(API_S_SERVICE_CONFIG))
 			Selection |= COptionsTransferWnd::eService;
-		 /*if(Options.Has(API_S_FW_RULES)) // todo
+		if (Options.Has(API_S_FW_RULES))
 			Selection |= COptionsTransferWnd::eFwRules;
-		 if(Options.Has(API_S_PROGRAMS))
-			Selection |= COptionsTransferWnd::ePrograms;*/
-		//  if(Options.Has(API_S_TRACELOG))
-		//	Selection |= COptionsTransferWnd::eTraceLog;
+		if (Options.Has(API_S_PROGRAMS))
+			Selection |= COptionsTransferWnd::ePrograms;
 
 		COptionsTransferWnd wnd(COptionsTransferWnd::eImport, Selection, this);
 		auto UserKey = theCore->Driver()->GetUserKey();
@@ -1637,7 +1855,7 @@ void CMajorPrivacy::OnMaintenance()
 			if (!UserKey.IsError()) // if a key is set it can not be changed
 				wnd.Disable(COptionsTransferWnd::eUserKeys);
 		}
-		if(!wnd.exec())
+		if (!wnd.exec())
 			return;
 		Selection = wnd.GetOptions();
 
@@ -1663,6 +1881,10 @@ void CMajorPrivacy::OnMaintenance()
 			theCore->Driver()->SetUserKey(Keys[API_S_PUB_KEY], Keys[API_S_KEY_BLOB]);
 		}
 
+		if (Selection & COptionsTransferWnd::eEnclaves) {
+			theCore->SetAllEnclaves(Options[API_S_ENCLAVES]);
+		}
+
 		if (Selection & COptionsTransferWnd::eExecRules) {
 			theCore->SetAllProgramRules(Options[API_S_PROGRAM_RULES]);
 		}
@@ -1675,17 +1897,13 @@ void CMajorPrivacy::OnMaintenance()
 			theCore->SetSvcConfig(Options[API_S_SERVICE_CONFIG]);
 		}
 
-		if (Selection & COptionsTransferWnd::eFwRules) {
+		/*if (Selection & COptionsTransferWnd::eFwRules) {
 			// todo
 		}
 
 		if (Selection & COptionsTransferWnd::ePrograms) {
 			// todo
-		}
-
-		//if (Selection & COptionsTransferWnd::eTraceLog) {
-		//
-		//}
+		}*/
 	}
 	else if (sender() == m_pExportOptions) {
 
@@ -1699,6 +1917,7 @@ void CMajorPrivacy::OnMaintenance()
 		quint32 Selection = wnd.GetOptions();
 		SVarWriteOpt Ops;
 		Ops.Format = SVarWriteOpt::eMap; // todo: allow to select index format when exporting??
+		Ops.Flags = SVarWriteOpt::eSaveToFile | SVarWriteOpt::eTextGuids;
 
 		XVariant Options;
 
@@ -1730,6 +1949,15 @@ void CMajorPrivacy::OnMaintenance()
 			Keys[API_S_PUB_KEY] = CVariant(UserKey.GetValue()->PubKey);
 			Keys[API_S_KEY_BLOB] = CVariant(UserKey.GetValue()->EncryptedBlob);
 			Options[API_S_USER_KEY] = Keys;
+		}
+
+
+		if (Selection & COptionsTransferWnd::eEnclaves) {
+			XVariant Enclaves;
+			for (auto pEnclave : theCore->EnclaveManager()->GetAllEnclaves()) {
+				Enclaves.Append(pEnclave->ToVariant(Ops));
+			}
+			Options[API_S_ENCLAVES] = Enclaves;
 		}
 
 		if (Selection & COptionsTransferWnd::eExecRules) {
@@ -1772,10 +2000,6 @@ void CMajorPrivacy::OnMaintenance()
 			Options[API_S_PROGRAMS] = Programs;
 		}
 
-		//if (Selection & COptionsTransferWnd::eTraceLog) {
-		//	
-		//}
-
 		if(Options.Count() == 0)
 			return;
 
@@ -1798,9 +2022,15 @@ void CMajorPrivacy::OnMaintenance()
 	else if (sender() == m_pOpenSystemFolder)
 		QDesktopServices::openUrl(QUrl::fromLocalFile(theCore->GetConfigDir()));
 	else if (sender() == m_pConnect)
+	{
+		m_iReConnected = 1;
 		Status = Connect();
-	else if (sender() == m_pDisconnect)
+	}
+	else if (sender() == m_pDisconnect) 
+	{
+		m_iReConnected = 0;
 		Disconnect();
+	}
 	else if (sender() == m_pInstallService)
 		Status = theCore->Install();
 	else if (sender() == m_pRemoveService)
@@ -1841,7 +2071,7 @@ void CMajorPrivacy::OnToggleTree()
 {
 	theConf->SetValue("Options/ShowProgramTree", m_pProgTree->isChecked());
 	m_pStackPanels->setEnabled(m_pProgTree->isChecked());
-	m_pInfoSplitter->setVisible(m_pProgTree->isChecked());
+	m_pProgramView->setVisible(m_pProgTree->isChecked());
 	m_CurrentItems = MakeCurrentItems();
 }
 
@@ -1876,7 +2106,7 @@ int CMajorPrivacy::SafeExec(QDialog* pDialog)
 QString CMajorPrivacy::GetResourceStr(const QString& Name)
 {
 	if(Name.isEmpty())
-		return tr("Unnamed Rule");
+		return "";
 
 	//
 	// Convert MajorPrivacy resource strings to full strings
@@ -1885,8 +2115,10 @@ QString CMajorPrivacy::GetResourceStr(const QString& Name)
 	auto StrAux = Split2(Name,",");
 	if(StrAux.first == "&Protect")
 		return tr("Volume Protection Rule for: %1").arg(StrAux.second);
-	if(StrAux.first == "&Unmount")
+	else if(StrAux.first == "&Unmount")
 		return tr("Volume Unmount Rule for: %1").arg(StrAux.second);
+	else if(StrAux.first == "&Temporary")
+		return tr("Temporary rule");
 
 	//
 	// Convert Windows resource strings to full strings
@@ -1973,7 +2205,7 @@ void CMajorPrivacy::OnAbout()
 		QString AboutCaption = tr(
 			"<h3>About MajorPrivacy</h3>"
 			"<p>Version %1</p>"
-			"<p>Copyright (c) 2023-2024 by DavidXanatos</p>"
+			"<p>Copyright (c) 2023-2025 by DavidXanatos</p>"
 		).arg(theGUI->GetVersion());
 
 		QString AboutText = tr("MajorPrivacy is a program that helps you to protect your privacy and security.\n\n");
@@ -2024,4 +2256,86 @@ QString CMajorPrivacy::GetVersion()
 #endif
 		;
 	return Version;
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+
+#include <windows.h>
+#include <shellapi.h>
+
+#define RFF_NOBROWSE 0x0001
+#define RFF_NODEFAULT 0x0002
+#define RFF_CALCDIRECTORY 0x0004
+#define RFF_NOLABEL 0x0008
+#define RFF_NOSEPARATEMEM 0x0020
+#define RFF_OPTRUNAS 0x0040
+
+#define RFN_VALIDATE (-510)
+#define RFN_LIMITEDRUNAS (-511)
+
+#define RF_OK 0x0000
+#define RF_CANCEL 0x0001
+#define RF_RETRY 0x0002
+
+typedef struct _NMRUNFILEDLGW
+{
+	NMHDR hdr;
+	PWSTR lpszFile;
+	PWSTR lpszDirectory;
+	UINT ShowCmd;
+} NMRUNFILEDLGW, *LPNMRUNFILEDLGW, *PNMRUNFILEDLGW;
+
+QString g_RunDialogCommand;
+
+BOOLEAN OnWM_Notify(NMHDR *Header, LRESULT *Result)
+{
+	LPNMRUNFILEDLGW runFileDlg = (LPNMRUNFILEDLGW)Header;
+	if (Header->code == RFN_VALIDATE)
+	{
+		g_RunDialogCommand = QString::fromWCharArray(runFileDlg->lpszFile);
+
+		*Result = RF_CANCEL;
+		return TRUE;
+	}
+	/*else if (Header->code == RFN_LIMITEDRUNAS)
+	{
+
+	}*/
+	return FALSE;
+}
+
+extern "C"
+{
+	//NTSYSCALLAPI NTSTATUS NTAPI LdrGetProcedureAddress(IN PVOID DllHandle, IN VOID* /*PANSI_STRING*/ ProcedureName OPTIONAL, IN ULONG ProcedureNumber OPTIONAL, OUT PVOID *ProcedureAddress, IN BOOLEAN RunInitRoutines);
+	//NTSTATUS(NTAPI *LdrGetProcedureAddress)(HMODULE ModuleHandle, PANSI_STRING FunctionName, WORD Oridinal, PVOID *FunctionAddress);
+}
+
+BOOLEAN NTAPI ShowRunFileDialog(HWND WindowHandle, HICON WindowIcon, LPCWSTR WorkingDirectory, LPCWSTR WindowTitle, LPCWSTR WindowDescription, ULONG Flags)
+{
+	typedef BOOL(WINAPI *RunFileDlg_I)(HWND hwndOwner, HICON hIcon, LPCWSTR lpszDirectory, LPCWSTR lpszTitle, LPCWSTR lpszDescription, ULONG uFlags);
+
+	BOOLEAN result = FALSE;
+
+	if (HMODULE shell32Handle = LoadLibraryW(L"shell32.dll"))
+	{
+		RunFileDlg_I dialog = NULL;
+		if (LdrGetProcedureAddress(shell32Handle, NULL, 61, (void**)&dialog/*, TRUE*/) == 0 /*STATUS_SUCCESS*/)
+			result = !!dialog(WindowHandle, WindowIcon, WorkingDirectory, WindowTitle, WindowDescription, Flags);
+
+		FreeLibrary(shell32Handle);
+	}
+
+	return result;
+}
+
+QString ShowRunDialog(const QString& EnclaveName)
+{
+	g_RunDialogCommand.clear();
+	std::wstring enclaveName = EnclaveName.toStdWString();
+	ShowRunFileDialog((HWND)theGUI->winId(), NULL, NULL, enclaveName.c_str(), (wchar_t*)CMajorPrivacy::tr("Enter the path of a program that will be created in a sandbox.").utf16(), 0); // RFF_OPTRUNAS);
+	return g_RunDialogCommand;
 }

@@ -12,23 +12,23 @@ public:
 	STATUS Update();
 
 	bool UpdateAllAccessRules();
-	bool UpdateAccessRule(const QString& RuleId);
-	void RemoveAccessRule(const QString& RuleId);
+	bool UpdateAccessRule(const QFlexGuid& Guid);
+	void RemoveAccessRule(const QFlexGuid& Guid);
 
-	QSet<QString> GetAccessRuleIDs() const;
+	QSet<QFlexGuid> GetAccessRuleIDs() const;
 	QList<CAccessRulePtr> GetAccessRules() const { return m_AccessRules.values(); }
 	//QList<CAccessRulePtr> GetAccessRulesFor(const QList<const class CAccessItem*>& Nodes);
-	QList<CAccessRulePtr> GetAccessRules(const QSet<QString> &AccessRuleIDs);
+	QList<CAccessRulePtr> GetAccessRules(const QSet<QFlexGuid> &AccessRuleIDs);
 
 	STATUS SetAccessRule(const CAccessRulePtr& pRule);
-	RESULT(CAccessRulePtr) GetAccessRule(QString Guid);
+	RESULT(CAccessRulePtr) GetAccessRule(const QFlexGuid& Guid);
 	STATUS DelAccessRule(const CAccessRulePtr& pRule);
 
 protected:
 
-	void AddAccessRule(const CAccessRulePtr& pFwRule);
-	void RemoveAccessRule(const CAccessRulePtr& pFwRule);
+	void AddAccessRule(const CAccessRulePtr& pRule);
+	void RemoveAccessRule(const CAccessRulePtr& pRule);
 
-	QMap<QString, CAccessRulePtr>			m_AccessRules;
+	QMap<QFlexGuid, CAccessRulePtr>			m_AccessRules;
 };
 

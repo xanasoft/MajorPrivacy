@@ -257,5 +257,19 @@
         <file>Icons/ReOrder.png</file>
         <file>Icons/ClearList.png</file>
         <file>Icons/Add.png</file>
+        <file>Icons/AddFolder.png</file>
+        <file>Icons/Temp.png</file>
+        <file>Icons/Hold.png</file>
+        <file>Icons/Invisible.png</file>
+        <file>Icons/Approve2.png</file>
+        <file>Icons/Approve.png</file>
+        <file>Icons/LockOpen2.png</file>
+        <file>Icons/Rules2.png</file>
+        <file>Icons/InstApp.png</file>
+        <file>Icons/Search2.png</file>
+        <file>Icons/Enclave1.png</file>
+        <file>Icons/Enclave2.png</file>
+        <file>Icons/CertDB.png</file>
+        <file>Icons/CertDB1.png</file>
     </qresource>
 </RCC>

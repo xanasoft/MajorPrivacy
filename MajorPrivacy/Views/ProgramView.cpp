@@ -7,6 +7,7 @@
 #include "../../MiscHelpers/Common/CustomStyles.h"
 #include "../Windows/ProgramWnd.h"
 #include "../MajorPrivacy.h"
+#include "InfoView.h"
 
 CProgramView::CProgramView(QWidget* parent)
 	: CPanelView(parent)
@@ -25,6 +26,9 @@ CProgramView::CProgramView(QWidget* parent)
     m_pSortProxy->setSourceModel(m_pProgramModel);
 	m_pSortProxy->setDynamicSortFilter(true);
 
+	m_pProgramWidget = new QWidget();
+	m_pProgramLayout = new QVBoxLayout(m_pProgramWidget);
+	m_pProgramLayout->setContentsMargins(0,0,0,0);
 
 #ifdef SPLIT_TREE
 	m_pTreeList = new CSplitTreeView(m_pSortProxy);
@@ -52,12 +56,34 @@ CProgramView::CProgramView(QWidget* parent)
 #else
 	m_pTreeList->setItemDelegate(new CTreeItemDelegate());
 
-	m_pMainLayout->addWidget(CFinder::AddFinder(m_pTreeList, m_pSortProxy, CFinder::eDefault, &m_pFinder));
+	m_pProgramLayout->addWidget(CFinder::AddFinder(m_pTreeList, m_pSortProxy, CFinder::eDefault, &m_pFinder));
 
 	m_pTreeList->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(m_pTreeList, SIGNAL(customContextMenuRequested( const QPoint& )), this, SLOT(OnMenu(const QPoint &)));
 #endif
+
+	m_pInfoSplitter = new QSplitter();
+	m_pInfoSplitter->addWidget(m_pProgramWidget);
+	m_pInfoSplitter->setCollapsible(0, false);
+	m_pInfoSplitter->setOrientation(Qt::Vertical);
 	
+	m_pInfoView = new CInfoView();
+	m_pInfoSplitter->addWidget(m_pInfoView);
+	m_pInfoSplitter->setStretchFactor(0, 1);
+	m_pInfoSplitter->setStretchFactor(1, 0);
+	/*auto Sizes = m_pInfoSplitter->sizes();
+	Sizes[1] = 0;
+	m_pInfoSplitter->setSizes(Sizes);*/
+	m_pInfoView->setVisible(false);
+
+	QAction* pToggleInfo = new QAction(m_pInfoSplitter);
+	pToggleInfo->setShortcut(QKeySequence("Ctrl+I"));
+	pToggleInfo->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+	addAction(pToggleInfo);
+	connect(pToggleInfo, &QAction::triggered, m_pInfoSplitter, [&]() { m_pInfoView->setVisible(!m_pInfoView->isVisible()); });
+
+	m_pMainLayout->addWidget(m_pInfoSplitter);
+
 	m_pMainLayout->setSpacing(1);
 
 	m_pToolBar = new QToolBar();
@@ -170,6 +196,13 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pBtnCleanUp->setMenu(m_pCleanUpMenu);
 	m_pToolBar->addWidget(m_pBtnCleanUp);
 
+	m_pBtnAdd = new QToolButton();
+	m_pBtnAdd->setIcon(QIcon(":/Icons/Add.png"));
+	m_pBtnAdd->setToolTip(tr("Add Program Item"));
+	m_pBtnAdd->setMaximumHeight(22);
+	connect(m_pBtnAdd, SIGNAL(clicked()), this, SLOT(OnAddProgram()));
+	m_pToolBar->addWidget(m_pBtnAdd);
+
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -199,9 +232,14 @@ CProgramView::CProgramView(QWidget* parent)
 	else
 		m_pTreeList->restoreState(ProgColumns);
 
-	m_pCreateProgram = m_pMenu->addAction(QIcon(":/Icons/Add.png"), tr("Add Program"), this, SLOT(OnProgramAction()));
+	m_pEditProgram = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Edit Program"), this, SLOT(OnProgramAction()));
 	m_pAddToGroup = m_pMenu->addMenu(QIcon(":/Icons/MkLink.png"), tr("Add to Group"));
 	m_pRemoveItem = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Remove"), this, SLOT(OnProgramAction()));
+	m_pRemoveItem->setShortcut(QKeySequence::Delete);
+	m_pRemoveItem->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+	this->addAction(m_pRemoveItem);
+	m_pMenu->addSeparator();
+	m_pCreateProgram = m_pMenu->addAction(QIcon(":/Icons/Add.png"), tr("Add Program"), this, SLOT(OnAddProgram()));
 
 	AddPanelItemsToMenu();
 }
@@ -387,6 +425,8 @@ void CProgramView::OnProgramChanged(const QModelIndexList& Selection)
 		if (pProgram) m_CurPrograms.append(pProgram);
 	}
 
+	m_pInfoView->Sync(m_CurPrograms);
+
 	emit ProgramsChanged(m_CurPrograms);
 }
 
@@ -400,6 +440,8 @@ void CProgramView::OnDoubleClicked(const QModelIndex& Index)
 
 void CProgramView::OnMenu(const QPoint& Point)
 {
+	m_pEditProgram->setEnabled(m_pTreeList->selectionModel()->selectedIndexes().count() == 1);
+
 	QMap<QString, CProgramGroupPtr> Groups; // use map to sort groups alphabetically
 	for(auto pGroup: theCore->ProgramManager()->GetGroups())
 		Groups[pGroup->GetNameEx()] = pGroup;
@@ -458,24 +500,29 @@ void CProgramView::OnAddToGroup()
 	theGUI->CheckResults(Results, this);
 }
 
+void CProgramView::OnAddProgram()
+{
+	CProgramWnd* pProgramWnd = new CProgramWnd(NULL);
+	if (pProgramWnd->exec()) {
+		/*QModelIndexList Sel = m_pTreeList->selectionModel()->selectedIndexes();
+		if (!Sel.isEmpty()) {
+		CProgramItemPtr pParent = m_pProgramModel->GetItem(m_pSortProxy->mapToSource(Sel.first()));
+		CProgramItemPtr pProgram = pProgramWnd->GetProgram();
+		Results.append(theCore->ProgramManager()->AddProgramTo(pProgram, pParent));
+		}*/
+	}
+}
+
 void CProgramView::OnProgramAction()
 {
 	QAction* pAction = qobject_cast<QAction*>(sender());
 	
 	QList<STATUS> Results;
 	
-	if (pAction == m_pCreateProgram)
+	if (pAction == m_pEditProgram)
 	{
-		CProgramWnd* pProgramWnd = new CProgramWnd(NULL);
-		if (pProgramWnd->exec()) {
-			/*QModelIndexList Sel = m_pTreeList->selectionModel()->selectedIndexes();
-			if (!Sel.isEmpty()) {
-				CProgramItemPtr pParent = m_pProgramModel->GetItem(m_pSortProxy->mapToSource(Sel.first()));
-				CProgramItemPtr pProgram = pProgramWnd->GetProgram();
-				Results.append(theCore->ProgramManager()->AddProgramTo(pProgram, pParent));
-			}*/
-		}
-	} 
+		OnDoubleClicked(m_pTreeList->currentIndex());
+	}
 	else if (pAction == m_pRemoveItem)
 	{
 		bool bMultiGroup = false;

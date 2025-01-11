@@ -145,41 +145,12 @@ QVariant CAccessModel::data(SAbstractTreeNode* node, int section, int role) cons
 	case Qt::ToolTipRole:
 		switch (section)
 		{
-		case eName:			return pAccessNode->data ? pAccessNode->data->NtPath : QVariant();
+		case eName:			return pAccessNode->data ? pAccessNode->data->Path : QVariant();
 		case eLastAccess:	return pAccessNode->data ? CResLogEntry::GetAccessStr(pAccessNode->data->AccessMask) : QVariant();
 		}
-
 	case Qt::ForegroundRole:
 		if (section == eLastAccess)
-		{
-			uint32 uAccessMask = pAccessNode->data->AccessMask;
-
-			if ((uAccessMask & GENERIC_WRITE) == GENERIC_WRITE
-				|| (uAccessMask & GENERIC_ALL) == GENERIC_ALL
-				|| (uAccessMask & DELETE) == DELETE
-				|| (uAccessMask & WRITE_DAC) == WRITE_DAC
-				|| (uAccessMask & WRITE_OWNER) == WRITE_OWNER
-				|| (uAccessMask & FILE_WRITE_DATA) == FILE_WRITE_DATA
-				|| (uAccessMask & FILE_APPEND_DATA) == FILE_APPEND_DATA)
-				return QColor(Qt::red);
-
-			if ((uAccessMask & FILE_WRITE_ATTRIBUTES) == FILE_WRITE_ATTRIBUTES
-				|| (uAccessMask & FILE_WRITE_EA) == FILE_WRITE_EA)
-				return QColor(255, 165, 0);
-
-			if ((uAccessMask & GENERIC_READ) == GENERIC_READ
-				|| (uAccessMask & GENERIC_EXECUTE) == GENERIC_EXECUTE
-				|| (uAccessMask & READ_CONTROL) == READ_CONTROL
-				|| (uAccessMask & FILE_READ_DATA) == FILE_READ_DATA
-				|| (uAccessMask & FILE_EXECUTE) == FILE_EXECUTE)
-				return QColor(Qt::green);
-
-			if ((uAccessMask & SYNCHRONIZE) == SYNCHRONIZE
-				|| (uAccessMask & FILE_READ_ATTRIBUTES) == FILE_READ_ATTRIBUTES
-				|| (uAccessMask & FILE_READ_EA) == FILE_READ_EA)
-				return QColor(Qt::blue);
-		}
-
+			return CResLogEntry::GetAccessColor(pAccessNode->data->AccessMask, true);
 	default:
 		return CAbstractTreeModel::data(node, section, role);
 	}

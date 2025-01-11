@@ -33,7 +33,10 @@ CAccessListModel::~CAccessListModel()
 
 QList<QModelIndex>	CAccessListModel::Sync(const QMap<CProgramItemPtr, QPair<quint64,QList<QPair<SAccessStatsPtr,SAccessItem::EType>>>>& Map)
 {
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	for(auto X = Map.begin(); X != Map.end(); ++X)
@@ -182,7 +185,7 @@ void CAccessListModel::Sync(const CProgramItemPtr& pItem, const QList<QPair<SAcc
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pNode->pItem->Path.Get(EPathType::eDisplay); break;
+			case eName:				Value = pNode->pItem->Path; break;
 			case eLastAccess:		Value = pNode->pItem->LastAccessTime; break;
 			case eAccess:			Value = pNode->pItem->AccessMask; break;
 			case eStatus:			Value = pNode->pItem->NtStatus; break;
@@ -198,6 +201,7 @@ void CAccessListModel::Sync(const CProgramItemPtr& pItem, const QList<QPair<SAcc
 
 				switch (section)
 				{
+				case eName:				ColValue.Formatted = theCore->NormalizePath(pNode->pItem->Path); break;
 				case eLastAccess:		if(pNode->pItem->LastAccessTime) ColValue.Formatted = QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pNode->pItem->LastAccessTime)).toString("dd.MM.yyyy hh:mm:ss.zzz"); break;
 				case eAccess:			ColValue.Formatted = CResLogEntry::GetAccessStr(pNode->pItem->AccessMask); break;
 				case eStatus:			ColValue.Formatted = QString("0x%1 (%2)").arg(pNode->pItem->NtStatus, 8, 16, QChar('0')).arg(pNode->pItem->bBlocked ? tr("Blocked") : tr("Allowed")); break;

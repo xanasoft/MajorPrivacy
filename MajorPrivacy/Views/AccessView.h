@@ -14,7 +14,7 @@ public:
 	CAccessView(QWidget *parent = 0);
 	virtual ~CAccessView();
 
-	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QString& RootPath = QString());
+	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, QString RootPath = QString());
 
 	QList<SAccessItemPtr>	GetSelectedItemsWithChildren() override
 	{
@@ -44,6 +44,8 @@ private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
 
+	void					OnRefresh();
+
 	void					CleanUpTree();
 
 	void					OnCleanUpDone();
@@ -53,6 +55,7 @@ protected:
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbAccess;
 
+	QToolButton*			m_pBtnRefresh;
 	QToolButton*			m_pBtnCleanUp;
 
 	QSet<CProgramFilePtr>			m_CurPrograms;
@@ -70,4 +73,5 @@ protected:
 
 	int						m_iAccessFilter = 0;
 	quint64					m_RecentLimit = 0;
+	QString					m_RootPath;
 };

@@ -5,6 +5,7 @@
 #include "Programs/AppPackage.h"
 #include "Programs/WindowsService.h"
 #include "../Library/Helpers/RegUtil.h"
+#include "../Library/Common/FlexGuid.h"
 
 class CFirewall
 {
@@ -19,6 +20,8 @@ public:
 
 	STATUS LoadRules();
 	void LoadDefaults();
+
+	void PurgeExpired(bool All);
 
 	std::map<std::wstring, CFirewallRulePtr> FindRules(const CProgramID& ID);
 
@@ -43,7 +46,7 @@ public:
 protected:
 	bool MatchRuleID(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule);
 
-	void UpdateFWRule(const std::shared_ptr<struct SWindowsFwRule>& pRule, const std::wstring& RuleId);
+	CFirewallRulePtr UpdateFWRule(const std::shared_ptr<struct SWindowsFwRule>& pRule, const std::wstring& RuleId);
 
 	void AddRuleUnsafe(const CFirewallRulePtr& pFwRule);
 	void RemoveRuleUnsafe(const CFirewallRulePtr& pFwRule);
@@ -58,13 +61,11 @@ protected:
 		EFwActions Result = EFwActions::Undefined;
         int BlockCount = 0;
         int AllowCount = 0;
-#ifdef _DEBUG
-		std::list<CFirewallRulePtr> AllowRules;
-		std::list<CFirewallRulePtr> BlockRules;
-#endif
+		//std::list<CFirewallRulePtr> AllowRules;
+		//std::list<CFirewallRulePtr> BlockRules;
 	};
 
-	static SRuleMatch MatchRulesWithEvent(const std::set<CFirewallRulePtr>& Rules, const struct SWinFwLogEvent* pEvent, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
+	static SRuleMatch MatchRulesWithEvent(const std::set<CFirewallRulePtr>& Rules, const struct SWinFwLogEvent* pEvent, std::vector<CFlexGuid>& AllowRules, std::vector<CFlexGuid>& BlockRules, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
 
 	EFwActions GetDefaultAction(EFwDirections Direction, EFwProfiles Profiles);
 
@@ -89,4 +90,6 @@ protected:
 	bool					m_BlockAllInbound[3] = { false, false, false };
 	EFwActions				m_DefaultInboundAction[3] = { EFwActions::Undefined, EFwActions::Undefined, EFwActions::Undefined };
 	EFwActions				m_DefaultoutboundAction[3] = { EFwActions::Undefined, EFwActions::Undefined, EFwActions::Undefined };
+
+	uint64					m_LastRulePurge = 0;
 };

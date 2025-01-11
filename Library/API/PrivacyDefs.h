@@ -5,7 +5,7 @@
 // Program ID
 //
 
-enum class EProgramType
+enum class EProgramType // API_S_PROG_TYPE
 {
 	eUnknown = 0,
 
@@ -25,18 +25,18 @@ enum class EProgramType
 // Program Rules
 //
 
-enum class EExecRuleType
+enum class EExecRuleType // API_S_EXEC_RULE_ACTION
 {
 	eUnknown = 0,
 	eAllow,
 	eBlock,
-	eProtect,
-	eIsolate,
-	eSpecial,
+	eProtect, // put in a secrure enclave
+	eIsolate, // sandbox
+	eAudit,
 	eMax
 };
 
-enum class EProgramOnSpawn
+enum class EProgramOnSpawn // API_S_EXEC_ON_SPAWN
 {
 	eUnknown = 0,
 	eAllow,
@@ -45,7 +45,7 @@ enum class EProgramOnSpawn
 };
 
 #ifndef KERNEL_MODE // todo
-enum KPH_VERIFY_AUTHORITY
+enum KPH_VERIFY_AUTHORITY // API_S_... TODO
 {
 	KphUntestedAuthority = 0,
 	KphNoAuthority = 1,
@@ -66,7 +66,7 @@ enum KPH_VERIFY_AUTHORITY
 	// inly 4 bit max is 15
 };
 
-enum KPH_PROTECTION_LEVEL
+enum KPH_PROTECTION_LEVEL // API_S_... TODO
 {
 	KphNoProtection = 0,
 	KphFullProtection,
@@ -74,7 +74,7 @@ enum KPH_PROTECTION_LEVEL
 	// max is 3
 };
 
-union KPH_PROCESS_FLAGS
+union KPH_PROCESS_FLAGS // API_S_... TODO
 {
 	ULONG Flags;
 	struct
@@ -91,7 +91,7 @@ union KPH_PROCESS_FLAGS
 	};
 };
 
-union KPH_PROCESS_SFLAGS
+union KPH_PROCESS_SFLAGS // API_S_... TODO
 {
 	ULONG SecFlags;
 	struct
@@ -102,15 +102,24 @@ union KPH_PROCESS_SFLAGS
 		ULONG SignatureAuthority : 4;
 		ULONG SignatureRequirement : 4;
 		ULONG ProtectionLevel : 2;
-		ULONG SecReserved : 19;
+		ULONG EjectFromEnclave : 1;
+		ULONG UntrustedSpawn: 1;
+		ULONG AuditEnabled : 1;
+		//ULONG HasVerdict : 1;
+		//ULONG WasTainted : 1;
+		ULONG SecReserved : 16;
 	};
 };
 
-typedef struct _KPH_VERIFY_INFO
-{
-	UCHAR SigningLevel;
-	ULONG PolicyBits;
-} KPH_VERIFY_INFO, *PKPH_VERIFY_INFO;
+#define KPH_VERIFY_FLAG_FILE_SIG_OK     0x00000001
+#define KPH_VERIFY_FLAG_CERT_SIG_OK     0x00000002
+#define KPH_VERIFY_FLAG_FILE_SIG_FAIL   0x00000004
+#define KPH_VERIFY_FLAG_CERT_SIG_FAIL   0x00000008
+#define KPH_VERIFY_FLAG_SIG_MASK        0x0000000F
+#define KPH_VERIFY_FLAG_FILE_SIG_DB     0x00000010
+#define KPH_VERIFY_FLAG_CI_SIG_DUMMY    0x00000020
+#define KPH_VERIFY_FLAG_CI_SIG_OK       0x00000040
+#define KPH_VERIFY_FLAG_CI_SIG_FAIL     0x00000080
 
 #endif
 
@@ -119,7 +128,7 @@ typedef struct _KPH_VERIFY_INFO
 // Access Rules 
 //
 
-enum class EAccessRuleType
+enum class EAccessRuleType // API_S_ACCESS_RULE_ACTION
 {
 	eNone = 0,
 	eAllow,
@@ -127,13 +136,14 @@ enum class EAccessRuleType
 	eEnum,
 	eProtect, // same as eBlock but shows a prompt
 	eBlock,
+	eIgnore, // same as eNone but dont log 
 };
 
 /////////////////////////////////////////////////////////////////////////////
 // ExecLog
 //
 
-enum class EExecLogRole
+enum class EExecLogRole // API_S_... TODO
 {
 	eUndefined = 0,
 	eActor,
@@ -141,7 +151,7 @@ enum class EExecLogRole
 	eBooth,
 };
 
-enum class EExecLogType
+enum class EExecLogType // API_S_... TODO
 {
 	eUnknown = 0,
 	eProcessStarted,
@@ -154,7 +164,7 @@ enum class EExecLogType
 // Event Status
 //
 
-enum class EEventStatus
+enum class EEventStatus // API_S_... TODO
 {
 	eUndefined = -1,
 	eAllowed = 0,
@@ -168,22 +178,27 @@ enum class EEventStatus
 // Program Info
 //
 
-struct SLibraryInfo
+union UCISignInfo // API_S_... TODO
 {
-	uint64						LastLoadTime = 0;
-	uint32						TotalLoadCount = 0;
-	union USign {
-		uint64					Data = 0;
-		struct {
-			uint8				Authority;	// 3 bits - KPH_VERIFY_AUTHORITY
-			uint8				Level;		// 4 bits
-			uint8				Reserved1;
-			uint8				Reserved2;
-			uint32				Policy;
-		};
-	} Sign;
-	EEventStatus				LastStatus = EEventStatus::eUndefined;
+	uint64					Data = 0;
+	struct {
+		uint8				Authority;	// 3 bits - KPH_VERIFY_AUTHORITY
+		uint8				Level;		// 4 bits
+		uint8				Reserved1;
+		uint8				Reserved2;
+		uint32				Policy;
+	};
 };
+
+enum class EHashStatus // API_S_... TODO
+{
+	eHashUnknown = 0,
+	eHashOk,
+	eHashFail,
+	eHashDummy,
+	eHashNone
+};
+
 
 /////////////////////////////////////////////////////////////////////////////
 // Tweaks
@@ -198,7 +213,7 @@ struct SLibraryInfo
 //    eSetAll         // all in group set
 //};
 
-enum class ETweakStatus
+enum class ETweakStatus // API_S_TWEAK_STATUS
 {
 	eGroup = -1,    // tweak is group
 	eNotSet = 0,    // tweak is not set
@@ -207,7 +222,7 @@ enum class ETweakStatus
 	eMissing        // tweak was set but is not applied
 };
 
-enum class ETweakHint
+enum class ETweakHint // API_S_TWEAK_HINT
 {
 	eNone = 0,
 	eRecommended,
@@ -215,7 +230,7 @@ enum class ETweakHint
 	eMax
 };
 
-enum class ETweakMode
+enum class ETweakMode // API_S_... TODO
 {
 	eDefault    = 0,
 	eAll        = 1,
@@ -224,7 +239,7 @@ enum class ETweakMode
 	eMax
 };
 
-enum class ETweakType
+enum class ETweakType // API_S_TWEAK_TYPE
 {
 	eUnknown,
 
@@ -247,7 +262,7 @@ enum class ETweakType
 // 
 //
 
-enum class ERuleType
+enum class ERuleType // API_S_... TODO
 {
 	eUnknown = 0,
 	eProgram,
@@ -256,7 +271,7 @@ enum class ERuleType
 	eMax,
 };
 
-enum class ERuleEvent
+enum class EConfigEvent // API_S_... TODO
 {
 	eUnknown = 0,
 	eAdded,
@@ -265,7 +280,7 @@ enum class ERuleEvent
 	eAllChanged,
 };
 
-enum class ETraceLogs
+enum class ETraceLogs // API_S_... TODO
 {
 	eExecLog = 0,
 	eNetLog,
@@ -280,21 +295,28 @@ enum class ETraceLogs
 
 struct SVarWriteOpt
 {
-	enum EFormat : uint32
+	enum EFormat : uint8
 	{
 		eInvalid = 0,
 		eIndex,
 		eMap,
 	} Format = eIndex;
 
-	enum EFlags : uint32
+	uint8 Reserved1 = 0;
+
+	enum EFlags : uint16
 	{
-		eNone = 0x00,
-		eSaveAll = 0x01,
+		eNone		= 0x00,
+		eSaveAll	= 0x01,
 		eSaveNtPaths = 0x02,
 		eSaveToFile = 0x04,
+		//			= 0x08,
+		eTextGuids	= 0x10,
+		//			= 0x20,
+		//			= 0x40,
+		//			= 0x80,
 	};
-	uint32 Flags = eNone;
+	uint16 Flags = eNone;
 };
 
 
@@ -303,4 +325,5 @@ struct SVarWriteOpt
 //
 
 
-#define SYSTEM_ENCLAVE_ID	1
+#define SYSTEM_ENCLAVE	"{FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF}"
+#define NULL_GUID		"{00000000-0000-0000-0000-000000000000}"

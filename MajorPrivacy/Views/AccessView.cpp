@@ -5,6 +5,7 @@
 #include "../MiscHelpers/Common/CustomStyles.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../../Library/Helpers/NtUtil.h"
+#include "../Library/Common/DbgHelp.h"
 
 CAccessView::CAccessView(QWidget *parent)
 	:CPanelViewEx<CAccessModel>(parent)
@@ -39,6 +40,16 @@ CAccessView::CAccessView(QWidget *parent)
 
 	m_pToolBar->addSeparator();
 
+	m_pBtnRefresh = new QToolButton();
+	m_pBtnRefresh->setIcon(QIcon(":/Icons/Refresh.png"));
+	m_pBtnRefresh->setToolTip(tr("Reload Access Tree"));
+	m_pBtnRefresh->setFixedHeight(22);
+	m_pBtnRefresh->setShortcut(QKeySequence::fromString("F5"));
+	connect(m_pBtnRefresh, SIGNAL(clicked()), this, SLOT(OnRefresh()));
+	m_pToolBar->addWidget(m_pBtnRefresh);
+
+	m_pToolBar->addSeparator();
+
 	m_pBtnCleanUp = new QToolButton();
 	m_pBtnCleanUp->setIcon(QIcon(":/Icons/Clean.png"));
 	m_pBtnCleanUp->setToolTip(tr("CleanUp Access Tree"));
@@ -65,9 +76,9 @@ CAccessView::~CAccessView()
 	theConf->SetBlob("MainWindow/AccessView_Columns", m_pTreeView->saveState());
 }
 
-void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QString& RootPath)
+void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, QString RootPath)
 {
-	if (m_CurPrograms != Programs || m_CurServices != Services || m_iAccessFilter != m_pCmbAccess->currentData().toInt() || m_RecentLimit != theGUI->GetRecentLimit()) 
+	if (m_CurPrograms != Programs || m_CurServices != Services || m_iAccessFilter != m_pCmbAccess->currentData().toInt() || m_RecentLimit != theGUI->GetRecentLimit() || m_RootPath != RootPath) 
 	{
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
@@ -75,7 +86,10 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		m_CurItems.clear();
 		m_iAccessFilter = m_pCmbAccess->currentData().toInt();
 		m_RecentLimit = theGUI->GetRecentLimit();
+		m_RootPath = RootPath;
 	}
+
+	RootPath = theCore->NormalizePath(RootPath);
 
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
@@ -83,17 +97,22 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 	{
 		m_CurRoot = SAccessItemPtr(new SAccessItem());
 
-		auto addAccessItem = [&](const QString &name, const QString &title, SAccessItem::EType type) {
+		auto addAccessItem = [&](SAccessItemPtr& root, const QString& name, const QString& title, SAccessItem::EType type) {
 			SAccessItemPtr pItem = SAccessItemPtr(new SAccessItem());
 			pItem->Name = title;
 			pItem->Type = type;
-			m_CurRoot->Branches.insert(name, pItem);
+			root->Branches.insert(name, pItem);
+			return pItem;
 		};
 
-		addAccessItem("dos_drives", tr("Dos Drives"), SAccessItem::eComputer);
-		addAccessItem("nt_kernel", tr("Nt Namespace"), SAccessItem::eObjects);
-		if (RootPath.isNull()) addAccessItem("registry", tr("Registry"), SAccessItem::eRegistry);
-		if (RootPath.isNull()) addAccessItem("network", tr("Network"), SAccessItem::eNetwork);
+		auto Computer = addAccessItem(m_CurRoot, "computer", tr("My Computer"), SAccessItem::eComputer);
+		//addAccessItem(Computer, "nt_kernel", tr("Nt Namespace"), SAccessItem::eObjects);
+		addAccessItem(Computer, "devices", tr("\\\\.\\"), SAccessItem::eObjects);
+		if (RootPath.isNull()) {
+			if (theCore->GetConfigBool("Service/LogRegistry", false))
+				addAccessItem(Computer, "registry", tr("Registry"), SAccessItem::eRegistry);
+			addAccessItem(m_CurRoot, "network", tr("Network"), SAccessItem::eNetwork);
+		}
 	}
 
 	std::function<void(const SAccessItemPtr&, SAccessItem::EType, const QString&, int, const CProgramItemPtr&, const SAccessStatsPtr&)> AddTreeEntry = 
@@ -113,7 +132,7 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		if (uPos == -1)
 		{
 			pParent->Type = Type;
-			pParent->NtPath = pStats->Path.Get(EPathType::eNative);
+			pParent->Path = pStats->Path;
 			pParent->Stats[pProg] = pStats;
 			if(pParent->LastAccess < pStats->LastAccessTime)
 				pParent->LastAccess = pStats->LastAccessTime;
@@ -191,14 +210,12 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			if(RootPath.isEmpty())
 				return;
 
-			QString Path = pStats->Path.Get(EPathType::eNative);
-			if (!Path.startsWith(RootPath, Qt::CaseInsensitive))
+			QString Path = pStats->Path;
+			if (!PathStartsWith(Path, RootPath))
 				return;
 		}
 
-		QString Path = pStats->Path.Get(EPathType::eDisplay);
-		if (Path.isEmpty() || Path.startsWith("\\Device\\NamedPipe", Qt::CaseInsensitive))
-			return;
+		QString Path = pStats->Path;
 
 		SAccessItem::EType Type = SAccessItem::eDevice;
 
@@ -207,33 +224,58 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 				Type = pStats->IsDirectory ? SAccessItem::eFolder : SAccessItem::eFile;
 			else
 				Type = SAccessItem::eDrive;
-			Path = "dos_drives\\" + Path;
+			Path = "computer\\" + Path;
 		}
-		//else if (Path.length() > 12 && Path.startsWith("\\Device\\Mup\\", Qt::CaseInsensitive) && Path.at(12).isLetterOrNumber()) {
-		//	if(Path.indexOf("\\", 12) != -1)
-		//		Type = pStats->IsDirectory ? SAccessItem::eFolder : SAccessItem::eFile;
-		//	else
-		//		Type = SAccessItem::eHost;
-		//	Path = "network" + Path.mid(11);
-		//}
-		else if (Path.length() > 2 && Path.startsWith("\\\\", Qt::CaseInsensitive)) {
-			if(Path.indexOf("\\", 2) != -1)
+		else if (Path.length() > 12 && Path.startsWith("\\Device\\Mup\\", Qt::CaseInsensitive) && Path.at(12).isLetterOrNumber()) {
+			if(Path.indexOf("\\", 12) != -1)
 				Type = pStats->IsDirectory ? SAccessItem::eFolder : SAccessItem::eFile;
 			else
 				Type = SAccessItem::eHost;
-			Path = "network" + Path.mid(1);
+			Path = "network" + Path.mid(11);
 		}
-		else if (Path.startsWith("\\REGISTRY", Qt::CaseInsensitive)) {
+		//else if (Path.length() > 2 && Path.startsWith("\\\\", Qt::CaseInsensitive)) {
+		//	if(Path.indexOf("\\", 2) != -1)
+		//		Type = pStats->IsDirectory ? SAccessItem::eFolder : SAccessItem::eFile;
+		//	else
+		//		Type = SAccessItem::eHost;
+		//	Path = "network" + Path.mid(1);
+		//}
+		else if (Path.startsWith("\\REGISTRY\\", Qt::CaseInsensitive)) {
 			Type = SAccessItem::eRegistry;
-			Path = "registry" + Path.mid(9);
+			Path = "computer\\registry" + Path.mid(9);
 		}
 		else {
 			if (Path.startsWith("\\Device\\", Qt::CaseInsensitive) && Path.indexOf("\\", 8) != -1)
 				Type = pStats->IsDirectory ? SAccessItem::eFolder : SAccessItem::eFile;
-			Path = "nt_kernel" + Path;
+			//Path = "computer\\nt_kernel" + Path;
+			Path = "computer\\devices" + Path.mid(7);
 		}
 		
 		AddTreeEntry(m_CurRoot, Type, Path, 0, pProg, pStats);
+	};
+
+#ifdef _DEBUG
+	quint64 start = GetUSTickCount();
+#endif
+
+	quint64 LastTime = GetUSTickCount();
+	int TotalCount = Programs.count() + Services.count();
+	int ProcessedCount = 0;
+	theGUI->m_pProgressDialog->ResetCanceled();
+
+	auto ShowProgress = [&](const QString& ProgName) {
+		quint64 ElapsedTimeMs = (GetUSTickCount() - LastTime) / 1000;
+		ProcessedCount++;
+		if (theGUI->m_pProgressDialog->isVisible()) {
+			if (ElapsedTimeMs > 50) {
+				LastTime = GetUSTickCount();
+				theGUI->m_pProgressDialog->ShowProgress(tr("Loading %1").arg(ProgName), 100 * ProcessedCount / TotalCount);
+				QCoreApplication::processEvents();
+			}
+		} else if(ElapsedTimeMs > 500)
+			theGUI->m_pProgressDialog->show();
+
+		return !theGUI->m_pProgressDialog->IsCancelled();
 	};
 
 	foreach(const CProgramFilePtr& pProgram, Programs) 
@@ -244,6 +286,7 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			continue;
 		Item.LastAccess = LastAccess;
 
+		if(!ShowProgress(pProgram->GetName())) break;
 		QMap<quint64, SAccessStatsPtr> Log = pProgram->GetAccessStats();
 		for (auto I = Log.constBegin(); I != Log.constEnd(); I++) {
 			auto &Value = Item.Items[(quint64)I.value().data()];
@@ -261,6 +304,7 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			continue;
 		Item.LastAccess = LastAccess;
 
+		if(!ShowProgress(pService->GetName())) break;
 		QMap<quint64, SAccessStatsPtr> Log = pService->GetAccessStats();
 		for (auto I = Log.constBegin(); I != Log.constEnd(); I++) {
 			auto &Value = Item.Items[(quint64)I.value().data()];
@@ -271,10 +315,21 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		}
 	}
 
+	if(theGUI->m_pProgressDialog->isVisible())
+		theGUI->m_pProgressDialog->hide();
+
+#ifdef _DEBUG
+	quint64 elapsed = (GetUSTickCount() - start) / 1000;
+	if (elapsed > 100)
+		qDebug() << "Access Tree Sync took" << (GetUSTickCount() - start) / 1000000.0 << "s";
+#endif
+
 	//foreach(QString Key, OldMap.keys())
 	//	m_CurAccess.remove(Key);
 
+	//start = GetUSTickCount();
 	m_pItemModel->Update(m_CurRoot);
+	//qDebug() << "Access Tree Update took" << (GetUSTickCount() - start) / 1000000.0 << "s";
 
 	/*if (m_CurPrograms.count() + m_CurServices.count() > 1)
 	{
@@ -293,6 +348,11 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 void CAccessView::OnMenu(const QPoint& Point)
 {
 	CPanelView::OnMenu(Point);
+}
+
+void CAccessView::OnRefresh()
+{
+	m_iAccessFilter = -1; // force full reload
 }
 
 void CAccessView::CleanUpTree()

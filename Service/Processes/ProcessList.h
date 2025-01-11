@@ -21,10 +21,7 @@ public:
 
 	STATUS EnumProcesses();
 
-	std::map<uint64, CProcessPtr> List() { 
-		std::unique_lock Lock(m_Mutex);
-		return m_List; 
-	}
+	std::map<uint64, CProcessPtr> List() { std::unique_lock Lock(m_Mutex); return m_List; }
 	CProcessPtr GetProcess(uint64 Pid, bool bCanAdd = false);
 
 	std::map<uint64, CProcessPtr> FindProcesses(const CProgramID& ID);
@@ -33,6 +30,7 @@ public:
 
 protected:
 
+	void AddProcessImpl(const CProcessPtr& pProcess);
 	void AddProcessUnsafe(const CProcessPtr& pProcess);
 	void RemoveProcessUnsafe(const CProcessPtr& pProcess);
 
@@ -43,7 +41,7 @@ protected:
 
 	//void TerminateProcess(uint64 Pid, const std::wstring& FileName);
 
-	bool OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& FileName, const std::wstring& Command, uint64 CreateTime, EEventStatus Status, bool bETW = false);
+	bool OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& FileName, const std::wstring& Command, const struct SVerifierInfo* pVerifyInfo, uint64 CreateTime, EEventStatus Status, bool bETW = false);
 	void OnProcessStopped(uint64 Pid, uint32 ExitCode);
 
 	void OnProcessAccessed(uint64 Pid, uint64 ActorPid, const std::wstring& ActorServiceTag, bool bThread, uint32 AccessMask, uint64 AccessTime, EEventStatus Status);
@@ -57,6 +55,7 @@ protected:
 
 	bool m_bLogNotFound = false;
 	bool m_bLogInvalid = false;
+	bool m_bLogPipes = false;
 
 	class CServiceList* m_Services;
 

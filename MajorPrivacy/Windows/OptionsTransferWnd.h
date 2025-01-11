@@ -17,16 +17,17 @@ public:
 	};
 
 	enum EOptions {
-		eGUI = 0x01,
-		eDriver = 0x02,
-		eUserKeys = 0x04,
-		eExecRules = 0x08,
-		eResRules = 0x10,
-		eService = 0x20,
-		eFwRules = 0x40,
-		ePrograms = 0x80,
-		eTraceLog = 0x100,
-		eAllPermanent = 0xFF,
+		eGUI		= 0x0001,
+		eDriver		= 0x0002,
+		eUserKeys	= 0x0004,
+		eEnclaves	= 0x0008,
+		eExecRules	= 0x0010,
+		eResRules	= 0x0020,
+		eService	= 0x0040,
+		eFwRules	= 0x0080,
+		ePrograms	= 0x0100,
+		eTraceLog	= 0x0200,
+		eAllPermanent = 0x01FF,
 		eAll = 0xFFFF
 	};
 

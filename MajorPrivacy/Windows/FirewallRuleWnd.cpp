@@ -9,6 +9,7 @@
 #include "../MiscHelpers/Common/SettingsWidgets.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../MajorPrivacy.h"
+#include "../Windows/ProgramPicker.h"
 
 CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget* parent)
 	: QDialog(parent)
@@ -28,37 +29,24 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 
 
 	m_pRule = pRule;
-	bool bNew = m_pRule->m_Guid.isEmpty();
+	bool bNew = m_pRule->m_Guid.IsNull();
 
 	setWindowTitle(bNew ? tr("Create Firewall Rule") : tr("Edit Firewall Rule"));
 
 	foreach(auto pItem, Items) 
-	{
-		/*CProgramFilePtr pFile = pItem.objectCast<CProgramFile>();
-		CWindowsServicePtr pSvc = pItem.objectCast<CWindowsService>();
-		CAppPackagePtr pApp = pItem.objectCast<CAppPackage>();
-		if(!pFile && !pSvc && !pApp && !pItem->inherits("CAllPrograms"))
-			continue;*/
-		switch (pItem->GetID().GetType())
-		{
-		case EProgramType::eProgramFile:
-		case EProgramType::eWindowsService:
-		case EProgramType::eAppPackage:
-		case EProgramType::eAllPrograms:
-			break;
-		default:
-			continue;
-		}
-
-		m_Items.append(pItem);
-		ui.cmbProgram->addItem(pItem->GetNameEx());
-	}
+		AddProgramItem(pItem);
 
 	if (bNew && m_pRule->m_Name.isEmpty()) {
-		m_pRule->m_Name = tr("New Firewall Rule");
-	}
+		m_pRule->m_Name = tr("New Firewall Rule - MajorPrivacy Rule");
+	} else
+		m_NameChanged = true;
 
+	connect(ui.txtName, SIGNAL(textChanged(const QString&)), this, SLOT(OnNameChanged(const QString&)));
+
+	connect(ui.btnProg, SIGNAL(clicked()), this, SLOT(OnPickProgram()));
 	connect(ui.cmbProgram, SIGNAL(currentIndexChanged(int)), this, SLOT(OnProgramChanged()));
+
+	connect(ui.cmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
 
 	connect(ui.radProfiles, SIGNAL(idToggled(int, bool)), this, SLOT(OnProfilesChanged()));
 	connect(ui.radNICs, SIGNAL(idToggled(int, bool)), this, SLOT(OnInterfacesChanged()));
@@ -83,13 +71,15 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
 
-	ui.cmbAction->addItem(tr("Allow"), (uint32)EFwActions::Allow);
-	ui.cmbAction->addItem(tr("Block"), (uint32)EFwActions::Block);
+	AddColoredComboBoxEntry(ui.cmbAction, tr("Allow"), GetActionColor(EFwActions::Allow), (uint32)EFwActions::Allow);
+	AddColoredComboBoxEntry(ui.cmbAction, tr("Block"), GetActionColor(EFwActions::Block), (uint32)EFwActions::Block);
+	ColorComboBox(ui.cmbAction);
 
 	if(bNew)
-		ui.cmbDirection->addItem(tr("Bidirectional"), (uint32)EFwDirections::Bidirectional);
-	ui.cmbDirection->addItem(tr("Inbound"), (uint32)EFwDirections::Inbound);
-	ui.cmbDirection->addItem(tr("Outbound"), (uint32)EFwDirections::Outbound);
+		AddColoredComboBoxEntry(ui.cmbDirection, tr("Bidirectional"), GetDirectionColor(EFwDirections::Bidirectional), (uint32)EFwDirections::Bidirectional);
+	AddColoredComboBoxEntry(ui.cmbDirection, tr("Inbound"), GetDirectionColor(EFwDirections::Inbound), (uint32)EFwDirections::Inbound);
+	AddColoredComboBoxEntry(ui.cmbDirection, tr("Outbound"), GetDirectionColor(EFwDirections::Outbound), (uint32)EFwDirections::Outbound);
+	ColorComboBox(ui.cmbDirection);
 
 	ui.cmbProtocol->addItem(tr("Any Protocol"), (quint32)EFwKnownProtocols::Any);
 	for(auto I: g_KnownProtocols)
@@ -192,10 +182,49 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	OnProtocolChanged();
 	OnLocalIPChanged();
 	OnRemoteIPChanged();
+
+	m_NameHold = false;
 }
 
 CFirewallRuleWnd::~CFirewallRuleWnd()
 {
+}
+
+bool CFirewallRuleWnd::AddProgramItem(const CProgramItemPtr& pItem)
+{
+	switch (pItem->GetID().GetType())
+	{
+	case EProgramType::eProgramFile:
+	case EProgramType::eWindowsService:
+	case EProgramType::eAppPackage:
+	case EProgramType::eAllPrograms:
+		break;
+	default:
+		return false;
+	}
+
+	m_Items.append(pItem);
+	ui.cmbProgram->addItem(pItem->GetNameEx());
+	return true;
+}
+
+QColor CFirewallRuleWnd::GetActionColor(EFwActions Action)
+{
+	switch (Action) {
+	case EFwActions::Allow:				return QColor(144, 238, 144); 
+	case EFwActions::Block:				return QColor(255, 182, 193); 
+	default: return QColor();
+	}
+}
+
+QColor CFirewallRuleWnd::GetDirectionColor(EFwDirections Direction)
+{
+	switch (Direction) {
+	case EFwDirections::Inbound:		return QColor(255, 255, 128); 
+	case EFwDirections::Outbound:		return QColor(173, 216, 230); 
+	case EFwDirections::Bidirectional:	return QColor(255, 200, 100); 
+	default: return QColor();
+	}
 }
 
 void CFirewallRuleWnd::closeEvent(QCloseEvent *e)
@@ -229,9 +258,9 @@ bool CFirewallRuleWnd::Save()
 
 	CProgramItemPtr pItem = m_Items[Index];
 	if (m_pRule->m_ProgramID != pItem->GetID()) {
-		m_pRule->m_BinaryPath = pItem->GetPath(EPathType::eWin32);
+		m_pRule->m_BinaryPath = pItem->GetPath();
 		CWindowsServicePtr pSvc = pItem.objectCast<CWindowsService>();
-		m_pRule->m_ServiceTag = pSvc ? pSvc->GetSvcTag() : "";
+		m_pRule->m_ServiceTag = pSvc ? pSvc->GetServiceTag() : "";
 		CAppPackagePtr pApp = pItem.objectCast<CAppPackage>();
 		m_pRule->m_AppContainerSid = pApp ? pApp->GetAppSid() : "";
 	}
@@ -314,6 +343,33 @@ bool CFirewallRuleWnd::Save()
 	return true;
 }
 
+void CFirewallRuleWnd::OnNameChanged(const QString& Text)
+{
+	if (m_NameHold) return;
+	m_NameChanged = true;
+}
+
+void CFirewallRuleWnd::OnPickProgram()
+{
+	int Index = ui.cmbProgram->currentIndex();
+	CProgramItemPtr pItem = Index != -1 ? m_Items[Index] : nullptr;
+	CProgramPicker Picker(pItem, m_Items, this);
+	if (theGUI->SafeExec(&Picker)) {
+		pItem = Picker.GetProgram();
+		Index = m_Items.indexOf(pItem);
+		if (Index == -1) {
+			if(!AddProgramItem(pItem))
+				QMessageBox::warning(this, "MajorPrivacy", tr("The sellected program type is not supported for this rule type"));
+			else
+				Index = m_Items.indexOf(pItem);
+		}
+		if (Index != -1) {
+			ui.cmbProgram->setCurrentIndex(Index);
+			OnProgramChanged();
+		}
+	}
+}
+
 void CFirewallRuleWnd::OnProgramChanged()
 {
 	int Index = ui.cmbProgram->currentIndex();
@@ -322,13 +378,15 @@ void CFirewallRuleWnd::OnProgramChanged()
 	CProgramItemPtr pItem = m_Items[Index];
 	//if (pItem) ui.cmbProgram->setCurrentText(pItem->GetName());
 	CProgramID ID = pItem->GetID();
-	ui.txtPath->setText(pItem->GetPath(EPathType::eWin32));
+	ui.txtPath->setText(pItem->GetPath());
 	CWindowsServicePtr pSvc = pItem.objectCast<CWindowsService>();
-	ui.txtService->setText(pSvc ? pSvc->GetSvcTag() : "");
+	ui.txtService->setText(pSvc ? pSvc->GetServiceTag() : "");
 	//ui.txtService->setToolTip(pSvc ? pSvc->GetName() : "");
 	CAppPackagePtr pApp = pItem.objectCast<CAppPackage>();
 	ui.txtApp->setText(pApp ? pApp->GetAppSid() : "");
 	//ui.txtApp->setToolTip(pApp ? pApp->GetContainerName() : "");
+
+	TryMakeName();
 }
 
 void CFirewallRuleWnd::OnProfilesChanged()
@@ -352,6 +410,8 @@ void CFirewallRuleWnd::OnDirectionChanged()
 
 	if(bPorts)
 		UpdatePorts();
+
+	TryMakeName();
 }
 
 void CFirewallRuleWnd::OnProtocolChanged()
@@ -384,6 +444,8 @@ void CFirewallRuleWnd::OnProtocolChanged()
 
 	if(bPorts)
 		UpdatePorts();
+
+	TryMakeName();
 }
 
 void CFirewallRuleWnd::UpdatePorts()
@@ -580,4 +642,29 @@ bool CFirewallRuleWnd::ValidateAddress(const QString& Address, bool bRemote)
 		return false;
 	}
 	return true;
+}
+
+void CFirewallRuleWnd::OnActionChanged()
+{
+	TryMakeName();
+}
+
+
+void CFirewallRuleWnd::TryMakeName()
+{
+	if (ui.txtName->text().isEmpty())
+		m_NameChanged = false;
+	if (m_NameHold || m_NameChanged)
+		return;
+	
+	QString Action = ui.cmbAction->currentText();
+	QString Program = ui.cmbProgram->currentText();
+	QString Direction = ui.cmbDirection->currentText();
+	QString Protocol = ui.cmbProtocol->currentText();
+	if (Action.isEmpty() && Program.isEmpty())
+		return;
+
+	m_NameHold = true;
+	ui.txtName->setText(tr("%1 %2 %3 %4 - MajorPrivacy Rule").arg(Action).arg(Program).arg(Direction).arg(Protocol));
+	m_NameHold = false;
 }

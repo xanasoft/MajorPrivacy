@@ -9,7 +9,6 @@ MISCHELPERS_EXPORT int vswprintf_l(wchar_t * _String, size_t _Count, const wchar
 MISCHELPERS_EXPORT time_t GetTime();
 MISCHELPERS_EXPORT __time64_t GetTimeMs();
 MISCHELPERS_EXPORT quint64 GetCurTick();
-MISCHELPERS_EXPORT quint64 GetCurCycle();
 
 
 MISCHELPERS_EXPORT quint64 GetRand64();
@@ -20,6 +19,8 @@ MISCHELPERS_EXPORT int	GetRandomInt(int iMin, int iMax);
 MISCHELPERS_EXPORT typedef QPair<QString,QString> StrPair;
 MISCHELPERS_EXPORT StrPair Split2(const QString& String, QString Separator = "=", bool Back = false);
 MISCHELPERS_EXPORT QStringList SplitStr(const QString& String, QString Separator);
+
+MISCHELPERS_EXPORT bool PathStartsWith(const QString& Path, const QString& Start);
 
 typedef MISCHELPERS_EXPORT QMultiMap<QString,QString> TArguments;
 TArguments MISCHELPERS_EXPORT GetArguments(const QString& Arguments, QChar Separator = L';', QChar Assigner = L'=', QString* First = NULL, bool bLowerKeys = false, bool bReadEsc = false);

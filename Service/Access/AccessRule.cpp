@@ -8,7 +8,7 @@ CAccessRule::CAccessRule(const CProgramID& ID)
 {
 	m_ProgramPath = ID.GetFilePath();
 	if(!m_ProgramPath.empty()) 
-		m_ProgramPath = NtPathToDosPath(m_ProgramPath);
+		m_ProgramPath = m_ProgramPath;
 }
 
 CAccessRule::~CAccessRule()

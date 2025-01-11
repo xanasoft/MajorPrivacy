@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "ProcessList.h"
-#include "EnclaveList.h"
+#include "../Enclaves/EnclaveManager.h"
 #include "Core/PrivacyCore.h"
 #include "Core/Programs/ProgramManager.h"
 #include "../Library/API/PrivacyAPI.h"
@@ -37,9 +37,12 @@ STATUS CProcessList::Update()
 		
 		pProcess->FromVariant(Process);	
 
-		if (bAdded && pProcess->GetEnclaveId()) {
-			CEnclavePtr pEnclave = theCore->EnclaveList()->GetEnclave(pProcess->GetEnclaveId(), true);
-			pEnclave->AddProcess(pProcess);
+		if (pProcess->IsProtected() && !pProcess->GetEnclave()) {
+			CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(pProcess->GetEnclaveGuid(), true);
+			if (pEnclave) {
+				pProcess->SetEnclave(pEnclave);
+				pEnclave->AddProcess(pProcess);
+			}
 		}
 
 		m_SocketCount += pProcess->GetSocketCount();
@@ -47,10 +50,9 @@ STATUS CProcessList::Update()
 
 	foreach(const quint64 & Pid, OldMap.keys()) {
 		CProcessPtr pProcess = m_List.take(Pid);
-		if (pProcess->GetEnclaveId()) {
-			CEnclavePtr pEnclave = theCore->EnclaveList()->GetEnclave(pProcess->GetEnclaveId(), false);
-			if(pEnclave) pEnclave->RemoveProcess(pProcess);
-		}
+		CEnclavePtr pEnclave = pProcess->GetEnclave();
+		if(pEnclave) 
+			pEnclave->RemoveProcess(pProcess);
 	}
 
 	return OK;
@@ -83,4 +85,13 @@ CProcessPtr CProcessList::GetProcess(quint64 Pid, bool CanUpdate)
 	}
 
 	return pProcess;
+}
+
+STATUS CProcessList::TerminateProcess(const CProcessPtr& pProcess)
+{
+	auto Ret = theCore->TerminateProcess(pProcess->GetProcessId());
+	if (Ret.IsError())
+		return Ret.GetStatus();
+	//m_List.remove(pProcess->GetProcessId());
+	return OK;
 }

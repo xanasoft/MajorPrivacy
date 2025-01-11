@@ -286,6 +286,8 @@ std::wstring GetServiceBinaryPath(PCWSTR Name)
             }
         }
     }
+
+    return L"";
 }
 
 STATUS RemoveService(PCWSTR Name)

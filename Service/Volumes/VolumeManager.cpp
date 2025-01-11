@@ -9,6 +9,7 @@
 #include "../../Library/API/DriverAPI.h"
 #include "../../Library/Helpers/NtUtil.h"
 #include "../../Library/Helpers/NtIo.h"
+#include "../../Library/Helpers/MiscHelpers.h"
 
 #define FILE_SHARE_VALID_FLAGS          0x00000007
 
@@ -97,7 +98,7 @@ std::wstring GetProxyName(const std::wstring& ImageFile)
 //    for (ULONG counter = 1; counter <= DeviceList[0]; counter++) {
 //
 //        std::wstring proxy = ImDiskQueryDeviceProxy(IMDISK_DEVICE + std::to_wstring(DeviceList[counter]));
-//        if (_wcsnicmp(proxy.c_str(), L"\\BaseNamedObjects\\Global\\" IMBOX_PROXY, 25 + 11) != 0)
+//        if (!MatchPathPrefix(proxy, L"\\BaseNamedObjects\\Global\\" IMBOX_PROXY))
 //            continue;
 //        std::size_t pos = proxy.find_first_of(L'!');
 //        if (pos == std::wstring::npos || _wcsicmp(proxy.c_str() + (pos + 1), ProxyName.c_str()) != 0)
@@ -731,7 +732,7 @@ retry:
         }
 
         std::wstring proxy = ImDiskQueryDeviceProxy(IMDISK_DEVICE + std::to_wstring(DeviceList[counter]));
-        if (_wcsnicmp(proxy.c_str(), L"\\BaseNamedObjects\\Global\\" IMBOX_PROXY, 25 + 11) != 0)
+        if (!MatchPathPrefix(proxy, L"\\BaseNamedObjects\\Global\\" IMBOX_PROXY))
             continue;
         std::size_t pos = proxy.find_first_of(L'!');
         if (pos == std::wstring::npos)
@@ -822,8 +823,7 @@ STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& 
     std::wstring ruleGuid;
     if (bProtect) 
     {
-        CProgramID ID;
-        ID.Set(EProgramType::eAllPrograms);
+        CProgramID ID(EProgramType::eAllPrograms);
         CAccessRulePtr pRule = std::make_shared<CAccessRule>(ID);
         pRule->SetName(L"&Protect," + Path);
         pRule->SetAccessPath(DevicePath + L"\\*");
@@ -898,8 +898,7 @@ STATUS CVolumeManager::DismountVolume(const std::shared_ptr<CVolume>& pMount)
     // When unmounting imdisk.exe needs to be able to lock the volume
     //
 
-    CProgramID ID;
-    ID.SetPath(NormalizeFilePath( L"\\SystemRoot\\System32\\imdisk.exe"));
+    CProgramID ID(theCore->NormalizePath( L"\\SystemRoot\\System32\\imdisk.exe"));
     CAccessRulePtr pRule = std::make_shared<CAccessRule>(ID);
     pRule->SetName(L"&Unmount," + pMount->ImageDosPath());
     pRule->SetAccessPath(pMount->DevicePath());
@@ -1023,7 +1022,7 @@ STATUS CVolumeManager::UnProtectVolume(const std::wstring& DevicePath)
         auto pRule = I.second;
 
         std::wstring RulePath = pRule->GetAccessPath();
-        if(RulePath.length() >= DevicePath.length() && _wcsnicmp(RulePath.c_str(), DevicePath.c_str(), DevicePath.length()) == 0)
+        if (MatchPathPrefix(RulePath, DevicePath.c_str()))
             theCore->AccessManager()->RemoveRule(pRule->GetGuid());
     }
 
@@ -1046,7 +1045,7 @@ STATUS CVolumeManager::TryAddRule(const CAccessRulePtr& pRule, const std::wstrin
 
         auto pClone = pRule->Clone();
         pClone->SetTemporary(true);
-        pClone->SetData(API_V_RULE_DATA_REF_GUID, CVariant(pRule->GetGuid()));
+        pClone->SetData(API_V_RULE_REF_GUID, pRule->GetGuid().ToVariant(true));
         pClone->SetAccessPath(AccessPath);
         return theCore->AccessManager()->AddRule(pClone);
     }
@@ -1054,18 +1053,16 @@ STATUS CVolumeManager::TryAddRule(const CAccessRulePtr& pRule, const std::wstrin
     return OK;
 }
 
-void CVolumeManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID)
+void CVolumeManager::UpdateRule(const CAccessRulePtr& pRule, enum class EConfigEvent Event, uint64 PID)
 {
     if (PID == GetCurrentProcessId())
         return;
-
-    auto pRule = theCore->AccessManager()->GetRule(Guid);
 
     //
     // Volume Rules
     //
 
-    if (pRule && !pRule->IsTemporary() && pRule->GetAccessPath().find(IMDISK_DEVICE) == 0)
+    if (!pRule->IsTemporary() && pRule->GetAccessPath().find(IMDISK_DEVICE) == 0)
     {
         size_t pos = pRule->GetAccessPath().find(L"\\", IMDISK_DEVICE_LEN);
         std::wstring DevicePath = pRule->GetAccessPath().substr(0, pos);
@@ -1087,15 +1084,19 @@ void CVolumeManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEve
     {
         auto pRule = I.second;
         std::wstring RulePath = pRule->GetAccessPath();
-        if(pRule->IsTemporary() && pRule->GetData(API_V_RULE_DATA_REF_GUID).AsStr() == Guid)
-            theCore->AccessManager()->RemoveRule(pRule->GetGuid());
+        if (pRule->IsTemporary()) {
+            CFlexGuid Guid;
+            Guid.FromVariant(pRule->GetData(API_V_RULE_REF_GUID));
+            if(Guid == pRule->GetGuid())
+                theCore->AccessManager()->RemoveRule(pRule->GetGuid());
+        }
     }
 
-    if(Event == ERuleEvent::eRemoved)
+    if(Event == EConfigEvent::eRemoved)
         return;
     
     // add new or updated rule
-    if (pRule && pRule->IsEnabled() && pRule->GetAccessPath().find(L"/") != std::wstring::npos)
+    if (pRule->IsEnabled() && pRule->GetAccessPath().find(L"/") != std::wstring::npos)
     {
         std::unique_lock Lock(m_Mutex);
 
@@ -1127,20 +1128,19 @@ STATUS CVolumeManager::LoadVolumeRules(const std::shared_ptr<CVolume>& pMount)
 
     const CVariant& RuleList = pMount->m_Data[API_S_ACCESS_RULES];
 
-    for (int i = 0; i < RuleList.Count(); i++)
+    for (uint32 i = 0; i < RuleList.Count(); i++)
     {
         CVariant Rule = RuleList[i];
 
-        std::wstring Guid = Rule[API_V_RULE_GUID].AsStr();
+        std::wstring Guid = Rule[API_V_GUID].AsStr();
 
-        std::wstring ProgramPath = NormalizeFilePath(Rule[API_V_FILE_PATH].AsStr());
-
-        CProgramID ID;
-        ID.SetPath(ProgramPath);
+        std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
+        CProgramID ID(ProgramPath);
 
         CAccessRulePtr pRule = std::make_shared<CAccessRule>(ID);
         pRule->FromVariant(Rule);
         pRule->SetAccessPath(pMount->m_DevicePath + L"\\" + pRule->GetAccessPath());
+		pRule->SetVolumeRule(true);
 
         theCore->AccessManager()->AddRule(pRule);
     }
@@ -1154,6 +1154,7 @@ STATUS CVolumeManager::SaveVolumeRules(const std::shared_ptr<CVolume>& pMount)
 
     SVarWriteOpt Opts;
     Opts.Format = SVarWriteOpt::eMap;
+    Opts.Flags = SVarWriteOpt::eTextGuids;
 
     auto Rules = theCore->AccessManager()->GetAllRules();
     for(auto I: Rules) 
@@ -1163,7 +1164,7 @@ STATUS CVolumeManager::SaveVolumeRules(const std::shared_ptr<CVolume>& pMount)
             continue;
 
         std::wstring RulePath = pRule->GetAccessPath();
-        if (RulePath.length() >= pMount->DevicePath().length() && _wcsnicmp(RulePath.c_str(), pMount->DevicePath().c_str(), pMount->DevicePath().length()) == 0)
+        if (MatchPathPrefix(RulePath, pMount->DevicePath().c_str()))
         {
             auto pClone = pRule->Clone(true);
             pClone->SetAccessPath(RulePath.substr(pMount->DevicePath().length() + 1));

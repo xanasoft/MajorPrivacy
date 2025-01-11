@@ -59,12 +59,22 @@ CVariant::~CVariant()
 
 CVariant::EResult CVariant::Throw(EResult Error)
 {
-#ifdef KERNEL_MODE
-	//DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "CVariant::Throw: %s\n", ErrorString(Error));
+	//
+	// eErrNotFound is fine we dont waht to check presence each time its fine to 
+	// check if we got a valid variant, and with the ref mechanism we can return empty refs without any problem
+	//
+
+	if (Error != eErrNotFound)
+	{
+#ifdef KERNEL_DEBUG
+		DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "CVariant::Throw: %s\n", ErrorString(Error));
+#elif defined(_DEBUG)
+		DbgPrint("CVariant::Throw: %s\n", ErrorString(Error));
 #endif
 #ifndef VAR_NO_EXCEPTIONS
-	throw CException(ErrorString(Error));
+		throw CException(ErrorString(Error));
 #endif
+	}
 	return Error;
 }
 

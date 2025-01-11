@@ -14,6 +14,8 @@ public:
 	QMap<quint64, CProcessPtr> GetProcesses(const QSet<quint64>& Pids);
 	CProcessPtr GetProcess(quint64 Pid, bool CanUpdate = false);
 
+	STATUS TerminateProcess(const CProcessPtr& pProcess);
+
 	int GetCount() const { return m_List.count(); }
 	int GetSocketCount() const { return m_SocketCount; }
 

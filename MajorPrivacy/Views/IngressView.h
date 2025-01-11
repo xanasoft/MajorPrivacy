@@ -13,7 +13,7 @@ public:
 	CIngressView(QWidget *parent = 0);
 	virtual ~CIngressView();
 
-	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, bool bAllPrograms);
+	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QFlexGuid& EnclaveGuid = QString());
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;
@@ -29,11 +29,15 @@ protected:
 
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbRole;
+	QComboBox*				m_pCmbAction;
+	QToolButton*			m_pBtnExpand;
 
 	QSet<CProgramFilePtr>					m_CurPrograms;
 	QSet<CWindowsServicePtr>				m_CurServices;
+	QFlexGuid								m_CurEnclaveGuid;
 	QMap<SIngressKey, SIngressItemPtr>		m_ParentMap;
 	QMap<SIngressKey, SIngressItemPtr>		m_IngressMap;
 	qint32									m_FilterRole = 0;
+	qint32									m_FilterAction = 0;
 	quint64									m_RecentLimit = 0;
 };

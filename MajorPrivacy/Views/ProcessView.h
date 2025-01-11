@@ -22,5 +22,6 @@ private:
 
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbScope;
+	QToolButton*			m_pBtnTree;
 
 };

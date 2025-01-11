@@ -8,11 +8,16 @@ class CFwRule : public CGenericRule
 public:
 	CFwRule(const CProgramID& ID, QObject* parent = NULL);
 
-    int GetIndex() const                    {return m_Index; }
+    int GetIndex() const                    { return m_Index; }
 
-    QString GetBinaryPath() const           {return m_BinaryPath; }
-    QString GetServiceTag() const           {return m_ServiceTag; }
-    QString GetAppContainerSid() const      {return m_AppContainerSid; }
+	int GetHitCount() const                 { return m_HitCount; }
+	void IncrHitCount()                     { m_HitCount++; }
+
+    void SetTemporary(bool bTemporary);
+
+    QString GetBinaryPath() const           { return m_BinaryPath; }
+    QString GetServiceTag() const           { return m_ServiceTag; }
+    QString GetAppContainerSid() const      { return m_AppContainerSid; }
 
     QString GetProgram() const;
 
@@ -86,6 +91,9 @@ protected:
     QStringList m_OsPlatformValidity;
 
     int m_EdgeTraversal = 0;
+
+
+	int m_HitCount = 0;
 };
 
 typedef QSharedPointer<CFwRule> CFwRulePtr;

@@ -4,6 +4,7 @@
 #include "../../MiscHelpers/Common/TreeviewEx.h"
 #include "../Models/NetTraceModel.h"
 #include "../Core/Programs/ProgramFile.h"
+#include "../Core/Programs/windowsService.h"
 #include "TraceView.h"
 
 class CNetTraceView : public CTraceView
@@ -28,6 +29,5 @@ protected:
 	QComboBox*				m_pCmbAction;
 	QComboBox*				m_pCmbType;
 	QToolButton*			m_pBtnClear;
-	QToolButton*			m_pBtnScroll;
 
 };

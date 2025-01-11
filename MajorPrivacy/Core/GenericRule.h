@@ -1,5 +1,6 @@
 #pragma once
 #include "./Programs/ProgramID.h"
+#include "../../Library/Common/FlexGuid.h"
 
 class CGenericRule : public QObject
 {
@@ -8,20 +9,25 @@ public:
 	CGenericRule(QObject* parent = NULL);
 	CGenericRule(const CProgramID& ID, QObject* parent = NULL);
 
-	QString GetGuid() const							{ return m_Guid; }
-	void SetGuid(const QString& Guid)				{ m_Guid = Guid; }
+	QFlexGuid GetGuid() const						{ return m_Guid; }
+	void SetGuid(const QFlexGuid& Guid)				{ m_Guid = Guid; }
 
-	const CProgramID& GetProgramID() const			{ return m_ProgramID; }
+	virtual CProgramID GetProgramID() const			{ return m_ProgramID; }
 
-	bool IsEnabled() const							{ return m_bEnabled; }
-	void SetEnabled(bool bEnabled)					{ m_bEnabled = bEnabled; }
-	bool IsTemporary() const						{ return m_bTemporary; }
-	void SetTemporary(bool bTemporary)				{ m_bTemporary = bTemporary; }
+	virtual void SetEnclave(const QFlexGuid& Enclave) { m_Enclave = Enclave; }
+	virtual QFlexGuid GetEnclave() const			{ return m_Enclave; }
 
-	QString GetName() const							{ return m_Name; }
-	void SetName(const QString& Name)				{ m_Name = Name; }
-	//QString GetGrouping() const						{ return m_Grouping; }
-	QString GetDescription() const					{ return m_Description; }
+	virtual bool IsEnabled() const					{ return m_bEnabled; }
+	virtual void SetEnabled(bool bEnabled)			{ m_bEnabled = bEnabled; }
+	virtual bool IsTemporary() const				{ return m_bTemporary; }
+	virtual void SetTemporary(bool bTemporary)		{ m_bTemporary = bTemporary; }
+
+	virtual void SetTimeOut(quint64 uTimeOutSec)	{ SetTemporary(true); m_uTimeOut = QDateTime::currentDateTime().toSecsSinceEpoch() + uTimeOutSec; }
+
+	virtual QString GetName() const					{ return m_Name; }
+	virtual void SetName(const QString& Name)		{ m_Name = Name; }
+	//virtual QString GetGrouping() const				{ return m_Grouping; }
+	virtual QString GetDescription() const			{ return m_Description; }
 
 	virtual XVariant ToVariant(const SVarWriteOpt& Opts) const;
 	virtual void FromVariant(const class XVariant& Rule);
@@ -34,10 +40,13 @@ protected:
 	virtual void ReadIValue(uint32 Index, const XVariant& Data);
 	virtual void ReadMValue(const SVarName& Name, const XVariant& Data);
 
-	QString m_Guid;
-
+	QFlexGuid m_Guid;
 	bool m_bEnabled = true;
+
+	QFlexGuid m_Enclave;
+
 	bool m_bTemporary = false;
+	quint64 m_uTimeOut = -1;
 
 	QString m_Name;
 	//QString m_Grouping;

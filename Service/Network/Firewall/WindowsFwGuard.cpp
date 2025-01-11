@@ -46,9 +46,9 @@ void CWindowsFwGuard::OnEvent(EVT_HANDLE hEvent)
 	uint16_t EventId = GetWinVariantNumber(values[1], (uint16_t)0);
 	switch (EventId)
 	{
-		case WIN_LOG_EVENT_FW_ADDED:	Event.Type = ERuleEvent::eAdded; break;
-		case WIN_LOG_EVENT_FW_REMOVED:	Event.Type = ERuleEvent::eRemoved; break;
-		case WIN_LOG_EVENT_FW_CHANGED:	Event.Type = ERuleEvent::eModified; break;
+		case WIN_LOG_EVENT_FW_ADDED:	Event.Type = EConfigEvent::eAdded; break;
+		case WIN_LOG_EVENT_FW_REMOVED:	Event.Type = EConfigEvent::eRemoved; break;
+		case WIN_LOG_EVENT_FW_CHANGED:	Event.Type = EConfigEvent::eModified; break;
 	}
 
 	// Process Info

@@ -18,6 +18,9 @@ public:
 	bool LoadVolumes();
 	bool SaveVolumes();
 
+public slots:
+	void UpdateProtectedFolders();
+
 protected:
 	QMap<QString, CVolumePtr> m_List;
 };

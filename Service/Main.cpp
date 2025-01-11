@@ -154,8 +154,8 @@ int WinMain(
         {
             std::wstring BinaryPath = GetServiceBinaryPath(API_SERVICE_NAME);
 
-            std::wstring ServicePath = NormalizeFilePath(GetFileFromCommand(BinaryPath));
-            std::wstring AppDir = NormalizeFilePath(GetApplicationDirectory());
+            std::wstring ServicePath = CServiceCore::NormalizePath(GetFileFromCommand(BinaryPath));
+            std::wstring AppDir = CServiceCore::NormalizePath(GetApplicationDirectory());
             if (ServicePath.length() < AppDir.length() || ServicePath.compare(0, AppDir.length(), AppDir) != 0)
             {
                 RemoveService(API_SERVICE_NAME);

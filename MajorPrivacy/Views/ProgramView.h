@@ -30,6 +30,7 @@ private slots:
 	void	OnProgramChanged(const QModelIndexList& Selection);
 	void	OnDoubleClicked(const QModelIndex& Index);
 
+	void	OnAddProgram();
 	void	OnProgramAction();
 	void	OnAddToGroup();
 
@@ -52,64 +53,70 @@ protected:
 
 	QList<CProgramItemPtr>		m_CurPrograms;
 
-	CFinder*					m_pFinder;
+	CFinder*					m_pFinder = nullptr;
 
 private:
 	virtual void				OnMenu(const QPoint& Point);
 
-	QVBoxLayout*				m_pMainLayout;
+	QVBoxLayout*				m_pMainLayout = nullptr;
 
+	QSplitter*					m_pInfoSplitter = nullptr;
+	class CInfoView*			m_pInfoView = nullptr;
+
+	QWidget*					m_pProgramWidget = nullptr;
+	QVBoxLayout*				m_pProgramLayout = nullptr;
 #ifdef SPLIT_TREE
-	CSplitTreeView*				m_pTreeList;
+	CSplitTreeView*				m_pTreeList = nullptr;
 #else
-	QTreeViewEx*				m_pTreeList;
+	QTreeViewEx*				m_pTreeList = nullptr;
 #endif
-	CProgramModel*				m_pProgramModel;
-	QSortFilterProxyModel*		m_pSortProxy;
+	CProgramModel*				m_pProgramModel = nullptr;
+	QSortFilterProxyModel*		m_pSortProxy = nullptr;
 
-	QToolBar*					m_pToolBar;
+	QToolBar*					m_pToolBar = nullptr;
+	QToolButton*				m_pBtnAdd;
 
-	QToolButton*				m_pTypeFilter;
-	QMenu*						m_pTypeMenu;
-	QAction*						m_pPrograms;
-	QAction*						m_pSystem;
-	QAction*						m_pApps;
-	QAction*						m_pGroups;
+	QToolButton*				m_pTypeFilter = nullptr;
+	QMenu*						m_pTypeMenu = nullptr;
+	QAction*						m_pPrograms = nullptr;
+	QAction*						m_pSystem = nullptr;
+	QAction*						m_pApps = nullptr;
+	QAction*						m_pGroups = nullptr;
 
-	QToolButton*				m_pRunFilter;
-	QMenu*						m_pRunMenu;
-	QAction*						m_pRanRecently;
+	QToolButton*				m_pRunFilter = nullptr;
+	QMenu*						m_pRunMenu = nullptr;
+	QAction*						m_pRanRecently = nullptr;
 
-	QToolButton*				m_pRulesFilter;
-	QMenu*						m_pRulesMenu;
-	QAction*						m_pExecRules;
-	QAction*						m_pAccessRules;
-	QAction*						m_pFwRules;
+	QToolButton*				m_pRulesFilter = nullptr;
+	QMenu*						m_pRulesMenu = nullptr;
+	QAction*						m_pExecRules = nullptr;
+	QAction*						m_pAccessRules = nullptr;
+	QAction*						m_pFwRules = nullptr;
 
-	QToolButton*				m_pTrafficFilter;
-	QMenu*						m_pTrafficMenu;
-	QActionGroup*					m_pActionGroup;
-	QAction*						m_pTrafficRecent;
-	QAction*						m_pTrafficBlocked;
-	QAction*						m_pTrafficAllowed;
+	QToolButton*				m_pTrafficFilter = nullptr;
+	QMenu*						m_pTrafficMenu = nullptr;
+	QActionGroup*					m_pActionGroup = nullptr;
+	QAction*						m_pTrafficRecent = nullptr;
+	QAction*						m_pTrafficBlocked = nullptr;
+	QAction*						m_pTrafficAllowed = nullptr;
 
-	QToolButton*				m_pSocketFilter;
-	/*QMenu*						m_pSocketMenu;
-	QAction*						m_pAnySockets;
-	QAction*						m_pWebSockets;
-	QAction*						m_pTcpSockets;
-	QAction*						m_pTcpClients;
-	QAction*						m_pTcpServers;
-	QAction*						m_pUdpSockets;*/
+	QToolButton*				m_pSocketFilter = nullptr;
+	/*QMenu*						m_pSocketMenu = nullptr;
+	QAction*						m_pAnySockets = nullptr;
+	QAction*						m_pWebSockets = nullptr;
+	QAction*						m_pTcpSockets = nullptr;
+	QAction*						m_pTcpClients = nullptr;
+	QAction*						m_pTcpServers = nullptr;
+	QAction*						m_pUdpSockets = nullptr;*/
 
-	QToolButton*				m_pBtnCleanUp;
-	QMenu*						m_pCleanUpMenu;
-	QAction*						m_pReGroup;
+	QToolButton*				m_pBtnCleanUp = nullptr;
+	QMenu*						m_pCleanUpMenu = nullptr;
+	QAction*						m_pReGroup = nullptr;
 
-	QAction*					m_pCreateProgram;
-	QMenu*						m_pAddToGroup;
-	QAction*					m_pRenameItem;
-	QAction*					m_pRemoveItem;
+	QAction*					m_pCreateProgram = nullptr;
+	QAction*					m_pEditProgram = nullptr;
+	QMenu*						m_pAddToGroup = nullptr;
+	QAction*					m_pRemoveItem = nullptr;
 
 	QVector<QAction*>			m_Groups;
 

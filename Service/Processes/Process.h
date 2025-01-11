@@ -5,6 +5,16 @@
 #include "../Network/Dns/DnsProcLog.h"
 #include "../Access/Handle.h"
 #include "../Library/API/PrivacyDefs.h"
+#include "../Programs/ImageSignInfo.h"
+#include "../Library/Common/FlexGuid.h"
+
+struct SProcessUID
+{
+	SProcessUID(uint64 uPid, uint64 msTime);
+	__inline uint64 Get() const { return PUID; }
+	__inline void Set(uint64 UID) { PUID = UID; }
+	uint64 PUID = 0;
+};
 
 class CProcess: public CAbstractInfoEx
 {
@@ -15,20 +25,32 @@ public:
 
 	uint64 GetProcessId() const { std::shared_lock Lock(m_Mutex); return m_Pid; }
 	uint64 GetParentId() const { std::shared_lock Lock(m_Mutex); return m_ParentPid; }
+	SProcessUID GetProcessUID() const { std::shared_lock Lock(m_Mutex); return SProcessUID(m_Pid, m_CreateTimeStamp); }
 	std::wstring GetName() const { std::shared_lock Lock(m_Mutex); return m_Name; }
-	std::wstring GetFileName() const { std::shared_lock Lock(m_Mutex); return m_FileName; }
+	std::wstring GetNtFilePath() const { std::shared_lock Lock(m_Mutex); return m_NtFilePath; }
 	std::wstring GetWorkDir() const;
 
-	uint64 GetEnclave() const { std::shared_lock Lock(m_Mutex); return m_EnclaveId; }
+	CFlexGuid GetEnclave() const { std::shared_lock Lock(m_Mutex); return m_EnclaveGuid; }
+	uint32 GetSecState() const { std::shared_lock Lock(m_Mutex); return m_SecState; }
+	uint32 GetFlags() const { std::shared_lock Lock(m_Mutex); return m_Flags; }
+	uint32 GetSecFlags() const { std::shared_lock Lock(m_Mutex); return m_SecFlags; }
 
 	bool IsInitDone() const { std::shared_lock Lock(m_Mutex); return m_ParentPid != -1; }
 
-	void UpdateSignInfo(KPH_VERIFY_AUTHORITY SignAuthority, uint32 SignLevel, uint32 SignPolicy);
+	void UpdateSignInfo(const struct SVerifierInfo* pVerifyInfo);
+	CImageSignInfo GetSignInfo() const { std::shared_lock Lock(m_Mutex); return m_SignInfo; }
+	void SetSignInfo(const CImageSignInfo& SignInfo) { std::unique_lock Lock(m_Mutex); m_SignInfo = SignInfo; }
+	bool HashInfoUnknown() const;
+	static bool MakeVerifyInfo(const std::wstring& ModulePath, SVerifierInfo& VerifyInfo);
 
 	std::set<std::wstring> GetServices() const { std::shared_lock Lock(m_Mutex);  return m_ServiceList; }
 
 	std::wstring GetAppContainerSid() const { std::shared_lock Lock(m_Mutex); return m_AppContainerSid; }
 	std::wstring GetAppContainerName() const { std::shared_lock Lock(m_Mutex); return m_AppContainerName; }
+
+	void AddLibrary(const std::shared_ptr<class CProgramLibrary>& pLibrary) { std::unique_lock Lock(m_Mutex); m_Libraries.insert(pLibrary); }
+	void RemoveLibrary(const std::shared_ptr<class CProgramLibrary>& pLibrary) { std::unique_lock Lock(m_Mutex); m_Libraries.erase(pLibrary); }
+	std::set<std::shared_ptr<class CProgramLibrary>> GetLibraries() const { std::shared_lock Lock(m_Mutex); return m_Libraries; }
 
 	std::shared_ptr<class CProgramFile> GetProgram() const { std::shared_lock Lock(m_Mutex); return m_pFileRef.lock(); }
 
@@ -54,7 +76,7 @@ public:
 
 	void	AddNetworkIO(int Type, uint32 TransferSize);
 
-	CVariant ToVariant() const;
+	CVariant ToVariant(const SVarWriteOpt& Opts) const;
 
 	static const wchar_t* NtOsKernel_exe; 
 
@@ -63,8 +85,8 @@ protected:
 	friend class CServiceList;
 	friend class CProgramManager;
 
-	void AddService(const std::wstring& Service) { std::unique_lock Lock(m_Mutex); m_ServiceList.insert(Service); }
-	void RemoveService(const std::wstring& Service) { std::unique_lock Lock(m_Mutex); m_ServiceList.erase(Service); }
+	void AddService(const std::wstring& Key) { std::unique_lock Lock(m_Mutex); m_ServiceList.insert(Key); }
+	void RemoveService(const std::wstring& Key) { std::unique_lock Lock(m_Mutex); m_ServiceList.erase(Key); }
 
 	bool Init();
 	bool Update();
@@ -79,26 +101,26 @@ protected:
 	bool InitLibs();
 
 	uint64 m_Pid = -1;
+	uint64 m_ParentPid = -1;
 	uint64 m_CreationTime = 0;
 	//uint64 m_SeqNr = -1;
-	uint64 m_ParentPid = -1;
 	//uint64 m_ParentSeqNr = -1;
 	std::wstring m_Name;
-	std::wstring m_FileName;
+	std::wstring m_NtFilePath;
 	std::wstring m_CommandLine;
 
-	//std::vector<uint8> m_ImageHash;
-	uint64 m_EnclaveId = 0;
+	CFlexGuid m_EnclaveGuid;
 	uint32 m_SecState = 0;
 	uint32 m_Flags = 0;
 	uint32 m_SecFlags = 0;
-	SLibraryInfo::USign	m_SignInfo;
+	CImageSignInfo m_SignInfo;
 	uint32 m_NumberOfImageLoads = 0;
 	uint32 m_NumberOfMicrosoftImageLoads = 0;
 	uint32 m_NumberOfAntimalwareImageLoads = 0;
 	uint32 m_NumberOfVerifiedImageLoads = 0;
 	uint32 m_NumberOfSignedImageLoads = 0;
 	uint32 m_NumberOfUntrustedImageLoads = 0;
+	std::set<std::shared_ptr<class CProgramLibrary>> m_Libraries;
 
 	std::set<std::wstring>		m_ServiceList;
 

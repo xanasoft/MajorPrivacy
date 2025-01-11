@@ -12,7 +12,7 @@ class CAccessPage : public QWidget
 {
 	Q_OBJECT
 public:
-	CAccessPage(QWidget* parent);
+	CAccessPage(bool bEmbedded, QWidget* parent);
 	~CAccessPage();
 
 	void LoadState();
@@ -23,15 +23,18 @@ public:
 
 private:
 
+	void	UpdateEnabled();
+
+	bool					m_bEmbedded;
+
 	QVBoxLayout*			m_pMainLayout;
 
 	//QToolBar*				m_pToolBar;
 
 	QSplitter*				m_pVSplitter;
 
-	//QTabWidget*				m_pRuleTabs;
+	QTabWidget*				m_pRuleTabs;
 	CAccessRuleView*		m_pRuleView;
-
 
 	QTabWidget*				m_pTabs;
 	CHandleView*			m_pHandleView;

@@ -5,6 +5,9 @@
 #include "../Library/Helpers/AppUtil.h"
 #include "../Core/PrivacyCore.h"
 #include "../Library/Helpers/NtUtil.h"
+#include "../Windows/ProgramRuleWnd.h"
+#include "../Core/Processes/ExecLogEntry.h"
+
 
 CIngressModel::CIngressModel(QObject* parent)
 	:CTreeItemModel(parent)
@@ -22,7 +25,10 @@ CIngressModel::~CIngressModel()
 
 QList<QModelIndex> CIngressModel::Sync(const QMap<SIngressKey, SIngressItemPtr>& List)
 {
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	for(auto X = List.begin(); X != List.end(); ++X)
@@ -75,11 +81,11 @@ QList<QModelIndex> CIngressModel::Sync(const QMap<SIngressKey, SIngressItemPtr>&
 			switch (section)
 			{
 			case eName:				Value = pNode->pItem->pProg2 ? pNode->pItem->pProg2->GetNameEx() : pNode->pItem->pProg1->GetNameEx(); break;
-			case eRole:				Value = pNode->pItem->pProg2 ? (pNode->pItem->Info.eRole == CProgramFile::SIngressInfo::eActor ? tr("Actor") : tr("Target")) : ""; break;
+			case eRole:				Value = pNode->pItem->pProg2 ? (CExecLogEntry::GetRoleStr(pNode->pItem->Info.Role)) : ""; break;
 			case eTimeStamp:		Value = pNode->pItem->Info.LastAccessTime; break;
 			case eStatus:			Value = pNode->pItem->Info.bBlocked; break;
-			case eAccess:			Value = (((quint64)pNode->pItem->Info.ThreadAccessMask) << 32) | ((quint64)pNode->pItem->Info.ProcessAccessMask); break;
-			case eProgram:			Value = pNode->pItem->pProg2 ? pNode->pItem->pProg2->GetPath(EPathType::eDisplay) : pNode->pItem->pProg1->GetPath(EPathType::eDisplay); break;
+			case eOperation:		Value = (((quint64)pNode->pItem->Info.ThreadAccessMask) << 32) | ((quint64)pNode->pItem->Info.ProcessAccessMask); break;
+			case eProgram:			Value = pNode->pItem->pProg2 ? pNode->pItem->pProg2->GetPath() : pNode->pItem->pProg1->GetPath(); break;
 			}
 
 			SIngressNode::SValue& ColValue = pNode->Values[section];
@@ -92,14 +98,15 @@ QList<QModelIndex> CIngressModel::Sync(const QMap<SIngressKey, SIngressItemPtr>&
 
 				switch (section)
 				{
+				case eRole:			if (pNode->pItem->pProg2) { QColor Color = CProgramRuleWnd::GetRoleColor(pNode->pItem->Info.Role); if (Color.isValid()) ColValue.Color = Color; } break;
 				case eTimeStamp:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(FILETIME2ms(Value.toULongLong())).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
-				case eStatus:		ColValue.Formatted = Value.toBool() ? tr("Blocked") : ""; break;
-				case eAccess: {
-					QStringList Permissions = CExecLogEntry::GetProcessPermissions(Value.toULongLong() & 0xFFFFFFFF);
-					Permissions.append(CExecLogEntry::GetThreadPermissions((Value.toULongLong() >> 32) & 0xFFFFFFFF));
-					ColValue.Formatted = Permissions.join(", "); 
-					break;
-				}
+				case eStatus:		ColValue.Formatted = Value.toBool() ? tr("Blocked") : "";//tr("Allowed"); 
+									ColValue.Color = Value.toBool() ? QColor(255, 182, 193) : QVariant(); //QColor(144, 238, 144);
+									break;
+				case eOperation:	ColValue.Formatted = CExecLogEntry::GetAccessStr(pNode->pItem->Info.ProcessAccessMask, pNode->pItem->Info.ThreadAccessMask); 
+									ColValue.ToolTip = CExecLogEntry::GetAccessStrEx(pNode->pItem->Info.ProcessAccessMask, pNode->pItem->Info.ThreadAccessMask);
+									{ QColor Color = CExecLogEntry::GetAccessColor(pNode->pItem->Info.ProcessAccessMask, pNode->pItem->Info.ThreadAccessMask); if (Color.isValid()) ColValue.Color = Color; }
+									break;
 				}
 			}
 
@@ -159,8 +166,8 @@ QVariant CIngressModel::headerData(int section, Qt::Orientation orientation, int
 		{
 		case eName:					return tr("Name");
 		case eRole:					return tr("Role");
-		case eStatus:				return tr("Last Status");
-		case eAccess:				return tr("Access");
+		case eStatus:				return tr("Status");
+		case eOperation:			return tr("Operation");
 		case eTimeStamp:			return tr("Time Stamp");
 		case eProgram:				return tr("Program");
 		}

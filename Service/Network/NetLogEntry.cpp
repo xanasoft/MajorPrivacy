@@ -4,7 +4,7 @@
 #include "Firewall/WindowsFwLog.h"
 #include "../../Library/API/PrivacyAPI.h"
 
-CNetLogEntry::CNetLogEntry(const struct SWinFwLogEvent* pEvent, EFwEventStates State, const CHostNamePtr& pRemoteHostName, uint64 PID, const std::wstring& ServiceTag, const std::wstring& AppSid)
+CNetLogEntry::CNetLogEntry(const struct SWinFwLogEvent* pEvent, EFwEventStates State, const CHostNamePtr& pRemoteHostName, const std::vector<CFlexGuid>& AllowRules, const std::vector<CFlexGuid>& BlockRules, uint64 PID, const std::wstring& ServiceTag, const std::wstring& AppSid)
 	: CTraceLogEntry(PID)
 {
 	m_State			= State;
@@ -22,6 +22,9 @@ CNetLogEntry::CNetLogEntry(const struct SWinFwLogEvent* pEvent, EFwEventStates S
 	m_TimeStamp		= pEvent->TimeStamp;
 
 	// todo: m_Realm
+
+	m_AllowRules	= AllowRules;
+	m_BlockRules	= BlockRules;
 }
 
 void CNetLogEntry::WriteVariant(CVariant& Entry) const
@@ -41,4 +44,7 @@ void CNetLogEntry::WriteVariant(CVariant& Entry) const
 	Entry.Write(API_V_FW_RULE_REMOTE_HOST, m_pRemoteHostName ? m_pRemoteHostName->ToString() : L"");
 
     //m_Realm // todo
+
+	Entry.WriteVariant(API_V_FW_ALLOW_RULES, CFlexGuid::WriteList(m_AllowRules, false));
+	Entry.WriteVariant(API_V_FW_BLOCK_RULES, CFlexGuid::WriteList(m_BlockRules, false));
 }

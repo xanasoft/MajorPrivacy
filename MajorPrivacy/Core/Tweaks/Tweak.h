@@ -83,6 +83,7 @@ class CTweak : public CAbstractTweak
 {
 	Q_OBJECT
 public:
+	CTweak(ETweakType Type) { m_Type = Type; }
 
 	virtual QString GetInfo() const { return m_Info; }
 

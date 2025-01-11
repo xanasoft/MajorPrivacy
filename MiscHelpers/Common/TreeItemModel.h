@@ -84,12 +84,13 @@ protected:
 		bool				IsBold;
 		bool				IsGray;
 		bool				IsItalic;
-		QColor				Color;
 		struct SValue
 		{
 			QVariant Raw;
 			QVariant SortKey;
 			QVariant Formatted;
+			QVariant ToolTip;
+			QVariant Color;
 		};
 		QVector<SValue>		Values;
 		//CTreeItemModel*		Model;

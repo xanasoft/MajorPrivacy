@@ -2,6 +2,7 @@
 #include "HandleView.h"
 #include "../Core/PrivacyCore.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
+#include "../MiscHelpers/Common/Common.h"
 
 CHandleView::CHandleView(QWidget *parent)
 	:CPanelViewEx<CHandleModel>(parent)
@@ -43,9 +44,17 @@ CHandleView::~CHandleView()
 
 void CHandleView::Sync(const QMap<quint64, CProcessPtr>& Processes, const QString& RootPath)
 {
+	bool bLogPipes = theCore->GetConfigBool("Service/LogPipes", false);
+
 	QList<CHandlePtr> HandleList;
-	foreach(CProcessPtr pProcess, Processes)
-		HandleList.append(pProcess->GetHandles());
+	foreach(CProcessPtr pProcess, Processes) {
+		QList<CHandlePtr> Handles = pProcess->GetHandles();
+		foreach(CHandlePtr pHandle, Handles) {
+			if (!bLogPipes && pHandle->GetNtPath().startsWith("\\Device\\NamedPipe", Qt::CaseInsensitive))
+				continue;
+			HandleList.append(pHandle);
+		}
+	}
 
 	if (!RootPath.isNull())
 	{
@@ -55,7 +64,7 @@ void CHandleView::Sync(const QMap<quint64, CProcessPtr>& Processes, const QStrin
 
 		for (auto I = HandleList.begin(); I != HandleList.end();)
 		{
-			if (!(*I)->GetPath(EPathType::eNative).startsWith(RootPath, Qt::CaseInsensitive))
+			if (!PathStartsWith((*I)->GetNtPath(), RootPath))
 				I = HandleList.erase(I);
 			else
 				++I;

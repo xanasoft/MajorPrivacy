@@ -12,8 +12,11 @@ CAccessRule::CAccessRule(const CProgramID& ID, QObject* parent)
 	: CGenericRule(ID, parent)
 {
 	m_ProgramPath = ID.GetFilePath();
-	if(!m_ProgramPath.isEmpty()) 
-		m_ProgramPath = QString::fromStdWString(NtPathToDosPath(m_ProgramPath.toStdWString()));
+}
+
+bool CAccessRule::IsHidden() const
+{
+	return !m_Data.Get(API_V_RULE_REF_GUID).AsQStr().isEmpty();
 }
 
 CAccessRule* CAccessRule::Clone() const
@@ -38,6 +41,7 @@ QString CAccessRule::GetTypeStr() const
 	case EAccessRuleType::eEnum:		return tr("Allow Listing");
 	case EAccessRuleType::eBlock:		return tr("Block");
 	case EAccessRuleType::eProtect:		return tr("Protect");
+	case EAccessRuleType::eIgnore:		return tr("Don't Log");
 	}
 	return "Unknown";
 }

@@ -203,6 +203,8 @@ public:
 void MISCHELPERS_EXPORT FixComboBoxEditing(QComboBox* pBox);
 void MISCHELPERS_EXPORT SetComboBoxValue(QComboBox* pBox, const QVariant& Value);
 QVariant MISCHELPERS_EXPORT GetComboBoxValue(QComboBox* pBox);
+void MISCHELPERS_EXPORT AddColoredComboBoxEntry(QComboBox* pBox, const QString& Text, const QColor& Color, const QVariant& Data = QVariant());
+void MISCHELPERS_EXPORT ColorComboBox(QComboBox* pBox);
 
 ///////////////////////////////////////////////////
 //
@@ -430,7 +432,6 @@ public:
 signals:
 	void checkStateChanged(int Index, Qt::CheckState state);
 };
-
 
 ///////////////////////////////////////////////////
 // CConfigDialog

@@ -21,6 +21,7 @@ CProgramRule* CProgramRule::Clone() const
 
 	pRule->m_Type = m_Type;
 	pRule->m_ProgramPath = m_ProgramPath;
+	pRule->m_Enclave = m_Enclave;
 	pRule->m_SignatureLevel = m_SignatureLevel;
 	pRule->m_Data = m_Data;
 
@@ -35,32 +36,8 @@ QString CProgramRule::GetTypeStr() const
 	case EExecRuleType::eBlock:		return tr("Block");
 	case EExecRuleType::eProtect:	return tr("Protect");
 	case EExecRuleType::eIsolate:	return tr("Isolate");
+	case EExecRuleType::eAudit:		return tr("Audit");
 		// todo other:
-	}
-	return "Unknown";
-}
-
-QString CProgramRule::GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority)
-{
-	switch (SignAuthority) {
-	case KphDevAuthority:	return tr("Developer Signed");			// Part of Majror Privacy
-	case KphUserAuthority:	return tr("User Signed");				// Signed by the User Himself
-	case KphMsAuthority:	return tr("Microsoft");					// Signed by Microsoft
-	case KphAvAuthority:	return tr("Microsoft/AV");				// Signed by Microsoft or Antivirus
-	case KphMsCodeAuthority:return tr("Microsoft Trusted");			// Signed by Microsoft or Code Root
-	case KphUnkAuthority:	return tr("Unknown Root");
-	case KphNoAuthority:	return tr("None");
-	case KphUntestedAuthority: return tr("Undetermined");
-	}
-	return "Unknown";
-}
-
-QString CProgramRule::GetOnSpawnStr(EProgramOnSpawn OnSpawn)
-{
-	switch (OnSpawn) {
-	case EProgramOnSpawn::eAllow:	return tr("Allow");
-	case EProgramOnSpawn::eBlock:	return tr("Block");
-	case EProgramOnSpawn::eEject:	return tr("Eject");
 	}
 	return "Unknown";
 }

@@ -14,6 +14,7 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Common/Strings.h"
 #include "Processes/ProcessList.h"
+#include "Enclaves/EnclaveManager.h"
 #include "Programs/ProgramManager.h"
 #include "Network/SocketList.h"
 #include "Network/Firewall/Firewall.h"
@@ -31,6 +32,7 @@ CServiceCore* theCore = NULL;
 
 
 CServiceCore::CServiceCore()
+	: m_Pool(4)
 {
 #ifdef _DEBUG
 	TestVariant();
@@ -41,7 +43,10 @@ CServiceCore::CServiceCore()
 	m_pUserPipe = new CPipeServer();
 	m_pUserPort = new CAlpcPortServer();
 
+	m_pEnclaveManager = new CEnclaveManager();
+
 	m_pProgramManager = new CProgramManager();
+
 	m_pProcessList = new CProcessList();
 
 	m_pAccessManager = new CAccessManager();
@@ -76,7 +81,10 @@ CServiceCore::~CServiceCore()
 	delete m_pAccessManager;
 
 	delete m_pProcessList;
+
 	delete m_pProgramManager;
+
+	delete m_pEnclaveManager;
 
 	delete m_pUserPipe;
 	delete m_pUserPort;
@@ -137,8 +145,8 @@ STATUS CServiceCore::InitDriver()
 	{
 		std::wstring BinaryPath = GetServiceBinaryPath(API_DRIVER_NAME);
 
-		std::wstring ServicePath = NormalizeFilePath(GetFileFromCommand(BinaryPath));
-		std::wstring AppDir = NormalizeFilePath(m_AppDir);
+		std::wstring ServicePath = CServiceCore::NormalizePath(GetFileFromCommand(BinaryPath));
+		std::wstring AppDir = CServiceCore::NormalizePath(m_AppDir);
 		if (ServicePath.length() < AppDir.length() || ServicePath.compare(0, AppDir.length(), AppDir) != 0)
 		{
 			theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Updated driver, old path: %s", BinaryPath);
@@ -315,6 +323,12 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 	// Initialize the rest of the components
 	//
 
+	This->m_InitStatus = This->m_pEnclaveManager->Init();
+	if (This->m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Enclave Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
+	}
+
 	This->m_InitStatus = This->m_pProgramManager->Init();
 	if (This->m_InitStatus.IsError()) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Program Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
@@ -371,7 +385,7 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 	// Loop waiting for the timer to do something, or for other events
 	//
 
-	while (!This->m_Terminate)
+	while (!This->m_Shutdown)
 		WaitForSingleObjectEx(This->m_hTimer, INFINITE, TRUE);
 
 
@@ -389,10 +403,12 @@ cleanup:
 	if (theCore->m_pDriver->IsConnected())
 		This->CloseDriver();
 
-	delete theCore;
-	theCore = NULL;
+	if (This->m_Shutdown == 2) {
+		delete theCore;
+		theCore = NULL;
+	}
 
-    CoUninitialize();
+	CoUninitialize();
 
 	return 0;
 }
@@ -435,7 +451,6 @@ STATUS CServiceCore::Init()
 			break; // thread terminated prematurely - init failed
 		Sleep(100);
 	}
-
 	
 	if (!m_InitStatus.IsError())
 		m_InitStatus = m_pUserPipe->Open(API_SERVICE_PIPE);
@@ -452,13 +467,16 @@ void CServiceCore::Shutdown(bool bWait)
 		return;
 	HANDLE hThread = theCore->m_hThread;
 
-	theCore->m_Terminate = true;
+	theCore->m_Shutdown = bWait ? 1 : 2;
+	if (!bWait) 
+		return;
 
-	if (bWait) {
-		if (WaitForSingleObject(hThread, 10 * 1000) != WAIT_OBJECT_0)
-			TerminateThread(hThread, -1);
-		CloseHandle(hThread);
-	}
+	if (WaitForSingleObject(hThread, 10 * 1000) != WAIT_OBJECT_0)
+		TerminateThread(hThread, -1);
+	CloseHandle(hThread);
+
+	delete theCore;
+	theCore = NULL;
 }
 
 void CServiceCore::StoreRecords(bool bAsync)
@@ -488,6 +506,21 @@ void CServiceCore::Reconfigure(const std::string& Key)
 	//m_pNetworkManager->Reconfigure();
 
 	//m_pEtwEventMonitor->Reconfigure();
+}
+
+STATUS CServiceCore::CommitConfig()
+{
+	m_pProgramManager->Store();
+	m_bConfigDirty = false;
+
+	return OK;
+}
+
+STATUS CServiceCore::DiscardConfig()
+{
+	// todo: reload config from disk
+	m_bConfigDirty = false;
+	return OK;
 }
 
 #ifdef _DEBUG
@@ -541,4 +574,58 @@ void CServiceCore::DeviceChangedCallback(void* param)
 	CServiceCore* This = (CServiceCore*)param;
 
 	// todo: handle device change
+}
+
+// DOS Prefixes
+// L"\\\\?\\" prefix is used to bypass the MAX_PATH limitation
+// L"\\\\.\\" points to L"\Device\"
+
+// NT Prefixes
+// L"\\??\\" prefix (L"\\GLOBAL??\\") maps DOS letters and more
+
+std::wstring CServiceCore::NormalizePath(std::wstring Path, bool bLowerCase)
+{
+	if(Path.empty() || Path[0] == L'*')
+		return Path;
+
+	if (Path.length() >= 7 && Path.compare(0, 4, L"\\??\\") == 0 && Path.compare(5, 2, L":\\") == 0) // \??\X:\...
+		Path.erase(0, 4);
+	else if (Path.length() >= 7 && Path.compare(0, 4, L"\\\\?\\") == 0 && Path.compare(5, 2, L":\\") == 0) // \\?\X:\...
+		Path.erase(0, 4);
+
+	if (Path.find(L'%') != std::wstring::npos)
+		Path = ExpandEnvironmentVariablesInPath(Path);
+
+	if (MatchPathPrefix(Path, L"\\SystemRoot")) {
+		static WCHAR windir[MAX_PATH + 8] = { 0 };
+		if (!*windir) GetWindowsDirectoryW(windir, MAX_PATH);
+		Path = windir + Path.substr(11);
+	}
+
+	if (!CNtPathMgr::IsDosPath(Path) && !MatchPathPrefix(Path, L"\\REGISTRY"))
+	{
+		//if (MatchPathPrefix(Path, L"\\Device"))
+		//	Path = L"\\\\.\\" + Path.substr(8);
+		
+		if (Path.length() >= 4 && Path.compare(0, 4, L"\\\\.\\") == 0) 
+			Path = L"\\Device\\" + Path.substr(4);
+
+		if (MatchPathPrefix(Path, L"\\Device"))
+		{
+			//std::wstring DosPath = CNtPathMgr::Instance()->TranslateNtToDosPath(L"\\Device\\" + Path.substr(4));
+			std::wstring DosPath = CNtPathMgr::Instance()->TranslateNtToDosPath(Path);
+			if (!DosPath.empty())
+				Path = DosPath;
+#ifdef _DEBUG
+			else
+				DbgPrint("Encountered Unresolved NtPath %S\n", Path.c_str());
+#endif
+		}
+#ifdef _DEBUG
+		else
+			DbgPrint("Encountered Unecpected NtPath %S\n", Path.c_str());
+#endif
+	}
+
+	return bLowerCase ? MkLower(Path) : Path;
 }

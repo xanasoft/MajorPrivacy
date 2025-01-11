@@ -9,6 +9,8 @@ CEnclaveModel::CEnclaveModel(QObject *parent)
 {
 	m_bTree = true;
 
+	m_bUseIcons = true;
+
 	m_Root = MkNode(QVariant());
 }
 
@@ -18,7 +20,7 @@ CEnclaveModel::~CEnclaveModel()
 	m_Root = NULL;
 }
 
-QList<QVariant> CEnclaveModel::MakeProcPath(const quint64 EnclaveId, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList)
+QList<QVariant> CEnclaveModel::MakeProcPath(const QVariant& EnclaveId, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList)
 {
 	QList<QVariant> Path;
 	MakeProcPath(pProcess, ProcessList, Path);
@@ -38,7 +40,7 @@ void CEnclaveModel::MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64
 	}
 }
 
-bool CEnclaveModel::TestProcPath(const QList<QVariant>& Path, const quint64 EnclaveId, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, int Index)
+bool CEnclaveModel::TestProcPath(const QList<QVariant>& Path, const QVariant& EnclaveId, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, int Index)
 {
 	if (Index == 0)
 	{
@@ -62,15 +64,18 @@ bool CEnclaveModel::TestProcPath(const QList<QVariant>& Path, const quint64 Encl
 	return Path.size() == Index;
 }
 
-QList<QVariant> CEnclaveModel::Sync(const QMap<quint64, CEnclavePtr>& EnclaveList)
+QList<QVariant> CEnclaveModel::Sync(const QMap<QFlexGuid, CEnclavePtr>& EnclaveManager)
 {
 	QList<QVariant> Added;
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
-	foreach (const CEnclavePtr& pEnclave, EnclaveList)
+	foreach (const CEnclavePtr& pEnclave, EnclaveManager)
 	{
-		QVariant ID = (0x8000000000000000 | pEnclave->GetEnclaveID());
+		QVariant ID = pEnclave->GetGuid().ToQV();
 
 		QModelIndex Index;
 
@@ -93,6 +98,14 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<quint64, CEnclavePtr>& EnclaveLis
 		int Col = 0;
 		bool State = false;
 		int Changed = 0;
+		if (pNode->pProcess) {
+			pNode->Icon = pNode->pProcess->GetIcon();
+			Changed = 1;
+		} else if (pNode->Icon.isNull() || pNode->IconFile != pNode->pEnclave->GetIconFile()) {
+			pNode->IconFile = pNode->pEnclave->GetIconFile();
+			pNode->Icon = pNode->pEnclave->GetIcon();
+			Changed = 1;
+		}
 
 		QMap<quint64, CProcessPtr> ProcessList = pEnclave->GetProcesses();
 
@@ -106,9 +119,8 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<quint64, CEnclavePtr>& EnclaveLis
 			QVariant Value;
 			switch(section)
 			{
-			case eName:				Value = pEnclave->GetNameEx(); break;
-			case eID:				Value = (qint64)pEnclave->GetEnclaveID(); break;
-			case eSignAuthority:	Value = (uint32)pEnclave->GetSignatureLevel(); break;
+			case eName:				Value = pEnclave->GetName(); break;
+			case eTrustLevel:		Value = (uint32)pEnclave->GetSignatureLevel(); break;
 			case eOnSpawn:			Value = ((uint32)pEnclave->GetOnTrustedSpawn()) << 16 | ((uint32)pEnclave->GetOnSpawn()); break;
 			}
 
@@ -122,8 +134,8 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<quint64, CEnclavePtr>& EnclaveLis
 
 				switch (section)
 				{
-				case eSignAuthority:	ColValue.Formatted = CProgramRule::GetSignatureLevelStr((KPH_VERIFY_AUTHORITY)Value.toUInt()); break;
-				case eOnSpawn:			ColValue.Formatted = CProgramRule::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() >> 16)) + "/" + CProgramRule::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() & 0xFFFF)); break;
+				case eTrustLevel:		ColValue.Formatted = CEnclave::GetSignatureLevelStr((KPH_VERIFY_AUTHORITY)Value.toUInt()); break;
+				case eOnSpawn:			ColValue.Formatted = CEnclave::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() >> 16)) + "/" + CEnclave::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() & 0xFFFF)); break;
 				}
 			}
 
@@ -147,7 +159,7 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<quint64, CEnclavePtr>& EnclaveLis
 
 bool CEnclaveModel::Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Path, const QMap<quint64, CProcessPtr>& ProcessList, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
 {
-	quint64 EnclaveID = (0x8000000000000000 | pEnclave->GetEnclaveID());
+	QVariant EnclaveID = pEnclave->GetGuid().ToQV();
 
 	int ActiveCount = 0;
 
@@ -210,8 +222,8 @@ bool CEnclaveModel::Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Pat
 			{
 			case eName:					Value = pProcess->GetName(); break;
 			case eID:					Value = pProcess->GetProcessId(); break;
-			case eSignAuthority:		Value = pProcess->GetSignInfo().Data; break;
-			case eProgram:				Value = pProcess->GetPath(EPathType::eDisplay); break;
+			case eTrustLevel:			Value = pProcess->GetSignInfo().GetRawInfo(); break;
+			case eProgram:				Value = pProcess->GetNtPath(); break;
 			}
 
 			SEnclaveNode::SValue& ColValue = pNode->Values[section];
@@ -224,7 +236,8 @@ bool CEnclaveModel::Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Pat
 
 				switch (section)
 				{
-				case eSignAuthority:	ColValue.Formatted = CProgramFile::GetSignatureInfoStr(SLibraryInfo::USign{Value.toULongLong()}); break;
+				case eTrustLevel:		ColValue.Formatted = CProgramFile::GetSignatureInfoStr(UCISignInfo{Value.toULongLong()}); break;
+				case eProgram:			ColValue.Formatted = theCore->NormalizePath(pProcess->GetNtPath()); break;
 				}
 			}
 
@@ -253,26 +266,15 @@ QVariant CEnclaveModel::NodeData(STreeNode* pNode, int role, int section) const
 	return CTreeItemModel::NodeData(pNode, role, section);
 }
 
-CEnclavePtr CEnclaveModel::GetEnclave(const QModelIndex &index) const
+CEnclaveModel::SModelItem CEnclaveModel::GetItem(const QModelIndex &index) const
 {
 	if (!index.isValid())
-		return CEnclavePtr();
+		return SModelItem();
 
 	SEnclaveNode* pNode = static_cast<SEnclaveNode*>(index.internalPointer());
 	ASSERT(pNode);
 
-	return pNode->pEnclave;
-}
-
-CProcessPtr CEnclaveModel::GetProcess(const QModelIndex &index) const
-{
-	if (!index.isValid())
-		return CProcessPtr();
-
-	SEnclaveNode* pNode = static_cast<SEnclaveNode*>(index.internalPointer());
-	ASSERT(pNode);
-
-	return pNode->pProcess;
+	return SModelItem { pNode->pEnclave, pNode->pProcess };
 }
 
 QVariant CEnclaveModel::GetID(const QModelIndex &index) const
@@ -317,7 +319,7 @@ QVariant CEnclaveModel::headerData(int section, Qt::Orientation orientation, int
 		{
 		case eName:				return tr("Name");
 		case eID:				return tr("ID");
-		case eSignAuthority:	return tr("Signature");
+		case eTrustLevel:		return tr("Trust Level");
 		case eOnSpawn:			return tr("Trusted Spawn/UnTrusted");
 		case eProgram:			return tr("Program");
 		}

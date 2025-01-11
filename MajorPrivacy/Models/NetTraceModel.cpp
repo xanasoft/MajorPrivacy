@@ -5,9 +5,9 @@
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Core/PrivacyCore.h"
-#include "../Core/TraceLogUtils.h"
 #include "../Core/Network/NetLogEntry.h"
 #include "../Core/Network/NetworkManager.h"
+#include "../Windows/FirewallRuleWnd.h"
 
 
 CNetTraceModel::CNetTraceModel(QObject* parent)
@@ -90,16 +90,25 @@ QVariant CNetTraceModel::NodeData(STraceNode* pTraceNode, int role, int section)
 			return QString::number(id, 16).rightJustified(8, '0');
 	}*/
 
-	switch (role)
+	if (role == (CTreeItemModel::GetDarkMode() ? Qt::ForegroundRole : Qt::BackgroundRole))
+	{
+		QColor Color;
+		switch (section)
+		{
+		case eStatus:		Color = CFirewallRuleWnd::GetActionColor(pEntry->GetAction()); break;
+		case eDirection:	Color = CFirewallRuleWnd::GetDirectionColor(pEntry->GetDirection()); break;
+		}
+		if (Color.isValid())
+			return Color;
+	}
+	else switch (role)
 	{
 	case Qt::DisplayRole:
 	case Qt::EditRole: // sort role
-	{
 		switch (section)
 		{
-		case eName:				return (pNode->pProgram ? pNode->pProgram->GetNameEx() : tr("Unknown Program"))
-			+ (!pEntry->GetOwnerService().isEmpty() ? tr(" (%1)").arg(pEntry->GetOwnerService()) : "");
-		case eAction:			return pEntry->GetActionStr();
+		case eName:				return (pNode->pProgram ? pNode->pProgram->GetNameEx() : tr("Unknown Program")) + (!pEntry->GetOwnerService().isEmpty() ? tr(" (%1)").arg(pEntry->GetOwnerService()) : "");
+		case eStatus:			return pEntry->GetActionStr();
 		case eDirection:		return pEntry->GetDirectionStr();
 		case eProtocol:			return CFwRule::ProtocolToStr((EFwKnownProtocols)pEntry->GetProtocolType()); break;
 		case eRAddress: {
@@ -114,15 +123,13 @@ QVariant CNetTraceModel::NodeData(STraceNode* pTraceNode, int role, int section)
 			//case eUploaded:		return Connection[].AsQStr(); 
 			//case eDownloaded:		return Connection[].AsQStr(); 
 		case eTimeStamp:		return QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pEntry->GetTimeStamp())).toString("dd.MM.yyyy hh:mm:ss.zzz");
-		case eProgram:			return pNode->pProgram ? pNode->pProgram->GetPath(EPathType::eDisplay) : tr("PROCESS MISSING");
+		case eProgram:			return pNode->pProgram ? pNode->pProgram->GetPath() : tr("PROCESS MISSING");
 		}
-	}
+		break;
 	case Qt::DecorationRole:
-	{
 		if (section == 0)
 			return pNode->pProgram ? pNode->pProgram->GetIcon() : CProcess::DefaultIcon();
 		break;
-	}
 	}
 
 	return CTraceModel::NodeData(pTraceNode, role, section);
@@ -160,7 +167,7 @@ QVariant CNetTraceModel::headerData(int section, Qt::Orientation orientation, in
 		{
 		case eName:					return tr("Name");
 		case eProtocol:				return tr("Protocol");
-		case eAction:				return tr("Action");
+		case eStatus:				return tr("Status");
 		case eDirection:			return tr("Direction");
 		case eRAddress:				return tr("Remote Address");
 		case eRPort:				return tr("Remote Port");

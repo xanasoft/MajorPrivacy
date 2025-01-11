@@ -3,6 +3,7 @@
 #include "../Core/PrivacyCore.h"
 #include "../Core/Tweaks/TweakManager.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
+#include "MajorPrivacy.h"
 
 CTweakView::CTweakView(QWidget *parent)
 	:CPanelViewEx<CTweakModel>(parent)
@@ -58,9 +59,6 @@ void CTweakView::Sync(const CTweakPtr& pRoot)
 
 void CTweakView::OnDoubleClicked(const QModelIndex& Index)
 {
-	STATUS Status;
-	CTweakPtr pTweak = m_pItemModel->GetItem(Index);
-	// todo.....
 }
 
 void CTweakView::OnCheckChanged(const QModelIndex& Index, bool State)
@@ -71,7 +69,7 @@ void CTweakView::OnCheckChanged(const QModelIndex& Index, bool State)
 		Status = theCore->TweakManager()->ApplyTweak(pTweak);
 	else
 		Status = theCore->TweakManager()->UndoTweak(pTweak);
-	//todo: show error Status
+	theGUI->CheckResults(QList<STATUS>() << Status, this);
 }
 
 void CTweakView::OnMenu(const QPoint& Point)

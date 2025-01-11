@@ -25,9 +25,9 @@ public:
 	enum EColumns
 	{
 		eName = 0,
-		eProtocol,
-		eAction,
 		eDirection,
+		eProtocol,
+		eStatus,
 		eRAddress,
 		eRPort,
 		eLAddress,

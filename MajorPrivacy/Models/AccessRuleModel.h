@@ -28,6 +28,7 @@ public:
 		eEnabled,
 		eAction,
 		ePath,
+		eEnclave,
 		eProgram,
 		eCount
 	};

@@ -8,4 +8,10 @@ QIcon LoadWindowsIconEx(const QString& Path, quint32 Index = 0);
 
 bool PickWindowsIcon(QWidget* pParent, QString& Path, quint32& Index);
 
-void WindowsMoveFile(const QString& From, const QString& To);
+bool WindowsMoveFile(const QString& From, const QString& To);
+
+bool OpenFileProperties(const QString& Path);
+
+bool OpenFileFolder(const QString& Path);
+
+HANDLE ShellExecuteQ(const QString& Command);

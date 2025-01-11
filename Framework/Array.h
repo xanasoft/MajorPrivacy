@@ -1,5 +1,5 @@
 ﻿/*
-* Copyright (c) 2023-2024 David Xanatos, xanasoft.com
+* Copyright (c) 2023-2025 David Xanatos, xanasoft.com
 * All rights reserved.
 *
 * This file is part of MajorPrivacy.
@@ -96,6 +96,7 @@ public:
 		return true;
 	}
 
+	// todo make this check the bounds
 	const V& GetValue(size_t Index) const			{ return m_ptr->Data[Index]; }
 	V& GetValue(size_t Index)						{ MakeExclusive(); return m_ptr->Data[Index]; }
 

@@ -7,6 +7,7 @@
 #include "TraceLogEntry.h"
 #include "Programs/ProgramFile.h"
 #include "../Helpers/SidResolver.h"
+#include "../../Library/Common/FlexGuid.h"
 
 class CPrivacyCore : public QObject
 {
@@ -18,6 +19,7 @@ public:
 	STATUS Install();
 	STATUS Uninstall();
 	bool IsInstalled();
+	bool SvcIsRunning();
 
 	STATUS Connect(bool bEngineMode);
 	void Disconnect(bool bKeepEngine);
@@ -30,19 +32,26 @@ public:
 	void Clear();
 
 	class CProcessList* ProcessList()			{ return m_pProcessList; }
-	class CEnclaveList* EnclaveList()			{ return m_pEnclaveList; }
+	class CEnclaveManager* EnclaveManager()		{ return m_pEnclaveManager; }
 	class CProgramManager* ProgramManager()		{ return m_pProgramManager; }
 	class CAccessManager* AccessManager()		{ return m_pAccessManager; }
 	class CNetworkManager* NetworkManager()		{ return m_pNetworkManager; }
 	class CVolumeManager* VolumeManager()		{ return m_pVolumeManager; }
 	class CTweakManager* TweakManager()			{ return m_pTweakManager; }
 
-	STATUS StartProcessInEnvlave(const QString& Command, uint64 EnclaveId);
-
 	CDriverAPI*		Driver() { return &m_Driver; }
 	CServiceAPI*	Service() { return &m_Service; }
 
-	QString				GetConfigDir();
+	static QString		NormalizePath(QString sFilePath, bool bForID = false);
+
+	STATUS 				SignFiles(const QStringList& Paths, const class CPrivateKey* pPrivateKey);
+	bool				HasFileSignature(const QString& Path);
+	STATUS 				RemoveFileSignature(const QStringList& Paths);
+	STATUS 				SignCerts(const QMap<QByteArray, QString>& Certs, const class CPrivateKey* pPrivateKey);
+	bool				HasCertSignature(const QString& Subject, const QByteArray& SignerHash);
+	STATUS 				RemoveCertSignature(const QMap<QByteArray, QString>& Certs);
+
+	QString				GetConfigDir() { return m_ConfigDir; }
 
 	RESULT(XVariant)	GetConfig(const QString& Name);
 
@@ -95,8 +104,12 @@ public:
 
 	STATUS				SetConfig(const QString& Name, const XVariant& Value);
 
-	//RESULT(XVariant)	GetConfigMap(const XVariant& NameList);
-	//STATUS				SetConfigMap(const XVariant& ValueMap);
+	QString				QueryConfigDir();
+	bool				CheckConfigFile(const QString& Name);
+	RESULT(QByteArray)	ReadConfigFile(const QString& Name);
+	STATUS				WriteConfigFile(const QString& Name, const QByteArray& Data);
+	STATUS				RemoveConfigFile(const QString& Name);
+	RESULT(QStringList)	ListConfigFiles(const QString& Name);
 
 	RESULT(XVariant)	GetSvcConfig();
 	STATUS				SetSvcConfig(const XVariant& Data);
@@ -107,6 +120,15 @@ public:
 	// Process Manager
 	RESULT(XVariant)	GetProcesses();
 	RESULT(XVariant)	GetProcess(uint64 Pid);
+	STATUS				TerminateProcess(uint64 Pid);
+
+	// Secure Enclaves
+	STATUS				SetAllEnclaves(const XVariant& Enclaves);
+	RESULT(XVariant)	GetAllEnclaves();
+	STATUS				SetEnclave(const XVariant& Enclave);
+	RESULT(XVariant)	GetEnclave(const QFlexGuid& Guid);
+	STATUS				DelEnclave(const QFlexGuid& Guid);
+	STATUS				StartProcessInEnclave(const QString& Command, const QFlexGuid& Guid);
 
 	// ProgramManager
 	RESULT(XVariant)	GetPrograms();
@@ -122,22 +144,22 @@ public:
 	STATUS				SetAllProgramRules(const XVariant& Rules);
 	RESULT(XVariant)	GetAllProgramRules();
 	STATUS				SetProgramRule(const XVariant& Rule);
-	RESULT(XVariant)	GetProgramRule(const QString& Name);
-	STATUS				DelProgramRule(const QString& Name);
+	RESULT(XVariant)	GetProgramRule(const QFlexGuid& Guid);
+	STATUS				DelProgramRule(const QFlexGuid& Guid);
 
 	// Access Manager
 	STATUS				SetAllAccessRules(const XVariant& Rules);
 	RESULT(XVariant)	GetAllAccessRules();
 	STATUS				SetAccessRule(const XVariant& Rule);
-	RESULT(XVariant)	GetAccessRule(const QString& Name);
-	STATUS				DelAccessRule(const QString& Name);
+	RESULT(XVariant)	GetAccessRule(const QFlexGuid& Guid);
+	STATUS				DelAccessRule(const QFlexGuid& Guid);
 
 	// Network Manager
 	RESULT(XVariant)	GetFwRulesFor(const QList<const class CProgramItem*>& Nodes);
-	RESULT(XVariant)	GetAllFwRules();
+	RESULT(XVariant)	GetAllFwRules(bool bReLoad = false);
 	STATUS				SetFwRule(const XVariant& Rule);
-	RESULT(XVariant)	GetFwRule(const QString& Guid);
-	STATUS				DelFwRule(const QString& Guid);
+	RESULT(XVariant)	GetFwRule(const QFlexGuid& Guid);
+	STATUS				DelFwRule(const QFlexGuid& Guid);
 
 	RESULT(FwFilteringModes) GetFwProfile();
 	STATUS				SetFwProfile(FwFilteringModes Profile);
@@ -163,6 +185,7 @@ public:
 
 	// Program Item
 	RESULT(XVariant)	GetLibraryStats(const class CProgramID& ID);
+	STATUS				CleanUpLibraries(const CProgramItemPtr& pItem = CProgramItemPtr());
 	RESULT(XVariant)	GetExecStats(const class CProgramID& ID);
 	RESULT(XVariant)	GetIngressStats(const class CProgramID& ID);
 
@@ -199,7 +222,12 @@ public:
 signals:
 	void				ProgramsAdded();
 	void				UnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
-	//void				FwRuleChanged();
+	
+	void				EnclavesChanged();
+	void				ExecRulesChanged();
+	void				ResRulesChanged();
+	void				FwRulesChanged();
+	
 	void				ExecutionEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
 	void				AccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
 
@@ -217,29 +245,35 @@ protected:
 
 	//void OnProgEvent(uint32 MessageId, const CBuffer* pEvent);
 
-	void OnSvcEvent(uint32 MessageId, const CBuffer* pEvent);
-	//void OnDrvEvent(const std::wstring& Guid, ERuleEvent Event, ERuleType Type);
+	void				OnSvcEvent(uint32 MessageId, const CBuffer* pEvent);
+	//void				OnDrvEvent(const std::wstring& Guid, EConfigEvent Event, ERuleType Type);
 
-	void OnCleanUpDone(uint32 MessageId, const CBuffer* pEvent);
+	STATUS				HashFile(const QString& Path, CBuffer& Hash);
+	QString				GetSignatureFilePath(const QString& Path);
+
+	void				OnCleanUpDone(uint32 MessageId, const CBuffer* pEvent);
 	
 	static void			DeviceChangedCallback(void* param);
 
-	static XVariant MakeIDs(const QList<const class CProgramItem*>& Nodes);
+	static XVariant		MakeIDs(const QList<const class CProgramItem*>& Nodes);
 
 	CDriverAPI	m_Driver;
 	CServiceAPI m_Service;
 	bool m_bEngineMode = false;
+	QString m_ConfigDir;
 
 	class CProcessList* m_pProcessList = NULL;
-	class CEnclaveList* m_pEnclaveList = NULL;
+	class CEnclaveManager* m_pEnclaveManager = NULL;
 	class CProgramManager* m_pProgramManager = NULL;
-	bool m_ProgramRulesUpdated = false;
 	class CAccessManager* m_pAccessManager = NULL;
-	bool m_AccessRulesUpdated = false;
 	class CNetworkManager* m_pNetworkManager = NULL;
-	bool m_FwRulesUpdated = false;
 	class CVolumeManager* m_pVolumeManager = NULL;
 	class CTweakManager* m_pTweakManager = NULL;
+
+	bool m_EnclavesUpToDate = false;
+	bool m_ProgramRulesUpToDate = false;
+	bool m_AccessRulesUpToDate = false;
+	bool m_FwRulesUpToDate = false;
 
 	QMutex m_EventQueueMutex;
 	QMap<quint32, QQueue<XVariant>> m_SvcEventQueue;
@@ -247,11 +281,13 @@ protected:
 	//{
 	//	QString Guid;
 	//	ERuleType Type;
-	//	ERuleEvent Event;
+	//	EConfigEvent Event;
 	//};
 	//QMap<ERuleType, QQueue<SDrvRuleEvent>> m_DrvEventQueue;
 
 	CSidResolver* m_pSidResolver;
+
+	QHash<QString, int> m_SigFileCache;
 };
 
 extern CSettings* theConf;

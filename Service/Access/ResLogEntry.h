@@ -7,7 +7,7 @@ class CResLogEntry: public CTraceLogEntry
 {
 	TRACK_OBJECT(CResLogEntry)
 public:
-	CResLogEntry(const std::wstring& Path, std::wstring ServiceTag, uint32 AccessMask, EEventStatus Status, uint64 TimeStamp, uint64 PID);
+	CResLogEntry(const CFlexGuid& EnclaveGuid, const std::wstring& NtPath, std::wstring ServiceTag, uint32 AccessMask, EEventStatus Status, uint64 TimeStamp, uint64 PID);
 
 	EEventStatus GetStatus() const { return m_Status; }
 
@@ -15,7 +15,7 @@ public:
 
 protected:
 
-	std::wstring m_Path;
+	std::wstring m_NtPath;
 	uint32 m_AccessMask;
 	EEventStatus m_Status;
 };

@@ -119,6 +119,16 @@
             </spacer>
            </item>
            <item>
+            <widget class="QComboBox" name="cmbFwTime">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QToolButton" name="btnFwAllow">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -350,6 +360,11 @@
               </column>
               <column>
                <property name="text">
+                <string>Enclave</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
                 <string>Process ID</string>
                </property>
               </column>
@@ -429,6 +444,16 @@
               </size>
              </property>
             </spacer>
+           </item>
+           <item>
+            <widget class="QComboBox" name="cmbResTime">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QToolButton" name="btnResAllow">
@@ -549,12 +574,22 @@
               </column>
               <column>
                <property name="text">
-                <string>Signature</string>
+                <string>Trust Level</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Signing Certificate</string>
                </property>
               </column>
               <column>
                <property name="text">
                 <string>Tiem Stamp</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Enclave</string>
                </property>
               </column>
               <column>

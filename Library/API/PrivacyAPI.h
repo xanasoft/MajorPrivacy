@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023-2024 David Xanatos, xanasoft.com
+* Copyright (c) 2023-2025 David Xanatos, xanasoft.com
 * All rights reserved.
 *
 * This file is part of MajorPrivacy.
@@ -16,7 +16,7 @@
 
 #pragma once
 
-#define MY_ABI_VERSION  0x009601
+#define MY_ABI_VERSION  0x009700
 
 /////////////////////////////////////////////////////////////////////////////
 // Driver
@@ -37,47 +37,51 @@
 #define API_NUM_ARGS            8
 
 enum {
-	API_FIRST                   = ('PD' << 16),
+	API_GET_VERSION = 'VERS',
+	API_GET_PROCESS_INFO = 'PRCS',
+	API_SET_PROCESS_INFO = 'SPRC',
+	API_ENUM_PROCESSES = 'EPRC',
+	API_GET_HANDLE_INFO = 'HNDL',
+	API_REGISTER_FOR_EVENT = 'REVT',
 
-	API_GET_VERSION,
-	API_GET_PROCESS_INFO,
-	API_SET_PROCESS_INFO,
-	API_ENUM_PROCESSES,
-	API_GET_HANDLE_INFO,
-	API_ENUM_ENCLAVES,
-	API_GET_ENCLAVE_INFO,
-	API_PREPARE_ENCLAVE,
-	API_REGISTER_FOR_EVENT,
+	API_SET_USER_KEY = 'SUKY',
+	API_GET_USER_KEY = 'GUKY',
+	API_CLEAR_USER_KEY = 'CUKY',
+	API_GET_CHALLENGE = 'CHAL',
 
-	API_SET_USER_KEY,
-	API_GET_USER_KEY,
-	API_UNLOCK_USER_KEY,
-	API_LOCK_USER_KEY,
-	API_CLEAR_USER_KEY,
+	API_PROTECT_CONFIG = 'PCFG',
+	API_UNPROTECT_CONFIG = 'UCFG',
+	API_GET_CONFIG_STATUS = 'GCFS',
+	API_UNLOCK_CONFIG = 'ULCK',
+	API_COMMIT_CONFIG = 'CCFG',
+	API_DISCARD_CHANGES = 'DCFG',
+	API_GET_CONFIG_HASH = 'HCFG',
 
-	API_GET_CHALLENGE,
+	API_SET_ENCLAVES = 'LENC',
+	API_GET_ENCLAVES = 'AENC',
+	API_SET_ENCLAVE = 'SENC',
+	API_GET_ENCLAVE = 'GENC',
+	API_DEL_ENCLAVE = 'DENC',
+	API_PREP_ENCLAVE = 'PENC',
 
-	API_SET_PROGRAM_RULES,
-	API_GET_PROGRAM_RULES,
-	API_SET_PROGRAM_RULE,
-	API_GET_PROGRAM_RULE,
-	API_DEL_PROGRAM_RULE,
+	API_SET_PROGRAM_RULES = 'LPRG',
+	API_GET_PROGRAM_RULES = 'APRG',
+	API_SET_PROGRAM_RULE = 'SPRG',
+	API_GET_PROGRAM_RULE = 'GPRG',
+	API_DEL_PROGRAM_RULE = 'DPRG',
 
-	API_SET_ACCESS_RULES,
-	API_GET_ACCESS_RULES,
-	API_SET_ACCESS_RULE,
-	API_GET_ACCESS_RULE,
-	API_DEL_ACCESS_RULE,
+	API_SET_ACCESS_RULES = 'LACS',
+	API_GET_ACCESS_RULES = 'AACS',
+	API_SET_ACCESS_RULE = 'SACS',
+	API_GET_ACCESS_RULE = 'GACS',
+	API_DEL_ACCESS_RULE = 'DACS',
+	//API_SETUP_ACCESS_RULE_ALIAS = 'SARA',
+	//API_CLEAR_ACCESS_RULE_ALIAS = 'CARA',
 
-	API_SETUP_ACCESS_RULE_ALIAS,
-	API_CLEAR_ACCESS_RULE_ALIAS,
+	API_SET_CONFIG_VALUE = 'SCFG',
+	API_GET_CONFIG_VALUE = 'GCFG',
 
-	API_SET_CONFIG_VALUE,
-	API_GET_CONFIG_VALUE,
-
-	API_GET_SUPPORT_INFO,
-
-	API_LAST
+	API_GET_SUPPORT_INFO = 'SUPP',
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -93,94 +97,102 @@ enum {
 #define API_SERVICE_PIPE	    L"\\\\.\\pipe\\" API_SERVICE_NAME L"Pipe"
 
 enum {
-	SVC_API_FIRST                   = ('PS' << 16),
+	SVC_API_GET_VERSION = 'VERS',
 
-	SVC_API_GET_VERSION,
+	SVC_API_GET_CONFIG_DIR = 'GCDR',
+	SVC_API_GET_CONFIG = 'GCFG',
+	SVC_API_SET_CONFIG = 'SCFG',
 
-	SVC_API_GET_CONFIG_DIR,
-	SVC_API_GET_CONFIG,
-	SVC_API_SET_CONFIG,
+	SVC_API_CHECK_CONFIG_FILE = 'CCFF',
+	SVC_API_GET_CONFIG_FILE = 'GCFF',
+	SVC_API_SET_CONFIG_FILE = 'SCFF',
+	SVC_API_DEL_CONFIG_FILE = 'DCFF',
+	SVC_API_LIST_CONFIG_FILES = 'LCFF',
+
+	SVC_API_GET_CONFIG_STATUS = 'GCFS',
+	SVC_API_COMMIT_CONFIG = 'CCFG',
+	SVC_API_DISCARD_CHANGES = 'DCFG',
 
 	// Network Manager
-	SVC_API_GET_FW_RULES,
-	SVC_API_SET_FW_RULE,
-	SVC_API_GET_FW_RULE,
-	SVC_API_DEL_FW_RULE,
+	SVC_API_GET_FW_RULES = 'GFRS',
+	SVC_API_SET_FW_RULE = 'SFRU',
+	SVC_API_GET_FW_RULE = 'GFRU',
+	SVC_API_DEL_FW_RULE = 'DFRU',
 
-	SVC_API_GET_FW_PROFILE,
-	SVC_API_SET_FW_PROFILE,
+	SVC_API_GET_FW_PROFILE = 'GFPR',
+	SVC_API_SET_FW_PROFILE = 'SFPR',
 
-	SVC_API_GET_FW_AUDIT_MODE,
-	SVC_API_SET_FW_AUDIT_MODE,
+	SVC_API_GET_FW_AUDIT_MODE = 'GFAM',
+	SVC_API_SET_FW_AUDIT_MODE = 'SFAM',
 
-	SVC_API_GET_SOCKETS,
-	SVC_API_GET_TRAFFIC,
-	SVC_API_GET_DNC_CACHE,
-	SVC_API_FLUSH_DNS_CACHE,
+	SVC_API_GET_SOCKETS = 'GSKT',
+	SVC_API_GET_TRAFFIC = 'GTRF',
+	SVC_API_GET_DNC_CACHE = 'GDNS',
+	SVC_API_FLUSH_DNS_CACHE = 'FDNS',
 
 	// Program Manager
-	SVC_API_GET_PROCESSES,      // live runnign or recently terminated processes
-	SVC_API_GET_PROCESS,
+	SVC_API_GET_PROCESSES = 'GPRC', // live runnign or recently terminated processes
+	SVC_API_GET_PROCESS = 'GPRX',
 
-	SVC_API_GET_PROGRAMS,
-	SVC_API_GET_LIBRARIES,
-	SVC_API_START_SECURE,
+	SVC_API_GET_PROGRAMS = 'GPRO',
+	SVC_API_GET_LIBRARIES = 'GLIB',
+	SVC_API_START_SECURE = 'SSEC',
 
-	SVC_API_SET_PROGRAM,
-	SVC_API_ADD_PROGRAM,
-	SVC_API_REMOVE_PROGRAM,
-	SVC_API_CLEANUP_PROGRAMS,
-	SVC_API_REGROUP_PROGRAMS,
+	SVC_API_SET_PROGRAM = 'SPRO',
+	SVC_API_ADD_PROGRAM = 'APRO',
+	SVC_API_REMOVE_PROGRAM = 'RPRO',
+	SVC_API_CLEANUP_PROGRAMS = 'CPRG',
+	SVC_API_REGROUP_PROGRAMS = 'RGRP',
 
-	SVC_API_GET_TRACE_LOG,
+	SVC_API_GET_TRACE_LOG = 'GTRC',
 
-	SVC_API_GET_LIBRARY_STATS,
-	SVC_API_GET_EXEC_STATS,
-	SVC_API_GET_INGRESS_STATS,
+	SVC_API_GET_LIBRARY_STATS = 'GLST',
+	SVC_API_GET_EXEC_STATS = 'GEST',
+	SVC_API_GET_INGRESS_STATS = 'GIST',
+	SVC_API_CLEANUP_LIBS = 'CLIB',
 
-	SVC_API_GET_ACCESS_STATS,
+	SVC_API_GET_ACCESS_STATS = 'GAST',
 
 	// Access Manager
-	SVC_API_GET_HANDLES,
-	SVC_API_CLEAR_LOGS,
-	SVC_API_CLEANUP_ACCESS_TREE,
+	SVC_API_GET_HANDLES = 'GHND',
+	SVC_API_CLEAR_LOGS = 'CLOG',
+	SVC_API_CLEANUP_ACCESS_TREE = 'CTRE',
 
 	// Volume Manager
-	SVC_API_VOL_CREATE_IMAGE,
-	SVC_API_VOL_CHANGE_PASSWORD,
-	//SVC_API_VOL_DELETE_IMAGE,
+	SVC_API_VOL_CREATE_IMAGE = 'CVOL',
+	SVC_API_VOL_CHANGE_PASSWORD = 'CPWD',
+	//SVC_API_VOL_DELETE_IMAGE = 'RVOL',
 
-	SVC_API_VOL_MOUNT_IMAGE,
-	SVC_API_VOL_DISMOUNT_VOLUME,
-	SVC_API_VOL_DISMOUNT_ALL,
+	SVC_API_VOL_MOUNT_IMAGE = 'MVOL',
+	SVC_API_VOL_DISMOUNT_VOLUME = 'DVOL',
+	SVC_API_VOL_DISMOUNT_ALL = 'DVLA',
 
-	//SVC_API_VOL_GET_VOLUME_LIST,
-	SVC_API_VOL_GET_ALL_VOLUMES,
-	SVC_API_VOL_GET_VOLUME,
+	//SVC_API_VOL_GET_VOLUME_LIST = 'GVL',
+	SVC_API_VOL_GET_ALL_VOLUMES = 'GAVL',
+	SVC_API_VOL_GET_VOLUME = 'GVLX',
 
-	SVC_API_GET_TWEAKS,
-	SVC_API_APPLY_TWEAK,
-	SVC_API_UNDO_TWEAK,
+	SVC_API_GET_TWEAKS = 'GTWK',
+	SVC_API_APPLY_TWEAK = 'ATWK',
+	SVC_API_UNDO_TWEAK = 'UTWK',
 
-	SVC_API_SET_WATCHED_PROG,
+	SVC_API_SET_WATCHED_PROG = 'SWAT',
 
 	// events
-	SVC_API_EVENT_PROG_ITEM_CHANGED,
+	SVC_API_EVENT_PROG_ITEM_CHANGED = 'EPRG',
 
-	SVC_API_EVENT_FW_RULE_CHANGED,
-	SVC_API_EVENT_EXEC_RULE_CHANGED,
-	SVC_API_EVENT_RES_RULE_CHANGED,
+	SVC_API_EVENT_ENCLAVE_CHANGED = 'EENC',
+	SVC_API_EVENT_FW_RULE_CHANGED = 'EFRU',
+	SVC_API_EVENT_EXEC_RULE_CHANGED = 'EEXR',
+	SVC_API_EVENT_RES_RULE_CHANGED = 'ERER',
 
-	SVC_API_EVENT_NET_ACTIVITY,
-	SVC_API_EVENT_EXEC_ACTIVITY,
-	SVC_API_EVENT_RES_ACTIVITY,
+	SVC_API_EVENT_NET_ACTIVITY = 'ENET',
+	SVC_API_EVENT_EXEC_ACTIVITY = 'EEXC',
+	SVC_API_EVENT_RES_ACTIVITY = 'ERES',
 
-	SVC_API_EVENT_CLEANUP_PROGRESS,
+	SVC_API_EVENT_CLEANUP_PROGRESS = 'ECLN',
 
 	// shutdown
-	SVC_API_SHUTDOWN,
-
-	SVC_API_LAST
+	SVC_API_SHUTDOWN = 'SHUT',
 };
 
 // for ini file
@@ -222,6 +234,8 @@ enum {
 
 #define STATUS_ERR_PROG_ALREADY_IN_GROUP	0xE000000A
 
+#define STATUS_ERR_PROC_EJECTED				0xE000000B
+
 #define STATUS_OK							0x00000000 // same as STATUS_SUCCESS
 
 #define STATUS_OK_1							0x20000001
@@ -237,373 +251,394 @@ enum {
 
 enum
 #ifdef __cplusplus
-API_V_STATIC : unsigned long
+API_V_VALUES : unsigned long
 #endif
 {
-	API_V_STATIC_FIRST			= 0,
+	API_V_FIRST			= 0,
 
-	API_V_CONFIG				= 'conf',
+	////////////////////////////
+	// Config
+	API_V_CONFIG = 'cfg',
+	API_V_VERSION = 'ver',
 
-	API_V_PROGRAM_RULES			= 'exrz',
-	API_V_ACCESS_RULES			= 'rarz',
-	API_V_FW_RULES				= 'fwrz',	// CVariant
+	API_V_KEY = 'key',
+	API_V_VALUE = 'val',
+	API_V_DATA = 'data',
+	API_V_FOLDER = 'fldr',
+	API_V_ENTRY  = 'entr',
+	API_V_LIST = 'list',
+	API_V_FILES = 'flst',
 
+	API_V_TYPE = 'type',
+	API_V_GUID = 'guid',
+	API_V_INDEX = 'indx',
+	API_V_ENABLED = 'enbl',
+	API_V_TEMP = 'temp',
+	API_V_TIMEOUT = 'tmot',
+
+	//
+	API_V_GUI_CONFIG = 'gcfg',
+	API_V_DRIVER_CONFIG = 'dcfg',
+	API_V_USER_KEY = 'uky',
+	API_V_SERVICE_CONFIG = 'scfg',
+	API_V_PROGRAM_RULES = 'prul',
+	API_V_ACCESS_RULES = 'arul',
+	API_V_FW_RULES = 'frul',
+	API_V_PROGRAMS = 'prog',
+	API_V_LIBRARIES = 'libs',
+
+
+	////////////////////////////
+	// Crypto & Protection
+	API_V_PUB_KEY = 'pkey',
+	API_V_PRIV_KEY = 'skey',
+	API_V_HASH = 'hash',
+	API_V_KEY_BLOB = 'kblo',
+	API_V_LOCK = 'lock',
+	API_V_UNLOCK = 'unlk',
+	API_V_RAND = 'rand',
+	API_V_SIGNATURE = 'sign',
+
+
+	////////////////////////////
+	// Generic Info
+
+	API_V_NAME = 'name',
+	API_V_ICON = 'icon',
+	API_V_INFO = 'info',
+	API_V_RULE_GROUP = 'grup',
+	API_V_RULE_DESCR = 'desc',
+	API_V_CMD_LINE = 'cmdl',
+
+
+	////////////////////////////
+	// Generic Fields
+	API_V_ENUM_ALL = 'eall',
+	API_V_COUNT = 'cnt',
+	API_V_RELOAD = 'rld',
+	API_V_GET_DATA = 'gdat',
+
+
+	////////////////////////////
+	// Program ID
+	API_V_PROG_ID = 'id',
+	API_V_PROG_IDS = 'ids',
+
+	API_V_PROG_TYPE = 'ptyp',
+		// ...
+
+	API_V_FILE_PATH = 'fpth',
+	API_V_FILE_NT_PATH = 'fnt',
+	API_V_SERVICE_TAG = 'svc',
+	API_V_APP_SID = 'asid', // App Container SI
+	API_V_APP_NAME = 'appn', // App Container Name
+	API_V_PACK_NAME = 'pckg', // Package Name
+	API_V_REG_KEY = 'rkey',
+	API_V_PROG_PATTERN = 'patt', // like API_V_FILE_PATH but with wildcards
+	API_V_OWNER = 'ownr', // used by firewall rules
+
+
+	////////////////////////////
 	// Programs
-	API_V_PID					= 'pid',	// uint64
-	API_V_PIDS					= 'pids',
+	API_V_PROG_ITEMS = 'prgs',
 
-	API_V_PROG_UID				= 'uid',	// uint64
-	API_V_PROG_UIDS				= 'uids',	// CVariant
+	API_V_PROG_UID = 'uid',
+	API_V_PROG_UIDS = 'uids',
 
-	API_V_PROG_ID				= 'prog',	// CProgramID
-	API_V_PROG_IDS				= 'prgs',	// CVariant
+	// Status
+	API_V_PROG_ACCESS_COUNT = 'pacn',
+	API_V_PROG_SOCKET_REFS = 'psok',
+	API_V_PROG_LAST_EXEC = 'plst',
+	API_V_PROG_ITEM_MISSING = 'pims',
 
-	API_V_PROG_TYPE				= 'prtp',	// EProgramType
+	// Mgmt Fields
+	API_V_PROG_PARENT = 'ppar',
+	API_V_PURGE_RULES = 'prl',
+	API_V_DEL_WITH_RULES = 'drl',
 
-	API_V_FILE_PATH				= 'path',	// String
-	API_V_FILE_PATH2			= 'pat2',	// String
-	API_V_SVC_TAG				= 'stag',	// String
-	API_V_APP_SID				= 'asid',	// String
-	API_V_APP_NAME				= 'appn',	// String
-	API_V_PACK_NAME				= 'pkgn',	// String
-	API_V_REG_KEY				= 'rkey',	// String
-	API_V_PROG_PATTERN			= 'ppat',	// String
 
-	API_V_CMD_LINE				= 'cmdl',	// String
-	API_V_OWNER					= 'ownr',	// String  // used by firewall rules
-
-	API_V_PROG_ITEMS			= 'pris',	// CVariant
-
-	API_V_PROG_LAST_EXEC		= 'plec',	// uint64	
-
-	// Info
-	API_V_NAME					= 'name',	// String
-	API_V_ICON					= 'icon',	// String
-	API_V_INFO					= 'info',	// String
-	API_V_RULE_GROUP			= 'grp',	// String
-	API_V_RULE_DESCR			= 'dscr',	// String
-
-	//
-
+	////////////////////////////
 	// Libraries
-	API_V_LIB_REF				= 'lref',	// uint64
-	API_V_LIB_LOAD_TIME			= 'lltm',	// uint64
-	API_V_LIB_LOAD_COUNT		= 'llct',	// uint64
-	API_V_SIGN_INFO				= 'sigi',	// SLibraryInfo::USign
-	API_V_SIGN_INFO_AUTH		= 'lsau',	// KPH_VERIFY_AUTHORITY
-	API_V_SIGN_INFO_LEVEL		= 'lsle',	// uint32
-	API_V_SIGN_INFO_POLICY		= 'lspl',	// uint32
-	API_V_LIB_STATUS			= 'lbst',	// CExecLogEntry
-
-	// Rules
-	API_V_RULE_ENABLED			= 'en',		// bool
-	API_V_RULE_TEMP				= 'tmp',	// bool
-
-	API_V_RULE_GUID				= 'guid',	// GUID
-	API_V_RULE_INDEX			= 'idx',	// int
-
-	API_V_RULE_DATA				= 'data',	// Variant
-
-	API_V_RULE_DATA_REF_GUID	= 'rgid',
-
-// Access Rules
-	API_V_ACCESS_RULE_ACTION	= 'atyp',	// EAccessRuleType
-	API_V_ACCESS_PATH			= 'afnp',	// String
-	API_V_ACCESS_PATH2			= 'afn2',	// String
-	API_V_VOL_RULE				= 'vrul',	// bool
-
-// Execution Rules
-	API_V_EXEC_RULE_ACTION		= 'xtyp',	// CProgramRule::EType
-	API_V_EXEC_SIGN_REQ			= 'sreq',	// KPH_VERIFY_AUTHORITY
-	API_V_EXEC_ON_TRUSTED_SPAWN	= 'tsp',	// EProgramOnSpawn
-	API_V_EXEC_ON_SPAWN			= 'usp',	// EProgramOnSpawn
-	API_V_IMAGE_LOAD_PROTECTION	= 'ilp',	// bool
-
-// Firewall Rules
-	API_V_FW_RULE_ACTION		= 'fwa',	// String
-	API_V_FW_RULE_DIRECTION		= 'fwd',	// String
-	API_V_FW_RULE_PROFILE		= 'fwpf',
-	API_V_FW_RULE_PROTOCOL		= 'fwpt',	// int
-	API_V_FW_RULE_INTERFACE		= 'fwif',
-	API_V_FW_RULE_LOCAL_ADDR	= 'fwla',
-	API_V_FW_RULE_REMOTE_ADDR	= 'fwra',
-	API_V_FW_RULE_LOCAL_PORT	= 'fwlp',
-	API_V_FW_RULE_REMOTE_PORT	= 'fwrp',
-	API_V_FW_RULE_REMOTE_HOST	= 'fwrh',
-	API_V_FW_RULE_ICMP			= 'icmp',
-	API_V_FW_RULE_OS			= 'fwos',
-	API_V_FW_RULE_EDGE			= 'fwet',
-
-	// Processes
-	API_V_PROG_EXEC_ACTORS		= 'peas',
-	API_V_PROG_EXEC_TARGETS		= 'pets',
-	API_V_PROG_INGRESS_ACTORS	= 'pias',
-	API_V_PROG_INGRESS_TARGETS	= 'pits',
-	API_V_PROC_REF				= 'pref',	// uint64
-	API_V_PROC_EVENT_ACTOR		= 'peac',	// uint64
-	API_V_PROC_EVENT_TARGET		= 'petg',	// uint64
-	API_V_PROC_EVENT_LAST_EXEC	= 'pele',	// uint64
-	API_V_PROC_EVENT_BLOCKED	= 'pebl',	// bool
-	API_V_PROC_EVENT_CMD_LINE	= 'pecl',	// String
-	API_V_PROG_SVC_TAG			= 'psvt',	// String
-	API_V_PROC_EVENT_LAST_ACT	= 'pela',	// uint64
-	API_V_THREAD_ACCESS_MASK	= 'tham',	// uint32
-	API_V_PROCESS_ACCESS_MASK	= 'pram',	// uint32
-
-	API_V_PROC_TARGETS			= 'ptgs',	// CVariant
-	API_V_PROC_ACTORS			= 'pacs',	// CVariant
-
-	// Access
-	//API_V_ACCESS_TREE			= 'actr',
-	API_V_PROG_RESOURCE_ACCESS	= 'prac',	// CVariant
-	API_V_ACCESS_REF			= 'acrf',	// uint64
-	API_V_ACCESS_NAME			= 'acnm',	// String
-	API_V_ACCESS_TIME			= 'actm',	// uint64
-	API_V_ACCESS_BLOCKED		= 'acbl',	// bool
-	API_V_ACCESS_MASK			= 'acms',	// uint32
-	API_V_ACCESS_STATUS			= 'acst',	// uint32
-	API_V_ACCESS_IS_DIR			= 'acdr',	// bool	
-	API_V_ACCESS_NODES			= 'acns',	// CVariant
-	API_V_ACCESS_LAST_ACT		= 'acac',	// uint64
-	API_V_ACCESS_COUNT			= 'acnt',	// uint32
-
-	// Sockets
-	API_V_PROG_TRAFFIC			= 'ptrf',
-	API_V_PROG_SOCKETS			= 'psck',
-	API_V_SOCK_LAST_ACT			= 'slac',
-	API_V_SOCK_LAST_ALLOW		= 'slal',
-	API_V_SOCK_LAST_BLOCK		= 'slbl',
-	API_V_SOCK_UPLOAD			= 'supl',
-	API_V_SOCK_DOWNLOAD			= 'sdlw',
-	API_V_SOCK_UPLOADED			= 'supd',
-	API_V_SOCK_DOWNLOADED		= 'sddw',
-	API_V_SOCK_RHOST			= 'srhs',
-
-	// Tweaks
-	API_V_TWEAKS				= 'twks',	// CVariant
-	API_V_TWEAK_HINT			= 'twhn',	// ETweakHint
-	API_V_TWEAK_STATUS			= 'twst',	// ETweakStatus
-	API_V_TWEAK_LIST			= 'twls',	// CVariant
-	API_V_TWEAK_TYPE			= 'twtp',	// ETweakType
-	API_V_TWEAK_IS_SET			= 'twse',	// CVariant
-
-	API_V_TWEAK_KEY				= 'twky',	// String
-	API_V_TWEAK_VALUE			= 'twvl',	// CVariant
-	API_V_TWEAK_DATA			= 'twda',	// CVariant
-	API_V_TWEAK_FOLDER			= 'twfl',	// String
-	API_V_TWEAK_ENTRY			= 'twen',	// String
-	API_V_TWEAK_SVC_TAG			= 'twsv',	// String
-	API_V_TWEAK_PATH			= 'twpa',	// String
-	API_V_TWEAK_PROG_ID			= 'twpi',	// CProgramID
-
-	API_V_STATIC_LAST			= 'zzzz'
-};
-
-enum
-#ifdef __cplusplus
-API_V_DYNAMIC : unsigned long
-#endif
-{
-	API_V_DYNAMIC_FIRST			= 0x80000000,
-	
-	API_V_ERR_CODE,
-	API_V_ERR_MSG,
-
-	API_V_EVENT,
-	API_V_RULE_TYPE,
-
-	API_V_CONF_KEY,
-	API_V_CONF_VALUE,
-	API_V_CONF_DATA, //API_V_CONF_MAP,
-
-	API_V_PROG_PARENT,
-
-	// Process Info
-	API_V_CREATE_TIME,
-	API_V_PARENT_PID,
-	API_V_CREATOR_PID,
-	API_V_CREATOR_TID,
-
-	API_V_KPP_STATE,
-
-	API_V_N_IMG,
-	API_V_FLAGS,
-	API_V_SFLAGS,
-
-	API_V_NUM_THREADS,
-	API_V_HANDLES,
-	API_V_SOCKETS,
-
-	API_V_EID,
-	API_V_EIDS,
-	API_V_SEC,
-
-	API_V_USER_SID,
-
-	API_V_N_MS_IMG,
-	API_V_N_AV_IMG,
-	API_V_N_V_IMG,
-	API_V_N_S_IMG,
-	API_V_N_U_IMG,
-
-	API_V_UW_REFS,
-
-	API_V_SVCS,
+	API_V_LIB_REF = 'lref',
+	API_V_LIB_LOAD_TIME = 'ltim',
+	API_V_LIB_LOAD_COUNT = 'lcnt',
+	API_V_LIB_LOAD_LOG = 'llog',
+	API_V_LIB_STATUS = 'lsts',
 
 
-	// Enclave Info
-	API_V_ENCLAVE_ID,						// uint64	
-	API_V_ENCLAVE_NAME,						// String
-	API_V_ENCLAVE_SIGN_LEVEL,				// KPH_VERIFY_AUTHORITY
-	API_V_ENCLAVE_ON_TRUSTED_SPAWN,			// EProgramOnSpawn
-	API_V_ENCLAVE_ON_SPAWN,					// EProgramOnSpawn
-	API_V_ENCLAVE_IMAGE_LOAD_PROTECTION,	// bool
+	////////////////////////////
+	// Generic Rules
+	API_V_RULE_REF_GUID = 'rgid',
+	API_V_RULE_HIT_COUNT = 'rhct',
 
-	// Processes
-
-	API_V_PROG_PROC_PIDS,
-
-	API_V_HANDLE,
-	API_V_HANDLE_TYPE,
-
+	////////////////////////////
 	// Access Rules
-	API_V_PATH_PREFIX,
-	API_V_DEVICE_PATH,
+	API_V_ACCESS_RULE_ACTION = 'acac',
+		// ...
+	API_V_ACCESS_PATH = 'acpt',
+	API_V_ACCESS_NT_PATH = 'acnt',
+	API_V_VOL_RULE = 'vorl',
 
-	// Event Generic 
-	API_V_EVENT_UID,
-	API_V_EVENT_ACTOR_PID,
-	API_V_EVENT_ACTOR_TID,
-	API_V_EVENT_ACTOR_SVC,
-	API_V_EVENT_PID,
-	API_V_EVENT_TIME_STAMP,
-	API_V_EVENT_PATH,
-	API_V_EVENT_OPERATION,
-	API_V_EVENT_ACCESS,
-	API_V_EVENT_ACCESS_STATUS,
-	API_V_EVENT_STATUS,
-	API_V_EVENT_IS_DIR,
+	////////////////////////////
+	// Execution Rules
+	API_V_EXEC_RULE_ACTION = 'exac',
+		// ...
+	API_V_EXEC_SIGN_REQ = 'exsr',
+		// ...
+	API_V_EXEC_ON_TRUSTED_SPAWN = 'exot',
+		// ...
+	API_V_EXEC_ON_SPAWN = 'exos',
+		// ...
+	API_V_IMAGE_LOAD_PROTECTION = 'ilpr',
+	//API_V_PATH_PREFIX,
+	//API_V_DEVICE_PATH,
 
-	API_V_EVENT_INDEX,
-	API_V_EVENT_DATA,
+	////////////////////////////
+	// Firewall Rules
+	API_V_FW_RULE_ACTION = 'fwac',
+		// ...
+	API_V_FW_RULE_DIRECTION = 'fwdi',
+		// ...
+	API_V_FW_RULE_PROFILE = 'fwpr',
+		// ...
+	API_V_FW_RULE_PROTOCOL = 'fwpt',
+	API_V_FW_RULE_INTERFACE = 'fwif',
+		// ...
+	API_V_FW_RULE_LOCAL_ADDR = 'fwla',
+	API_V_FW_RULE_REMOTE_ADDR = 'fwra',
+	API_V_FW_RULE_LOCAL_PORT = 'fwlp',
+	API_V_FW_RULE_REMOTE_PORT = 'fwrp',
+	API_V_FW_RULE_REMOTE_HOST = 'fwhs',
+	API_V_FW_RULE_ICMP = 'fwic',
+	API_V_FW_RULE_OS = 'fwos',
+	API_V_FW_RULE_EDGE = 'fwed',
 
-	API_V_FW_AUDIT_MODE,					// FwAuditPolicy
-	API_V_FW_RULE_FILTER_MODE,				// FwFilteringModes
-	API_V_FW_EVENT_STATE,					// EFwEventStates
 
-	// Process Event Specific
-	API_V_EVENT_WAS_LP,
-	API_V_EVENT_IMG_BASE,
-	API_V_EVENT_IMG_SIGN_AUTH,
-	API_V_EVENT_IMG_SIGN_LEVEL,
-	API_V_EVENT_IMG_SIGN_POLICY,
-	API_V_EVENT_IS_P,
-	API_V_EVENT_NO_PROTECT,
-	API_V_EVENT_IMG_PROPS,
-	API_V_EVENT_IMG_SEL,
-	API_V_EVENT_IMG_SECT_NR,
-	API_V_EVENT_PARENT_PID,
-	API_V_EVENT_CMD,
-	API_V_EVENT_CS,
-	API_V_EVENT_ECODE,
+	////////////////////////////
+	// Firewall Config
+	API_V_FW_AUDIT_MODE = 'fwam',			// FwAuditPolicy
+	API_V_FW_RULE_FILTER_MODE = 'fwfm',		// FwFilterMode
+	API_V_FW_EVENT_STATE = 'fwes',			// FwEventState
 
-	// Access
-	API_V_ACCESS_PID,
 
-	// DNS
-	API_V_DNS_CACHE_REF,
-	API_V_DNS_HOST,
-	API_V_DNS_TYPE,
-	API_V_DNS_ADDR,
-	API_V_DNS_DATA,
-	API_V_DNS_TTL,
-	API_V_DNS_QUERY_COUNT,
+	////////////////////////////
+	// Process Info
+	API_V_PROCESSES = 'prcs', // Process List
+	API_V_PROCESS_REF = 'pref', // Inernal Process Reference
 
-	// Sockets
-	API_V_SOCK_REF,
-	API_V_SOCK_TYPE,
-	API_V_SOCK_LADDR,
-	API_V_SOCK_LPORT,
-	API_V_SOCK_RADDR,
-	API_V_SOCK_RPORT,
-	API_V_SOCK_STATE,
-	API_V_SOCK_LSCOPE,
-	API_V_SOCK_RSCOPE,
-	API_V_SOCK_PID,
-	API_V_SOCK_SVC_TAG,
-	API_V_SOCK_CREATED,
+	API_V_PID = 'pid',
+	API_V_PIDS = 'pids',
+	API_V_ENCLAVE = 'encl',
 
-	// Process Events
-	API_V_PROC_EVENT_ROLE,
-	API_V_PROC_EVENT_TYPE,
-	API_V_PROC_EVENT_STATUS,
-	API_V_PROC_EVENT_MISC,
-	API_V_PROC_EVENT_ACCESS_MASK,
+	API_V_CREATE_TIME = 'ctim',
+	API_V_PARENT_PID = 'ppid',
+	API_V_CREATOR_PID = 'cpid', // API_V_EVENT_ACTOR_PID
+	API_V_CREATOR_TID = 'ctid', // API_V_EVENT_ACTOR_TID
 
+	API_V_KPP_STATE = 'kpps',
+	API_V_FLAGS = 'fgs',
+	API_V_SFLAGS = 'sfgs',
+
+	API_V_NUM_THREADS = 'nthr',
+	API_V_SERVICES = 'svcs',
+	API_V_HANDLES = 'hnds',
+	API_V_SOCKETS = 'skts',
+
+	API_V_USER_SID = 'usid',
+
+	API_V_NUM_IMG = 'nimg',
+	API_V_NUM_MS_IMG = 'nmsi',
+	API_V_NUM_AV_IMG = 'navi',
+	API_V_NUM_V_IMG = 'nvfi',
+	API_V_NUM_S_IMG = 'nsig',
+	API_V_NUM_U_IMG = 'nuns', 
+
+	API_V_UW_REFS = 'uwrf',
+
+
+	////////////////////////////
+	// Handle Info
+	API_V_HANDLE = 'hndl',
+	API_V_HANDLE_TYPE = 'htyp',
+
+
+	////////////////////////////
+	// Event Logging
+
+	// Program Access Log
+	API_V_ACCESS_LOG = 'alog',
+
+	API_V_PROG_RESOURCE_ACCESS = 'racc',
+	API_V_PROG_PROCESS_ACCESS = 'pacc',
+	API_V_PROG_EXEC_PARENTS = 'epnt',
+	API_V_PROG_EXEC_CHILDREN = 'echd',
+	API_V_PROG_INGRESS_ACTORS = 'iact',
+	API_V_PROG_INGRESS_TARGETS = 'itgt',
+
+	// Resource Access
+	API_V_ACCESS_REF = 'aref',
+	API_V_ACCESS_NAME = 'anam',
+	API_V_ACCESS_NODES = 'anod',
+
+	// Network Traffic Log
+	API_V_TRAFFIC_LOG = 'tlog',
+
+	API_V_SOCK_REF = 'sref',		// Internal Socket Reference
+	API_V_SOCK_TYPE = 'styp',
+	API_V_SOCK_LADDR = 'slad',
+	API_V_SOCK_LPORT = 'slpt',
+	API_V_SOCK_RADDR = 'srad',
+	API_V_SOCK_RPORT = 'srpt',
+	API_V_SOCK_STATE = 'ssta',
+	API_V_SOCK_LSCOPE = 'lsco',
+	API_V_SOCK_RSCOPE = 'rsco',
+	API_V_SOCK_LAST_NET_ACT = 'lnet',
+	API_V_SOCK_LAST_ALLOW = 'lall',
+	API_V_SOCK_LAST_BLOCK = 'lblo',
+	API_V_SOCK_UPLOAD = 'upld',
+	API_V_SOCK_DOWNLOAD = 'dwnl',
+	API_V_SOCK_UPLOADED = 'uplt',
+	API_V_SOCK_DOWNLOADED = 'dwlt',
+	API_V_SOCK_RHOST = 'rhst',
+
+
+	////////////////////////////
+	// Event Info
+	API_V_EVENT_REF = 'eref',
+	API_V_EVENT_TYPE = 'etyp',
+	API_V_EVENT_INDEX = 'eidx',
+	API_V_EVENT_DATA = 'edat',
+
+	API_V_EVENT_ACTOR_PID = 'apid',
+	API_V_EVENT_ACTOR_TID = 'atid',
+	API_V_EVENT_ACTOR_UID = 'acid',		// UID
+	API_V_EVENT_ACTOR_EID = 'aeid',		// Enclave Guid
+	API_V_EVENT_ACTOR_SVC = 'asvc',		// uint32 tag
+	API_V_EVENT_TARGET_PID = 'tpid',
+	API_V_EVENT_TARGET_TID = 'ttid',
+	API_V_EVENT_TARGET_UID = 'taid',	// UID
+	API_V_EVENT_TARGET_EID = 'teid',	// Enclave Guid
+	API_V_EVENT_TIME_STAMP = 'etim',
+
+	API_V_OPERATION = 'oper',
+	API_V_ACCESS_MASK = 'amsk',  // desired access
+	API_V_NT_STATUS = 'ntst', // NTSTATUS
+	API_V_EVENT_STATUS = 'ests', // EEventStatus
+	API_V_IS_DIRECTORY = 'isdr',
+	API_V_WAS_BLOCKED = 'wblk', // <- API_V_EVENT_STATUS
+
+	API_V_LAST_ACTIVITY = 'lact', // <-  API_V_EVENT_TIME_STAMP
+
+	// Process Termination Event
+	API_V_EVENT_ECODE = 'evid',
+
+	// Process Ingress Event
+	API_V_EVENT_ROLE = 'role', // EExecLogRole
+	API_V_PROC_MISC_ID = 'pmid', // Program UID or Library UID
+	API_V_PROC_MISC_ENCLAVE = 'pmen', // Enclave UID
+	API_V_THREAD_ACCESS_MASK = 'tmsk', // desired access
+	API_V_PROCESS_ACCESS_MASK = 'pmsk', // desired access
+
+	// Image Load Event
+	API_V_EVENT_IMG_BASE = 'ibas',
+	API_V_EVENT_NO_PROTECT = 'nprt',
+	API_V_EVENT_IMG_PROPS = 'iprp',
+	API_V_EVENT_IMG_SEL = 'isel',
+	API_V_EVENT_IMG_SECT_NR = 'isnr',
+
+	// Network Firewall Event
+	API_V_FW_ALLOW_RULES = 'fwar',
+	API_V_FW_BLOCK_RULES = 'fwbr',
+
+	// Event Configuration
+	API_V_SET_NOTIFY_BITMASK = 'snbm',
+	API_V_CLEAR_NOTIFY_BITMASK = 'cnbm',
+
+	////////////////////////////
+	// Event Trace Log
+	API_V_LOG_TYPE = 'ltyp', // ETraceLogs
+	API_V_LOG_OFFSET = 'loff',
+	API_V_LOG_DATA = 'ldat',
+
+
+	////////////////////////////
+	// CI Info
+	API_V_SIGN_INFO = 'sinf',
+	API_V_SIGN_FLAGS = 'sflg', // --> API_V_CERT_STATUS
+	API_V_IMG_SIGN_AUTH = 'saut',
+	API_V_IMG_SIGN_LEVEL = 'slvl',
+	API_V_IMG_SIGN_POLICY = 'spol',
+	API_V_FILE_HASH = 'fhas',
+	API_V_FILE_HASH_ALG = 'falg',
+	API_V_CERT_STATUS = 'csts',
+	API_V_IMG_SIGN_NAME = 'snam',
+	API_V_IMG_CERT_ALG = 'calg',
+	API_V_IMG_CERT_HASH = 'chas',
+
+
+	////////////////////////////
+	// DNS Cache
+	API_V_DNS_CACHE = 'dcch',
+	API_V_DNS_CACHE_REF = 'dcre',
+	API_V_DNS_HOST = 'dhst',
+	API_V_DNS_TYPE = 'dtyp',
+	API_V_DNS_ADDR = 'dadr',
+	API_V_DNS_DATA = 'ddat',
+	API_V_DNS_TTL = 'dttl',
+	API_V_DNS_QUERY_COUNT = 'dqc',
+
+
+	////////////////////////////
 	// Volume
-	API_V_VOL_REF,
-	API_V_VOL_PATH,
-	API_V_VOL_DEVICE_PATH,
-	API_V_VOL_MOUNT_POINT,
-	API_V_VOL_SIZE,
-	API_V_VOL_PASSWORD,
-	API_V_VOL_PROTECT,
-	API_V_VOL_CIPHER,
-	API_V_VOL_OLD_PASS,
-	API_V_VOL_NEW_PASS,
-	API_V_VOLUMES,
+	API_V_VOLUMES = 'vols',
+	API_V_VOL_REF = 'vref',
+	API_V_VOL_PATH = 'vpth',
+	API_V_VOL_DEVICE_PATH = 'vdev',
+	API_V_VOL_MOUNT_POINT = 'vmpo',
+	API_V_VOL_SIZE = 'vsiz',
+	API_V_VOL_PASSWORD = 'vpwd',
+	API_V_VOL_PROTECT = 'vprt',
+	API_V_VOL_CIPHER = 'vcip',
+	API_V_VOL_OLD_PASS = 'vold',
+	API_V_VOL_NEW_PASS = 'vnew',
 
-	//
-	API_V_NET_TRAFFIC,
-	API_V_DNS_CACHE,
-	API_V_PROCESSES,
-	API_V_PROGRAMS,
-	API_V_LIBRARIES,
-	API_V_COMMAND,
 
-	// Trace Log
-	API_V_LOG_TYPE, // ETraceLogs
-	API_V_LOG_OFFSET,
-	API_V_LOG_DATA,
+	////////////////////////////
+	// Tweaks
+	API_V_TWEAKS = 'twks',
+	API_V_TWEAK_HINT = 'thnt',
+		// ...
+	API_V_TWEAK_STATUS = 'tsts',
+		// ...
+	API_V_TWEAK_LIST = 'twkl',
+	API_V_TWEAK_TYPE = 'ttyp',
+		// ...
+	API_V_TWEAK_IS_SET = 'tset',
 
-	// Crypto
-	API_V_PUB_KEY,
-	API_V_PRIV_KEY,
-	API_V_HASH,
-	API_V_PRIV_KEY_BLOB,
-	API_V_LOCK,
-	API_V_UNLOCK,
-	API_V_RAND,
-	API_V_SIGNATURE,
 
-	// Other
-	API_V_ENUM_ALL,
-	API_V_COUNT,
-	API_V_VERSION,
-
-	API_V_SET_NOTIFY_BITMASK,
-	API_V_CLEAR_NOTIFY_BITMASK,
- 
+	////////////////////////////
 	// Support
-	API_V_SUPPORT_NAME,
-	API_V_SUPPORT_STATUS,
-	API_V_SUPPORT_HWID,
-
-	// cache
-	API_V_CACHE_TOKEN,
-
-	// todo move up with next driver update
-	API_V_PURGE_RULES,
-	API_V_ITEM_MISSING,
-
-	// otehre events
-	API_V_PROGRESS_FINISHED,
-	API_V_PROGRESS_TOTAL,
-	API_V_PROGRESS_DONE,
+	API_V_SUPPORT_NAME = 'snme',
+	API_V_SUPPORT_STATUS = 'ssts',
+	API_V_SUPPORT_HWID = 'shwi',
 
 
-	API_V_DEL_WITH_RULES
+	////////////////////////////
+	// Progress Info
+	API_V_PROGRESS_FINISHED = 'pfin',
+	API_V_PROGRESS_TOTAL = 'ptot',
+	API_V_PROGRESS_DONE = 'pdon',
+
+
+	////////////////////////////
+	// Basic
+	API_V_CACHE_TOKEN = 'ctok',
+	API_V_ERR_CODE = 'ecod',
+	API_V_ERR_MSG = 'emsg',
+
+	API_V_LAST = 0x80000000
 };
+
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -620,9 +655,28 @@ API_V_DYNAMIC : unsigned long
 
 
 /////////////////////////////////////////////////////////////////////////////
+// Driver Config Status
+//
+
+#define CONFIG_STATUS_DIRTY		0x01 // config has been altered
+#define CONFIG_STATUS_PROTECTED	0x02 // config is signature protected
+#define CONFIG_STATUS_LOCKED	0x04 // config is locked and can not be changed
+#define CONFIG_STATUS_KEYLOCKED	0x08 // the registry key is locked and can not be changed without a reboot
+
+#define CONFIG_STATUS_BAD		0xF0
+#define CONFIG_STATUS_NO_SIG	0x10 // config is not signed
+#define CONFIG_STATUS_BAD_SIG	0x20 // config signature is invalid
+#define CONFIG_STATUS_BAD_SEQ	0x40 // config has invalid sequence number (replay atack?)
+#define CONFIG_STATUS_CORRUPT	0x80 // config is corrupted and can not be parsed
+
+
+
+/////////////////////////////////////////////////////////////////////////////
 //
 //
 
 #define DEF_MP_SYS_FILE L"\\$mpsys$"
+
+#define DEF_MP_SIG_VERSION 1
 
 #include "PrivacyAPIs.h"

@@ -14,12 +14,18 @@ public:
 	CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget *parent = Q_NULLPTR);
 	~CFirewallRuleWnd();
 
+	static QColor GetActionColor(EFwActions Action);
+	static QColor GetDirectionColor(EFwDirections Direction);
+
 signals:
 	void Closed();
 
 private slots:
 
+	void OnNameChanged(const QString& Text);
+	void OnPickProgram();
 	void OnProgramChanged();
+	void OnActionChanged();
 	void OnProfilesChanged();
 	void OnInterfacesChanged();
 	void OnDirectionChanged();
@@ -35,8 +41,11 @@ private slots:
 
 	void OnSaveAndClose();
 
+
 protected:
 	void closeEvent(QCloseEvent* e);
+
+	bool AddProgramItem(const CProgramItemPtr& pItem);
 
 	void UpdatePorts();
 	bool ValidateAddress(const QString& Address, bool bRemote);
@@ -49,4 +58,7 @@ protected:
 private:
 	Ui::FirewallRuleWnd ui;
 
+	void TryMakeName();
+	bool m_NameHold = true;
+	bool m_NameChanged = false;
 };

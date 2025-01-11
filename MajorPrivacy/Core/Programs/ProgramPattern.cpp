@@ -13,9 +13,9 @@ QIcon CProgramPattern::DefaultIcon() const
 	return QIcon(":/Icons/Filter.png");
 }
 
-void CProgramPattern::SetPattern(const QString& Pattern, EPathType Type)
+void CProgramPattern::SetPattern(const QString& Pattern)
 { 
-	m_Pattern.Set(Pattern, Type); 
+	m_Pattern = Pattern; 
 
 	//QString regex = QRegularExpression::escape(Pattern.toLower());
 	//regex.replace(QRegularExpression::escape("*"), ".*");

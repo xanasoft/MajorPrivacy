@@ -5,8 +5,9 @@
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Core/PrivacyCore.h"
-#include "../Core/TraceLogUtils.h"
 #include "../Core/Programs/ProgramManager.h"
+#include "../Windows/AccessRuleWnd.h"
+#include "../Core/Enclaves/EnclaveManager.h"
 
 
 CAccessTraceModel::CAccessTraceModel(QObject* parent)
@@ -41,8 +42,8 @@ bool CAccessTraceModel::FilterNode(const SMergedLog::TLogEntry& Data) const
 		if(m_RootPath.isEmpty())
 			return false;
 
-		QString Path = pEntry->GetPath(EPathType::eNative);
-		if (!Path.startsWith(m_RootPath, Qt::CaseInsensitive))
+		QString Path = pEntry->GetNtPath();
+		if (!PathStartsWith(Path, m_RootPath))
 			return false;
 	}
 
@@ -84,28 +85,52 @@ QVariant CAccessTraceModel::NodeData(STraceNode* pTraceNode, int role, int secti
 	STreeNode* pNode = (STreeNode*)pTraceNode;
 	const CResLogEntry* pEntry = dynamic_cast<const CResLogEntry*>(pNode->pLogEntry.constData());
 
-	switch(role)
+	if (role == (CTreeItemModel::GetDarkMode() ? Qt::ForegroundRole : Qt::BackgroundRole))
+	{
+		QColor Color;
+		switch (section)
+		{
+		case eOperation:	Color = CResLogEntry::GetAccessColor(pEntry->GetAccess()); break;
+		case eStatus:		Color = CAccessRuleWnd::GetStatusColor(pEntry->GetStatus()); break;
+		}
+		if (Color.isValid())
+			return Color;
+	}
+	else switch(role)
 	{
 	case Qt::DisplayRole:
 	case Qt::EditRole: // sort role
-	{
 		switch (section)
 		{
-		case eName:				return (pNode->pProgram ? pNode->pProgram->GetNameEx() : tr("Unknown Program"))
-			+ (!pEntry->GetOwnerService().isEmpty() ? tr(" (%1)").arg(pEntry->GetOwnerService()) : "");
-		case ePath:				return pEntry->GetPath(EPathType::eDisplay);
-		case eAccess:			return pEntry->GetAccessStr();
+		case eName:				return (pNode->pProgram ? pNode->pProgram->GetNameEx() : tr("Unknown Program")) + (!pEntry->GetOwnerService().isEmpty() ? tr(" (%1)").arg(pEntry->GetOwnerService()) : "");
+		case ePath:				return theCore->NormalizePath(pEntry->GetNtPath());
+		case eOperation:		return pEntry->GetAccessStr();
 		case eStatus:			return pEntry->GetStatusStr();
-		case eTimeStamp:		return QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pEntry->GetTimeStamp())).toString("dd.MM.yyyy hh:mm:ss.zzz"); 
-		case eProgram:			return pNode->pProgram ? pNode->pProgram->GetPath(EPathType::eDisplay) : tr("PROCESS MISSING");
+		case eEnclave: {
+			QFlexGuid Enclave = pEntry->GetEnclaveGuid();
+			if (!Enclave.IsNull()) {
+				CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(Enclave);
+				if (pEnclave)
+					return pEnclave->GetName();
+				return Enclave.ToQS();
+			}
+			break;
 		}
-	}
+		case eTimeStamp:		return QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pEntry->GetTimeStamp())).toString("dd.MM.yyyy hh:mm:ss.zzz"); 
+		case eProgram:			return pNode->pProgram ? pNode->pProgram->GetPath() : tr("PROGRAM MISSING");
+		}
+		break;
+	case Qt::ToolTipRole:
+		switch (section)
+		{
+		case ePath:				return pEntry->GetNtPath();
+		case eOperation:		return pEntry->GetAccessStrEx();
+		}
+		break;
 	case Qt::DecorationRole:
-	{
 		if (section == 0)
 			return pNode->pProgram ? pNode->pProgram->GetIcon() : CProcess::DefaultIcon();
 		break;
-	}
 	}
 
 	return CTraceModel::NodeData(pTraceNode, role, section);
@@ -124,8 +149,9 @@ QVariant CAccessTraceModel::headerData(int section, Qt::Orientation orientation,
 		{
 		case eName:					return tr("Name");
 		case ePath:					return tr("Path");
-		case eAccess:				return tr("Access");
+		case eOperation:			return tr("Operation");
 		case eStatus:				return tr("Status");
+		case eEnclave:				return tr("Enclave");
 		case eTimeStamp:			return tr("Time Stamp");
 		case eProgram:				return tr("Program (Actor)");
 		}

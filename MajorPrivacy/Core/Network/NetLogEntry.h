@@ -1,6 +1,7 @@
 #pragma once
 #include "../TraceLogEntry.h"
 #include "../../Service\Network\Firewall\FirewallDefs.h"
+#include "../../Library/Common/FlexGuid.h"
 
 class CNetLogEntry : public CAbstractLogEntry
 {
@@ -28,6 +29,9 @@ public:
 
 	QString GetRealm() const { return m_Realm; }
 
+	const QSet<QFlexGuid>& GetAllowRules() const { return m_AllowRules; }
+	const QSet<QFlexGuid>& GetBlockRules() const { return m_BlockRules; }
+
 protected:
 
 	virtual void ReadValue(uint32 Index, const XVariant& Data);
@@ -44,5 +48,8 @@ protected:
 	QString				m_RemoteHostName;
 
     QString				m_Realm;
+
+	QSet<QFlexGuid>		m_AllowRules;
+	QSet<QFlexGuid>		m_BlockRules;
 };
 

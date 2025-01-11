@@ -13,7 +13,7 @@ public:
 	
 	virtual QString GetNameEx() const;
 
-	virtual QString GetSvcTag() const { return m_ServiceId; }
+	virtual QString GetServiceTag() const { return m_ServiceTag; }
 
 	virtual quint64 GetProcessId() const { return m_ProcessId; }
 
@@ -47,7 +47,7 @@ protected:
 	void ReadIValue(uint32 Index, const XVariant& Data) override;
 	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
 
-	QString						m_ServiceId;
+	QString						m_ServiceTag;
 
 	quint64						m_LastExec = 0;
 

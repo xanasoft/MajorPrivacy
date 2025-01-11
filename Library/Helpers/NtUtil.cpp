@@ -10,7 +10,7 @@
 #include <hndlinfo.h>
 #include "../Library/Helpers/NtPathMgr.h"
 
-std::wstring DosPathToNtPath(const std::wstring &dosPath, bool bAsIsOnError) 
+/*std::wstring DosPathToNtPath(const std::wstring &dosPath, bool bAsIsOnError) 
 {
 #if 1
     //std::wstring path = CPathReparse::Instance()->TranslateDosToNtPath(dosPath);
@@ -73,6 +73,33 @@ std::wstring NtPathToDosPath(const std::wstring& ntPath, bool bAsIsOnError)
 #endif
 }
 
+std::wstring NormalizeFilePath(std::wstring FilePath, bool bLowerCase)
+{
+	if (FilePath.find(L'%') != std::wstring::npos)
+		FilePath = ExpandEnvironmentVariablesInPath(FilePath);
+
+    if (_wcsnicmp(FilePath.c_str(), L"\\SystemRoot\\", 12) == 0) {
+        WCHAR windir[MAX_PATH + 8];
+        GetWindowsDirectoryW(windir, MAX_PATH);
+        FilePath = windir + FilePath.substr(11);
+    }
+
+	if (FilePath.size() > 3 && FilePath[1] == L':' && FilePath[2] == L'\\') // X:\...
+		FilePath = DosPathToNtPath(FilePath);
+
+	else if (FilePath.size() > 7 && FilePath.substr(0, 4) == L"\\??\\" && FilePath[5] == L':' && FilePath[6] == L'\\') // \??\X:\...
+		FilePath = DosPathToNtPath(FilePath.substr(4));
+    else if (FilePath.size() > 7 && FilePath.substr(0, 4) == L"\\\\?\\" && FilePath[5] == L':' && FilePath[6] == L'\\') // \\?\X:\...
+        FilePath = DosPathToNtPath(FilePath.substr(4));
+
+	// todo: else if (FilePath.substr(0, 11) == L"\\??\\Volume{")
+
+    //if(!FilePath.empty() && FilePath[0] != L'*')
+    //    FilePath = GetReparsedPath(FilePath);
+
+return bLowerCase ? MkLower(FilePath) : FilePath; 
+}*/
+
 sint32 GetLastWin32ErrorAsNtStatus()
 {
     return PhGetLastWin32ErrorAsNtStatus();
@@ -100,33 +127,6 @@ uint64 GetCurrentTimeAsFileTime()
     ui.LowPart = ft.dwLowDateTime;
     ui.HighPart = ft.dwHighDateTime;
     return ui.QuadPart;
-}
-
-std::wstring NormalizeFilePath(std::wstring FilePath, bool bLowerCase)
-{
-	if (FilePath.find(L'%') != std::wstring::npos)
-		FilePath = ExpandEnvironmentVariablesInPath(FilePath);
-
-    if (_wcsnicmp(FilePath.c_str(), L"\\SystemRoot\\", 12) == 0) {
-        WCHAR windir[MAX_PATH + 8];
-        GetWindowsDirectoryW(windir, MAX_PATH);
-        FilePath = windir + FilePath.substr(11);
-    }
-
-	if (FilePath.size() > 3 && FilePath[1] == L':' && FilePath[2] == L'\\') // X:\...
-		FilePath = DosPathToNtPath(FilePath);
-
-	else if (FilePath.size() > 7 && FilePath.substr(0, 4) == L"\\??\\" && FilePath[5] == L':' && FilePath[6] == L'\\') // \??\X:\...
-		FilePath = DosPathToNtPath(FilePath.substr(4));
-    else if (FilePath.size() > 7 && FilePath.substr(0, 4) == L"\\\\?\\" && FilePath[5] == L':' && FilePath[6] == L'\\') // \\?\X:\...
-        FilePath = DosPathToNtPath(FilePath.substr(4));
-
-	// todo: else if (FilePath.substr(0, 11) == L"\\??\\Volume{")
-
-    /*if(!FilePath.empty() && FilePath[0] != L'*')
-        FilePath = GetReparsedPath(FilePath);*/
-
-	return bLowerCase ? MkLower(FilePath) : FilePath; 
 }
 
 bool SetAdminFullControl(const std::wstring& folderPath) 

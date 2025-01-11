@@ -18,10 +18,10 @@ QIcon CWindowsService::DefaultIcon() const
 QString CWindowsService::GetNameEx() const
 {
 	if(m_Name.isEmpty())
-		return m_ServiceId;
-	if(m_Name.contains(m_ServiceId, Qt::CaseInsensitive))
+		return m_ServiceTag;
+	if(m_Name.contains(m_ServiceTag, Qt::CaseInsensitive))
 		return m_Name;
-	return QString("%1 (%2)").arg(m_Name).arg(m_ServiceId); // todo advanced view only
+	return QString("%1 (%2)").arg(m_Name).arg(m_ServiceTag); // todo advanced view only
 }
 
 CProgramFilePtr CWindowsService::GetProgramFile() const
@@ -59,24 +59,27 @@ QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 
 			auto Data = Res.GetValue();
 
-			auto Targets = Data.Get(API_V_PROC_TARGETS);
+			auto Targets = Data.Get(API_V_PROG_EXEC_CHILDREN);
 			Targets.ReadRawList([&](const CVariant& vData) {
 				const XVariant& Data = *(XVariant*)&vData;
 
-				quint64 Ref = Data.Get(API_V_PROC_REF).To<uint64>(0);
+				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
 				CProgramFile::SExecutionInfo Info;
-				Info.eRole = CProgramFile::SExecutionInfo::eTarget;
+				Info.Role = EExecLogRole::eTarget;
 
-				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_TARGET).To<uint64>(0);
-				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
+				Info.EnclaveGuid.FromVariant(Data.Get(API_V_EVENT_ACTOR_EID));
 
-				Info.LastExecTime = Data.Get(API_V_PROC_EVENT_LAST_EXEC).To<uint64>(0);
-				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
-				Info.CommandLine = Data.Get(API_V_PROC_EVENT_CMD_LINE).AsQStr();
+				Info.SubjectUID = Data.Get(API_V_EVENT_TARGET_UID).To<uint64>(0);
+				Info.SubjectEnclave.FromVariant(Data.Get(API_V_EVENT_TARGET_EID));
+				Info.ActorSvcTag = Data.Get(API_V_SERVICE_TAG).AsQStr();
+
+				Info.LastExecTime = Data.Get(API_V_PROG_LAST_EXEC).To<uint64>(0);
+				Info.bBlocked = Data.Get(API_V_WAS_BLOCKED).To<bool>(false);
+				Info.CommandLine = Data.Get(API_V_CMD_LINE).AsQStr();
 
 				m_ExecStats[Ref] = Info;
-				});
+			});
 		}
 	}
 
@@ -95,25 +98,28 @@ QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
 
 			auto Data = Res.GetValue();
 
-			auto Targets = Data.Get(API_V_PROC_TARGETS);
+			auto Targets = Data.Get(API_V_PROG_INGRESS_TARGETS);
 			Targets.ReadRawList([&](const CVariant& vData) {
 				const XVariant& Data = *(XVariant*)&vData;
 
-				quint64 Ref = Data.Get(API_V_PROC_REF).To<uint64>(0);
+				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
 				CProgramFile::SIngressInfo Info;
-				Info.eRole = CProgramFile::SIngressInfo::eTarget;
+				Info.Role = EExecLogRole::eTarget;
 
-				Info.ProgramUID = Data.Get(API_V_PROC_EVENT_TARGET).To<uint64>(0);
-				Info.ActorSvcTag = Data.Get(API_V_PROG_SVC_TAG).AsQStr();
+				Info.EnclaveGuid.FromVariant(Data.Get(API_V_EVENT_ACTOR_EID));
 
-				Info.LastAccessTime = Data.Get(API_V_PROC_EVENT_LAST_ACT).To<uint64>(0);
-				Info.bBlocked = Data.Get(API_V_PROC_EVENT_BLOCKED).To<bool>(false);
+				Info.SubjectUID = Data.Get(API_V_EVENT_TARGET_UID).To<uint64>(0);
+				Info.SubjectEnclave.FromVariant(Data.Get(API_V_EVENT_TARGET_EID));
+				Info.ActorSvcTag = Data.Get(API_V_SERVICE_TAG).AsQStr();
+
+				Info.LastAccessTime = Data.Get(API_V_LAST_ACTIVITY).To<uint64>(0);
+				Info.bBlocked = Data.Get(API_V_WAS_BLOCKED).To<bool>(false);
 				Info.ThreadAccessMask = Data.Get(API_V_THREAD_ACCESS_MASK).To<uint32>(0);
 				Info.ProcessAccessMask = Data.Get(API_V_PROCESS_ACCESS_MASK).To<uint32>(0);
 
 				m_Ingress[Ref] = Info;
-				});
+			});
 		}
 	}	
 

@@ -1037,3 +1037,121 @@ HRESULT PhActivateInstance(
 #endif
 }
 
+
+NTSTATUS PhCreateFileWin32(_Out_ PHANDLE FileHandle, _In_ PWSTR FileName, _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ ULONG FileAttributes, _In_ ULONG ShareAccess, _In_ ULONG CreateDisposition, _In_ ULONG CreateOptions)
+{
+    UNICODE_STRING uni;
+    OBJECT_ATTRIBUTES attr;
+    WCHAR wszBuffer[MAX_PATH];
+    _snwprintf(wszBuffer, MAX_PATH, L"\\??\\%s", FileName);
+    RtlInitUnicodeString(&uni, wszBuffer);
+    InitializeObjectAttributes(&attr, &uni, OBJ_CASE_INSENSITIVE, NULL, 0);
+
+    IO_STATUS_BLOCK Iosb;
+    return NtCreateFile(FileHandle, DesiredAccess, &attr, &Iosb, NULL, FileAttributes, ShareAccess, CreateDisposition, CreateOptions, NULL, 0);
+}
+
+NTSTATUS PhGetFileSize(_In_ HANDLE FileHandle, _Out_ PLARGE_INTEGER Size)
+{
+    if (GetFileSizeEx(FileHandle, Size))
+        return STATUS_SUCCESS;
+    return STATUS_UNSUCCESSFUL;
+}
+
+NTSTATUS PhCreateFile(
+    _Out_ PHANDLE FileHandle,
+    _In_ PPH_STRINGREF FileName,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG FileAttributes,
+    _In_ ULONG ShareAccess,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG CreateOptions
+)
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK ioStatusBlock;
+
+    if (!PhStringRefToUnicodeString(FileName, &fileName))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &fileName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+    );
+
+    status = NtCreateFile(
+        &fileHandle,
+        DesiredAccess,
+        &objectAttributes,
+        &ioStatusBlock,
+        NULL,
+        FileAttributes,
+        ShareAccess,
+        CreateDisposition,
+        CreateOptions,
+        NULL,
+        0
+    );
+
+    if (NT_SUCCESS(status))
+    {
+        *FileHandle = fileHandle;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetFileUsn(
+    _In_ HANDLE FileHandle,
+    _Out_ PLONGLONG Usn
+)
+{
+    NTSTATUS status;
+    ULONG recordLength;
+    PUSN_RECORD_V2 recordBuffer; // USN_RECORD_UNION
+    UCHAR buffer[sizeof(USN_RECORD_V2) + MAXIMUM_FILENAME_LENGTH * sizeof(WCHAR)];
+    IO_STATUS_BLOCK isb;
+
+    recordLength = sizeof(buffer);
+    recordBuffer = (PUSN_RECORD_V2)buffer;
+
+    status = NtFsControlFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_READ_FILE_USN_DATA, // FSCTL_WRITE_USN_CLOSE_RECORD
+        NULL, // READ_FILE_USN_DATA
+        0,
+        recordBuffer,
+        recordLength
+    );
+
+    if (NT_SUCCESS(status))
+    {
+        *Usn = recordBuffer->Usn;
+
+        //switch (recordBuffer->Header.MajorVersion)
+        //{
+        //case 2:
+        //    *Usn = recordBuffer->V2.Usn;
+        //    break;
+        //case 3:
+        //    *Usn = recordBuffer->V3.Usn;
+        //    break;
+        //case 4:
+        //    *Usn = recordBuffer->V4.Usn;
+        //    break;
+        //}
+    }
+
+    return status;
+}

@@ -12,7 +12,7 @@ public:
 	{
 		TRACK_OBJECT(SService)
 
-		std::wstring Id;
+		std::wstring ServiceTag;
 		std::wstring Name;
 		std::wstring BinaryPath;
 		uint32 State;
@@ -21,22 +21,9 @@ public:
 
 	typedef std::shared_ptr<SService> SServicePtr;
 
-	std::map<std::wstring, SServicePtr> List() { 
-		std::unique_lock Lock(m_Mutex);
-		return m_List; 
-	};
-	std::set<std::wstring> GetServicesByPid(uint64 Pid) { 
-		std::unique_lock Lock(m_Mutex);
-		std::set<std::wstring> Services;
-		for (auto I = m_Pids.find(Pid); I != m_Pids.end() && I->first == Pid; ++I)
-			Services.insert(I->second);
-		return Services;
-	}
-	SServicePtr GetService(const std::wstring& Id) { 
-		std::unique_lock Lock(m_Mutex);
-		auto F = m_List.find(Id); 
-		return F != m_List.end() ? F->second : SServicePtr(); 
-	}
+	std::map<std::wstring, SServicePtr> List() { std::unique_lock Lock(m_Mutex); return m_List;  };
+	std::set<std::wstring> GetServicesByPid(uint64 Pid);
+	SServicePtr GetService(const std::wstring& ServiceTag);
 
 protected:
 

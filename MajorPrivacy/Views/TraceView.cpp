@@ -4,6 +4,8 @@
 #include "../MajorPrivacy.h"
 #include "..\..\MiscHelpers\Common\Common.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
+#include "../Library/Common/DbgHelp.h"
+#include "../Models/TraceModel.h"
 
 CTraceView::CTraceView(CTraceModel* pModel, QWidget *parent)
 	:CPanelView(parent)
@@ -79,15 +81,198 @@ void CTraceView::SetFilter(const QRegularExpression& RegExp, int iOptions, int C
 		m_FullRefresh = true;
 }
 
-void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services)
+void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QFlexGuid& EnclaveGuid)
 {
-	MergeTraceLogs(&m_Log, Log, Programs, Services);
+	if(m_pBtnHold && m_pBtnHold->isChecked())
+		return;
+
+	bool bReset = false;
+	if (m_EnclaveGuid != EnclaveGuid)
+	{
+		m_EnclaveGuid = EnclaveGuid;
+
+		bReset = true;
+	}
+
+	QList<QPair<QVector<CLogEntryPtr>, CProgramItemPtr>> AllEntries;
+
+#ifdef _DEBUG
+	uint64 start = GetUSTickCount();
+#endif
+
+	quint64 LastTime = GetUSTickCount();
+	int TotalCount = Programs.count() + Services.count();
+	int ProcessedCount = 0;
+	theGUI->m_pProgressDialog->ResetCanceled();
+
+	auto ShowProgress = [&](const QString& ProgName) {
+		quint64 ElapsedTimeMs = (GetUSTickCount() - LastTime) / 1000;
+		ProcessedCount++;
+		if (theGUI->m_pProgressDialog->isVisible()) {
+			if (ElapsedTimeMs > 50) {
+				LastTime = GetUSTickCount();
+				theGUI->m_pProgressDialog->ShowProgress(tr("Loading %1").arg(ProgName), 100 * ProcessedCount / TotalCount);
+				QCoreApplication::processEvents();
+			}
+		} else if(ElapsedTimeMs > 500)
+			theGUI->m_pProgressDialog->show();
+
+		return !theGUI->m_pProgressDialog->IsCancelled();
+	};
+
+
+	foreach(const CProgramFilePtr& pProgram, Programs) 
+	{
+		SMergedLog::SLogState& State = m_Log.States[pProgram];
+
+		if (!ShowProgress(pProgram->GetName())) {
+			if(m_pBtnHold) m_pBtnHold->setChecked(true);
+			break;
+		}
+		const QVector<CLogEntryPtr>& Entries = pProgram->GetTraceLog(Log)->Entries;
+		AllEntries.append(qMakePair(Entries, pProgram));
+	}
+
+	foreach(const CWindowsServicePtr& pService, Services) 
+	{
+		SMergedLog::SLogState& State = m_Log.States[pService];
+
+		CProgramFilePtr pProgram = pService->GetProgramFile();
+		if (!pProgram) continue;
+
+		if(!ShowProgress(pService->GetName())) {
+			if(m_pBtnHold) m_pBtnHold->setChecked(true);
+			break;
+		}
+		const QVector<CLogEntryPtr>& Entries = pProgram->GetTraceLog(Log)->Entries;
+		AllEntries.append(qMakePair(Entries, pService));
+	}
+
+
+	if(theGUI->m_pProgressDialog->isVisible())
+		theGUI->m_pProgressDialog->hide();
+
+#ifdef _DEBUG
+	quint64 elapsed = (GetUSTickCount() - start) / 1000;
+	if (elapsed > 100)
+		DbgPrint("Loading Tracelogs %d took %d ms\r\n", Log, elapsed);
+#endif
+
+	if (!m_Log.States.isEmpty()) {
+		if (Programs.count() + Services.count() != m_Log.States.count())
+			bReset = true;
+		else
+		{
+			foreach(const auto& Data, AllEntries) {
+				SMergedLog::SLogState& State = m_Log.States[Data.second];
+				if(Data.first.count() < State.LastCount) {
+					bReset = true;
+					break;
+				}
+			}
+		}
+	}
+	if (bReset) {
+		m_Log.MergeSeqNr++;
+		m_Log.LastCount = 0;
+		m_Log.States.clear();
+		m_Log.List.clear();
+	}
+
+	//auto AddToLog = [&](const QVector<CLogEntryPtr>& Entries, SMergedLog::SLogState& State, const CProgramFilePtr& pProgram, const QString& FilterTag = "") {
+	//
+	//	int i = State.LastCount;
+	//
+	//	//
+	//	// We insert a sorted list into an other sorted list,
+	//	// we know that all new entries will be added after the last entry from the previouse merge
+	//	//
+	//
+	//	int j = m_Log.LastCount;
+	//
+	//	for (; i < Entries.count(); i++)
+	//	{
+	//		CLogEntryPtr pEntry = Entries.at(i);
+	//
+	//		if (FilterTag.isEmpty() || pEntry->GetOwnerService().compare(FilterTag, Qt::CaseInsensitive) == 0)
+	//		{
+	//			// Find the correct position using binary search
+	//			int low = j, high = m_Log.List.count();
+	//			while (low < high) {
+	//				int mid = low + (high - low) / 2;
+	//				if (m_Log.List.at(mid).second->GetTimeStamp() > pEntry->GetTimeStamp())
+	//					high = mid;
+	//				else
+	//					low = mid + 1;
+	//			}
+	//			j = low;
+	//
+	//			m_Log.List.insert(j++, qMakePair(pProgram, pEntry));
+	//		}
+	//	}
+	//
+	//	State.LastCount = Entries.count();
+	//};
+
+
+#ifdef _DEBUG
+	start = GetUSTickCount();
+#endif
+
+	QMultiMap<quint64, SMergedLog::TLogEntry> Map;
+
+	auto AddToLog = [&](const QVector<CLogEntryPtr>& Entries, SMergedLog::SLogState& State, const CProgramFilePtr& pProgram, const QString& FilterTag = "") {
+
+		int i = State.LastCount;
+
+		//
+		// We insert a sorted list into an other sorted list,
+		// we know that all new entries will be added after the last entry from the previouse merge
+		//
+
+		int j = m_Log.LastCount;
+
+		for (; i < Entries.count(); i++)
+		{
+			CLogEntryPtr pEntry = Entries.at(i);
+
+			if (!FilterTag.isEmpty() && pEntry->GetOwnerService().compare(FilterTag, Qt::CaseInsensitive) != 0)
+				continue;
+
+			if (!EnclaveGuid.IsNull() && pEntry->GetEnclaveGuid() != EnclaveGuid)
+				continue;
+			
+			Map.insert(pEntry->GetTimeStamp(), qMakePair(pProgram, pEntry));
+		}
+
+		State.LastCount = Entries.count();
+	};
+
+	foreach(const auto& Data, AllEntries) {
+		SMergedLog::SLogState& State = m_Log.States[Data.second];
+		if(CProgramFilePtr pProgram = Data.second.objectCast<CProgramFile>())
+			AddToLog(Data.first, State, pProgram);
+		else if (CWindowsServicePtr pService = Data.second.objectCast<CWindowsService>())
+			if(CProgramFilePtr pProgram = pService->GetProgramFile())
+				AddToLog(Data.first, State, pService->GetProgramFile(), pService->GetServiceTag());
+	}
+
+	m_Log.List.append(Map.values());
+
+	m_Log.LastCount = m_Log.List.count();
+
+#ifdef _DEBUG
+	elapsed = (GetUSTickCount() - start) / 1000;
+	if (elapsed > 100)
+		DbgPrint("Merging Tracelogs %d took %d ms\r\n", Log, (GetUSTickCount() - start) / 1000);
+#endif
+
 
 	if (m_FullRefresh || m_RecentLimit != theGUI->GetRecentLimit()) 
 	{
-		//quint64 start = GetCurCycle();
+		//quint64 start = GetUSTickCount();
 		m_pItemModel->Clear();
-		//qDebug() << "Clear took" << (GetCurCycle() - start) / 1000000.0 << "s";
+		//qDebug() << "Clear took" << (GetUSTickCount() - start) / 1000000.0 << "s";
 
 		m_RecentLimit = theGUI->GetRecentLimit();
 
@@ -98,27 +283,31 @@ void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, con
 
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
-	//quint64 start = GetCurCycle();
+	//quint64 start = GetUSTickCount();
 	QList<QModelIndex> NewBranches = m_pItemModel->Sync(m_Log.List, uRecentLimit);
-	//qDebug() << "Sync took" << (GetCurCycle() - start) / 1000000.0 << "s";
+	//qDebug() << "Sync took" << (GetUSTickCount() - start) / 1000000.0 << "s";
 
 	/*if (m_pItemModel->IsTree())
 	{
 		QTimer::singleShot(10, this, [this, NewBranches]() {
-			quint64 start = GetCurCycle();
+			quint64 start = GetUSTickCount();
 			foreach(const QModelIndex& Index, NewBranches)
 				GetTree()->expand(Index);
-			qDebug() << "Expand took" << (GetCurCycle() - start) / 1000000.0 << "s";
+			qDebug() << "Expand took" << (GetUSTickCount() - start) / 1000000.0 << "s";
 			});
 	}
 
 	if(m_pAutoScroll->isChecked())
 		m_pTreeList->scrollToBottom();*/
+
+	if(m_pBtnScroll && m_pBtnScroll->isChecked())
+		m_pTreeView->scrollToBottom();
 }
 
 void CTraceView::ClearTraceLog(ETraceLogs Log)
 {
-	if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the trace logs for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+	if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the trace logs for the current program items?"), 
+		QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
 		return;
 
 	auto Current = theGUI->GetCurrentItems();

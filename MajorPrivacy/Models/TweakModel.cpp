@@ -22,7 +22,10 @@ CTweakModel::~CTweakModel()
 QList<QModelIndex>	CTweakModel::Sync(const CTweakPtr& pRoot)
 {
 	QList<QVariant> Added;
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	auto pList = pRoot.objectCast<CTweakList>();

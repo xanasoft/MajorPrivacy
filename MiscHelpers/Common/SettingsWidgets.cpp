@@ -74,6 +74,29 @@ QVariant GetComboBoxValue(QComboBox* pBox)
 	return pBox->currentText();
 }
 
+void AddColoredComboBoxEntry(QComboBox* pBox, const QString& Text, const QColor& Color, const QVariant& Data)
+{
+	pBox->addItem(Text, Data);
+	if(Color.isValid())
+		qobject_cast<QStandardItemModel *>(pBox->model())->item(pBox->count() - 1)->setBackground(QBrush(Color));
+	else
+		qobject_cast<QStandardItemModel *>(pBox->model())->item(pBox->count() - 1)->setBackground(pBox->palette().background());
+}
+
+void ColorComboBox(QComboBox* pBox)
+{
+	auto pLambda = [pBox]() {
+		auto pModel = qobject_cast<QStandardItemModel *>(pBox->model());
+		if (auto pItem = pModel->item(pBox->currentIndex())) {
+			auto pal = pBox->palette();
+			pal.setColor(QPalette::Button, pItem->background().color());
+			pBox->setPalette(pal);
+		}
+	};
+	QObject::connect(pBox, &QComboBox::currentTextChanged, pLambda);
+	pLambda();
+}
+
 ///////////////////////////////////////////////////
 // CProxyEdit
 

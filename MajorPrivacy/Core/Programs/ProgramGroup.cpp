@@ -29,8 +29,7 @@ void CAllPrograms::ReadIValue(uint32 Index, const XVariant& Data)
 {
 	switch (Index)
 	{
-	case API_V_SOCK_LAST_ACT:	m_Stats.LastNetActivity = Data; break;
-
+	case API_V_SOCK_LAST_NET_ACT: m_Stats.LastNetActivity = Data; break;
 	case API_V_SOCK_LAST_ALLOW:	m_Stats.LastFwAllowed = Data; break;
 	case API_V_SOCK_LAST_BLOCK:	m_Stats.LastFwBlocked = Data; break;
 

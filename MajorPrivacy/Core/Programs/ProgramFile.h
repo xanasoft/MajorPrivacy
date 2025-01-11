@@ -16,28 +16,28 @@ public:
 	virtual EProgramType GetType() const { return EProgramType::eProgramFile; }
 
 	virtual QString GetNameEx() const;
-	virtual void SetPath(const QString& Path, EPathType Type) { m_Path.Set(Path, Type); }
-	virtual QString GetPath(EPathType Type) const	{ return m_Path.Get(Type); }
+	virtual void SetPath(const QString& Path)		{ m_Path = Path; }
+	virtual QString GetPath() const					{ return m_Path; }
+	virtual QString GetIconFile() const				{ return m_IconFile.isEmpty() ? m_Path : m_IconFile; }
 
-	virtual SLibraryInfo::USign GetSignInfo() const	{ return m_SignInfo; }
+	virtual const CImageSignInfo& GetSignInfo() const{ return m_SignInfo; }
 
 	virtual QSet<quint64> GetProcessPids() const	{ return m_ProcessPids; }
 
 	virtual void CountStats();
 
-	QMap<quint64, SLibraryInfo> GetLibraries();
+	QMultiMap<quint64, SLibraryInfo> GetLibraries();
+	void SetLibrariesChanged() { m_LibrariesChanged = true; }
 
-	static QString GetLibraryStatusStr(EEventStatus Status);
-	static QString GetSignatureInfoStr(SLibraryInfo::USign SignInfo);
+	static QString GetSignatureInfoStr(UCISignInfo SignInfo);
 
 	struct SInfo
 	{
-		enum {
-			eNone = 0,
-			eTarget,
-			eActor,
-		}							eRole = eNone;
-		uint64						ProgramUID = 0;
+		EExecLogRole				Role = EExecLogRole::eUndefined;
+		QFlexGuid					EnclaveGuid;
+		uint64						SubjectUID = 0;
+		uint64						SubjectPID = 0; // this is not the actual PIC but the PUID
+		QFlexGuid					SubjectEnclave;
 		QString						ActorSvcTag;
 	};
 
@@ -88,15 +88,15 @@ protected:
 	void ReadIValue(uint32 Index, const XVariant& Data) override;
 	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
 
-	CFilePath					m_Path;
+	QString						m_Path;
 
-	SLibraryInfo::USign			m_SignInfo;
+	CImageSignInfo				m_SignInfo;
 
 	quint64						m_LastExec = 0;
 
 	QSet<quint64>				m_ProcessPids;
 
-	QMap<quint64, SLibraryInfo>	m_Libraries;
+	QMultiMap<quint64, SLibraryInfo> m_Libraries;
 	bool						m_LibrariesChanged = true;
 
 	QMap<quint64, SExecutionInfo> m_ExecStats;

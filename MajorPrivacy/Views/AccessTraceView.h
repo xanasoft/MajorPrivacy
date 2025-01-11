@@ -4,6 +4,7 @@
 #include "../../MiscHelpers/Common/TreeviewEx.h"
 #include "../Models/AccessTraceModel.h"
 #include "../Core/Programs/ProgramFile.h"
+#include "../Core/Programs/windowsService.h"
 #include "TraceView.h"
 
 class CAccessTraceView : public CTraceView
@@ -26,6 +27,5 @@ protected:
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbAction;
 	QToolButton*			m_pBtnClear;
-	QToolButton*			m_pBtnScroll;
 
 };

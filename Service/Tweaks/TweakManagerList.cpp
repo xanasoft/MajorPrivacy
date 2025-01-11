@@ -289,7 +289,7 @@ CTweakPtr InitKnownTweaks(std::map<std::wstring, CTweakPtr>* pList)
     //    L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows Defender",
     //    L"DisableAntiVirus",
     //    V(1));
-    MakeTweakObject<CGpoTweak>(defender, pList, L"Torn off Application Guard", WinVer_Win10EE,
+    MakeTweakObject<CGpoTweak>(defender, pList, L"Turn off Application Guard", WinVer_Win10EE,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\AppHVSI",
         L"AllowAppHVSI_ProviderSet",
         V(0));

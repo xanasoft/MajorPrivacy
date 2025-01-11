@@ -27,7 +27,6 @@ public:
 	//CPathRule(FW::AbstractMemPool* pMem, const wchar_t* Path) : CPathRule(pMem, FW::StringW(pMem, Path)) {}
 	virtual ~CPathRule();
 
-	void SetNewGuid();
 	void SetGuid(const FW::StringW& Guid)			{ m_Guid = Guid; }
 	FW::StringW GetGuid() const						{ return m_Guid; }
 
@@ -67,7 +66,7 @@ public:
 	void Clear();
 
 	FW::Map<FW::StringW, CPathRulePtr> GetRuleMap() const		{ return m_Map; }
-	CPathRulePtr GetRule(const FW::StringW& Guid) const			{ return m_Map.GetValue(Guid); }
+	CPathRulePtr GetRule(const FW::StringW& Guid) const			{ return m_Map.FindValue(Guid); }
 
 	struct SFoundRule
 	{

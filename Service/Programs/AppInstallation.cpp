@@ -3,34 +3,25 @@
 #include "../../Library/Helpers/SID.h"
 #include "../../Library/Helpers/AppUtil.h"
 #include "../../Library/API/PrivacyAPI.h"
+#include "../../Library/Common/Strings.h"
 
-CAppInstallation::CAppInstallation(const TInstallId& Id)
+CAppInstallation::CAppInstallation(const std::wstring& RegKey)
 {
-	m_ID.Set(EProgramType::eAppInstallation, Id);
-
-	m_RegKey = Id;
+	m_ID = CProgramID(MkLower(RegKey), EProgramType::eAppInstallation);
+	m_RegKey = RegKey;
 }
 
-void CAppInstallation::SetInstallPath(const std::wstring Path)	
+void CAppInstallation::SetPath(const std::wstring Path)	
 { 
 	std::unique_lock lock(m_Mutex); 
 	m_Path = Path; 
-	UpdatePattern();
 }
 
-void CAppInstallation::UpdatePattern()
+bool CAppInstallation::MatchFileName(const std::wstring& FileName) const
 {
-	if(m_Path.length() > 0 && m_Path.at(m_Path.length() - 1) == L'\\')
-		m_Path.erase(m_Path.length() - 1);
-	SetPathPattern(m_Path + L"\\*");
-}
+	std::unique_lock lock(m_Mutex);
 
-NTSTATUS CAppInstallation::FromVariant(const CVariant& Data)
-{
-	NTSTATUS status = CProgramPattern::FromVariant(Data);
-
-	std::unique_lock lock(m_Mutex); 
-	UpdatePattern();
-
-	return status;
+	if (FileName.length() < m_Path.length())
+		return false;
+	return _wcsnicmp(FileName.c_str(), m_Path.c_str(), m_Path.length()) == 0;
 }

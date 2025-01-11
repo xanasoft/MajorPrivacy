@@ -12,7 +12,7 @@ public:
 	CProgramRuleView(QWidget *parent = 0);
 	virtual ~CProgramRuleView();
 
-	void					Sync(QList<CProgramRulePtr> RuleList);
+	void					Sync(QList<CProgramRulePtr> RuleList, const QFlexGuid& EnclaveGuid = QString());
 
 protected:
 	void					OnMenu(const QPoint& Point) override;
@@ -24,13 +24,24 @@ private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
 
+	void					OnAddRule();
 	void					OnRuleAction();
+
+	void					Refresh();
+	//void					CleanTemp();
+
+protected:
+	QList<CProgramRulePtr>	m_RuleList;
+	QFlexGuid				m_EnclaveGuid;
 
 private:
 
 	QToolBar*				m_pToolBar;
+	QToolButton*			m_pBtnAdd;
 	QComboBox*				m_pCmbAction;
 	QToolButton*			m_pBtnEnabled;
+	QToolButton*			m_pBtnRefresh;
+	QToolButton*			m_pBtnCleanUp;
 
 	QAction*				m_pCreateRule;
 	QAction*				m_pEnableRule;

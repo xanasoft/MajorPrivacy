@@ -12,31 +12,35 @@
 #include "../Views/HandleView.h"
 
 
-CAccessPage::CAccessPage(QWidget* parent)
+CAccessPage::CAccessPage(bool bEmbedded, QWidget* parent)
 	: QWidget(parent)
 {
+	m_bEmbedded = bEmbedded;
+
 	m_pMainLayout = new QVBoxLayout(this);
 	m_pMainLayout->setContentsMargins(0, 0, 0, 0);
 
 	//m_pToolBar = new QToolBar();
 	//m_pMainLayout->addWidget(m_pToolBar);
 
-	//m_pRuleTabs = new QTabWidget();
+
+	m_pRuleTabs = new QTabWidget();
 
 	m_pRuleView = new CAccessRuleView();
-	//m_pRuleTabs->addTab(m_pAccessRuleView, tr("Access Rules"));
+	m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Access Rules"));
 
 
 	m_pTabs = new QTabWidget();
 
 	m_pHandleView = new CHandleView();
-	m_pTabs->addTab(m_pHandleView, tr("Open Resources"));
+	m_pTabs->addTab(m_pHandleView, QIcon(":/Icons/Files.png"), tr("Open Resources"));
 
 	m_pAccessSplitter = new QSplitter(Qt::Horizontal);
-	m_pTabs->addTab(m_pAccessSplitter, tr("Access Monitor"));
+	m_pTabs->addTab(m_pAccessSplitter, QIcon(":/Icons/Ampel.png"), tr("Access Monitor"));
 
 	m_pAccessView = new CAccessView();
 	m_pAccessSplitter->addWidget(m_pAccessView);
+	m_pAccessSplitter->setCollapsible(0, false);
 
 	m_pAccessListView = new CAccessListView();
 	m_pAccessSplitter->addWidget(m_pAccessListView);
@@ -44,30 +48,25 @@ CAccessPage::CAccessPage(QWidget* parent)
 	connect(m_pAccessView, &CAccessView::SelectionChanged, m_pAccessListView, &CAccessListView::OnSelectionChanged);
 
 	m_pTraceView = new CAccessTraceView();
-	m_pTabs->addTab(m_pTraceView, tr("Trace Log"));
+	m_pTabs->addTab(m_pTraceView, QIcon(":/Icons/SetLogging.png"), tr("Trace Log"));
 
 
 	m_pVSplitter = new QSplitter(Qt::Vertical);
 	m_pMainLayout->addWidget(m_pVSplitter);
-	//m_pVSplitter->addWidget(m_pRuleTabs);
-	m_pVSplitter->addWidget(m_pRuleView);
+	m_pVSplitter->addWidget(m_pRuleTabs);
+	m_pVSplitter->setCollapsible(0, false);
 	m_pVSplitter->addWidget(m_pTabs);
+	m_pVSplitter->setCollapsible(1, false);
 }
 
 CAccessPage::~CAccessPage()
 {
-	QString Name = this->objectName();
-	if(Name.isEmpty())
-		Name = "Access";
-	theConf->SetValue(QString("MainWindow/" + Name + "Tab").toStdString().c_str(), m_pTabs->currentIndex());
+	theConf->SetValue("MainWindow/" + QString(m_bEmbedded ? "VolumeAccess" : "AccessPanel"), m_pTabs->currentIndex());
 }
 
 void CAccessPage::LoadState()
 {
-	QString Name = this->objectName();
-	if(Name.isEmpty())
-		Name = "Access";
-	m_pTabs->setCurrentIndex(theConf->GetInt(QString("MainWindow/" + Name + "Tab").toStdString().c_str(), 0));
+	m_pTabs->setCurrentIndex(theConf->GetInt(QString("MainWindow/" + QString(m_bEmbedded ? "AccessPanel" : "AccessTab")).toStdString().c_str(), 0));
 }
 
 void CAccessPage::SetMergePanels(bool bMerge)
@@ -78,16 +77,20 @@ void CAccessPage::SetMergePanels(bool bMerge)
 	if (bMerge)
 	{
 		m_pMainLayout->addWidget(m_pTabs);
-		m_pTabs->insertTab(0, m_pRuleView, tr("Access Rules"));
+		m_pTabs->insertTab(0, m_pRuleView, QIcon(":/Icons/Rules.png"), tr("Access Rules"));
 		delete m_pVSplitter;
 		m_pVSplitter = nullptr;
 	}
 	else
 	{
 		m_pVSplitter = new QSplitter(Qt::Vertical);
-		m_pVSplitter->addWidget(m_pRuleView);
+		m_pRuleTabs = new QTabWidget();
+		m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Access Rules"));
+		m_pVSplitter->addWidget(m_pRuleTabs);
 		m_pRuleView->setVisible(true);
+		m_pVSplitter->setCollapsible(0, false);
 		m_pVSplitter->addWidget(m_pTabs);
+		m_pVSplitter->setCollapsible(1, false);
 		m_pMainLayout->addWidget(m_pVSplitter);
 	}
 
@@ -96,8 +99,9 @@ void CAccessPage::SetMergePanels(bool bMerge)
 
 void CAccessPage::Update()
 {
-	if (!isVisible())
+	if (!isVisible() || m_bEmbedded)
 		return;
+	UpdateEnabled();
 
 	auto Current = theGUI->GetCurrentItems();
 
@@ -106,19 +110,19 @@ void CAccessPage::Update()
 		if(Current.bAllPrograms)
 			m_pRuleView->Sync(theCore->AccessManager()->GetAccessRules());
 		else {
-			QSet<QString> RuleIDs;
+			QSet<QFlexGuid> RuleIDs;
 			foreach(CProgramItemPtr pItem, Current.Items)
 				RuleIDs.unite(pItem->GetResRules());
 			m_pRuleView->Sync(theCore->AccessManager()->GetAccessRules(RuleIDs));
 		}
 	}
 
-	if(m_pHandleView->isVisible())
+	if (m_pHandleView->isVisible())
 	{
 		m_pHandleView->Sync(theGUI->GetCurrentProcesses());
 	}
 
-	if(m_pAccessView->isVisible())
+	if (m_pAccessView->isVisible())
 	{
 		m_pAccessView->Sync(Current.Programs, Current.ServicesEx | Current.ServicesIm);
 	}
@@ -131,8 +135,9 @@ void CAccessPage::Update()
 
 void CAccessPage::Update(const QString& VolumeRoot, const QString& VolumeImage)
 {
-	if (!isVisible())
+	if (!isVisible() || !m_bEmbedded)
 		return;
+	UpdateEnabled();
 
 	auto Current = theGUI->GetCurrentItems();
 
@@ -141,12 +146,12 @@ void CAccessPage::Update(const QString& VolumeRoot, const QString& VolumeImage)
 		m_pRuleView->Sync(theCore->AccessManager()->GetAccessRules(), VolumeRoot, VolumeImage);
 	}
 
-	if(m_pHandleView->isVisible())
+	if (m_pHandleView->isVisible())
 	{
 		m_pHandleView->Sync(theCore->ProcessList()->List(), VolumeRoot);
 	}
 
-	if(m_pAccessView->isVisible())
+	if (m_pAccessView->isVisible())
 	{
 		m_pAccessView->Sync(theCore->ProgramManager()->GetPrograms(), theCore->ProgramManager()->GetServices(), VolumeRoot);
 	}
@@ -155,4 +160,11 @@ void CAccessPage::Update(const QString& VolumeRoot, const QString& VolumeImage)
 	{
 		m_pTraceView->Sync(ETraceLogs::eResLog, theCore->ProgramManager()->GetPrograms(), theCore->ProgramManager()->GetServices(), VolumeRoot);
 	}
+}
+
+void CAccessPage::UpdateEnabled()
+{
+	m_pHandleView->setEnabled(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));
+	m_pAccessView->setEnabled(theCore->GetConfigBool("Service/ResTrace", false));
+	m_pTraceView->setEnabled(theCore->GetConfigBool("Service/ResLog", false));
 }

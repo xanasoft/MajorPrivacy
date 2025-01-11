@@ -17,7 +17,7 @@
 #include "../Library/Helpers/EvtUtil.h"
 
 #define API_PROGRAMS_FILE_NAME L"Programs.dat"
-#define API_PROGRAMS_FILE_VERSION 1
+#define API_PROGRAMS_FILE_VERSION 2
 
 CProgramManager::CProgramManager()
 {
@@ -114,7 +114,6 @@ STATUS CProgramManager::Init()
 {
 	m_Root = CProgramListPtr(new CProgramRoot()); 
 	m_Root->m_UID = 1;
-	m_Root->m_ID.Set(EProgramType::eFilePattern, L"");
 	m_Items.insert(std::make_pair(m_Root->GetUID(), m_Root));
 
 	m_pAll = CProgramSetPtr(new CAllPrograms());
@@ -122,17 +121,17 @@ STATUS CProgramManager::Init()
 	AddItemToRoot(m_pAll);
 	m_Items.insert(std::make_pair(m_pAll->GetUID(), m_pAll));
 
-	m_NtOsKernel = CProgramFilePtr(new CProgramFile(NormalizeFilePath(CProcess::NtOsKernel_exe)));
+	m_NtOsKernel = CProgramFilePtr(new CProgramFile(theCore->NormalizePath(CProcess::NtOsKernel_exe, false)));
 	m_NtOsKernel->SetName(L"System (NT OS Kernel)");
-	m_PathMap[m_NtOsKernel->GetPath()] = m_NtOsKernel;
+	m_PathMap[MkLower(m_NtOsKernel->GetPath())] = m_NtOsKernel;
 	//AddItemToRoot(m_NtOsKernel);
 	m_Items.insert(std::make_pair(m_NtOsKernel->GetUID(), m_NtOsKernel));
 
 	WCHAR windir[MAX_PATH + 8];
     GetWindowsDirectoryW(windir, MAX_PATH);
-	m_OsDrive = DosPathToNtPath(std::wstring(windir, 3));
-	m_WinDir = DosPathToNtPath(windir);
-	m_ProgDir = DosPathToNtPath(GetProgramFilesDirectory());
+	m_OsDrive = std::wstring(windir, 3);
+	m_WinDir = windir;
+	m_ProgDir = GetProgramFilesDirectory();
 
 	uint64 uStart = GetTickCount64();
 	STATUS Status = Load();
@@ -141,7 +140,7 @@ STATUS CProgramManager::Init()
 	{
 		AddItemToRoot(m_NtOsKernel);
 
-		//AddPattern(DosPathToNtPath(GetApplicationDirectory()) + L"\\*", L"Major Privacy");
+		//AddPattern(GetApplicationDirectory() + L"\\*", L"Major Privacy");
 
 		AddPattern(m_WinDir + L"\\*", L"Windows");
 		//AddPattern(m_WinDir + L"\\System32\\svchost.exe", L"Windows Service Host");
@@ -155,12 +154,51 @@ STATUS CProgramManager::Init()
 		AddPattern(m_OsDrive + L"ProgramData\\*" + L"\\*", L"ProgramData");
 		AddPattern(m_OsDrive + L"Users\\*" + L"\\*", L"Users");
 	}
+	else
+	{
+		std::map<CProgramLibraryPtr, std::list<CProgramFilePtr>> LibraryMap;
+		for (auto& IItem : m_Items)
+		{
+			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(IItem.second);
+			if (pProgram)
+			{
+				if (pProgram->HashInfoUnknown())
+				{
+					theCore->ThreadPool()->enqueueTask([](const CProgramFilePtr& pProgram) {
+						SVerifierInfo VerifyInfo;
+						CProcess::MakeVerifyInfo(pProgram->GetPath(), VerifyInfo);
+						pProgram->UpdateSignInfo(&VerifyInfo, true);
+					}, pProgram);
+				}
+
+				for (auto& ILibrary : pProgram->GetLibraries())
+				{
+					if (ILibrary.second.SignInfo.GetHashStatus() == EHashStatus::eHashUnknown)
+					{
+						CProgramLibraryPtr pLibrary = GetLibrary(ILibrary.first);
+						if(pLibrary)
+							LibraryMap[pLibrary].push_back(pProgram);
+					}
+				}
+			}
+		}
+
+		for (auto& ILibrary : LibraryMap)
+		{
+			theCore->ThreadPool()->enqueueTask([](const CProgramLibraryPtr& pLibrary, const std::list<CProgramFilePtr>& Programs) {
+				SVerifierInfo VerifyInfo;
+				CProcess::MakeVerifyInfo(pLibrary->GetPath(), VerifyInfo);
+				for (auto& pProgram : Programs)
+					pProgram->AddLibrary(CFlexGuid(), pLibrary, 0, &VerifyInfo);
+			}, ILibrary.first, ILibrary.second);
+		}
+	}
 
 	m_InstallationList->Init();
 	m_PackageList->Init();
 
-	theCore->Driver()->RegisterRuleEventHandler(ERuleType::eProgram, &CProgramManager::OnRuleChanged, this);
-	theCore->Driver()->RegisterForRuleEvents(ERuleType::eProgram);
+	theCore->Driver()->RegisterConfigEventHandler(EConfigGroup::eProgramRules, &CProgramManager::OnRuleChanged, this);
+	theCore->Driver()->RegisterForConfigEvents(EConfigGroup::eProgramRules);
 	LoadRules();
 
 	TestMissing();
@@ -179,6 +217,11 @@ void CProgramManager::Update()
 
 		TestMissing();
 	}
+}
+
+bool CProgramManager::IsNtOsKrnl(const std::wstring& FilePath) const
+{
+	return m_NtOsKernel->GetID().GetFilePath() == theCore->NormalizePath(FilePath);
 }
 
 void CProgramManager::TestMissing()
@@ -238,14 +281,14 @@ STATUS CProgramManager::RemoveAllRules(const CProgramItemPtr& pItem)
 {
 	auto FwRules = pItem->GetFwRules();
 	for (auto I = FwRules.begin(); I != FwRules.end(); ++I) {
-		STATUS Status = theCore->NetworkManager()->Firewall()->DelRule((*I)->GetGuid());
+		STATUS Status = theCore->NetworkManager()->Firewall()->DelRule((*I)->GetGuidStr());
 		if(!Status) return Status;
 	}
 
 	auto ProgRules = pItem->GetProgRules();
 	for (auto I = ProgRules.begin(); I != ProgRules.end(); ++I) {
 		CVariant Request;
-		Request[API_V_RULE_GUID] = (*I)->GetGuid();
+		Request[API_V_GUID] = (*I)->GetGuid().ToVariant(true);
 		STATUS Status = theCore->Driver()->Call(API_DEL_PROGRAM_RULE, Request);
 		if (!Status) return Status;
 	}
@@ -253,7 +296,7 @@ STATUS CProgramManager::RemoveAllRules(const CProgramItemPtr& pItem)
 	auto ResRules = pItem->GetResRules();
 	for (auto I = ResRules.begin(); I != ResRules.end(); ++I) {
 		CVariant Request;
-		Request[API_V_RULE_GUID] = (*I)->GetGuid();
+		Request[API_V_GUID] = (*I)->GetGuid().ToVariant(true);
 		STATUS Status = theCore->Driver()->Call(API_DEL_ACCESS_RULE, Request);
 		if (!Status) return Status;
 	}
@@ -356,7 +399,7 @@ CProgramItemPtr CProgramManager::GetItem(uint64 UID)
 
 bool CProgramManager::IsPathReserved(std::wstring FileName) const
 {
-	FileName = NormalizeFilePath(FileName);
+	FileName = theCore->NormalizePath(FileName, false);
 	if(FileName.empty())
 		return false;
 	if (FileName.at(FileName.length() - 1) != L'\\')
@@ -372,13 +415,13 @@ bool CProgramManager::IsPathReserved(std::wstring FileName) const
 	return false;
 }
 
-void CProgramManager::AddPattern(const std::wstring& Pattern, const std::wstring& Name)
+void CProgramManager::AddPattern(const std::wstring& DosPattern, const std::wstring& Name)
 {
-	CProgramPatternPtr pPattern = CProgramPatternPtr(new CProgramPattern(NormalizeFilePath(Pattern)));
+	CProgramPatternPtr pPattern = CProgramPatternPtr(new CProgramPattern(DosPattern));
 	pPattern->SetName(Name);
 
 	std::unique_lock lock(m_Mutex);
-	m_PatternMap.insert(std::make_pair(pPattern->GetPattern(), pPattern));
+	m_PatternMap.insert(std::make_pair(MkLower(pPattern->GetPattern()), pPattern));
 	m_Items.insert(std::make_pair(pPattern->GetUID(), pPattern));
 	
 	AddItemToRoot(pPattern);
@@ -402,44 +445,44 @@ CProgramItemPtr CProgramManager::GetProgramByID(const CProgramID& ID, bool bCanA
 	}
 }
 
-CProgramGroupPtr CProgramManager::GetGroup(const TGroupId& _Id, bool bCanAdd)
+CProgramGroupPtr CProgramManager::GetGroup(const std::wstring& Guid, bool bCanAdd)
 {
-	TAppId Id = MkLower(_Id);
+	std::wstring Key = MkLower(Guid);
 
 	std::unique_lock lock(m_Mutex);
 	if (!bCanAdd) {
-		auto F = m_GroupMap.find(Id);
+		auto F = m_GroupMap.find(Key);
 		if (F != m_GroupMap.end())
 			return F->second;
 		return NULL;
 	}
-	CProgramGroupPtr& pGroup = m_GroupMap[Id];
+	CProgramGroupPtr& pGroup = m_GroupMap[Key];
 	if (!pGroup) {
-		pGroup = CProgramGroupPtr(new CProgramGroup(Id));
+		pGroup = CProgramGroupPtr(new CProgramGroup(Guid));
 		m_Items.insert(std::make_pair(pGroup->GetUID(), pGroup));
 		lock.unlock();
 
 		AddItemToRoot(pGroup);
 
-		//BroadcastItemChanged(pGroup, ERuleEvent::eAdded);
+		//BroadcastItemChanged(pGroup, EConfigEvent::eAdded);
 	}
 	return pGroup;
 }
 
-CAppPackagePtr CProgramManager::GetAppPackage(const TAppId& _Id, bool bCanAdd)
+CAppPackagePtr CProgramManager::GetAppPackage(const std::wstring& AppContainserSid, bool bCanAdd)
 {
-	TAppId Id = MkLower(_Id);
+	std::wstring Key = MkLower(AppContainserSid);
 
 	std::unique_lock lock(m_Mutex);
 	if (!bCanAdd) {
-		auto F = m_PackageMap.find(Id);
+		auto F = m_PackageMap.find(Key);
 		if (F != m_PackageMap.end())
 			return F->second;
 		return NULL;
 	}
-	CAppPackagePtr& pAppPackage = m_PackageMap[Id];
+	CAppPackagePtr& pAppPackage = m_PackageMap[Key];
 	if (!pAppPackage) {
-		pAppPackage = CAppPackagePtr(new CAppPackage(Id));
+		pAppPackage = CAppPackagePtr(new CAppPackage(AppContainserSid));
 		m_Items.insert(std::make_pair(pAppPackage->GetUID(), pAppPackage));
 		//pAppPackage->SetInstallPath(GetAppContainerRootPath( // todo:
 		// todo: icon
@@ -447,29 +490,29 @@ CAppPackagePtr CProgramManager::GetAppPackage(const TAppId& _Id, bool bCanAdd)
 
 		AddItemToRoot(pAppPackage);
 
-		//BroadcastItemChanged(pAppPackage, ERuleEvent::eAdded);
+		//BroadcastItemChanged(pAppPackage, EConfigEvent::eAdded);
 	}
 	return pAppPackage;
 }
 
-CWindowsServicePtr CProgramManager::GetService(const TServiceId& _Id, bool bCanAdd)
+CWindowsServicePtr CProgramManager::GetService(const std::wstring& ServiceTag, bool bCanAdd)
 {
-	TServiceId Id = MkLower(_Id);
+	std::wstring Key = MkLower(ServiceTag);
 
 	std::unique_lock lock(m_Mutex);
 	if (!bCanAdd) {
-		auto F = m_ServiceMap.find(Id);
+		auto F = m_ServiceMap.find(Key);
 		if (F != m_ServiceMap.end())
 			return F->second;
 		return NULL;
 	}
-	CWindowsServicePtr& pService = m_ServiceMap[Id];
+	CWindowsServicePtr& pService = m_ServiceMap[Key];
 	if (!pService) {
-		pService = CWindowsServicePtr(new CWindowsService(Id));
+		pService = CWindowsServicePtr(new CWindowsService(ServiceTag));
 		m_Items.insert(std::make_pair(pService->GetUID(), pService));
 		lock.unlock();
 
-		CServiceList::SServicePtr pWinService = theCore->ProcessList()->Services()->GetService(Id);
+		CServiceList::SServicePtr pWinService = theCore->ProcessList()->Services()->GetService(Key);
 		CProgramSetPtr pParent;
 		if (pWinService)
 		{
@@ -483,31 +526,31 @@ CWindowsServicePtr CProgramManager::GetService(const TServiceId& _Id, bool bCanA
 			// this can occur when loading rules for non existing items
 			//
 
-			pService->SetName(Id);
+			pService->SetName(ServiceTag);
 			pParent = m_pAll; 
 		}
 
 		AddProgramToGroup(pService, pParent);
 
-		//BroadcastItemChanged(pService, ERuleEvent::eAdded);
+		//BroadcastItemChanged(pService, EConfigEvent::eAdded);
 	}
 	return pService;
 }
 
-CProgramPatternPtr CProgramManager::GetPattern(const TPatternId& _Id, bool bCanAdd)
+CProgramPatternPtr CProgramManager::GetPattern(const std::wstring& DosPattern, bool bCanAdd)
 {
-	TServiceId Id = NormalizeFilePath(_Id);
+	std::wstring Key = MkLower(DosPattern);
 
 	std::unique_lock lock(m_Mutex);
 	
-	auto F = m_PatternMap.find(Id);
+	auto F = m_PatternMap.find(Key);
 	if (F != m_PatternMap.end())
 		return F->second;
 	if(!bCanAdd)
 		return NULL;
 	
-	CProgramPatternPtr pPattern = CProgramPatternPtr(new CProgramPattern(Id));
-	pPattern->SetName(Id);
+	CProgramPatternPtr pPattern = CProgramPatternPtr(new CProgramPattern(DosPattern));
+	pPattern->SetName(DosPattern);
 
 	m_PatternMap.insert(std::make_pair(pPattern->GetPattern(), pPattern));
 	m_Items.insert(std::make_pair(pPattern->GetUID(), pPattern));
@@ -515,31 +558,31 @@ CProgramPatternPtr CProgramManager::GetPattern(const TPatternId& _Id, bool bCanA
 
 	AddItemToRoot(pPattern);
 	
-	//BroadcastItemChanged(pPattern, ERuleEvent::eAdded);
+	//BroadcastItemChanged(pPattern, EConfigEvent::eAdded);
 
 	return pPattern;
 }
 
-CAppInstallationPtr	CProgramManager::GetInstallation(const TInstallId& Id, bool bCanAdd)
+CAppInstallationPtr	CProgramManager::GetInstallation(const std::wstring& RegKey, bool bCanAdd)
 {
-	TInstallId _Id = MkLower(Id);
+	std::wstring Key = MkLower(RegKey);
 
 	std::unique_lock lock(m_Mutex);
 	if (!bCanAdd) {
-		auto F = m_InstallMap.find(_Id);
+		auto F = m_InstallMap.find(Key);
 		if (F != m_InstallMap.end())
 			return F->second;
 		return NULL;
 	}
-	CAppInstallationPtr& pAppInstall = m_InstallMap[_Id];
+	CAppInstallationPtr& pAppInstall = m_InstallMap[Key];
 	if (!pAppInstall) {
-		pAppInstall = CAppInstallationPtr(new CAppInstallation(_Id));
+		pAppInstall = CAppInstallationPtr(new CAppInstallation(RegKey));
 		m_Items.insert(std::make_pair(pAppInstall->GetUID(), pAppInstall));
 		lock.unlock();
 
 		AddItemToRoot(pAppInstall);
 
-		//BroadcastItemChanged(pAppInstall, ERuleEvent::eAdded);
+		//BroadcastItemChanged(pAppInstall, EConfigEvent::eAdded);
 	}
 	return pAppInstall;
 
@@ -547,47 +590,47 @@ CAppInstallationPtr	CProgramManager::GetInstallation(const TInstallId& Id, bool 
 
 CProgramFilePtr CProgramManager::GetProgramFile(const std::wstring& FileName, bool bCanAdd)
 {
-	std::wstring fileName = NormalizeFilePath(FileName);
+	std::wstring DosFileName = theCore->NormalizePath(FileName, false);
+	std::wstring Key = MkLower(DosFileName);
 
 	std::unique_lock lock(m_Mutex);
 	if (!bCanAdd) {
-		auto F = m_PathMap.find(fileName);
+		auto F = m_PathMap.find(Key);
 		if (F != m_PathMap.end())
 			return F->second;
 		return NULL;
 	}
-	CProgramFilePtr& pProgram = m_PathMap[fileName];
+	CProgramFilePtr& pProgram = m_PathMap[Key];
 	if (!pProgram) {
-		pProgram = CProgramFilePtr(new CProgramFile(FileName));
+		pProgram = CProgramFilePtr(new CProgramFile(DosFileName));
 		//pProgram->SetName(GetFileNameFromPath(FileName));
 		m_Items.insert(std::make_pair(pProgram->GetUID(), pProgram));
 		lock.unlock();
 
 		AddItemToRoot(pProgram);
 
-		//BroadcastItemChanged(pProgram, ERuleEvent::eAdded);
+		//BroadcastItemChanged(pProgram, EConfigEvent::eAdded);
 	}
 	return pProgram;
 }
 
-void CProgramManager::AddProcess(const CProcessPtr& pProcess)
+CProgramFilePtr CProgramManager::AddProcess(const CProcessPtr& pProcess)
 {
-	std::set<TServiceId> Services = pProcess->GetServices();
+	std::set<std::wstring> Services = pProcess->GetServices();
 	if (!Services.empty()) {
-		for (auto SvcId : Services) {
-			CWindowsServicePtr pService = GetService(SvcId);
+		for (auto ServiceTag : Services) {
+			CWindowsServicePtr pService = GetService(ServiceTag);
 			pService->SetProcess(pProcess);
 		}
-		// todo file name
-		return;
 	}
 
-	std::wstring fileName = pProcess->GetFileName();
+	std::wstring DosFileName = theCore->NormalizePath(pProcess->GetNtFilePath(), false);
+	std::wstring Key = MkLower(DosFileName);
 
 	std::unique_lock lock(m_Mutex);
-	CProgramFilePtr& pProgram = m_PathMap[NormalizeFilePath(fileName)];
+	CProgramFilePtr& pProgram = m_PathMap[Key];
 	if (!pProgram) {
-		pProgram = CProgramFilePtr(new CProgramFile(fileName));
+		pProgram = CProgramFilePtr(new CProgramFile(DosFileName));
 		//pProgram->SetName(pProcess->GetName());
 		// todo: icon, description
 		m_Items.insert(std::make_pair(pProgram->GetUID(), pProgram));
@@ -597,7 +640,7 @@ void CProgramManager::AddProcess(const CProcessPtr& pProcess)
 			AddProgramToGroup(pProgram, GetAppPackage(pProcess->GetAppContainerSid()));
 		AddItemToRoot(pProgram);
 
-		//BroadcastItemChanged(pProgram, ERuleEvent::eAdded);
+		//BroadcastItemChanged(pProgram, EConfigEvent::eAdded);
 	}
 	else
 		lock.unlock();
@@ -607,14 +650,16 @@ void CProgramManager::AddProcess(const CProcessPtr& pProcess)
 	pProcess->m_Mutex.lock();
 	pProcess->m_pFileRef = pProgram;
 	pProcess->m_Mutex.unlock();
+
+	return pProgram;
 }
 
 void CProgramManager::RemoveProcess(const CProcessPtr& pProcess)
 {
-	std::set<TServiceId> Services = pProcess->GetServices();
+	std::set<std::wstring> Services = pProcess->GetServices();
 	if (!Services.empty()) {
-		for(auto SvcId: Services) {
-			CWindowsServicePtr pService = GetService(SvcId, false);
+		for(auto ServiceTag: Services) {
+			CWindowsServicePtr pService = GetService(ServiceTag, false);
 			if (pService) pService->SetProcess(NULL);
 		}
 	}
@@ -630,12 +675,12 @@ void CProgramManager::RemoveProcess(const CProcessPtr& pProcess)
 
 void CProgramManager::AddService(const CServiceList::SServicePtr& pWinService)
 {
-	TServiceId Id = MkLower(pWinService->Id);
+	std::wstring Key = MkLower(pWinService->ServiceTag);
 
 	std::unique_lock lock(m_Mutex);
-	CWindowsServicePtr& pService = m_ServiceMap[Id];
+	CWindowsServicePtr& pService = m_ServiceMap[Key];
 	if (!pService) {
-		pService = CWindowsServicePtr(new CWindowsService(pWinService->Id));
+		pService = CWindowsServicePtr(new CWindowsService(pWinService->ServiceTag));
 		pService->SetName(pWinService->Name);
 		m_Items.insert(std::make_pair(pService->GetUID(), pService));
 		lock.unlock();
@@ -643,7 +688,7 @@ void CProgramManager::AddService(const CServiceList::SServicePtr& pWinService)
 		CProgramSetPtr pParent = GetProgramFile(pWinService->BinaryPath);
 		AddProgramToGroup(pService, pParent);
 
-		//BroadcastItemChanged(pService, ERuleEvent::eAdded);
+		//BroadcastItemChanged(pService, EConfigEvent::eAdded);
 	}
 	else
 	{
@@ -662,31 +707,31 @@ void CProgramManager::AddService(const CServiceList::SServicePtr& pWinService)
 
 void CProgramManager::RemoveService(const CServiceList::SServicePtr& pWinService)
 {
-	TServiceId Id = MkLower(pWinService->Id);
+	std::wstring Key = MkLower(pWinService->ServiceTag);
 
 	std::unique_lock lock(m_Mutex);
-	auto F = m_ServiceMap.find(Id);
+	auto F = m_ServiceMap.find(Key);
 	if (F != m_ServiceMap.end())
 		F->second->SetMissing(true);
 }
 
 void CProgramManager::AddPackage(const CPackageList::SPackagePtr& pPackage)
 {
-	TAppId Id = MkLower(pPackage->PackageSid);
+	std::wstring Key = MkLower(pPackage->PackageSid);
 
 	std::unique_lock lock(m_Mutex);
-	CAppPackagePtr& pAppPackage = m_PackageMap[Id];
+	CAppPackagePtr& pAppPackage = m_PackageMap[Key];
 	if (!pAppPackage) {
 		pAppPackage = CAppPackagePtr(new CAppPackage(pPackage->PackageSid, pPackage->PackageName));
 		pAppPackage->SetName(pPackage->PackageDisplayName);
-		pAppPackage->SetInstallPath(NormalizeFilePath(pPackage->PackageInstallPath));
-		pAppPackage->SetIcon(DosPathToNtPath(pPackage->SmallLogoPath));
+		pAppPackage->SetPath(theCore->NormalizePath(pPackage->PackageInstallPath, false));
+		pAppPackage->SetIcon(pPackage->SmallLogoPath);
 		m_Items.insert(std::make_pair(pAppPackage->GetUID(), pAppPackage));
 		lock.unlock();
 
 		AddItemToRoot(pAppPackage);
 
-		//BroadcastItemChanged(pAppPackage, ERuleEvent::eAdded);
+		//BroadcastItemChanged(pAppPackage, EConfigEvent::eAdded);
 	}
 	else
 		pAppPackage->SetMissing(false);
@@ -694,31 +739,31 @@ void CProgramManager::AddPackage(const CPackageList::SPackagePtr& pPackage)
 
 void CProgramManager::RemovePackage(const CPackageList::SPackagePtr& pPackage)
 {
-	TAppId Id = MkLower(pPackage->PackageSid);
+	std::wstring Key = MkLower(pPackage->PackageSid);
 
 	std::unique_lock lock(m_Mutex);
-	auto F = m_PackageMap.find(Id);
+	auto F = m_PackageMap.find(Key);
 	if (F != m_PackageMap.end())
 		F->second->SetMissing(true);
 }
 
 void CProgramManager::AddInstallation(const CInstallationList::SInstallationPtr& pInstalledApp)
 {
-	TInstallId Id = MkLower(pInstalledApp->RegKey);
+	std::wstring Key = MkLower(pInstalledApp->RegKey);
 
 	std::unique_lock lock(m_Mutex);
-	CAppInstallationPtr& pAppInstall = m_InstallMap[Id];
+	CAppInstallationPtr& pAppInstall = m_InstallMap[Key];
 	if (!pAppInstall) {
 		pAppInstall = CAppInstallationPtr(new CAppInstallation(pInstalledApp->RegKey));
 		pAppInstall->SetName(pInstalledApp->DisplayName);
-		pAppInstall->SetInstallPath(NormalizeFilePath(pInstalledApp->InstallPath));
+		pAppInstall->SetPath(theCore->NormalizePath(pInstalledApp->InstallPath, false));
 		pAppInstall->SetIcon(pInstalledApp->DisplayIcon);
 		m_Items.insert(std::make_pair(pAppInstall->GetUID(), pAppInstall));
 		lock.unlock();
 
 		AddItemToRoot(pAppInstall);
 
-		//BroadcastItemChanged(pAppInstall, ERuleEvent::eAdded);
+		//BroadcastItemChanged(pAppInstall, EConfigEvent::eAdded);
 	}
 	else
 		pAppInstall->SetMissing(false);
@@ -726,10 +771,10 @@ void CProgramManager::AddInstallation(const CInstallationList::SInstallationPtr&
 
 void CProgramManager::RemoveInstallation(const CInstallationList::SInstallationPtr& pInstalledApp)
 {
-	TInstallId Id = MkLower(pInstalledApp->RegKey);
+	std::wstring Key = MkLower(pInstalledApp->RegKey);
 
 	std::unique_lock lock(m_Mutex);
-	auto F = m_InstallMap.find(Id);
+	auto F = m_InstallMap.find(Key);
 	if (F != m_InstallMap.end())
 		F->second->SetMissing(true);
 }
@@ -799,7 +844,7 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 				return ERR(STATUS_ERR_PROG_HAS_RULES);
 
 			STATUS Status = RemoveAllRules(pItem);
-			if (Status) 
+			if (!Status) 
 				return ERR(STATUS_ERR_PROG_HAS_RULES); // failed to remove rules	
 		}
 	}
@@ -810,6 +855,8 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 	switch (ID.GetType())
 	{
 		case EProgramType::eAppInstallation: 
+			if(!theCore->Config()->GetBool("Service", "EnumInstallations", true))
+				break; // allow removing installs when install enum is off
 		case EProgramType::eWindowsService: 
 		case EProgramType::eAppPackage: 
 			if(pItem->IsMissing())
@@ -895,11 +942,11 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 	return OK;
 }
 
-//void CProgramManager::BroadcastItemChanged(const CProgramItemPtr& pItem, ERuleEvent Event)
+//void CProgramManager::BroadcastItemChanged(const CProgramItemPtr& pItem, EConfigEvent Event)
 //{
 //	CVariant vEvent;
 //	vEvent[API_V_PROG_UID] = pItem->GetUID();
-//	vEvent[API_V_EVENT] = (uint32)Event;
+//	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
 //
 //	theCore->BroadcastMessage(SVC_API_EVENT_PROG_ITEM_CHANGED, vEvent);
 //}
@@ -974,17 +1021,14 @@ void CProgramManager::AddItemToRoot(const CProgramItemPtr& pItem)
 bool CProgramManager::AddItemToBranch(const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch)
 {
 	std::wstring FileName;
-	CProgramPatternPtr pPattern = std::dynamic_pointer_cast<CProgramPattern>(pItem);
-	if (pPattern)
-		FileName = pPattern->GetPattern();
-	else if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+	if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
 		FileName = pProgram->GetPath();
-	else if (CAppPackagePtr pPackage = std::dynamic_pointer_cast<CAppPackage>(pItem))
-		FileName = pPackage->GetInstallPath();
+	else if (CProgramListExPtr pList = std::dynamic_pointer_cast<CProgramListEx>(pItem))
+		FileName = pList->GetPath();
 	else
 		return false;
 
-	std::wstring FilePath = NormalizeFilePath(FileName);
+	std::wstring FilePath = theCore->NormalizePath(FileName);
 	if (FilePath.empty())
 		return false;
 
@@ -998,7 +1042,7 @@ bool CProgramManager::AddItemToBranch2(const std::wstring& FilePath, const CProg
 	std::unique_lock lock(pBranch->m_Mutex);
 	for(auto pNode: pBranch->m_Nodes)
 	{
-		CProgramPatternPtr pSubBranch = std::dynamic_pointer_cast<CProgramPattern>(pNode);
+		CProgramListExPtr pSubBranch = std::dynamic_pointer_cast<CProgramListEx>(pNode);
 		if(pSubBranch && pSubBranch->MatchFileName(FilePath))
 		{
 			if (!AddItemToBranch2(FilePath, pItem, pSubBranch)) {
@@ -1047,17 +1091,18 @@ void CProgramManager::TryAddChildren(const CProgramListPtr& pBranche, const CPro
 //////////////////////////////////////////////////////////////////////////
 // Librarys
 
-CProgramLibraryPtr CProgramManager::GetLibrary(const TFilePath& Path, bool bCanAdd)
+CProgramLibraryPtr CProgramManager::GetLibrary(const std::wstring& Path, bool bCanAdd)
 {
-	std::wstring path = NormalizeFilePath(Path);
+	std::wstring Key = theCore->NormalizePath(Path);
+
 	std::unique_lock lock(m_Mutex);
-	auto F = m_LibraryMap.find(path);
+	auto F = m_LibraryMap.find(Key);
 	if (F != m_LibraryMap.end())
 		return F->second;
 	if (!bCanAdd)
 		return NULL;
 	CProgramLibraryPtr pLibrary = CProgramLibraryPtr(new CProgramLibrary(Path));
-	m_LibraryMap.insert(std::make_pair(path, pLibrary));
+	m_LibraryMap.insert(std::make_pair(Key, pLibrary));
 	m_Libraries.insert(std::make_pair(pLibrary->GetUID(), pLibrary));
 	return pLibrary;
 }
@@ -1118,19 +1163,18 @@ STATUS CProgramManager::LoadRules()
 
 	std::unique_lock lock(m_RulesMutex);
 
-	std::map<std::wstring, CProgramRulePtr> OldRules = m_Rules;
+	std::map<CFlexGuid, CProgramRulePtr> OldRules = m_Rules;
 
 	CVariant Rules = Res.GetValue();
 	for(uint32 i=0; i < Rules.Count(); i++)
 	{
 		CVariant Rule = Rules[i];
 
-		std::wstring Guid = Rule[API_V_RULE_GUID].AsStr();
+		CFlexGuid Guid;
+		Guid.FromVariant(Rule[API_V_GUID]);
 
-		std::wstring ProgramPath = NormalizeFilePath(Rule[API_V_FILE_PATH].AsStr());
-
-		CProgramID ID;
-		ID.SetPath(ProgramPath);
+		std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
+		CProgramID ID(ProgramPath);
 
 		CProgramRulePtr pRule;
 		auto I = OldRules.find(Guid);
@@ -1140,7 +1184,7 @@ STATUS CProgramManager::LoadRules()
 			OldRules.erase(I);
 			if (pRule->GetProgramPath() != ProgramPath) // todo
 			{
-				RemoveRuleUnsafe(I->second);
+				RemoveRuleUnsafe(pRule);
 				pRule.reset();
 			}
 		}
@@ -1182,12 +1226,12 @@ void CProgramManager::RemoveRuleUnsafe(const CProgramRulePtr& pRule)
 	pItem->m_ProgRules.erase(pRule);
 }
 
-void CProgramManager::UpdateRule(const CProgramRulePtr& pRule, const std::wstring& Guid)
+void CProgramManager::UpdateRule(const CProgramRulePtr& pRule, const CFlexGuid& Guid)
 {
 	std::unique_lock Lock(m_RulesMutex);
 
 	CProgramRulePtr pOldRule;
-	if (!Guid.empty()) {
+	if (!Guid.IsNull()) {
 		auto F = m_Rules.find(Guid);
 		if (F != m_Rules.end())
 			pOldRule = F->second;
@@ -1201,36 +1245,35 @@ void CProgramManager::UpdateRule(const CProgramRulePtr& pRule, const std::wstrin
 	}
 }
 
-void CProgramManager::OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID)
+void CProgramManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEvent Event, enum class EConfigGroup Type, uint64 PID)
 {
-	ASSERT(Type == ERuleType::eProgram);
+	ASSERT(Type == EConfigGroup::eProgramRules);
 
-	if(Event == ERuleEvent::eAllChanged) {
+	if(Event == EConfigEvent::eAllChanged)
 		LoadRules();
-		return;
-	}
-
-	CProgramRulePtr pRule;
-	if (Event != ERuleEvent::eRemoved) {
-		CVariant Request;
-		Request[API_V_RULE_GUID] = Guid;
-		auto Res = theCore->Driver()->Call(API_GET_PROGRAM_RULE, Request);
-		if (Res.IsSuccess()) {
-			CVariant Rule = Res.GetValue();
-			CProgramID ID;
-			ID.SetPath(Rule[API_V_FILE_PATH].AsStr());
-			pRule = std::make_shared<CProgramRule>(ID);
-			pRule->FromVariant(Rule);
+	else
+	{
+		CProgramRulePtr pRule;
+		if (Event != EConfigEvent::eRemoved) {
+			CVariant Request;
+			Request[API_V_GUID] = Guid.ToVariant(true);
+			auto Res = theCore->Driver()->Call(API_GET_PROGRAM_RULE, Request);
+			if (Res.IsSuccess()) {
+				CVariant Rule = Res.GetValue();
+				std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
+				CProgramID ID(ProgramPath);
+				pRule = std::make_shared<CProgramRule>(ID);
+				pRule->FromVariant(Rule);
+			}
 		}
-	}
 
-	UpdateRule(pRule, Guid);
+		UpdateRule(pRule, Guid);
+	}
 
 	CVariant vEvent;
-	vEvent[API_V_RULE_GUID] = Guid;
-	//vEvent[API_V_RULE_TYPE] = (uint32)ERuleType::eProgram;
+	vEvent[API_V_GUID] = Guid.ToVariant(false);
 	//vEvent[API_V_NAME] = ;
-	vEvent[API_V_EVENT] = (uint32)Event;
+	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_EXEC_RULE_CHANGED, vEvent);
 }
@@ -1295,9 +1338,9 @@ STATUS CProgramManager::Load()
 
 		if (Type == EProgramType::eProgramFile) 
 		{
-			std::wstring FileName = IsMap ? Item.Find(API_S_FILE_PATH) : Item.Find(API_V_FILE_PATH);
-			TFilePath Id = NormalizeFilePath(FileName);
-			CProgramFilePtr& pFile = m_PathMap[Id];
+			std::wstring FileName = theCore->NormalizePath(IsMap ? Item.Find(API_S_FILE_PATH) : Item.Find(API_V_FILE_PATH), false);
+			std::wstring Key = MkLower(FileName);
+			CProgramFilePtr& pFile = m_PathMap[Key];
 			if (!pFile) {
 				pFile = CProgramFilePtr(new CProgramFile(FileName));
 				m_Items.insert(std::make_pair(pFile->GetUID(), pFile));
@@ -1307,7 +1350,8 @@ STATUS CProgramManager::Load()
 		else if (Type == EProgramType::eFilePattern)
 		{
 			std::wstring Pattern = IsMap ? Item.Find(API_S_PROG_PATTERN) : Item.Find(API_V_PROG_PATTERN);
-			CProgramPatternPtr& pPattern = m_PatternMap[Pattern];
+			std::wstring Key = MkLower(Pattern);
+			CProgramPatternPtr& pPattern = m_PatternMap[Key];
 			if (!pPattern) {
 				pPattern = CProgramPatternPtr(new CProgramPattern(Pattern));
 				m_Items.insert(std::make_pair(pPattern->GetUID(), pPattern));
@@ -1317,32 +1361,32 @@ STATUS CProgramManager::Load()
 		else if (Type == EProgramType::eAppInstallation)
 		{
 			std::wstring RegKey = IsMap ? Item.Find(API_S_REG_KEY) : Item.Find(API_V_REG_KEY);
-			TInstallId Id = MkLower(RegKey);
-			CAppInstallationPtr& pInstall = m_InstallMap[Id];
+			std::wstring Key = MkLower(RegKey);
+			CAppInstallationPtr& pInstall = m_InstallMap[Key];
 			if (!pInstall) {
-				pInstall = CAppInstallationPtr(new CAppInstallation(Id));
+				pInstall = CAppInstallationPtr(new CAppInstallation(RegKey));
 				m_Items.insert(std::make_pair(pInstall->GetUID(), pInstall));
 			}
 			pItem = pInstall;
 		}
 		else if (Type == EProgramType::eWindowsService)	
 		{
-			std::wstring SvcTag = IsMap ? Item.Find(API_S_SVC_TAG) : Item.Find(API_V_SVC_TAG);
-			TInstallId Id = MkLower(SvcTag);
-			CWindowsServicePtr& pService = m_ServiceMap[Id];
+			std::wstring ServiceTag = IsMap ? Item.Find(API_S_SERVICE_TAG) : Item.Find(API_V_SERVICE_TAG);
+			std::wstring Key = MkLower(ServiceTag);
+			CWindowsServicePtr& pService = m_ServiceMap[Key];
 			if (!pService) {
-				pService = CWindowsServicePtr(new CWindowsService(SvcTag));
+				pService = CWindowsServicePtr(new CWindowsService(ServiceTag));
 				m_Items.insert(std::make_pair(pService->GetUID(), pService));
 			}
 			pItem = pService;
 		}
 		else if (Type == EProgramType::eAppPackage)	
 		{
-			std::wstring SID = IsMap ? Item.Find(API_S_APP_SID) : Item.Find(API_V_APP_SID);
-			TInstallId Id = MkLower(SID);
-			CAppPackagePtr& pPackage = m_PackageMap[Id];
+			std::wstring AppContainerSid = IsMap ? Item.Find(API_S_APP_SID) : Item.Find(API_V_APP_SID);
+			std::wstring Key = MkLower(AppContainerSid);
+			CAppPackagePtr& pPackage = m_PackageMap[Key];
 			if (!pPackage) {
-				pPackage = CAppPackagePtr(new CAppPackage(SID));
+				pPackage = CAppPackagePtr(new CAppPackage(AppContainerSid));
 				m_Items.insert(std::make_pair(pPackage->GetUID(), pPackage));
 			}
 			pItem = pPackage;
@@ -1351,10 +1395,10 @@ STATUS CProgramManager::Load()
 		{
 			CVariant ID = IsMap ? Item.Find(API_S_PROG_ID) : Item.Find(API_V_PROG_ID);
 			std::wstring Guid = IsMap ? ID.Find(API_S_APP_SID) : ID.Find(API_V_APP_SID);
-			TGroupId Id = MkLower(Guid);
-			CProgramGroupPtr& pGroup = m_GroupMap[Id];
+			std::wstring Key = MkLower(Guid);
+			CProgramGroupPtr& pGroup = m_GroupMap[Key];
 			if (!pGroup) {
-				pGroup = CProgramGroupPtr(new CProgramGroup(Id));
+				pGroup = CProgramGroupPtr(new CProgramGroup(Guid));
 				m_Items.insert(std::make_pair(pGroup->GetUID(), pGroup));
 			}
 			pItem = pGroup;
@@ -1413,7 +1457,7 @@ STATUS CProgramManager::Store()
 
 	SVarWriteOpt Opts;
 	Opts.Format = SVarWriteOpt::eMap;
-	Opts.Flags = SVarWriteOpt::eSaveToFile;
+	Opts.Flags = SVarWriteOpt::eSaveToFile | SVarWriteOpt::eTextGuids;
 
 	CVariant Programs;
 	for (auto I : m_Items)

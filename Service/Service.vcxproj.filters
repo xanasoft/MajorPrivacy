@@ -55,6 +55,9 @@
     <Filter Include="Core">
       <UniqueIdentifier>{f6ce88e9-ae66-4e47-964b-07c48d7f3aa2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Enclaves">
+      <UniqueIdentifier>{01c7bbb0-7152-44d1-9e0c-82c764964e2e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -212,6 +215,15 @@
     </ClCompile>
     <ClCompile Include="Processes\AccessLog.cpp">
       <Filter>Processes</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\ImageSignInfo.cpp">
+      <Filter>Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Enclaves\Enclave.cpp">
+      <Filter>Enclaves</Filter>
+    </ClCompile>
+    <ClCompile Include="Enclaves\EnclaveManager.cpp">
+      <Filter>Enclaves</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -451,6 +463,15 @@
     </ClInclude>
     <ClInclude Include="Processes\AccessLog.h">
       <Filter>Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="Programs\ImageSignInfo.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Enclaves\Enclave.h">
+      <Filter>Enclaves</Filter>
+    </ClInclude>
+    <ClInclude Include="Enclaves\EnclaveManager.h">
+      <Filter>Enclaves</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

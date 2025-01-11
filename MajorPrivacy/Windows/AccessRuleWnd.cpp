@@ -2,6 +2,7 @@
 #include "AccessRuleWnd.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
+#include "../Core/Enclaves/EnclaveManager.h"
 #include "../Core/Access/AccessManager.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NetUtil.h"
@@ -10,6 +11,8 @@
 #include "../MiscHelpers/Common/Common.h"
 #include "../MajorPrivacy.h"
 #include "../Core/Volumes/VolumeManager.h"
+#include "../Library/Helpers/NtPathMgr.h"
+#include "../Windows/ProgramPicker.h"
 
 CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, const QString& VolumeRoot, const QString& VolumeImage, QWidget* parent)
 	: QDialog(parent)
@@ -29,46 +32,54 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 
 
 	m_pRule = pRule;
-	bool bNew = m_pRule->m_Guid.isEmpty();
+	bool bNew = m_pRule->m_Guid.IsNull();
 
 	setWindowTitle(bNew ? tr("Create Program Rule") : tr("Edit Program Rule"));
 
 	foreach(auto pItem, Items) 
-	{
-		switch (pItem->GetID().GetType())
-		{
-		case EProgramType::eProgramFile:
-		case EProgramType::eFilePattern:
-		case EProgramType::eAppInstallation:
-		case EProgramType::eAllPrograms:
-			break;
-		default:
-			continue;
-		}
-
-		m_Items.append(pItem);
-		ui.cmbProgram->addItem(pItem->GetNameEx());
-	}
+		AddProgramItem(pItem);
 
 	if (bNew && m_pRule->m_Name.isEmpty()) {
 		m_pRule->m_Name = tr("New Access Rule");
+	} else
+		m_NameChanged = true;
+
+	ui.cmbEnclave->addItem(tr("Global (Any/No Enclave)"));
+	foreach(auto& pEnclave, theCore->EnclaveManager()->GetAllEnclaves()) {
+		if(pEnclave->IsSystem()) continue;
+		ui.cmbEnclave->addItem(pEnclave->GetName(), pEnclave->GetGuid().ToQV());
 	}
 
 	m_VolumeRoot = VolumeRoot;
 	m_VolumeImage = VolumeImage;
 
+	connect(ui.txtName, SIGNAL(textChanged(const QString&)), this, SLOT(OnNameChanged(const QString&)));
+
+	connect(ui.cmbPath, SIGNAL(editTextChanged(const QString&)), this, SLOT(OnPathChanged()));
+	connect(ui.btnBrowse, SIGNAL(clicked()), this, SLOT(BrowseFolder()));
+	ui.btnBrowse->setToolTip(tr("Browse for Folder"));
+	QMenu* pBrowseMenu = new QMenu(ui.btnBrowse);
+	pBrowseMenu->addAction(tr("Browse for File"), this, SLOT(BrowseFile()));
+	ui.btnBrowse->setPopupMode(QToolButton::MenuButtonPopup);
+	ui.btnBrowse->setMenu(pBrowseMenu);
+
+	connect(ui.btnProg, SIGNAL(clicked()), this, SLOT(OnPickProgram()));
 	connect(ui.cmbProgram, SIGNAL(currentIndexChanged(int)), this, SLOT(OnProgramChanged()));
+	connect(ui.txtProgPath, SIGNAL(textChanged(const QString&)), this, SLOT(OnProgramPathChanged()));
+	//connect(ui.cmbEnclave, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
 
 
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
-
-	ui.cmbAction->addItem(tr("Allow"), (int)EAccessRuleType::eAllow);
-	ui.cmbAction->addItem(tr("Read Only"), (int)EAccessRuleType::eAllowRO);
-	ui.cmbAction->addItem(tr("Directory Listing"), (int)EAccessRuleType::eEnum);
-	ui.cmbAction->addItem(tr("Protect"), (int)EAccessRuleType::eProtect);
-	ui.cmbAction->addItem(tr("Block"), (int)EAccessRuleType::eBlock);
 	
+	AddColoredComboBoxEntry(ui.cmbAction, tr("Allow"), GetActionColor(EAccessRuleType::eAllow), (int)EAccessRuleType::eAllow);
+	AddColoredComboBoxEntry(ui.cmbAction, tr("Read Only"), GetActionColor(EAccessRuleType::eAllowRO), (int)EAccessRuleType::eAllowRO);
+	AddColoredComboBoxEntry(ui.cmbAction, tr("Directory Listing"), GetActionColor(EAccessRuleType::eEnum), (int)EAccessRuleType::eEnum);
+	AddColoredComboBoxEntry(ui.cmbAction, tr("Protect"), GetActionColor(EAccessRuleType::eProtect), (int)EAccessRuleType::eProtect);
+	AddColoredComboBoxEntry(ui.cmbAction, tr("Block"), GetActionColor(EAccessRuleType::eBlock), (int)EAccessRuleType::eBlock);
+	AddColoredComboBoxEntry(ui.cmbAction, tr("Don't Log"), GetActionColor(EAccessRuleType::eIgnore), (int)EAccessRuleType::eIgnore);
+	ColorComboBox(ui.cmbAction);
+
 
 	//FixComboBoxEditing(ui.cmbGroup);
 
@@ -89,27 +100,123 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 	ui.cmbProgram->setCurrentIndex(Index);
 	if(bNew)
 		OnProgramChanged();
-	else
+	else {
+		m_HoldProgramPath = true;
 		ui.txtProgPath->setText(m_pRule->GetProgramPath());
+		m_HoldProgramPath = false;
+	}
+
+	SetComboBoxValue(ui.cmbEnclave, QFlexGuid(m_pRule->m_Enclave).ToQV());
+
+	foreach(const CVolumePtr& pVolume, theCore->VolumeManager()->List())
+	{
+		QString Path = pVolume->GetImagePath();
+		if(pVolume->IsFolder())
+			Path += "*";
+		else
+			Path += "/*";
+		ui.cmbPath->addItem(Path);
+	}
 
 	if(!m_pRule->m_AccessPath.isEmpty())
-		ui.txtPath->setText(m_pRule->m_AccessPath);
-	else if(!m_VolumeRoot.isEmpty())
-		ui.txtPath->setText(m_VolumeRoot + "\\");
-	else if (!m_VolumeImage.isEmpty())
-		ui.txtPath->setText(m_VolumeImage + "/");
+		ui.cmbPath->setEditText(m_pRule->m_AccessPath);
+	else if (m_VolumeImage.endsWith("\\")) // Protected Folder
+		ui.cmbPath->setEditText(m_VolumeImage);
+	else if(!m_VolumeRoot.isEmpty()) // Rule stored on the volume
+		ui.cmbPath->setEditText(m_VolumeRoot + "\\");
+	else if (!m_VolumeImage.isEmpty()) { // Rule stored globally
+		m_VolumeImage += "/";
+		ui.cmbPath->setEditText(m_VolumeImage);
+	} else
+		ui.cmbPath->setEditText("");
 
 	SetComboBoxValue(ui.cmbAction, (int)m_pRule->m_Type);
+
+	m_NameHold = false;
 }
 
 CAccessRuleWnd::~CAccessRuleWnd()
 {
 }
 
+bool CAccessRuleWnd::AddProgramItem(const CProgramItemPtr& pItem)
+{
+	switch (pItem->GetID().GetType())
+	{
+	case EProgramType::eProgramFile:
+	case EProgramType::eFilePattern:
+	case EProgramType::eAppInstallation:
+	case EProgramType::eAllPrograms:
+		break;
+	default:
+		return false;
+	}
+
+	m_Items.append(pItem);
+	ui.cmbProgram->addItem(pItem->GetNameEx());
+	return true;
+}
+
+QColor CAccessRuleWnd::GetActionColor(EAccessRuleType Action)
+{
+	switch (Action)
+	{
+	case EAccessRuleType::eAllow:	return QColor(144, 238, 144);
+	case EAccessRuleType::eAllowRO: return QColor(255, 255, 224);
+	case EAccessRuleType::eEnum:	return QColor(255, 228, 181);
+	case EAccessRuleType::eProtect:	return QColor(173, 216, 230);
+	case EAccessRuleType::eBlock:	return QColor(255, 182, 193);
+	case EAccessRuleType::eIgnore:	return QColor(193, 193, 193);
+	default: return QColor();
+	}
+}
+
+QColor CAccessRuleWnd::GetStatusColor(EEventStatus Status)
+{
+	switch (Status)
+	{
+	case EEventStatus::eAllowed:	return QColor(144, 238, 144);
+	case EEventStatus::eUntrusted:	return QColor(255, 228, 181);
+	case EEventStatus::eEjected:	return QColor(255, 228, 181);
+	case EEventStatus::eBlocked:	return QColor(255, 182, 193);
+	case EEventStatus::eProtected:	return QColor(173, 216, 230);
+	default: return QColor();
+	}
+}
+
+QString CAccessRuleWnd::GetStatusStr(EEventStatus Status)
+{
+	switch (Status) 
+	{
+	case EEventStatus::eAllowed:	return QObject::tr("Allowed");
+	case EEventStatus::eUntrusted:	return QObject::tr("Allowed (Untrusted)");
+	case EEventStatus::eEjected:	return QObject::tr("Allowed (Ejected)");
+	case EEventStatus::eProtected:	return QObject::tr("Blocked (Protected)");
+	case EEventStatus::eBlocked:	return QObject::tr("Blocked");
+	default: return QObject::tr("Unknown");
+	}
+}
+
 void CAccessRuleWnd::closeEvent(QCloseEvent *e)
 {
 	emit Closed();
 	this->deleteLater();
+}
+
+void CAccessRuleWnd::BrowseFolder()
+{
+	QString Value = QFileDialog::getExistingDirectory(this, tr("Select Directory")).replace("/", "\\");
+	if(Value.isEmpty())
+		return;
+	ui.cmbPath->setEditText(Value + "\\*");
+}
+
+void CAccessRuleWnd::BrowseFile()
+{
+	QString Value = QFileDialog::getOpenFileName(this, tr("Select File")).replace("/", "\\");
+	if (Value.isEmpty())
+		return;
+	ui.cmbPath->setEditText(Value);
 }
 
 void CAccessRuleWnd::OnSaveAndClose()
@@ -119,20 +226,23 @@ void CAccessRuleWnd::OnSaveAndClose()
 		return;
 	}
 
-	if (m_pRule->m_Guid.isEmpty())
+	if (m_pRule->m_Guid.IsNull())
 	{
-		QString NtPath = QString::fromStdWString(DosPathToNtPath(ui.txtPath->text().toStdWString()));
-
-		theCore->VolumeManager()->Update();
-		auto Volumes = theCore->VolumeManager()->List();
-		foreach(const CVolumePtr& pVolume, Volumes) {
-			if(pVolume->GetStatus() != CVolume::eMounted)
-				continue;
-			QString DevicePath = pVolume->GetDevicePath();
-			if (NtPath.startsWith(DevicePath, Qt::CaseInsensitive)) {
-				m_pRule->SetVolumeRule(true);
-				m_pRule->m_AccessPath = NtPath;
-				break;
+		QString Path = ui.cmbPath->currentText();
+		QString NtPath = Path.startsWith("\\") ? Path : QString::fromStdWString(CNtPathMgr::Instance()->TranslateDosToNtPath(Path.toStdWString()));
+		if (!NtPath.isEmpty()) 
+		{
+			theCore->VolumeManager()->Update();
+			auto Volumes = theCore->VolumeManager()->List();
+			foreach(const CVolumePtr & pVolume, Volumes) {
+				if (pVolume->GetStatus() != CVolume::eMounted)
+					continue;
+				QString DevicePath = pVolume->GetDevicePath();
+				if (PathStartsWith(NtPath, DevicePath)) {
+					m_pRule->SetVolumeRule(true);
+					m_pRule->m_AccessPath = NtPath;
+					break;
+				}
 			}
 		}
 	}
@@ -157,12 +267,13 @@ bool CAccessRuleWnd::Save()
 	if (m_pRule->m_ProgramID != pItem->GetID()) {
 		m_pRule->m_Path = pItem->GetPath();
 	}*/
-	m_pRule->m_ProgramID.SetPath(QString::fromStdWString(DosPathToNtPath(ui.txtProgPath->text().toStdWString())));
+	m_pRule->m_ProgramID.SetPath(ui.txtProgPath->text().toLower());
 	m_pRule->m_ProgramPath = ui.txtProgPath->text();
 
-	QString Path = ui.txtPath->text();
-	if (!m_VolumeImage.isEmpty() && (Path.length() < m_VolumeImage.length() + 2 || !Path.startsWith(m_VolumeImage + "/", Qt::CaseInsensitive))
-		&& (m_VolumeRoot.isEmpty() || Path.length() < m_VolumeRoot.length() + 2 || !Path.startsWith(m_VolumeRoot + "\\", Qt::CaseInsensitive))) {
+	m_pRule->m_Enclave = QFlexGuid(GetComboBoxValue(ui.cmbEnclave));
+
+	QString Path = ui.cmbPath->currentText();
+	if (!m_VolumeImage.isEmpty() && !PathStartsWith(Path, m_VolumeImage) && !PathStartsWith(Path, m_VolumeRoot)) {
 		QMessageBox::information(this, "MajorPrivacy", tr("The path must be contained within the volume."));
 		return false;
 	}
@@ -174,6 +285,38 @@ bool CAccessRuleWnd::Save()
 	return true;
 }
 
+void CAccessRuleWnd::OnNameChanged(const QString& Text)
+{
+	if (m_NameHold) return;
+	m_NameChanged = true;
+}
+
+void CAccessRuleWnd::OnPathChanged()
+{
+	TryMakeName();
+}
+
+void CAccessRuleWnd::OnPickProgram()
+{
+	int Index = ui.cmbProgram->currentIndex();
+	CProgramItemPtr pItem = Index != -1 ? m_Items[Index] : nullptr;
+	CProgramPicker Picker(pItem, m_Items, this);
+	if (theGUI->SafeExec(&Picker)) {
+		pItem = Picker.GetProgram();
+		Index = m_Items.indexOf(pItem);
+		if (Index == -1) {
+			if(!AddProgramItem(pItem))
+				QMessageBox::warning(this, "MajorPrivacy", tr("The sellected program type is not supported for this rule type"));
+			else
+				Index = m_Items.indexOf(pItem);
+		}
+		if (Index != -1) {
+			ui.cmbProgram->setCurrentIndex(Index);
+			OnProgramChanged();
+		}
+	}
+}
+
 void CAccessRuleWnd::OnProgramChanged()
 {
 	int Index = ui.cmbProgram->currentIndex();
@@ -182,5 +325,38 @@ void CAccessRuleWnd::OnProgramChanged()
 	CProgramItemPtr pItem = m_Items[Index];
 	//if (pItem) ui.cmbProgram->setCurrentText(pItem->GetName());
 	CProgramID ID = pItem->GetID();
-	ui.txtProgPath->setText(pItem->GetPath(EPathType::eWin32));
+	m_HoldProgramPath = true;
+	ui.txtProgPath->setText(pItem->GetPath());
+	m_HoldProgramPath = false;
+	
+	TryMakeName();
+}
+
+void CAccessRuleWnd::OnProgramPathChanged()
+{
+	if(m_HoldProgramPath) return;
+	ui.cmbProgram->setCurrentIndex(-1);
+}
+
+void CAccessRuleWnd::OnActionChanged()
+{
+	TryMakeName();
+}
+
+void CAccessRuleWnd::TryMakeName()
+{
+	if (ui.txtName->text().isEmpty())
+		m_NameChanged = false;
+	if (m_NameHold || m_NameChanged)
+		return;
+
+	QString Action = ui.cmbAction->currentText();
+	QString Path = ui.cmbPath->currentText();
+	QString Program = ui.cmbProgram->currentText();
+	if (Action.isEmpty() && Path.isEmpty())
+		return;
+
+	m_NameHold = true;
+	ui.txtName->setText(tr("%1 %2 %3").arg(Action).arg(Path).arg(Program.isEmpty() ? "" : tr(" (%1)").arg(Program)));
+	m_NameHold = false;
 }

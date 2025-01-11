@@ -53,9 +53,9 @@ public:
 
 	STATUS LoadRules();
 
-	void AddPattern(const std::wstring& Pattern, const std::wstring& Name);
+	void AddPattern(const std::wstring& DosPattern, const std::wstring& Name);
 
-	void AddProcess(const CProcessPtr& pProcess);
+	CProgramFilePtr AddProcess(const CProcessPtr& pProcess);
 	void RemoveProcess(const CProcessPtr& pProcess);
 	void AddService(const CServiceList::SServicePtr& pWinService);
 	void RemoveService(const CServiceList::SServicePtr& pWinService);
@@ -80,30 +80,25 @@ public:
 
 	CProgramItemPtr					GetProgramByID(const CProgramID& ID, bool bCanAdd = true);
 
-	CProgramGroupPtr				GetGroup(const TGroupId& Id, bool bCanAdd = true);
-	CAppPackagePtr					GetAppPackage(const TAppId& Id, bool bCanAdd = true);
-	CWindowsServicePtr				GetService(const TServiceId& Id, bool bCanAdd = true);
-	CProgramPatternPtr				GetPattern(const TPatternId& Id, bool bCanAdd = true);
-	CAppInstallationPtr				GetInstallation(const TInstallId& Id, bool bCanAdd = true);
+	CProgramGroupPtr				GetGroup(const std::wstring& Guid, bool bCanAdd = true);
+	CAppPackagePtr					GetAppPackage(const std::wstring& AppContainserSid, bool bCanAdd = true);
+	CWindowsServicePtr				GetService(const std::wstring& ServiceTag, bool bCanAdd = true);
+	CProgramPatternPtr				GetPattern(const std::wstring& DosPattern, bool bCanAdd = true);
+	CAppInstallationPtr				GetInstallation(const std::wstring& RegKey, bool bCanAdd = true);
 	CProgramFilePtr					GetProgramFile(const std::wstring& FileName, bool bCanAdd = true);
-
-	//std::map<TAppId, CProgramPatternPtr>	GetPatterns()		{ std::unique_lock lock(m_Mutex); return m_PatternMap; }
-	//std::map<TAppId, CAppPackagePtr>		GetApps()			{ std::unique_lock lock(m_Mutex); return m_PackageMap; }
-	//std::map<TFilePath, CProgramFilePtr>	GetApplications()	{ std::unique_lock lock(m_Mutex); return m_PathMap; }
-	//std::map<TServiceId, CWindowsServicePtr>GetServices()		{ std::unique_lock lock(m_Mutex); return m_ServiceMap; }
-	//std::map<TAppId, CAppInstallationPtr>	GetInstallations()	{ std::unique_lock lock(m_Mutex); return m_InstallMap; }
-
 	
 	std::map<uint64, CProgramItemPtr>GetItems()	{ std::unique_lock lock(m_Mutex); return m_Items; }
 	CProgramItemPtr					GetItem(uint64 UID);
 
 	bool							IsPathReserved(std::wstring FileName) const;
 
-	CProgramLibraryPtr				GetLibrary(const TFilePath& Path, bool bCanAdd = true);
+	CProgramLibraryPtr				GetLibrary(const std::wstring& Path, bool bCanAdd = true);
 	CProgramLibraryPtr				GetLibrary(uint64 Id);
 	std::map<uint64, CProgramLibraryPtr>GetLibraries()	{ std::unique_lock lock(m_Mutex); return m_Libraries; }
 
-	std::map<std::wstring, CProgramRulePtr> GetProgramRules() { std::unique_lock lock(m_RulesMutex); return m_Rules; }
+	std::map<CFlexGuid, CProgramRulePtr> GetProgramRules() { std::unique_lock lock(m_RulesMutex); return m_Rules; }
+
+	bool							IsNtOsKrnl(const std::wstring& FilePath) const;
 
 protected:
 
@@ -117,16 +112,16 @@ protected:
 	bool AddItemToBranch2(const std::wstring& FilePath, const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
 	void TryAddChildren(const CProgramListPtr& pGroup, const CProgramPatternPtr& pPattern, bool bRemove = false);
 
-	//void BroadcastItemChanged(const CProgramItemPtr& pItem, ERuleEvent Event);
+	//void BroadcastItemChanged(const CProgramItemPtr& pItem, EConfigEvent Event);
 
 	mutable std::recursive_mutex			m_Mutex;
 
-	std::map<TPatternId, CProgramPatternPtr>m_PatternMap;
-	std::map<TAppId, CAppPackagePtr>		m_PackageMap;
-	std::map<TFilePath, CProgramFilePtr>	m_PathMap;
-	std::map<TServiceId, CWindowsServicePtr>m_ServiceMap;
-	std::map<TInstallId, CAppInstallationPtr>m_InstallMap;
-	std::map<TGroupId, CProgramGroupPtr>	m_GroupMap;
+	std::map<std::wstring, CProgramPatternPtr>m_PatternMap;
+	std::map<std::wstring, CAppPackagePtr>	m_PackageMap;
+	std::map<std::wstring, CProgramFilePtr>	m_PathMap;
+	std::map<std::wstring, CWindowsServicePtr>m_ServiceMap;
+	std::map<std::wstring, CAppInstallationPtr>m_InstallMap;
+	std::map<std::wstring, CProgramGroupPtr>m_GroupMap;
 
 	std::map<uint64, CProgramItemPtr>		m_Items;
 
@@ -141,7 +136,7 @@ protected:
 	std::wstring							m_WinDir;
 	std::wstring							m_ProgDir;
 
-	std::map<TFilePath, CProgramLibraryPtr>	m_LibraryMap;
+	std::map<std::wstring, CProgramLibraryPtr> m_LibraryMap;
 	std::map<uint64, CProgramLibraryPtr>	m_Libraries;
 
 	uint64									m_LastTruncateLogs = 0;
@@ -151,7 +146,7 @@ protected:
 	//////////////////////////////////////////////////////////////////////////
 	// Rules
 
-	void UpdateRule(const CProgramRulePtr& pRule, const std::wstring& Guid);
+	void UpdateRule(const CProgramRulePtr& pRule, const CFlexGuid& Guid);
 
 	void AddRuleUnsafe(const CProgramRulePtr& pRule);
 	void RemoveRuleUnsafe(const CProgramRulePtr& pRule);
@@ -159,9 +154,9 @@ protected:
 	std::recursive_mutex					m_RulesMutex;
 
 	bool									m_UpdateAllRules = true;
-	std::map<std::wstring, CProgramRulePtr> m_Rules;
+	std::map<CFlexGuid, CProgramRulePtr> m_Rules;
 
-	void OnRuleChanged(const std::wstring& Guid, enum class ERuleEvent Event, enum class ERuleType Type, uint64 PID);
+	void OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEvent Event, enum class EConfigGroup Type, uint64 PID);
 
 	//////////////////////////////////////////////////////////////////////////
 	// TruncateLogs

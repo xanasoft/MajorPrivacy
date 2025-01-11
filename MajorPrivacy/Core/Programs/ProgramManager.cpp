@@ -355,18 +355,18 @@ bool CProgramManager::UpdateAllProgramRules()
 
 	XVariant& Rules = Ret.GetValue();
 
-	QMap<QString, CProgramRulePtr> OldRules = m_ProgramRules;
+	QMap<QFlexGuid, CProgramRulePtr> OldRules = m_ProgramRules;
 
 	for (int i = 0; i < Rules.Count(); i++)
 	{
 		const XVariant& Rule = Rules[i];
 
-		QString Guid = Rule[API_V_RULE_GUID].AsQStr();
+		QFlexGuid Guid;
+		Guid.FromVariant(Rule[API_V_GUID]);
 
-		QString ProgramPath = QString::fromStdWString(NormalizeFilePath(Rule[API_V_FILE_PATH].AsStr()));
-
+		QString ProgramPath = Rule[API_V_FILE_PATH].AsQStr();
 		CProgramID ID;
-		ID.SetPath(ProgramPath);
+		ID.SetPath(theCore->NormalizePath(ProgramPath, true));
 
 		CProgramRulePtr pRule = OldRules.value(Guid);
 		if (pRule) {
@@ -391,28 +391,30 @@ bool CProgramManager::UpdateAllProgramRules()
 			AddProgramRule(pRule);
 	}
 
-	foreach(const QString& Guid, OldRules.keys())
+	foreach(const QFlexGuid& Guid, OldRules.keys())
 		RemoveProgramRule(OldRules.take(Guid));
 
 	return true;
 }
 
-bool CProgramManager::UpdateProgramRule(const QString& RuleId)
+bool CProgramManager::UpdateProgramRule(const QFlexGuid& Guid)
 {
-	auto Ret = theCore->GetProgramRule(RuleId);
+	auto Ret = theCore->GetProgramRule(Guid);
 	if (Ret.IsError())
 		return false;
 
 	XVariant& Rule = Ret.GetValue();
 
-	QString RuleID = Rule[API_V_RULE_GUID].AsQStr();
+	QFlexGuid Guid2;
+	Guid2.FromVariant(Rule[API_V_GUID]);
+	if (Guid2 != Guid)
+		return false;
 
-	QString ProgramPath = QString::fromStdWString(NormalizeFilePath(Rule[API_V_FILE_PATH].AsStr()));
-
+	QString ProgramPath = Rule[API_V_FILE_PATH].AsQStr();
 	CProgramID ID;
-	ID.SetPath(ProgramPath);
+	ID.SetPath(theCore->NormalizePath(ProgramPath, true));
 
-	CProgramRulePtr pRule = m_ProgramRules.value(RuleID);
+	CProgramRulePtr pRule = m_ProgramRules.value(Guid2);
 	if (pRule) {
 		if(ID != pRule->GetProgramID()) // on ID change compeltely re add the rule as if it would be new
 		{
@@ -435,22 +437,22 @@ bool CProgramManager::UpdateProgramRule(const QString& RuleId)
 	return true;
 }
 
-void CProgramManager::RemoveProgramRule(const QString& RuleId)
+void CProgramManager::RemoveProgramRule(const QFlexGuid& Guid)
 {
-	CProgramRulePtr pRule = m_ProgramRules.value(RuleId);
+	CProgramRulePtr pRule = m_ProgramRules.value(Guid);
 	if (pRule)
 		RemoveProgramRule(pRule);
 }
 
-QSet<QString> CProgramManager::GetProgramRuleIDs() const
+QSet<QFlexGuid> CProgramManager::GetProgramRuleIDs() const
 {
 	return ListToSet(m_ProgramRules.keys()); 
 }
 
-QList<CProgramRulePtr> CProgramManager::GetProgramRules(const QSet<QString>& ProgramRuleIDs)
+QList<CProgramRulePtr> CProgramManager::GetProgramRules(const QSet<QFlexGuid>& ProgramRuleIDs)
 {
 	QList<CProgramRulePtr> List;
-	foreach(const QString & Guid, ProgramRuleIDs) {
+	foreach(const QFlexGuid& Guid, ProgramRuleIDs) {
 		CProgramRulePtr pProgramRulePtr = m_ProgramRules.value(Guid);
 		if (pProgramRulePtr) List.append(pProgramRulePtr);
 	}
@@ -459,10 +461,13 @@ QList<CProgramRulePtr> CProgramManager::GetProgramRules(const QSet<QString>& Pro
 
 STATUS CProgramManager::SetProgramRule(const CProgramRulePtr& pRule)
 {
-	return theCore->SetProgramRule(pRule->ToVariant(SVarWriteOpt()));
+	SVarWriteOpt Opts;
+	Opts.Flags = SVarWriteOpt::eTextGuids;
+
+	return theCore->SetProgramRule(pRule->ToVariant(Opts));
 }
 
-RESULT(CProgramRulePtr) CProgramManager::GetProgramRule(QString Guid)
+RESULT(CProgramRulePtr) CProgramManager::GetProgramRule(const QFlexGuid& Guid)
 {
 	auto Ret = theCore->GetProgramRule(Guid);
 	if (Ret.IsError())
@@ -470,10 +475,9 @@ RESULT(CProgramRulePtr) CProgramManager::GetProgramRule(QString Guid)
 
 	XVariant& Rule = Ret.GetValue();
 
-	QString ProgramPath = QString::fromStdWString(NormalizeFilePath(Rule[API_V_FILE_PATH].AsStr()));
-
+	QString ProgramPath = Rule[API_V_FILE_PATH].AsQStr();
 	CProgramID ID;
-	ID.SetPath(ProgramPath);
+	ID.SetPath(theCore->NormalizePath(ProgramPath, true));
 
 	CProgramRulePtr pRule = CProgramRulePtr(new CProgramRule(ID));
 	pRule->FromVariant(Rule);

@@ -1,6 +1,5 @@
 #pragma once
 #include "../Programs/ProgramID.h"
-#include "../../Helpers/FilePath.h"
 
 class CHandle : public QObject
 {
@@ -10,7 +9,7 @@ public:
 
 	quint64 GetHandleRef() const			{ return m_HandleRef; }
 
-	QString GetPath(EPathType Type) const	{ return m_Path.Get(Type); }
+	QString GetNtPath() const				{ return m_NtPath; }
 
 	quint64 GetProcessId() const			{ return m_ProcessId; }
 
@@ -20,7 +19,7 @@ protected:
 
 	quint64						m_HandleRef = 0;
 
-    CFilePath					m_Path;
+    QString						m_NtPath;
 
 	quint64						m_ProcessId = 0;
 };

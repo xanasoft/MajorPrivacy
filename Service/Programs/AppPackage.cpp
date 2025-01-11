@@ -3,12 +3,26 @@
 #include "../../Library/Helpers/SID.h"
 #include "../../Library/Helpers/AppUtil.h"
 #include "../../Library/API/PrivacyAPI.h"
+#include "../Library/Common/Strings.h"
 
-CAppPackage::CAppPackage(const TAppId& Id, const std::wstring& Name)
+CAppPackage::CAppPackage(const std::wstring& AppContainerSid, const std::wstring& Name)
 {
-	m_ID.Set(EProgramType::eAppPackage, Id);
+	m_ID = CProgramID(MkLower(AppContainerSid), EProgramType::eAppPackage);
 
-	SSid AppContainerSid = SSid(std::string(Id.begin(), Id.end()));
-	m_AppContainerSid = Id;
-	m_AppContainerName = Name.empty() ? ::GetAppContainerNameBySid(AppContainerSid) : Name;
+	m_AppContainerSid = AppContainerSid;
+
+	if (Name.empty()) {
+		SSid Sid = SSid(std::string(AppContainerSid.begin(), AppContainerSid.end()));
+		m_AppContainerName = ::GetAppContainerNameBySid(Sid);
+	} else
+		m_AppContainerName = Name;
+}
+
+bool CAppPackage::MatchFileName(const std::wstring& FileName) const
+{
+	std::unique_lock lock(m_Mutex);
+
+	if (FileName.length() < m_Path.length())
+		return false;
+	return _wcsnicmp(FileName.c_str(), m_Path.c_str(), m_Path.length()) == 0;
 }

@@ -7,10 +7,14 @@ CFwRule::CFwRule(const CProgramID& ID, QObject* parent)
 	: CGenericRule(ID, parent)
 {
     m_BinaryPath = ID.GetFilePath();
-    if(!m_BinaryPath.isEmpty()) 
-        m_BinaryPath = QString::fromStdWString(NtPathToDosPath(m_BinaryPath.toStdWString()));
     m_ServiceTag = ID.GetServiceTag();
     m_AppContainerSid = ID.GetAppContainerSid();
+}
+
+void CFwRule::SetTemporary(bool bTemporary)
+{
+    m_Grouping = bTemporary ? "&Temporary" : "";
+    CGenericRule::SetTemporary(bTemporary);
 }
 
 QString CFwRule::GetProgram() const

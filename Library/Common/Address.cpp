@@ -35,9 +35,9 @@ void CAddress::Set(const byte* IP)
 {
 	memcpy(m_IP, IP, Len());
 
-#ifdef _DEBUG
-	m_Str = ToString();
-#endif
+//#ifdef _DEBUG
+//	m_Str = ToString();
+//#endif
 }
 
 #ifdef USING_QT
@@ -109,9 +109,9 @@ bool CAddress::FromWString(const std::wstring& Str)
 	if (_winet_pton(AF(), Str.c_str(), m_IP) != 1)
 		return false;
 
-#ifdef _DEBUG
-	m_Str = ToString();
-#endif
+//#ifdef _DEBUG
+//	m_Str = ToString();
+//#endif
 
 	return true;
 }
@@ -135,9 +135,9 @@ bool CAddress::FromString(const std::string& Str)
 	if(_inet_pton(AF(), Str.c_str(), m_IP) != 1)
 		return false;
 
-#ifdef _DEBUG
-	m_Str = ToString();
-#endif
+//#ifdef _DEBUG
+//	m_Str = ToString();
+//#endif
 
 	return true;
 }

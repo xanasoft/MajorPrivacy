@@ -1,11 +1,9 @@
 #pragma once
 #include "../Programs/ProgramID.h"
-#include "../../Helpers/FilePath.h"
 
 struct SAccessStats
 {
-	CFilePath Path;
-
+	QString Path;
 	uint64	LastAccessTime = 0;
 	bool	bBlocked = false;
 	uint32	AccessMask = 0;

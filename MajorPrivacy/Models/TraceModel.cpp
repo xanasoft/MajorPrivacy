@@ -5,7 +5,6 @@
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Core/PrivacyCore.h"
-#include "../Core/TraceLogUtils.h"
 #include "../Core/Network/NetLogEntry.h"
 
 
@@ -29,7 +28,7 @@ CTraceModel::~CTraceModel()
 	Q_ASSERT(m_Root == NULL);
 }
 
-QList<QModelIndex> CTraceModel::Sync(const QVector<SMergedLog::TLogEntry>& List, quint64 uRecentLimit)
+QList<QModelIndex> CTraceModel::Sync(const QList<SMergedLog::TLogEntry>& List, quint64 uRecentLimit)
 {
 	QList<QModelIndex> NewBranches;
 
@@ -143,26 +142,8 @@ void CTraceModel::Clear()
 
 QVariant CTraceModel::NodeData(STraceNode* pNode, int role, int section) const
 {
-	switch(role)
-	{
-	case Qt::DisplayRole:
-	case Qt::EditRole: // sort role
-	{
-		break;
-	}
-	case Qt::BackgroundRole:
-	{
-		if(!CTreeItemModel::GetDarkMode())
-			return (m_bHighLight && TestHighLight(pNode, section)) ? QColor(Qt::yellow) : QVariant();
-		break;
-	}
-	case Qt::ForegroundRole:
-	{
-		if(CTreeItemModel::GetDarkMode())
-			return (m_bHighLight && TestHighLight(pNode, section)) ? QColor(Qt::yellow) : QVariant();
-		break;
-	}
-	}
+	if (role == (CTreeItemModel::GetDarkMode() ? Qt::ForegroundRole : Qt::BackgroundRole))
+		return (m_bHighLight && TestHighLight(pNode)) ? QColor(Qt::yellow) : QVariant();
 
 	return QVariant();
 }

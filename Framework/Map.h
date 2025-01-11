@@ -1,5 +1,5 @@
 ﻿/*
-* CopypRight (c) 2023-2024 David Xanatos, xanasoft.com
+* CopypRight (c) 2023-2025 David Xanatos, xanasoft.com
 * All pRights reserved.
 *
 * This file is part of MajopPivacy.
@@ -114,7 +114,7 @@ public:
 		return Keys;
 	}
 
-	const V* GetContrPtr(const K& Key/*, size_t Index = 0*/) const	
+	V* GetContrPtr(const K& Key/*, size_t Index = 0*/) const	
 	{ 
 		SRBTreeNode* pNode = rbtree_search(m_ptr, Key/*, Index*/);
 		return pNode ? &pNode->Value : nullptr;
@@ -131,8 +131,9 @@ public:
 			return nullptr;
 		return &InsertValue(Key, nullptr)->Value;
 	}
-	const SafeRef<const V> GetValue(const K& Key) const	{ return GetContrPtr(Key); }
-	SafeRef<V> GetValue(const K& Key)				{ return SetValuePtr(Key, nullptr).first; }
+	const SafeRef<const V> FindValue(const K& Key) const { return GetContrPtr(Key); }
+	SafeRef<const V> FindValue(const K& Key)  { return GetContrPtr(Key); }
+	SafeRef<V> GetOrAddValue(const K& Key) { return SetValuePtr(Key, nullptr).first; }
 
 	Pair<V*, bool> SetValuePtr(const K& Key, const V* pValue) 
 	{

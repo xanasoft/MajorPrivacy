@@ -98,7 +98,7 @@ void CTrafficLog::LoadTraffic(const CVariant& Data)
 		const CVariant& Entry = Data[i];
 		STrafficLogEntry &Data = m_TrafficLog[Entry[API_V_SOCK_RHOST].AsStr()];
 		Data.IpAddress.FromString(Entry[API_V_SOCK_RADDR]);
-		Data.LastActivity = Entry[API_V_SOCK_LAST_ACT];
+		Data.LastActivity = Entry[API_V_SOCK_LAST_NET_ACT];
 		Data.Uploaded = Entry[API_V_SOCK_UPLOADED];
 		Data.Downloaded = Entry[API_V_SOCK_DOWNLOADED];
 	}
@@ -111,7 +111,7 @@ CVariant CTrafficLog::STrafficLogEntry::ToVariant(const std::wstring& Host) cons
 
 	Entry.Write(API_V_SOCK_RHOST, Host);
 	Entry.Write(API_V_SOCK_RADDR, IpAddress.ToString());
-	Entry.Write(API_V_SOCK_LAST_ACT, LastActivity);
+	Entry.Write(API_V_SOCK_LAST_NET_ACT, LastActivity);
 	Entry.Write(API_V_SOCK_UPLOADED, Uploaded);
 	Entry.Write(API_V_SOCK_DOWNLOADED, Downloaded);
 

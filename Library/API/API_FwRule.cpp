@@ -7,7 +7,7 @@
 
 
 /////////////////////////////////////////////////////////////////////////////
-// Index Serializer
+// CFwRule
 //
 
 void CFwRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
@@ -17,17 +17,17 @@ void CFwRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 #endif
 
 #ifdef CFwRule
-    Rule.Write(API_V_RULE_GUID, M(Guid));
+    Rule.Write(API_V_GUID, M(Guid));
 #endif
-    Rule.Write(API_V_RULE_INDEX, M(Index));
+    Rule.Write(API_V_INDEX, M(Index));
 
 #ifdef CFwRule
-    Rule.Write(API_V_RULE_ENABLED, m_Data->Enabled);
-    //Rule.Write(API_V_RULE_TEMP, ...
+    Rule.Write(API_V_ENABLED, m_Data->Enabled);
+    //Rule.Write(API_V_TEMP, ...
 #endif
 
     Rule.Write(API_V_FILE_PATH, TO_STR(m_BinaryPath));
-    Rule.Write(API_V_SVC_TAG, TO_STR(M(ServiceTag)));
+    Rule.Write(API_V_SERVICE_TAG, TO_STR(M(ServiceTag)));
     Rule.Write(API_V_APP_SID, TO_STR(M(AppContainerSid)));
     Rule.Write(API_V_OWNER, TO_STR(M(LocalUserOwner)));
     Rule.Write(API_V_APP_NAME, TO_STR(M(PackageFamilyName)));
@@ -67,6 +67,14 @@ void CFwRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteVariant(API_V_FW_RULE_OS, XVariant(M(OsPlatformValidity)));
 
     Rule.Write(API_V_FW_RULE_EDGE, M(EdgeTraversal));
+
+#ifdef CFwRule
+	Rule.Write(API_V_TEMP, m_bTemporary);
+	Rule.Write(API_V_TIMEOUT, m_uTimeOut);
+#endif
+
+    Rule.Write(API_V_RULE_HIT_COUNT, m_HitCount);
+    
 }
 
 void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
@@ -74,17 +82,17 @@ void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
     switch (Index)
     {
 #ifdef CFwRule
-    case API_V_RULE_GUID: M(Guid) = AS_STR(Data); break;
+    case API_V_GUID: M(Guid) = AS_STR(Data); break;
 #endif
-    case API_V_RULE_INDEX: M(Index) = Data.To<int>(); break;
+    case API_V_INDEX: M(Index) = Data.To<int>(); break;
 
 #ifdef CFwRule
-    case API_V_RULE_ENABLED: M(Enabled) = Data.To<bool>(); break;
-    //case API_V_RULE_TEMP: ...
+    case API_V_ENABLED: M(Enabled) = Data.To<bool>(); break;
+    //case API_V_TEMP: ...
 #endif
 
     case API_V_FILE_PATH: m_BinaryPath = AS_STR(Data); break;
-    case API_V_SVC_TAG: M(ServiceTag) = AS_STR(Data); break;
+    case API_V_SERVICE_TAG: M(ServiceTag) = AS_STR(Data); break;
     case API_V_APP_SID: M(AppContainerSid) = AS_STR(Data); break;
     case API_V_OWNER: M(LocalUserOwner) = AS_STR(Data); break;
     case API_V_APP_NAME: M(PackageFamilyName) = AS_STR(Data); break;
@@ -133,16 +141,20 @@ void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
 
     case API_V_FW_RULE_EDGE: M(EdgeTraversal) = Data.To<int>(); break;
 
+#ifdef CFwRule
+	case API_V_TEMP: m_bTemporary = Data.To<bool>(); break;
+	case API_V_TIMEOUT: m_uTimeOut = Data.To<uint64>(); break;
+#endif
+
+	case API_V_RULE_HIT_COUNT: m_HitCount = Data.To<int>(); break;
+
 #ifndef CFwRule
     default: CGenericRule::ReadIValue(Index, Data);
 #endif
     }
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
-// Map Serializer
-//
 
 void CFwRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 {
@@ -151,17 +163,17 @@ void CFwRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 #endif
 
 #ifdef CFwRule
-    Rule.Write(API_S_RULE_GUID, M(Guid));
+    Rule.Write(API_S_GUID, M(Guid));
 #endif
-    Rule.Write(API_S_RULE_INDEX, M(Index));
+    Rule.Write(API_S_INDEX, M(Index));
 
 #ifdef CFwRule
-    Rule.Write(API_S_RULE_ENABLED, M(Enabled));
-    //Rule.Write(API_S_RULE_TEMP, ...
+    Rule.Write(API_S_ENABLED, M(Enabled));
+    //Rule.Write(API_S_TEMP, ...
 #endif
 
     Rule.Write(API_S_FILE_PATH, TO_STR(m_BinaryPath));
-    Rule.Write(API_S_SVC_TAG, TO_STR(M(ServiceTag)));
+    Rule.Write(API_S_SERVICE_TAG, TO_STR(M(ServiceTag)));
     Rule.Write(API_S_APP_SID, TO_STR(M(AppContainerSid)));
     Rule.Write(API_S_OWNER, TO_STR(M(LocalUserOwner)));
     Rule.Write(API_S_APP_NAME, TO_STR(M(PackageFamilyName)));
@@ -228,28 +240,35 @@ void CFwRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteVariant(API_S_FW_RULE_OS, XVariant(M(OsPlatformValidity)));
 
     Rule.Write(API_S_FW_RULE_EDGE, M(EdgeTraversal));
+
+#ifdef CFwRule
+    Rule.Write(API_S_TEMP, m_bTemporary);
+    Rule.Write(API_S_TIMEOUT, m_uTimeOut);
+#endif
+
+	Rule.Write(API_S_RULE_HIT_COUNT, m_HitCount);
 }
 
 void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 {
 #ifdef CFwRule
-    if (VAR_TEST_NAME(Name, API_S_RULE_GUID))
+    if (VAR_TEST_NAME(Name, API_S_GUID))
         M(Guid) = AS_STR(Data);
     else
 #endif
-    if (VAR_TEST_NAME(Name, API_S_RULE_INDEX))
+    if (VAR_TEST_NAME(Name, API_S_INDEX))
         M(Index) = Data.To<int>();
 
 #ifdef CFwRule
-    else if (VAR_TEST_NAME(Name, API_S_RULE_ENABLED))
+    else if (VAR_TEST_NAME(Name, API_S_ENABLED))
         M(Enabled) = Data.To<bool>();
-    //else if (VAR_TEST_NAME(Name, API_S_RULE_TEMP))
+    //else if (VAR_TEST_NAME(Name, API_S_TEMP))
     //    ... = Data.To<bool>();
 #endif
 
     else if (VAR_TEST_NAME(Name, API_S_FILE_PATH))
         m_BinaryPath = AS_STR(Data);
-    else if (VAR_TEST_NAME(Name, API_S_SVC_TAG))
+    else if (VAR_TEST_NAME(Name, API_S_SERVICE_TAG))
         M(ServiceTag) = AS_STR(Data);
     else if (VAR_TEST_NAME(Name, API_S_APP_SID))
         M(AppContainerSid) = AS_STR(Data);
@@ -363,6 +382,16 @@ void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 
 	else if (VAR_TEST_NAME(Name, API_S_FW_RULE_EDGE))
 		M(EdgeTraversal) = Data.To<int>();
+
+#ifdef CFwRule
+	else if (VAR_TEST_NAME(Name, API_S_TEMP))
+		m_bTemporary = Data.To<bool>();
+	else if (VAR_TEST_NAME(Name, API_S_TIMEOUT))
+		m_uTimeOut = Data.To<uint64>();
+#endif
+
+	else if (VAR_TEST_NAME(Name, API_S_RULE_HIT_COUNT))
+		m_HitCount = Data.To<int>();
 
 #ifndef CFwRule
     else

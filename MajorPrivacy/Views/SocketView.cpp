@@ -33,15 +33,13 @@ CSocketView::CSocketView(QWidget *parent)
 	m_pCmbType->addItem(QIcon(":/Icons/Network.png"), tr("UDP Sockets"), (qint32)ENetProtocols::eUDP);
 	m_pToolBar->addWidget(m_pCmbType);
 
-	int comboBoxHeight = m_pCmbType->sizeHint().height();
-
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	m_pToolBar->addWidget(pSpacer);
 
 	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
 	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
-	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	pBtnSearch->setMaximumHeight(22);
 	m_pToolBar->addWidget(pBtnSearch);
 
 	AddPanelItemsToMenu();
@@ -82,7 +80,7 @@ void CSocketView::Sync(const QMap<quint64, CProcessPtr>& Processes, const QSet<C
 		CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->GetProcessId());
 		if (!pProcess) continue;
 		foreach(CSocketPtr pSocket, pProcess->GetSockets()) {
-			if (pSocket->GetOwnerService().compare(pService->GetSvcTag(), Qt::CaseInsensitive) == 0 && FilterSocket(pSocket))
+			if (pSocket->GetOwnerService().compare(pService->GetServiceTag(), Qt::CaseInsensitive) == 0 && FilterSocket(pSocket))
 				SocketList[pSocket->GetSocketRef()] = pSocket;
 		}
 	}

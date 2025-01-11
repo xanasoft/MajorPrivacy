@@ -23,10 +23,8 @@ CProcessTraceView::CProcessTraceView(QWidget *parent)
 	connect(m_pCmbRole, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbRole);
 
-	int comboBoxHeight = m_pCmbRole->sizeHint().height();
-
 	m_pCmbAction = new QComboBox();
-	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Action"), (qint32)EEventStatus::eUndefined);
+	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Status"), (qint32)EEventStatus::eUndefined);
 	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)EEventStatus::eAllowed);
 	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
 	connect(m_pCmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
@@ -40,6 +38,13 @@ CProcessTraceView::CProcessTraceView(QWidget *parent)
 	m_pBtnScroll->setToolTip(tr("Auto Scroll"));
 	m_pBtnScroll->setMaximumHeight(22);
 	m_pToolBar->addWidget(m_pBtnScroll);
+
+	m_pBtnHold = new QToolButton();
+	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
+	m_pBtnHold->setCheckable(true);
+	m_pBtnHold->setToolTip(tr("Hold updates"));
+	m_pBtnHold->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnHold);
 
 	m_pToolBar->addSeparator();
 
@@ -56,7 +61,7 @@ CProcessTraceView::CProcessTraceView(QWidget *parent)
 
 	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
 	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
-	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	pBtnSearch->setMaximumHeight(22);
 	m_pToolBar->addWidget(pBtnSearch);
 }
 
@@ -65,12 +70,9 @@ CProcessTraceView::~CProcessTraceView()
 	theConf->SetBlob("MainWindow/ProcessTraceView_Columns", m_pTreeView->saveState());
 }
 
-void CProcessTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services)
+void CProcessTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QFlexGuid& EnclaveGuid)
 {
-	CTraceView::Sync(Log, Programs, Services);
-
-	if(m_pBtnScroll->isChecked())
-		m_pTreeView->scrollToBottom();
+	CTraceView::Sync(Log, Programs, Services, EnclaveGuid);
 }
 
 void CProcessTraceView::UpdateFilter()

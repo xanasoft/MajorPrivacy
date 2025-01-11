@@ -26,9 +26,10 @@ public:
 	{
 		eName = 0,
 		eRole,
-		eType,
+		eOperation,
+		eSubject,
 		eStatus,
-		eTarget,
+		eEnclave,
 		eTimeStamp,
 		eProgram,
 		eCount

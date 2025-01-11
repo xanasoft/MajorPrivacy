@@ -62,17 +62,6 @@ quint64 GetCurTick()
 	return g_CurTick.Get();
 }
 
-quint64 GetCurCycle()
-{
-	return GetCurTick()*1000; // ToDo
-}
-/*	quint64 freq, now;
-	QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
-	QueryPerformanceCounter((LARGE_INTEGER*)&now);
-	quint64 dwNow = ((now * 1000000) / freq) & 0xffffffff;
-	return dwNow; // returns time since system start in us
-}*/
-
 QString UnEscape(QString Text)
 {
 	QString Value;
@@ -158,6 +147,23 @@ QStringList SplitStr(const QString& String, QString Separator)
 			List.removeAt(i--);
 	}
 	return List;
+}
+
+bool PathStartsWith(const QString& Path, const QString& Start)
+{
+	if (Start.isEmpty())
+		return false;
+	int Length = Start.length();
+	if (Start[Length - 1] == '\\' || Start[Length - 1] == '/')
+		Length--;
+	if (Path.startsWith(Start.leftRef(Length), Qt::CaseInsensitive))
+	{
+		if (Path.length() == Length)
+			return true;
+		if (Path[Length] == '\\' || Path[Length] == '/')
+			return true;
+	}
+	return false;
 }
 
 TArguments GetArguments(const QString& Arguments, QChar Separator, QChar Assigner, QString* First, bool bLowerKeys, bool bReadEsc)

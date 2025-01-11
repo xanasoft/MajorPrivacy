@@ -44,7 +44,7 @@ NTSTATUS CPublicKey::InitCrypto()
 	if (!NT_SUCCESS(status))
 		return status; //ERR(status, L"Unable to open the signing algorithm provider");
 
-	status = BCryptImportKeyPair(m->AlgHandle, NULL, CRYPTO_BLOB_PUBLIC, &m->KeyHandle, m->Key.GetBuffer(), m->Key.GetSize(), 0);
+	status = BCryptImportKeyPair(m->AlgHandle, NULL, CRYPTO_BLOB_PUBLIC, &m->KeyHandle, m->Key.GetBuffer(), (ULONG)m->Key.GetSize(), 0);
 	if (!NT_SUCCESS(status))
 		return status; //ERR(status, L"Unable to import the key pair");
 
@@ -58,7 +58,7 @@ NTSTATUS CPublicKey::Verify(const CBuffer& Data, const CBuffer& Signature) const
 
 	NTSTATUS status;
 
-	status = BCryptVerifySignature(m->KeyHandle, NULL, (PBYTE)Data.GetBuffer(), Data.GetSize(), (PBYTE)Signature.GetBuffer(), Signature.GetSize(), 0);
+	status = BCryptVerifySignature(m->KeyHandle, NULL, (PBYTE)Data.GetBuffer(), (ULONG)Data.GetSize(), (PBYTE)Signature.GetBuffer(), (ULONG)Signature.GetSize(), 0);
 	if (!NT_SUCCESS(status))
 		return status; //ERR(status, L"Unable to verify the signature");
 

@@ -14,17 +14,27 @@ public:
 	CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget *parent = Q_NULLPTR);
 	~CProgramRuleWnd();
 
+	static QColor GetActionColor(EExecRuleType Action);
+	static QColor GetAuthorityColor(KPH_VERIFY_AUTHORITY Authority);
+	static QColor GetRoleColor(EExecLogRole Role);
+
 signals:
 	void Closed();
 
 private slots:
 
+	void OnNameChanged(const QString& Text);
+	void OnPickProgram();
 	void OnProgramChanged();
+	void OnProgramPathChanged();
+	void OnActionChanged();
 
 	void OnSaveAndClose();
 
 protected:
 	void closeEvent(QCloseEvent* e);
+
+	bool AddProgramItem(const CProgramItemPtr& pItem);
 
 	bool Save();
 
@@ -34,4 +44,9 @@ protected:
 private:
 	Ui::ProgramRuleWnd ui;
 
+	bool m_HoldProgramPath = false;
+
+	void TryMakeName();
+	bool m_NameHold = true;
+	bool m_NameChanged = false;
 };

@@ -1,6 +1,6 @@
 #pragma once
 #include <qwidget.h>
-#include "../Core/Processes/Enclave.h"
+#include "../Core/Enclaves/Enclave.h"
 #include "../../MiscHelpers/Common/TreeItemModel.h"
 
 class CEnclaveModel : public CTreeItemModel
@@ -11,17 +11,22 @@ public:
 	CEnclaveModel(QObject *parent = 0);
 	~CEnclaveModel();
 
-	typedef CEnclavePtr ItemType;
+	struct SModelItem
+	{
+		CEnclavePtr	pEnclave;
+		CProcessPtr pProcess;
+		operator bool() const { return !pEnclave.isNull(); }
+	};
 
-	QList<QVariant>	Sync(const QMap<quint64, CEnclavePtr>& EnclaveList);
+	typedef SModelItem ItemType;
+
+	QList<QVariant>	Sync(const QMap<QFlexGuid, CEnclavePtr>& EnclaveManager);
 
 	void			SetTree(bool bTree)				{ m_bTree = bTree; }
 	bool			IsTree() const					{ return m_bTree; }
 
-	CEnclavePtr		GetItem(const QModelIndex& index) const {return GetEnclave(index);}
+	SModelItem		GetItem(const QModelIndex& index) const;
 
-	CEnclavePtr		GetEnclave(const QModelIndex &index) const;
-	CProcessPtr		GetProcess(const QModelIndex &index) const;
 	QVariant		GetID(const QModelIndex &index) const;
 
 	enum ETypes
@@ -38,7 +43,7 @@ public:
 	{
 		eName = 0,
 		eID,
-		eSignAuthority,
+		eTrustLevel,
 		eOnSpawn,
 		eProgram,
 		eCount
@@ -54,15 +59,17 @@ protected:
 		CEnclavePtr	pEnclave;
 
 		CProcessPtr pProcess;
+			
+		QString IconFile;
 	};
 
 	virtual QVariant		NodeData(STreeNode* pNode, int role, int section) const;
 
 	virtual STreeNode*		MkNode(const QVariant& Id) { return new SEnclaveNode(/*this,*/ Id); }
 
-	QList<QVariant>			MakeProcPath(const quint64 EnclaveId, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList);
+	QList<QVariant>			MakeProcPath(const QVariant& EnclaveId, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList);
 	void					MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, QList<QVariant>& Path);
-	bool					TestProcPath(const QList<QVariant>& Path, const quint64 EnclaveId, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, int Index = 0);
+	bool					TestProcPath(const QList<QVariant>& Path, const QVariant& EnclaveId, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, int Index = 0);
 
 	//virtual QVariant		GetDefaultIcon() const;
 

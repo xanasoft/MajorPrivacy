@@ -6,6 +6,7 @@
 #include "Core/TraceLogEntry.h"
 #include "../Library/Status.h"
 #include "../MiscHelpers/Common/CustomTheme.h"
+#include "../MiscHelpers/Common/ProgressDialog.h"
 #include <QTranslator>
 
 class CHomePage;
@@ -17,7 +18,6 @@ class CProgramView;
 class CDnsPage;
 class CTweakPage;
 class CVolumePage;
-class CInfoView;
 
 class CPopUpWindow;
 
@@ -56,6 +56,7 @@ public:
 	bool				IsAlwaysOnTop() const;
 
 	STATUS				SignFiles(const QStringList& Paths);
+	STATUS				SignCerts(const QMap<QByteArray, QString>& Certs);
 
 	void				IgnoreEvent(ERuleType Type, const CProgramFilePtr& pProgram, const QString& Path = QString());
 	bool				IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry) const;
@@ -113,10 +114,14 @@ private slots:
 	void				OnShowHide();
 	void				OnSysTray(QSystemTrayIcon::ActivationReason Reason);
 
-	void				OnSignFile();
-	void				OnPrivateKey();
+	void				OnProtectConfig();
+	void				OnUnprotectConfig();
+	void				OnUnlockConfig();
+	void				OnCommitConfig();
+	void				OnDiscardConfig();
 	void				OnMakeKeyPair();
 	void				OnClearKeys();
+	void				OnSignFile();
 
 	void				OnToggleTree();
 	void				OnStackPanels();
@@ -140,11 +145,12 @@ protected:
 	int					m_uTimerID;
 
 	void				SetTitle();
+	void				UpdateLockStatus(bool bOnConnect = false);
 
 	STATUS				Connect();
 	void				Disconnect();
 
-	STATUS				InitSigner(class CPrivateKey& PrivateKey);
+	STATUS				InitSigner(const QString& Prompt, class CPrivateKey& PrivateKey);
 
 	void				CreateTrayIcon();
 	void				CreateTrayMenu();
@@ -153,9 +159,10 @@ protected:
 	SCurrentItems		MakeCurrentItems(const QList<CProgramItemPtr>& Progs, std::function<bool(const CProgramItemPtr&)> Filter = nullptr) const;
 	SCurrentItems		m_CurrentItems;
 
-	bool				m_bShowAll = false;
+	//bool				m_bShowAll = false;
 	bool				m_bWasVisible = false;
 	bool				m_bOnTop = false;
+	int					m_iReConnected = 1;
 	bool				m_bWasConnected = false;
 	bool				m_bExit = false;
 
@@ -191,7 +198,7 @@ private:
 
 	QWidget*			m_pMainWidget = nullptr;
 	QGridLayout*		m_pMainLayout = nullptr;
-	//QToolBar*			m_pToolBar = nullptr;
+	QToolBar*			m_pToolBar = nullptr;
 	//QTabWidget*			m_pMainTabs = nullptr;
 	QTabBar*			m_pTabBar = nullptr;
 	QStackedLayout*		m_pPageStack = nullptr;
@@ -200,7 +207,7 @@ private:
 	QWidget*			m_pProgramWidget = nullptr;
 	QVBoxLayout*		m_pProgramLayout = nullptr;
 	
-	QToolBar*			m_pProgramToolBar = nullptr;
+	//QToolBar*			m_pProgramToolBar = nullptr;
 	//QToolButton*		m_pBtnClear = nullptr;
 	QToolButton*		m_pBtnTime = nullptr;
 	QComboBox*			m_pCmbRecent = nullptr;
@@ -238,10 +245,15 @@ private:
 	QAction*			m_pCreateVolume = nullptr;
 
 	QMenu*				m_pSecurity = nullptr;
-	QAction*			m_pSignFile = nullptr;
-	QAction*			m_pPrivateKey = nullptr;
+	QAction*			m_pProtectConfig = nullptr;
+	QAction*			m_pUnprotectConfig = nullptr;
+	QAction*			m_pUnlockConfig = nullptr;
+	QAction*			m_pCommitConfig = nullptr;
+	QAction*			m_pDiscardConfig = nullptr;
 	QAction*			m_pMakeKeyPair = nullptr;
 	QAction*			m_pClearKeys = nullptr;
+	QAction*			m_pSignFile = nullptr;
+	QAction*			m_pSignDb = nullptr;
 
 	QMenu*				m_pTools = nullptr;
 	QAction*			m_pCleanUpProgs = nullptr;
@@ -272,8 +284,6 @@ private:
 	CTweakPage*			m_TweakPage = nullptr;
 	CVolumePage*		m_VolumePage = nullptr;
 
-	QSplitter*			m_pInfoSplitter = nullptr;
-	CInfoView*			m_pInfoView = nullptr;
 	CProgramView*		m_pProgramView = nullptr;
 
 	CPopUpWindow*		m_pPopUpWindow = nullptr;
@@ -291,6 +301,11 @@ protected:
 	CCustomTheme		m_CustomTheme;
 
 	bool				m_ThemeUpdatePending = false;
+
+	friend class CAccessView;
+	friend class CTraceView;
+	CProgressDialog*	m_pProgressDialog;
+	bool				m_pProgressModal = false;
 
 private:
 	void				LoadLanguage();

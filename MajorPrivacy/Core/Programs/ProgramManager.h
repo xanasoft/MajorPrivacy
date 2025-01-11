@@ -44,16 +44,16 @@ public:
 	STATUS RemoveProgramFrom(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent = CProgramItemPtr(), bool bDelRules = false);
 
 	bool UpdateAllProgramRules();
-	bool UpdateProgramRule(const QString& RuleId);
-	void RemoveProgramRule(const QString& RuleId);
+	bool UpdateProgramRule(const QFlexGuid& Guid);
+	void RemoveProgramRule(const QFlexGuid& Guid);
 
-	QSet<QString> GetProgramRuleIDs() const;
+	QSet<QFlexGuid> GetProgramRuleIDs() const;
 	QList<CProgramRulePtr> GetProgramRules() const { return m_ProgramRules.values(); }
 	//QList<CProgramRulePtr> GetProgramRulesFor(const QList<const class CProgramItem*>& Nodes);
-	QList<CProgramRulePtr> GetProgramRules(const QSet<QString> &ProgramRuleIDs);
+	QList<CProgramRulePtr> GetProgramRules(const QSet<QFlexGuid> &ProgramRuleIDs);
 
 	STATUS SetProgramRule(const CProgramRulePtr& pRule);
-	RESULT(CProgramRulePtr) GetProgramRule(QString Guid);
+	RESULT(CProgramRulePtr) GetProgramRule(const QFlexGuid& Guid);
 	STATUS DelProgramRule(const CProgramRulePtr& pRule);
 
 	QSet<CProgramItemPtr> GetItems() const { return ListToSet(m_Items.values()); }
@@ -63,8 +63,8 @@ signals:
 
 protected:
 
-	void					AddProgramRule(const CProgramRulePtr& pFwRule);
-	void					RemoveProgramRule(const CProgramRulePtr& pFwRule);
+	void					AddProgramRule(const CProgramRulePtr& pRule);
+	void					RemoveProgramRule(const CProgramRulePtr& pRule);
 
 	//void UpdateGroup(const CProgramGroupPtr& Group, const class XVariant& Root);
 
@@ -84,6 +84,6 @@ protected:
 	uint64									m_LibrariesCacheToken = 0;
 	QMap<quint64, CProgramLibraryPtr>		m_Libraries;
 
-	QMap<QString, CProgramRulePtr>			m_ProgramRules;
+	QMap<QFlexGuid, CProgramRulePtr>		m_ProgramRules;
 };
 

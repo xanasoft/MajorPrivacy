@@ -5,6 +5,8 @@
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
 #include "../MajorPrivacy.h"
+#include "../Core/Enclaves/EnclaveManager.h"
+#include "../Windows/AccessRuleWnd.h"
 
 CAccessRuleModel::CAccessRuleModel(QObject* parent)
 	:CTreeItemModel(parent)
@@ -22,12 +24,15 @@ CAccessRuleModel::~CAccessRuleModel()
 
 QList<QModelIndex>	CAccessRuleModel::Sync(const QList<CAccessRulePtr>& RuleList)
 {
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	foreach(const CAccessRulePtr& pRule, RuleList)
 	{
-		QVariant Guid = pRule->GetGuid();
+		QVariant Guid = pRule->GetGuid().ToQV();
 
 		QModelIndex Index;
 
@@ -81,10 +86,11 @@ QList<QModelIndex>	CAccessRuleModel::Sync(const QList<CAccessRulePtr>& RuleList)
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pRule->GetName(); break;
+			case eName:				Value = tr("%1 - %2").arg(pRule->GetName()).arg(pRule->GetGuid().ToQS()); break;
 			case eEnabled:			Value = pRule->IsEnabled(); break;
-			case eAction:			Value = pRule->GetTypeStr(); break;
+			case eAction:			Value = (int)pRule->GetType(); break;
 			case ePath:				Value = pRule->GetNtPath(); break;
+			case eEnclave:			Value = pRule->GetEnclave().ToQV(); break;
 			case eProgram:			Value = pRule->GetProgramNtPath(); break;
 			}
 
@@ -98,9 +104,22 @@ QList<QModelIndex>	CAccessRuleModel::Sync(const QList<CAccessRulePtr>& RuleList)
 
 				switch (section)
 				{
-				case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(Value.toString()); break;
+				case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(pRule->GetName()); break;
+				case eEnabled:			ColValue.Formatted = (pRule->IsEnabled() ? tr("Yes") : tr("No")) + (pRule->IsHidden() ? tr(" (Hidden)") : (pRule->IsTemporary() ? tr(" (Temporary)") : "")); break;
+				case eAction:			ColValue.Formatted = pRule->GetTypeStr();  { QColor Color = CAccessRuleWnd::GetActionColor(pRule->GetType()); if(Color.isValid()) ColValue.Color = Color; } break;
 				//case ePath:				ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetPath()).arg(pRule->GetNtPath()); break;
 				//case eProgram:			ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetProgramPath()).arg(pRule->GetProgramNtPath()); break;
+				case eEnclave: {
+					QFlexGuid Enclave = pRule->GetEnclave();
+					if (!Enclave.IsNull()) {
+						CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(Enclave);
+						if (pEnclave)
+							ColValue.Formatted = pEnclave->GetName();
+						else
+							ColValue.Formatted = Enclave.ToQS();
+					}
+					break;
+				}
 				case ePath:				ColValue.Formatted = pRule->GetPath(); break;
 				case eProgram:			ColValue.Formatted = pRule->GetProgramPath(); break;
 				}
@@ -164,6 +183,7 @@ QVariant CAccessRuleModel::headerData(int section, Qt::Orientation orientation, 
 		case eEnabled:				return tr("Enabled");
 		case eAction:				return tr("Action");
 		case ePath:					return tr("Path");
+		case eEnclave:				return tr("Enclave");
 		case eProgram:				return tr("Program");
 		}
 	}

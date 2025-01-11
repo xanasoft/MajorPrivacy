@@ -266,16 +266,16 @@ CVariant CSocket::ToVariant() const
 	//Socket.Write(API_V_SOCK_ACCESS, );
 	//m_FwStatus
 
-	Socket.Write(API_V_SOCK_PID, m_ProcessId);
-	Socket.Write(API_V_SOCK_SVC_TAG, m_OwnerService);
+	Socket.Write(API_V_PID, m_ProcessId);
+	Socket.Write(API_V_SERVICE_TAG, m_OwnerService);
 	//m_ProcessName;
 	//m_pProcess;
 
 	Socket.Write(API_V_SOCK_RHOST, m_pRemoteHostName ? m_pRemoteHostName->ToString() : L"");
 
-	Socket.Write(API_V_SOCK_CREATED, m_CreateTimeStamp); // in ms
+	Socket.Write(API_V_CREATE_TIME, m_CreateTimeStamp); // in ms
 
-	Socket.Write(API_V_SOCK_LAST_ACT, m_LastActivity);
+	Socket.Write(API_V_SOCK_LAST_NET_ACT, m_LastActivity);
 
 	Lock.unlock();
 

@@ -30,12 +30,30 @@ CExecutionView::CExecutionView(QWidget *parent)
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
 	m_pCmbRole = new QComboBox();
-	m_pCmbRole->addItem(QIcon(":/Icons/EFence.png"), tr("Any Role"), (qint32)CProgramFile::SInfo::eNone);
-	m_pCmbRole->addItem(QIcon(":/Icons/Export.png"), tr("Actor"), (qint32)CProgramFile::SInfo::eTarget);
-	m_pCmbRole->addItem(QIcon(":/Icons/Entry.png"), tr("Target"), (qint32)CProgramFile::SInfo::eActor);
+	m_pCmbRole->addItem(QIcon(":/Icons/EFence.png"), tr("Any Role"), (qint32)EExecLogRole::eUndefined);
+	m_pCmbRole->addItem(QIcon(":/Icons/Export.png"), tr("Actor"), (qint32)EExecLogRole::eTarget);
+	m_pCmbRole->addItem(QIcon(":/Icons/Entry.png"), tr("Target"), (qint32)EExecLogRole::eActor);
 	m_pToolBar->addWidget(m_pCmbRole);
 
-	int comboBoxHeight = m_pCmbRole->sizeHint().height();
+	m_pCmbAction = new QComboBox();
+	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Status"), (qint32)EEventStatus::eUndefined);
+	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)EEventStatus::eAllowed);
+	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
+	m_pToolBar->addWidget(m_pCmbAction);
+
+	m_pToolBar->addSeparator();
+	m_pBtnExpand = new QToolButton();
+	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
+	m_pBtnExpand->setCheckable(true);
+	m_pBtnExpand->setToolTip(tr("Auto Expand"));
+	m_pBtnExpand->setMaximumHeight(22);
+	connect(m_pBtnExpand, &QToolButton::toggled, this, [&](bool checked) {
+		if(checked)
+			m_pTreeView->expandAll();
+		else
+			m_pTreeView->collapseAll();
+	});
+	m_pToolBar->addWidget(m_pBtnExpand);
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -43,7 +61,7 @@ CExecutionView::CExecutionView(QWidget *parent)
 
 	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
 	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
-	pBtnSearch->setMaximumHeight(comboBoxHeight);
+	pBtnSearch->setMaximumHeight(22);
 	m_pToolBar->addWidget(pBtnSearch);
 
 	AddPanelItemsToMenu();
@@ -56,13 +74,15 @@ CExecutionView::~CExecutionView()
 	theConf->SetBlob("MainWindow/ExecutionView_Columns", m_pTreeView->saveState());
 }
 
-void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, bool bAllPrograms)
+void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QFlexGuid& EnclaveGuid)
 {
 	qint32 FilterRole = m_pCmbRole->currentData().toInt();
+	qint32 FilterAction = m_pCmbAction->currentData().toInt();
 
-	if (m_CurPrograms != Programs || m_CurServices != Services || m_FilterRole != FilterRole || m_RecentLimit != theGUI->GetRecentLimit()) {
+	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_CurServices != Services || m_FilterRole != FilterRole || m_FilterAction != FilterAction || m_RecentLimit != theGUI->GetRecentLimit()) {
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
+		m_CurEnclaveGuid = EnclaveGuid;
 		m_RecentLimit = theGUI->GetRecentLimit();
 		m_ParentMap.clear();
 		m_ExecutionMap.clear();
@@ -72,6 +92,7 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
 	m_FilterRole = FilterRole;
+	m_FilterAction = FilterAction;
 
 	auto OldMap = m_ExecutionMap;
 
@@ -88,38 +109,49 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 		else
 			OldMap.remove(qMakePair((uint64)pProg1.get(), 0));
 
-		SExecutionItemPtr pSubItem = OldMap.take(qMakePair((uint64)pProg1.get(), (uint64)pProg2.get()));
+		quint64 SubID = Info.SubjectPID ? Info.SubjectPID : -1;
+		//SExecutionItemPtr pSubItem = OldMap.take(qMakePair((uint64)pProg1.get(), (uint64)pProg2.get()));
+		SExecutionItemPtr pSubItem = OldMap.take(qMakePair((uint64)pProg1.get(), SubID));
 		if (!pSubItem) {
 			pSubItem = SExecutionItemPtr(new SExecutionItem());
 			pSubItem->pProg2 = pProg2;
 			pSubItem->Parent = QString("%1_%2").arg((uint64)pProg1.get()).arg(0);
-			m_ExecutionMap.insert(qMakePair((uint64)pProg1.get(), (uint64)pProg2.get()), pSubItem);
+			//m_ExecutionMap.insert(qMakePair((uint64)pProg1.get(), (uint64)pProg2.get()), pSubItem);
+			m_ExecutionMap.insert(qMakePair((uint64)pProg1.get(), SubID), pSubItem);
 		}
 
 		pSubItem->Info = Info;
 	};
 
-	foreach(const CProgramFilePtr& pProgram, Programs) {
+	auto FilterEntry = [&](const CProgramFile::SExecutionInfo& Info) -> bool {
+		if (m_FilterRole && Info.Role != (EExecLogRole)m_FilterRole)
+			return false;
+		if (m_FilterAction != -1 && (uint32)(Info.bBlocked ? EEventStatus::eBlocked : EEventStatus::eAllowed) != m_FilterAction)
+			return false;
+		if (uRecentLimit && FILETIME2ms(Info.LastExecTime) < uRecentLimit)
+			return false;
+		if (!m_CurEnclaveGuid.IsNull() && Info.EnclaveGuid != m_CurEnclaveGuid)
+			return false;
+		return true;
+	};
+
+	foreach(const CProgramFilePtr & pProgram, Programs) {
 		QMap<quint64, CProgramFile::SExecutionInfo> Log = pProgram->GetExecStats();
 		for (auto I = Log.begin(); I != Log.end(); I++) {
-			if(m_FilterRole && I->eRole != m_FilterRole)
+			if (!FilterEntry(I.value()))
 				continue;
-			if (uRecentLimit && FILETIME2ms(I->LastExecTime) < uRecentLimit)
-				continue;
-			CProgramFilePtr pProgram2 = theCore->ProgramManager()->GetProgramByUID(I.value().ProgramUID).objectCast<CProgramFile>();
-			if(!pProgram2) continue;
+			CProgramFilePtr pProgram2 = theCore->ProgramManager()->GetProgramByUID(I.value().SubjectUID).objectCast<CProgramFile>();
+			if (!pProgram2) continue;
 			AddEntry(pProgram, pProgram2, I.value());
 		}
 	}
 	foreach(const CWindowsServicePtr& pService, Services) {
 		QMap<quint64, CProgramFile::SExecutionInfo> Log = pService->GetExecStats();
 		for (auto I = Log.begin(); I != Log.end(); I++) {
-			if(m_FilterRole && I->eRole != m_FilterRole)
+			if (!FilterEntry(I.value()))
 				continue;
-			if (uRecentLimit && FILETIME2ms(I->LastExecTime) < uRecentLimit)
-				continue;
-			CProgramFilePtr pProgram2 = theCore->ProgramManager()->GetProgramByUID(I.value().ProgramUID).objectCast<CProgramFile>();
-			if(!pProgram2) continue;
+			CProgramFilePtr pProgram2 = theCore->ProgramManager()->GetProgramByUID(I.value().SubjectUID).objectCast<CProgramFile>();
+			if (!pProgram2) continue;
 			AddEntry(pService->GetProgramFile(), pProgram2, I.value());
 		}
 	}
@@ -132,12 +164,12 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 
 	QList<QModelIndex> Added = m_pItemModel->Sync(m_ExecutionMap);
 
-	if (m_CurPrograms.count() == 1)
+	if (m_pBtnExpand->isChecked()) 
 	{
 		QTimer::singleShot(10, this, [this, Added]() {
 			foreach(const QModelIndex & Index, Added)
 				m_pTreeView->expand(m_pSortProxy->mapFromSource(Index));
-		});
+			});
 	}
 }
 

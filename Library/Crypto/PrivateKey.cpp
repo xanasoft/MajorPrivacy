@@ -99,7 +99,7 @@ NTSTATUS CPrivateKey::Sign(const CBuffer& Data, CBuffer& Signature) const
         return status; //ERR(status, L"Unable to get the signature size");
 
 	Signature.SetSize(0, true, signatureSize);
-	status = BCryptSignHash(m->KeyHandle, NULL, (PBYTE)Data.GetBuffer(), (ULONG)Data.GetSize(), Signature.GetBuffer(), Signature.GetCapacity(), &signatureSize, 0);
+	status = BCryptSignHash(m->KeyHandle, NULL, (PBYTE)Data.GetBuffer(), (ULONG)Data.GetSize(), Signature.GetBuffer(), (ULONG)Signature.GetCapacity(), &signatureSize, 0);
 	if (!NT_SUCCESS(status))
         return status; //ERR(status, L"Unable to sign the data");
     Signature.SetSize(signatureSize);

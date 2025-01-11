@@ -22,27 +22,31 @@ typedef long NTSTATUS;
 
 extern "C" {
 #include "../../Driver/KSI/include/kphmsg.h"
-#define FIX_EVENT(e) (e & 0xBFFFFFFF) // strip 0x40000000
+#define FIX_EVENT(e) ((uint32)e & 0xBFFFFFFF) // strip 0x40000000
 }
 
-uint32 RuleTypeToMsgType(ERuleType Type)
+uint32 ConfigGroupToMsgType(EConfigGroup Config)
 {
-	switch (Type)
+	switch (Config)
 	{
-    case ERuleType::eProgram: return KphMsgProgramRules;
-    case ERuleType::eAccess: return KphMsgAccessRules;
+	case EConfigGroup::eEnclaves:       return KphMsgSecureEnclave;
+    case EConfigGroup::eProgramRules:   return KphMsgProgramRules;
+    case EConfigGroup::eAccessRules:    return KphMsgAccessRules;
+	case EConfigGroup::eFirewallRules:  return KphMsgFirewallRules;
 	}
 	return 0;
 }
 
-ERuleType MsgTypeToRuleType(uint32 Type)
+EConfigGroup MsgTypeToConfigGroup(uint32 Type)
 {
 	switch (Type)
 	{
-	case KphMsgProgramRules: return ERuleType::eProgram;
-	case KphMsgAccessRules: return ERuleType::eAccess;
+	case KphMsgSecureEnclave:   return EConfigGroup::eEnclaves;
+	case KphMsgProgramRules:    return EConfigGroup::eProgramRules;
+	case KphMsgAccessRules:     return EConfigGroup::eAccessRules;
+	case KphMsgFirewallRules:   return EConfigGroup::eFirewallRules;
 	}
-	return ERuleType::eUnknown;
+	return EConfigGroup::eUndefined;
 }
 
 sint32 CDriverAPI__EmitProcess(CDriverAPI* This, const SProcessEvent* pEvent)
@@ -55,12 +59,30 @@ sint32 CDriverAPI__EmitProcess(CDriverAPI* This, const SProcessEvent* pEvent)
     return status;
 }
 
-void CDriverAPI__EmitRuleEvent(CDriverAPI* This, ERuleType Type, const std::wstring& Guid, ERuleEvent Event, uint64 PID)
+void SVerifierInfo::ReadFromEvent(const CVariant& Event)
+{
+    VerificationFlags = Event[API_V_SIGN_FLAGS].To<uint32>();
+    SignAuthority = (KPH_VERIFY_AUTHORITY)Event[API_V_IMG_SIGN_AUTH].To<uint32>();
+    SignLevel = Event[API_V_IMG_SIGN_LEVEL].To<uint32>();
+    SignPolicy = Event[API_V_IMG_SIGN_POLICY].To<uint32>();
+
+    FileHashAlgorithm = Event[API_V_FILE_HASH_ALG].To<uint32>(0);
+    if (FileHashAlgorithm)
+        FileHash = Event[API_V_FILE_HASH].AsBytes();
+
+    SignerHashAlgorithm = Event[API_V_IMG_CERT_ALG].To<uint32>(0);
+    if (SignerHashAlgorithm) {
+        SignerHash = Event[API_V_IMG_CERT_HASH].AsBytes();
+        SignerName = Event[API_V_IMG_SIGN_NAME].To<std::string>();
+    }
+}
+
+void CDriverAPI__EmitConfigEvent(CDriverAPI* This, EConfigGroup Config, const std::wstring& Guid, EConfigEvent Event, uint64 PID)
 {
     std::unique_lock<std::mutex> Lock(This->m_HandlersMutex);
 
     NTSTATUS status = STATUS_SUCCESS;
-    This->m_RuleEventHandlers[Type](Guid, Event, Type, PID);
+    This->m_ConfigEventHandlers[Config](Guid, Event, Config, PID);
 }
 
 extern "C" static VOID NTAPI CDriverAPI__Callback(
@@ -85,18 +107,22 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
             Event.ActorThreadId = vEvent[API_V_EVENT_ACTOR_TID].To<uint64>();
             uint32 ActorServiceTag = (uint32)vEvent.Get(API_V_EVENT_ACTOR_SVC).To<uint64>();
             if (ActorServiceTag) Event.ActorServiceTag = GetServiceNameFromTag((HANDLE)Event.ActorProcessId, ActorServiceTag);
-            Event.ProcessId = vEvent[API_V_EVENT_PID].To<uint64>();
+            Event.ProcessId = vEvent[API_V_EVENT_TARGET_PID].To<uint64>();
+            Event.EnclaveId = vEvent.Get(API_V_EVENT_TARGET_EID).AsStr();
             Event.TimeStamp = vEvent[API_V_EVENT_TIME_STAMP].To<uint64>();
-            Event.ParentId = vEvent[API_V_EVENT_PARENT_PID].To<uint64>();
-            Event.FileName = vEvent.Get(API_V_EVENT_PATH);
-            Event.CommandLine = vEvent.Get(API_V_EVENT_CMD);
-            Event.CreationStatus = vEvent.Get(API_V_EVENT_CS);
-            Event.Status = (EEventStatus)vEvent[API_V_EVENT_ACCESS_STATUS].To<uint32>();
+            Event.ParentId = vEvent[API_V_PARENT_PID].To<uint64>();
+            Event.FileName = vEvent.Get(API_V_FILE_NT_PATH);
+            Event.CommandLine = vEvent.Get(API_V_CMD_LINE);
+            
+            Event.VerifierInfo.ReadFromEvent(vEvent);
+
+            Event.CreationStatus = vEvent.Get(API_V_NT_STATUS);
+            Event.Status = (EEventStatus)vEvent[API_V_EVENT_STATUS].To<uint32>();
 
             NTSTATUS status = CDriverAPI__EmitProcess(This, &Event);
 
             /*CVariant vReply;
-            vReply[API_V_EVENT_CS] = (sint32)status;
+            vReply[API_V_NT_STATUS] = (sint32)status;
 
             CBuffer OutBuff;
 	        OutBuff.SetData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
@@ -115,52 +141,36 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
         {
             SProcessStopEvent Event;
             Event.Type = SProcessEvent::EType::ProcessStopped;
-            Event.ProcessId = vEvent[API_V_EVENT_PID];
+            Event.ProcessId = vEvent[API_V_EVENT_TARGET_PID];
+            Event.EnclaveId = vEvent.Get(API_V_EVENT_TARGET_EID).AsStr();
             Event.TimeStamp = vEvent[API_V_EVENT_TIME_STAMP].To<uint64>();
-            //vEvent[API_V_EVENT_TID];
             Event.ExitCode = vEvent[API_V_EVENT_ECODE];
 
             CDriverAPI__EmitProcess(This, &Event);
             break;
         }
+        
         case KphMsgImageLoad:
-        {
-            SProcessImageEvent Event;
-            Event.Type = SProcessEvent::EType::ImageLoad;
-            Event.ActorProcessId = vEvent[API_V_EVENT_ACTOR_PID].To<uint64>();
-            Event.ActorThreadId = vEvent[API_V_EVENT_ACTOR_TID].To<uint64>();
-            uint32 ActorServiceTag = (uint32)vEvent.Get(API_V_EVENT_ACTOR_SVC).To<uint64>();
-            if (ActorServiceTag) Event.ActorServiceTag = GetServiceNameFromTag((HANDLE)Event.ActorProcessId, ActorServiceTag);
-            Event.ProcessId = vEvent[API_V_EVENT_PID].To<uint64>();
-            Event.TimeStamp = vEvent[API_V_EVENT_TIME_STAMP].To<uint64>();
-            Event.FileName = vEvent[API_V_EVENT_PATH].AsStr();
-            Event.ImageProperties = vEvent[API_V_EVENT_IMG_PROPS].To<uint32>();
-            Event.ImageBase = vEvent[API_V_EVENT_IMG_BASE].To<uint64>();
-            Event.SignAuthority = (KPH_VERIFY_AUTHORITY)vEvent[API_V_EVENT_IMG_SIGN_AUTH].To<uint32>();
-            Event.SignLevel = vEvent[API_V_EVENT_IMG_SIGN_LEVEL].To<uint32>();
-            Event.SignPolicy = vEvent[API_V_EVENT_IMG_SIGN_POLICY].To<uint32>();
-            Event.ImageSelector = vEvent[API_V_EVENT_IMG_SEL].To<uint32>();
-            Event.ImageSectionNumber = vEvent[API_V_EVENT_IMG_SECT_NR].To<uint32>();
-
-            CDriverAPI__EmitProcess(This, &Event);
-            break;
-        }
         case KphMsgUntrustedImage:
         {
             SProcessImageEvent Event;
-            Event.Type = SProcessEvent::EType::UntrustedLoad;
+			Event.Type = (Message->Header.MessageId == KphMsgImageLoad) ? SProcessEvent::EType::ImageLoad : SProcessEvent::EType::UntrustedLoad;
             Event.ActorProcessId = vEvent[API_V_EVENT_ACTOR_PID].To<uint64>();
             Event.ActorThreadId = vEvent[API_V_EVENT_ACTOR_TID].To<uint64>();
             uint32 ActorServiceTag = (uint32)vEvent.Get(API_V_EVENT_ACTOR_SVC).To<uint64>();
             if (ActorServiceTag) Event.ActorServiceTag = GetServiceNameFromTag((HANDLE)Event.ActorProcessId, ActorServiceTag);
-            Event.ProcessId = vEvent[API_V_EVENT_PID].To<uint64>();
+            Event.ProcessId = vEvent[API_V_EVENT_TARGET_PID].To<uint64>();
+            Event.EnclaveId = vEvent.Get(API_V_EVENT_TARGET_EID).AsStr();
             Event.TimeStamp = vEvent[API_V_EVENT_TIME_STAMP].To<uint64>();
-            Event.bLoadPrevented = vEvent[API_V_EVENT_WAS_LP].To<bool>();
-            Event.FileName = vEvent[API_V_EVENT_PATH].AsStr();
+            if(Message->Header.MessageId == KphMsgUntrustedImage)
+                Event.bLoadPrevented = vEvent[API_V_WAS_BLOCKED].To<bool>();
+            Event.FileName = vEvent[API_V_FILE_NT_PATH].AsStr();
+            //Event.ImageProperties = vEvent[API_V_EVENT_IMG_PROPS].To<uint32>();
             Event.ImageBase = vEvent[API_V_EVENT_IMG_BASE].To<uint64>();
-            Event.SignAuthority = (KPH_VERIFY_AUTHORITY)vEvent[API_V_EVENT_IMG_SIGN_AUTH].To<uint32>();
-            Event.SignLevel = vEvent[API_V_EVENT_IMG_SIGN_LEVEL].To<uint32>();
-            Event.SignPolicy = vEvent[API_V_EVENT_IMG_SIGN_POLICY].To<uint32>();
+            //Event.ImageSelector = vEvent[API_V_EVENT_IMG_SEL].To<uint32>();
+            //Event.ImageSectionNumber = vEvent[API_V_EVENT_IMG_SECT_NR].To<uint32>();
+
+			Event.VerifierInfo.ReadFromEvent(vEvent);
 
             CDriverAPI__EmitProcess(This, &Event);
             break;
@@ -174,11 +184,12 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
             Event.ActorThreadId = vEvent[API_V_EVENT_ACTOR_TID].To<uint64>();
             uint32 ActorServiceTag = (uint32)vEvent.Get(API_V_EVENT_ACTOR_SVC).To<uint64>();
             if (ActorServiceTag) Event.ActorServiceTag = GetServiceNameFromTag((HANDLE)Event.ActorProcessId, ActorServiceTag);
-            Event.ProcessId = vEvent[API_V_EVENT_PID].To<uint64>();
+            Event.ProcessId = vEvent[API_V_EVENT_TARGET_PID].To<uint64>();
+            Event.EnclaveId = vEvent.Get(API_V_EVENT_TARGET_EID).AsStr();
             Event.TimeStamp = vEvent[API_V_EVENT_TIME_STAMP].To<uint64>();
-            //Event.bThread = !vEvent[API_V_EVENT_IS_P].To<bool>();
-            Event.AccessMask = vEvent[API_V_EVENT_ACCESS].To<uint32>();
-            Event.Status = (EEventStatus)vEvent[API_V_EVENT_ACCESS_STATUS].To<uint32>();
+            //Event.bThread = Message->Header.MessageId == KphMsgThreadAccess;
+            Event.AccessMask = vEvent[API_V_ACCESS_MASK].To<uint32>();
+            Event.Status = (EEventStatus)vEvent[API_V_EVENT_STATUS].To<uint32>();
 
             CDriverAPI__EmitProcess(This, &Event);
             break;
@@ -193,25 +204,26 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
             uint32 ActorServiceTag = (uint32)vEvent.Get(API_V_EVENT_ACTOR_SVC).To<uint64>();
             if (ActorServiceTag) Event.ActorServiceTag = GetServiceNameFromTag((HANDLE)Event.ActorProcessId, ActorServiceTag);
             Event.TimeStamp = vEvent[API_V_EVENT_TIME_STAMP].To<uint64>();
-            Event.Path = vEvent[API_V_EVENT_PATH].AsStr();
-            Event.AccessMask = vEvent[API_V_EVENT_ACCESS].To<uint32>();
-            Event.Status = (EEventStatus)vEvent[API_V_EVENT_ACCESS_STATUS].To<uint32>();
-            Event.NtStatus = vEvent[API_V_EVENT_STATUS].To<uint32>();            
-            Event.IsDirectory = vEvent[API_V_EVENT_IS_DIR].To<bool>();            
+            Event.Path = vEvent[API_V_FILE_NT_PATH].AsStr();
+            Event.AccessMask = vEvent[API_V_ACCESS_MASK].To<uint32>();
+            Event.Status = (EEventStatus)vEvent[API_V_EVENT_STATUS].To<uint32>();
+            Event.NtStatus = vEvent[API_V_NT_STATUS].To<uint32>();            
+            Event.IsDirectory = vEvent[API_V_IS_DIRECTORY].To<bool>();            
 
             CDriverAPI__EmitProcess(This, &Event);
             break;
         }
 
 
+        case KphMsgSecureEnclave:
         case KphMsgProgramRules:
         case KphMsgAccessRules:
 		{
-			ERuleType Type = MsgTypeToRuleType(Message->Header.MessageId);
-			std::wstring Guid = vEvent[API_V_RULE_GUID].AsStr();
-            ERuleEvent Event = (ERuleEvent)vEvent[API_V_EVENT].To<uint32>(); // todo move to api header
-            uint64 PID = vEvent[API_V_EVENT_PID].To<uint64>();
-			CDriverAPI__EmitRuleEvent(This, Type, Guid, Event, PID);
+            EConfigGroup Config = MsgTypeToConfigGroup(Message->Header.MessageId);
+			std::wstring Guid = vEvent[API_V_GUID].AsStr();
+            EConfigEvent Event = (EConfigEvent)vEvent[API_V_EVENT_TYPE].To<uint32>(); // todo move to api header
+            uint64 PID = vEvent[API_V_EVENT_ACTOR_PID].To<uint64>();
+			CDriverAPI__EmitConfigEvent(This, Config, Guid, Event, PID);
 			break;
 		}
 	}
@@ -307,7 +319,7 @@ RESULT(std::shared_ptr<std::vector<uint64>>) CDriverAPI::EnumProcesses()
         return Ret;
     
 	CVariant ResVar = Ret.GetValue();
-    CVariant vList = ResVar.Get(API_V_PROG_PROC_PIDS);
+    CVariant vList = ResVar.Get(API_V_PIDS);
 
     auto pids = std::make_shared<std::vector<uint64>>();
 
@@ -338,18 +350,18 @@ RESULT(SProcessInfoPtr) CDriverAPI::GetProcessInfo(uint64 pid)
     Info->ParentPid = ResVar[API_V_PARENT_PID].To<uint64>();
 
     //Info->FileHash = ResVar.Get('hash').AsBytes();
-    Info->EnclaveId = ResVar.Get(API_V_EID).To<uint64>(0);
+    Info->Enclave = ResVar.Get(API_V_ENCLAVE).AsStr();
     Info->SecState = ResVar[API_V_KPP_STATE].To<uint32>(0);
 
     Info->Flags = ResVar[API_V_FLAGS].To<uint32>(0);
     Info->SecFlags = ResVar[API_V_SFLAGS].To<uint32>(0);
 
-    Info->NumberOfImageLoads = ResVar[API_V_N_IMG].To<uint32>(0);
-    Info->NumberOfMicrosoftImageLoads = ResVar[API_V_N_MS_IMG].To<uint32>(0);
-    Info->NumberOfAntimalwareImageLoads = ResVar[API_V_N_AV_IMG].To<uint32>(0);
-    Info->NumberOfVerifiedImageLoads = ResVar[API_V_N_V_IMG].To<uint32>(0);
-    Info->NumberOfSignedImageLoads = ResVar[API_V_N_S_IMG].To<uint32>(0);
-    Info->NumberOfUntrustedImageLoads = ResVar[API_V_N_U_IMG].To<uint32>(0);
+    Info->NumberOfImageLoads = ResVar[API_V_NUM_IMG].To<uint32>(0);
+    Info->NumberOfMicrosoftImageLoads = ResVar[API_V_NUM_MS_IMG].To<uint32>(0);
+    Info->NumberOfAntimalwareImageLoads = ResVar[API_V_NUM_AV_IMG].To<uint32>(0);
+    Info->NumberOfVerifiedImageLoads = ResVar[API_V_NUM_V_IMG].To<uint32>(0);
+    Info->NumberOfSignedImageLoads = ResVar[API_V_NUM_S_IMG].To<uint32>(0);
+    Info->NumberOfUntrustedImageLoads = ResVar[API_V_NUM_U_IMG].To<uint32>(0);
 
 
     RETURN(Info);
@@ -373,54 +385,18 @@ RESULT(SHandleInfoPtr) CDriverAPI::GetHandleInfo(ULONG_PTR UniqueProcessId, ULON
     RETURN(Info);
 }
 
-RESULT(std::shared_ptr<std::vector<uint64>>) CDriverAPI::EnumEnclaves()
+STATUS CDriverAPI::PrepareEnclave(const CFlexGuid& EnclaveGuid)
 {
     CVariant ReqVar;
-    //ReqVar[API_V_ENUM_ALL] = 1;
-
-    auto Ret = m_pClient->Call(API_ENUM_ENCLAVES, ReqVar);
-    if (Ret.IsError())
-        return Ret;
-
-    CVariant ResVar = Ret.GetValue();
-    CVariant vList = ResVar.Get(API_V_EIDS);
-
-    auto pids = std::make_shared<std::vector<uint64>>();
-
-    pids->reserve(vList.Count());
-    for(uint32 i=0; i < vList.Count(); i++)
-        pids->push_back(vList.At(i));
-
-    RETURN(pids);
-}
-
-STATUS CDriverAPI::StartProcessInEnvlave(const std::wstring& path, uint64 EnclaveId)
-{
-    CVariant ReqVar;
-    ReqVar[API_V_EID] = EnclaveId;
-
-	auto Ret = m_pClient->Call(API_PREPARE_ENCLAVE, ReqVar);
-    if (Ret.IsError())
-        return Ret;
-
-	CVariant ResVar = Ret.GetValue();
-
-    EnclaveId = ResVar[API_V_EID];
-
-    STARTUPINFOW si = { 0 };
-    si.cb = sizeof(si);
-
-    PROCESS_INFORMATION pi = { 0 };
-    CreateProcessW(NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
-    
-    return OK;
+    ReqVar[API_V_GUID] = EnclaveGuid.ToVariant(true);
+	return m_pClient->Call(API_PREP_ENCLAVE, ReqVar);
 }
 
 STATUS CDriverAPI::SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, bool bLock)
 {
     CVariant ReqVar;
 	ReqVar[API_V_PUB_KEY] = PubKey;
-	ReqVar[API_V_PRIV_KEY_BLOB] = EncryptedBlob;
+	ReqVar[API_V_KEY_BLOB] = EncryptedBlob;
     ReqVar[API_V_LOCK] = bLock;
 
 	return m_pClient->Call(API_SET_USER_KEY, ReqVar);
@@ -438,17 +414,72 @@ RESULT(SUserKeyInfoPtr) CDriverAPI::GetUserKey()
 
     SUserKeyInfoPtr Info = SUserKeyInfoPtr(new SUserKeyInfo());
     Info->PubKey = ResVar[API_V_PUB_KEY];
-    Info->EncryptedBlob = ResVar[API_V_PRIV_KEY_BLOB];
+    Info->EncryptedBlob = ResVar[API_V_KEY_BLOB];
     Info->bLocked = ResVar.Get(API_V_LOCK).To<bool>(false);
+
     RETURN(Info);
 }
 
-STATUS CDriverAPI::ClearUserKey(const CBuffer& Signature)
+STATUS CDriverAPI::ClearUserKey(const CBuffer& ChallengeResponse)
 {
     CVariant ReqVar;
-    ReqVar[API_V_SIGNATURE] = Signature;
+    ReqVar[API_V_SIGNATURE] = ChallengeResponse;
 
     return m_pClient->Call(API_CLEAR_USER_KEY, ReqVar);
+}
+
+STATUS CDriverAPI::ProtectConfig(const CBuffer& ConfigSignature, bool bHardLock)
+{
+	CVariant ReqVar;
+    ReqVar[API_V_SIGNATURE] = ConfigSignature;
+	ReqVar[API_V_LOCK] = bHardLock;
+
+	return m_pClient->Call(API_PROTECT_CONFIG, ReqVar);
+}
+
+STATUS CDriverAPI::UnprotectConfig(const CBuffer& ChallengeResponse)
+{
+	CVariant ReqVar;
+	ReqVar[API_V_SIGNATURE] = ChallengeResponse;
+
+	return m_pClient->Call(API_UNPROTECT_CONFIG, ReqVar);
+}
+
+uint32 CDriverAPI::GetConfigStatus()
+{
+    CVariant ReqVar;
+
+    auto Ret = m_pClient->Call(API_GET_CONFIG_STATUS, ReqVar);
+    if (Ret.IsError())
+        return false;
+
+    CVariant ResVar = Ret.GetValue();
+
+    return ResVar.To<uint32>();
+}
+
+STATUS CDriverAPI::UnlockConfig(const CBuffer& ChallengeResponse)
+{
+    CVariant ReqVar;
+    ReqVar[API_V_SIGNATURE] = ChallengeResponse;
+
+    return m_pClient->Call(API_UNLOCK_CONFIG, ReqVar);
+}
+
+STATUS CDriverAPI::CommitConfigChanges(const CBuffer& ConfigSignature)
+{
+	CVariant ReqVar;
+    if(ConfigSignature.GetSize() > 0)
+	    ReqVar[API_V_SIGNATURE] = ConfigSignature;
+
+	return m_pClient->Call(API_COMMIT_CONFIG, ReqVar);
+}
+
+STATUS CDriverAPI::DiscardConfigChanges()
+{
+	CVariant ReqVar;
+
+	return m_pClient->Call(API_DISCARD_CHANGES, ReqVar);
 }
 
 STATUS CDriverAPI::GetChallenge(CBuffer& Challenge)
@@ -462,6 +493,24 @@ STATUS CDriverAPI::GetChallenge(CBuffer& Challenge)
     CVariant ResVar = Ret.GetValue();
 
     Challenge = ResVar[API_V_RAND];
+
+    return OK;
+}
+
+STATUS CDriverAPI::GetConfigHash(CBuffer& ConfigHash, const CVariant& Data)
+{
+    CVariant ReqVar;
+	//ReqVar[API_V_GET_DATA] = true; // request the config blob to be returned
+    if(Data.IsValid())
+        ReqVar[API_V_DATA] = Data;
+
+    auto Ret = m_pClient->Call(API_GET_CONFIG_HASH, ReqVar);
+    if (Ret.IsError())
+        return Ret;
+
+    CVariant ResVar = Ret.GetValue();
+
+    ConfigHash = ResVar[API_V_HASH];
 
     return OK;
 }
@@ -499,20 +548,20 @@ void CDriverAPI::RegisterProcessHandler(const std::function<sint32(const SProces
 	m_ProcessHandlers.push_back(Handler); 
 }
 
-STATUS CDriverAPI::RegisterForRuleEvents(ERuleType Type, bool bRegister)
+STATUS CDriverAPI::RegisterForConfigEvents(EConfigGroup Config, bool bRegister)
 {
     CVariant ReqVar;
     if(bRegister)
-        ReqVar[API_V_SET_NOTIFY_BITMASK] = FIX_EVENT(RuleTypeToMsgType(Type));
+        ReqVar[API_V_SET_NOTIFY_BITMASK] = FIX_EVENT(ConfigGroupToMsgType(Config));
     else
-        ReqVar[API_V_CLEAR_NOTIFY_BITMASK] = FIX_EVENT(RuleTypeToMsgType(Type));
+        ReqVar[API_V_CLEAR_NOTIFY_BITMASK] = FIX_EVENT(ConfigGroupToMsgType(Config));
     return m_pClient->Call(API_REGISTER_FOR_EVENT, ReqVar);
 }
 
-void CDriverAPI::RegisterRuleEventHandler(ERuleType Type, const std::function<void(const std::wstring& Guid, ERuleEvent Event, ERuleType Type, uint64 PID)>& Handler)
+void CDriverAPI::RegisterConfigEventHandler(EConfigGroup Config, const std::function<void(const std::wstring& Guid, EConfigEvent Event, EConfigGroup Config, uint64 PID)>& Handler)
 {
     std::unique_lock<std::mutex> Lock(m_HandlersMutex);
-    m_RuleEventHandlers[Type] = Handler;
+    m_ConfigEventHandlers[Config] = Handler;
 }
 
 uint32 CDriverAPI::GetABIVersion()
@@ -522,9 +571,4 @@ uint32 CDriverAPI::GetABIVersion()
     CVariant Response = Ret.GetValue();
     uint32 version = Response.Get(API_V_VERSION).To<uint32>();
     return version;
-}
-
-void CDriverAPI::TestDrv()
-{
-
 }

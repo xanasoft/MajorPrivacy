@@ -6,6 +6,6 @@
 #include "../Library/API/PrivacyAPI.h"
 
 CAppInstallation::CAppInstallation(QObject* parent)
-	: CProgramPattern(parent)
+	: CProgramList(parent)
 {
 }

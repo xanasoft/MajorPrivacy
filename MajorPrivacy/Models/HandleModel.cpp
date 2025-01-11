@@ -22,7 +22,10 @@ CHandleModel::~CHandleModel()
 
 QList<QModelIndex>	CHandleModel::Sync(const QList<CHandlePtr>& HandleList)
 {
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	foreach(const CHandlePtr& pHandle, HandleList)
@@ -72,8 +75,8 @@ QList<QModelIndex>	CHandleModel::Sync(const QList<CHandlePtr>& HandleList)
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pNode->pHandle->GetPath(EPathType::eDisplay); break;
-			case eProgram:			Value = pNode->pProcess ? pNode->pProcess->GetPath(EPathType::eDisplay) : tr("PROCESS MISSING"); break;
+			case eName:				Value = pNode->pHandle->GetNtPath(); break;
+			case eProgram:			Value = pNode->pProcess ? pNode->pProcess->GetNtPath() : tr("PROCESS MISSING"); break;
 			}
 
 			SHandleNode::SValue& ColValue = pNode->Values[section];
@@ -86,7 +89,8 @@ QList<QModelIndex>	CHandleModel::Sync(const QList<CHandlePtr>& HandleList)
 
 				switch (section)
 				{
-				
+				case eName:			ColValue.Formatted = theCore->NormalizePath(pNode->pHandle->GetNtPath()); break;
+				case eProgram:		ColValue.Formatted = pNode->pProcess ? theCore->NormalizePath(pNode->pProcess->GetNtPath()) : tr("PROCESS MISSING"); break;
 				}
 			}
 

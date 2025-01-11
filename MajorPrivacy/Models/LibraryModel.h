@@ -38,10 +38,11 @@ public:
 	enum EColumns
 	{
 		eName = 0,
-		eLastLoadTime,
-		eSignAuthority,
+		eTrustLevel,
 		eStatus,
+		eLastLoadTime,
 		eNumber,
+		eSigner,
 		eModule,
 		eCount
 	};
@@ -52,7 +53,11 @@ protected:
 		SLibraryNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		SLibraryItemPtr pItem;
+		bool IsSignedFile = false;
+		bool IsSignedCert = false;
 	};
+
+	virtual QVariant	NodeData(STreeNode* pNode, int role, int section) const;
 
 	virtual STreeNode*	MkNode(const QVariant& Id) { return new SLibraryNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);

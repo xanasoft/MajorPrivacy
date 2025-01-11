@@ -4,6 +4,50 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
+## [0.97.0] - 2025-01-??
+
+### Added
+- added option to add folders to the Secure Volumes view for easier handling of folder security
+- added option to rename Secure Volumes / Protected Folders
+- added progress dialog when loading larger data sets from the agent
+- added temporary rules
+- added options to disable trace/access logging
+- added options to configure trace/access log limits
+- added tweak info panel
+- added centralized signature DB folder (C:\ProgramData\Xanasoft\MajorPrivacy\sig_db\) [#21](https://github.com/xanasoft/MajorPrivacy/issues/21)
+  - this allows to create user signatures without modifying fodlers of 3rd party applications
+  - Mote: a *.mpsig file in the application folder will still take precedence
+- added ability to sign a certificate instead of a file
+- added auto name generation to rule creation dialog
+- addded process audit rule, keeps an eye on the process as if it would be protected but without any protection
+- files can now be signed from the library view
+- explorer file propertie dialog can now be opened from the library/module view
+- added icons to main panel tabs
+- added program picker to rule creation dialogs
+- added UserKey Signature based config protection [#28](https://github.com/xanasoft/MajorPrivacy/issues/28)
+- added ZwLockRegistryKey based UserKey protection
+  - Note: when engaged the driver can not be uninstalled untill after reboot
+- added dedicated enclave configuration
+- added a process view based side panel to the enclave view
+- added icons to the enclave view
+- added context menu to the enclave view
+- added color coding to trace, rule, and otehr views
+- made access mask columns human readable
+- added signature db viewer
+
+### Changed
+- reworked internal path handling, this changes the file versions hance *.dat files from previosue builds will be discarded
+- renamed *.sig files to *.mpsig and enachanced the format to make it future proof, old files wont be loaded anymore
+- Streamlined the APIs
+
+### Fixed
+- fixed issue saving rules by the driver
+- fixed issues with soem tweaks
+
+
+
+
 ## [0.96.2] - 2024-12-01
 
 ### Added

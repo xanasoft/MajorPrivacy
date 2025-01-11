@@ -45,6 +45,12 @@ public:
 	__inline sint32 GetStatus() const	{ return m ? m->Status : 0; }
 	__inline const wchar_t* GetMessageText() const	{ return m ? m->Message.c_str() : NULL; }
 
+	void SetMessageText(const std::wstring& Message)
+	{
+		if (m != NULL)
+			m->Message = Message;
+	}
+
 	operator bool() const				{return !IsError();}
 
 protected:

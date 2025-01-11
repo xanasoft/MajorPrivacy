@@ -53,9 +53,9 @@ protected:
 	void			Set(const byte* IP);
 	byte			m_IP[16];
 	EAF				m_eAF;
-#ifdef _DEBUG
-	std::string		m_Str;
-#endif
+//#ifdef _DEBUG
+//	std::string		m_Str;
+//#endif
 };
 
 LIBRARY_EXPORT bool IsLanIPv4(uint32 IPv4);

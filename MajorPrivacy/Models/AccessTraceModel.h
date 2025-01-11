@@ -28,9 +28,10 @@ public:
 	enum EColumns
 	{
 		eName = 0,
+		eOperation,
 		ePath,
-		eAccess,
 		eStatus,
+		eEnclave,
 		eTimeStamp,
 		eProgram,
 		eCount

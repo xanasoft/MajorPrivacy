@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ExecLogEntry.h"
 #include "../Library/API/PrivacyAPI.h"
+#include "../../Windows/AccessRuleWnd.h"
 
 CExecLogEntry::CExecLogEntry()
 {
@@ -8,61 +9,82 @@ CExecLogEntry::CExecLogEntry()
 
 QString CExecLogEntry::GetRoleStr() const
 {
-	switch (m_Role)
+	return GetRoleStr(m_Role);
+}
+
+QString CExecLogEntry::GetRoleStr(EExecLogRole Role)
+{
+	switch (Role)
 	{
-	case EExecLogRole::eBooth: return QObject::tr("Booth");
-	case EExecLogRole::eActor: return QObject::tr("Actor");
-	case EExecLogRole::eTarget: return QObject::tr("Target");
+	case EExecLogRole::eBooth:				return QObject::tr("Booth");
+	case EExecLogRole::eActor:				return QObject::tr("Actor");
+	case EExecLogRole::eTarget:				return QObject::tr("Target");
+	default: return QObject::tr("Unknown");
+	}
+}
+
+QString CExecLogEntry::GetTypeStr(EExecLogType Type)
+{
+	switch (Type)
+	{
+	case EExecLogType::eProcessStarted:		return QObject::tr("Process Started");
+	case EExecLogType::eImageLoad:			return QObject::tr("Image Loaded");
+	case EExecLogType::eThreadAccess:		return QObject::tr("Thread Access");
+	case EExecLogType::eProcessAccess:		return QObject::tr("Process Access");
 	default: return QObject::tr("Unknown");
 	}
 }
 
 QString CExecLogEntry::GetTypeStr() const
 {
-	QString Type;
 	switch (m_Type)
 	{
-	case EExecLogType::eProcessStarted:		Type = QObject::tr("Process Started"); break;
-	case EExecLogType::eImageLoad:			Type = QObject::tr("Image Load"); break;
-	case EExecLogType::eThreadAccess:		Type = QObject::tr("Thread Access"); break;
-	case EExecLogType::eProcessAccess:		Type = QObject::tr("Process Access"); break;
-	default: Type = QObject::tr("Unknown");
+	case EExecLogType::eProcessStarted:		return QObject::tr("Process Started");
+	case EExecLogType::eImageLoad:			return QObject::tr("Image Loaded");
+	case EExecLogType::eProcessAccess:		return GetAccessStr(m_AccessMask, 0);
+	case EExecLogType::eThreadAccess:		return GetAccessStr(0, m_AccessMask);
+	default: return QObject::tr("Unknown");
 	}
+}
 
+QString CExecLogEntry::GetTypeStrEx() const
+{
+	QString Type = GetTypeStr(m_Type);
 	if (m_Type == EExecLogType::eProcessAccess)
-	{
-		return Type + QString(" (%1)").arg(GetProcessPermissions(m_AccessMask).join(", "));
-	}
-	else if(m_Type == EExecLogType::eThreadAccess)
-	{
-		return Type + QObject::tr(" (%1)").arg(GetThreadPermissions(m_AccessMask).join(", "));
-	}
+		return Type + QString(" (%1)").arg(GetAccessStrEx(m_AccessMask, 0));
+	if (m_Type == EExecLogType::eThreadAccess)
+		return Type + QString(" (%1)").arg(GetAccessStrEx(0, m_AccessMask));
 	return Type;
+}
+
+QColor CExecLogEntry::GetTypeColor() const
+{
+	switch (m_Type)
+	{
+	case EExecLogType::eProcessStarted:		return QColor(192, 255, 192);
+	case EExecLogType::eImageLoad:			return QColor(255, 255, 192);
+	case EExecLogType::eProcessAccess:		return GetAccessColor(m_AccessMask, 0);
+	case EExecLogType::eThreadAccess:		return GetAccessColor(0, m_AccessMask);
+	default: return QColor();
+	}
 }
 
 QString CExecLogEntry::GetStatusStr() const
 {
-	switch (m_Status) 
-	{
-	case EEventStatus::eAllowed:	return QObject::tr("Allowed");
-	case EEventStatus::eUntrusted:	return QObject::tr("Allowed (Untrusted)");
-	case EEventStatus::eEjected:	return QObject::tr("Allowed (Ejected)");
-	case EEventStatus::eProtected:
-	case EEventStatus::eBlocked:	return QObject::tr("Blocked");
-	default: return QObject::tr("Unknown");
-	}
+	return CAccessRuleWnd::GetStatusStr(m_Status);
 }
 
 void CExecLogEntry::ReadValue(uint32 Index, const XVariant& Data)
 {
 	switch (Index)
 	{
-	case API_V_PROC_EVENT_ROLE:			m_Role = (EExecLogRole)Data.To<uint32>(); break;
-	case API_V_PROC_EVENT_TYPE:			m_Type = (EExecLogType)Data.To<uint32>(); break;
-	case API_V_PROC_EVENT_STATUS:		m_Status = (EEventStatus)Data.To<uint32>(); break;
-	case API_V_PROC_EVENT_MISC:			m_MiscID = Data.To<uint64>(); break;
-	case API_V_PROC_EVENT_ACCESS_MASK:	m_AccessMask = Data.To<uint32>(); break;
-	case API_V_EVENT_STATUS:		    m_NtStatus = Data.To<uint32>(); break;
+	case API_V_EVENT_ROLE:				m_Role = (EExecLogRole)Data.To<uint32>(); break;
+	case API_V_EVENT_TYPE:				m_Type = (EExecLogType)Data.To<uint32>(); break;
+	case API_V_EVENT_STATUS:			m_Status = (EEventStatus)Data.To<uint32>(); break;
+	case API_V_PROC_MISC_ID:			m_MiscID = Data.To<uint64>(); break;
+	case API_V_PROC_MISC_ENCLAVE:		m_OtherEnclave.FromVariant(Data); break;
+	case API_V_ACCESS_MASK:				m_AccessMask = Data.To<uint32>(); break;
+	case API_V_NT_STATUS:				m_NtStatus = Data.To<uint32>(); break;
 	default: CAbstractLogEntry::ReadValue(Index, Data);
 	}
 }
@@ -128,4 +150,125 @@ QStringList CExecLogEntry::GetThreadPermissions(quint32 uAccessMask)
 		permissions << ("T:0x" + QString::number(uAccessMask, 16));
 
 	return permissions;
+}
+
+enum class EProcAccessClass
+{
+	eNone = 0,
+	eReadProperties,
+	eWriteProperties,
+	eSpecial,
+	eReadMemory,
+	eWriteMemory,
+	eChangePermissions,
+	eControlExecution,
+};
+
+EProcAccessClass CResLogEntry__ClassifyProcessAccess(quint32 uAccessMask)
+{
+	if((uAccessMask & PROCESS_ALL_ACCESS) == PROCESS_ALL_ACCESS
+	|| (uAccessMask & PROCESS_DUP_HANDLE) == PROCESS_DUP_HANDLE
+	|| (uAccessMask & PROCESS_VM_OPERATION) == PROCESS_VM_OPERATION // Allocate/Free virtual memory
+	|| (uAccessMask & PROCESS_VM_WRITE) == PROCESS_VM_WRITE
+	|| (uAccessMask & PROCESS_CREATE_THREAD) == PROCESS_CREATE_THREAD) // Required to create a thread in the process
+		return EProcAccessClass::eControlExecution;
+
+	if((uAccessMask & WRITE_DAC) == WRITE_DAC
+	|| (uAccessMask & WRITE_OWNER) == WRITE_OWNER)
+		return EProcAccessClass::eChangePermissions;
+
+	if((uAccessMask & PROCESS_VM_READ) == PROCESS_VM_READ)
+		return EProcAccessClass::eReadMemory;
+
+	if((uAccessMask & PROCESS_CREATE_PROCESS) == PROCESS_CREATE_PROCESS // Required to use this process as the parent process with
+	|| (uAccessMask & PROCESS_SUSPEND_RESUME) == PROCESS_SUSPEND_RESUME
+	|| (uAccessMask & PROCESS_TERMINATE) == PROCESS_TERMINATE)
+		return EProcAccessClass::eSpecial;
+	
+	if((uAccessMask & PROCESS_SET_INFORMATION) == PROCESS_SET_INFORMATION
+	|| (uAccessMask & PROCESS_SET_LIMITED_INFORMATION) == PROCESS_SET_LIMITED_INFORMATION
+	|| (uAccessMask & PROCESS_SET_QUOTA) == PROCESS_SET_QUOTA)
+		return EProcAccessClass::eWriteProperties;
+
+	if((uAccessMask & PROCESS_QUERY_INFORMATION) == PROCESS_QUERY_INFORMATION
+	|| (uAccessMask & PROCESS_QUERY_LIMITED_INFORMATION) == PROCESS_QUERY_LIMITED_INFORMATION)
+	// (uAccessMask & SYNCHRONIZE) == SYNCHRONIZE
+		return EProcAccessClass::eReadProperties;
+
+	return EProcAccessClass::eNone;
+}
+
+EProcAccessClass CResLogEntry__ClassifyThreadAccess(quint32 uAccessMask)
+{
+	if((uAccessMask & THREAD_ALL_ACCESS) == THREAD_ALL_ACCESS
+	|| (uAccessMask & THREAD_SET_CONTEXT) == THREAD_SET_CONTEXT)
+		return EProcAccessClass::eControlExecution;
+
+	if((uAccessMask & WRITE_DAC) == WRITE_DAC
+	|| (uAccessMask & WRITE_OWNER) == WRITE_OWNER)
+		return EProcAccessClass::eChangePermissions;
+
+	if((uAccessMask & THREAD_SUSPEND_RESUME) == THREAD_SUSPEND_RESUME
+	|| (uAccessMask & THREAD_RESUME) == THREAD_RESUME
+	|| (uAccessMask & THREAD_TERMINATE) == THREAD_TERMINATE
+	|| (uAccessMask & THREAD_DIRECT_IMPERSONATION) == THREAD_DIRECT_IMPERSONATION
+	|| (uAccessMask & THREAD_IMPERSONATE) == THREAD_IMPERSONATE
+	|| (uAccessMask & THREAD_SET_THREAD_TOKEN) == THREAD_SET_THREAD_TOKEN)
+		return EProcAccessClass::eSpecial;
+
+	if((uAccessMask & THREAD_SET_INFORMATION) == THREAD_SET_INFORMATION
+	|| (uAccessMask & THREAD_SET_LIMITED_INFORMATION) == THREAD_SET_LIMITED_INFORMATION)
+		return EProcAccessClass::eWriteProperties;
+
+	if((uAccessMask & THREAD_QUERY_INFORMATION) == THREAD_QUERY_INFORMATION
+	|| (uAccessMask & THREAD_QUERY_LIMITED_INFORMATION) == THREAD_QUERY_LIMITED_INFORMATION
+	|| (uAccessMask & THREAD_GET_CONTEXT) == THREAD_GET_CONTEXT)
+	// (uAccessMask & SYNCHRONIZE) == SYNCHRONIZE
+		return EProcAccessClass::eReadProperties;
+
+	return EProcAccessClass::eNone;
+}
+
+QColor CExecLogEntry::GetAccessColor(quint32 uProcessAccessMask, quint32 uThreadAccessMask)
+{
+	EProcAccessClass ProcessClass = CResLogEntry__ClassifyProcessAccess(uProcessAccessMask);
+	EProcAccessClass ThreadClass = CResLogEntry__ClassifyThreadAccess(uThreadAccessMask);
+
+	switch ((EProcAccessClass)std::max((int)ProcessClass, (int)ThreadClass))
+	{
+	case EProcAccessClass::eControlExecution:
+	case EProcAccessClass::eChangePermissions:
+	case EProcAccessClass::eWriteMemory:		return QColor(255, 192, 192);
+	case EProcAccessClass::eReadMemory:			return QColor(144, 238, 144);
+	case EProcAccessClass::eSpecial:			return QColor(255, 182, 193);
+	case EProcAccessClass::eWriteProperties:	return QColor(255, 223, 128);
+	case EProcAccessClass::eReadProperties:		return QColor(173, 216, 230);
+	default: return QColor();
+	}
+}
+
+QString CExecLogEntry::GetAccessStr(quint32 uProcessAccessMask, quint32 uThreadAccessMask)
+{
+	EProcAccessClass ProcessClass = CResLogEntry__ClassifyProcessAccess(uProcessAccessMask);
+	EProcAccessClass ThreadClass = CResLogEntry__ClassifyThreadAccess(uThreadAccessMask);
+
+	switch ((EProcAccessClass)std::max((int)ProcessClass, (int)ThreadClass))
+	{
+	case EProcAccessClass::eControlExecution:	return QObject::tr("Control Execution");
+	case EProcAccessClass::eChangePermissions:	return QObject::tr("Change Permissions");
+	case EProcAccessClass::eWriteMemory:		return QObject::tr("Write Memory");
+	case EProcAccessClass::eReadMemory:			return QObject::tr("Read Memory");
+	case EProcAccessClass::eSpecial:			return QObject::tr("Special Permissions");
+	case EProcAccessClass::eWriteProperties:	return QObject::tr("Write Properties");
+	case EProcAccessClass::eReadProperties:		return QObject::tr("Read Properties");
+	default: return "";
+	}
+}
+
+QString CExecLogEntry::GetAccessStrEx(quint32 uProcessAccessMask, quint32 uThreadAccessMask)
+{
+	QStringList Permissions;
+	Permissions += GetProcessPermissions(uProcessAccessMask);
+	Permissions += GetThreadPermissions(uThreadAccessMask);
+	return Permissions.join(", ");
 }

@@ -3,6 +3,7 @@
 #include "../../MiscHelpers/Common/TreeViewEx.h"
 
 class CTweakView;
+class CTweakInfo;
 
 class CTweakPage : public QWidget
 {
@@ -12,13 +13,17 @@ public:
 
 	void	Update();
 
+private slots:
+	void	OnCurrentChanged();
+
 private:
 
 	QVBoxLayout*			m_pMainLayout;
 
 	//QToolBar*				m_pToolBar;
 
-	QSplitter*				m_pVSplitter;
+	QSplitter*				m_pHSplitter;
 	CTweakView*				m_pTweakView;
+	CTweakInfo*				m_pTweakInfo;
 };
 

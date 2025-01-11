@@ -41,6 +41,12 @@
       </item>
       <item row="1" column="1">
        <widget class="QComboBox" name="cmbGroup">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="editable">
          <bool>true</bool>
         </property>
@@ -103,6 +109,19 @@
       <string>Program</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_7">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Service Tag</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_2">
         <property name="sizePolicy">
@@ -113,19 +132,6 @@
         </property>
         <property name="text">
          <string>Program</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_8">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>App Package</string>
         </property>
        </widget>
       </item>
@@ -142,8 +148,8 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_7">
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_8">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
           <horstretch>0</horstretch>
@@ -151,14 +157,28 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>Service Tag</string>
+         <string>App Package</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QComboBox" name="cmbProgram"/>
+       <widget class="QComboBox" name="cmbProgram">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
       </item>
-      <item row="1" column="1">
+      <item row="0" column="2">
+       <widget class="QToolButton" name="btnProg">
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1" colspan="2">
        <widget class="QLineEdit" name="txtPath">
         <property name="enabled">
          <bool>true</bool>
@@ -174,7 +194,7 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="2" column="1" colspan="2">
        <widget class="QLineEdit" name="txtService">
         <property name="enabled">
          <bool>true</bool>
@@ -190,7 +210,7 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="3" column="1" colspan="2">
        <widget class="QLineEdit" name="txtApp">
         <property name="enabled">
          <bool>true</bool>
@@ -554,9 +574,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="radNICs"/>
-  <buttongroup name="radLocalIP"/>
-  <buttongroup name="radRemoteIP"/>
   <buttongroup name="radProfiles"/>
+  <buttongroup name="radLocalIP"/>
+  <buttongroup name="radNICs"/>
+  <buttongroup name="radRemoteIP"/>
  </buttongroups>
 </ui>

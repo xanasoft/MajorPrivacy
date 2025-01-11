@@ -73,7 +73,10 @@ bool CSimpleTreeModel::TestPath(const QList<QVariant>& Path, const QVariantMap& 
 
 void CSimpleTreeModel::Sync(const QMap<QVariant, QVariantMap>& List)
 {
+#pragma warning(push)
+#pragma warning(disable : 4996)
 	QMap<QList<QVariant>, QList<STreeNode*> > New;
+#pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	foreach (const QVariantMap& Cur, List)
@@ -420,15 +423,19 @@ QVariant CTreeItemModel::NodeData(STreeNode* pNode, int role, int section) const
 		}
 		case Qt::ToolTipRole:
 		{
+			STreeNode::SValue& value = pNode->Values[section];
+			if (value.ToolTip.isValid())
+				return value.ToolTip;
+
 			QString ToolTip;
 			emit ToolTipCallback(pNode->ID, ToolTip);
 			if(!ToolTip.isNull())
 				return ToolTip;
 #ifdef _DEBUG
-			if (pNode->Values[section].Raw.type() == QVariant::Int || pNode->Values[section].Raw.type() == QVariant::UInt 
-				|| pNode->Values[section].Raw.type() == QVariant::LongLong || pNode->Values[section].Raw.type() == QVariant::ULongLong)
-				return "0x" + QString::number(pNode->Values[section].Raw.toULongLong(), 16);
-			return pNode->Values[section].Raw;
+			if (value.Raw.type() == QVariant::Int || value.Raw.type() == QVariant::UInt 
+				|| value.Raw.type() == QVariant::LongLong || value.Raw.type() == QVariant::ULongLong)
+				return "0x" + QString::number(value.Raw.toULongLong(), 16);
+			return value.Raw;
 #endif
 			break;
 		}
@@ -453,8 +460,10 @@ QVariant CTreeItemModel::NodeData(STreeNode* pNode, int role, int section) const
 		}
 		case Qt::BackgroundRole:
 		{
-			if(!m_DarkMode)
-				return pNode->Color.isValid() ? pNode->Color : QVariant();
+			if (!m_DarkMode) {
+				STreeNode::SValue& Value = pNode->Values[section];
+				return Value.Color.isValid() ? Value.Color : QVariant();
+			}
 			break;
 		}
 		case Qt::ForegroundRole:
@@ -463,8 +472,10 @@ QVariant CTreeItemModel::NodeData(STreeNode* pNode, int role, int section) const
 				QColor Color = Qt::darkGray;
 				return QBrush(Color);
 			}
-			if(m_DarkMode)
-				return pNode->Color.isValid() ? pNode->Color : QVariant();
+			if (m_DarkMode) {
+				STreeNode::SValue& Value = pNode->Values[section];
+				return Value.Color.isValid() ? Value.Color : QVariant();
+			}
 			break;
 		}
 		case Qt::CheckStateRole:

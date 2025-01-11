@@ -104,6 +104,15 @@
     <Filter Include="Core\Access">
       <UniqueIdentifier>{348660f7-6e93-4382-9e57-838a3f6fa94c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Enclave">
+      <UniqueIdentifier>{99bdf09f-f32f-4c15-9b71-2d0b525c2a7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Views\Enclaves">
+      <UniqueIdentifier>{0a3f85e8-a374-4ed6-b4d5-1c5e4125687a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Models\Enclaves">
+      <UniqueIdentifier>{43f85f2d-72bb-435a-a630-7606ff630b82}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -176,9 +185,6 @@
       <Filter>Core\Network</Filter>
     </ClCompile>
     <ClCompile Include="Core\TraceLogEntry.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\TraceLogUtils.cpp">
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="Pages\VolumePage.cpp">
@@ -379,26 +385,11 @@
     <ClCompile Include="Models\HandleModel.cpp">
       <Filter>Models\Access</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Processes\Enclave.cpp">
-      <Filter>Core\Processes</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Processes\EnclaveList.cpp">
-      <Filter>Core\Processes</Filter>
-    </ClCompile>
-    <ClCompile Include="Models\EnclaveModel.cpp">
-      <Filter>Models\Program</Filter>
-    </ClCompile>
-    <ClCompile Include="Views\EnclaveView.cpp">
-      <Filter>Views\Program</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\ProgramWnd.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
     <ClCompile Include="Views\InfoView.cpp">
       <Filter>Views\Program</Filter>
-    </ClCompile>
-    <ClCompile Include="Helpers\FilePath.cpp">
-      <Filter>Helpers</Filter>
     </ClCompile>
     <ClCompile Include="Views\AccessListView.cpp">
       <Filter>Views\Access</Filter>
@@ -422,6 +413,36 @@
       <Filter>Models\Access</Filter>
     </ClCompile>
     <ClCompile Include="Windows\MountMgrWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\TweakInfo.cpp">
+      <Filter>Views\Tweaks</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\ProgramPicker.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\LibraryInfoView.cpp">
+      <Filter>Views\Process</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Programs\ImageSignInfo.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\EnclaveWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Enclaves\Enclave.cpp">
+      <Filter>Core\Enclave</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Enclaves\EnclaveManager.cpp">
+      <Filter>Core\Enclave</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\EnclaveView.cpp">
+      <Filter>Views\Enclaves</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\EnclaveModel.cpp">
+      <Filter>Models\Enclaves</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\SignatureDbWnd.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
   </ItemGroup>
@@ -448,9 +469,6 @@
       <Filter>Core\Network</Filter>
     </ClInclude>
     <ClInclude Include="Core\TraceLogEntry.h">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\TraceLogUtils.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="..\Framework\Array.h">
@@ -510,11 +528,11 @@
     <ClInclude Include="Core\Access\AccessEntry.h">
       <Filter>Core\Access</Filter>
     </ClInclude>
-    <ClInclude Include="Helpers\FilePath.h">
-      <Filter>Helpers</Filter>
-    </ClInclude>
     <ClInclude Include="Helpers\IconCache.h">
       <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Programs\ImageSignInfo.h">
+      <Filter>Core\Programs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -540,6 +558,12 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="Forms\OptionsTransferWnd.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\ProgramPicker.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\EnclaveWnd.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>
@@ -781,18 +805,6 @@
     <QtMoc Include="Models\HandleModel.h">
       <Filter>Models\Access</Filter>
     </QtMoc>
-    <QtMoc Include="Core\Processes\Enclave.h">
-      <Filter>Core\Processes</Filter>
-    </QtMoc>
-    <QtMoc Include="Core\Processes\EnclaveList.h">
-      <Filter>Core\Processes</Filter>
-    </QtMoc>
-    <QtMoc Include="Models\EnclaveModel.h">
-      <Filter>Models\Program</Filter>
-    </QtMoc>
-    <QtMoc Include="Views\EnclaveView.h">
-      <Filter>Views\Program</Filter>
-    </QtMoc>
     <QtMoc Include="Windows\ProgramWnd.h">
       <Filter>Windows</Filter>
     </QtMoc>
@@ -815,6 +827,33 @@
       <Filter>Models\Access</Filter>
     </QtMoc>
     <QtMoc Include="Windows\MountMgrWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\TweakInfo.h">
+      <Filter>Views\Tweaks</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\ProgramPicker.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\LibraryInfoView.h">
+      <Filter>Views\Process</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\EnclaveWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Enclaves\Enclave.h">
+      <Filter>Core\Enclave</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Enclaves\EnclaveManager.h">
+      <Filter>Core\Enclave</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\EnclaveView.h">
+      <Filter>Views\Enclaves</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\EnclaveModel.h">
+      <Filter>Models\Enclaves</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\SignatureDbWnd.h">
       <Filter>Windows</Filter>
     </QtMoc>
   </ItemGroup>

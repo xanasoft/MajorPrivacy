@@ -67,7 +67,7 @@ struct LIBRARY_EXPORT SImageVersionInfo
 typedef std::shared_ptr<SImageVersionInfo> SImageVersionInfoPtr;
 
 LIBRARY_EXPORT SImageVersionInfoPtr GetImageVersionInfo(const std::wstring& FileName);
-LIBRARY_EXPORT SImageVersionInfoPtr GetImageVersionInfoNt(const std::wstring& FileNameNt);
+//LIBRARY_EXPORT SImageVersionInfoPtr GetImageVersionInfoNt(const std::wstring& FileNameNt);
 
 typedef enum _PEB_OFFSET
 {

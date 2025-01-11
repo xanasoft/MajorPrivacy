@@ -14,11 +14,18 @@ CInfoView::CInfoView(QWidget *parent)
 	//m_pInfo->GetView()->setItemDelegate(theGUI->GetItemDelegate());
 	m_pInfo->GetTree()->setHeaderLabels(tr("Info").split("|"));
 	m_pMainLayout->addWidget(m_pInfo);
+
+
+	QByteArray Columns = theConf->GetBlob("MainWindow/ProgramInfoView_Columns");
+	if (Columns.isEmpty()) {
+		m_pInfo->GetTree()->setColumnWidth(0, 300);
+	} else
+		m_pInfo->GetTree()->header()->restoreState(Columns);
 }
 
 CInfoView::~CInfoView()
 {
-	
+	theConf->SetBlob("MainWindow/ProgramInfoView_Columns", m_pInfo->GetTree()->header()->saveState());
 }
 
 void CInfoView::Sync(const QList<CProgramItemPtr>& Items)
@@ -41,13 +48,8 @@ void CInfoView::Sync(const QList<CProgramItemPtr>& Items)
 		pName->setText(0, tr("Name: %1 (%2)").arg(pItem->GetName()).arg(pItem->GetUID()));
 		m_pInfo->GetTree()->addTopLevelItem(pName);
 
-
-		QTreeWidgetItem* pNtPath = new QTreeWidgetItem();
-		pNtPath->setText(0, tr("Nt Path: %1").arg(pItem->GetPath(EPathType::eNative)));
-		m_pInfo->GetTree()->addTopLevelItem(pNtPath);
-
 		QTreeWidgetItem* pDosPath = new QTreeWidgetItem();
-		pDosPath->setText(0, tr("Dos Path: %1").arg(pItem->GetPath(EPathType::eWin32)));
+		pDosPath->setText(0, tr("Path: %1").arg(pItem->GetPath()));
 		m_pInfo->GetTree()->addTopLevelItem(pDosPath);
 
 		auto Groups = pItem->GetGroups();

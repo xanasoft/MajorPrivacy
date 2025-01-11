@@ -195,7 +195,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -208,7 +208,7 @@
       </Command>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -232,7 +232,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -244,7 +244,7 @@
       </Command>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -265,7 +265,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>
       </EntryPointSymbol>
       <DelayLoadDLLs>
@@ -277,7 +277,7 @@
       </Command>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -298,7 +298,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -330,7 +330,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -366,7 +366,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -378,7 +378,7 @@
       </Command>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -402,7 +402,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -437,7 +437,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -479,6 +479,7 @@
     <ClInclude Include="Common\DbgHelp.h" />
     <ClInclude Include="Common\Exception.h" />
     <ClInclude Include="Common\FileIO.h" />
+    <ClInclude Include="Common\FlexGuid.h" />
     <ClInclude Include="Common\MiscStats.h" />
     <ClInclude Include="Common\ObjectTracker.h" />
     <ClInclude Include="Common\Pointers.h" />
@@ -489,6 +490,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="Common\ThreadPool.h" />
     <ClInclude Include="Common\UIntX.h" />
     <ClInclude Include="Common\Variant.h" />
     <ClInclude Include="Common\VariantDefs.h" />
@@ -510,6 +512,7 @@
     <ClInclude Include="Crypto\SharedCrypto.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Helpers\AppUtil.h" />
+    <ClInclude Include="Helpers\CertUtil.h" />
     <ClInclude Include="Helpers\EvtUtil.h" />
     <ClInclude Include="Helpers\GPOUtil.h" />
     <ClInclude Include="Helpers\MiscHelpers.h" />
@@ -559,6 +562,8 @@
     <ClInclude Include="PHlib\include\ref.h" />
     <ClInclude Include="PHlib\include\refp.h" />
     <ClInclude Include="PHlib\include\templ.h" />
+    <ClInclude Include="PHlib\include\verify.h" />
+    <ClInclude Include="PHlib\include\verifyp.h" />
     <ClInclude Include="PHlib\include\workqueue.h" />
     <ClInclude Include="PHlib\include\workqueuep.h" />
     <ClInclude Include="Resources\resource.h" />
@@ -577,6 +582,16 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="API\API_AccessRule.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="API\API_Enclave.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -661,6 +676,7 @@
     </ClCompile>
     <ClCompile Include="Common\DbgHelp.cpp" />
     <ClCompile Include="Common\FileIO.cpp" />
+    <ClCompile Include="Common\FlexGuid.cpp" />
     <ClCompile Include="Common\ObjectTracker.cpp" />
     <ClCompile Include="Common\Strings.cpp" />
     <ClCompile Include="Common\SVariant.c">
@@ -675,6 +691,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Common\ThreadPool.cpp" />
     <ClCompile Include="Common\UIntX.cpp" />
     <ClCompile Include="Common\Variant.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">NotUsing</PrecompiledHeader>
@@ -707,6 +724,7 @@
     <ClCompile Include="Crypto\SharedCrypto.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="Helpers\AppUtil.cpp" />
+    <ClCompile Include="Helpers\CertUtil.cpp" />
     <ClCompile Include="Helpers\EvtUtil.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
@@ -982,6 +1000,16 @@
       <CallingConvention Condition="'$(Configuration)|$(Platform)'=='Release|x64'">StdCall</CallingConvention>
     </ClCompile>
     <ClCompile Include="PHlib\util.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="PHlib\verify.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>

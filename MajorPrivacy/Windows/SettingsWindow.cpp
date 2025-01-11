@@ -78,7 +78,8 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	ui.tabs->setTabIcon(3, QIcon(":/Icons/Process.png"));
 	ui.tabs->setTabIcon(4, QIcon(":/Icons/Ampel.png"));
 	ui.tabs->setTabIcon(5, QIcon(":/Icons/Wall3.png"));
-	ui.tabs->setTabIcon(6, QIcon(":/Icons/Support.png"));
+	ui.tabs->setTabIcon(6, QIcon(":/Icons/Advanced.png"));
+	ui.tabs->setTabIcon(7, QIcon(":/Icons/Support.png"));
 
 	ui.tabSupport->setEnabled(false);
 
@@ -95,6 +96,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	AddIconToLabel(ui.lblResInfo, QPixmap(":/Icons/Ampel.png").scaled(size, size));
 	AddIconToLabel(ui.lblFw, QPixmap(":/Icons/Options.png").scaled(size, size));
 	AddIconToLabel(ui.lblFwInfo, QPixmap(":/Icons/Wall3.png").scaled(size, size));
+	AddIconToLabel(ui.lblLogging, QPixmap(":/Icons/List.png").scaled(size, size));
 
 	ui.tabs->setCurrentIndex(0);
 
@@ -130,12 +132,17 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 
 	connect(ui.uiLang, SIGNAL(currentIndexChanged(int)), this, SLOT(OnChangeGUI()));
 
+	connect(ui.chkEnumApps, SIGNAL(clicked(bool)), this, SLOT(OnOptChanged()));
+
 	connect(ui.btnDelIgnore, SIGNAL(clicked(bool)), this, SLOT(OnDelIgnore()));
 
 	connect(ui.chkListOpenFiles, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkAccessTree, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkAccessLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLogNotFound, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLogRegistry, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
+	connect(ui.chkFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkReverseDNS, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkSimpleDomains, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
@@ -143,6 +150,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.chkFusionTheme, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
 
 	connect(ui.chkExecShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkExecLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
 	connect(ui.chkResShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
@@ -154,6 +162,9 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.chkFwShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnFwShowPopUpChanged()));
 	connect(ui.chkFwInOutRules, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLoadFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+
+	connect(ui.txtLogLimit, SIGNAL(textChanged(const QString &)), this, SLOT(OnOptChanged()));
+	connect(ui.txtLogRetention, SIGNAL(textChanged(const QString &)), this, SLOT(OnOptChanged()));
 
 	connect(ui.tabs, SIGNAL(currentChanged(int)), this, SLOT(OnTab()));
 
@@ -363,10 +374,15 @@ void CSettingsWindow::LoadSettings()
 		ui.treeIgnore->addTopLevelItem(pItem);
 	}
 
+	ui.chkEnumApps->setChecked(theCore->GetConfigBool("Service/EnumInstallations", true));
+
 	ui.chkListOpenFiles->setChecked(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));
+	ui.chkAccessTree->setChecked(theCore->GetConfigBool("Service/ResTrace", true));
+	ui.chkAccessLog->setChecked(theCore->GetConfigBool("Service/ResLog", true));
 	ui.chkLogNotFound->setChecked(theCore->GetConfigBool("Service/LogNotFound", false));
 	ui.chkLogRegistry->setChecked(theCore->GetConfigBool("Service/LogRegistry", false));
 
+	ui.chkFwLog->setChecked(theCore->GetConfigBool("Service/FwLog", true));
 	ui.chkReverseDNS->setChecked(theCore->GetConfigBool("Service/UseReverseDns", false));
 	ui.chkSimpleDomains->setChecked(theCore->GetConfigBool("Service/UseSimpleDomains", true));
 
@@ -374,6 +390,7 @@ void CSettingsWindow::LoadSettings()
 	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseFusionTheme", 1)));
 
 	ui.chkExecShowPopUp->setChecked(theConf->GetBool("ProcessProtection/ShowNotifications", true));
+	ui.chkExecLog->setChecked(theCore->GetConfigBool("Service/ExecLog", true));
 
 	ui.chkResShowPopUp->setChecked(theConf->GetBool("ResourceAccess/ShowNotifications", true));
 
@@ -393,6 +410,9 @@ void CSettingsWindow::LoadSettings()
 
 	ui.chkLoadFwLog->setChecked(theCore->GetConfigBool("Service/LoadWindowsFirewallLog", false));
 
+	ui.txtLogLimit->setText(QString::number(theCore->GetConfigInt64("Service/TraceLogRetentionCount", 10000)));
+	ui.txtLogRetention->setText(QString::number(theCore->GetConfigInt64("Service/TraceLogRetentionMinutes", 60 * 24 * 14) / 60));
+	
 	OnFwAuditPolicyChanged();
 
 	m_HoldChange = false;
@@ -421,10 +441,15 @@ void CSettingsWindow::SaveSettings()
 		theGUI->LoadIgnoreList();
 	}
 
+	theCore->SetConfig("Service/EnumInstallations", ui.chkEnumApps->isChecked());
+
 	theCore->SetConfig("Service/EnumAllOpenFiles", ui.chkListOpenFiles->isChecked());
+	theCore->SetConfig("Service/ResTrace", ui.chkAccessTree->isChecked());
+	theCore->SetConfig("Service/ResLog", ui.chkAccessLog->isChecked());
 	theCore->SetConfig("Service/LogNotFound", ui.chkLogNotFound->isChecked());
 	theCore->SetConfig("Service/LogRegistry", ui.chkLogRegistry->isChecked());
 
+	theCore->SetConfig("Service/FwLog", ui.chkFwLog->isChecked());
 	theCore->SetConfig("Service/UseReverseDns", ui.chkReverseDNS->isChecked());
 	theCore->SetConfig("Service/UseSimpleDomains", ui.chkSimpleDomains->isChecked());
 
@@ -432,6 +457,7 @@ void CSettingsWindow::SaveSettings()
 	theConf->SetValue("Options/UseFusionTheme", CSettingsWindow__Chk2Int(ui.chkFusionTheme->checkState()));
 
 	theConf->SetValue("ProcessProtection/ShowNotifications", ui.chkExecShowPopUp->isChecked());
+	theCore->SetConfig("Service/ExecLog", ui.chkExecLog->isChecked());
 
 	theConf->SetValue("ResourceAccess/ShowNotifications", ui.chkResShowPopUp->isChecked());
 
@@ -453,6 +479,9 @@ void CSettingsWindow::SaveSettings()
 	theConf->SetValue("NetworkFirewall/MakeInOutRules", ui.chkFwInOutRules->isChecked());
 
 	theCore->SetConfig("Service/LoadWindowsFirewallLog", ui.chkLoadFwLog->isChecked());
+
+	theCore->SetConfig("Service/TraceLogRetentionCount", ui.txtLogLimit->text().toULongLong());
+	theCore->SetConfig("Service/TraceLogRetentionMinutes", ui.txtLogRetention->text().toULongLong() * 60);
 
 	emit OptionsChanged(m_bRebuildUI);
 }

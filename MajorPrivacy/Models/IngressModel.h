@@ -38,7 +38,7 @@ public:
 		eName = 0,
 		eRole,
 		eStatus,
-		eAccess,
+		eOperation,
 		eTimeStamp,
 		eProgram,
 		eCount

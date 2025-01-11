@@ -67,7 +67,7 @@ void CTweakList::ReadList(const XVariant& List)
 			ETweakType Type = (ETweakType)Tweak.Find(API_V_TWEAK_TYPE).To<uint32>();
 			if (Type == ETweakType::eGroup)		pTweak = CTweakPtr(new CTweakGroup());
 			else if (Type == ETweakType::eSet)	pTweak = CTweakPtr(new CTweakSet());
-			else								pTweak = CTweakPtr(new CTweak());
+			else								pTweak = CTweakPtr(new CTweak(Type));
 			m_List.insert(Name, pTweak);
 		}
 

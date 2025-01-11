@@ -93,7 +93,10 @@ size_t Variant_FromPacket(const byte* pBuffer, size_t uSize, char* out_name, siz
 	uint8 name_len = *ptr++;
 	if (uSize < 1 + name_len || name_len > max_name - 1)
 		return 0;
+#pragma warning(push)
+#pragma warning(disable : 4013)
 	memcpy(out_name, ptr, name_len);
+#pragma warning(pop)
 	out_name[name_len] = 0;
 	ptr += name_len;
 
@@ -102,7 +105,10 @@ size_t Variant_FromPacket(const byte* pBuffer, size_t uSize, char* out_name, siz
 
 int Variant_Find(const PVARIANT var, const char* name, PVARIANT out_var)
 {
+#pragma warning(push)
+#pragma warning(disable : 4013)
 	size_t name_len = strlen(name);
+#pragma warning(pop)
 
 	if (var->uSize == 0 || var->uType != VAR_TYPE_MAP)
 		return 0;
@@ -116,7 +122,10 @@ int Variant_Find(const PVARIANT var, const char* name, PVARIANT out_var)
 			break;
 		char* cur_name = (char*)ptr;
 		ptr += cur_len;
+#pragma warning(push)
+#pragma warning(disable : 4013)
 		if (name_len == cur_len && memcmp(cur_name, name, name_len) == 0)
+#pragma warning(pop)
 			return Variant_FromBuffer(ptr, end - ptr, out_var) != 0;
 		ptr += Variant_ReadSize(&ptr, end - ptr);
 	}
@@ -194,7 +203,10 @@ int Variant_ToInt(const PVARIANT var, void* out, size_t size)
 	}
 
 	if (var->uSize < size)
+#pragma warning(push)
+#pragma warning(disable : 4013)
 		memset((byte*)out + var->uSize, 0, size - var->uSize);
+#pragma warning(pop)
 	memcpy(out, var->pData, var->uSize);
 	return 1;
 }

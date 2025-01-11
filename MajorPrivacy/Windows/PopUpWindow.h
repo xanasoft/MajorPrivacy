@@ -117,6 +117,7 @@ private:
 		eResPath,
 		eResStatus,
 		eResTimeStamp,
+		eResEnclave,
 		eResProcessId,
 		eResCmdLine,
 		eResColMax
@@ -133,13 +134,16 @@ private:
 	{
 		eExecName,
 		eExecStatus,
-		eExecSign,
+		eExecTrust,
+		eExecSigner,
 		eExecTimeStamp,
+		eExecEnclave,
 		eExecProcessId,
 		eExecPath,
 		eExecColMax
 	};
 
 	QAction*			m_pExecAlwaysIgnoreFile;
-	QAction*			m_pExecSignAll;
+	//QAction*			m_pExecSignAll;
+	QAction*			m_pExecSignCert;
 };
