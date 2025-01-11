@@ -249,7 +249,8 @@ void CMajorPrivacy::UpdateLockStatus(bool bOnConnect)
 		m_pClearKeys->setEnabled(false);
 
 	bool bProtected = (uConfigStatus & CONFIG_STATUS_PROTECTED) != 0;
-	m_pProtectConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && !bProtected);
+	//m_pProtectConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && !bProtected);
+	m_pProtectConfig->setEnabled(false); // fix-me: causes BSOD on HVCI enabled systems
 	m_pUnprotectConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && bProtected);
 	bool bLocked = (uConfigStatus & CONFIG_STATUS_LOCKED) != 0;
 	m_pUnlockConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && bProtected && bLocked);
