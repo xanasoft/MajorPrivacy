@@ -5,7 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.97.0] - 2025-01-??
+## [0.97.0] - 2025-01-11
 
 ### Added
 - added option to add folders to the Secure Volumes view for easier handling of folder security
