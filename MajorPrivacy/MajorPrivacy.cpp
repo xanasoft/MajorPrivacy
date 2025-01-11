@@ -2043,23 +2043,25 @@ void CMajorPrivacy::OnExit()
 {
 	bool bKeepEngine = false;
 
-	int iKeepEngine = theConf->GetInt("Options/KeepEngine", -1);
-	if (iKeepEngine == -1) {
-		bool State = false;
-		int ret = CCheckableMessageBox::question(this, "MajorPrivacy",
-			tr("Do you want to stop the Privacy Agent and unload the Kernel Isolator?\nCAUTION: This will disable protection.")
-			, tr("Remember this choice."), &State, QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel, QDialogButtonBox::No, QMessageBox::Question);
+	if (theCore->IsEngineMode()) {
+		int iKeepEngine = theConf->GetInt("Options/KeepEngine", -1);
+		if (iKeepEngine == -1) {
+			bool State = false;
+			int ret = CCheckableMessageBox::question(this, "MajorPrivacy",
+				tr("Do you want to stop the Privacy Agent and unload the Kernel Isolator?\nCAUTION: This will disable protection.")
+				, tr("Remember this choice."), &State, QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel, QDialogButtonBox::No, QMessageBox::Question);
 
-		if (ret == QMessageBox::Cancel)
-			return;
+			if (ret == QMessageBox::Cancel)
+				return;
 
-		bKeepEngine = ret == QMessageBox::No;
+			bKeepEngine = ret == QMessageBox::No;
 
-		if (State)
-			theConf->SetValue("Options/KeepEngine", bKeepEngine ? 1 : 0);
+			if (State)
+				theConf->SetValue("Options/KeepEngine", bKeepEngine ? 1 : 0);
+		}
+		else
+			bKeepEngine = iKeepEngine == 1;
 	}
-	else
-		bKeepEngine = iKeepEngine == 1;
 
 	theCore->Disconnect(bKeepEngine);
 

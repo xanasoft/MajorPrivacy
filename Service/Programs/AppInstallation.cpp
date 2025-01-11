@@ -21,7 +21,15 @@ bool CAppInstallation::MatchFileName(const std::wstring& FileName) const
 {
 	std::unique_lock lock(m_Mutex);
 
-	if (FileName.length() < m_Path.length())
+	//
+	// Note: we may have multiple identical patterns we must not add them to each other
+	// this happens for example with installations when moluple once point to the same directory
+	// Example: Cyberpunk 2077 installs itself, redmod, and phantom liberty to the same folder
+	// 
+	// therfor if(FileName.length() <= m_Path.length) return false;
+	//
+
+	if (m_Path.empty() || FileName.length() <= m_Path.length())
 		return false;
 	return _wcsnicmp(FileName.c_str(), m_Path.c_str(), m_Path.length()) == 0;
 }

@@ -22,7 +22,7 @@ bool CAppPackage::MatchFileName(const std::wstring& FileName) const
 {
 	std::unique_lock lock(m_Mutex);
 
-	if (FileName.length() < m_Path.length())
+	if (m_Path.empty() || FileName.length() <= m_Path.length())
 		return false;
 	return _wcsnicmp(FileName.c_str(), m_Path.c_str(), m_Path.length()) == 0;
 }

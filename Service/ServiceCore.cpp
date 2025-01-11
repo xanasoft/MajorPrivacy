@@ -193,6 +193,15 @@ STATUS CServiceCore::InitDriver()
 						Status = ERR(STATUS_UNSUCCESSFUL);
 					//}
 				}
+				else // todo: remove fix for 0.97.0 driver failing when no config is found
+				{
+					CVariant ConfigData;
+					ConfigData.BeginMap();
+					ConfigData.Finish();
+					CBuffer ConfigBuff;
+					ConfigData.ToPacket(&ConfigBuff);
+					RegSet(hKey, L"Config", L"Data", CVariant(ConfigBuff));
+				}
 			}
 		}
 		if (Status.IsError()) {

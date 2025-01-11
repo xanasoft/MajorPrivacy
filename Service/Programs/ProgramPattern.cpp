@@ -38,11 +38,9 @@ bool CProgramPattern::MatchFileName(const std::wstring& FileName) const
 
     //
     // Note: we may have multiple identical patterns we must not add them to each other
-    // this happens for example with installations when moluple once point to the same directory
-    // Example: Cyberpunk 2077 installs itself, redmod, and phantom liberty to the same folder
     //
 
-    if (m_Pattern == FileName)
+    if (m_Pattern.empty() || m_Pattern == FileName)
         return false;
 
     std::wcmatch matches;
