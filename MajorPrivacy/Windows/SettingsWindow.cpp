@@ -121,7 +121,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 		ui.uiLang->setCurrentIndex(ui.uiLang->findData(theConf->GetString("Options/UiLanguage")));
 	}
 
-	ui.cmbFwAuditPolicy->addItem(tr("Blocked && Alowed"), (uint32)FwAuditPolicy::All);
+	ui.cmbFwAuditPolicy->addItem(tr("All"), (uint32)FwAuditPolicy::All);
 	ui.cmbFwAuditPolicy->addItem(tr("Blocked"), (uint32)FwAuditPolicy::Blocked);
 	ui.cmbFwAuditPolicy->addItem(tr("Allowed"), (uint32)FwAuditPolicy::Allowed);
 	ui.cmbFwAuditPolicy->addItem(tr("Off"), (uint32)FwAuditPolicy::Off);
@@ -138,10 +138,12 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 
 	connect(ui.chkListOpenFiles, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkAccessTree, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkAccessRecord, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkAccessLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLogNotFound, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLogRegistry, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
+	connect(ui.chkTrafficRecord, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkReverseDNS, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkSimpleDomains, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
@@ -151,6 +153,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 
 	connect(ui.chkExecShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkExecLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkExecRecord, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
 	connect(ui.chkResShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
@@ -378,11 +381,13 @@ void CSettingsWindow::LoadSettings()
 
 	ui.chkListOpenFiles->setChecked(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));
 	ui.chkAccessTree->setChecked(theCore->GetConfigBool("Service/ResTrace", true));
+	ui.chkAccessRecord->setChecked(theCore->GetConfigBool("Service/SaveAccessRecord", false));
 	ui.chkAccessLog->setChecked(theCore->GetConfigBool("Service/ResLog", true));
 	ui.chkLogNotFound->setChecked(theCore->GetConfigBool("Service/LogNotFound", false));
 	ui.chkLogRegistry->setChecked(theCore->GetConfigBool("Service/LogRegistry", false));
 
-	ui.chkFwLog->setChecked(theCore->GetConfigBool("Service/FwLog", true));
+	ui.chkTrafficRecord->setChecked(theCore->GetConfigBool("Service/SaveTrafficRecord", false));
+	ui.chkFwLog->setChecked(theCore->GetConfigBool("Service/NetLog", true));
 	ui.chkReverseDNS->setChecked(theCore->GetConfigBool("Service/UseReverseDns", false));
 	ui.chkSimpleDomains->setChecked(theCore->GetConfigBool("Service/UseSimpleDomains", true));
 
@@ -390,6 +395,7 @@ void CSettingsWindow::LoadSettings()
 	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseFusionTheme", 1)));
 
 	ui.chkExecShowPopUp->setChecked(theConf->GetBool("ProcessProtection/ShowNotifications", true));
+	ui.chkExecRecord->setChecked(theCore->GetConfigBool("Service/SaveIngressRecord", false));
 	ui.chkExecLog->setChecked(theCore->GetConfigBool("Service/ExecLog", true));
 
 	ui.chkResShowPopUp->setChecked(theConf->GetBool("ResourceAccess/ShowNotifications", true));
@@ -445,11 +451,13 @@ void CSettingsWindow::SaveSettings()
 
 	theCore->SetConfig("Service/EnumAllOpenFiles", ui.chkListOpenFiles->isChecked());
 	theCore->SetConfig("Service/ResTrace", ui.chkAccessTree->isChecked());
+	theCore->SetConfig("Service/SaveAccessRecord", ui.chkAccessRecord->isChecked());
 	theCore->SetConfig("Service/ResLog", ui.chkAccessLog->isChecked());
 	theCore->SetConfig("Service/LogNotFound", ui.chkLogNotFound->isChecked());
 	theCore->SetConfig("Service/LogRegistry", ui.chkLogRegistry->isChecked());
 
-	theCore->SetConfig("Service/FwLog", ui.chkFwLog->isChecked());
+	theCore->SetConfig("Service/SaveTrafficRecord", ui.chkTrafficRecord->isChecked());
+	theCore->SetConfig("Service/NetLog", ui.chkFwLog->isChecked());
 	theCore->SetConfig("Service/UseReverseDns", ui.chkReverseDNS->isChecked());
 	theCore->SetConfig("Service/UseSimpleDomains", ui.chkSimpleDomains->isChecked());
 
@@ -457,6 +465,7 @@ void CSettingsWindow::SaveSettings()
 	theConf->SetValue("Options/UseFusionTheme", CSettingsWindow__Chk2Int(ui.chkFusionTheme->checkState()));
 
 	theConf->SetValue("ProcessProtection/ShowNotifications", ui.chkExecShowPopUp->isChecked());
+	theCore->SetConfig("Service/SaveIngressRecord", ui.chkExecRecord->isChecked());
 	theCore->SetConfig("Service/ExecLog", ui.chkExecLog->isChecked());
 
 	theConf->SetValue("ResourceAccess/ShowNotifications", ui.chkResShowPopUp->isChecked());

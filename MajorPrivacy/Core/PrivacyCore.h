@@ -8,6 +8,7 @@
 #include "Programs/ProgramFile.h"
 #include "../Helpers/SidResolver.h"
 #include "../../Library/Common/FlexGuid.h"
+#include "../../Library/Helpers/EvtUtil.h"
 
 class CPrivacyCore : public QObject
 {
@@ -26,6 +27,13 @@ public:
 
 	bool IsEngineMode() const					{ return m_bEngineMode; }
 
+	uint32 GetGuiSecState() const				{ return m_GuiSecState; }
+	bool IsGuiHighSecurity() const;
+	bool IsGuiMaxSecurity() const;
+	uint32 GetSvcSecState() const				{ return m_SvcSecState; }
+	bool IsSvcHighSecurity() const;
+	bool IsSvcMaxSecurity() const;
+
 	STATUS Update();
 	void ProcessEvents();
 
@@ -41,6 +49,9 @@ public:
 
 	CDriverAPI*		Driver() { return &m_Driver; }
 	CServiceAPI*	Service() { return &m_Service; }
+
+	class CEventLogger*	Log()					{ return m_pLog; }
+
 
 	static QString		NormalizePath(QString sFilePath, bool bForID = false);
 
@@ -120,6 +131,7 @@ public:
 	// Process Manager
 	RESULT(XVariant)	GetProcesses();
 	RESULT(XVariant)	GetProcess(uint64 Pid);
+	STATUS				StartProcessBySvc(const QString& Command);
 	STATUS				TerminateProcess(uint64 Pid);
 
 	// Secure Enclaves
@@ -257,10 +269,15 @@ protected:
 
 	static XVariant		MakeIDs(const QList<const class CProgramItem*>& Nodes);
 
+	class CEventLogger*		m_pLog = NULL;
+
 	CDriverAPI	m_Driver;
 	CServiceAPI m_Service;
 	bool m_bEngineMode = false;
 	QString m_ConfigDir;
+
+	uint32 m_GuiSecState = 0;
+	uint32 m_SvcSecState = 0;
 
 	class CProcessList* m_pProcessList = NULL;
 	class CEnclaveManager* m_pEnclaveManager = NULL;

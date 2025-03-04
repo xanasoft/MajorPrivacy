@@ -40,6 +40,8 @@ struct SPipeClient
     PPipeSocket pPipe;
 	std::wstring PipeName;
 
+	DWORD dwServerPid = 0;
+
 	volatile HANDLE hThread = NULL;
 	HANDLE hEvent = NULL;
 
@@ -111,6 +113,8 @@ retry:
 	DWORD dwMode = PIPE_READMODE_MESSAGE; 
 	SetNamedPipeHandleState(m->pPipe->hPipe, &dwMode, NULL, NULL); 
 
+	BOOL success = GetNamedPipeServerProcessId(m->pPipe->hPipe, &m->dwServerPid);
+
     DWORD idThread;
     m->hThread = CreateThread(NULL, 0, SPipeClient::ThreadStub, this, 0, &idThread);
 	if (!m->hThread) {
@@ -137,6 +141,11 @@ void CPipeClient::Disconnect()
 bool CPipeClient::IsConnected()
 {
 	return !!m->pPipe;
+}
+
+uint32 CPipeClient::GetServerPID() const
+{
+	return m->dwServerPid;
 }
 
 STATUS CPipeClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff)

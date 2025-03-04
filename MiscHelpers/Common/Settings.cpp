@@ -20,21 +20,14 @@ CSettings::CSettings(const QString& AppDir, const QString& AppName, const QStrin
 	{
 		QStringList dirs = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
 		if (dirs.isEmpty())
-			m_ConfigDir = QDir::homePath() + "/." + AppName;
-		//
+			m_ConfigDir = QDir::homePath() + "/." + GroupName + "/" + AppName;
+		/*//
 		// if ini is present in the shared location it take precedence over an ini in a user location
 		//
-		else 
-		{
-			if (dirs.count() > 2 && QFile::exists(dirs[1] + "/" + AppName + "/" + AppName + ".ini"))
-				m_ConfigDir = dirs[1];
-			else
-				m_ConfigDir = dirs[0];
-
-			if(!GroupName.isEmpty())
-				m_ConfigDir += "/" + GroupName;
-			m_ConfigDir += "/" + AppName;
-		}
+		else if(dirs.count() > 2 && QFile::exists(dirs[1] + "/" + GroupName + "/" + AppName + "/" + AppName + ".ini"))
+			m_ConfigDir = dirs[1] + "/" + GroupName + "/" + AppName;
+		else*/
+			m_ConfigDir = dirs[0] + "/" + GroupName + "/" + AppName;
 		QDir().mkpath(m_ConfigDir);
 	}
 

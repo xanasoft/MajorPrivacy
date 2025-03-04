@@ -115,7 +115,7 @@ bool CProcess::Init()
 		m_ParentPid = Data->ParentPid;
 		m_Name = Data->ImageName;
 		m_NtFilePath = Data->FileName;
-		if(m_NtFilePath.empty() && m_Pid == NT_OS_KERNEL_PID)
+		if(m_NtFilePath.empty() && (m_Pid == NT_OS_KERNEL_PID || m_Name == L"Secure System"))
 			m_NtFilePath = std::wstring(NtOsKernel_exe);
 		ASSERT(!m_Name.empty());
 		ASSERT(!m_NtFilePath.empty());

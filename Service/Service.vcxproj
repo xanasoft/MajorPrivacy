@@ -154,6 +154,9 @@
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
+    <ResourceCompile>
+      <PreprocessorDefinitions>BUILD_UTILITY_PASS2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -180,6 +183,9 @@
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
+    <ResourceCompile>
+      <PreprocessorDefinitions>BUILD_UTILITY_PASS2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -203,6 +209,9 @@
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
+    <ResourceCompile>
+      <PreprocessorDefinitions>BUILD_UTILITY_PASS2;MY_WIN64_FLAG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
@@ -225,6 +234,9 @@
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
+    <ResourceCompile>
+      <PreprocessorDefinitions>BUILD_UTILITY_PASS2;MY_ARM64_FLAG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -251,6 +263,9 @@
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
+    <ResourceCompile>
+      <PreprocessorDefinitions>BUILD_UTILITY_PASS2;MY_WIN64_FLAG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
@@ -277,6 +292,9 @@
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
+    <ResourceCompile>
+      <PreprocessorDefinitions>BUILD_UTILITY_PASS2;MY_ARM64_FLAG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Access\AccessRule.cpp" />
@@ -437,6 +455,7 @@
     <Image Include="Resources\Agent.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="Resources\ldrcode.rc" />
     <ResourceCompile Include="Resources\Service.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

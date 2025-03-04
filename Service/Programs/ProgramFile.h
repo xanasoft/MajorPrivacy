@@ -63,8 +63,8 @@ public:
 	virtual void AddAccess(const std::wstring& ActorServiceTag, const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked);
 	virtual CVariant DumpResAccess(uint64 LastActivity) const;
 
-	virtual CVariant StoreAccessLog(const SVarWriteOpt& Opts) const;
-	virtual void LoadAccessLog(const CVariant& Data);
+	virtual CVariant StoreIngress(const SVarWriteOpt& Opts) const;
+	virtual void LoadIngress(const CVariant& Data);
 
 	virtual CVariant StoreAccess(const SVarWriteOpt& Opts) const;
 	virtual void LoadAccess(const CVariant& Data);

@@ -32,6 +32,8 @@ public:
 	const QSet<QFlexGuid>& GetAllowRules() const { return m_AllowRules; }
 	const QSet<QFlexGuid>& GetBlockRules() const { return m_BlockRules; }
 
+	bool Match(const CAbstractLogEntry* pEntry) const override;
+
 protected:
 
 	virtual void ReadValue(uint32 Index, const XVariant& Data);

@@ -157,6 +157,16 @@ void CProcess::UpdateSockets(const class XVariant& Sockets)
 		m_Sockets.remove(OldSockets.take(SockRef)->GetSocketRef());
 }
 
+QString CProcess::GetSecStateStr(uint32 SecState)
+{
+	if ((SecState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM)	return "Maximum";
+	if ((SecState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH)			return "High";
+	if ((SecState & KPH_PROCESS_STATE_MEDIUM) == KPH_PROCESS_STATE_MEDIUM)		return "Medium";
+	if ((SecState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)			return "Low";
+	if ((SecState & KPH_PROCESS_STATE_MINIMUM) == KPH_PROCESS_STATE_MINIMUM)	return "Minimum";
+	return "Other";
+}
+
 QString CProcess::GetStatus() const
 {
 	QStringList Infos;
@@ -168,34 +178,29 @@ QString CProcess::GetStatus() const
 	//kSFlags.SecFlags = m_SecFlags;
 
 	QStringList Flags;
-	if (kFlags.VerifiedProcess)		Flags.append("VerifiedProcess");
-	if (kFlags.SecurelyCreated)		Flags.append("SecurelyCreated");
-	if (kFlags.Protected)			Flags.append("Protected");
-	if (kFlags.IsLsass)				Flags.append("IsLsass");
+	//if (kFlags.VerifiedProcess)		Flags.append("VerifiedProcess");
+	//if (kFlags.SecurelyCreated)		Flags.append("SecurelyCreated");
+	//if (kFlags.Protected)			Flags.append("Protected");
 	//if (kFlags.IsWow64)				Flags.append("IsWow64");
 	//if (kFlags.IsSubsystemProcess)	Flags.append("IsSubsystemProcess");
 	if(!Flags.isEmpty())	Infos.append(Flags.join(", "));
 
 	if (kFlags.Protected && m_SecState)
 	{
-		if((m_SecState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM)		Infos.append(tr("Sec: %1").arg("Maximum"));
-		else if ((m_SecState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH)		Infos.append(tr("Sec: %1").arg("High"));
-		else if ((m_SecState & KPH_PROCESS_STATE_MEDIUM) == KPH_PROCESS_STATE_MEDIUM)	Infos.append(tr("Sec: %1").arg("Medium"));
-		else if ((m_SecState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)			Infos.append(tr("Sec: %1").arg("Low"));
-		else if ((m_SecState & KPH_PROCESS_STATE_MINIMUM) == KPH_PROCESS_STATE_MINIMUM)	Infos.append(tr("Sec: %1").arg("Minimum"));
-		else																			Infos.append(tr("Sec: %1").arg("Other"));
+		Infos.append(tr("Sec: %1").arg(GetSecStateStr(m_SecState)));
 
-		/*QStringList Sec;
+		QStringList Sec;
 		if (m_SecState & KPH_PROCESS_SECURELY_CREATED)				Sec.append("Created");
 		if (m_SecState & KPH_PROCESS_VERIFIED_PROCESS)				Sec.append("Verified");
 		if (m_SecState & KPH_PROCESS_PROTECTED_PROCESS)				Sec.append("Protected");
 		if (m_SecState & KPH_PROCESS_NO_UNTRUSTED_IMAGES)			Sec.append("NoUntrusted");
 		if (m_SecState & KPH_PROCESS_HAS_FILE_OBJECT)				Sec.append("HasFile");
 		if (m_SecState & KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS)	Sec.append("HasSection");
-		if (m_SecState & KPH_PROCESS_NO_USER_WRITABLE_REFERENCES)	Sec.append("NoUserWritable");
+		if (m_SecState & KPH_PROCESS_NO_USER_WRITABLE_REFERENCES)	Sec.append("NoWritableRefs");
+		if (m_SecState & KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)		Sec.append("NoWritableFile");
 		if (m_SecState & KPH_PROCESS_NO_FILE_TRANSACTION)			Sec.append("NoFileTransaction");
 		if (m_SecState & KPH_PROCESS_NOT_BEING_DEBUGGED)			Sec.append("NotBeingDebugged");
-		Infos.append(tr("Sec: %1").arg(Sec.join(", ")));*/
+		Infos.append(Sec.join(", "));
 
 	}
 

@@ -10,8 +10,8 @@
 #include "../Volumes/VolumeManager.h"
 #include "../Library/Common/FileIO.h"
 
-#define API_ACCESS_LOG_FILE_NAME L"AccessLog.dat"
-#define API_ACCESS_LOG_FILE_VERSION 2
+#define API_ACCESS_RECORD_FILE_NAME L"AccessRecord.dat"
+#define API_ACCESS_RECORD_FILE_VERSION 1
 
 CAccessManager::CAccessManager()
 {
@@ -345,8 +345,8 @@ void CAccessManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEven
 STATUS CAccessManager::Load()
 {
 	CBuffer Buffer;
-	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_ACCESS_LOG_FILE_NAME, 0, Buffer)) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_ACCESS_LOG_FILE_NAME L" not found");
+	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_ACCESS_RECORD_FILE_NAME, 0, Buffer)) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_ACCESS_RECORD_FILE_NAME L" not found");
 		return ERR(STATUS_NOT_FOUND);
 	}
 
@@ -357,12 +357,12 @@ STATUS CAccessManager::Load()
 	//	return ERR(STATUS_UNSUCCESSFUL);
 	//}
 	if (ret != CVariant::eErrNone) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_ACCESS_LOG_FILE_NAME);
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_ACCESS_RECORD_FILE_NAME);
 		return ERR(STATUS_UNSUCCESSFUL);
 	}
 
-	if (Data[API_S_VERSION].To<uint32>() != API_ACCESS_LOG_FILE_VERSION) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Encountered unsupported " API_ACCESS_LOG_FILE_NAME);
+	if (Data[API_S_VERSION].To<uint32>() != API_ACCESS_RECORD_FILE_VERSION) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Encountered unsupported " API_ACCESS_RECORD_FILE_NAME);
 		return ERR(STATUS_UNSUCCESSFUL);
 	}
 
@@ -391,22 +391,27 @@ STATUS CAccessManager::Store()
 	Opts.Flags = SVarWriteOpt::eSaveToFile;
 
 	CVariant List;
-	for (auto pItem : theCore->ProgramManager()->GetItems()) 
+
+	if (theCore->Config()->GetBool("Service", "SaveAccessRecord", false))
 	{
-		// StoreAccess saves API_V_PROG_ID
-		if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
-			List.Append(pProgram->StoreAccess(Opts));
-		else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
-			List.Append(pService->StoreAccess(Opts));
+		for (auto pItem : theCore->ProgramManager()->GetItems())
+		{
+			// StoreAccess saves API_V_PROG_ID
+			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+				List.Append(pProgram->StoreAccess(Opts));
+			else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+				List.Append(pService->StoreAccess(Opts));
+		}
 	}
+	// we save the file on false as well to clear it
 
 	CVariant Data;
-	Data[API_S_VERSION] = API_ACCESS_LOG_FILE_VERSION;
+	Data[API_S_VERSION] = API_ACCESS_RECORD_FILE_VERSION;
 	Data[API_S_ACCESS_LOG] = List;
 
 	CBuffer Buffer;
 	Data.ToPacket(&Buffer);
-	WriteFile(theCore->GetDataFolder() + L"\\" API_ACCESS_LOG_FILE_NAME, 0, Buffer);
+	WriteFile(theCore->GetDataFolder() + L"\\" API_ACCESS_RECORD_FILE_NAME, 0, Buffer);
 
 	return OK;
 }

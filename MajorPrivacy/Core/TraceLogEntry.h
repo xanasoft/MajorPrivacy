@@ -26,6 +26,8 @@ public:
 
 	virtual void FromVariant(const class XVariant& FwEvent);
 
+	virtual bool Match(const CAbstractLogEntry* pEntry) const;
+
 protected:
 	
 	virtual void ReadValue(uint32 Index, const XVariant& Data);

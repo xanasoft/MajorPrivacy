@@ -56,11 +56,19 @@ struct SProcessEvent
 		ProcessAccess,
 		ThreadAccess,
 		ResourceAccess,
+
+		InjectionRequest,
 	};
 
 	EType Type = EType::Unknown;
 	uint64 TimeStamp = 0;
 };
+
+struct SInjectionRequest : public SProcessEvent
+{
+	uint64 ProcessId = 0;
+};
+
 
 struct SProcessEventEx : public SProcessEvent
 {

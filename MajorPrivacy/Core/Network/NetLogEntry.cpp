@@ -44,3 +44,34 @@ void CNetLogEntry::ReadValue(uint32 Index, const XVariant& Data)
 	default: CAbstractLogEntry::ReadValue(Index, Data);
 	}
 }
+
+bool CNetLogEntry::Match(const CAbstractLogEntry* pEntry) const
+{
+	if (!CAbstractLogEntry::Match(pEntry))
+		return false;
+
+	const CNetLogEntry* pNetEntry = dynamic_cast<const CNetLogEntry*>(pEntry);
+	if (!pNetEntry)
+		return false;
+
+	if (m_State != pNetEntry->m_State)
+		return false;
+	if (m_Action != pNetEntry->m_Action)
+		return false;
+	if (m_Direction != pNetEntry->m_Direction)
+		return false;
+	if (m_ProtocolType != pNetEntry->m_ProtocolType)
+		return false;
+	if (m_LocalAddress != pNetEntry->m_LocalAddress)
+		return false;
+	if (m_LocalPort != pNetEntry->m_LocalPort && !(m_Direction == EFwDirections::Outbound && m_ProtocolType == (quint32)EFwKnownProtocols::TCP)) // tcp uses random outgoing ports
+		return false;
+	if (m_RemoteAddress != pNetEntry->m_RemoteAddress)
+		return false;
+	if (m_RemotePort != pNetEntry->m_RemotePort)
+		return false;
+	if (m_RemoteHostName != pNetEntry->m_RemoteHostName)
+		return false;
+
+	return true;
+}

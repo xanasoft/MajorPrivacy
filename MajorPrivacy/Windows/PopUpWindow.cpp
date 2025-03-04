@@ -294,6 +294,10 @@ void CPopUpWindow::PushFwEvent(const CProgramFilePtr& pProgram, const CLogEntryP
 	QList<CLogEntryPtr>& List = m_FwEvents[pProgram];
 	if (List.isEmpty())
 		m_FwPrograms.append(pProgram);
+	for (int i = 0; i < List.size(); i++) {
+		if(pEntry->Match(List[i].constData()))
+			return;
+	}
 	List.append(pEntry);
 
 	int oldIndex = m_iFwIndex;
@@ -494,6 +498,10 @@ void CPopUpWindow::PushResEvent(const CProgramFilePtr& pProgram, const CLogEntry
 	QList<CLogEntryPtr>& List = m_ResEvents[pProgram];
 	if (List.isEmpty())
 		m_ResPrograms.append(pProgram);
+	for (int i = 0; i < List.size(); i++) {
+		if(pEntry->Match(List[i].constData()))
+			return;
+	}
 	List.append(pEntry);
 
 	int oldIndex = m_iResIndex;
@@ -682,6 +690,14 @@ void CPopUpWindow::OnResAction()
 		}
 	}
 
+	if (theGUI->IsDrvConfigLocked() && !(bUseVolumeRules && pCurVolume)) {
+		STATUS Status = theGUI->UnlockDrvConfig();
+		if (Status.IsError()) {
+			theGUI->CheckResults(QList<STATUS>() << Status, this);
+			return;
+		}
+	}
+
 	QFlexGuid EnclaveGuid;
 	EnclaveGuid.FromQV(pItem->data(eResEnclave, Qt::UserRole));
 
@@ -690,7 +706,7 @@ void CPopUpWindow::OnResAction()
 	pRule->SetName(tr("%1 - Rule").arg(pProgram->GetNameEx()));
 	pRule->SetPath(Path);
 	pRule->SetEnclave(EnclaveGuid);
-	if(bUseVolumeRules)
+	if(bUseVolumeRules && pCurVolume)
 		pRule->SetVolumeRule(true);
 
 	if (ui.cmbResTime->currentData().toInt() != -1){
@@ -708,7 +724,7 @@ void CPopUpWindow::OnResAction()
 
 		Path = pRule->GetPath(); // could have been changed
 
-		if (bUseVolumeRules) {
+		if (bUseVolumeRules && pCurVolume) {
 			if (Path.startsWith("\\"))
 				NtPath = Path;
 			else
@@ -731,16 +747,14 @@ void CPopUpWindow::OnResAction()
 			return;
 	}
 
-	if (bUseVolumeRules)
+	if (bUseVolumeRules && pCurVolume)
 	{
 		NtPath = QString::fromStdWString(CNtPathMgr::Instance()->TranslateDosToNtPath(Path.toStdWString()));
 		
-		if(pCurVolume) {
-			QString ImagePath = pCurVolume->GetImagePath();
-			if (Path.startsWith(ImagePath, Qt::CaseInsensitive)) {
-				Path = Path.mid(ImagePath.length() + 1);
-				NtPath = pCurVolume->GetDevicePath() + "\\" + Path;
-			}
+		QString ImagePath = pCurVolume->GetImagePath();
+		if (Path.startsWith(ImagePath, Qt::CaseInsensitive)) {
+			Path = Path.mid(ImagePath.length() + 1);
+			NtPath = pCurVolume->GetDevicePath() + "\\" + Path;
 		}
 	}
 
@@ -755,6 +769,10 @@ void CPopUpWindow::PushExecEvent(const CProgramFilePtr& pProgram, const CLogEntr
 	QList<CLogEntryPtr>& List = m_ExecEvents[pProgram];
 	if (List.isEmpty())
 		m_ExecPrograms.append(pProgram);
+	for (int i = 0; i < List.size(); i++) {
+		if(pEntry->Match(List[i].constData()))
+			return;
+	}
 	List.append(pEntry);
 
 	int oldIndex = m_iExecIndex;

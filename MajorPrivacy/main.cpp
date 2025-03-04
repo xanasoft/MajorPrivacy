@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "MajorPrivacy.h"
 #include "Core\PrivacyCore.h"
+#include "../QtSingleApp/src/qtsingleapplication.h"
 
 #include <phnt_windows.h>
 #include <phnt.h>
@@ -16,7 +17,56 @@
 //#include "../../Library/Common/FlexGuid.h"
 #endif
 
+#include "../Library/Hooking/HookUtils.h"
 
+typedef NTSTATUS (*P_NtMapViewOfSection)(
+	IN  HANDLE SectionHandle,
+	IN  HANDLE ProcessHandle,
+	IN  OUT PVOID *BaseAddress,
+	IN  ULONG_PTR ZeroBits,
+	IN  SIZE_T CommitSize,
+	IN  OUT PLARGE_INTEGER SectionOffset OPTIONAL,
+	IN  OUT PSIZE_T ViewSize,
+	IN  ULONG InheritDisposition,
+	IN  ULONG AllocationType,
+	IN  ULONG Protect);
+
+P_NtMapViewOfSection NtMapViewOfSectionTramp = NULL;
+
+bool IsMemoryReadable(PVOID Address)
+{
+	MEMORY_BASIC_INFORMATION mbi;
+	if (VirtualQuery(Address, &mbi, sizeof(mbi)) == 0)
+		return false;
+
+	if (mbi.Protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE))
+		return true;
+
+	return false;
+}
+
+NTSTATUS NTAPI MyMapViewOfSection(IN  HANDLE SectionHandle,
+	IN  HANDLE ProcessHandle,
+	IN  OUT PVOID* BaseAddress,
+	IN  ULONG_PTR ZeroBits,
+	IN  SIZE_T CommitSize,
+	IN  OUT PLARGE_INTEGER SectionOffset OPTIONAL,
+	IN  OUT PSIZE_T ViewSize,
+	IN  ULONG InheritDisposition,
+	IN  ULONG AllocationType,
+	IN  ULONG Protect)
+{
+	NTSTATUS status = NtMapViewOfSectionTramp(SectionHandle, ProcessHandle, BaseAddress, ZeroBits, CommitSize, SectionOffset, ViewSize, InheritDisposition, AllocationType, Protect);
+	if (NT_SUCCESS(status))
+	{
+		if (BaseAddress && *BaseAddress && !IsMemoryReadable(*BaseAddress))
+		{
+			DbgPrint("MyMapViewOfSection: Invalid BaseAddress: %p", *BaseAddress);
+			status = STATUS_ACCESS_DENIED;
+		}
+	}
+	return status;
+}
 
 int main(int argc, char *argv[])
 {
@@ -24,6 +74,15 @@ int main(int argc, char *argv[])
 
 	//NTCRT_DEFINE(MyCRT);
 	//InitGeneralCRT(&MyCRT);
+
+	//
+	// If a dll is not signed like a shell extension for the default windows file open dialog,
+	// or alike, we have a problem as our driver when ImageLoadProtection == TRUE will block the loading of the dll
+	// and unmap the just loaded section from the driver, so we add a sanity check for NtMapViewOfSection
+	// if it returns no error but the memory is not readable return STATUS_ACCESS_DENIED instead.
+	//
+
+	HookFunction(GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtMapViewOfSection"), MyMapViewOfSection, (VOID**)&NtMapViewOfSectionTramp);
 
 #ifdef _DEBUG
 	
@@ -64,13 +123,22 @@ int main(int argc, char *argv[])
 	QString AppDir = QString::fromStdWString(GetApplicationDirectory());
 	theConf = new CSettings(AppDir, "MajorPrivacy", "Xanasoft");
 
-	QApplication App(argc, argv);
+
+	QtSingleApplication App(argc, argv);
+	App.setQuitOnLastWindowClosed(false);
+
+	if (App.sendMessage("ShowWnd"))
+		return 0;
 
 	theCore = new CPrivacyCore();
 
 	CMajorPrivacy* pWnd = new CMajorPrivacy;
+
+	QObject::connect(&App, SIGNAL(messageReceived(const QString&)), pWnd, SLOT(OnMessage(const QString&)), Qt::QueuedConnection);
+
 	pWnd->show();
 	int ret = App.exec();
+
 	delete pWnd;
 
 	delete theCore;

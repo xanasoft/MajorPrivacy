@@ -43,6 +43,11 @@ public:
 		bool bAllPrograms = false;
 	};
 
+	bool				IsDrvConfigLocked() const { return m_DrvConfigLocked; }
+	STATUS				UnlockDrvConfig();
+	STATUS				CommitDrvConfig();
+	STATUS				DiscardDrvConfig();
+
 	const SCurrentItems& GetCurrentItems() const;
 	QMap<quint64, CProcessPtr> GetCurrentProcesses() const;
 
@@ -97,6 +102,8 @@ public slots:
 
 	void				ClearTraceLogs();
 
+	void				OnMessage(const QString& MsgData);
+
 private slots:
 	void				OnMaintenance();
 	void				OnExit();
@@ -127,6 +134,7 @@ private slots:
 	void				OnStackPanels();
 	void				OnMergePanels();
 
+	void				OnPopUpPreset();
 	void				OnFwProfile();
 
 	void				OnPageChanged(int index);
@@ -150,7 +158,18 @@ protected:
 	STATUS				Connect();
 	void				Disconnect();
 
-	STATUS				InitSigner(const QString& Prompt, class CPrivateKey& PrivateKey);
+	enum class ESignerPurpose
+	{
+		eSignFile,
+		eSignCert,
+		eEnableProtection,
+		eDisableProtection,
+		eUnlockConfig,
+		eCommitConfig,
+		eClearUserKey,
+	};
+
+	STATUS				InitSigner(ESignerPurpose Purpose, class CPrivateKey& PrivateKey);
 
 	void				CreateTrayIcon();
 	void				CreateTrayMenu();
@@ -162,7 +181,7 @@ protected:
 	//bool				m_bShowAll = false;
 	bool				m_bWasVisible = false;
 	bool				m_bOnTop = false;
-	int					m_iReConnected = 1;
+	int					m_iReConnected = 0;
 	bool				m_bWasConnected = false;
 	bool				m_bExit = false;
 
@@ -290,6 +309,9 @@ private:
 
 	QSystemTrayIcon*	m_pTrayIcon = nullptr;
 	QMenu*				m_pTrayMenu = nullptr;
+	QAction*			m_pExecShowPopUp = nullptr;
+	QAction*			m_pResShowPopUp = nullptr;
+	QAction*			m_pFwShowPopUp = nullptr;
 	QMenu*				m_pFwProfileMenu = nullptr;
 	QAction*			m_pFwBlockAll = nullptr;
 	QAction*			m_pFwAllowList = nullptr;
@@ -301,6 +323,11 @@ protected:
 	CCustomTheme		m_CustomTheme;
 
 	bool				m_ThemeUpdatePending = false;
+
+	bool				m_DrvConfigLocked = false;
+	quint64				m_ForgetSignerPW = 0;
+	quint64				m_AutoCommitConf = 0;
+	QString				m_CachedPassword; // todo replace with a secure storeage object
 
 	friend class CAccessView;
 	friend class CTraceView;

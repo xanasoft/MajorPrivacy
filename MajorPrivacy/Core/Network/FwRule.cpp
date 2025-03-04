@@ -424,7 +424,7 @@ QString CFwRule::ProtocolToStr(EFwKnownProtocols Protocol)
     case 140: return "Shim6";
     case 141: return "WESP";
     case 142: return "ROHC";
-    //case 256: return "???";
+    case 256: return tr("Any");
     default: return QString("#%1").arg((int)Protocol);
     }
 }

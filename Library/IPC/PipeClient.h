@@ -14,6 +14,8 @@ public:
     virtual void Disconnect();
     virtual bool IsConnected();
 
+    uint32 GetServerPID() const override;
+
     virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff);
 
 protected:

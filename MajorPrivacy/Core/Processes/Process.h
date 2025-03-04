@@ -33,6 +33,8 @@ public:
 
 	const CImageSignInfo& GetSignInfo() const { return m_SignInfo; }
 
+	static QString GetSecStateStr(uint32 SecState);
+
 	QString GetStatus() const;
 	QString GetImgStats() const;
 

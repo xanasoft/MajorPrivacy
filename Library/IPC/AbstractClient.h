@@ -16,6 +16,8 @@ public:
 
 	virtual void SetAutoConnect(bool AutoConnect) { m_AutoConnect = AutoConnect; }
 
+	virtual uint32 GetServerPID() const = 0;
+
     virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff) = 0;
     virtual RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message, size_t RetBufferSize = 0x1000)
     {

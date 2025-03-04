@@ -238,7 +238,7 @@ enum {
 
 #define STATUS_OK							0x00000000 // same as STATUS_SUCCESS
 
-#define STATUS_OK_1							0x20000001
+#define STATUS_OK_CNCELED					0x20000001
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -522,6 +522,7 @@ API_V_VALUES : unsigned long
 
 	API_V_OPERATION = 'oper',
 	API_V_ACCESS_MASK = 'amsk',  // desired access
+	API_V_STATUS = 'stat', // NTSTATUS
 	API_V_NT_STATUS = 'ntst', // NTSTATUS
 	API_V_EVENT_STATUS = 'ests', // EEventStatus
 	API_V_IS_DIRECTORY = 'isdr',

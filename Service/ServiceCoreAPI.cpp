@@ -18,6 +18,7 @@
 #include "Volumes/VolumeManager.h"
 #include "Access/HandleList.h"
 #include "Access/AccessManager.h"
+#include "../Library/Helpers/ScopedHandle.h"
 
 void CServiceCore::RegisterUserAPI()
 {
@@ -706,34 +707,66 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CVariant vReq;
 			vReq.FromPacket(req);
 
-			CFlexGuid EnclaveGuid;
-			EnclaveGuid.FromVariant(vReq[API_V_ENCLAVE]);
+			STATUS Status;
 
-			STATUS Status = theCore->Driver()->PrepareEnclave(EnclaveGuid);
+			if (vReq.Has(API_V_ENCLAVE)) {
+				CFlexGuid EnclaveGuid;
+				EnclaveGuid.FromVariant(vReq[API_V_ENCLAVE]);
 
-			if (!Status.IsError())
-			{
-				std::wstring path = vReq[API_V_CMD_LINE];
-
-				STARTUPINFOW si = { 0 };
-				si.cb = sizeof(si);
-
-				PROCESS_INFORMATION pi = { 0 };
-				if (CreateProcessW(NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
-				{
-					CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pi.dwProcessId);
-					CloseHandle(pi.hProcess);
-					CloseHandle(pi.hThread);
-
-					KPH_PROCESS_SFLAGS SecFlags;
-					SecFlags.SecFlags = pProcess->GetSecFlags();
-
-					if(SecFlags.EjectFromEnclave)
-						Status = ERR(STATUS_ERR_PROC_EJECTED);
-				}
-				else
-					Status = ERR(STATUS_UNSUCCESSFUL); // todo make a better error code
+				Status = theCore->Driver()->PrepareEnclave(EnclaveGuid);
+				if (Status.IsError())
+					RETURN_STATUS(Status);
 			}
+
+			std::wstring path = vReq[API_V_CMD_LINE];
+
+			/*
+            WTSQueryUserToken(CallerSession, &PrimaryTokenHandle);
+
+            if (req->elevate == 1) {
+
+                //
+                // run elevated as the current user, if the user is not in the admin group
+                // this will fail, and the process started as normal user
+                //
+
+                ULONG returnLength;
+                TOKEN_LINKED_TOKEN linkedToken = {0};
+                NtQueryInformationToken(PrimaryTokenHandle, (TOKEN_INFORMATION_CLASS)TokenLinkedToken,
+                    &linkedToken, sizeof(TOKEN_LINKED_TOKEN), &returnLength);
+
+                CloseHandle(PrimaryTokenHandle);
+                PrimaryTokenHandle = linkedToken.LinkedToken;                
+            }
+			*/
+
+			CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hProcess(OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE, FALSE, pClient.PID), CloseHandle);
+
+			CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hToken(NULL, CloseHandle);
+			OpenProcessToken(hProcess, TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY | TOKEN_QUERY, &hToken);
+
+			CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hDupToken(NULL, CloseHandle);
+			DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, NULL, SecurityAnonymous, TokenPrimary, &hDupToken);
+
+			STARTUPINFOW si = { 0 };
+			si.cb = sizeof(si);
+			si.dwFlags = STARTF_FORCEOFFFEEDBACK;
+			si.wShowWindow = SW_SHOWNORMAL;
+			PROCESS_INFORMATION pi = { 0 };
+			if (CreateProcessAsUserW(hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+			{
+				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pi.dwProcessId, true);
+				CloseHandle(pi.hProcess);
+				CloseHandle(pi.hThread);
+
+				KPH_PROCESS_SFLAGS SecFlags;
+				SecFlags.SecFlags = pProcess->GetSecFlags();
+
+				if(SecFlags.EjectFromEnclave)
+					Status = ERR(STATUS_ERR_PROC_EJECTED);
+			}
+			else
+				Status = ERR(STATUS_UNSUCCESSFUL); // todo make a better error code
 
 			RETURN_STATUS(Status);
 		}

@@ -131,3 +131,24 @@ QString CResLogEntry::GetStatusStr() const
         Status += QObject::tr(" (0x%1)").arg(m_NtStatus, 8, 16, QChar('0'));
     return Status;
 }
+
+bool CResLogEntry::Match(const CAbstractLogEntry* pEntry) const
+{
+    if (!CAbstractLogEntry::Match(pEntry))
+        return false;
+
+    const CResLogEntry* pResEntry = dynamic_cast<const CResLogEntry*>(pEntry);
+	if (!pResEntry)
+		return false;
+
+	if (m_NtPath != pResEntry->m_NtPath)
+		return false;
+	if (m_AccessMask != pResEntry->m_AccessMask)
+		return false;
+	if (m_Status != pResEntry->m_Status)
+		return false;
+	if (m_NtStatus != pResEntry->m_NtStatus)
+		return false;
+
+	return true;
+}

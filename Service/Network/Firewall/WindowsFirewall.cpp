@@ -943,7 +943,10 @@ ULONG SWindowsFirewall::SetFWConfig(FW_PROFILE_TYPE profile, FW_PROFILE_CONFIG c
 {
     CSectionLock Lock(&cPolicyLock);
 
-    return pFWSetConfig(hPolicyHandle, conf, profile, *(FW_PROFILE_CONFIG_VALUE*)&value, sizeof(value));
+	FW_PROFILE_CONFIG_VALUE configValue;
+	configValue.pdwVal = &value;
+
+    return pFWSetConfig(hPolicyHandle, conf, profile, configValue, sizeof(value));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

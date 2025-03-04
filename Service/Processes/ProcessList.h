@@ -15,6 +15,10 @@ public:
 
 	STATUS Init();
 
+	STATUS Load();
+	STATUS Store();
+	STATUS StoreAsync();
+
 	void Update();
 
 	void Reconfigure();
@@ -51,6 +55,8 @@ protected:
 
 	void AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram, const CExecLogEntryPtr& pLogEntry);
 
+	NTSTATUS OnInjectionRequest(uint64 Pid);
+
 	mutable std::recursive_mutex m_Mutex;
 
 	bool m_bLogNotFound = false;
@@ -62,4 +68,8 @@ protected:
 	std::map<uint64, CProcessPtr> m_List;
 	std::multimap<std::wstring, CProcessPtr> m_Apps;
 	std::multimap<std::wstring, CProcessPtr> m_ByPath;
+
+	friend DWORD CALLBACK CProcessList__LoadProc(LPVOID lpThreadParameter);
+	friend DWORD CALLBACK CProcessList__StoreProc(LPVOID lpThreadParameter);
+	HANDLE					m_hStoreThread = NULL;
 };

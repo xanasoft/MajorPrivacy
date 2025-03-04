@@ -22,3 +22,16 @@ void CAbstractLogEntry::ReadValue(uint32 Index, const XVariant& Data)
 	case API_V_EVENT_TIME_STAMP:	m_TimeStamp = Data; break;
 	}
 }
+
+bool CAbstractLogEntry::Match(const CAbstractLogEntry* pEntry) const
+{
+	//if (m_PID != pEntry->m_PID)
+	//	return false;
+	if (m_ServiceTag != pEntry->m_ServiceTag)
+		return false;
+	if (m_AppSid != pEntry->m_AppSid)
+		return false;
+	if (m_EnclaveGuid != pEntry->m_EnclaveGuid)
+		return false;
+	return true;
+}

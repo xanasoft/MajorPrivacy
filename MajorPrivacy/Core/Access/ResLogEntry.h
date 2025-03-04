@@ -19,6 +19,8 @@ public:
 	static QString GetAccessStr(quint32 uAccessMask);
 	static QString GetAccessStrEx(quint32 uAccessMask);
 
+	bool Match(const CAbstractLogEntry* pEntry) const override;
+
 protected:
 
 	virtual void ReadValue(uint32 Index, const XVariant& Data);

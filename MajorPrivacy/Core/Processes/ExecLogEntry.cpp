@@ -272,3 +272,30 @@ QString CExecLogEntry::GetAccessStrEx(quint32 uProcessAccessMask, quint32 uThrea
 	Permissions += GetThreadPermissions(uThreadAccessMask);
 	return Permissions.join(", ");
 }
+
+bool CExecLogEntry::Match(const CAbstractLogEntry* pEntry) const
+{
+	if (!CAbstractLogEntry::Match(pEntry))
+		return false;
+
+	const CExecLogEntry* pExec = dynamic_cast<const CExecLogEntry*>(pEntry);
+	if (!pExec)
+		return false;
+
+	if (m_Role != pExec->m_Role)
+		return false;
+	if (m_Type != pExec->m_Type)
+		return false;
+	if (m_Status != pExec->m_Status)
+		return false;
+	if (m_MiscID != pExec->m_MiscID)
+		return false;
+	if (m_OtherEnclave != pExec->m_OtherEnclave)
+		return false;
+	if (m_AccessMask != pExec->m_AccessMask)
+		return false;
+	if (m_NtStatus != pExec->m_NtStatus)
+		return false;
+
+	return true;
+}

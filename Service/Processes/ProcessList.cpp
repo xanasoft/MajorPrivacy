@@ -17,11 +17,15 @@
 #include "../Library/Common/Strings.h"
 #include "../Library/IPC/PipeServer.h"
 #include "../Access/ResLogEntry.h"
+#include "../Library/Hooking/HookUtils.h"
+#include "../Library/Common/FileIO.h"
 
 extern "C" {
 #include "../../Driver/KSI/include/kphmsg.h"
 }
 
+#define API_INGRESS_RECORD_FILE_NAME L"IngressRecord.dat"
+#define API_INGRESS_RECORD_FILE_VERSION 1
 
 CProcessList::CProcessList()
 {
@@ -33,14 +37,38 @@ CProcessList::~CProcessList()
     delete m_Services;
 }
 
+DWORD CALLBACK CProcessList__LoadProc(LPVOID lpThreadParameter)
+{
+#ifdef _DEBUG
+    SetThreadDescription(GetCurrentThread(), L"CProcessList__LoadProc");
+#endif
+
+    CProcessList* This = (CProcessList*)lpThreadParameter;
+
+    uint64 uStart = GetTickCount64();
+    STATUS Status = This->Load();
+    DbgPrint(L"CProcessList::Load() took %llu ms\n", GetTickCount64() - uStart);
+
+    NtClose(This->m_hStoreThread);
+    This->m_hStoreThread = NULL;
+    return 0;
+}
+
 STATUS CProcessList::Init()
 {
     STATUS Status;
+
+    static bool bInitInject = true;
+    if (bInitInject) {
+        InitInject(); // todo handle error
+        bInitInject = false;
+    }
 
     theCore->Driver()->RegisterProcessHandler(&CProcessList::OnProcessDrvEvent, this);
     uint32 uEvents = KphMsgProcessCreate | KphMsgProcessExit | KphMsgUntrustedImage | KphMsgImageLoad | KphMsgProcAccess | KphMsgThreadAccess | KphMsgAccessFile;
     if(theCore->Config()->GetBool("Service", "LogRegistry", false))
         uEvents |= KphMsgAccessReg;
+    uEvents |= KphMsgInjectDll;
     Status = theCore->Driver()->RegisterForProcesses(uEvents, true);
     if (Status.IsError()) 
     {
@@ -56,7 +84,33 @@ STATUS CProcessList::Init()
 
     Update();
 
+    m_hStoreThread = CreateThread(NULL, 0, CProcessList__LoadProc, (void*)this, 0, NULL);
+
     return Status;
+}
+
+DWORD CALLBACK CProcessList__StoreProc(LPVOID lpThreadParameter)
+{
+#ifdef _DEBUG
+    SetThreadDescription(GetCurrentThread(), L"CProcessList__StoreProc");
+#endif
+
+    CProcessList* This = (CProcessList*)lpThreadParameter;
+
+    uint64 uStart = GetTickCount64();
+    STATUS Status = This->Store();
+    DbgPrint(L"CProcessList::Store() took %llu ms\n", GetTickCount64() - uStart);
+
+    NtClose(This->m_hStoreThread);
+    This->m_hStoreThread = NULL;
+    return 0;
+}
+
+STATUS CProcessList::StoreAsync()
+{
+    if (m_hStoreThread) return STATUS_ALREADY_COMMITTED;
+    m_hStoreThread = CreateThread(NULL, 0, CProcessList__StoreProc, (void*)this, 0, NULL);
+    return STATUS_SUCCESS;
 }
 
 void CProcessList::Update()
@@ -635,6 +689,20 @@ void CProcessList::AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram
         theCore->BroadcastMessage(SVC_API_EVENT_EXEC_ACTIVITY, Event, pProgram);
 }
 
+NTSTATUS CProcessList::OnInjectionRequest(uint64 Pid)
+{
+    const ULONG DesiredAccess =
+        PROCESS_DUP_HANDLE | PROCESS_TERMINATE | PROCESS_SUSPEND_RESUME
+        | PROCESS_SET_INFORMATION | PROCESS_QUERY_INFORMATION
+        | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE;
+
+    CScopedHandle hProcess = CScopedHandle(OpenProcess(DesiredAccess, FALSE, (DWORD)Pid), CloseHandle);
+
+    ULONG errlvl = InjectLdr(hProcess, 0);
+
+	return STATUS_SUCCESS;
+}
+
 NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
 {
     switch (pEvent->Type)
@@ -683,6 +751,11 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
 			OnResourceAccessed(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status, pAccessEvent->NtStatus, pAccessEvent->IsDirectory);
 			break;
         }
+		case SProcessEvent::EType::InjectionRequest:
+		{
+			const SInjectionRequest* pInjectEvent = (SInjectionRequest*)(pEvent);
+			return OnInjectionRequest(pInjectEvent->ProcessId);
+		}
     }
 
     return STATUS_SUCCESS;
@@ -707,4 +780,81 @@ void CProcessList::OnProcessEtwEvent(const struct SEtwProcessEvent* pEvent)
     OnProcessStarted(pEvent->ProcessId, pEvent->ParentId, pEvent->ParentId, L"", pEvent->FileName, pEvent->CommandLine, NULL, pEvent->TimeStamp, EEventStatus::eAllowed, true);
     //if (!OnProcessStarted(pEvent->ProcessId, pEvent->ParentId, pEvent->FileName, pEvent->CommandLine, pEvent->TimeStamp, true))
     //    TerminateProcess(pEvent->ProcessId, pEvent->FileName);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Load/Store
+
+STATUS CProcessList::Load()
+{
+    CBuffer Buffer;
+    if (!ReadFile(theCore->GetDataFolder() + L"\\" API_INGRESS_RECORD_FILE_NAME, 0, Buffer)) {
+        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_INGRESS_RECORD_FILE_NAME L" not found");
+        return ERR(STATUS_NOT_FOUND);
+    }
+
+    CVariant Data;
+    //try {
+    auto ret = Data.FromPacket(&Buffer, true);
+    //} catch (const CException&) {
+    //	return ERR(STATUS_UNSUCCESSFUL);
+    //}
+    if (ret != CVariant::eErrNone) {
+        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_INGRESS_RECORD_FILE_NAME);
+        return ERR(STATUS_UNSUCCESSFUL);
+    }
+
+    if (Data[API_S_VERSION].To<uint32>() != API_INGRESS_RECORD_FILE_VERSION) {
+        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Encountered unsupported " API_INGRESS_RECORD_FILE_NAME);
+        return ERR(STATUS_UNSUCCESSFUL);
+    }
+
+    CVariant List = Data[API_S_ACCESS_LOG];
+
+    for (uint32 i = 0; i < List.Count(); i++)
+    {
+        CVariant Item = List[i];
+
+        CProgramID ID;
+        ID.FromVariant(Item.Find(API_V_PROG_ID));
+        CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
+        if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+            pProgram->LoadIngress(Item);
+        else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+            pService->LoadIngress(Item);
+    }
+
+    return OK;
+}
+
+STATUS CProcessList::Store()
+{
+    SVarWriteOpt Opts;
+    Opts.Format = SVarWriteOpt::eIndex;
+    Opts.Flags = SVarWriteOpt::eSaveToFile;
+
+    CVariant List;
+
+    if (theCore->Config()->GetBool("Service", "SaveIngressRecord", false))
+    {
+        for (auto pItem : theCore->ProgramManager()->GetItems())
+        {
+            // StoreAccess saves API_V_PROG_ID
+            if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+                List.Append(pProgram->StoreIngress(Opts));
+            else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+                List.Append(pService->StoreIngress(Opts));
+        }
+    }
+    // we save the file on false as well to clear it
+
+    CVariant Data;
+    Data[API_S_VERSION] = API_INGRESS_RECORD_FILE_VERSION;
+    Data[API_S_ACCESS_LOG] = List;
+
+    CBuffer Buffer;
+    Data.ToPacket(&Buffer);
+    WriteFile(theCore->GetDataFolder() + L"\\" API_INGRESS_RECORD_FILE_NAME, 0, Buffer);
+
+    return OK;
 }

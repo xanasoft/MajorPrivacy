@@ -512,9 +512,18 @@ void CAlpcPortServer::CallTarget(const CBuffer& recvBuff, CBuffer& sendBuff, HAN
 
         MSG_HEADER* in_msg = (MSG_HEADER*)recvBuff.GetData(sizeof(MSG_HEADER));
 
-        auto I = m_MessageHandlers.find(in_msg->MessageId);
-        if (I != m_MessageHandlers.end())
-            status = I->second(in_msg->MessageId, &recvBuff, &sendBuff, PID, TID);   
+        if (in_msg->MessageId == -1)
+        {
+            DWORD pid = GetCurrentProcessId();
+			sendBuff.WriteValue<uint32>(pid);
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+            auto I = m_MessageHandlers.find(in_msg->MessageId);
+            if (I != m_MessageHandlers.end())
+                status = I->second(in_msg->MessageId, &recvBuff, &sendBuff, PID, TID);
+        }
 
     }
 //#ifndef _DEBUG

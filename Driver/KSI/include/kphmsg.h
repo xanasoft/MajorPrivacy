@@ -36,6 +36,7 @@ typedef enum _KPH_MESSAGE_ID
     // KPH -> PH
     //
 
+    // process monitor
     KphMsgProcessCreate = 0x40000001,
     KphMsgProcessExit   = 0x40000002,
     KphMsgImageLoad     = 0x40000004,
@@ -45,12 +46,18 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgAccessFile    = 0x40000040,
     KphMsgAccessReg     = 0x40000080,
 
+    // config changed
 	KphMsgSecureEnclave = 0x40000100,
     KphMsgProgramRules  = 0x40000200,
     KphMsgAccessRules   = 0x40000400,
 	KphMsgFirewallRules = 0x40000800, // todo
 
-    MaxKphMsg
+    // other events
+    KphMsgInjectDll     = 0x40001000,
+
+    MaxKphMsg,
+
+    KphMsgUnhandled = 0xffffffff,
 } KPH_MESSAGE_ID, *PKPH_MESSAGE_ID;
 
 C_ASSERT(sizeof(KPH_MESSAGE_ID) == 4);

@@ -33,6 +33,8 @@ public:
         return m_IoDeviceHandle;
     }
 
+    uint32 GetServerPID() const override { return 4; } // return SYSTEM pid
+
     virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff)
     {
         if (!m_IoDeviceHandle)

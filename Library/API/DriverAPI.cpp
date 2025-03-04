@@ -214,6 +214,30 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
             break;
         }
 
+        case KphMsgInjectDll:
+        {
+            SInjectionRequest Event;
+            Event.Type = SProcessEvent::EType::InjectionRequest;
+            Event.ProcessId = vEvent[API_V_PID].To<uint64>();
+            
+            NTSTATUS status = CDriverAPI__EmitProcess(This, &Event);
+
+            CVariant vReply;
+            vReply[API_V_STATUS] = (sint32)status;
+
+            CBuffer OutBuff;
+            OutBuff.SetData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
+            PMSG_HEADER repHeader = (PMSG_HEADER)OutBuff.GetBuffer();
+            repHeader->MessageId = Message->Header.MessageId;
+            repHeader->Size = sizeof(MSG_HEADER);
+            vReply.ToPacket(&OutBuff);
+            PKPH_MESSAGE msg = (PKPH_MESSAGE)OutBuff.GetBuffer();
+            msg->Header.Size = (ULONG)OutBuff.GetSize();
+
+            ReplyFunc(Context, msg);
+            break;
+        }
+
 
         case KphMsgSecureEnclave:
         case KphMsgProgramRules:
@@ -345,7 +369,6 @@ RESULT(SProcessInfoPtr) CDriverAPI::GetProcessInfo(uint64 pid)
 
     Info->ImageName = ResVar.Get(API_V_NAME).AsStr();
     Info->FileName = ResVar.Get(API_V_FILE_PATH).AsStr();
-    ASSERT(!Info->FileName.empty() || pid == 4); // todo: test
     Info->CreateTime = ResVar[API_V_CREATE_TIME].To<uint64>();
     Info->ParentPid = ResVar[API_V_PARENT_PID].To<uint64>();
 

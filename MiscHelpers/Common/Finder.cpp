@@ -51,7 +51,7 @@ CFinder::CFinder(QObject* pFilterTarget, QWidget *parent, int iOptions)
 
 	if ((iOptions & eCaseSens) != 0)
 	{
-		if (!m_CaseInsensitive.isNull()) {
+		if (!m_CaseInsensitiveIcon.isNull()) {
 			m_pCaseSensitive = new QToolButton();
 			((QToolButton*)m_pCaseSensitive)->setIcon(m_CaseInsensitiveIcon);
 			((QToolButton*)m_pCaseSensitive)->setCheckable(true);

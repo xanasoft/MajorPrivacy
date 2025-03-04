@@ -433,6 +433,7 @@ signals:
 	void checkStateChanged(int Index, Qt::CheckState state);
 };
 
+
 ///////////////////////////////////////////////////
 // CConfigDialog
 

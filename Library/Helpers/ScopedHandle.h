@@ -11,13 +11,13 @@ public:
 	}
 	~CScopedHandle()
 	{
-		if (m_handle)
+		if (m_handle && m_handle != ((HANDLE)(LONG_PTR)-1))
 			m_closer(m_handle);
 	}
 
 	void Set(T handle, U closer = NULL)
 	{
-		if (m_handle)
+		if (m_handle && m_handle != ((HANDLE)(LONG_PTR)-1))
 			m_closer(m_handle);
 		m_handle = handle;
 		if(closer) m_closer = closer;

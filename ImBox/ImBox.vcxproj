@@ -132,7 +132,7 @@
       <AdditionalDependencies>ntdll.lib;Wtsapi32.lib;Advapi32.lib;Bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -152,7 +152,7 @@
       <AdditionalDependencies>ntdll.lib;Wtsapi32.lib;Advapi32.lib;Bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -168,7 +168,7 @@
       <AdditionalDependencies>ntdll.lib;Wtsapi32.lib;Advapi32.lib;Bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -204,7 +204,7 @@
       <AdditionalDependencies>ntdll.lib;Wtsapi32.lib;Advapi32.lib;Bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">

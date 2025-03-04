@@ -16,6 +16,8 @@ public:
 	void Disconnect();
 	bool IsConnected();
 
+	uint32 GetProcessId() const;
+
 	RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message);
 
 	uint32 GetABIVersion();

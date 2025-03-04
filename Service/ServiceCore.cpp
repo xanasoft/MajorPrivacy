@@ -434,15 +434,15 @@ STATUS CServiceCore::Init()
 		{
 			SetAdminFullControl(m_DataFolder);
 
-			std::wofstream file(m_DataFolder + L"\\Readme.txt");
-			if (file.is_open()) {
-				file << L"This folder contains data used by " << APP_NAME << std::endl;
-				file.close();
-			}
+			//std::wofstream file(m_DataFolder + L"\\Readme.txt");
+			//if (file.is_open()) {
+			//	file << L"This folder contains data used by " << APP_NAME << std::endl;
+			//	file.close();
+			//}
 		}
 	}
 
-	m_pConfig = new CConfigIni(m_DataFolder + L"\\" + APP_NAME + L".ini");
+	m_pConfig = new CConfigIni(m_DataFolder + L"\\" + API_SERVICE_NAME + L".ini");
 
 	m_LastStoreTime = GetTickCount64();
 
@@ -491,6 +491,11 @@ void CServiceCore::Shutdown(bool bWait)
 void CServiceCore::StoreRecords(bool bAsync)
 {
 	m_pProgramManager->Store();
+
+	if(bAsync)
+		m_pProcessList->StoreAsync();
+	else
+		m_pProcessList->Store();
 
 	if(bAsync)
 		m_pAccessManager->StoreAsync();

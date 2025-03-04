@@ -483,5 +483,8 @@
     <ResourceCompile Include="Resources\Service.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+    <ResourceCompile Include="Resources\ldrcode.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

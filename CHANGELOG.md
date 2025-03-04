@@ -5,6 +5,32 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
+## [0.97.1] - 2025-03-04
+
+### Added
+- added dll injection mechanism
+- added optional user password cache
+- added more tray menu options
+
+### Changed
+- reworked and improved signature verification
+- moved ingress regord to separate file
+- renamed AccessLog.dat to AccessRecord.dat and TrafficLog.dat to TrafficRecord.dat
+  - note: as this is still in beta the old files wont be loaded or cleaned up autoamtically
+  - you can delete them manually from C:\ProgramData\Xanasoft\MajorPrivacy
+- by default no records (Traffic, Execution, Ingress, Access) are stored to disk anymore
+- changed the services ini file name to PrivacyAgent.ini
+- the pop up notification no longer shows redundant entries
+
+### Fixed
+- fixed ZwLockRegistryKey usage incompatybility with HVCI
+- fixed process protection related ui crashes around dll loading
+- fixed crash when setting firewall filtering mode
+
+
+
+
 ## [0.97.0] - 2025-01-11
 
 ### Added
@@ -165,9 +191,3 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - Ported PrivateWin10 functionality to C++ 
-
-
-
-## [0.85] - 2021-09-13
-
-See [PrivateWin10 ChangeLog](https://github.com/DavidXanatos/priv10/blob/master/CHANGELOG.md#changelog) for details.

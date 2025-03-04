@@ -82,12 +82,13 @@ union KPH_PROCESS_FLAGS // API_S_... TODO
 		ULONG CreateNotification : 1;
 		ULONG ExitNotification : 1;
 		ULONG VerifiedProcess : 1;
-		ULONG SecurelyCreated : 1;
+		ULONG SecurelyCreated : 2;
 		ULONG Protected : 1;
-		ULONG IsLsass : 1;
 		ULONG IsWow64 : 1;
 		ULONG IsSubsystemProcess : 1;
-		ULONG Reserved : 24;
+		ULONG AllocatedImageName : 1;
+		ULONG SystemAllocatedImageFileName : 1;
+		ULONG Reserved : 22;
 	};
 };
 
@@ -120,6 +121,7 @@ union KPH_PROCESS_SFLAGS // API_S_... TODO
 #define KPH_VERIFY_FLAG_CI_SIG_DUMMY    0x00000020
 #define KPH_VERIFY_FLAG_CI_SIG_OK       0x00000040
 #define KPH_VERIFY_FLAG_CI_SIG_FAIL     0x00000080
+#define KPH_VERIFY_FLAG_COHERENCY_FAIL  0x00000100
 
 #endif
 

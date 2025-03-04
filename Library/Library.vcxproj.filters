@@ -40,6 +40,12 @@
     <Filter Include="API">
       <UniqueIdentifier>{5759a500-9c30-4891-9546-1354a55fda54}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Hooking">
+      <UniqueIdentifier>{f0ee00b2-7ead-4128-9580-e3f5a1cb85a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooking\Detours">
+      <UniqueIdentifier>{619fad75-2756-42f4-8657-c5940ad8a205}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -330,6 +336,9 @@
     <ClInclude Include="API\PrivacyAPIs.h">
       <Filter>API</Filter>
     </ClInclude>
+    <ClInclude Include="Helpers\Reparse.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
     <ClInclude Include="Common\ObjectTracker.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -353,6 +362,21 @@
     </ClInclude>
     <ClInclude Include="Common\FlexGuid.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooking\arm64_asm.h">
+      <Filter>Hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooking\dllimport.h">
+      <Filter>Hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooking\Detours\detours.h">
+      <Filter>Hooking\Detours</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooking\Detours\detver.h">
+      <Filter>Hooking\Detours</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooking\HookUtils.h">
+      <Filter>Hooking</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -539,6 +563,9 @@
     <ClCompile Include="API\API_Programs.cpp">
       <Filter>API</Filter>
     </ClCompile>
+    <ClCompile Include="Helpers\Reparse.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
     <ClCompile Include="Common\ObjectTracker.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -563,6 +590,51 @@
     <ClCompile Include="Common\FlexGuid.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Hooking\dllimport.c">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\hook_util.c">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\ldrcode_inject.c">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\creatwth.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\detours.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\disasm.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\disolarm.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\disolarm64.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\disolia64.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\disolx64.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\disolx86.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\image.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\modules.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\Detours\uimports.cpp">
+      <Filter>Hooking\Detours</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\HookUtils.cpp">
+      <Filter>Hooking</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\Service.rc">
@@ -572,6 +644,9 @@
   <ItemGroup>
     <None Include="..\Framework\README.MD">
       <Filter>Framework</Filter>
+    </None>
+    <None Include="Hooking\Detours\Makefile">
+      <Filter>Hooking\Detours</Filter>
     </None>
   </ItemGroup>
 </Project>

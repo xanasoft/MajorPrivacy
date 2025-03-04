@@ -26,17 +26,18 @@ struct SAlpcPortClient
     SAlpcPortClient()
     {
         PortHandle = NULL;
-        MaxDataLen = 0;
-		CallSeqNumber = 0;
 		SizeofPortMsg = sizeof(PORT_MESSAGE);
 		//if (IsWow64())
 		//	SizeofPortMsg += sizeof(ULONG) * 4;
     }
 
     HANDLE PortHandle;
-	ULONG MaxDataLen;
-	ULONG SizeofPortMsg;
-	ULONG CallSeqNumber;
+
+	DWORD dwServerPid = 0;
+
+	ULONG MaxDataLen = 0;
+	ULONG SizeofPortMsg = 0;
+	ULONG CallSeqNumber = 0;
 
 	std::wstring PortName;
 };
@@ -85,6 +86,26 @@ STATUS CAlpcPortClient::Connect()
 	// Function associate PortHandle with thread, and sends LPC_TERMINATION_MESSAGE to specified port immediately after call NtTerminateThread.
 	//NtRegisterThreadTerminatePort(m->PortHandle);
 
+	// Get PID
+	CBuffer sendBuff;
+	sendBuff.SetData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
+	PMSG_HEADER reqHeader = (PMSG_HEADER)sendBuff.GetBuffer();
+	reqHeader->MessageId = -1;
+	reqHeader->Size = sizeof(MSG_HEADER);
+
+	CBuffer recvBuff;
+	recvBuff.SetData(NULL, sizeof(MSG_HEADER) + sizeof(uint32));
+	PMSG_HEADER resHeader = (PMSG_HEADER)recvBuff.GetBuffer();
+	
+	if (NT_SUCCESS(Call(sendBuff, recvBuff)))
+	{
+		if (NT_SUCCESS(resHeader->Status)) {
+			recvBuff.SetPosition(sizeof(MSG_HEADER));
+			m->dwServerPid = recvBuff.ReadValue<uint32>();
+		}
+	}
+	//
+
     return Status;	    
 }
 
@@ -99,6 +120,11 @@ void CAlpcPortClient::Disconnect()
 bool CAlpcPortClient::IsConnected()
 {
 	return m->PortHandle;
+}
+
+uint32 CAlpcPortClient::GetServerPID() const
+{
+	return m->dwServerPid;
 }
 
 STATUS CAlpcPortClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff)

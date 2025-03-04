@@ -24,6 +24,8 @@ typedef long NTSTATUS;
 #include "../IPC/PipeClient.h"
 #include "../IPC/AlpcPortClient.h"
 
+//#define USE_ALPC
+
 void CServiceAPI__EmitEvent(CServiceAPI* This, const CBuffer* pEvent)
 {
 	MSG_HEADER* in_msg = (MSG_HEADER*)pEvent->ReadData(sizeof(MSG_HEADER));
@@ -42,8 +44,11 @@ static VOID NTAPI CServiceAPI__Callback(const CBuffer& buff, PVOID Param)
 
 CServiceAPI::CServiceAPI()
 {
-	//m_pClient = new CAlpcPortClient();
+#ifdef USE_ALPC
+	m_pClient = new CAlpcPortClient();
+#else
 	m_pClient = new CPipeClient(CServiceAPI__Callback, this);
+#endif
 }
 
 CServiceAPI::~CServiceAPI()
@@ -78,8 +83,11 @@ STATUS CServiceAPI::ConnectSvc()
     if (!Status)
         return Status;
 
-	//Status = m_pClient->Connect(API_SERVICE_PORT);
+#ifdef USE_ALPC
+	Status = m_pClient->Connect(API_SERVICE_PORT);
+#else
 	Status = m_pClient->Connect(API_SERVICE_PIPE);
+#endif
 
 	return Status;
 }
@@ -89,8 +97,11 @@ STATUS CServiceAPI::ConnectEngine()
 	if(m_pClient->IsConnected())
 		m_pClient->Disconnect();
 
-	//STATUS Status = m_pClient->Connect(API_SERVICE_PORT);
+#ifdef USE_ALPC
+	STATUS Status = m_pClient->Connect(API_SERVICE_PORT);
+#else
 	STATUS Status = m_pClient->Connect(API_SERVICE_PIPE);
+#endif
 	if (Status)
 		return Status;
 	
@@ -141,8 +152,11 @@ STATUS CServiceAPI::ConnectEngine()
 			break; // engine failed to start
 		}
 
-		//Status = m_pClient->Connect(API_SERVICE_PORT);
+#ifdef USE_ALPC
+		Status = m_pClient->Connect(API_SERVICE_PORT);
+#else
 		Status = m_pClient->Connect(API_SERVICE_PIPE);
+#endif
 		if (Status)
 			return OK;
 		Sleep(1000 * i);
@@ -162,6 +176,11 @@ void CServiceAPI::Disconnect()
 bool CServiceAPI::IsConnected()
 {
 	return m_pClient->IsConnected();
+}
+
+uint32 CServiceAPI::GetProcessId() const
+{
+	return m_pClient->GetServerPID();
 }
 
 RESULT(CVariant) CServiceAPI::Call(uint32 MessageId, const CVariant& Message)

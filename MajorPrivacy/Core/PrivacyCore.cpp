@@ -14,6 +14,7 @@
 #include "Access/AccessManager.h"
 #include "../Library/Crypto/HashFunction.h"
 #include "Helpers/WinHelper.h"
+#include "../Driver/KSI/include/kphapi.h"
 
 #include <phnt_windows.h>
 #include <phnt.h>
@@ -63,6 +64,8 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 	Status = PublicKey.Verify(Hash, Signature);*/
 
 #endif
+
+	m_pLog = new CEventLogger(APP_NAME);
 	
 	m_pSidResolver = new CSidResolver(this);
 	m_pSidResolver->Init();
@@ -164,11 +167,13 @@ bool CPrivacyCore::SvcIsRunning()
 
 STATUS CPrivacyCore::Connect(bool bEngineMode)
 {
+	m_GuiSecState = 0;
+	m_SvcSecState = 0;
+
 	STATUS Status;
 	if (!m_Service.IsConnected())
 	{
-		m_bEngineMode = bEngineMode;
-		if (bEngineMode)
+		if (bEngineMode && !IsInstalled())
 			Status = m_Service.ConnectEngine();
 		else
 		{
@@ -198,6 +203,11 @@ STATUS CPrivacyCore::Connect(bool bEngineMode)
 			return Status;
 	}
 
+	m_bEngineMode = !IsInstalled();
+
+	if(bEngineMode && !m_bEngineMode)
+		theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Service is installed, engine mod ignored");
+
 	m_ConfigDir = QueryConfigDir();
 
 	if (!m_Driver.IsConnected()) 
@@ -214,8 +224,23 @@ STATUS CPrivacyCore::Connect(bool bEngineMode)
 			m_Driver.RegisterForConfigEvents(EConfigGroup::eEnclaves);
 			m_Driver.RegisterForConfigEvents(EConfigGroup::eAccessRules);
 			m_Driver.RegisterForConfigEvents(EConfigGroup::eProgramRules);
+
+			auto Result = m_Driver.GetProcessInfo(GetCurrentProcessId());
+			if (!Result.IsError())
+			{
+				auto Data = Result.GetValue();
+				m_GuiSecState = Data->SecState;
+			}
 		}
 	}
+
+	auto Result = m_Driver.GetProcessInfo(m_Service.GetProcessId());
+	if (!Result.IsError())
+	{
+		auto Data = Result.GetValue();
+		m_SvcSecState = Data->SecState;
+	}
+
 	return Status;
 }
 
@@ -231,6 +256,26 @@ void CPrivacyCore::Disconnect(bool bKeepEngine)
 	m_ProgramRulesUpToDate = false;
 	m_AccessRulesUpToDate = false;
 	m_FwRulesUpToDate = false;
+}
+
+bool CPrivacyCore::IsGuiHighSecurity() const
+{
+	return ((m_GuiSecState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH);
+}
+
+bool CPrivacyCore::IsGuiMaxSecurity() const
+{
+	return ((m_GuiSecState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM);
+}
+
+bool CPrivacyCore::IsSvcHighSecurity() const
+{
+	return ((m_SvcSecState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH);
+}
+
+bool CPrivacyCore::IsSvcMaxSecurity() const
+{
+	return ((m_SvcSecState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM);
 }
 
 STATUS CPrivacyCore::Update()
@@ -864,6 +909,13 @@ RESULT(XVariant) CPrivacyCore::GetProcess(uint64 Pid)
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_PROCESS, Request))
 }
 
+STATUS CPrivacyCore::StartProcessBySvc(const QString& Command)
+{
+	XVariant Request;
+	Request[API_V_CMD_LINE] = Command;
+	return m_Service.Call(SVC_API_START_SECURE, Request);
+}
+
 STATUS CPrivacyCore::TerminateProcess(uint64 Pid)
 {
 	//CVariant Request;
@@ -921,7 +973,7 @@ STATUS CPrivacyCore::DelEnclave(const QFlexGuid& Guid)
 
 STATUS CPrivacyCore::StartProcessInEnclave(const QString& Command, const QFlexGuid& Guid)
 {
-	STATUS Status = theCore->Driver()->PrepareEnclave(Guid);
+	STATUS Status = m_Driver.PrepareEnclave(Guid);
 	if (Status.IsError())
 		return Status;
 

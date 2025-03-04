@@ -113,10 +113,6 @@ MISCHELPERS_EXPORT QAction* MakeAction(QMenu* pParent, const QString& Text, cons
 MISCHELPERS_EXPORT QAction* MakeAction(QActionGroup* pGroup, QMenu* pParent, const QString& Text, const QVariant& Data);
 MISCHELPERS_EXPORT void SetPaleteTexture(QPalette& palette, QPalette::ColorRole role, const QImage& image);
 
-#ifdef WIN32
-MISCHELPERS_EXPORT bool InitConsole(bool bCreateIfNeeded = true);
-#endif
-
 MISCHELPERS_EXPORT void SafeShow(QWidget* pWidget);
 
 template <typename T>
@@ -124,3 +120,12 @@ QSet<T> ListToSet(const QList<T>& qList) { return QSet<T>(qList.begin(), qList.e
 
 template <typename T>
 QList<T> SetToList(const QSet<T>& qSet) { return QList<T>(qSet.begin(), qSet.end()); }
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+bool MISCHELPERS_EXPORT operator < (const QVariant& l, const QVariant& r);
+#endif
+
+
+#ifdef WIN32
+MISCHELPERS_EXPORT bool InitConsole(bool bCreateIfNeeded = true);
+#endif

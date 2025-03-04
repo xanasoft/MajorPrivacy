@@ -38,6 +38,7 @@
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include "Windows/MountMgrWnd.h"
 #include "Windows/SignatureDbWnd.h"
+#include "../QtSingleApp/src/qtsingleapplication.h"
 
 #include <Windows.h>
 #include <ShellApi.h>
@@ -141,7 +142,8 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 	SafeShow(this);
 
 	STATUS Status = Connect();
-	CheckResults(QList<STATUS>() << Status, this);
+	if (Status.IsError())
+		CheckResults(QList<STATUS>() << Status, this);
 
 #ifdef _DEBUG
 	m_uTimerID = startTimer(500);
@@ -249,11 +251,11 @@ void CMajorPrivacy::UpdateLockStatus(bool bOnConnect)
 		m_pClearKeys->setEnabled(false);
 
 	bool bProtected = (uConfigStatus & CONFIG_STATUS_PROTECTED) != 0;
-	//m_pProtectConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && !bProtected);
-	m_pProtectConfig->setEnabled(false); // fix-me: causes BSOD on HVCI enabled systems
+	m_pProtectConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && !bProtected);
 	m_pUnprotectConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && bProtected);
 	bool bLocked = (uConfigStatus & CONFIG_STATUS_LOCKED) != 0;
 	m_pUnlockConfig->setEnabled(bConnected && m_pSignFile->isEnabled() && bProtected && bLocked);
+	m_DrvConfigLocked = bLocked;
 
 	bool bDirty = (uConfigStatus & CONFIG_STATUS_DIRTY) != 0;
 	m_pCommitConfig->setEnabled(bConnected && bDirty);
@@ -289,7 +291,7 @@ STATUS CMajorPrivacy::Connect()
 				, tr("Remember this choice."), &State, QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel, QDialogButtonBox::No, QMessageBox::Question);
 
 			if (ret == QMessageBox::Cancel)
-				return ERR(STATUS_CANCELLED);
+				return ERR(STATUS_OK_CNCELED);
 
 			bEngineMode = ret == QMessageBox::No;
 
@@ -303,13 +305,26 @@ STATUS CMajorPrivacy::Connect()
 	if(!theCore->SvcIsRunning() && !IsRunningElevated())
 		QMessageBox::information(this, "MajorPrivacy", tr("Major Privacy will now attempt to start the Privacy Agent, please confirm the UAC prompt."));
 	
+	m_iReConnected = 1;
 	Status = theCore->Connect(bEngineMode);
 
 	SetTitle();
 
 	if (Status) 
 	{
-		statusBar()->showMessage(tr("Privacy Agent Ready"), 10000);
+		statusBar()->showMessage(tr("Privacy Agent Ready %1/%2")
+			.arg(CProcess::GetSecStateStr(theCore->GetSvcSecState()))
+			.arg(CProcess::GetSecStateStr(theCore->GetGuiSecState())), 10000);
+
+#ifndef _DEBUG
+		if (theCore->IsSvcMaxSecurity() && (!theCore->IsGuiMaxSecurity() && theCore->IsGuiHighSecurity()))
+		{
+			theCore->StartProcessBySvc(QCoreApplication::applicationFilePath().replace("/", "\\"));
+			theCore->Disconnect(true);
+			((QtSingleApplication*)QApplication::instance())->disableSingleApp();
+			PostQuitMessage(0);
+		}
+#endif
 
 		UpdateLockStatus(true);
 
@@ -325,6 +340,7 @@ STATUS CMajorPrivacy::Connect()
 
 void CMajorPrivacy::Disconnect()
 {
+	m_iReConnected = 0;
 	theCore->Disconnect(true);
 
 	SetTitle();
@@ -459,6 +475,24 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 		theCore->ProcessEvents();
 	}
 
+
+	quint64 CurTime = QDateTime::currentSecsSinceEpoch();
+
+	if (m_AutoCommitConf && m_AutoCommitConf < CurTime){
+		if (bConnected) {
+			STATUS Status = CommitDrvConfig();
+			CheckResults(QList<STATUS>() << Status, this);
+		}
+		m_AutoCommitConf = 0;
+	}
+
+	if (m_ForgetSignerPW && m_ForgetSignerPW < CurTime)
+		m_ForgetSignerPW = 0;
+
+	if(!m_CachedPassword.isEmpty() && !(m_AutoCommitConf || m_ForgetSignerPW))
+		m_CachedPassword.clear();
+
+
 	if (bVisible)
 	{
 		UpdateLockStatus();
@@ -472,6 +506,10 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 		m_VolumePage->Update();
 		m_TweakPage->Update();
 	}
+}
+
+void CMajorPrivacy::OnMessage(const QString& MsgData)
+{
 }
 
 void CMajorPrivacy::LoadState(bool bFull)
@@ -843,6 +881,17 @@ void CMajorPrivacy::CreateTrayMenu()
 	pShowHide->setFont(f);
 	m_pTrayMenu->addSeparator();
 
+	m_pExecShowPopUp = m_pTrayMenu->addAction(tr("Process Protection Popups"), this, SLOT(OnPopUpPreset()));
+	m_pExecShowPopUp->setCheckable(true);
+
+	m_pTrayMenu->addSeparator();
+	m_pResShowPopUp = m_pTrayMenu->addAction(tr("Resource Access Popups"), this, SLOT(OnPopUpPreset()));
+	m_pResShowPopUp->setCheckable(true);
+
+	m_pTrayMenu->addSeparator();
+	m_pFwShowPopUp = m_pTrayMenu->addAction(tr("Network Firewall Popups"), this, SLOT(OnPopUpPreset()));
+	m_pFwShowPopUp->setCheckable(true);
+
 	m_pFwProfileMenu = m_pTrayMenu->addMenu(tr("Firewall Profile"));
 	//m_pFwBlockAll = m_pFwProfileMenu->addAction(tr("Block All Traffic"), this, SLOT(OnFwProfile()));
 	//m_pFwBlockAll->setCheckable(true);
@@ -894,19 +943,58 @@ bool CMajorPrivacy::IsAlwaysOnTop() const
 	return m_bOnTop || theConf->GetBool("Options/AlwaysOnTop", false);
 }
 
-STATUS CMajorPrivacy::InitSigner(const QString& Prompt, class CPrivateKey& PrivateKey)
+STATUS CMajorPrivacy::InitSigner(ESignerPurpose Purpose, class CPrivateKey& PrivateKey)
 {
 	auto Ret = theCore->Driver()->GetUserKey();
 	if(Ret.IsError())
 		return Ret.GetStatus();
 	auto pInfo = Ret.GetValue();
+	
+	QString Password;
 
-	CVolumeWindow window(Prompt, CVolumeWindow::eGetPW, this);
-	if (theGUI->SafeExec(&window) != 1)
-		return OK;
-	QString Password = window.GetPassword();
-	if(Password.isEmpty())
-		return OK;
+	switch (Purpose) {
+		case ESignerPurpose::eSignFile:
+		case ESignerPurpose::eSignCert:
+			if (m_ForgetSignerPW)
+				Password = m_CachedPassword;
+			break;
+		case ESignerPurpose::eCommitConfig:
+			if (m_AutoCommitConf)
+				Password = m_CachedPassword;
+			break;
+	}
+
+	int AutoLock = 0;
+	if (Password.isEmpty())
+	{
+		QString Prompt;
+		switch (Purpose) {
+			case ESignerPurpose::eSignFile:		Prompt = tr("Enter Secure Configuration Password, to sign a file"); break;
+			case ESignerPurpose::eSignCert:		Prompt = tr("Enter Secure Configuration Password, to sign a certificate"); break;
+			case ESignerPurpose::eEnableProtection:	Prompt = tr("Enter Secure Configuration Password, to enable rule protection."
+				"\nOnce that is done you can not change rules (except windows firewall) without using the user key."); break;
+			case ESignerPurpose::eDisableProtection:	Prompt = tr("Enter Secure Configuration Password, to disable rule protection."); break;
+			case ESignerPurpose::eUnlockConfig:	Prompt = tr("Enter Secure Configuration Password, to allow rule editing."); break;
+			case ESignerPurpose::eCommitConfig: Prompt = tr("Enter Secure Configuration Password, to commit changes."); break;
+			case ESignerPurpose::eClearUserKey: Prompt = tr("Enter Secure Configuration Password, to remove the user key."); break;
+			default: return ERR(STATUS_INVALID_PARAMETER);
+		}
+
+		CVolumeWindow window(Prompt, CVolumeWindow::eGetPW, this);
+
+		if(Purpose == ESignerPurpose::eSignFile || Purpose == ESignerPurpose::eSignCert)
+			window.SetAutoLock(0, tr("Remember Password to sign more items for:"));
+		else if (Purpose == ESignerPurpose::eUnlockConfig)
+			window.SetAutoLock(0, tr("Remember Password and commit changes after:"));
+
+		if (theGUI->SafeExec(&window) != 1)
+			return STATUS_OK_CNCELED;
+		Password = window.GetPassword();
+		if (Password.isEmpty())
+			return STATUS_OK_CNCELED;
+
+		AutoLock = window.GetAutoLock();
+	}
 
 	STATUS Status;
 	do {
@@ -936,6 +1024,15 @@ STATUS CMajorPrivacy::InitSigner(const QString& Prompt, class CPrivateKey& Priva
 
 	} while(0);
 
+	if (!Status.IsError() && AutoLock > 0) 
+	{
+		if (Purpose == ESignerPurpose::eSignFile || Purpose == ESignerPurpose::eSignCert)
+			m_ForgetSignerPW = QDateTime::currentSecsSinceEpoch() + AutoLock;
+		else if (Purpose == ESignerPurpose::eUnlockConfig)
+			m_AutoCommitConf = QDateTime::currentSecsSinceEpoch() + AutoLock;
+		m_CachedPassword = Password;
+	}
+
 	return Status;
 }
 
@@ -952,7 +1049,7 @@ void CMajorPrivacy::OnSignFile()
 STATUS CMajorPrivacy::SignFiles(const QStringList& Paths)
 {
 	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to sign a file"), PrivateKey);
+	STATUS Status = InitSigner(ESignerPurpose::eSignFile, PrivateKey);
 	if (!PrivateKey.IsPrivateKeySet())
 		return Status;
 
@@ -964,7 +1061,7 @@ STATUS CMajorPrivacy::SignFiles(const QStringList& Paths)
 STATUS CMajorPrivacy::SignCerts(const QMap<QByteArray, QString>& Certs)
 {
 	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to sign a certificate"), PrivateKey);
+	STATUS Status = InitSigner(ESignerPurpose::eSignCert, PrivateKey);
 	if (!PrivateKey.IsPrivateKeySet())
 		return Status;
 
@@ -986,8 +1083,7 @@ void CMajorPrivacy::OnProtectConfig()
 
 
 	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to enable rule protection."
-		"\nOnce that is done you can not change rules (except windows firewall) without using the user key."), PrivateKey);
+	STATUS Status = InitSigner(ESignerPurpose::eEnableProtection, PrivateKey);
 	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
 		CheckResults(QList<STATUS>() << Status, this);
 		return;
@@ -1010,7 +1106,7 @@ void CMajorPrivacy::OnProtectConfig()
 void CMajorPrivacy::OnUnprotectConfig()
 {
 	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to disable rule protection."), PrivateKey);
+	STATUS Status = InitSigner(ESignerPurpose::eDisableProtection, PrivateKey);
 	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
 		CheckResults(QList<STATUS>() << Status, this);
 		return;
@@ -1035,14 +1131,12 @@ void CMajorPrivacy::OnUnprotectConfig()
 	CheckResults(QList<STATUS>() << Status, this);
 }
 
-void CMajorPrivacy::OnUnlockConfig()
+STATUS CMajorPrivacy::UnlockDrvConfig()
 {
 	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to allow rule editing."), PrivateKey);
-	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
-		CheckResults(QList<STATUS>() << Status, this);
-		return;
-	}
+	STATUS Status = InitSigner(ESignerPurpose::eUnlockConfig, PrivateKey);
+	if (!PrivateKey.IsPrivateKeySet()) // eider error or user canceled
+		return Status;
 
 	CBuffer Challenge;
 	Status = theCore->Driver()->GetChallenge(Challenge);
@@ -1058,6 +1152,53 @@ void CMajorPrivacy::OnUnlockConfig()
 
 	}
 	UpdateLockStatus();
+
+	return Status;
+}
+
+STATUS CMajorPrivacy::CommitDrvConfig()
+{
+	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
+	if ((uConfigStatus & CONFIG_STATUS_DIRTY) == 0) // nothign changed
+		return theCore->Driver()->DiscardConfigChanges(); // to relock the config
+	
+	if ((uConfigStatus & CONFIG_STATUS_PROTECTED) == 0)
+		return theCore->Driver()->CommitConfigChanges();
+	
+	CPrivateKey PrivateKey;
+	STATUS Status = InitSigner(ESignerPurpose::eCommitConfig, PrivateKey);
+	if (!PrivateKey.IsPrivateKeySet()) // eider error or user canceled
+		return Status;
+
+	CBuffer ConfigHash;
+	Status = theCore->Driver()->GetConfigHash(ConfigHash);
+	if (!Status.IsError())
+	{
+		CBuffer ConfigSignature;
+		PrivateKey.Sign(ConfigHash, ConfigSignature);
+
+		Status = theCore->Driver()->CommitConfigChanges(ConfigSignature);
+
+	}
+	return Status;
+}
+
+STATUS CMajorPrivacy::DiscardDrvConfig()
+{
+	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
+	bool bProtected = (uConfigStatus & CONFIG_STATUS_PROTECTED) != 0;
+	bool bLocked = (uConfigStatus & CONFIG_STATUS_LOCKED) != 0;
+	bool bDirty = (uConfigStatus & CONFIG_STATUS_DIRTY) != 0;
+
+	if (!(bDirty || (bProtected && !bLocked)))
+		return OK;
+
+	return theCore->Driver()->DiscardConfigChanges();
+}
+
+void CMajorPrivacy::OnUnlockConfig()
+{
+	STATUS Status = UnlockDrvConfig();
 	CheckResults(QList<STATUS>() << Status, this);
 }
 
@@ -1065,38 +1206,15 @@ void CMajorPrivacy::OnCommitConfig()
 {
 	QList<STATUS> Results;
 
-	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
-	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
-	{
-		if ((uConfigStatus & CONFIG_STATUS_PROTECTED) == 0)
-		{
-			STATUS Status = theCore->Driver()->CommitConfigChanges();
-			Results.append(Status);
-		}
-		else
-		{
-			CPrivateKey PrivateKey;
-			STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to commit all changes."), PrivateKey);
-			if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
-				CheckResults(QList<STATUS>() << Status, this);
-				return;
-			}
+	Results.append(CommitDrvConfig());
 
-			CBuffer ConfigHash;
-			Status = theCore->Driver()->GetConfigHash(ConfigHash);
-			if (!Status.IsError())
-			{
-				CBuffer ConfigSignature;
-				PrivateKey.Sign(ConfigHash, ConfigSignature);
-
-				Status = theCore->Driver()->CommitConfigChanges(ConfigSignature);
-
-			}
-			Results.append(Status);
-		}
+	if (m_AutoCommitConf){
+		m_AutoCommitConf = 0;
+		if(!m_ForgetSignerPW)
+			m_CachedPassword.clear();
 	}
 
-	uConfigStatus = theCore->Service()->GetConfigStatus();
+	uint32 uConfigStatus = theCore->Service()->GetConfigStatus();
 	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
 	{
 		STATUS Status = theCore->Service()->CommitConfigChanges();
@@ -1110,17 +1228,18 @@ void CMajorPrivacy::OnDiscardConfig()
 {
 	if (m_pCommitConfig->isEnabled() && QMessageBox::question(this, "MajorPrivacy", tr("Do you really want to discard all changes?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
 		return;
-	
+
 	QList<STATUS> Results;
 
-	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
-	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
-	{
-		STATUS Status = theCore->Driver()->DiscardConfigChanges();
-		Results.append(Status);
+	if (m_AutoCommitConf){
+		m_AutoCommitConf = 0;
+		if(!m_ForgetSignerPW)
+			m_CachedPassword.clear();
 	}
 
-	uConfigStatus = theCore->Service()->GetConfigStatus();
+	Results.append(DiscardDrvConfig());
+
+	uint32 uConfigStatus = theCore->Service()->GetConfigStatus();
 	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
 	{
 		STATUS Status = theCore->Service()->DiscardConfigChanges();
@@ -1181,7 +1300,7 @@ void CMajorPrivacy::OnMakeKeyPair()
 void CMajorPrivacy::OnClearKeys()
 {
 	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(tr("Enter Secure Configuration Password, to clear all user keys"), PrivateKey);
+	STATUS Status = InitSigner(ESignerPurpose::eClearUserKey, PrivateKey);
 	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
 		CheckResults(QList<STATUS>() << Status, this);
 		return;
@@ -1202,6 +1321,17 @@ void CMajorPrivacy::OnClearKeys()
 	CheckResults(QList<STATUS>() << Status, this);
 
 	SetTitle();
+}
+
+void CMajorPrivacy::OnPopUpPreset()
+{
+	QAction* pAction = (QAction*)sender();
+	if (pAction == m_pExecShowPopUp)
+		theConf->SetValue("ProcessProtection/ShowNotifications", m_pExecShowPopUp->isChecked());
+	else if (pAction == m_pResShowPopUp)
+		theConf->SetValue("ResourceAccess/ShowNotifications", m_pResShowPopUp->isChecked());
+	else if (pAction == m_pFwShowPopUp)
+		theConf->SetValue("NetworkFirewall/ShowNotifications", m_pFwShowPopUp->isChecked());
 }
 
 void CMajorPrivacy::OnFwProfile()
@@ -1231,6 +1361,10 @@ void CMajorPrivacy::OnSysTray(QSystemTrayIcon::ActivationReason Reason)
 	{
 	case QSystemTrayIcon::Context:
 	{
+		m_pExecShowPopUp->setChecked(theConf->GetBool("ProcessProtection/ShowNotifications", true));
+		m_pResShowPopUp->setChecked(theConf->GetBool("ResourceAccess/ShowNotifications", true));
+		m_pFwShowPopUp->setChecked(theConf->GetBool("NetworkFirewall/ShowNotifications", false));
+
 		auto Result = theCore->GetFwProfile();
 		if(!Result.IsError()){
 			FwFilteringModes Profile = Result.GetValue();
@@ -1494,7 +1628,7 @@ int CMajorPrivacy::CheckResults(QList<STATUS> Results, QWidget* pParent, bool bA
 {
 	QStringList Errors;
 	for (QList<STATUS>::iterator I = Results.begin(); I != Results.end(); ++I) {
-		if (I->IsError())// && I->GetStatus() != OP_CANCELED)
+		if (I->IsError() && I->GetStatus() != STATUS_OK_CNCELED)
 			Errors.append(FormatError(*I));
 	}
 
@@ -2023,15 +2157,9 @@ void CMajorPrivacy::OnMaintenance()
 	else if (sender() == m_pOpenSystemFolder)
 		QDesktopServices::openUrl(QUrl::fromLocalFile(theCore->GetConfigDir()));
 	else if (sender() == m_pConnect)
-	{
-		m_iReConnected = 1;
 		Status = Connect();
-	}
 	else if (sender() == m_pDisconnect) 
-	{
-		m_iReConnected = 0;
 		Disconnect();
-	}
 	else if (sender() == m_pInstallService)
 		Status = theCore->Install();
 	else if (sender() == m_pRemoveService)
@@ -2208,22 +2336,31 @@ void CMajorPrivacy::OnAbout()
 		QString AboutCaption = tr(
 			"<h3>About MajorPrivacy</h3>"
 			"<p>Version %1</p>"
-			"<p>Copyright (c) 2023-2025 by DavidXanatos</p>"
+			"<p>" MY_COPYRIGHT_STRING "</p>"
 		).arg(theGUI->GetVersion());
 
-		QString AboutText = tr("MajorPrivacy is a program that helps you to protect your privacy and security.\n\n");
-
+		QString CertInfo;
 		if (!g_CertName.isEmpty()) {
 			if(g_CertInfo.active)
-				AboutText += tr("This version is licensed to %1.").arg(g_CertName);
+				CertInfo = tr("This version is licensed to %1.").arg(g_CertName);
 			else
-				AboutText += tr("This version was licensed to %1, but its no longer valid.").arg(g_CertName);
-			AboutText += "\n\n";
+				CertInfo = tr("This version was licensed to %1, but its no longer valid.").arg(g_CertName);
 		}
 
-		//AboutText += tr("GUI Data Folder: \n%1\n\nCore Data Folder: \n%2\n\n")
-		//	.arg(theConf->GetConfigDir().replace("/","\\"))
-		//	.arg(theCore->GetConfigDir());
+		QString AboutText = tr(
+			"<p>MajorPrivacy is a program that helps you to protect your privacy and security.</p>"
+			"<p></p>"
+			"<p>Visit <a href=\"https://xanasoft.com\">xanasoft.com</a> for more information.</p>"
+			"<p></p>"
+			"<p>%1</p>"
+			"<p></p>"
+			"<p>UI Config Dir: <br />%2<br />"
+			"Core Config Dir: <br />%3</p>"
+			"<p></p>"
+			"<p>Icons from <a href=\"https://icons8.com\">icons8.com</a></p>"
+			"<p></p>"
+		).arg(CertInfo).arg(theConf->GetConfigDir().replace("/","\\")).arg(theCore->GetConfigDir());
+
 
 		QMessageBox *msgBox = new QMessageBox(this);
 		msgBox->setAttribute(Qt::WA_DeleteOnClose);

@@ -106,7 +106,7 @@ bool CWindowsService::LoadIngressTargets(const CVariant& IngressTargets)
 	return true;
 }
 
-CVariant CWindowsService::StoreAccessLog(const SVarWriteOpt& Opts) const
+CVariant CWindowsService::StoreIngress(const SVarWriteOpt& Opts) const
 {
 	CVariant ExecChildren;
 	ExecChildren.BeginList();
@@ -119,12 +119,13 @@ CVariant CWindowsService::StoreAccessLog(const SVarWriteOpt& Opts) const
 	IngressTargets.Finish();
 
 	CVariant Data;
+	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_PROG_EXEC_CHILDREN] = ExecChildren;
 	Data[API_V_PROG_INGRESS_TARGETS] = IngressTargets;
 	return Data;
 }
 
-void CWindowsService::LoadAccessLog(const CVariant& Data)
+void CWindowsService::LoadIngress(const CVariant& Data)
 {
 	LoadExecChildren(Data[API_V_PROG_EXEC_CHILDREN]);
 	LoadIngressTargets(Data[API_V_PROG_INGRESS_TARGETS]);
@@ -135,14 +136,12 @@ CVariant CWindowsService::StoreAccess(const SVarWriteOpt& Opts) const
 	CVariant Data;
 	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts);
-	Data[API_V_PROG_PROCESS_ACCESS] = StoreAccessLog(Opts);
 	return Data;
 }
 
 void CWindowsService::LoadAccess(const CVariant& Data)
 {
 	m_AccessTree.LoadTree(Data[API_V_PROG_RESOURCE_ACCESS]);
-	LoadAccessLog(Data[API_V_PROG_PROCESS_ACCESS]);
 }
 
 CVariant CWindowsService::DumpResAccess(uint64 LastActivity) const

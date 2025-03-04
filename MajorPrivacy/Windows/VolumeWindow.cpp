@@ -35,7 +35,7 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
 
 	ui.lblInfo->setText(Prompt);
-	ui.lblIcon->setPixmap(QPixmap::fromImage(QImage(m_Action == eMount ? ":/Actions/LockOpen.png" : ":/Actions/LockClosed.png")));
+	ui.lblIcon->setPixmap(QPixmap::fromImage(QImage((m_Action == eMount || m_Action == eGetPW) ? ":/Icons/LockOpen.png" : ":/Icons/LockClosed.png")));
 
 	if (m_Action == eNew || m_Action == eSetPW) 
 	{
@@ -66,6 +66,9 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 		ui.lblRepeatPassword->setVisible(false);
 		ui.txtRepeatPassword->setVisible(false);
 	}
+
+	ui.lblAutoLocl->setVisible(false);
+	ui.cmbAutoLock->setVisible(false);
 
 	if (m_Action == eMount)
 	{
@@ -176,4 +179,27 @@ void CVolumeWindow::BrowseMountPoint()
 	QString path = QFileDialog::getExistingDirectory(this, tr("Select Mount Point"), ui.cmbMount->currentText());
 	if (!path.isEmpty())
 		ui.cmbMount->setCurrentText(path);
+}
+
+void CVolumeWindow::SetAutoLock(int iSeconds, const QString& Text) const 
+{ 
+	ui.lblAutoLocl->setVisible(true);
+	ui.lblAutoLocl->setText(Text);
+
+	ui.cmbAutoLock->setVisible(true);
+	ui.cmbAutoLock->addItem(tr("Never"), 0);
+	ui.cmbAutoLock->addItem(tr("5 minutes"), 5*60);
+	ui.cmbAutoLock->addItem(tr("15 minutes"), 15*60);
+	ui.cmbAutoLock->addItem(tr("30 minutes"), 30*60);
+	ui.cmbAutoLock->addItem(tr("1 hour"), 60*60);
+
+	int Index = ui.cmbAutoLock->findData(iSeconds);
+	if (Index == -1) {
+		if(iSeconds >= 60*60)
+			ui.cmbAutoLock->addItem(tr("%1 hours").arg(double(iSeconds)/3600.0, 2), iSeconds);
+		else
+			ui.cmbAutoLock->addItem(tr("%1 minutes").arg(iSeconds/60), iSeconds);
+		ui.cmbAutoLock->setCurrentIndex(ui.cmbAutoLock->count() - 1);
+	} else
+		ui.cmbAutoLock->setCurrentIndex(Index); 
 }
