@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - added dll injection mechanism
 - added optional user password cache
 - added more tray menu options
+- added additional filters to network views
 
 ### Changed
 - reworked and improved signature verification

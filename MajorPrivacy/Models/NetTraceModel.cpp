@@ -25,6 +25,8 @@ CNetTraceModel::~CNetTraceModel()
 bool CNetTraceModel::FilterNode(const SMergedLog::TLogEntry& Data) const
 {
 	const CNetLogEntry* pEntry = dynamic_cast<const CNetLogEntry*>(Data.second.constData());
+	if (m_AreaFilter && (m_AreaFilter & CTrafficEntry::GetNetType(pEntry->GetRemoteAddress())) == 0)
+		return false;
 	if (m_Protocol != ENetProtocols::eAny)
 	{
 		switch (m_Protocol)

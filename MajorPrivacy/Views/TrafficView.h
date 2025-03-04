@@ -24,6 +24,8 @@ private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
 
+	void					OnAreaFilter();
+
 	void					OnCleanUpDone();
 
 protected:
@@ -38,6 +40,13 @@ private:
 	QToolBar*				m_pToolBar;
 	QToolButton*			m_pBtnExpand;
 	QComboBox*				m_pCmbGrouping;
+	QToolButton*			m_pAreaFilter = nullptr;
+	QMenu*					m_pAreaMenu = nullptr;
+	QAction*					m_pInternet = nullptr;
+	QAction*					m_pLocalArea = nullptr;
+	QAction*					m_pLocalHost = nullptr;
+
 	bool					m_bGroupByProgram = false;
 	quint64					m_RecentLimit = 0;
+	int						m_AreaFilter = 0;
 };

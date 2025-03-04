@@ -40,24 +40,16 @@ void CTrafficEntry::FromVariant(const class XVariant& TrafficEntry)
 	});
 }
 
-void CTrafficEntry::SetIpAddress(const QString& IpAddress)
-{ 
-	if(m_IpAddress == IpAddress)
-		return;
-
-	m_IpAddress = IpAddress;
-	
-    // Create a QHostAddress from the string
-    QHostAddress address(IpAddress);
-
+CTrafficEntry::ENetType CTrafficEntry::GetNetType(const QHostAddress& address)
+{
     if (address.isNull())
     {
         // Invalid IP address; default to Internet
-        m_Type = eInternet;
+        return eInternet;
     }
     else if (address.isLoopback())
     {
-        m_Type = eLocalHost;
+        return eLocalHost;
     }
     else if (address.protocol() == QAbstractSocket::IPv4Protocol)
     {
@@ -66,12 +58,12 @@ void CTrafficEntry::SetIpAddress(const QString& IpAddress)
         // Check for broadcast address 255.255.255.255
         if (ipv4 == 0xFFFFFFFF)
         {
-            m_Type = eBroadcast;
+            return eBroadcast;
         }
         // Check for multicast addresses 224.0.0.0/4
         else if ((ipv4 & 0xF0000000) == 0xE0000000)
         {
-            m_Type = eMulticast;
+            return eMulticast;
         }
         // Check for local area networks
         else if (
@@ -85,11 +77,11 @@ void CTrafficEntry::SetIpAddress(const QString& IpAddress)
             (ipv4 & 0xFFFF0000) == 0xA9FE0000
             )
         {
-            m_Type = eLocalArea;
+            return eLocalArea;
         }
         else
         {
-            m_Type = eInternet;
+            return eInternet;
         }
     }
     else if (address.protocol() == QAbstractSocket::IPv6Protocol)
@@ -99,7 +91,7 @@ void CTrafficEntry::SetIpAddress(const QString& IpAddress)
         // Check for multicast addresses FF00::/8
         if (ipv6[0] == 0xFF)
         {
-            m_Type = eMulticast;
+            return eMulticast;
         }
         // Check for local area networks
         else if (
@@ -109,18 +101,28 @@ void CTrafficEntry::SetIpAddress(const QString& IpAddress)
             ((ipv6[0] & 0xFE) == 0xFC)
             )
         {
-            m_Type = eLocalArea;
+            return eLocalArea;
         }
         else
         {
-            m_Type = eInternet;
+            return eInternet;
         }
     }
     else
     {
         // Default to Internet for other protocols
-        m_Type = eInternet;
+        return eInternet;
     }
+}
+
+void CTrafficEntry::SetIpAddress(const QString& IpAddress)
+{ 
+	if(m_IpAddress == IpAddress)
+		return;
+
+	m_IpAddress = IpAddress;
+	
+    m_Type = GetNetType(QHostAddress(IpAddress));
 }
 
 quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const class XVariant& TrafficList)

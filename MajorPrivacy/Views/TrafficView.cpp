@@ -33,6 +33,25 @@ CTrafficView::CTrafficView(QWidget *parent)
 	m_pToolBar->addWidget(m_pCmbGrouping);
 
 	m_pToolBar->addSeparator();
+	m_pAreaFilter = new QToolButton();
+	m_pAreaFilter->setIcon(QIcon(":/Icons/ActivityFilter.png"));
+	m_pAreaFilter->setToolTip(tr("Area Filter"));
+	//m_pAreaFilter->setText(tr(""));
+	m_pAreaFilter->setCheckable(true);
+	connect(m_pAreaFilter, SIGNAL(clicked()), this, SLOT(OnAreaFilter()));
+	m_pAreaMenu = new QMenu();
+		m_pInternet = m_pAreaMenu->addAction(tr("Internet"), this, SLOT(OnAreaFilter()));
+		m_pInternet->setCheckable(true);
+		m_pLocalArea = m_pAreaMenu->addAction(tr("Local Area"), this, SLOT(OnAreaFilter()));
+		m_pLocalArea->setCheckable(true);
+		m_pLocalHost = m_pAreaMenu->addAction(tr("Local Host"), this, SLOT(OnAreaFilter()));
+		m_pLocalHost->setCheckable(true);
+	m_pAreaFilter->setPopupMode(QToolButton::MenuButtonPopup);
+	m_pAreaFilter->setMenu(m_pAreaMenu);
+	m_pAreaFilter->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pAreaFilter);
+
+	m_pToolBar->addSeparator();
 	m_pBtnExpand = new QToolButton();
 	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
 	m_pBtnExpand->setCheckable(true);
@@ -43,7 +62,7 @@ CTrafficView::CTrafficView(QWidget *parent)
 			m_pTreeView->expandAll();
 		else
 			m_pTreeView->collapseAll();
-	});
+		});
 	m_pToolBar->addWidget(m_pBtnExpand);
 
 	QWidget* pSpacer = new QWidget();
@@ -63,6 +82,43 @@ CTrafficView::CTrafficView(QWidget *parent)
 CTrafficView::~CTrafficView()
 {
 	theConf->SetBlob("MainWindow/TrafficView_Columns", m_pTreeView->saveState());
+}
+
+void CTrafficView::OnAreaFilter()
+{
+	if (sender() == m_pAreaFilter)
+	{
+		if (m_pAreaFilter->isChecked())
+		{
+			m_AreaFilter = theConf->GetInt("Options/DefaultAreaFilter", 0);
+			if(m_AreaFilter == 0)
+				m_AreaFilter = CTrafficEntry::eInternet;
+		}
+		else
+		{
+			theConf->SetValue("Options/DefaultAreaFilter", m_AreaFilter);
+			m_AreaFilter = 0;
+		}
+
+		m_pInternet->setChecked((m_AreaFilter & CTrafficEntry::eInternet) != 0);
+		m_pLocalArea->setChecked((m_AreaFilter & CTrafficEntry::eLocalAreaEx) == CTrafficEntry::eLocalAreaEx);
+		m_pLocalHost->setChecked((m_AreaFilter & CTrafficEntry::eLocalHost) != 0);
+	}
+	else
+	{
+		m_AreaFilter = 0;
+		if (m_pInternet->isChecked())
+			m_AreaFilter |= CTrafficEntry::eInternet;
+		if (m_pLocalArea->isChecked())
+			m_AreaFilter |= CTrafficEntry::eLocalAreaEx;
+		if (m_pLocalHost->isChecked())
+			m_AreaFilter |= CTrafficEntry::eLocalHost;
+
+		m_pAreaFilter->setChecked(m_AreaFilter != 0);
+	}
+
+	m_CurPrograms.clear();
+	m_CurServices.clear();
 }
 
 void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services)
@@ -144,6 +200,8 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			if (uRecentLimit && I.value()->GetLastActivity() < uRecentLimit)
 				continue;
+			if (m_AreaFilter && (m_AreaFilter & I.value()->GetNetType()) == 0)
+				continue;
 			if (m_bGroupByProgram)
 				AddByProgram(pProgram, I.value());
 			else
@@ -154,6 +212,8 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		QMap<QString, CTrafficEntryPtr> Log = pService->GetTrafficLog();
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			if (uRecentLimit && I.value()->GetLastActivity() < uRecentLimit)
+				continue;
+			if (m_AreaFilter && (m_AreaFilter & I.value()->GetNetType()) == 0)
 				continue;
 			if (m_bGroupByProgram)
 				AddByProgram(pService, I.value());

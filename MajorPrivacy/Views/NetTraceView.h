@@ -19,6 +19,8 @@ public:
 
 private slots:
 	void					UpdateFilter();
+
+	void					OnAreaFilter();
 	
 	void					OnClearTraceLog();
 
@@ -28,6 +30,12 @@ protected:
 	QComboBox*				m_pCmbDir;
 	QComboBox*				m_pCmbAction;
 	QComboBox*				m_pCmbType;
+	QToolButton*			m_pAreaFilter = nullptr;
+	QMenu*					m_pAreaMenu = nullptr;
+	QAction*					m_pInternet = nullptr;
+	QAction*					m_pLocalArea = nullptr;
+	QAction*					m_pLocalHost = nullptr;
 	QToolButton*			m_pBtnClear;
 
+	int						m_AreaFilter = 0;
 };

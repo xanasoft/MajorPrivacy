@@ -41,6 +41,25 @@ CNetTraceView::CNetTraceView(QWidget *parent)
 	m_pToolBar->addWidget(m_pCmbType);
 
 	m_pToolBar->addSeparator();
+	m_pAreaFilter = new QToolButton();
+	m_pAreaFilter->setIcon(QIcon(":/Icons/ActivityFilter.png"));
+	m_pAreaFilter->setToolTip(tr("Area Filter"));
+	//m_pAreaFilter->setText(tr(""));
+	m_pAreaFilter->setCheckable(true);
+	connect(m_pAreaFilter, SIGNAL(clicked()), this, SLOT(OnAreaFilter()));
+	m_pAreaMenu = new QMenu();
+		m_pInternet = m_pAreaMenu->addAction(tr("Internet"), this, SLOT(OnAreaFilter()));
+		m_pInternet->setCheckable(true);
+		m_pLocalArea = m_pAreaMenu->addAction(tr("Local Area"), this, SLOT(OnAreaFilter()));
+		m_pLocalArea->setCheckable(true);
+		m_pLocalHost = m_pAreaMenu->addAction(tr("Local Host"), this, SLOT(OnAreaFilter()));
+		m_pLocalHost->setCheckable(true);
+	m_pAreaFilter->setPopupMode(QToolButton::MenuButtonPopup);
+	m_pAreaFilter->setMenu(m_pAreaMenu);
+	m_pAreaFilter->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pAreaFilter);
+
+	m_pToolBar->addSeparator();
 
 	m_pBtnScroll = new QToolButton();
 	m_pBtnScroll->setIcon(QIcon(":/Icons/Scroll.png"));
@@ -85,9 +104,45 @@ void CNetTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, 
 	CTraceView::Sync(Log, Programs, Services);
 }
 
+void CNetTraceView::OnAreaFilter()
+{
+	if (sender() == m_pAreaFilter)
+	{
+		if (m_pAreaFilter->isChecked())
+		{
+			m_AreaFilter = theConf->GetInt("Options/DefaultAreaFilter", 0);
+			if(m_AreaFilter == 0)
+				m_AreaFilter = CTrafficEntry::eInternet;
+		}
+		else
+		{
+			theConf->SetValue("Options/DefaultAreaFilter", m_AreaFilter);
+			m_AreaFilter = 0;
+		}
+
+		m_pInternet->setChecked((m_AreaFilter & CTrafficEntry::eInternet) != 0);
+		m_pLocalArea->setChecked((m_AreaFilter & CTrafficEntry::eLocalAreaEx) == CTrafficEntry::eLocalAreaEx);
+		m_pLocalHost->setChecked((m_AreaFilter & CTrafficEntry::eLocalHost) != 0);
+	}
+	else
+	{
+		m_AreaFilter = 0;
+		if (m_pInternet->isChecked())
+			m_AreaFilter |= CTrafficEntry::eInternet;
+		if (m_pLocalArea->isChecked())
+			m_AreaFilter |= CTrafficEntry::eLocalAreaEx;
+		if (m_pLocalHost->isChecked())
+			m_AreaFilter |= CTrafficEntry::eLocalHost;
+
+		m_pAreaFilter->setChecked(m_AreaFilter != 0);
+	}
+
+	UpdateFilter();
+}
+
 void CNetTraceView::UpdateFilter()
 {
-	((CNetTraceModel*)m_pItemModel)->SetFilter((EFwDirections)m_pCmbDir->currentData().toInt(), (EEventStatus)m_pCmbAction->currentData().toInt(), (ENetProtocols)m_pCmbType->currentData().toInt());
+	((CNetTraceModel*)m_pItemModel)->SetFilter((EFwDirections)m_pCmbDir->currentData().toInt(), (EEventStatus)m_pCmbAction->currentData().toInt(), (ENetProtocols)m_pCmbType->currentData().toInt(), m_AreaFilter);
 	m_FullRefresh = true;
 }
 

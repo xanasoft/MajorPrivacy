@@ -24,14 +24,17 @@ public:
 
 	enum ENetType
 	{
-		eInternet=0,
-		eLocalArea,
-		eBroadcast,
-		eMulticast,
-		eLocalHost
+		eNoArea = 0,
+		eInternet = 1,
+		eLocalArea = 2,
+		eBroadcast = 4,
+		eMulticast = 8,
+		eLocalHost = 16,
+		eLocalAreaEx = eLocalArea | eBroadcast | eMulticast
 	};
 
 	ENetType GetNetType() const			{ return m_Type; }
+	static ENetType GetNetType(const QHostAddress& address);
 
 	quint64 GetLastActivity() const		{ return m_LastActivity; }
 	quint64 GetUploadTotal() const		{ return m_UploadTotal; }
