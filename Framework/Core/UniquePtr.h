@@ -27,7 +27,7 @@ public:
 	UniquePtr(T ptr, U closer) : m_ptr(ptr), m_closer(closer) {}
 	UniquePtr(const UniquePtr& other) = delete;
 	UniquePtr(UniquePtr&& other) : m_ptr(other.m_ptr), m_closer(other.m_closer) { 
-		other.m_ptr = NULL; 
+		other.m_ptr = nullptr; 
 	}
 	~UniquePtr() {
 		if (m_ptr)
@@ -41,7 +41,7 @@ public:
 				m_closer(m_ptr);
 			m_ptr = other.m_ptr;
 			m_closer = other.m_closer;
-			other.m_ptr = NULL;
+			other.m_ptr = nullptr;
 		}
 		return *this;
 	}
@@ -58,11 +58,11 @@ public:
 
 	T Detach() {
 		T ptr = m_ptr;
-		m_ptr = NULL;
+		m_ptr = nullptr;
 		return ptr;
 	}
 
-	explicit operator bool()	{ return m_ptr != NULL; }
+	explicit operator bool()	{ return m_ptr != nullptr; }
 
 private:
 	T m_ptr;

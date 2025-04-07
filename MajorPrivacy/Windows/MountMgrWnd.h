@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../../MiscHelpers/Common/PanelView.h"
 
 

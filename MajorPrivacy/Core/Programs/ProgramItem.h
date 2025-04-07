@@ -2,7 +2,7 @@
 
 //#include "../Process.h"
 #include "ProgramID.h"
-#include "../../Library/Common/FlexGuid.h"
+#include "./Common/QtFlexGuid.h"
 
 struct SProgramStats
 {
@@ -77,8 +77,8 @@ public:
 	virtual void CountStats() = 0;
 	virtual const SProgramStats* GetStats()			{ return &m_Stats; }
 
-	virtual XVariant ToVariant(const SVarWriteOpt& Opts) const;
-	virtual NTSTATUS FromVariant(const XVariant& Data);
+	virtual QtVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual NTSTATUS FromVariant(const QtVariant& Data);
 
 protected:
 	friend class CProgramManager;
@@ -86,10 +86,10 @@ protected:
 	void SetIconFile();
 	void UpdateIconFile();
 
-	virtual void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void ReadIValue(uint32 Index, const XVariant& Data);
-	virtual void ReadMValue(const SVarName& Name, const XVariant& Data);
+	virtual void WriteIVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	virtual void WriteMVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	virtual void ReadIValue(uint32 Index, const QtVariant& Data);
+	virtual void ReadMValue(const SVarName& Name, const QtVariant& Data);
 
 	quint64								m_UID = 0;
 	CProgramID							m_ID;

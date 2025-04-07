@@ -132,6 +132,7 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -140,42 +141,49 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)\phnt\include;$(IncludePath)</IncludePath>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)\phnt\include;$(IncludePath)</IncludePath>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)\phnt\include;$(IncludePath)</IncludePath>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)\phnt\include;$(IncludePath)</IncludePath>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)\phnt\include;$(IncludePath)</IncludePath>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)\phnt\include;$(IncludePath)</IncludePath>
     <CustomBuildAfterTargets>
     </CustomBuildAfterTargets>
+    <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -195,7 +203,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;wininet.lib;winhttp.lib;Framework.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -232,7 +240,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;wininet.lib;winhttp.lib;Framework.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -265,7 +273,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;wininet.lib;winhttp.lib;Framework.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>
       </EntryPointSymbol>
       <DelayLoadDLLs>
@@ -298,7 +306,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;wininet.lib;winhttp.lib;Framework.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -330,7 +338,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;wininet.lib;winhttp.lib;Framework.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -366,7 +374,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;wininet.lib;winhttp.lib;Framework.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -402,7 +410,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;wininet.lib;winhttp.lib;Framework.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -437,7 +445,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;kernel32.lib;advapi32.lib;uuid.lib;ole32.lib;bcrypt.lib;Rpcrt4.lib;Crypt32.lib;Wintrust.lib;wininet.lib;winhttp.lib;Framework.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>
       </EntryPointSymbol>
@@ -453,29 +461,12 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\Framework\Array.h" />
-    <ClInclude Include="..\Framework\Defer.h" />
-    <ClInclude Include="..\Framework\Framework.h" />
-    <ClInclude Include="..\Framework\Header.h" />
-    <ClInclude Include="..\Framework\List.h" />
-    <ClInclude Include="..\Framework\Map.h" />
-    <ClInclude Include="..\Framework\Memory.h" />
-    <ClInclude Include="..\Framework\Object.h" />
-    <ClInclude Include="..\Framework\Pair.h" />
-    <ClInclude Include="..\Framework\RetValue.h" />
-    <ClInclude Include="..\Framework\SafeRef.h" />
-    <ClInclude Include="..\Framework\SharedPtr.h" />
-    <ClInclude Include="..\Framework\String.h" />
-    <ClInclude Include="..\Framework\Table.h" />
-    <ClInclude Include="..\Framework\UniquePtr.h" />
-    <ClInclude Include="..\Framework\WeakPtr.h" />
     <ClInclude Include="API\DriverAPI.h" />
     <ClInclude Include="API\PrivacyAPI.h" />
     <ClInclude Include="API\PrivacyAPIs.h" />
     <ClInclude Include="API\PrivacyDefs.h" />
     <ClInclude Include="API\ServiceAPI.h" />
     <ClInclude Include="Common\Address.h" />
-    <ClInclude Include="Common\Buffer.h" />
     <ClInclude Include="Common\DbgHelp.h" />
     <ClInclude Include="Common\Exception.h" />
     <ClInclude Include="Common\FileIO.h" />
@@ -483,27 +474,11 @@
     <ClInclude Include="Common\MiscStats.h" />
     <ClInclude Include="Common\ObjectTracker.h" />
     <ClInclude Include="Common\Pointers.h" />
-    <ClInclude Include="Common\PoolAllocator.h" />
     <ClInclude Include="Common\stl_helpers.h" />
     <ClInclude Include="Common\Strings.h" />
-    <ClInclude Include="Common\SVariant.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="Common\StVariant.h" />
     <ClInclude Include="Common\ThreadPool.h" />
     <ClInclude Include="Common\UIntX.h" />
-    <ClInclude Include="Common\Variant.h" />
-    <ClInclude Include="Common\VariantDefs.h" />
-    <ClInclude Include="Common\XVariant.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="Crypto\PrivateCrypto.h" />
     <ClInclude Include="Crypto\HashFunction.h" />
     <ClInclude Include="Crypto\PrivateKey.h" />
@@ -530,6 +505,7 @@
     <ClInclude Include="Helpers\SID.h" />
     <ClInclude Include="Helpers\TokenUtil.h" />
     <ClInclude Include="Helpers\ConfigIni.h" />
+    <ClInclude Include="Helpers\WebUtils.h" />
     <ClInclude Include="Helpers\WinUtil.h" />
     <ClInclude Include="Hooking\arm64_asm.h" />
     <ClInclude Include="Hooking\Detours\detours.h" />
@@ -574,20 +550,19 @@
     <ClInclude Include="PHlib\include\workqueuep.h" />
     <ClInclude Include="Resources\resource.h" />
     <ClInclude Include="Status.h" />
-    <ClInclude Include="Types.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Framework\Memory.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="API\API_AccessRule.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="API\API_DnsRule.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -670,59 +645,14 @@
     </ClCompile>
     <ClCompile Include="API\ServiceAPI.cpp" />
     <ClCompile Include="Common\Address.cpp" />
-    <ClCompile Include="Common\Buffer.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="Common\DbgHelp.cpp" />
     <ClCompile Include="Common\FileIO.cpp" />
     <ClCompile Include="Common\FlexGuid.cpp" />
     <ClCompile Include="Common\ObjectTracker.cpp" />
     <ClCompile Include="Common\Strings.cpp" />
-    <ClCompile Include="Common\SVariant.c">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">NotUsing</PrecompiledHeader>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="Common\StVariant.cpp" />
     <ClCompile Include="Common\ThreadPool.cpp" />
     <ClCompile Include="Common\UIntX.cpp" />
-    <ClCompile Include="Common\Variant.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Common\VariantTest.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Common\XVariant.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="Crypto\HashFunction.cpp" />
     <ClCompile Include="Crypto\PrivateKey.cpp" />
     <ClCompile Include="Crypto\PublicKey.cpp" />
@@ -754,6 +684,7 @@
     <ClCompile Include="Helpers\SID.cpp" />
     <ClCompile Include="Helpers\TokenUtil.cpp" />
     <ClCompile Include="Helpers\ConfigIni.cpp" />
+    <ClCompile Include="Helpers\WebUtils.cpp" />
     <ClCompile Include="Helpers\WinUtil.cpp" />
     <ClCompile Include="Hooking\Detours\creatwth.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">NotUsing</PrecompiledHeader>
@@ -1222,7 +1153,6 @@
     <ResourceCompile Include="Resources\Service.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Framework\README.MD" />
     <None Include="Hooking\Detours\Makefile" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

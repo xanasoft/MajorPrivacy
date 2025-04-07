@@ -3,13 +3,15 @@
 #include "../Library/API/PrivacyAPI.h"
 
 
-quint64 ReadAccessBranch(QMap<quint64, SAccessStatsPtr>& m_AccessStats, const XVariant& Data, const QString& Path)
+quint64 ReadAccessBranch(QMap<quint64, SAccessStatsPtr>& m_AccessStats, const QtVariant& Branch, const QString& Path)
 {
-	uint64 Ref = Data.Find(API_V_ACCESS_REF).To<uint64>(0);
+	QtVariantReader Reader(Branch);
+
+	uint64 Ref = Reader.Find(API_V_ACCESS_REF).To<uint64>(0);
 	SAccessStatsPtr& pStats = m_AccessStats[Ref];
 	if (!pStats) {
 		pStats = SAccessStatsPtr(new SAccessStats());
-		QString Name = Data.Find(API_V_ACCESS_NAME).AsQStr();
+		QString Name = Reader.Find(API_V_ACCESS_NAME).AsQStr();
 		if (!Name.isEmpty()) {
 			if (!Path.isEmpty())
 				pStats->Path = Path + "\\" + Name;
@@ -21,8 +23,8 @@ quint64 ReadAccessBranch(QMap<quint64, SAccessStatsPtr>& m_AccessStats, const XV
 	}
 
 	quint64 LastActivity = 0;
-	Data.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
-		const XVariant& Data = *(XVariant*)&vData;
+	Reader.ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
+		const QtVariant& Data = *(QtVariant*)&vData;
 
 		switch (Index) 
 		{
@@ -35,8 +37,8 @@ quint64 ReadAccessBranch(QMap<quint64, SAccessStatsPtr>& m_AccessStats, const XV
 		case API_V_IS_DIRECTORY:	pStats->IsDirectory = Data.To<bool>(false); break;
 
 		case API_V_ACCESS_NODES:
-			Data.ReadRawList([&](const CVariant& vData) {
-				quint64 CurActivity = ReadAccessBranch(m_AccessStats, *(XVariant*)&vData, pStats->Path);
+			QtVariantReader(Data).ReadRawList([&](const FW::CVariant& vData) {
+				quint64 CurActivity = ReadAccessBranch(m_AccessStats, *(QtVariant*)&vData, pStats->Path);
 				if (CurActivity > LastActivity)
 					LastActivity = CurActivity;
 			});

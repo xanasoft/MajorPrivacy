@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Process.h"
 #include "../PrivacyCore.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../../Helpers/WinHelper.h"
@@ -41,10 +41,10 @@ bool CProcess::IsProtected(bool bAlsoLite) const
 	return kFlags.Protected && (bAlsoLite || kSFlags.ProtectionLevel == KphFullProtection);
 }
 
-void CProcess::FromVariant(const class XVariant& Process)
+void CProcess::FromVariant(const class QtVariant& Process)
 {
-	Process.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
-		const XVariant& Data = *(XVariant*)&vData;
+	QtVariantReader(Process).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
+		const QtVariant& Data = *(QtVariant*)&vData;
 
 		switch (Index)
 		{
@@ -113,36 +113,39 @@ void CProcess::OnSidResolved(const QByteArray& SID, const QString& Name)
 	m_UserName = Name;
 }
 
-void CProcess::UpdateHandles(const class XVariant& Handles)
+void CProcess::UpdateHandles(const class QtVariant& Handles)
 {
 	QMap<quint64, CHandlePtr> OldHandles = m_Handles;
 
-	Handles.ReadRawList([&](const CVariant& vData) {
-		const XVariant& Handle = *(XVariant*)&vData;
+	QtVariantReader(Handles).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& Handle = *(QtVariant*)&vData;
 
-		quint64 HandleRef = Handle.Find(API_V_ACCESS_REF);
+		quint64 HandleRef = QtVariantReader(Handle).Find(API_V_ACCESS_REF);
 
 		CHandlePtr pHandle = OldHandles.take(HandleRef);
+		bool bUpdate = false; // we dont have live handle data currently hence we dont update it once its enlisted
 		if (!pHandle) {
 			pHandle = CHandlePtr(new CHandle());
 			m_Handles.insert(HandleRef, pHandle);
+			bUpdate = true;
 		} 
 
-		pHandle->FromVariant(Handle);
+		if(bUpdate)
+			pHandle->FromVariant(Handle);
 	});
 
 	foreach(quint64 HandleRef, OldHandles.keys())
 		m_Handles.remove(OldHandles.take(HandleRef)->GetHandleRef());
 }
 
-void CProcess::UpdateSockets(const class XVariant& Sockets)
+void CProcess::UpdateSockets(const class QtVariant& Sockets)
 {
 	QMap<quint64, CSocketPtr> OldSockets = m_Sockets;
 
-	Sockets.ReadRawList([&](const CVariant& vData) {
-		const XVariant& Socket = *(XVariant*)&vData;
+	QtVariantReader(Sockets).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& Socket = *(QtVariant*)&vData;
 
-		quint64 SockRef = Socket.Find(API_V_SOCK_REF);
+		quint64 SockRef = QtVariantReader(Socket).Find(API_V_SOCK_REF);
 
 		CSocketPtr pSocket = OldSockets.take(SockRef);
 		if (!pSocket) {

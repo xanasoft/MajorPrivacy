@@ -16,6 +16,10 @@ CAlpcPortServer::CAlpcPortServer()
 	InitializeCriticalSectionAndSpinCount(&m_Lock, 1000);
 
 	m_hServerPort = NULL;
+
+#ifndef _DEBUG
+	m_NumThreads = PhSystemBasicInformation.NumberOfProcessors;
+#endif
 }
 
 CAlpcPortServer::~CAlpcPortServer()
@@ -29,7 +33,7 @@ CAlpcPortServer::~CAlpcPortServer()
         //
 
         UCHAR space[MAX_PORTMSG_LENGTH];
-        for (ULONG i = 0; i < PhSystemBasicInformation.NumberOfProcessors; ++i) 
+        for (ULONG i = 0; i < m_NumThreads; ++i) 
         {
             PORT_MESSAGE *msg = (PORT_MESSAGE *)space;
             memset(msg, 0, MAX_PORTMSG_LENGTH);
@@ -88,8 +92,8 @@ STATUS CAlpcPortServer::Open(const std::wstring& name)
     // start worker threads
     //
 
-    m_Threads.resize(PhSystemBasicInformation.NumberOfProcessors);
-    for (ULONG i = 0; i < PhSystemBasicInformation.NumberOfProcessors; ++i) 
+    m_Threads.resize(m_NumThreads);
+    for (ULONG i = 0; i < m_NumThreads; ++i) 
     {
         DWORD idThread;
         m_Threads[i] = CreateThread(NULL, 0, ThreadStub, this, 0, &idThread);
@@ -503,14 +507,14 @@ void CAlpcPortServer::CallTarget(const CBuffer& recvBuff, CBuffer& sendBuff, HAN
     uint32 PID = (uint32)(ULONG_PTR)PortMessage->ClientId.UniqueProcess;
     uint32 TID = (uint32)(ULONG_PTR)PortMessage->ClientId.UniqueThread;
 
-    sendBuff.SetData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
+    sendBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
 //#ifndef _DEBUG
     try
 //#endif
     {
         status = STATUS_INVALID_SYSTEM_SERVICE;
 
-        MSG_HEADER* in_msg = (MSG_HEADER*)recvBuff.GetData(sizeof(MSG_HEADER));
+        MSG_HEADER* in_msg = (MSG_HEADER*)recvBuff.ReadData(sizeof(MSG_HEADER));
 
         if (in_msg->MessageId == -1)
         {
@@ -554,7 +558,7 @@ void CAlpcPortServer::PortReply(PORT_MESSAGE *msg, const SThreadPtr& client)
 
     msg->u1.s1.DataLength = (USHORT) len_togo;
     msg->u1.s1.TotalLength = (USHORT)(sizeof(PORT_MESSAGE) + len_togo);
-    byte* ptr = client->sendBuff.GetData(len_togo);
+    const byte* ptr = client->sendBuff.ReadData(len_togo);
     if (!ptr) return;
     memcpy((UCHAR*)msg + sizeof(PORT_MESSAGE), ptr, len_togo);
 

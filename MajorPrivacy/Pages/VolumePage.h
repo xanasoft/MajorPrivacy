@@ -12,6 +12,9 @@ public:
 	CVolumePage(QWidget* parent);
 	~CVolumePage();
 
+	void LoadState();
+	void SetMergePanels(bool bMerge);
+
 	void	Update();
 
 private:

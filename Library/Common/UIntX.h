@@ -1,7 +1,7 @@
 #pragma once
 #include "../lib_global.h"
 
-#include "Variant.h"
+#include "../Common/StVariant.h"
 
 class LIBRARY_EXPORT CUIntX
 {
@@ -47,7 +47,7 @@ protected:
 	void				Init(uint32 uValue);
 	void				Init(const unsigned char* pRaw);
 
-	void				Init(const CVariant& Variant);
+	void				Init(const StVariant& Variant);
 };
 
 template <class T>
@@ -59,11 +59,11 @@ public:
 	CUIntXtmpl(uint32 uValue)								{Init(uValue);}
 	CUIntXtmpl(const unsigned char* pRaw)					{Init(pRaw);}
 
-	explicit CUIntXtmpl(const CVariant& Variant)			{Init(Variant);}
+	explicit CUIntXtmpl(const StVariant& Variant)			{Init(Variant);}
 
 	virtual void		SetValue(const CUIntXtmpl& uValue)	{m_Data = uValue.m_Data;}
 
-	operator CVariant() const								{return CVariant(GetData(),GetSize(),CVariant::EUInt);}
+	operator StVariant() const								{return StVariant(GetData(),GetSize(),StVariant::EUInt);}
 
 	//CUIntXtmpl& operator^	(const CUIntXtmpl &uValue)		{Xor(uValue); return *this;}
 	CUIntXtmpl operator^	(const CUIntXtmpl &uValue) const{CUIntXtmpl This = *this; This.Xor(uValue); return This;}

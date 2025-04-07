@@ -2,7 +2,7 @@
 #include "ProgramItem.h"
 #include "../Processes/ProcessList.h"
 #include "../PrivacyCore.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../Network/NetworkManager.h"
@@ -55,24 +55,23 @@ void CProgramItem::UpdateIconFile()
 		m_Icon = QIcon(QPixmap(Path));
 }
 
-XVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const
+QtVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const
 {
-	XVariant Data;
+	QtVariantWriter Data;
 	if (Opts.Format == SVarWriteOpt::eIndex) {
-		Data.BeginIMap();
+		Data.BeginIndex();
 		WriteIVariant(Data, Opts);
 	} else {  
 		Data.BeginMap();
 		WriteMVariant(Data, Opts);
 	}
-	Data.Finish();
-	return Data;
+	return Data.Finish();
 }
 
-NTSTATUS CProgramItem::FromVariant(const class XVariant& Data)
+NTSTATUS CProgramItem::FromVariant(const class QtVariant& Data)
 {
-	if (Data.GetType() == VAR_TYPE_MAP)         Data.ReadRawMap([&](const SVarName& Name, const CVariant& Data) { ReadMValue(Name, Data); });
-	else if (Data.GetType() == VAR_TYPE_INDEX)  Data.ReadRawIMap([&](uint32 Index, const CVariant& Data)        { ReadIValue(Index, Data); });
+	if (Data.GetType() == VAR_TYPE_MAP)         QtVariantReader(Data).ReadRawMap([&](const SVarName& Name, const QtVariant& Data) { ReadMValue(Name, Data); });
+	else if (Data.GetType() == VAR_TYPE_INDEX)  QtVariantReader(Data).ReadRawIndex([&](uint32 Index, const QtVariant& Data) { ReadIValue(Index, Data); });
 	else
 		return STATUS_UNKNOWN_REVISION;
 	SetIconFile();

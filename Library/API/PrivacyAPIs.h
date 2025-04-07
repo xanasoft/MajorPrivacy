@@ -205,6 +205,14 @@
 #define	API_S_PIDS							"PIDs"
 
 ////////////////////////////
+// DNS
+#define API_S_DNS_RULES						"DnsRules"
+#define API_S_DNS_HOST						"Host"
+#define API_S_DNS_RULE_ACTION				"Action"
+	#define API_S_DNS_RULE_ACTION_BLOCK			"Block"
+	#define API_S_DNS_RULE_ACTION_ALLOW			"Allow"	
+
+////////////////////////////
 // Logs
 #define API_S_ACCESS_LOG					"AccessLog"
 #define API_S_TRAFFIC_LOG					"TrafficLog"

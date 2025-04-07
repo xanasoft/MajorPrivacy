@@ -7,10 +7,10 @@ CHandle::CHandle(QObject* parent)
 {
 }
 
-void CHandle::FromVariant(const class XVariant& Handle)
+void CHandle::FromVariant(const class QtVariant& Handle)
 {
-	Handle.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
-		const XVariant& Data = *(XVariant*)&vData;
+	QtVariantReader(Handle).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
+		const QtVariant& Data = *(QtVariant*)&vData;
 
 		switch (Index)
 		{

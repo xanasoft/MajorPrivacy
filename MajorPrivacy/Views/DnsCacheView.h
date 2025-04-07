@@ -29,5 +29,7 @@ private slots:
 private:
 
 	QToolBar*				m_pToolBar;
+	QComboBox*				m_pCmbStatus;
+	QComboBox*				m_pCmbType;
 	QToolButton*			m_pBtnClear;
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Types.h"
+#include "../Framework/Core/Types.h"
 
 #ifndef STATUS_SUCCESS
 #include <ntstatus.h>

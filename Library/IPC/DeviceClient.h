@@ -1,7 +1,7 @@
 #pragma once
 #include "../Status.h"
 #include "../lib_global.h"
-#include "../Common/Variant.h"
+#include "../Common/StVariant.h"
 #include "AbstractClient.h"
 
 class LIBRARY_EXPORT CDeviceClient : public CAbstractClient

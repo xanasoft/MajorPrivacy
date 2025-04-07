@@ -1,6 +1,6 @@
 #pragma once
 #include "NtObj.h"
-#include "../Common/Buffer.h"
+#include "../Framework/Common/Buffer.h"
 
 
 LIBRARY_EXPORT bool NtIo_WaitForFolder(POBJECT_ATTRIBUTES objattrs, int seconds = 10, bool (*cb)(const WCHAR* info, void* param) = NULL, void* param = NULL);

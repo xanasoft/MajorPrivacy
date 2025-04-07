@@ -1,8 +1,8 @@
 #pragma once
 #include "../Status.h"
 #include "../lib_global.h"
-#include "../Common/Buffer.h"
-#include "../Common/Variant.h"
+#include "../Framework/Common/Buffer.h"
+#include "../Common/StVariant.h"
 
 class LIBRARY_EXPORT CAlpcPortServer
 {
@@ -58,6 +58,7 @@ protected:
     
     volatile HANDLE m_hServerPort;
     std::vector<HANDLE> m_Threads;
+    ULONG m_NumThreads = 1;
 
     std::unordered_map<uint32, std::function<uint32(uint32 msgId, const CBuffer* req, CBuffer* rpl, uint32 PID, uint32 TID)>> m_MessageHandlers;
 };

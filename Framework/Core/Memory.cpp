@@ -15,8 +15,11 @@
 */
 
 #include "Header.h"
-#include "Framework.h"
 #include "Memory.h"
+
+#ifdef NO_CRT_TEST
+#undef KERNEL_MODE
+#endif
 
 #ifndef NO_CRT
 #include <stdlib.h>
@@ -24,17 +27,84 @@
 
 FW_NAMESPACE_BEGIN
 
-void* DefaultMemPool::Alloc(size_t size)
+//////////////////////////////////////////////////////////////////////////////////////////////
+// AbstractContainer
+
+void* AbstractContainer::MemAlloc(size_t size) const
+{
+	if (m_pMem)
+		return m_pMem->Alloc(size);
+#ifdef KERNEL_MODE
+	DBG_MSG("AbstractContainer::MemAlloc NO POOL !!!\n");
+#elif defined(NO_CRT_TEST)
+	DebugBreak();
+#endif
+	return ::MemAlloc(size);
+}
+
+void AbstractContainer::MemFree(void* ptr) const
+{
+	if (m_pMem)
+		m_pMem->Free(ptr);
+	else
+		::MemFree(ptr);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// DefaultMemPool
+
+void* DefaultMemPool::Alloc(size_t size, uint32 flags)
 {
 	return MemAlloc(size);
 }
 
-void DefaultMemPool::Free(void* ptr)
+void DefaultMemPool::Free(void* ptr, uint32 flags)
 {
 	if(ptr) MemFree(ptr);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+// StackedMem
+
+void* StackedMem::Alloc(size_t size, uint32 flags)
+{
+	size_t uTotalSize = sizeof(SMemHeader) + size;
+	if ((m_pPtr - m_pMem) + uTotalSize <= m_uSize)
+	{
+		SMemHeader* pHeader = ((SMemHeader*)m_pPtr);
+		pHeader->uSize = size;
+		pHeader->bFreed = false;
+		void* pPtr = m_pPtr + sizeof(SMemHeader);
+		m_pPtr += uTotalSize;
+		return pPtr;
+	}
+#ifndef KERNEL_MODE
+	DebugBreak();
+#endif
+	return nullptr;
+}
+
+void StackedMem::Free(void* ptr, uint32 flags)
+{
+	SMemHeader* pHeader = ((SMemHeader*)((uint8*)ptr)) - sizeof(SMemHeader);
+	pHeader->bFreed = true;
+
+	uint8* blockEnd = ((uint8*)ptr) + pHeader->uSize;
+	while (m_pPtr == blockEnd && m_pPtr != m_pMem)
+	{
+		m_pPtr -= (sizeof(SMemHeader) + pHeader->uSize);
+		if (m_pPtr == m_pMem)
+			break;
+		pHeader = ((SMemHeader*)m_pPtr);
+		blockEnd = ((uint8*)m_pPtr) + pHeader->uSize;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 FW_NAMESPACE_END
+
+//////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef NO_CRT
 
@@ -78,19 +148,20 @@ C_BEGIN
 
 void* MemAlloc(size_t size)
 {
+	void* ptr = nullptr;
 #ifndef KERNEL_MODE
 #ifdef NO_CRT
-	return VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	ptr = VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 #else
-	return malloc(size);
+	ptr = malloc(size);
 #endif
 #elif (NTDDI_VERSION >= NTDDI_WIN10_VB)
-	return ExAllocatePool2(POOL_FLAG_NON_PAGED, size, KPP_TAG);
+	ptr = ExAllocatePool2(POOL_FLAG_NON_PAGED, size, KPP_TAG);
 #else
-
 #pragma warning(suppress: 4996) // suppress deprecation warning
-	return ExAllocatePoolWithTag(PagedPool, size, KPP_TAG);
+	ptr = ExAllocatePoolWithTag(PagedPool, size, KPP_TAG);
 #endif
+	return ptr;
 }
 
 void MemFree(void* ptr)

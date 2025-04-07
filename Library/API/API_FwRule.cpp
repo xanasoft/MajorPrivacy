@@ -10,14 +10,14 @@
 // CFwRule
 //
 
-void CFwRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
+void CFwRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 {
 #ifndef CFwRule
     CGenericRule::WriteIVariant(Rule, Opts);
 #endif
 
 #ifdef CFwRule
-    Rule.Write(API_V_GUID, M(Guid));
+    Rule.WriteEx(API_V_GUID, M(Guid));
 #endif
     Rule.Write(API_V_INDEX, M(Index));
 
@@ -26,20 +26,20 @@ void CFwRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
     //Rule.Write(API_V_TEMP, ...
 #endif
 
-    Rule.Write(API_V_FILE_PATH, TO_STR(m_BinaryPath));
-    Rule.Write(API_V_SERVICE_TAG, TO_STR(M(ServiceTag)));
-    Rule.Write(API_V_APP_SID, TO_STR(M(AppContainerSid)));
-    Rule.Write(API_V_OWNER, TO_STR(M(LocalUserOwner)));
-    Rule.Write(API_V_APP_NAME, TO_STR(M(PackageFamilyName)));
+    Rule.WriteEx(API_V_FILE_PATH, TO_STR(m_BinaryPath));
+    Rule.WriteEx(API_V_SERVICE_TAG, TO_STR(M(ServiceTag)));
+    Rule.WriteEx(API_V_APP_SID, TO_STR(M(AppContainerSid)));
+    Rule.WriteEx(API_V_OWNER, TO_STR(M(LocalUserOwner)));
+    Rule.WriteEx(API_V_APP_NAME, TO_STR(M(PackageFamilyName)));
 
 #ifdef CFwRule
     Rule.WriteVariant(API_V_PROG_ID, m_ProgramID.ToVariant(Opts));
 
-    Rule.Write(API_V_NAME, TO_STR(M(Name)));
+    Rule.WriteEx(API_V_NAME, TO_STR(M(Name)));
 #endif
-    Rule.Write(API_V_RULE_GROUP, TO_STR(M(Grouping)));
+    Rule.WriteEx(API_V_RULE_GROUP, TO_STR(M(Grouping)));
 #ifdef CFwRule
-    Rule.Write(API_V_RULE_DESCR, TO_STR(M(Description)));
+    Rule.WriteEx(API_V_RULE_DESCR, TO_STR(M(Description)));
 #endif
 
     Rule.Write(API_V_FW_RULE_ACTION, (uint32)M(Action));
@@ -56,10 +56,10 @@ void CFwRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteVariant(API_V_FW_RULE_REMOTE_PORT, XVariant(M(RemotePorts)));
 
 #ifdef CFwRule
-    std::vector<std::string> IcmpTypesAndCodes;
+    ASTR_VECTOR IcmpTypesAndCodes;
     for (auto I : m_Data->IcmpTypesAndCodes)
         IcmpTypesAndCodes.push_back(std::to_string(I.Type) + ":" + (I.Code == 256 ? "*" : std::to_string(I.Code)));
-    Rule.WriteVariant(API_V_FW_RULE_ICMP, CVariant(IcmpTypesAndCodes));
+    Rule.WriteVariant(API_V_FW_RULE_ICMP, XVariant(IcmpTypesAndCodes));
 #else
     Rule.WriteVariant(API_V_FW_RULE_ICMP, XVariant(M(IcmpTypesAndCodes)));
 #endif
@@ -122,7 +122,7 @@ void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
 #ifdef CFwRule
     case API_V_FW_RULE_ICMP:
     {
-        std::vector<std::string> IcmpTypesAndCodes = Data.AsList<std::string>();
+        ASTR_VECTOR IcmpTypesAndCodes = Data.AsList<std::string>();
         for (auto Icmp : IcmpTypesAndCodes)
         {
             auto TypeCode = Split2(Icmp, ":");
@@ -156,14 +156,14 @@ void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CFwRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
+void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 {
 #ifndef CFwRule
     CGenericRule::WriteMVariant(Rule, Opts);
 #endif
 
 #ifdef CFwRule
-    Rule.Write(API_S_GUID, M(Guid));
+    Rule.WriteEx(API_S_GUID, M(Guid));
 #endif
     Rule.Write(API_S_INDEX, M(Index));
 
@@ -172,20 +172,20 @@ void CFwRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
     //Rule.Write(API_S_TEMP, ...
 #endif
 
-    Rule.Write(API_S_FILE_PATH, TO_STR(m_BinaryPath));
-    Rule.Write(API_S_SERVICE_TAG, TO_STR(M(ServiceTag)));
-    Rule.Write(API_S_APP_SID, TO_STR(M(AppContainerSid)));
-    Rule.Write(API_S_OWNER, TO_STR(M(LocalUserOwner)));
-    Rule.Write(API_S_APP_NAME, TO_STR(M(PackageFamilyName)));
+    Rule.WriteEx(API_S_FILE_PATH, TO_STR(m_BinaryPath));
+    Rule.WriteEx(API_S_SERVICE_TAG, TO_STR(M(ServiceTag)));
+    Rule.WriteEx(API_S_APP_SID, TO_STR(M(AppContainerSid)));
+    Rule.WriteEx(API_S_OWNER, TO_STR(M(LocalUserOwner)));
+    Rule.WriteEx(API_S_APP_NAME, TO_STR(M(PackageFamilyName)));
 
 #ifdef CFwRule
     Rule.WriteVariant(API_S_PROG_ID, m_ProgramID.ToVariant(Opts));
 
-    Rule.Write(API_S_NAME, TO_STR(M(Name)));
+    Rule.WriteEx(API_S_NAME, TO_STR(M(Name)));
 #endif
-    Rule.Write(API_S_RULE_GROUP, TO_STR(M(Grouping)));
+    Rule.WriteEx(API_S_RULE_GROUP, TO_STR(M(Grouping)));
 #ifdef CFwRule
-    Rule.Write(API_S_RULE_DESCR, TO_STR(M(Description)));
+    Rule.WriteEx(API_S_RULE_DESCR, TO_STR(M(Description)));
 #endif
 
     switch (M(Action)) {
@@ -199,7 +199,7 @@ void CFwRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
     case EFwDirections::Outbound:	    Rule.Write(API_S_FW_RULE_DIRECTION, API_S_FW_RULE_DIRECTION_OUTBOUND); break;
     }
 
-    std::vector<std::string> Profiles;
+    ASTR_VECTOR Profiles;
     if (M(Profile) == (uint32)EFwProfiles::All)
         Profiles.push_back(API_S_FW_RULE_PROFILE);
     else
@@ -208,11 +208,11 @@ void CFwRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
         if(M(Profile) & (int)EFwProfiles::Private)	Profiles.push_back(API_S_FW_RULE_PROFILE_PRIVATE);
         if(M(Profile) & (int)EFwProfiles::Public)	Profiles.push_back(API_S_FW_RULE_PROFILE_PUBLIC);
     }
-    Rule.Write(API_S_FW_RULE_PROFILE, Profiles);
+    Rule.WriteVariant(API_S_FW_RULE_PROFILE, XVariant(Profiles));
 
     Rule.Write(API_S_FW_RULE_PROTOCOL, (uint32)M(Protocol));
 
-    std::vector<std::string> Interfaces;
+    ASTR_VECTOR Interfaces;
     if (M(Interface) == (uint32)EFwInterfaces::All)
         Interfaces.push_back(API_S_FW_RULE_INTERFACE_ANY);
     else
@@ -221,7 +221,7 @@ void CFwRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
         if(M(Interface) & (int)EFwInterfaces::Wireless)	    Interfaces.push_back(API_S_FW_RULE_INTERFACE_WIRELESS);
         if(M(Interface) & (int)EFwInterfaces::RemoteAccess) Interfaces.push_back(API_S_FW_RULE_INTERFACE_REMOTEACCESS);
     }
-    Rule.Write(API_S_FW_RULE_INTERFACE, Interfaces);
+    Rule.WriteVariant(API_S_FW_RULE_INTERFACE, XVariant(Interfaces));
 
     Rule.WriteVariant(API_S_FW_RULE_LOCAL_ADDR, XVariant(M(LocalAddresses)));
     Rule.WriteVariant(API_S_FW_RULE_LOCAL_PORT, XVariant(M(LocalPorts)));
@@ -229,10 +229,10 @@ void CFwRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteVariant(API_S_FW_RULE_LOCAL_PORT, XVariant(M(RemotePorts)));
 
 #ifdef CFwRule
-    std::vector<std::string> IcmpTypesAndCodes;
+    ASTR_VECTOR IcmpTypesAndCodes;
     for (auto I : m_Data->IcmpTypesAndCodes)
         IcmpTypesAndCodes.push_back(std::to_string(I.Type) + ":" + (I.Code == 256 ? "*" : std::to_string(I.Code)));
-    Rule.Write(API_S_FW_RULE_ICMP, IcmpTypesAndCodes);
+    Rule.WriteVariant(API_S_FW_RULE_ICMP, XVariant(IcmpTypesAndCodes));
 #else
     Rule.WriteVariant(API_S_FW_RULE_ICMP, XVariant(M(IcmpTypesAndCodes)));
 #endif
@@ -362,7 +362,7 @@ void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 #ifdef CFwRule
     else if (VAR_TEST_NAME(Name, API_S_FW_RULE_ICMP))
     {
-        std::vector<std::string> IcmpTypesAndCodes = Data.AsList<std::string>();
+        ASTR_VECTOR IcmpTypesAndCodes = Data.AsList<std::string>();
         for (auto Icmp : IcmpTypesAndCodes)
         {
             auto TypeCode = Split2(Icmp, ":");

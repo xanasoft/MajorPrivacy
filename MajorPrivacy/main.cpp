@@ -14,7 +14,7 @@
 #ifdef _DEBUG
 //#include "../Library/Helpers/Reparse.h"
 #include "../Library/Helpers/NtpathMgr.h"
-//#include "../../Library/Common/FlexGuid.h"
+//#include "./Common/QtFlexGuid.h"
 #endif
 
 #include "../Library/Hooking/HookUtils.h"
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 	// if it returns no error but the memory is not readable return STATUS_ACCESS_DENIED instead.
 	//
 
-	HookFunction(GetProcAddress(GetModuleHandle(L"ntdll.dll"), "NtMapViewOfSection"), MyMapViewOfSection, (VOID**)&NtMapViewOfSectionTramp);
+	HookFunction(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtMapViewOfSection"), MyMapViewOfSection, (VOID**)&NtMapViewOfSectionTramp);
 
 #ifdef _DEBUG
 	

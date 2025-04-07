@@ -4,7 +4,7 @@
 // CGenericRule
 //
 
-void CGenericRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
+void CGenericRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 {
 #ifdef KERNEL_MODE
 	if(!IS_EMPTY(m_Guid))
@@ -24,9 +24,9 @@ void CGenericRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 	Rule.Write(API_V_TEMP, m_bTemporary);
 	Rule.Write(API_V_TIMEOUT, m_uTimeOut);
 
-	Rule.Write(API_V_NAME, TO_STR(m_Name));
-	//Rule.Write(API_V_RULE_GROUP, TO_STR(m_Grouping));
-	Rule.Write(API_V_RULE_DESCR, TO_STR(m_Description));
+	Rule.WriteEx(API_V_NAME, TO_STR(m_Name));
+	//Rule.WriteEx(API_V_RULE_GROUP, TO_STR(m_Grouping));
+	Rule.WriteEx(API_V_RULE_DESCR, TO_STR(m_Description));
 
 	Rule.WriteVariant(API_V_DATA, m_Data);
 }
@@ -63,7 +63,7 @@ void CGenericRule::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CGenericRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
+void CGenericRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 {
 #ifdef KERNEL_MODE
 	if(!IS_EMPTY(m_Guid))
@@ -83,9 +83,9 @@ void CGenericRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 	Rule.Write(API_S_TEMP, m_bTemporary);
 	Rule.Write(API_S_TIMEOUT, m_uTimeOut);
 
-	Rule.Write(API_S_NAME, TO_STR(m_Name));
-	//Rule.Write(API_S_RULE_GROUP, TO_STR(m_Grouping));
-	Rule.Write(API_S_RULE_DESCR, TO_STR(m_Description));
+	Rule.WriteEx(API_S_NAME, TO_STR(m_Name));
+	//Rule.WriteEx(API_S_RULE_GROUP, TO_STR(m_Grouping));
+	Rule.WriteEx(API_S_RULE_DESCR, TO_STR(m_Description));
 
 	Rule.WriteVariant(API_S_DATA, m_Data);
 }

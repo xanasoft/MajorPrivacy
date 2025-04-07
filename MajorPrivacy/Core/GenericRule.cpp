@@ -30,23 +30,22 @@ void CGenericRule::CopyTo(CGenericRule* pRule, bool CloneGuid) const
 	//pRule->m_ProgramID = m_ProgramID;
 }
 
-XVariant CGenericRule::ToVariant(const SVarWriteOpt& Opts) const
+QtVariant CGenericRule::ToVariant(const SVarWriteOpt& Opts) const
 {
-	XVariant Rule;
+	QtVariantWriter Rule;
 	if (Opts.Format == SVarWriteOpt::eIndex) {
-		Rule.BeginIMap();
+		Rule.BeginIndex();
 		WriteIVariant(Rule, Opts);
 	} else {  
 		Rule.BeginMap();
 		WriteMVariant(Rule, Opts);
 	}
-	Rule.Finish();
-	return Rule;
+	return Rule.Finish();
 }
 
-void CGenericRule::FromVariant(const class XVariant& Rule)
+void CGenericRule::FromVariant(const class QtVariant& Rule)
 {
-	if (Rule.GetType() == VAR_TYPE_MAP)			Rule.ReadRawMap([&](const SVarName& Name, const CVariant& Data)	{ ReadMValue(Name, Data); });
-	else if (Rule.GetType() == VAR_TYPE_INDEX)  Rule.ReadRawIMap([&](uint32 Index, const CVariant& Data)		{ ReadIValue(Index, Data); });
+	if (Rule.GetType() == VAR_TYPE_MAP)			QtVariantReader(Rule).ReadRawMap([&](const SVarName& Name, const QtVariant& Data)	{ ReadMValue(Name, Data); });
+	else if (Rule.GetType() == VAR_TYPE_INDEX)  QtVariantReader(Rule).ReadRawIndex([&](uint32 Index, const QtVariant& Data)		{ ReadIValue(Index, Data); });
 	// todo err
 }

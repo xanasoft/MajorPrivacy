@@ -66,9 +66,9 @@ DWORD RegSetDWord(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, DWORD 
 	return ERROR_OPEN_FAILED;
 }
 
-CVariant RegQuery(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const CVariant& defaultValue)
+StVariant RegQuery(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const StVariant& defaultValue)
 {
-    CVariant res = defaultValue;
+    StVariant res = defaultValue;
     HKEY key;
     if (RegOpenKeyEx(hKey, subKey, 0, KEY_READ, &key) == ERROR_SUCCESS) {
         res = RegQuery(key, valueName, defaultValue);
@@ -77,9 +77,9 @@ CVariant RegQuery(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const 
     return res;
 }
 
-CVariant RegQuery(HKEY hKey, const WCHAR* valueName, const CVariant& defaultValue)
+StVariant RegQuery(HKEY hKey, const WCHAR* valueName, const StVariant& defaultValue)
 {
-	CVariant res = defaultValue;
+    StVariant res = defaultValue;
 	DWORD dataSize = 0;
 	DWORD dataType = 0;
 	RegQueryValueEx(hKey, valueName, NULL, &dataType, NULL, &dataSize);
@@ -108,7 +108,7 @@ CVariant RegQuery(HKEY hKey, const WCHAR* valueName, const CVariant& defaultValu
 	return res;
 }
 
-DWORD RegSet(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const CVariant& value)
+DWORD RegSet(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const StVariant& value)
 {
 	HKEY key;
     DWORD disposition;
@@ -120,7 +120,7 @@ DWORD RegSet(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const CVari
 	return ERROR_OPEN_FAILED;
 }
 
-DWORD RegSet(HKEY hKey, const WCHAR* valueName, const CVariant& value)
+DWORD RegSet(HKEY hKey, const WCHAR* valueName, const StVariant& value)
 {
     switch (value.GetType()) {
     case VAR_TYPE_UINT:

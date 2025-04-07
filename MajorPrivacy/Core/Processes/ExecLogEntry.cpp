@@ -74,7 +74,7 @@ QString CExecLogEntry::GetStatusStr() const
 	return CAccessRuleWnd::GetStatusStr(m_Status);
 }
 
-void CExecLogEntry::ReadValue(uint32 Index, const XVariant& Data)
+void CExecLogEntry::ReadValue(uint32 Index, const QtVariant& Data)
 {
 	switch (Index)
 	{

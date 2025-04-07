@@ -1,7 +1,7 @@
 #pragma once
 #include "../Status.h"
 #include "../lib_global.h"
-#include "../Common/Variant.h"
+#include "../Common/StVariant.h"
 #include "../Service/Network/Firewall/FirewallDefs.h"
 
 class LIBRARY_EXPORT CServiceAPI
@@ -18,7 +18,7 @@ public:
 
 	uint32 GetProcessId() const;
 
-	RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message);
+	RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message);
 
 	uint32 GetABIVersion();
 

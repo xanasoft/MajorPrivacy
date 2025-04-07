@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Enclave.h"
 #include "../PrivacyCore.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../../Helpers/WinHelper.h"
@@ -36,25 +36,23 @@ CEnclave* CEnclave::Clone() const
 	return pEnclave;
 }
 
-XVariant CEnclave::ToVariant(const SVarWriteOpt& Opts) const
+QtVariant CEnclave::ToVariant(const SVarWriteOpt& Opts) const
 {
-	XVariant Enclave;
+	QtVariantWriter Enclave;
 	if (Opts.Format == SVarWriteOpt::eIndex) {
-		Enclave.BeginIMap();
+		Enclave.BeginIndex();
 		WriteIVariant(Enclave, Opts);
 	} else {  
 		Enclave.BeginMap();
 		WriteMVariant(Enclave, Opts);
 	}
-	Enclave.Finish();
-
-	return Enclave;
+	return Enclave.Finish();
 }
 
-NTSTATUS CEnclave::FromVariant(const class XVariant& Enclave)
+NTSTATUS CEnclave::FromVariant(const class QtVariant& Enclave)
 {
-	if (Enclave.GetType() == VAR_TYPE_MAP)			Enclave.ReadRawMap([&](const SVarName& Name, const CVariant& Data)	{ ReadMValue(Name, Data); });
-	else if (Enclave.GetType() == VAR_TYPE_INDEX)	Enclave.ReadRawIMap([&](uint32 Index, const CVariant& Data)			{ ReadIValue(Index, Data); });
+	if (Enclave.GetType() == VAR_TYPE_MAP)			QtVariantReader(Enclave).ReadRawMap([&](const SVarName& Name, const QtVariant& Data)	{ ReadMValue(Name, Data); });
+	else if (Enclave.GetType() == VAR_TYPE_INDEX)	QtVariantReader(Enclave).ReadRawIndex([&](uint32 Index, const QtVariant& Data) { ReadIValue(Index, Data); });
 	else
 		return STATUS_UNKNOWN_REVISION;
 	SetIconFile();

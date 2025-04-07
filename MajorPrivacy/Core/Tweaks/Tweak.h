@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 
 #include "../Library/API/PrivacyDefs.h"
 
@@ -19,12 +19,12 @@ public:
 	virtual QString GetStatusStr() const;
 	virtual QString GetInfo() const { return ""; }
 
-	virtual void FromVariant(const class XVariant& Tweak);
+	virtual void FromVariant(const class QtVariant& Tweak);
 
 protected:
 
-	virtual void ReadIValue(uint32 Index, const XVariant& Data);
-	virtual void ReadMValue(const SVarName& Name, const XVariant& Data);
+	virtual void ReadIValue(uint32 Index, const QtVariant& Data);
+	virtual void ReadMValue(const SVarName& Name, const QtVariant& Data);
 
 	QString m_Name;
 	ETweakType m_Type = ETweakType::eUnknown;
@@ -46,10 +46,10 @@ public:
 
 protected:
 
-	void ReadIValue(uint32 Index, const XVariant& Data) override;
-	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
+	void ReadIValue(uint32 Index, const QtVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const QtVariant& Data) override;
 
-	void ReadList(const XVariant& List);
+	void ReadList(const QtVariant& List);
 
 	QMap<QString, CTweakPtr> m_List;
 };
@@ -87,12 +87,12 @@ public:
 
 	virtual QString GetInfo() const { return m_Info; }
 
-	virtual void FromVariant(const class XVariant& Tweak);
+	virtual void FromVariant(const class QtVariant& Tweak);
 
 protected:
 
-	void ReadIValue(uint32 Index, const XVariant& Data) override;
-	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
+	void ReadIValue(uint32 Index, const QtVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const QtVariant& Data) override;
 
 	QString m_Info;
 };

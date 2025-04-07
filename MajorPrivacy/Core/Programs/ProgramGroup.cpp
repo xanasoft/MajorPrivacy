@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "ProgramGroup.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../PrivacyCore.h"
 #include "../Processes/ProcessList.h"
@@ -25,7 +25,7 @@ void CAllPrograms::CountStats()
 	m_Stats.SocketCount = theCore->ProcessList()->GetSocketCount();
 }
 
-void CAllPrograms::ReadIValue(uint32 Index, const XVariant& Data)
+void CAllPrograms::ReadIValue(uint32 Index, const QtVariant& Data)
 {
 	switch (Index)
 	{
@@ -42,7 +42,7 @@ void CAllPrograms::ReadIValue(uint32 Index, const XVariant& Data)
 	}
 }
 
-void CAllPrograms::ReadMValue(const SVarName& Name, const XVariant& Data)
+void CAllPrograms::ReadMValue(const SVarName& Name, const QtVariant& Data)
 {
 	if (VAR_TEST_NAME(Name, API_S_SOCK_LAST_ACT))			m_Stats.LastNetActivity = Data;
 

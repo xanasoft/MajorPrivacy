@@ -1,6 +1,8 @@
 #pragma once
 #include "../lib_global.h"
 
+#include <string>
+
 #ifdef USING_QT
 LIBRARY_EXPORT QString UnEscape(QString Text);
 #endif
@@ -150,6 +152,24 @@ T JoinStrx(const std::vector<T>& StringList, const T& Separator)
 
 __inline LIBRARY_EXPORT std::string JoinStr(const std::vector<std::string>& String, std::string Separator = ",") {return JoinStrx(String, Separator);}
 __inline LIBRARY_EXPORT std::wstring JoinStr(const std::vector<std::wstring>& String, std::wstring Separator = L",") {return JoinStrx(String, Separator);}
+
+template<typename StringT>
+StringT StrReplaceAllx(StringT str, const StringT& from, const StringT& to) 
+{
+	if (from.empty())
+		return str; // Avoid infinite loop if 'from' is empty
+
+	typename StringT::size_type start_pos = 0;
+	while ((start_pos = str.find(from, start_pos)) != StringT::npos) {
+		str.replace(start_pos, from.length(), to);
+		// Advance past the replacement to avoid re-replacing parts of 'to'
+		start_pos += to.length();
+	}
+	return str;
+}
+
+__inline LIBRARY_EXPORT std::wstring StrReplaceAll(const std::wstring& str, const std::wstring& from, const std::wstring& to) { return StrReplaceAllx(str, from, to); }
+__inline LIBRARY_EXPORT std::string StrReplaceAll(const std::string& str, const std::string& from, const std::string& to) { return StrReplaceAllx(str, from, to); }
 
 LIBRARY_EXPORT std::wstring SubStrAt(const std::wstring& String, const std::wstring& Separator, int Index);
 LIBRARY_EXPORT std::wstring::size_type FindNth(const std::wstring& String, const std::wstring& Separator, int Index);

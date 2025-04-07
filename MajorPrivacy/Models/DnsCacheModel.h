@@ -28,6 +28,7 @@ public:
 		eHostName,
 		eType,
 		eTTL,
+		eStatus,
 		eTimeStamp,
 		eCueryCount,
 		eResolvedData,

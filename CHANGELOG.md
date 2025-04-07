@@ -6,6 +6,25 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
+
+## [0.97.2] - 2025-03-?
+
+### Added
+- added DNS filter server
+- added support for firewall rule templates, these allow to define windows firewall rule tempaltes with wildcard enabled paths
+
+### Changed
+- Reworked path rule handling the new mechanism
+  - the emchanism can now ise more complex rules, for now its set to simple dos pattern later this will be changed and an import machnism added
+- firewall pop up now ignores incomming connection atempts
+- refactored project structure
+- improved and cleaned up framwork
+- improved and cleaned up variant implementation
+
+
+
+
 ## [0.97.1] - 2025-03-04
 
 ### Added

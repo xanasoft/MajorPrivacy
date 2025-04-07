@@ -3,7 +3,7 @@
 #include "Core/PrivacyCore.h"
 #include "Core/Programs/ProgramManager.h"
 #include "../Library/API/PrivacyAPI.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../../MiscHelpers/Common/Common.h"
 #include "Core/Access/AccessManager.h"
 
@@ -24,14 +24,14 @@ void CVolumeManager::Update()
 	if (Ret.IsError())
 		return;
 
-	XVariant& Volumes = Ret.GetValue();
+	QtVariant& Volumes = Ret.GetValue();
 
 	QMap<QString, CVolumePtr> OldMap = m_List;
 
-	Volumes.ReadRawList([&](const CVariant& vData) {
-		const XVariant& Volume = *(XVariant*)&vData;
+	QtVariantReader(Volumes).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& Volume = *(QtVariant*)&vData;
 
-		QString ImagePath = Volume.Find(API_V_VOL_PATH).AsQStr().toLower();
+		QString ImagePath = QtVariantReader(Volume).Find(API_V_VOL_PATH).AsQStr().toLower();
 
 		CVolumePtr pVolume = OldMap.take(ImagePath);
 		if (pVolume.isNull())

@@ -1,6 +1,6 @@
 #pragma once
 #include "../lib_global.h"
-#include "../Types.h"
+#include "../Framework/Core/Types.h"
 
 struct LIBRARY_EXPORT SSid
 {

@@ -24,10 +24,10 @@ void CTrafficEntry::Merge(const QSharedPointer<CTrafficEntry>& pOther)
 	m_DownloadTotal += pOther->m_DownloadTotal;
 }
 
-void CTrafficEntry::FromVariant(const class XVariant& TrafficEntry)
+void CTrafficEntry::FromVariant(const class QtVariant& TrafficEntry)
 {
-	TrafficEntry.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
-		const XVariant& Data = *(XVariant*)&vData;
+    QtVariantReader(TrafficEntry).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
+		const QtVariant& Data = *(QtVariant*)&vData;
 
 		switch (Index)
 		{
@@ -125,16 +125,16 @@ void CTrafficEntry::SetIpAddress(const QString& IpAddress)
     m_Type = GetNetType(QHostAddress(IpAddress));
 }
 
-quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const class XVariant& TrafficList)
+quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const class QtVariant& TrafficList)
 {
 	quint64 LastActivity = 0;
 
 	QMap<QString, CTrafficEntryPtr> OldList = List;
 
-	TrafficList.ReadRawList([&](const CVariant& vData) {
-		const XVariant& TrafficEntry = *(XVariant*)&vData;
+    QtVariantReader(TrafficList).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& TrafficEntry = *(QtVariant*)&vData;
 
-		QString HostName = TrafficEntry.Find(API_V_SOCK_RHOST).AsQStr();
+		QString HostName = QtVariantReader(TrafficEntry).Find(API_V_SOCK_RHOST).AsQStr();
 
 		CTrafficEntryPtr pEntry = OldList.take(HostName);
 		if (!pEntry) {

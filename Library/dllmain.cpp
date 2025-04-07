@@ -1,6 +1,7 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "pch.h"
-#include "Common/Buffer.h"
+#include "../Framework/Common/Buffer.h"
+#include "../Framework/Common/PathTree.h"
 #include "Helpers/WinUtil.h"
 
 #include <phnt_windows.h>

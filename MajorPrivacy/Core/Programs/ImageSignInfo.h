@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../Library/API/PrivacyDefs.h"
-#include "../Library/Common/XVariant.h"
-#include "../Library/Common/FlexGuid.h"
+#include "./Common/QtVariant.h"
+#include "./Common/QtFlexGuid.h"
 
 struct CImageSignInfo
 {
@@ -17,14 +17,14 @@ public:
 	QByteArray GetSignerHash() const { return m_SignerHash; }
 	QString GetSignerName() const { return m_SignerName; }
 
-	XVariant ToVariant(const SVarWriteOpt& Opts) const;
-	NTSTATUS FromVariant(const XVariant& Data);
+	QtVariant ToVariant(const SVarWriteOpt& Opts) const;
+	NTSTATUS FromVariant(const QtVariant& Data);
 
 protected:
-	void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
-	void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
-	void ReadIValue(uint32 Index, const XVariant& Data);
-	void ReadMValue(const SVarName& Name, const XVariant& Data);
+	void WriteIVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	void WriteMVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	void ReadIValue(uint32 Index, const QtVariant& Data);
+	void ReadMValue(const SVarName& Name, const QtVariant& Data);
 
 	UCISignInfo					m_SignInfo;
 	EHashStatus					m_HashStatus = EHashStatus::eHashUnknown;

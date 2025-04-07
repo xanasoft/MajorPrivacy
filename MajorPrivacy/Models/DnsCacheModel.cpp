@@ -126,8 +126,7 @@ void CDnsCacheModel::SyncEntry(QMap<QList<QVariant>, QList<STreeNode*>>& New, QH
 			case eType:			Value = pEntry->GetType(); break;
 			case eResolvedData:	Value = pEntry->GetResolvedString(); break;
 			case eTTL:			Value = pEntry->GetTTL(); break;
-			//case eTimeStamp:	Value = pRecord ? pRecord->GetLastSeen() : pEntry->GetCreateTimeStamp(); break;
-			//case eCueryCount:	Value = pRecord ? pRecord->GetCounter() : pEntry->GetQueryCounter(); break;
+			case eStatus:		Value = pEntry->GetStatus(); break;
 			case eTimeStamp:	Value = pEntry->GetCreateTimeStamp(); break;
 			case eCueryCount:	Value = pEntry->GetQueryCounter(); break;
 		}
@@ -152,6 +151,7 @@ void CDnsCacheModel::SyncEntry(QMap<QList<QVariant>, QList<STreeNode*>>& New, QH
 				case eType:			ColValue.Formatted = pEntry->GetTypeString(); break;
                 case eTTL:			ColValue.Formatted = FormatNumber(Value.toULongLong() / 1000); break; // in seconds
 				case eTimeStamp:	if(Value.toULongLong() != 0) ColValue.Formatted = QDateTime::fromSecsSinceEpoch(Value.toULongLong() / 1000).toString("dd.MM.yyyy hh:mm:ss"); break;
+				case eStatus:		ColValue.Formatted = pEntry->GetStatusString(); { QColor Color = pEntry->GetStatus() == CDnsCacheEntry::eBlocked ? QColor(255, 182, 193) : (pEntry->GetStatus() == CDnsCacheEntry::eAllowed ? QColor(144, 238, 144) : QColor(255, 255, 224)); if(Color.isValid()) ColValue.Color = Color; } break;
 			}
 		}
 
@@ -193,6 +193,7 @@ QVariant CDnsCacheModel::headerData(int section, Qt::Orientation orientation, in
 			case eHostName:		return tr("Host name");
 			case eType:			return tr("Type");
 			case eTTL:			return tr("TTL (sec)");
+			case eStatus:		return tr("Status");
 			case eTimeStamp:	return tr("Last seen");
 			case eCueryCount:	return tr("Counter");
 			case eResolvedData:	return tr("Resolved data");

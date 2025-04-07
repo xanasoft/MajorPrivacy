@@ -4,7 +4,7 @@
 #include "Core/Programs/ProgramManager.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/API/DriverAPI.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 
 CEnclaveManager::CEnclaveManager(QObject* parent)
  : QObject(parent)
@@ -31,14 +31,14 @@ bool CEnclaveManager::UpdateAllEnclaves()
 	if (Ret.IsError())
 		return false;
 
-	XVariant& Enclaves = Ret.GetValue();
+	QtVariant& Enclaves = Ret.GetValue();
 
 	QMap<QFlexGuid, CEnclavePtr> OldEnclaves = m_Enclaves;
 	OldEnclaves.take(SYSTEM_ENCLAVE);
 
 	for (int i = 0; i < Enclaves.Count(); i++)
 	{
-		const XVariant& Enclave = Enclaves[i];
+		const QtVariant& Enclave = Enclaves[i];
 
 		QFlexGuid Guid;
 		Guid.FromVariant(Enclave[API_V_GUID]);
@@ -69,7 +69,7 @@ bool CEnclaveManager::UpdateEnclave(const QFlexGuid& Guid)
 	if (Ret.IsError())
 		return false;
 
-	XVariant& Enclave = Ret.GetValue();
+	QtVariant& Enclave = Ret.GetValue();
 
 	CEnclavePtr pEnclave = m_Enclaves.value(Guid);
 
@@ -104,6 +104,8 @@ STATUS CEnclaveManager::SetEnclave(const CEnclavePtr& pEnclave)
 
 CEnclavePtr CEnclaveManager::GetEnclave(const QFlexGuid& Guid, bool bCanAdd)
 {
+	if(Guid.IsNull())
+		return NULL;
 	CEnclavePtr pEnclave = m_Enclaves.value(Guid);
 	if (!pEnclave && bCanAdd)
 	{
@@ -111,7 +113,7 @@ CEnclavePtr CEnclaveManager::GetEnclave(const QFlexGuid& Guid, bool bCanAdd)
 		if (Ret.IsError())
 			return nullptr;
 
-		XVariant& Enclave = Ret.GetValue();
+		QtVariant& Enclave = Ret.GetValue();
 
 		pEnclave = CEnclavePtr(new CEnclave());
 		pEnclave->FromVariant(Enclave);

@@ -53,7 +53,7 @@ public:
 	quint64 GetUploadTotal() const		{ return m_UploadTotal; }
 	quint64 GetDownloadTotal() const	{ return m_DownloadTotal; }
 
-	void FromVariant(const class XVariant& Socket);
+	void FromVariant(const class QtVariant& Socket);
 
 protected:
 

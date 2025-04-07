@@ -35,9 +35,18 @@ private slots:
 	void OnFwAuditPolicyChanged();
 	void OnFwShowPopUpChanged();
 
-	void OnChangeGUI() { m_bRebuildUI = true; OnOptChanged(); }
-	void OnIgnoreChanged() { m_IgnoreChanged = true; OnOptChanged(); }
+	void OnChangeGUI()		{ if (!m_HoldChange) m_bRebuildUI = true; OnOptChanged(); }
+	void OnIgnoreChanged()	{ if (!m_HoldChange) m_IgnoreChanged = true; OnOptChanged(); }
+
 	void OnOptChanged();
+
+	void OnDnsChanged();
+	void OnDnsChanged2();
+	void OnDnsBlockListClicked(QTreeWidgetItem* pItem, int Column);
+	void OnDnsBlockDoubleClicked(QTreeWidgetItem* pItem, int Column);
+	void OnAddBlockList();
+	void OnDelBlockList();
+	void OnDnsChanged3();
 
 	void OnTab();
 
@@ -57,6 +66,8 @@ protected:
 	bool	m_bRebuildUI = false;
 
 	bool	m_IgnoreChanged = false;
+	bool	m_ResolverChanged = false;
+	bool	m_BlockListChanged = false;
 
 	bool	m_bFwModeChanged = false;
 	bool	m_bFwAuditPolicyChanged = false;

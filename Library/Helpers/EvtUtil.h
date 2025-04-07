@@ -1,11 +1,10 @@
 #pragma once
-#include "../Types.h"
+#include "../Framework/Core/Types.h"
 #include "../lib_global.h"
 #ifndef ASSERT
 #define ASSERT(x)
 #endif
-//#include "../Common/Variant.h"
-#include "../Common/Buffer.h"
+#include "../Framework/Common/Buffer.h"
 
 #include <winevt.h>
 #include <winmeta.h>

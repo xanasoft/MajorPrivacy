@@ -4,7 +4,7 @@
 // CEnclave
 //
 
-void CEnclave::WriteIVariant(XVariant& Enclave, const SVarWriteOpt& Opts) const
+void CEnclave::WriteIVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) const
 {
 #ifdef KERNEL_MODE
 	if(!IS_EMPTY(m_Guid))
@@ -15,9 +15,9 @@ void CEnclave::WriteIVariant(XVariant& Enclave, const SVarWriteOpt& Opts) const
 #endif
 	Enclave.Write(API_V_ENABLED, m_bEnabled);
 
-	Enclave.Write(API_V_NAME, TO_STR(m_Name));
-	//Enclave.Write(API_V_RULE_GROUP, TO_STR(m_Grouping));
-	Enclave.Write(API_V_RULE_DESCR, TO_STR(m_Description));
+	Enclave.WriteEx(API_V_NAME, TO_STR(m_Name));
+	//Enclave.WriteEx(API_V_RULE_GROUP, TO_STR(m_Grouping));
+	Enclave.WriteEx(API_V_RULE_DESCR, TO_STR(m_Description));
 
 	Enclave.Write(API_V_EXEC_SIGN_REQ, (uint32)m_SignatureLevel);
 	Enclave.Write(API_V_EXEC_ON_TRUSTED_SPAWN, (uint32)m_OnTrustedSpawn);
@@ -53,7 +53,7 @@ void CEnclave::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CEnclave::WriteMVariant(XVariant& Enclave, const SVarWriteOpt& Opts) const
+void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) const
 {
 #ifdef KERNEL_MODE
 	if(!IS_EMPTY(m_Guid))
@@ -64,9 +64,9 @@ void CEnclave::WriteMVariant(XVariant& Enclave, const SVarWriteOpt& Opts) const
 #endif
 	Enclave.Write(API_S_ENABLED, m_bEnabled);
 
-	Enclave.Write(API_S_NAME, TO_STR(m_Name));
-	//Enclave.Write(API_S_RULE_GROUP, TO_STR(m_Grouping));
-	Enclave.Write(API_S_RULE_DESCR, TO_STR(m_Description));
+	Enclave.WriteEx(API_S_NAME, TO_STR(m_Name));
+	//Enclave.WriteEx(API_S_RULE_GROUP, TO_STR(m_Grouping));
+	Enclave.WriteEx(API_S_RULE_DESCR, TO_STR(m_Description));
 
 	switch (m_SignatureLevel) 
 	{

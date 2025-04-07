@@ -13,4 +13,4 @@ struct SAccessStats
 
 typedef QSharedPointer<SAccessStats> SAccessStatsPtr;
 
-quint64 ReadAccessBranch(QMap<quint64, SAccessStatsPtr>& m_AccessStats, const XVariant& Data, const QString& Path = "");
+quint64 ReadAccessBranch(QMap<quint64, SAccessStatsPtr>& m_AccessStats, const QtVariant& Data, const QString& Path = "");

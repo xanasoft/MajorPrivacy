@@ -1,6 +1,6 @@
 #pragma once
 #include "./Programs/ProgramID.h"
-#include "../../Library/Common/FlexGuid.h"
+#include "./Common/QtFlexGuid.h"
 
 class CGenericRule : public QObject
 {
@@ -29,16 +29,16 @@ public:
 	//virtual QString GetGrouping() const				{ return m_Grouping; }
 	virtual QString GetDescription() const			{ return m_Description; }
 
-	virtual XVariant ToVariant(const SVarWriteOpt& Opts) const;
-	virtual void FromVariant(const class XVariant& Rule);
+	virtual QtVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual void FromVariant(const class QtVariant& Rule);
 
 protected:
 	void CopyTo(CGenericRule* pRule, bool CloneGuid = false) const;
 
-	virtual void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void ReadIValue(uint32 Index, const XVariant& Data);
-	virtual void ReadMValue(const SVarName& Name, const XVariant& Data);
+	virtual void WriteIVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	virtual void WriteMVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	virtual void ReadIValue(uint32 Index, const QtVariant& Data);
+	virtual void ReadMValue(const SVarName& Name, const QtVariant& Data);
 
 	QFlexGuid m_Guid;
 	bool m_bEnabled = true;
@@ -54,7 +54,7 @@ protected:
 
 	CProgramID m_ProgramID;
 
-	XVariant m_Data;
+	QtVariant m_Data;
 };
 
 typedef QSharedPointer<CGenericRule> CGenericRulePtr;

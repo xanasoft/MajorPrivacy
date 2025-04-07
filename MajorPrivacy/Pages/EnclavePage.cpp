@@ -32,6 +32,16 @@ CEnclavePage::~CEnclavePage()
 	theConf->SetBlob("MainWindow/EnclaveSplitter", m_pHSplitter->saveState());
 }
 
+void CEnclavePage::LoadState()
+{
+	m_pProcessPage->LoadState();
+}
+
+void CEnclavePage::SetMergePanels(bool bMerge)
+{
+	m_pProcessPage->SetMergePanels(bMerge);
+}
+
 void CEnclavePage::Update()
 {
 	if (!isVisible())

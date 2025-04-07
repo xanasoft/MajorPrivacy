@@ -1,9 +1,9 @@
 #pragma once
-#include "../Types.h"
+#include "../Framework/Core/Types.h"
 #include "../Status.h"
 #include "../lib_global.h"
-#include "../Common/Buffer.h"
-#include "../Common/Variant.h"
+#include "../Framework/Common/Buffer.h"
+#include "../Common/StVariant.h"
 #include "../../Library/API/PrivacyDefs.h"
 #include "../../Library/Common/FlexGuid.h"
 
@@ -89,7 +89,7 @@ struct SVerifierInfo
 	std::vector<uint8> SignerHash;
 	std::string SignerName;
 
-	void ReadFromEvent(const CVariant& Event);
+	void ReadFromEvent(const StVariant& Event);
 };
 
 struct SProcessStartEvent : public SProcessEventEx
@@ -177,7 +177,7 @@ public:
 	bool IsConnected();
 	void Disconnect();
 
-	RESULT(CVariant) Call(uint32 MessageId, const CVariant& Message);
+	RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message);
 
 	uint32 GetABIVersion();
 
@@ -200,7 +200,7 @@ public:
 	STATUS DiscardConfigChanges();
 
 	STATUS GetChallenge(CBuffer& Challenge);
-	STATUS GetConfigHash(CBuffer& ConfigHash, const CVariant& Data = CVariant());
+	STATUS GetConfigHash(CBuffer& ConfigHash, const StVariant& Data = StVariant());
 
 	//STATUS SetupRuleAlias(const std::wstring& PrefixPath, const std::wstring& DevicePath);
 	//STATUS ClearRuleAlias(const std::wstring& DevicePath);

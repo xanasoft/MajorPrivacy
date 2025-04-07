@@ -32,6 +32,16 @@ CVolumePage::~CVolumePage()
 	theConf->SetBlob("MainWindow/VolumeSplitter", m_pHSplitter->saveState());
 }
 
+void CVolumePage::LoadState()
+{
+	m_pAccessPage->LoadState();
+}
+
+void CVolumePage::SetMergePanels(bool bMerge)
+{
+	m_pAccessPage->SetMergePanels(bMerge);
+}
+
 void CVolumePage::Update()
 {
 	if (!isVisible())

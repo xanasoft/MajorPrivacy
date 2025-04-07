@@ -30,8 +30,8 @@ public:
 	List(List&& Other) : AbstractContainer(Other)	{ m_ptr = Other.m_ptr; Other.m_ptr = nullptr; }
 	~List()											{ DetachData(); }
 
-	List& operator=(const List& Other)				{ if(m_ptr == Other.m_ptr) return *this; Assign(Other); return *this; }
-	List& operator=(List&& Other)					{ if(m_ptr == Other.m_ptr) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
+	List& operator=(const List& Other)				{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; Assign(Other); return *this; }
+	List& operator=(List&& Other)					{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
 	List& operator+=(const List& Other)				{ if (!m_pMem) m_pMem = Other.m_pMem; Append(Other); return *this; } 
 	List& operator+=(const V& Value)				{ Append(Value); return *this; }
 	List operator+(const List& Other) const			{ List str(*this); str.Append(Other); return str; }
@@ -64,16 +64,16 @@ public:
 		return true;
 	}
 
-	bool Append(const V& Value)
+	V* Append(const V& Value)
 	{ 
 		if (!MakeExclusive(nullptr))
-			return false;
+			return nullptr;
 
-		SListEntry* ptr = (SListEntry*)m_pMem->Alloc(sizeof(SListEntry));
-		if (!ptr) return false;
+		SListEntry* ptr = (SListEntry*)MemAlloc(sizeof(SListEntry));
+		if (!ptr) return nullptr;
 		new (ptr) SListEntry(Value);
 		InsertAfter(m_ptr, nullptr, ptr);
-		return true;
+		return &ptr->Data;
 	}
 
 	bool Prepand(const V& Value)
@@ -81,7 +81,7 @@ public:
 		if (!MakeExclusive(nullptr))
 			return false;
 
-		SListEntry* ptr = (SListEntry*)m_pMem->Alloc(sizeof(SListEntry));
+		SListEntry* ptr = (SListEntry*)MemAlloc(sizeof(SListEntry));
 		if (!ptr) return false;
 		new (ptr) SListEntry(Value);
 		InsertBefore(m_ptr, nullptr, ptr);
@@ -137,7 +137,7 @@ public:
 		++I;
 		RemoveEntry(m_ptr, ptr);
 		ptr->~SListEntry();
-		m_pMem->Free(ptr);
+		MemFree(ptr);
 		return I;
 	}
 
@@ -145,7 +145,7 @@ public:
 	{
 		if (!I.pEntry || !MakeExclusive(&I))
 			return end();
-		SListEntry* ptr = (SListEntry*)m_pMem->Alloc(sizeof(SListEntry));
+		SListEntry* ptr = (SListEntry*)MemAlloc(sizeof(SListEntry));
 		if (!ptr) return end();
 		new (ptr) SListEntry(Value);
 		InsertBefore(m_ptr, I.pEntry, ptr);
@@ -175,14 +175,14 @@ protected:
 			SListData* ptr = MakeData();
 			if (!ptr) return false;
 			for(SListEntry* Curr = m_ptr->Head; Curr != nullptr; Curr = Curr->Next) {
-				SListEntry* New = (SListEntry*)m_pMem->Alloc(sizeof(SListEntry));
+				SListEntry* New = (SListEntry*)MemAlloc(sizeof(SListEntry));
 				if (!New) break; // todo
 				new (New) SListEntry(Curr->Data);
 				InsertAfter(ptr, ptr->Tail, New);
 				// we need to update the iterator if it points to the current entry
 				if (pI && Curr == pI->pEntry) {
 					pI->pEntry = New;
-					pI = NULL;
+					pI = nullptr;
 				}
 			}
 			AttachData(ptr);
@@ -263,9 +263,7 @@ protected:
 
 	SListData* MakeData()
 	{
-		if (!m_pMem) 
-			return nullptr;
-		SListData* ptr = (SListData*)m_pMem->Alloc(sizeof(SListData));
+		SListData* ptr = (SListData*)MemAlloc(sizeof(SListData));
 		if(!ptr) 
 			return nullptr;
 		new (ptr) SListData();
@@ -289,10 +287,10 @@ protected:
 				for(SListEntry* Curr = m_ptr->Head; Curr != nullptr; ) {
 					SListEntry* Next = Curr->Next;
 					Curr->~SListEntry();
-					m_pMem->Free(Curr);
+					MemFree(Curr);
 					Curr = Next;
 				}
-				m_pMem->Free(m_ptr);
+				MemFree(m_ptr);
 			}
 			m_ptr = nullptr;
 		}

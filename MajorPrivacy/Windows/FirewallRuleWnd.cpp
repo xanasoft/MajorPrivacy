@@ -37,7 +37,7 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 		AddProgramItem(pItem);
 
 	if (bNew && m_pRule->m_Name.isEmpty()) {
-		m_pRule->m_Name = tr("New Firewall Rule - MajorPrivacy Rule");
+		m_pRule->m_Name = tr("&MP-Rule, New Firewall Rule");
 	} else
 		m_NameChanged = true;
 
@@ -75,7 +75,7 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Block"), GetActionColor(EFwActions::Block), (uint32)EFwActions::Block);
 	ColorComboBox(ui.cmbAction);
 
-	if(bNew)
+	if(bNew || pRule->IsTemplate())
 		AddColoredComboBoxEntry(ui.cmbDirection, tr("Bidirectional"), GetDirectionColor(EFwDirections::Bidirectional), (uint32)EFwDirections::Bidirectional);
 	AddColoredComboBoxEntry(ui.cmbDirection, tr("Inbound"), GetDirectionColor(EFwDirections::Inbound), (uint32)EFwDirections::Inbound);
 	AddColoredComboBoxEntry(ui.cmbDirection, tr("Outbound"), GetDirectionColor(EFwDirections::Outbound), (uint32)EFwDirections::Outbound);
@@ -199,6 +199,9 @@ bool CFirewallRuleWnd::AddProgramItem(const CProgramItemPtr& pItem)
 	case EProgramType::eAppPackage:
 	case EProgramType::eAllPrograms:
 		break;
+	case EProgramType::eFilePattern:
+		if(theCore->GetConfigBool("Service/UseFwRuleTemplates", false))
+			break;
 	default:
 		return false;
 	}
@@ -657,14 +660,15 @@ void CFirewallRuleWnd::TryMakeName()
 	if (m_NameHold || m_NameChanged)
 		return;
 	
+	QString Path = ui.txtPath->text();
 	QString Action = ui.cmbAction->currentText();
 	QString Program = ui.cmbProgram->currentText();
-	QString Direction = ui.cmbDirection->currentText();
+	//QString Direction = ui.cmbDirection->currentText();
 	QString Protocol = ui.cmbProtocol->currentText();
 	if (Action.isEmpty() && Program.isEmpty())
 		return;
 
 	m_NameHold = true;
-	ui.txtName->setText(tr("%1 %2 %3 %4 - MajorPrivacy Rule").arg(Action).arg(Program).arg(Direction).arg(Protocol));
+	ui.txtName->setText(tr("%4, %1 %2 %3").arg(Action).arg(Program).arg(Protocol).arg(Path.contains(QRegExp("[*?<>|]")) ? "&MP-Template" : "&MP-Rule"));
 	m_NameHold = false;
 }

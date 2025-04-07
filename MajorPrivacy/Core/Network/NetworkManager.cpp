@@ -16,13 +16,13 @@ bool CNetworkManager::UpdateAllFwRules(bool bReLoad)
 	if (Ret.IsError())
 		return false;
 
-	XVariant& Rules = Ret.GetValue();
+	QtVariant& Rules = Ret.GetValue();
 
 	QMap<QFlexGuid, CFwRulePtr> OldRules = m_FwRules;
 
 	for (int i = 0; i < Rules.Count(); i++)
 	{
-		const XVariant& Rule = Rules[i];
+		const QtVariant& Rule = Rules[i];
 
 		QFlexGuid Guid;
 		Guid.FromVariant(Rule[API_V_GUID]);
@@ -65,7 +65,7 @@ bool CNetworkManager::UpdateFwRule(const QFlexGuid& Guid)
 	if (Ret.IsError())
 		return false;
 
-	XVariant& Rule = Ret.GetValue();
+	QtVariant& Rule = Ret.GetValue();
 
 	QString RuleID = Rule[API_V_GUID].AsQStr();
 
@@ -158,26 +158,128 @@ STATUS CNetworkManager::SetFwRule(const CFwRulePtr& pRule)
 	return theCore->SetFwRule(pRule->ToVariant(Opts));
 }
 
-RESULT(CFwRulePtr) CNetworkManager::GetProgramRule(const QFlexGuid& Guid)
-{
-	auto Ret = theCore->GetFwRule(Guid);
-	if (Ret.IsError())
-		return Ret;
-
-	XVariant& Rule = Ret.GetValue();
-
-	CProgramID ID;
-	ID.FromVariant(Rule[API_V_PROG_ID]);
-
-	CFwRulePtr pRule = CFwRulePtr(new CFwRule(ID));
-	pRule->FromVariant(Rule);
-
-	RETURN(pRule);
-}
+//RESULT(CFwRulePtr) CNetworkManager::GetFwRule(const QFlexGuid& Guid)
+//{
+//	auto Ret = theCore->GetFwRule(Guid);
+//	if (Ret.IsError())
+//		return Ret;
+//
+//	QtVariant& Rule = Ret.GetValue();
+//
+//	CProgramID ID;
+//	ID.FromVariant(Rule[API_V_PROG_ID]);
+//
+//	CFwRulePtr pRule = CFwRulePtr(new CFwRule(ID));
+//	pRule->FromVariant(Rule);
+//
+//	RETURN(pRule);
+//}
 
 STATUS CNetworkManager::DelFwRule(const CFwRulePtr& pRule)
 {
 	return theCore->DelFwRule(pRule->GetGuid());
+}
+
+bool CNetworkManager::UpdateAllDnsRules()
+{
+	auto Ret = theCore->GetAllDnsRules();
+	if (Ret.IsError())
+		return false;
+
+	QtVariant& Rules = Ret.GetValue();
+
+	QMap<QFlexGuid, CDnsRulePtr> OldRules = m_DnsRules;
+
+	for (int i = 0; i < Rules.Count(); i++)
+	{
+		const QtVariant& Rule = Rules[i];
+
+		QFlexGuid Guid;
+		Guid.FromVariant(Rule[API_V_GUID]);
+
+		//CProgramID ID;
+		//ID.FromVariant(Rule[API_V_PROG_ID]);
+
+		CDnsRulePtr pRule = OldRules.value(Guid);
+		if (pRule) {
+			//if(ID == pRule->GetProgramID())
+				OldRules.remove(Guid);
+			//else // on ID change compeltely re add the rule as if it would be new
+			//{
+			//	m_DnsRules.remove(pRule->GetGuid());
+			//	pRule.clear();
+			//}
+		}
+
+		bool bAdd = false;
+		if (!pRule) {
+			pRule = CDnsRulePtr(new CDnsRule());
+			bAdd = true;
+		} 
+
+		pRule->FromVariant(Rule);
+
+		if(bAdd)
+			m_DnsRules.insert(pRule->GetGuid(), pRule);
+	}
+
+	foreach(const QFlexGuid& Guid, OldRules.keys())
+		m_DnsRules.remove(Guid);
+
+	return true;
+}
+
+
+bool CNetworkManager::UpdateDnsRule(const QFlexGuid& Guid)
+{
+	auto Ret = theCore->GetDnsRule(Guid);
+	if (Ret.IsError())
+		return false;
+
+	QtVariant& Rule = Ret.GetValue();
+
+	QString RuleID = Rule[API_V_GUID].AsQStr();
+
+	CDnsRulePtr pRule = m_DnsRules.value(RuleID);
+	//if (pRule) {
+	//	if(ID != pRule->GetProgramID()) // on ID change compeltely re add the rule as if it would be new
+	//	{
+	//		RemoveFwRule(pRule);
+	//		pRule.clear();
+	//	}
+	//}
+
+	bool bAdd = false;
+	if (!pRule) {
+		pRule = CDnsRulePtr(new CDnsRule());
+		bAdd = true;
+	} 
+
+	pRule->FromVariant(Rule);
+
+	if(bAdd)
+		m_DnsRules.insert(pRule->GetGuid(), pRule);
+
+	return true;
+}
+
+void CNetworkManager::RemoveDnsRule(const QFlexGuid& Guid)
+{
+	m_DnsRules.remove(Guid);
+}
+
+STATUS CNetworkManager::SetDnsRule(const CDnsRulePtr& pRule)
+{
+	SVarWriteOpt Opts;
+	Opts.Flags = SVarWriteOpt::eTextGuids;
+
+	return theCore->SetDnsRule(pRule->ToVariant(Opts));
+}
+
+STATUS CNetworkManager::DelDnsRule(const CDnsRulePtr& pRule)
+{
+	m_DnsRules.remove(pRule->GetGuid());
+	return theCore->DelDnsRule(pRule->GetGuid());
 }
 
 void CNetworkManager::UpdateDnsCache()
@@ -186,12 +288,12 @@ void CNetworkManager::UpdateDnsCache()
 	if (Ret.IsError())
 		return;
 
-	XVariant& Cache = Ret.GetValue();
+	QtVariant& Cache = Ret.GetValue();
 
 	QMap<quint64, CDnsCacheEntryPtr> OldCache = m_DnsCache;
 
-	Cache.ReadRawList([&](const CVariant& vData) {
-		const XVariant& Data = *(XVariant*)&vData;
+	QtVariantReader(Cache).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& Data = *(QtVariant*)&vData;
 
 		quint64 CacheRef = Data[API_V_DNS_CACHE_REF];
 

@@ -31,7 +31,7 @@ P_NtReadVirtualMemory64 NtReadVirtualMemory64 = NULL;
 DWORD64 FindDllBase64(HANDLE hProcess, const WCHAR* dll)
 {
 	char buffer[512];
-	ULONG len = wcslen(dll);
+	ULONG len = (ULONG)wcslen(dll);
 
 	if (!NtQueryVirtualMemory64)
 		return -1;
@@ -45,7 +45,7 @@ DWORD64 FindDllBase64(HANDLE hProcess, const WCHAR* dll)
         baseAddress = baseAddress + basicInfo.RegionSize;
 		if (NT_SUCCESS(NtQueryVirtualMemory64(hProcess, basicInfo.AllocationBase, MemoryMappedFilenameInformation, buffer, sizeof(buffer), NULL)))
 		{
-			UNICODE_STRING64* FullImageName = (UNICODE_STRING*)buffer;
+			UNICODE_STRING64* FullImageName = (UNICODE_STRING64*)buffer;
 			if (FullImageName->Length > len * sizeof(WCHAR)) {
 
 				WCHAR* path = (WCHAR*)((DWORD64)FullImageName->Buffer + FullImageName->Length - len * sizeof(WCHAR));
@@ -136,7 +136,7 @@ DWORD64 FindDllExport2(P_NtReadVirtualMemory64 ReadDll, HANDLE hProcess, DWORD64
 	buffer = HeapAlloc(GetProcessHeap(), 0, dir0->Size);
 	status = ReadDll(hProcess, dir0Address, buffer, dir0->Size, NULL);
 
-	IMAGE_EXPORT_DIRECTORY* exports = buffer;
+	IMAGE_EXPORT_DIRECTORY* exports = (IMAGE_EXPORT_DIRECTORY*)buffer;
 
 	ULONG* names = (ULONG*)((DWORD64)buffer + exports->AddressOfNames - dir0->VirtualAddress);
 	USHORT* ordinals = (USHORT*)((DWORD64)buffer + exports->AddressOfNameOrdinals - dir0->VirtualAddress);
@@ -189,7 +189,7 @@ DWORD64 ResolveWoWRedirection64(P_NtReadVirtualMemory64 ReadDll, HANDLE hProcess
 	ULONG size = MetaData.RedirectionMetadataCount * sizeof(IMAGE_ARM64EC_REDIRECTION_ENTRY);
 	BYTE* buffer = HeapAlloc(GetProcessHeap(), 0, size);
 	status = ReadDll(hProcess, FindImagePosition(MetaData.RedirectionMetadata, pNTHeader, DllBase), buffer, size, NULL);
-	IMAGE_ARM64EC_REDIRECTION_ENTRY* RedirectionMetadata = buffer;
+	IMAGE_ARM64EC_REDIRECTION_ENTRY* RedirectionMetadata = (IMAGE_ARM64EC_REDIRECTION_ENTRY*)buffer;
 
 	for (ULONG i = 0; i < MetaData.RedirectionMetadataCount; i++) {
 		if ((proc - DllBase) == RedirectionMetadata[i].Source) {
@@ -224,7 +224,7 @@ DWORD64 FindDllExport_impl(P_NtReadVirtualMemory64 ReadDll, HANDLE hProcess, DWO
 	if (resolve_exp)
 		ProcName += 4;
 
-	dos_hdr = Buffer;
+	dos_hdr = (IMAGE_DOS_HEADER*)Buffer;
 
 	if (dos_hdr->e_magic != 'MZ' && dos_hdr->e_magic != 'ZM')
 		return 0;

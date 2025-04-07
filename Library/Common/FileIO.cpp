@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "FileIO.h"
-#include "Buffer.h"
-#include "Variant.h"
+#include "../Framework/Common/Buffer.h"
+#include "../Common/StVariant.h"
 #include "Strings.h"
 
 namespace fs = std::filesystem;
@@ -52,13 +52,90 @@ bool FileExists(const std::wstring& Path)
     return true;
 }
 
+// Returns the file's last modification time as a Unix timestamp.
+// On error (e.g. file not found), returns -1.
+/*time_t GetFileModificationUnixTime(const std::wstring& Path) 
+{
+    // Open the file for reading.
+    HANDLE hFile = CreateFileW(Path.c_str(),
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        return -1;
+    }
+
+    // Retrieve the file times.
+    FILETIME ftCreation, ftLastAccess, ftLastWrite;
+    if (!GetFileTime(hFile, &ftCreation, &ftLastAccess, &ftLastWrite)) {
+        CloseHandle(hFile);
+        return -1;
+    }
+    CloseHandle(hFile);
+
+    // Convert FILETIME to a 64-bit integer (number of 100-nanosecond intervals since January 1, 1601).
+    ULARGE_INTEGER ull;
+    ull.LowPart  = ftLastWrite.dwLowDateTime;
+    ull.HighPart = ftLastWrite.dwHighDateTime;
+
+    // FILETIME represents the number of 100-nanosecond intervals since January 1, 1601.
+    // The Unix epoch starts on January 1, 1970.
+    // The difference between these epochs is 11644473600 seconds.
+    // Since FILETIME is in 100-nanosecond intervals, the offset in FILETIME units is:
+    const ULONGLONG EPOCH_DIFF_FILETIME = 11644473600ULL * 10000000ULL;
+
+    if (ull.QuadPart < EPOCH_DIFF_FILETIME) {
+        return 0; // The file time is before the Unix epoch.
+    }
+
+    // Subtract the epoch difference and convert to seconds.
+    ull.QuadPart -= EPOCH_DIFF_FILETIME;
+    return static_cast<time_t>(ull.QuadPart / 10000000ULL);
+}*/
+
+time_t GetFileModificationUnixTime(const std::wstring& Path) 
+{
+    std::filesystem::path path(Path);
+    std::error_code ec;
+    auto ftime = std::filesystem::last_write_time(path, ec);
+    if (ec) {
+        return -1; // Error reading file time
+    }
+
+#if __cpp_lib_chrono >= 201907L  // C++20: use clock_cast if available
+    auto sysTimePoint = std::chrono::clock_cast<std::chrono::system_clock>(ftime);
+#else  // C++17: convert using a time offset hack
+    auto sysTimePoint = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+        ftime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+#endif
+
+    return std::chrono::system_clock::to_time_t(sysTimePoint);
+}
+
+bool SetFileModificationUnixTime(const std::wstring& Path, time_t newTime) 
+{
+    std::filesystem::path path(Path);
+    std::chrono::system_clock::time_point systemTime = std::chrono::system_clock::from_time_t(newTime);
+#if __cpp_lib_chrono >= 201907L
+    auto fileTime = std::chrono::clock_cast<std::filesystem::file_time_type>(systemTime);
+#else
+    auto fileTime = std::filesystem::file_time_type::clock::now() + (systemTime - std::chrono::system_clock::now());
+#endif
+    std::error_code ec;
+    std::filesystem::last_write_time(path, fileTime, ec);
+    return !ec;
+}
+
 bool RemoveFile(const std::wstring& Path) 
 {
     try 
     {
         return fs::remove(Path);
     } 
-    catch (const std::exception& e) 
+    catch (const std::exception& /*e*/) 
     {
         // Optionally log the error message: e.what()
         return false;
@@ -75,50 +152,50 @@ bool RenameFile(const std::wstring& OldPath, const std::wstring& NewPath)
     }
 }
 
-bool WriteFile(const std::wstring& Path, const std::wstring& Data) 
-{
-    std::ofstream f(Path, std::ios::binary);
-    if (!f) return false;
+//bool WriteFile(const std::wstring& Path, const std::wstring& Data) 
+//{
+//    std::ofstream f(Path, std::ios::binary);
+//    if (!f) return false;
+//
+//    std::string UData;
+//    WStrToUtf8(UData, Data);
+//    f.write(UData.data(), UData.size());
+//
+//    return true;
+//}
+//
+//bool ReadFile(const std::wstring& Path, std::wstring& Data) 
+//{
+//    std::ifstream f(Path, std::ios::binary);
+//    if (!f) return false;
+//
+//    std::string UData((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+//    Utf8ToWStr(Data, UData);
+//
+//    return true;
+//}
+//
+//bool WriteFile(const std::wstring& Path, const std::string& Data) 
+//{
+//    std::ofstream f(Path, std::ios::binary);
+//    if (!f) return false;
+//
+//    f.write(Data.data(), Data.size());
+//
+//    return true;
+//}
+//
+//bool ReadFile(const std::wstring& Path, std::string& Data) 
+//{
+//    std::ifstream f(Path, std::ios::binary);
+//    if (!f) return false;
+//
+//    Data.assign((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+//
+//    return true;
+//}
 
-    std::string UData;
-    WStrToUtf8(UData, Data);
-    f.write(UData.data(), UData.size());
-
-    return true;
-}
-
-bool ReadFile(const std::wstring& Path, std::wstring& Data) 
-{
-    std::ifstream f(Path, std::ios::binary);
-    if (!f) return false;
-
-    std::string UData((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-    Utf8ToWStr(Data, UData);
-
-    return true;
-}
-
-bool WriteFile(const std::wstring& Path, const std::string& Data) 
-{
-    std::ofstream f(Path, std::ios::binary);
-    if (!f) return false;
-
-    f.write(Data.data(), Data.size());
-
-    return true;
-}
-
-bool ReadFile(const std::wstring& Path, std::string& Data) 
-{
-    std::ifstream f(Path, std::ios::binary);
-    if (!f) return false;
-
-    Data.assign((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-
-    return true;
-}
-
-bool WriteFile(const std::wstring& path, const CVariant& data) 
+bool WriteFile(const std::wstring& path, const StVariant& data) 
 {
     std::ofstream file(path, std::ios::binary);
     if (!file)
@@ -131,7 +208,7 @@ bool WriteFile(const std::wstring& path, const CVariant& data)
     return file.good();
 }
 
-bool ReadFile(const std::wstring& path, CVariant& data) 
+bool ReadFile(const std::wstring& path, StVariant& data) 
 {
     std::ifstream file(path, std::ios::binary);
     if (!file)
@@ -151,19 +228,20 @@ bool ReadFile(const std::wstring& path, CVariant& data)
     return true;
 }
 
-bool WriteFile(const std::wstring& path, std::uint64_t offset, const CBuffer& data) 
+bool WriteFile(const std::wstring& path, const CBuffer& data, std::uint64_t offset) 
 {
     std::ofstream file(path, std::ios::binary);
     if (!file)
         return false;
 
-    file.seekp(offset);
+    if(offset != -1)
+        file.seekp(offset);
 
     file.write(reinterpret_cast<const char*>(data.GetBuffer()), data.GetSize());
     return file.good();
 }
 
-bool ReadFile(const std::wstring& path, std::uint64_t offset, CBuffer& data) 
+bool ReadFile(const std::wstring& path, CBuffer& data, std::uint64_t offset) 
 {
     std::ifstream file(path, std::ios::binary);
     if (!file)
@@ -174,18 +252,23 @@ bool ReadFile(const std::wstring& path, std::uint64_t offset, CBuffer& data)
     std::size_t size = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    if (offset > size)
-        return false;
+    std::size_t toRead;
+    if (offset != -1)
+    {
+        if (offset > size)
+            return false;
 
-    // If the size is specified in data, use that. Otherwise, use the file size.
-    std::size_t toRead = data.GetSize() == 0 ? (size - offset) : data.GetSize();
+        // If the size is specified in data, use that. Otherwise, use the file size.
+        toRead = data.GetSize() == 0 ? (size - offset) : data.GetSize();
+
+        file.seekg(offset);
+        if (!file)
+            return false;
+    }
+    else
+        toRead = data.GetSize() == 0 ? size : data.GetSize();
 
     data.SetSize(toRead, true);
-
-    file.seekg(offset);
-    if (!file)
-        return false;
-
     file.read(reinterpret_cast<char*>(data.GetBuffer()), toRead);
     return file.good();
 }

@@ -1,8 +1,8 @@
 #pragma once
 #include "../Status.h"
 #include "../lib_global.h"
-#include "../Common/Buffer.h"
-#include "../Common/Variant.h"
+#include "../Framework/Common/Buffer.h"
+#include "../Common/StVariant.h"
 
 
 #define PIPE_BUFSIZE 0x1000

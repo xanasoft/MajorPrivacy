@@ -1,6 +1,6 @@
 #pragma once
 #include "../lib_global.h"
-#include "Variant.h"
+#include "../Common/StVariant.h"
 
 struct SGuid
 {  
@@ -19,7 +19,7 @@ public:
 	CFlexGuid(const std::string& Str) { FromString(Str); }
 	CFlexGuid(const CFlexGuid& Other) { *this = Other; }
 	CFlexGuid(CFlexGuid&& Other); // move constructor
-	CFlexGuid(const CVariant& Variant) { FromVariant(Variant); }
+	CFlexGuid(const FW::CVariant& Variant) { FromVariant(Variant); }
 	~CFlexGuid();
 
 	CFlexGuid& operator = (const CFlexGuid& Other);
@@ -41,19 +41,18 @@ public:
 	int Compare(const CFlexGuid& other) const;
 	bool operator<(const CFlexGuid& other) const { return Compare(other) < 0; }
 	bool operator==(const CFlexGuid& other) const { return Compare(other) == 0; }
-	bool operator != (const CFlexGuid& Other) const { return !(*this == Other); }
+	bool operator != (const CFlexGuid& other) const { return Compare(other) != 0; }
 
-	bool			FromVariant(const CVariant& Variant);
-	CVariant		ToVariant(bool bTextOnly/* = false*/) const;
+	bool			FromVariant(const FW::CVariant& Variant);
+	FW::CVariant		ToVariant(bool bTextOnly/* = false*/) const;
 
-	static CVariant WriteList(const std::vector<CFlexGuid>& List, bool bTextOnly/* = false*/)
+	static FW::CVariant WriteList(const std::vector<CFlexGuid>& List, bool bTextOnly/* = false*/)
 	{
-		CVariant Var;
-		Var.BeginList();
+		FW::CVariantWriter Writer;
+		Writer.BeginList();
 		for (const CFlexGuid& Guid : List)
-			Var.WriteVariant(Guid.ToVariant(bTextOnly));
-		Var.Finish();
-		return Var;
+			Writer.WriteVariant(Guid.ToVariant(bTextOnly));
+		return Writer.Finish();
 	}
 
 protected:
@@ -94,74 +93,3 @@ protected:
 	// only 3 bytes unused
 	// 
 };
-
-#ifdef QT_VERSION
-
-#include "XVariant.h"
-
-class QFlexGuid : public CFlexGuid
-{
-public:
-	QFlexGuid() {}
-	QFlexGuid(const char* pStr) { FromString(pStr); }
-	QFlexGuid(const QString& Str) { FromQS(Str); }
-	QFlexGuid(const QVariant& Var) { FromQV(Var); }
-
-	void FromQS(const QString& Str) { FromWString((wchar_t*)Str.utf16(), Str.length()); }
-	QString ToQS() const {
-		wchar_t GuidStr[39];
-		if (ToWString(GuidStr))
-			return QString::fromWCharArray(GuidStr, 38);
-		if (m_Type == Unicode)
-			return QString::fromWCharArray((wchar_t*)m_String, m_Length);
-		if (m_Type == Ascii)
-			return QString::fromLatin1((char*)m_String, m_Length);
-		return QString(); // IsNull
-	}
-
-	bool FromQV(const QVariant& Var)  { 
-		if (Var.type() == QVariant::String)  {
-			QString Str = Var.toString();
-			FromWString((wchar_t*)Str.utf16(), Str.length());
-		} else if (Var.type() == QVariant::ByteArray && (Var.toByteArray().size() == 16 || Var.toByteArray().size() == 20)) {
-			Clear();
-			m_Type = Regular;
-			//
-			// WARNING: This is a HACK which relays on the order of the fields in the header!!!
-			//
-			QByteArray Arr = Var.toByteArray();
-			memcpy(m_Data, Arr.data(), Arr.size());
-		} else 
-			return false;
-		return true;
-	}
-	QVariant ToQV() const {
-		if (IsNull())
-			return QVariant();
-		if (m_Type == Unicode)
-			return QString::fromWCharArray((wchar_t*)m_String, m_Length);
-		if (m_Type == Ascii)
-			return QString::fromLatin1((char*)m_String, m_Length);
-		//
-		// WARNING: This is a HACK which relays on the order of the fields in the header!!!
-		//
-		return QByteArray((const char*)m_Data, m_LowerCaseMask ? 20 : 16);
-	}
-
-	static QSet<QFlexGuid> ReadVariantSet(const XVariant& Var)
-	{
-		QSet<QFlexGuid> Set;
-		Var.ReadRawList([&Set](const XVariant& var) {
-			QFlexGuid Guid;
-			Guid.FromVariant(var);
-			Set.insert(Guid);
-		});
-		return Set;
-	}
-};
-
-__inline uint qHash(const QFlexGuid& Guid)
-{
-	return qHash(Guid.ToQS());
-}
-#endif

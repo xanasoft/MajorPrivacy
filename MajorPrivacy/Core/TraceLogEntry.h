@@ -1,9 +1,9 @@
 #pragma once
 #include <QSharedData>
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/Common/Pointers.h"
 #include "../../Library/API/PrivacyAPI.h"
-#include "../../Library/Common/FlexGuid.h"
+#include "./Common/QtFlexGuid.h"
 
 class CAbstractLogEntry : public QSharedData
 {
@@ -24,13 +24,13 @@ public:
 
 	QFlexGuid GetEnclaveGuid() const			{ return m_EnclaveGuid; }
 
-	virtual void FromVariant(const class XVariant& FwEvent);
+	virtual void FromVariant(const class QtVariant& FwEvent);
 
 	virtual bool Match(const CAbstractLogEntry* pEntry) const;
 
 protected:
 	
-	virtual void ReadValue(uint32 Index, const XVariant& Data);
+	virtual void ReadValue(uint32 Index, const QtVariant& Data);
 
 	quint64				m_UID = 0; // event reference
 

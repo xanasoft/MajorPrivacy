@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyDefs.h"
 
 class CProgramID
@@ -25,11 +25,11 @@ public:
 
 	QString ToString() const;
 
-	static EProgramType ReadType(const XVariant& Data, SVarWriteOpt::EFormat& Format);
-	static std::string TypeToStr(EProgramType Type);
+	static EProgramType ReadType(const QtVariant& Data, SVarWriteOpt::EFormat& Format);
+	static QString TypeToStr(EProgramType Type);
 
-	XVariant ToVariant(const SVarWriteOpt& Opts) const;
-	bool FromVariant(const XVariant& ID);
+	QtVariant ToVariant(const SVarWriteOpt& Opts) const;
+	bool FromVariant(const QtVariant& ID);
 
 protected:
 

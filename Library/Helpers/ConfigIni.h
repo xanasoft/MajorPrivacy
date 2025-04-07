@@ -9,7 +9,7 @@ public:
 	virtual ~CConfigIni();
 
     /*
-    CVariant GetValue(const std::string& section, const std::string& key, const CVariant& defaultValue = CVariant());
+    StVariant GetValue(const std::string& section, const std::string& key, const StVariant& defaultValue = StVariant());
 
     std::string GetStr(const std::string& section, const std::string& key, const std::wstring& defaultValue = L"") {
     return GetValue(section, key, defaultValue).AsStr();
@@ -40,14 +40,14 @@ public:
     }
 
     bool GetBool(const std::string& section, const std::string& key, bool defaultValue) {
-    CVariant value = GetValue(section, key, defaultValue);
+    StVariant value = GetValue(section, key, defaultValue);
     if(value.GetType() == VAR_TYPE_UINT || value.GetType() == VAR_TYPE_SINT)
     return value.AsNum<uint32>() != 0;
     std::wstring str = value.AsStr();
     return _wcsicmp(str.c_str(), L"true") == 0 || str == L"1";
     }
 
-    void SetValue(const std::string& section, const std::string& key, const CVariant& value);
+    void SetValue(const std::string& section, const std::string& key, const StVariant& value);
     */
 	
 	std::wstring GetValue(const std::string& section, const std::string& key, const std::wstring& defaultValue = L"", bool* pOk = NULL);

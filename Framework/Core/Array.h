@@ -30,8 +30,8 @@ public:
 	Array(Array&& Other) : AbstractContainer(Other)	{ m_ptr = Other.m_ptr; Other.m_ptr = nullptr; }
 	~Array()										{ DetachData(); }
 
-	Array& operator=(const Array& Other)			{ if(m_ptr == Other.m_ptr) return *this; Assign(Other); return *this; }
-	Array& operator=(Array&& Other)					{ if(m_ptr == Other.m_ptr) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
+	Array& operator=(const Array& Other)			{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; Assign(Other); return *this; }
+	Array& operator=(Array&& Other)					{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
 	Array& operator+=(const Array& Other)			{ if (!m_pMem) m_pMem = Other.m_pMem; Append(Other.Data(), Other.Count()); return *this; } 
 	Array& operator+=(const V& Value)				{ Append(&Value, 1); return *this; }
 	Array operator+(const Array& Other) const		{ Array str(*this); str.Append(Other.Data(), Other.Count()); return str; }
@@ -152,6 +152,7 @@ public:
 		for (size_t i = I.pData - m_ptr->Data; i < m_ptr->Count - 1; i++)
 			m_ptr->Data[i] = m_ptr->Data[i + 1];
 		m_ptr->Count--;
+		m_ptr->Data[m_ptr->Count].~V();
 		return I;
 	}
 
@@ -159,9 +160,9 @@ protected:
 
 	struct SArrayData
 	{
-		volatile LONG Refs = 0;
-		size_t Count = 0;
-		size_t Capacity = 0;
+		volatile LONG Refs;
+		size_t Count;
+		size_t Capacity;
 #pragma warning( push )
 #pragma warning( disable : 4200)
 		V Data[0];
@@ -193,7 +194,7 @@ protected:
 			// we need to update the iterator if it points to the current entry
 			if (pI && m_ptr->Data + i == pI->pData) { // todo improve
 				pI->pData = ptr->Data + i;
-				pI = NULL;
+				pI = nullptr;
 			}
 		}
 		ptr->Count = m_ptr->Count;
@@ -203,12 +204,11 @@ protected:
 
 	SArrayData* MakeData(size_t Capacity)
 	{
-		if (!m_pMem) 
-			return nullptr;
-		SArrayData* ptr = (SArrayData*)m_pMem->Alloc(sizeof(SArrayData) + Capacity * sizeof(V));
+		SArrayData* ptr = (SArrayData*)MemAlloc(sizeof(SArrayData) + Capacity * sizeof(V));
 		if(!ptr) 
 			return nullptr;
-		new (ptr) SArrayData();
+		ptr->Refs = 0;
+		ptr->Count = 0;
 		ptr->Capacity = Capacity;
 		return ptr;
 	}
@@ -229,7 +229,7 @@ protected:
 			if (InterlockedDecrement(&m_ptr->Refs) == 0) {
 				for(size_t i = 0; i < m_ptr->Count; i++)
 					m_ptr->Data[i].~V();
-				m_pMem->Free(m_ptr);
+				MemFree(m_ptr);
 			}
 			m_ptr = nullptr;
 		}

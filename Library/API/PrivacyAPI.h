@@ -130,6 +130,11 @@ enum {
 	SVC_API_GET_DNC_CACHE = 'GDNS',
 	SVC_API_FLUSH_DNS_CACHE = 'FDNS',
 
+	SVC_API_GET_DNS_RULES = 'GADR',
+	SVC_API_GET_DNS_RULE = 'GDFR',
+	SVC_API_SET_DNS_RULE = 'SDFR',
+	SVC_API_DEL_DNS_RULE = 'DDFR',
+
 	// Program Manager
 	SVC_API_GET_PROCESSES = 'GPRC', // live runnign or recently terminated processes
 	SVC_API_GET_PROCESS = 'GPRX',
@@ -182,6 +187,7 @@ enum {
 
 	SVC_API_EVENT_ENCLAVE_CHANGED = 'EENC',
 	SVC_API_EVENT_FW_RULE_CHANGED = 'EFRU',
+	SVC_API_EVENT_DNS_RULE_CHANGED = 'EDFR',
 	SVC_API_EVENT_EXEC_RULE_CHANGED = 'EEXR',
 	SVC_API_EVENT_RES_RULE_CHANGED = 'ERER',
 
@@ -586,7 +592,10 @@ API_V_VALUES : unsigned long
 	API_V_DNS_ADDR = 'dadr',
 	API_V_DNS_DATA = 'ddat',
 	API_V_DNS_TTL = 'dttl',
+	API_V_DNS_STATUS = 'dsts',
 	API_V_DNS_QUERY_COUNT = 'dqc',
+	API_V_DNS_RULES = 'drul',
+	API_V_DNS_RULE_ACTION = 'drac',
 
 
 	////////////////////////////
@@ -653,6 +662,7 @@ API_V_VALUES : unsigned long
 #define SVC_EVENT_SVC_STATUS_MSG	0x0105
 #define SVC_EVENT_VOL_PROTECT_ERROR	0x0106
 #define SVC_EVENT_PROG_CLEANUP		0x0107
+#define SVC_EVENT_DNS_INIT_FAILED	0x0108
 
 
 /////////////////////////////////////////////////////////////////////////////

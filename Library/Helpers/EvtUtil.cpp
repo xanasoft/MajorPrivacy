@@ -364,7 +364,7 @@ std::wstring CEventLogListener::GetWinVariantString(const EVT_VARIANT& value, co
 	return defValue;
 }
 
-//CVariant CEventLogListener::GetEvtVariant(const struct _EVT_VARIANT& value, const CVariant& defValue)
+//StVariant CEventLogListener::GetEvtVariant(const struct _EVT_VARIANT& value, const StVariant& defValue)
 //{
 //	switch (value.Type)
 //	{

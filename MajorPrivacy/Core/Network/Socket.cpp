@@ -37,10 +37,10 @@ QString CSocket::GetStateString() const
 	}
 }
 
-void CSocket::FromVariant(const class XVariant& Socket)
+void CSocket::FromVariant(const class QtVariant& Socket)
 {
-	Socket.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
-		const XVariant& Data = *(XVariant*)&vData;
+	QtVariantReader(Socket).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
+		const QtVariant& Data = *(QtVariant*)&vData;
 
 		switch (Index)
 		{

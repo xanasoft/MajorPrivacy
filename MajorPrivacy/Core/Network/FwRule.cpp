@@ -92,9 +92,10 @@ QString CFwRule::StateToStr(EFwEventStates State)
     {
     case EFwEventStates::FromLog: return tr("FromLog");
     case EFwEventStates::UnRuled: return tr("UnRuled");
-    case EFwEventStates::RuleAllowed: return tr("RuleAllowed");
-    case EFwEventStates::RuleBlocked: return tr("RuleBlocked");
-    case EFwEventStates::RuleError: return tr("RuleError");
+    case EFwEventStates::RuleAllowed: return tr("Rule Allowed");
+    case EFwEventStates::RuleBlocked: return tr("Rule Blocked");
+    case EFwEventStates::RuleError: return tr("Rule Error");
+    case EFwEventStates::RuleGenerated: return tr("Rule Generated");
     default: return tr("Undefined");
     }
 }

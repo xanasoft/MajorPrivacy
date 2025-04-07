@@ -66,7 +66,7 @@ protected:
 	void					AddProgramRule(const CProgramRulePtr& pRule);
 	void					RemoveProgramRule(const CProgramRulePtr& pRule);
 
-	//void UpdateGroup(const CProgramGroupPtr& Group, const class XVariant& Root);
+	//void UpdateGroup(const CProgramGroupPtr& Group, const class QtVariant& Root);
 
 	void					AddProgram(const CProgramItemPtr& pItem);
 	void					RemoveProgram(const CProgramItemPtr& pItem);

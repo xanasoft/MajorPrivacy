@@ -4,12 +4,12 @@
 // CProgramRule
 //
 
-void CProgramRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
+void CProgramRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 {
 	CGenericRule::WriteIVariant(Rule, Opts);
 
 	Rule.Write(API_V_EXEC_RULE_ACTION, (uint32)m_Type);
-	Rule.Write(API_V_FILE_PATH, TO_STR(m_ProgramPath));
+	Rule.WriteEx(API_V_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
 	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
 		Rule.Write(API_V_FILE_NT_PATH, TO_STR(m_PathPattern.Get()));
@@ -37,7 +37,7 @@ void CProgramRule::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CProgramRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
+void CProgramRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 {
 	CGenericRule::WriteMVariant(Rule, Opts);
 
@@ -51,7 +51,7 @@ void CProgramRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 	// todo other:
 	}
 
-	Rule.Write(API_S_FILE_PATH, TO_STR(m_ProgramPath));
+	Rule.WriteEx(API_S_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
 	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
 		Rule.Write(API_S_FILE_NT_PATH, TO_STR(m_PathPattern.Get()));

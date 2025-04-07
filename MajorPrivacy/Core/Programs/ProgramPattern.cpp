@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "ProgramPattern.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyAPI.h"
 
 CProgramPattern::CProgramPattern( QObject* parent)

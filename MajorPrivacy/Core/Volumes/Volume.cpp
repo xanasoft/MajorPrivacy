@@ -41,10 +41,10 @@ void CVolume::SetMounted(bool Mounted)
 	}
 }
 
-void CVolume::FromVariant(const class XVariant& Volume)
+void CVolume::FromVariant(const class QtVariant& Volume)
 {
-	Volume.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
-		const XVariant& Data = *(XVariant*)&vData;
+	QtVariantReader(Volume).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
+		const QtVariant& Data = *(QtVariant*)&vData;
 
 		switch (Index)
 		{

@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyDefs.h"
 #include "../MiscHelpers/Common/Common.h"
 
@@ -16,15 +16,15 @@ public:
 	QString GetPath() const					{ return m_Path; }
 	QString GetName() const					{ return Split2(m_Path, "\\", true).second; }
 
-	virtual XVariant ToVariant(const SVarWriteOpt& Opts) const;
-	virtual NTSTATUS FromVariant(const XVariant& Data);
+	virtual QtVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual NTSTATUS FromVariant(const QtVariant& Data);
 
 protected:
 
-	virtual void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void ReadIValue(uint32 Index, const XVariant& Data);
-	virtual void ReadMValue(const SVarName& Name, const XVariant& Data);
+	virtual void WriteIVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	virtual void WriteMVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	virtual void ReadIValue(uint32 Index, const QtVariant& Data);
+	virtual void ReadMValue(const SVarName& Name, const QtVariant& Data);
 
 	uint64											m_UID;
 	QString											m_Path;

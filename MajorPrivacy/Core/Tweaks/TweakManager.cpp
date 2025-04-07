@@ -22,7 +22,7 @@ void CTweakManager::Update()
 	if (Ret.IsError())
 		return;
 
-	XVariant& Tweaks = Ret.GetValue();
+	QtVariant& Tweaks = Ret.GetValue();
 
 	m_pRoot->FromVariant(Tweaks);
 }

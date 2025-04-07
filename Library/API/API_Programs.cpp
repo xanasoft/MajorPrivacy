@@ -4,16 +4,16 @@
 // CProgramItem 
 //
 
-void CProgramItem::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CProgramItem::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	Data.Write(API_V_PROG_UID, m_UID);
 	Data.Write(API_V_PROG_TYPE, (uint32)GetType());
 
 	Data.WriteVariant(API_V_PROG_ID, m_ID.ToVariant(Opts));
 
-	Data.Write(API_V_NAME, TO_STR(m_Name));
-	Data.Write(API_V_ICON, TO_STR(m_IconFile));
-	Data.Write(API_V_INFO, TO_STR(m_Info));
+	Data.WriteEx(API_V_NAME, TO_STR(m_Name));
+	Data.WriteEx(API_V_ICON, TO_STR(m_IconFile));
+	Data.WriteEx(API_V_INFO, TO_STR(m_Info));
 
 #ifdef PROG_SVC
 	Data.WriteVariant(API_V_FW_RULES, CollectFwRules());
@@ -60,16 +60,16 @@ void CProgramItem::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CProgramItem::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CProgramItem::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	Data.Write(API_S_PROG_UID, m_UID);
-	Data.Write(API_S_PROG_TYPE, CProgramID::TypeToStr(GetType()));
+	Data.WriteEx(API_S_PROG_TYPE, CProgramID::TypeToStr(GetType()));
 
 	Data.WriteVariant(API_S_PROG_ID, m_ID.ToVariant(Opts));
 
-	Data.Write(API_S_NAME, TO_STR(m_Name));
-	Data.Write(API_S_ICON, TO_STR(m_IconFile));
-	Data.Write(API_S_INFO, TO_STR(m_Info));
+	Data.WriteEx(API_S_NAME, TO_STR(m_Name));
+	Data.WriteEx(API_S_ICON, TO_STR(m_IconFile));
+	Data.WriteEx(API_S_INFO, TO_STR(m_Info));
 
 #ifdef PROG_SVC
 	Data.WriteVariant(API_S_FW_RULES, CollectFwRules());
@@ -115,11 +115,11 @@ void CProgramItem::ReadMValue(const SVarName& Name, const XVariant& Data)
 // CWindowsService
 //
 
-void CWindowsService::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CWindowsService::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramItem::WriteIVariant(Data, Opts);
 
-	Data.Write(API_V_SERVICE_TAG, TO_STR(m_ServiceTag));
+	Data.WriteEx(API_V_SERVICE_TAG, TO_STR(m_ServiceTag));
 
 #ifdef PROG_SVC
 	Data.Write(API_V_PID, m_pProcess ? m_pProcess->GetProcessId() : 0);
@@ -135,10 +135,10 @@ void CWindowsService::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) co
 	else
 	{
 		Data.Write(API_V_PROG_ACCESS_COUNT, m_AccessTree.GetAccessCount());
-		Data.Write(API_V_PROG_SOCKET_REFS, Stats.SocketRefs);
+		Data.WriteVariant(API_V_PROG_SOCKET_REFS, XVariant(Stats.SocketRefs));
 	}
 
-	Data.Write(API_V_SOCK_LAST_NET_ACT, Stats.LastNetActivity);
+	Data.Write(API_V_SOCK_LAST_NET_ACT, Stats.LastNetActivity); 
 	Data.Write(API_V_SOCK_LAST_ALLOW, m_LastFwAllowed);
 	Data.Write(API_V_SOCK_LAST_BLOCK, m_LastFwBlocked);
 
@@ -192,11 +192,11 @@ void CWindowsService::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CWindowsService::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CWindowsService::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramItem::WriteMVariant(Data, Opts);
 
-	Data.Write(API_S_SERVICE_TAG, TO_STR(m_ServiceTag));
+	Data.WriteEx(API_S_SERVICE_TAG, TO_STR(m_ServiceTag));
 
 #ifdef PROG_SVC
 	Data.Write(API_S_PID, m_pProcess ? m_pProcess->GetProcessId() : 0);
@@ -211,7 +211,7 @@ void CWindowsService::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) co
 	}
 	else
 	{
-		Data.Write(API_S_PROG_SOCKETS, Stats.SocketRefs);
+		Data.WriteVariant(API_S_PROG_SOCKETS, XVariant(Stats.SocketRefs));
 	}
 
 	Data.Write(API_S_SOCK_LAST_ACT, Stats.LastNetActivity);
@@ -270,11 +270,11 @@ void CWindowsService::ReadMValue(const SVarName& Name, const XVariant& Data)
 // CProgramSet 
 //
 
-void CProgramSet::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CProgramSet::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramItem::WriteIVariant(Data, Opts);
 
-	XVariant Items;
+	VariantWriter Items;
 	Items.BeginList();
 	for (auto pItem : m_Nodes) {
 		//Items.Write(pItem->ToVariant());
@@ -283,8 +283,7 @@ void CProgramSet::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 		Item[API_V_PROG_ID] = pItem->GetID().ToVariant(Opts);	
 		Items.WriteVariant(Item);
 	}
-	Items.Finish();
-	Data.WriteVariant(API_V_PROG_ITEMS, Items);
+	Data.WriteVariant(API_V_PROG_ITEMS, Items.Finish());
 }
 
 void CProgramSet::ReadIValue(uint32 Index, const XVariant& Data)
@@ -297,11 +296,11 @@ void CProgramSet::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CProgramSet::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CProgramSet::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramItem::WriteMVariant(Data, Opts);
 
-	XVariant Items;
+	VariantWriter Items;
 	Items.BeginList();
 	for (auto pItem : m_Nodes) {
 		//Items.Write(pItem->ToVariant());
@@ -310,8 +309,7 @@ void CProgramSet::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 		Item[API_S_PROG_ID] = pItem->GetID().ToVariant(Opts);	
 		Items.WriteVariant(Item);
 	}
-	Items.Finish();
-	Data.WriteVariant(API_S_PROG_ITEMS, Items);
+	Data.WriteVariant(API_S_PROG_ITEMS, Items.Finish());
 }
 
 void CProgramSet::ReadMValue(const SVarName& Name, const XVariant& Data)
@@ -326,11 +324,11 @@ void CProgramSet::ReadMValue(const SVarName& Name, const XVariant& Data)
 // CProgramPattern
 //
 
-void CProgramPattern::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CProgramPattern::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramList::WriteIVariant(Data, Opts);
 
-	Data.Write(API_V_PROG_PATTERN, GET_PATH(m_Pattern));
+	Data.WriteEx(API_V_PROG_PATTERN, GET_PATH(m_Pattern));
 }
 
 void CProgramPattern::ReadIValue(uint32 Index, const XVariant& Data)
@@ -344,11 +342,11 @@ void CProgramPattern::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CProgramPattern::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CProgramPattern::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramList::WriteMVariant(Data, Opts);
 
-	Data.Write(API_S_PROG_PATTERN, GET_PATH(m_Pattern));
+	Data.WriteEx(API_S_PROG_PATTERN, GET_PATH(m_Pattern));
 }
 
 void CProgramPattern::ReadMValue(const SVarName& Name, const XVariant& Data)
@@ -362,11 +360,11 @@ void CProgramPattern::ReadMValue(const SVarName& Name, const XVariant& Data)
 // CProgramFile
 //
 
-void CProgramFile::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CProgramFile::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramSet::WriteIVariant(Data, Opts);
 
-	Data.Write(API_V_FILE_PATH, GET_PATH(m_Path));
+	Data.WriteEx(API_V_FILE_PATH, GET_PATH(m_Path));
 
 	Data.WriteVariant(API_V_SIGN_INFO, m_SignInfo.ToVariant(Opts));
 
@@ -374,7 +372,7 @@ void CProgramFile::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 	SStats Stats;
 	CollectStats(Stats);
 
-	Data.Write(API_V_PIDS, Stats.Pids);
+	Data.WriteVariant(API_V_PIDS, XVariant(Stats.Pids));
 
 	Data.Write(API_V_PROG_LAST_EXEC, m_LastExec);
 
@@ -385,7 +383,7 @@ void CProgramFile::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 	else
 	{
 		Data.Write(API_V_PROG_ACCESS_COUNT, m_AccessTree.GetAccessCount());
-		Data.Write(API_V_PROG_SOCKET_REFS, Stats.SocketRefs);
+		Data.WriteVariant(API_V_PROG_SOCKET_REFS, XVariant(Stats.SocketRefs));
 	}
 
 	Data.Write(API_V_SOCK_LAST_NET_ACT, Stats.LastNetActivity);
@@ -448,11 +446,11 @@ void CProgramFile::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CProgramFile::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CProgramFile::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramSet::WriteMVariant(Data, Opts);
 
-	Data.Write(API_S_FILE_PATH, GET_PATH(m_Path));
+	Data.WriteEx(API_S_FILE_PATH, GET_PATH(m_Path));
 
 	Data.WriteVariant(API_S_SIGN_INFO, m_SignInfo.ToVariant(Opts));
 
@@ -460,7 +458,7 @@ void CProgramFile::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 	SStats Stats;
 	CollectStats(Stats);
 
-	Data.Write(API_S_PIDS, Stats.Pids);
+	Data.WriteVariant(API_S_PIDS, XVariant(Stats.Pids));
 
 	Data.Write(API_S_LAST_EXEC, m_LastExec);
 
@@ -470,7 +468,7 @@ void CProgramFile::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
 	}
 	else
 	{
-		Data.Write(API_S_PROG_SOCKETS, Stats.SocketRefs);
+		Data.WriteVariant(API_S_PROG_SOCKETS, XVariant(Stats.SocketRefs));
 	}
 
 	Data.Write(API_S_SOCK_LAST_ACT, Stats.LastNetActivity);
@@ -534,13 +532,13 @@ void CProgramFile::ReadMValue(const SVarName& Name, const XVariant& Data)
 // CAppPackage
 //
 
-void CAppPackage::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CAppPackage::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramList::WriteIVariant(Data, Opts);
 
-	Data.Write(API_V_APP_SID, TO_STR(m_AppContainerSid));
-	Data.Write(API_V_APP_NAME, TO_STR(m_AppContainerName));
-	Data.Write(API_V_FILE_PATH, GET_PATH(m_Path));
+	Data.WriteEx(API_V_APP_SID, TO_STR(m_AppContainerSid));
+	Data.WriteEx(API_V_APP_NAME, TO_STR(m_AppContainerName));
+	Data.WriteEx(API_V_FILE_PATH, GET_PATH(m_Path));
 }
 
 void CAppPackage::ReadIValue(uint32 Index, const XVariant& Data)
@@ -556,13 +554,13 @@ void CAppPackage::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CAppPackage::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CAppPackage::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramList::WriteMVariant(Data, Opts);
 
-	Data.Write(API_S_APP_SID, TO_STR(m_AppContainerSid));
-	Data.Write(API_S_APP_NAME, TO_STR(m_AppContainerName));
-	Data.Write(API_S_FILE_PATH, GET_PATH(m_Path));
+	Data.WriteEx(API_S_APP_SID, TO_STR(m_AppContainerSid));
+	Data.WriteEx(API_S_APP_NAME, TO_STR(m_AppContainerName));
+	Data.WriteEx(API_S_FILE_PATH, GET_PATH(m_Path));
 }
 
 void CAppPackage::ReadMValue(const SVarName& Name, const XVariant& Data)
@@ -579,12 +577,12 @@ void CAppPackage::ReadMValue(const SVarName& Name, const XVariant& Data)
 // SAppInstallation
 //
 
-void CAppInstallation::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CAppInstallation::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramList::WriteIVariant(Data, Opts);
 
-	Data.Write(API_V_REG_KEY, TO_STR(m_RegKey));
-	Data.Write(API_V_FILE_PATH, GET_PATH(m_Path));
+	Data.WriteEx(API_V_REG_KEY, TO_STR(m_RegKey));
+	Data.WriteEx(API_V_FILE_PATH, GET_PATH(m_Path));
 }
 
 void CAppInstallation::ReadIValue(uint32 Index, const XVariant& Data)
@@ -598,12 +596,12 @@ void CAppInstallation::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CAppInstallation::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CAppInstallation::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CProgramList::WriteMVariant(Data, Opts);
 
-	Data.Write(API_S_REG_KEY, TO_STR(m_RegKey));
-	Data.Write(API_S_FILE_PATH, GET_PATH(m_Path));
+	Data.WriteEx(API_S_REG_KEY, TO_STR(m_RegKey));
+	Data.WriteEx(API_S_FILE_PATH, GET_PATH(m_Path));
 }
 
 void CAppInstallation::ReadMValue(const SVarName& Name, const XVariant& Data)
@@ -618,10 +616,10 @@ void CAppInstallation::ReadMValue(const SVarName& Name, const XVariant& Data)
 // CProgramLibrary
 //
 
-void CProgramLibrary::WriteIVariant(XVariant& Entry, const SVarWriteOpt& Opts) const
+void CProgramLibrary::WriteIVariant(VariantWriter& Entry, const SVarWriteOpt& Opts) const
 {
 	Entry.Write(API_V_PROG_UID, m_UID);
-	Entry.Write(API_V_FILE_PATH, GET_PATH(m_Path));
+	Entry.WriteEx(API_V_FILE_PATH, GET_PATH(m_Path));
 }
 
 void CProgramLibrary::ReadIValue(uint32 Index, const XVariant& Data)
@@ -636,10 +634,10 @@ void CProgramLibrary::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CProgramLibrary::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CProgramLibrary::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	Data.Write(API_S_PROG_UID, m_UID);
-	Data.Write(API_S_FILE_PATH, GET_PATH(m_Path));
+	Data.WriteEx(API_S_FILE_PATH, GET_PATH(m_Path));
 }
 
 void CProgramLibrary::ReadMValue(const SVarName& Name, const XVariant& Data)
@@ -652,7 +650,7 @@ void CProgramLibrary::ReadMValue(const SVarName& Name, const XVariant& Data)
 // CImageSignInfo
 //
 
-void CImageSignInfo::WriteIVariant(XVariant& Entry, const SVarWriteOpt& Opts) const
+void CImageSignInfo::WriteIVariant(VariantWriter& Entry, const SVarWriteOpt& Opts) const
 {
 	Entry.Write(API_V_IMG_SIGN_AUTH, m_SignInfo.Authority);
 	Entry.Write(API_V_IMG_SIGN_LEVEL, m_SignInfo.Level);
@@ -663,7 +661,7 @@ void CImageSignInfo::WriteIVariant(XVariant& Entry, const SVarWriteOpt& Opts) co
 	Entry.Write(API_V_CERT_STATUS, (uint8)m_HashStatus);
 	if (m_HashStatus != EHashStatus::eHashNone && m_HashStatus != EHashStatus::eHashUnknown) {
 		Entry.WriteVariant(API_V_IMG_CERT_ALG, XVariant(m_SignerHash));
-		Entry.Write(API_V_IMG_SIGN_NAME, TO_STR(m_SignerName));
+		Entry.WriteEx(API_V_IMG_SIGN_NAME, TO_STR(m_SignerName));
 	}
 }
 
@@ -686,7 +684,7 @@ void CImageSignInfo::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CImageSignInfo::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CImageSignInfo::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	Data.Write(API_S_SIGN_INFO_AUTH, m_SignInfo.Authority);
 	Data.Write(API_S_SIGN_INFO_LEVEL, m_SignInfo.Level);
@@ -697,7 +695,7 @@ void CImageSignInfo::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) con
 	Data.Write(API_S_CERT_STATUS, (uint8)m_HashStatus);
 	if (m_HashStatus != EHashStatus::eHashNone && m_HashStatus != EHashStatus::eHashUnknown) {
 		Data.WriteVariant(API_S_CERT_HASH, XVariant(m_SignerHash));
-		Data.Write(API_S_SIGNER_NAME, TO_STR(m_SignerName));
+		Data.WriteEx(API_S_SIGNER_NAME, TO_STR(m_SignerName));
 	}
 }
 

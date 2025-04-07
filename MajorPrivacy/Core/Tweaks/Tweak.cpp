@@ -11,10 +11,10 @@ CAbstractTweak::CAbstractTweak()
 
 }
 
-void CAbstractTweak::FromVariant(const class XVariant& Tweak)
+void CAbstractTweak::FromVariant(const class QtVariant& Tweak)
 {
-	if (Tweak.GetType() == VAR_TYPE_MAP)		Tweak.ReadRawMap([&](const SVarName& Name, const CVariant& Data)	{ ReadMValue(Name, Data); });
-	else if (Tweak.GetType() == VAR_TYPE_INDEX)	Tweak.ReadRawIMap([&](uint32 Index, const CVariant& Data)			{ ReadIValue(Index, Data); });
+	if (Tweak.GetType() == VAR_TYPE_MAP)		QtVariantReader(Tweak).ReadRawMap([&](const SVarName& Name, const QtVariant& Data) { ReadMValue(Name, Data); });
+	else if (Tweak.GetType() == VAR_TYPE_INDEX)	QtVariantReader(Tweak).ReadRawIndex([&](uint32 Index, const QtVariant& Data) { ReadIValue(Index, Data); });
 	// todo err
 }
 
@@ -52,19 +52,21 @@ QString CAbstractTweak::GetStatusStr() const
 ///////////////////////////////////////////////////////////////////////////////////////
 // CTweakList
 
-void CTweakList::ReadList(const XVariant& List)
+void CTweakList::ReadList(const QtVariant& List)
 {
 	QMap<QString, CTweakPtr> OldMap = m_List;
 
-	List.ReadRawList([&](const CVariant& vData) {
-		const XVariant& Tweak = *(XVariant*)&vData;
+	QtVariantReader(List).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& Tweak = *(QtVariant*)&vData;
 
-		QString Name = Tweak.Find(API_V_NAME).AsQStr();
+		QtVariantReader Reader(Tweak);
+
+		QString Name = Reader.Find(API_V_NAME).AsQStr();
 
 		CTweakPtr pTweak = OldMap.take(Name);
 		if (pTweak.isNull())
 		{
-			ETweakType Type = (ETweakType)Tweak.Find(API_V_TWEAK_TYPE).To<uint32>();
+			ETweakType Type = (ETweakType)Reader.Find(API_V_TWEAK_TYPE).To<uint32>();
 			if (Type == ETweakType::eGroup)		pTweak = CTweakPtr(new CTweakGroup());
 			else if (Type == ETweakType::eSet)	pTweak = CTweakPtr(new CTweakSet());
 			else								pTweak = CTweakPtr(new CTweak(Type));

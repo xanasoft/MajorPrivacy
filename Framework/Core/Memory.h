@@ -29,14 +29,30 @@ class FRAMEWORK_EXPORT AbstractContainer
 public:
 	AbstractContainer(AbstractMemPool* pMem) { m_pMem = pMem; }
 	AbstractContainer(const AbstractContainer& other) { m_pMem = other.m_pMem; }
-	virtual ~AbstractContainer() {}
 	AbstractMemPool* Allocator() const { return m_pMem; }
+
+	void* MemAlloc(size_t size) const;
+	void MemFree(void* ptr) const;
 
 protected:
 	AbstractMemPool* m_pMem = nullptr;
 
 private:
 	AbstractContainer& operator=(const AbstractContainer& other) = delete;
+};
+
+template <typename V>
+struct DefaultValue {
+	V operator()(AbstractMemPool* m_pMem) const {
+		return V();
+	}
+};
+
+template <typename V>
+struct DefaultContainer{
+	V operator()(AbstractMemPool* m_pMem) const {
+		return V(m_pMem);
+	}
 };
 
 class FRAMEWORK_EXPORT AbstractMemPool
@@ -53,20 +69,20 @@ public:
 	}
 
 	template <typename T, class... Types>
-	NTSTATUS InitNew(SharedPtr<T> &Ptr, Types&&... Args)
+	FWSTATUS InitNew(SharedPtr<T> &Ptr, Types&&... Args)
 	{
 		T* p = (T*)Alloc(sizeof(T));
 		if (!p)
 			return 0xC000009AL; // STATUS_INSUFFICIENT_RESOURCES;
 		Ptr = SharedPtr<T>(new (p) T(this));
-		NTSTATUS s = p->Init(Args...);
+		FWSTATUS s = p->Init(Args...);
 		if (!NT_SUCCESS(s))
 			Ptr.Clear();
 		return s;
 	}
 
-	virtual void* Alloc(size_t size) = 0;
-	virtual void Free(void* ptr) = 0;
+	virtual void* Alloc(size_t size, uint32 flags = 0) = 0;
+	virtual void Free(void* ptr, uint32 flags = 0) = 0;
 
 	void Adopt(AbstractContainer** ppContainers = NULL)
 	{
@@ -78,8 +94,27 @@ public:
 class FRAMEWORK_EXPORT DefaultMemPool : public AbstractMemPool
 {
 public:
-	virtual void* Alloc(size_t size);
-	virtual void Free(void* ptr);
+	virtual void* Alloc(size_t size, uint32 flags = 0);
+	virtual void Free(void* ptr, uint32 flags = 0);
+};
+
+class FRAMEWORK_EXPORT StackedMem : public AbstractMemPool
+{
+public:
+	StackedMem(void* pMem, size_t uSize) { m_pMem = (uint8*)pMem; m_uSize = uSize; m_pPtr = m_pMem;}
+
+	virtual void* Alloc(size_t size, uint32 flags = 0);
+	virtual void Free(void* ptr, uint32 flags = 0);
+
+protected:
+	struct SMemHeader {
+		size_t uSize;
+		bool bFreed;
+	};
+
+	uint8* m_pMem;
+	size_t m_uSize;
+	uint8* m_pPtr;
 };
 
 FW_NAMESPACE_END
@@ -98,14 +133,14 @@ void __cdecl operator delete[](void* ptr);
 
 extern "C" {
 
-void* MemAlloc(size_t size);
-void MemFree(void* ptr);
+FRAMEWORK_EXPORT void* MemAlloc(size_t size);
+FRAMEWORK_EXPORT void MemFree(void* ptr);
 
-void MemCopy(void* dst, const void* src, size_t size);
-void MemMove(void* dst, const void* src, size_t size);
-void MemSet(void* dst, int value, size_t size);
-__forceinline void MemZero(void* dst, size_t size) { MemSet(dst, 0, size); }
+FRAMEWORK_EXPORT void MemCopy(void* dst, const void* src, size_t size);
+FRAMEWORK_EXPORT void MemMove(void* dst, const void* src, size_t size);
+FRAMEWORK_EXPORT void MemSet(void* dst, int value, size_t size);
+FRAMEWORK_EXPORT __forceinline void MemZero(void* dst, size_t size) { MemSet(dst, 0, size); }
 
-int MemCmp(const void* l, const void* r, size_t size);
+FRAMEWORK_EXPORT int MemCmp(const void* l, const void* r, size_t size);
 
 }

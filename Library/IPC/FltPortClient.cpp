@@ -311,9 +311,11 @@ struct SFltPortClient
         PhInitializeRundownProtection(&Rundown);
         //PhInitializeFreeList(&ReplyFreeList, sizeof(KPH_UREPLY), 16);
 
+#ifndef _DEBUG
         if (PhSystemBasicInformation.NumberOfProcessors >= KPH_COMMS_MIN_THREADS)
             numberOfThreads = PhSystemBasicInformation.NumberOfProcessors * KPH_COMMS_THREAD_SCALE;
         else
+#endif
             numberOfThreads = KPH_COMMS_MIN_THREADS;
 
         MessageCount = numberOfThreads * KPH_COMMS_MESSAGE_SCALE;
@@ -568,7 +570,9 @@ CFltPortClient::~CFltPortClient()
 
 STATUS CFltPortClient::Connect(const wchar_t* Name)
 {
-    m->Start(Name);
+    NTSTATUS status = m->Start(Name);
+    if(!NT_SUCCESS(status))
+        return ERR(status);
     return OK;
 }
 

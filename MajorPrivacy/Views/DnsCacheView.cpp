@@ -25,6 +25,29 @@ CDnsCacheView::CDnsCacheView(QWidget *parent)
 	m_pToolBar = new QToolBar();
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
+	m_pCmbStatus = new QComboBox();
+	m_pCmbStatus->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Status"), (qint32)CDnsCacheEntry::eNone);
+	m_pCmbStatus->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)CDnsCacheEntry::eAllowed);
+	m_pCmbStatus->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)CDnsCacheEntry::eBlocked);
+	m_pCmbStatus->addItem(QIcon(":/Icons/Go2.png"), tr("Cached"), (qint32)CDnsCacheEntry::eCached);
+	m_pToolBar->addWidget(m_pCmbStatus);
+
+	m_pCmbType = new QComboBox();
+	m_pCmbType->addItem(tr("Any Type"), (qint32)CDnsCacheEntry::EType::ANY);
+	m_pCmbType->addItem(tr("A or AAAA"), (qint32)CDnsCacheEntry::EType::A | (((qint32)CDnsCacheEntry::EType::AAAA) << 16));
+	m_pCmbType->addItem(tr("A"), (qint32)CDnsCacheEntry::EType::A);
+	m_pCmbType->addItem(tr("AAAA"), (qint32)CDnsCacheEntry::EType::AAAA);
+	m_pCmbType->addItem(tr("CNAME"), (qint32)CDnsCacheEntry::EType::CNAME);
+	m_pCmbType->addItem(tr("MX"), (qint32)CDnsCacheEntry::EType::MX);
+	m_pCmbType->addItem(tr("PTR"), (qint32)CDnsCacheEntry::EType::PTR);
+	m_pCmbType->addItem(tr("SRV"), (qint32)CDnsCacheEntry::EType::SRV);
+	m_pCmbType->addItem(tr("TXT"), (qint32)CDnsCacheEntry::EType::TXT);
+	m_pCmbType->addItem(tr("WKS"), (qint32)CDnsCacheEntry::EType::WKS);
+	m_pCmbType->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(m_pCmbType);
+
+	m_pToolBar->addSeparator();
+
 	m_pBtnClear = new QToolButton();
 	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
 	m_pBtnClear->setToolTip(tr("Clear System DNS Cache"));
@@ -52,7 +75,32 @@ CDnsCacheView::~CDnsCacheView()
 void CDnsCacheView::Sync()
 {
 	theCore->NetworkManager()->UpdateDnsCache();
-	m_pItemModel->Sync(theCore->NetworkManager()->GetDnsCache());
+	
+	auto EntryMap = theCore->NetworkManager()->GetDnsCache();
+	
+	CDnsCacheEntry::EStatus Status = (CDnsCacheEntry::EStatus)m_pCmbStatus->currentData().toInt();
+	qint32 Type = m_pCmbType->currentData().toInt();
+
+	if (Status != CDnsCacheEntry::eNone || Type != (qint32)CDnsCacheEntry::EType::ANY)
+	{
+		for (auto I = EntryMap.begin(); I != EntryMap.end();)
+		{
+			if (Status != CDnsCacheEntry::eNone && I.value()->GetStatus() != Status)
+				I = EntryMap.erase(I);
+			else if (Type != (qint32)CDnsCacheEntry::EType::ANY)
+			{
+				quint16 EntryType = I.value()->GetType();
+				if ((Type & 0xFFFF) == EntryType || (Type >> 16) == EntryType)
+					++I;
+				else
+					I = EntryMap.erase(I);
+			}
+			else
+				++I;
+		}
+	}
+
+	m_pItemModel->Sync(EntryMap);
 }
 
 /*void CDnsCacheView::OnDoubleClicked(const QModelIndex& Index)

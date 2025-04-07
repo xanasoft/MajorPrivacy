@@ -83,10 +83,10 @@ protected:
 
 	virtual QSharedPointer<class CWindowsService> GetService(const QString& SvcTag) const;
 
-	void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
-	void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
-	void ReadIValue(uint32 Index, const XVariant& Data) override;
-	void ReadMValue(const SVarName& Name, const XVariant& Data) override;
+	void WriteIVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const override;
+	void WriteMVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const override;
+	void ReadIValue(uint32 Index, const QtVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const QtVariant& Data) override;
 
 	QString						m_Path;
 

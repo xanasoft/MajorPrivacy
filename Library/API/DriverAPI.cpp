@@ -59,7 +59,7 @@ sint32 CDriverAPI__EmitProcess(CDriverAPI* This, const SProcessEvent* pEvent)
     return status;
 }
 
-void SVerifierInfo::ReadFromEvent(const CVariant& Event)
+void SVerifierInfo::ReadFromEvent(const StVariant& Event)
 {
     VerificationFlags = Event[API_V_SIGN_FLAGS].To<uint32>();
     SignAuthority = (KPH_VERIFY_AUTHORITY)Event[API_V_IMG_SIGN_AUTH].To<uint32>();
@@ -73,7 +73,7 @@ void SVerifierInfo::ReadFromEvent(const CVariant& Event)
     SignerHashAlgorithm = Event[API_V_IMG_CERT_ALG].To<uint32>(0);
     if (SignerHashAlgorithm) {
         SignerHash = Event[API_V_IMG_CERT_HASH].AsBytes();
-        SignerName = Event[API_V_IMG_SIGN_NAME].To<std::string>();
+        SignerName = Event[API_V_IMG_SIGN_NAME].ToString();
     }
 }
 
@@ -94,7 +94,7 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
     CDriverAPI* This = (CDriverAPI*)Context->Param;
 
     CBuffer InBuff(Message->Data, Message->Header.Size - sizeof(Message->Header), true);
-    CVariant vEvent;
+    StVariant vEvent;
     vEvent.FromPacket(&InBuff, true);
 
 	switch (Message->Header.MessageId)
@@ -121,7 +121,7 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
 
             NTSTATUS status = CDriverAPI__EmitProcess(This, &Event);
 
-            /*CVariant vReply;
+            /*StVariant vReply;
             vReply[API_V_NT_STATUS] = (sint32)status;
 
             CBuffer OutBuff;
@@ -222,11 +222,11 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
             
             NTSTATUS status = CDriverAPI__EmitProcess(This, &Event);
 
-            CVariant vReply;
+            StVariant vReply;
             vReply[API_V_STATUS] = (sint32)status;
 
             CBuffer OutBuff;
-            OutBuff.SetData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
+            OutBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
             PMSG_HEADER repHeader = (PMSG_HEADER)OutBuff.GetBuffer();
             repHeader->MessageId = Message->Header.MessageId;
             repHeader->Size = sizeof(MSG_HEADER);
@@ -272,7 +272,7 @@ STATUS CDriverAPI::InstallDrv(uint32 TraceLogLevel)
     std::wstring FileName = GetApplicationDirectory() + L"\\" API_DRIVER_BINARY;
     std::wstring DisplayName = L"MajorPrivacy Kernel Driver";
 
-    CVariant Params;
+    StVariant Params;
     Params["Altitude"] = API_DRIVER_ALTITUDE;
     Params["PortName"] = API_DRIVER_PORT;
     Params["TraceLevel"] = TraceLogLevel;
@@ -325,25 +325,26 @@ void CDriverAPI::Disconnect()
     m_pClient->Disconnect();
 }
 
-RESULT(CVariant) CDriverAPI::Call(uint32 MessageId, const CVariant& Message)
+RESULT(StVariant) CDriverAPI::Call(uint32 MessageId, const StVariant& Message)
 {
     auto Ret = m_pClient->Call(MessageId, Message);
-    if (!Ret.IsError() && (Ret.GetValue().Get(API_V_ERR_CODE).To<uint32>() != 0 || Ret.GetValue().Has(API_V_ERR_MSG)))
-        return ERR(Ret.GetValue()[API_V_ERR_CODE], Ret.GetValue()[API_V_ERR_MSG].AsStr());
+	auto& Val = Ret.GetValue();
+    if (!Ret.IsError() && Val.GetType() == VAR_TYPE_INDEX && (Val.Get(API_V_ERR_CODE).To<uint32>() != 0 || Val.Has(API_V_ERR_MSG)))
+        return ERR(Val[API_V_ERR_CODE], Val[API_V_ERR_MSG].AsStr());
     return Ret;
 }
 
 RESULT(std::shared_ptr<std::vector<uint64>>) CDriverAPI::EnumProcesses()
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
     ReqVar[API_V_ENUM_ALL] = 1;
 
 	auto Ret = m_pClient->Call(API_ENUM_PROCESSES, ReqVar);
     if (Ret.IsError())
         return Ret;
     
-	CVariant ResVar = Ret.GetValue();
-    CVariant vList = ResVar.Get(API_V_PIDS);
+    StVariant ResVar = Ret.GetValue();
+    StVariant vList = ResVar.Get(API_V_PIDS);
 
     auto pids = std::make_shared<std::vector<uint64>>();
 
@@ -356,14 +357,14 @@ RESULT(std::shared_ptr<std::vector<uint64>>) CDriverAPI::EnumProcesses()
 
 RESULT(SProcessInfoPtr) CDriverAPI::GetProcessInfo(uint64 pid)
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
     ReqVar[API_V_PID] = pid;
 
 	auto Ret = m_pClient->Call(API_GET_PROCESS_INFO, ReqVar);
     if (Ret.IsError())
         return Ret;
 
-	CVariant ResVar = Ret.GetValue();
+    StVariant ResVar = Ret.GetValue();
     
     SProcessInfoPtr Info = SProcessInfoPtr(new SProcessInfo());
 
@@ -392,7 +393,7 @@ RESULT(SProcessInfoPtr) CDriverAPI::GetProcessInfo(uint64 pid)
 
 RESULT(SHandleInfoPtr) CDriverAPI::GetHandleInfo(ULONG_PTR UniqueProcessId, ULONG_PTR HandleValue)
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
     ReqVar[(uint32)API_V_PID] = (uint64)UniqueProcessId;
     ReqVar[(uint32)API_V_HANDLE] = (uint64)HandleValue;
 
@@ -400,7 +401,7 @@ RESULT(SHandleInfoPtr) CDriverAPI::GetHandleInfo(ULONG_PTR UniqueProcessId, ULON
     if (Ret.IsError())
         return Ret;
 
-    CVariant ResVar = Ret.GetValue();
+    StVariant ResVar = Ret.GetValue();
 
     SHandleInfoPtr Info = SHandleInfoPtr(new SHandleInfo());
     Info->Path = ResVar.Get((uint32)API_V_FILE_PATH).AsStr();
@@ -410,14 +411,14 @@ RESULT(SHandleInfoPtr) CDriverAPI::GetHandleInfo(ULONG_PTR UniqueProcessId, ULON
 
 STATUS CDriverAPI::PrepareEnclave(const CFlexGuid& EnclaveGuid)
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
     ReqVar[API_V_GUID] = EnclaveGuid.ToVariant(true);
 	return m_pClient->Call(API_PREP_ENCLAVE, ReqVar);
 }
 
 STATUS CDriverAPI::SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, bool bLock)
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
 	ReqVar[API_V_PUB_KEY] = PubKey;
 	ReqVar[API_V_KEY_BLOB] = EncryptedBlob;
     ReqVar[API_V_LOCK] = bLock;
@@ -427,13 +428,13 @@ STATUS CDriverAPI::SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlo
 
 RESULT(SUserKeyInfoPtr) CDriverAPI::GetUserKey()
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
     
     auto Ret = m_pClient->Call(API_GET_USER_KEY, ReqVar);
     if (Ret.IsError())
         return Ret;
 
-    CVariant ResVar = Ret.GetValue();
+    StVariant ResVar = Ret.GetValue();
 
     SUserKeyInfoPtr Info = SUserKeyInfoPtr(new SUserKeyInfo());
     Info->PubKey = ResVar[API_V_PUB_KEY];
@@ -445,7 +446,7 @@ RESULT(SUserKeyInfoPtr) CDriverAPI::GetUserKey()
 
 STATUS CDriverAPI::ClearUserKey(const CBuffer& ChallengeResponse)
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
     ReqVar[API_V_SIGNATURE] = ChallengeResponse;
 
     return m_pClient->Call(API_CLEAR_USER_KEY, ReqVar);
@@ -453,7 +454,7 @@ STATUS CDriverAPI::ClearUserKey(const CBuffer& ChallengeResponse)
 
 STATUS CDriverAPI::ProtectConfig(const CBuffer& ConfigSignature, bool bHardLock)
 {
-	CVariant ReqVar;
+    StVariant ReqVar;
     ReqVar[API_V_SIGNATURE] = ConfigSignature;
 	ReqVar[API_V_LOCK] = bHardLock;
 
@@ -462,7 +463,7 @@ STATUS CDriverAPI::ProtectConfig(const CBuffer& ConfigSignature, bool bHardLock)
 
 STATUS CDriverAPI::UnprotectConfig(const CBuffer& ChallengeResponse)
 {
-	CVariant ReqVar;
+    StVariant ReqVar;
 	ReqVar[API_V_SIGNATURE] = ChallengeResponse;
 
 	return m_pClient->Call(API_UNPROTECT_CONFIG, ReqVar);
@@ -470,20 +471,20 @@ STATUS CDriverAPI::UnprotectConfig(const CBuffer& ChallengeResponse)
 
 uint32 CDriverAPI::GetConfigStatus()
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
 
     auto Ret = m_pClient->Call(API_GET_CONFIG_STATUS, ReqVar);
     if (Ret.IsError())
         return false;
 
-    CVariant ResVar = Ret.GetValue();
+    StVariant ResVar = Ret.GetValue();
 
     return ResVar.To<uint32>();
 }
 
 STATUS CDriverAPI::UnlockConfig(const CBuffer& ChallengeResponse)
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
     ReqVar[API_V_SIGNATURE] = ChallengeResponse;
 
     return m_pClient->Call(API_UNLOCK_CONFIG, ReqVar);
@@ -491,7 +492,7 @@ STATUS CDriverAPI::UnlockConfig(const CBuffer& ChallengeResponse)
 
 STATUS CDriverAPI::CommitConfigChanges(const CBuffer& ConfigSignature)
 {
-	CVariant ReqVar;
+    StVariant ReqVar;
     if(ConfigSignature.GetSize() > 0)
 	    ReqVar[API_V_SIGNATURE] = ConfigSignature;
 
@@ -500,29 +501,29 @@ STATUS CDriverAPI::CommitConfigChanges(const CBuffer& ConfigSignature)
 
 STATUS CDriverAPI::DiscardConfigChanges()
 {
-	CVariant ReqVar;
+    StVariant ReqVar;
 
 	return m_pClient->Call(API_DISCARD_CHANGES, ReqVar);
 }
 
 STATUS CDriverAPI::GetChallenge(CBuffer& Challenge)
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
 
     auto Ret = m_pClient->Call(API_GET_CHALLENGE, ReqVar);
     if (Ret.IsError())
         return Ret;
 
-    CVariant ResVar = Ret.GetValue();
+    StVariant ResVar = Ret.GetValue();
 
     Challenge = ResVar[API_V_RAND];
 
     return OK;
 }
 
-STATUS CDriverAPI::GetConfigHash(CBuffer& ConfigHash, const CVariant& Data)
+STATUS CDriverAPI::GetConfigHash(CBuffer& ConfigHash, const StVariant& Data)
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
 	//ReqVar[API_V_GET_DATA] = true; // request the config blob to be returned
     if(Data.IsValid())
         ReqVar[API_V_DATA] = Data;
@@ -531,7 +532,7 @@ STATUS CDriverAPI::GetConfigHash(CBuffer& ConfigHash, const CVariant& Data)
     if (Ret.IsError())
         return Ret;
 
-    CVariant ResVar = Ret.GetValue();
+    StVariant ResVar = Ret.GetValue();
 
     ConfigHash = ResVar[API_V_HASH];
 
@@ -540,7 +541,7 @@ STATUS CDriverAPI::GetConfigHash(CBuffer& ConfigHash, const CVariant& Data)
 
 //STATUS CDriverAPI::SetupRuleAlias(const std::wstring& PrefixPath, const std::wstring& DevicePath)
 //{
-//    CVariant ReqVar;
+//    StVariant ReqVar;
 //    ReqVar[API_V_PATH_PREFIX] = PrefixPath;
 //    ReqVar[API_V_DEVICE_PATH] = DevicePath;
 //
@@ -549,7 +550,7 @@ STATUS CDriverAPI::GetConfigHash(CBuffer& ConfigHash, const CVariant& Data)
 //
 //STATUS CDriverAPI::ClearRuleAlias(const std::wstring& DevicePath)
 //{
-//    CVariant ReqVar;
+//    StVariant ReqVar;
 //    ReqVar[API_V_DEVICE_PATH] = DevicePath;
 //
 //    return m_pClient->Call(API_CLEAR_ACCESS_RULE_ALIAS, ReqVar);
@@ -557,7 +558,7 @@ STATUS CDriverAPI::GetConfigHash(CBuffer& ConfigHash, const CVariant& Data)
 
 STATUS CDriverAPI::RegisterForProcesses(uint32 uEvents, bool bRegister)
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
     if(bRegister)
         ReqVar[API_V_SET_NOTIFY_BITMASK] = FIX_EVENT(uEvents);
     else
@@ -573,7 +574,7 @@ void CDriverAPI::RegisterProcessHandler(const std::function<sint32(const SProces
 
 STATUS CDriverAPI::RegisterForConfigEvents(EConfigGroup Config, bool bRegister)
 {
-    CVariant ReqVar;
+    StVariant ReqVar;
     if(bRegister)
         ReqVar[API_V_SET_NOTIFY_BITMASK] = FIX_EVENT(ConfigGroupToMsgType(Config));
     else
@@ -589,9 +590,9 @@ void CDriverAPI::RegisterConfigEventHandler(EConfigGroup Config, const std::func
 
 uint32 CDriverAPI::GetABIVersion()
 {
-    CVariant Request;
+    StVariant Request;
     auto Ret = Call(API_GET_VERSION, Request);
-    CVariant Response = Ret.GetValue();
+    StVariant Response = Ret.GetValue();
     uint32 version = Response.Get(API_V_VERSION).To<uint32>();
     return version;
 }

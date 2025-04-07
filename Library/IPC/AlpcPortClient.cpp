@@ -88,13 +88,13 @@ STATUS CAlpcPortClient::Connect()
 
 	// Get PID
 	CBuffer sendBuff;
-	sendBuff.SetData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
+	sendBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
 	PMSG_HEADER reqHeader = (PMSG_HEADER)sendBuff.GetBuffer();
 	reqHeader->MessageId = -1;
 	reqHeader->Size = sizeof(MSG_HEADER);
 
 	CBuffer recvBuff;
-	recvBuff.SetData(NULL, sizeof(MSG_HEADER) + sizeof(uint32));
+	recvBuff.WriteData(NULL, sizeof(MSG_HEADER) + sizeof(uint32));
 	PMSG_HEADER resHeader = (PMSG_HEADER)recvBuff.GetBuffer();
 	
 	if (NT_SUCCESS(Call(sendBuff, recvBuff)))

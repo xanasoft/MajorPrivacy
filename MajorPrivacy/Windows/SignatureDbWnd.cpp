@@ -3,7 +3,7 @@
 #include "../Core/PrivacyCore.h"
 #include "../MajorPrivacy.h"
 #include "../Library/Helpers/NtPathMgr.h"
-#include "../Library/Common/Variant.h"	
+#include "./Common/QtVariant.h"	
 
 CSignatureDbWnd::CSignatureDbWnd(QWidget *parent)
 :QMainWindow(parent)
@@ -115,16 +115,16 @@ void CSignatureDbWnd::Load()
 			QByteArray Data = ret.GetValue();
 			CBuffer Buffer(Data.constData(), Data.size(), true);
 
-			XVariant SigData;
+			QtVariant SigData;
 			//try {
 			auto res = SigData.FromPacket(&Buffer, true);
 			//} catch (const CException&) {
 			//	return ERR(STATUS_UNSUCCESSFUL);
 			//}
-			if (res != CVariant::eErrNone) 
+			if (res != QtVariant::eErrNone) 
 				return;
 
-			if (SigData[API_S_TYPE].AsStr() == L"File") {
+			if (SigData[API_S_TYPE].AsQStr() == L"File") {
 				pItem->setText(ePath, SigData[API_S_FILE_PATH].AsQStr());
 			}
 		}

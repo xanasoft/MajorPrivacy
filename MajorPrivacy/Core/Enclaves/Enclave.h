@@ -4,7 +4,7 @@
 #include "../Access/Handle.h"
 #include "../Processes/Process.h"
 #include "../Programs/ProgramRule.h"
-#include "../../Library/Common/FlexGuid.h"
+#include "./Common/QtFlexGuid.h"
 
 class CEnclave : public QObject
 {
@@ -48,19 +48,19 @@ public:
 	static QString CEnclave::GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority);
 	static QString CEnclave::GetOnSpawnStr(EProgramOnSpawn OnSpawn);
 
-	void SetData(const char* pKey, const XVariant& Value) { if (Value.IsValid()) m_Data[pKey] = Value; else m_Data.Remove(pKey); }
-	XVariant GetData(const char* pKey) const { return m_Data.Has(pKey) ? XVariant(m_Data[pKey]) : XVariant(); }
+	void SetData(const char* pKey, const QtVariant& Value) { if (Value.IsValid()) m_Data[pKey] = Value; else m_Data.Remove(pKey); }
+	QtVariant GetData(const char* pKey) const { return m_Data.Has(pKey) ? QtVariant(m_Data[pKey]) : QtVariant(); }
 
-	XVariant ToVariant(const SVarWriteOpt& Opts) const;
-	NTSTATUS FromVariant(const class XVariant& Enclave);
+	QtVariant ToVariant(const SVarWriteOpt& Opts) const;
+	NTSTATUS FromVariant(const class QtVariant& Enclave);
 
 protected:
 	friend class CEnclaveWnd;
 
-	void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
-	void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const;
-	void ReadIValue(uint32 Index, const XVariant& Data);
-	void ReadMValue(const SVarName& Name, const XVariant& Data);
+	void WriteIVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	void WriteMVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	void ReadIValue(uint32 Index, const QtVariant& Data);
+	void ReadMValue(const SVarName& Name, const QtVariant& Data);
 
 	void SetIconFile();
 	void UpdateIconFile();
@@ -78,7 +78,7 @@ protected:
 	EProgramOnSpawn m_OnSpawn = EProgramOnSpawn::eEject;
 	bool m_ImageLoadProtection = true;
 
-	XVariant m_Data;
+	QtVariant m_Data;
 
 	QMap<quint64, CProcessPtr> m_Processes;
 };

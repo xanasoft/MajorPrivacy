@@ -33,7 +33,7 @@ public:
 
 protected:
 
-	virtual void ReadValue(uint32 Index, const XVariant& Data);
+	virtual void ReadValue(uint32 Index, const QtVariant& Data);
 
 	EExecLogRole		m_Role = EExecLogRole::eUndefined;
 	EExecLogType		m_Type = EExecLogType::eUnknown;

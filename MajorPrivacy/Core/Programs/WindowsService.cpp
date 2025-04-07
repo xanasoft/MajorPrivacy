@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "WindowsService.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../PrivacyCore.h"
 #include "ProgramLibrary.h"
@@ -60,8 +60,8 @@ QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 			auto Data = Res.GetValue();
 
 			auto Targets = Data.Get(API_V_PROG_EXEC_CHILDREN);
-			Targets.ReadRawList([&](const CVariant& vData) {
-				const XVariant& Data = *(XVariant*)&vData;
+			QtVariantReader(Targets).ReadRawList([&](const FW::CVariant& vData) {
+				const QtVariant& Data = *(QtVariant*)&vData;
 
 				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
@@ -99,8 +99,8 @@ QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
 			auto Data = Res.GetValue();
 
 			auto Targets = Data.Get(API_V_PROG_INGRESS_TARGETS);
-			Targets.ReadRawList([&](const CVariant& vData) {
-				const XVariant& Data = *(XVariant*)&vData;
+			QtVariantReader(Targets).ReadRawList([&](const FW::CVariant& vData) {
+				const QtVariant& Data = *(QtVariant*)&vData;
 
 				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
@@ -130,7 +130,7 @@ QMap<quint64, SAccessStatsPtr> CWindowsService::GetAccessStats()
 {
 	auto Res = theCore->GetAccessStats(m_ID, m_AccessLastActivity);
 	if (!Res.IsError()) {
-		XVariant Root = Res.GetValue();
+		QtVariant Root = Res.GetValue();
 		m_AccessLastActivity = ReadAccessBranch(m_AccessStats, Root);
 	}
 	return m_AccessStats;

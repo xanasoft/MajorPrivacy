@@ -4,17 +4,17 @@
 // CAccessRule
 //
 
-void CAccessRule::WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
+void CAccessRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 {
 	CGenericRule::WriteIVariant(Rule, Opts);
 
 	Rule.Write(API_V_ACCESS_RULE_ACTION, (uint32)m_Type);
-	Rule.Write(API_V_ACCESS_PATH, TO_STR(m_AccessPath));
-	Rule.Write(API_V_FILE_PATH, TO_STR(m_ProgramPath));
+	Rule.WriteEx(API_V_ACCESS_PATH, TO_STR(m_AccessPath));
+	Rule.WriteEx(API_V_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
 	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
-		Rule.Write(API_V_ACCESS_NT_PATH, TO_STR(m_PathPattern.Get()));
-		Rule.Write(API_V_FILE_NT_PATH, TO_STR(m_ProgPattern.Get()));
+		Rule.WriteEx(API_V_ACCESS_NT_PATH, TO_STR(GetPath()));
+		Rule.WriteEx(API_V_FILE_NT_PATH, TO_STR(m_ProgPattern.Get()));
 	}
 #endif
 	Rule.Write(API_V_VOL_RULE, m_bVolumeRule);
@@ -38,7 +38,7 @@ void CAccessRule::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CAccessRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
+void CAccessRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 {
 	CGenericRule::WriteMVariant(Rule, Opts);
 
@@ -52,12 +52,12 @@ void CAccessRule::WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const
 	case EAccessRuleType::eIgnore:		Rule.Write(API_S_ACCESS_RULE_ACTION, API_S_ACCESS_RULE_ACTION_IGNORE); break;
 	}
 
-	Rule.Write(API_S_ACCESS_PATH, TO_STR(m_AccessPath));
-	Rule.Write(API_S_FILE_PATH, TO_STR(m_ProgramPath));
+	Rule.WriteEx(API_S_ACCESS_PATH, TO_STR(m_AccessPath));
+	Rule.WriteEx(API_S_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
 	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
-		Rule.Write(API_S_ACCESS_NT_PATH, TO_STR(m_PathPattern.Get()));
-		Rule.Write(API_S_FILE_NT_PATH, TO_STR(m_ProgPattern.Get()));
+		Rule.WriteEx(API_S_ACCESS_NT_PATH, TO_STR(GetPath()));
+		Rule.WriteEx(API_S_FILE_NT_PATH, TO_STR(m_ProgPattern.Get()));
 	}
 #endif
 	Rule.Write(API_S_VOL_RULE, m_bVolumeRule);

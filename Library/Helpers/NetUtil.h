@@ -1,5 +1,5 @@
 #pragma once
-#include "../Types.h"
+#include "../Framework/Core/Types.h"
 #include "../lib_global.h"
 
 /*enum class EKnownProtocols

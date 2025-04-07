@@ -23,7 +23,7 @@ QString CNetLogEntry::GetProtocolTypeStr() const
 	return CFwRule::ProtocolToStr((EFwKnownProtocols)m_ProtocolType);
 }
 
-void CNetLogEntry::ReadValue(uint32 Index, const XVariant& Data)
+void CNetLogEntry::ReadValue(uint32 Index, const QtVariant& Data)
 {
 	switch (Index) {
 	case API_V_FW_EVENT_STATE:			m_State = (EFwEventStates)Data.To<uint32>(); break;

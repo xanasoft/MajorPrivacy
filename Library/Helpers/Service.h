@@ -1,7 +1,7 @@
 #pragma once
 #include "../lib_global.h"
 #include "../Status.h"
-#include "../Common/Variant.h"
+#include "../Common/StVariant.h"
 
 enum SVC_OPTIONS {
     OPT_NONE    = 0,
@@ -13,7 +13,7 @@ enum SVC_OPTIONS {
     OPT_START_NOW       = 0x20
 };
 
-LIBRARY_EXPORT STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group, uint32 Options, const CVariant& Params = CVariant());
+LIBRARY_EXPORT STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group, uint32 Options, const StVariant& Params = StVariant());
 
 enum SVC_STATE {
     SVC_NOT_FOUND = 0x00,

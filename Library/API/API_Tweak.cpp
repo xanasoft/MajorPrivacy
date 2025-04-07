@@ -6,9 +6,9 @@
 
 #ifndef TWEAKS_RO
 
-void CAbstractTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CAbstractTweak::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
-    Data.Write(API_V_NAME, m_Name);
+    Data.WriteEx(API_V_NAME, m_Name);
 
     Data.Write(API_V_TWEAK_HINT, (uint32)m_Hint);
 
@@ -16,101 +16,100 @@ void CAbstractTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) con
     Data.Write(API_V_TWEAK_STATUS, (uint32)Status);
 }
 
-void CTweakList::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CTweakList::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CAbstractTweak::WriteIVariant(Data, Opts);
 
-	CVariant List;
+	VariantWriter List;
 	List.BeginList();
 	for (auto I : m_List) {
 		if (I->IsAvailable())
 			List.WriteVariant(I->ToVariant(Opts));
 	}
-	List.Finish();
-	Data.WriteVariant(API_V_TWEAK_LIST, List);
+	Data.WriteVariant(API_V_TWEAK_LIST, List.Finish());
 }
 
-void CTweakGroup::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CTweakGroup::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweakList::WriteIVariant(Data, Opts);
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eGroup);
 }
 
-void CTweakSet::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CTweakSet::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweakList::WriteIVariant(Data, Opts);
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eSet);
 }
 
-void CTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CTweak::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CAbstractTweak::WriteIVariant(Data, Opts);
 
 	Data.Write(API_V_TWEAK_IS_SET, m_Set);
 }
 
-void CRegTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CRegTweak::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteIVariant(Data, Opts);
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eReg);
 
-	Data.Write(API_V_REG_KEY, m_Key);
-	Data.Write(API_V_VALUE, m_Value);
+	Data.WriteEx(API_V_REG_KEY, m_Key);
+	Data.WriteEx(API_V_VALUE, m_Value);
 	Data.WriteVariant(API_V_DATA, m_Data);
 }
 
-void CGpoTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CGpoTweak::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteIVariant(Data, Opts);
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eGpo);
 
-	Data.Write(API_V_REG_KEY, m_Key);
-	Data.Write(API_V_VALUE, m_Value);
+	Data.WriteEx(API_V_REG_KEY, m_Key);
+	Data.WriteEx(API_V_VALUE, m_Value);
 	Data.WriteVariant(API_V_DATA, m_Data);
 }
 
-void CSvcTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CSvcTweak::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteIVariant(Data, Opts);
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eSvc);
 
-	Data.Write(API_V_SERVICE_TAG, m_SvcTag);
+	Data.WriteEx(API_V_SERVICE_TAG, m_SvcTag);
 }
 
-void CTaskTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CTaskTweak::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteIVariant(Data, Opts);
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eTask);
 
-	Data.Write(API_V_FOLDER, m_Folder);
-	Data.Write(API_V_ENTRY, m_Entry);
+	Data.WriteEx(API_V_FOLDER, m_Folder);
+	Data.WriteEx(API_V_ENTRY, m_Entry);
 }
 
-void CFSTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CFSTweak::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteIVariant(Data, Opts);
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eFS);
 
-	Data.Write(API_V_FILE_PATH, m_PathPattern);
+	Data.WriteEx(API_V_FILE_PATH, m_PathPattern);
 }
 
-void CExecTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CExecTweak::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteIVariant(Data, Opts);
 
 	Data.Write(API_V_TWEAK_TYPE, (uint32)ETweakType::eExec);
 
-	Data.Write(API_V_FILE_PATH, m_PathPattern);
+	Data.WriteEx(API_V_FILE_PATH, m_PathPattern);
 }
 
-void CFwTweak::WriteIVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CFwTweak::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteIVariant(Data, Opts);
 
@@ -156,9 +155,9 @@ void CTweak::ReadIValue(uint32 Index, const XVariant& Data)
 
 #ifndef TWEAKS_RO
 
-void CAbstractTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CAbstractTweak::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
-	Data.Write(API_S_NAME, m_Name);
+	Data.WriteEx(API_S_NAME, m_Name);
 
 	switch (m_Hint)
 	{
@@ -177,101 +176,100 @@ void CAbstractTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) con
 	}
 }
 
-void CTweakList::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CTweakList::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CAbstractTweak::WriteMVariant(Data, Opts);
 
-	CVariant List;
+	VariantWriter List;
 	List.BeginList();
 	for (auto I : m_List) {
 		if (I->IsAvailable())
 			List.WriteVariant(I->ToVariant(Opts));
 	}
-	List.Finish();
-	Data.WriteVariant(API_S_TWEAK_LIST, List);
+	Data.WriteVariant(API_S_TWEAK_LIST, List.Finish());
 }
 
-void CTweakGroup::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CTweakGroup::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweakList::WriteMVariant(Data, Opts);
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_GROUP);
 }
 
-void CTweakSet::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CTweakSet::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweakList::WriteMVariant(Data, Opts);
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_SET);
 }
 
-void CTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CTweak::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CAbstractTweak::WriteMVariant(Data, Opts);
 
 	Data.Write(API_S_TWEAK_IS_SET, m_Set);
 }
 
-void CRegTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CRegTweak::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteMVariant(Data, Opts);
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_REG);
 
-	Data.Write(API_S_REG_KEY, m_Key);
-	Data.Write(API_S_VALUE, m_Value);
+	Data.WriteEx(API_S_REG_KEY, m_Key);
+	Data.WriteEx(API_S_VALUE, m_Value);
 	Data.WriteVariant(API_S_DATA, m_Data);
 }
 
-void CGpoTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CGpoTweak::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteMVariant(Data, Opts);
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_GPO);
 
-	Data.Write(API_S_REG_KEY, m_Key);
-	Data.Write(API_S_VALUE, m_Value);
+	Data.WriteEx(API_S_REG_KEY, m_Key);
+	Data.WriteEx(API_S_VALUE, m_Value);
 	Data.WriteVariant(API_S_DATA, m_Data);
 }
 
-void CSvcTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CSvcTweak::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteMVariant(Data, Opts);
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_SVC);
 
-	Data.Write(API_S_SERVICE_TAG, m_SvcTag);
+	Data.WriteEx(API_S_SERVICE_TAG, m_SvcTag);
 }
 
-void CTaskTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CTaskTweak::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteMVariant(Data, Opts);
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_TASK);
 
-	Data.Write(API_S_FOLDER, m_Folder);
-	Data.Write(API_S_ENTRY, m_Entry);
+	Data.WriteEx(API_S_FOLDER, m_Folder);
+	Data.WriteEx(API_S_ENTRY, m_Entry);
 }
 
-void CFSTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CFSTweak::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteMVariant(Data, Opts);
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_FS);
 
-	Data.Write(API_S_FILE_PATH, m_PathPattern);
+	Data.WriteEx(API_S_FILE_PATH, m_PathPattern);
 }
 
-void CExecTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CExecTweak::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteMVariant(Data, Opts);
 
 	Data.Write(API_S_TWEAK_TYPE, API_S_TWEAK_TYPE_EXEC);
 
-	Data.Write(API_S_FILE_PATH, m_PathPattern);
+	Data.WriteEx(API_S_FILE_PATH, m_PathPattern);
 }
 
-void CFwTweak::WriteMVariant(XVariant& Data, const SVarWriteOpt& Opts) const
+void CFwTweak::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	CTweak::WriteMVariant(Data, Opts);
 
@@ -324,88 +322,90 @@ void CTweak::FromVariant(const class XVariant& Tweak)
 {
 	CAbstractTweak::FromVariant(Tweak);
 
+	QtVariantReader Reader(Tweak);
+
 	if (Tweak.GetType() == VAR_TYPE_MAP)
 	{
-		ETweakType Type = (ETweakType)Tweak.Find(API_S_TWEAK_TYPE).To<uint32>();
+		ETweakType Type = (ETweakType)Reader.Find(API_S_TWEAK_TYPE).To<uint32>();
 		if (Type == ETweakType::eReg)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_REG_KEY).AsQStr() + "\n" +
-				Tweak.Find(API_S_VALUE).AsQStr() + " = " + Tweak.Find(API_S_DATA).AsQStr();
+				Reader.Find(API_S_REG_KEY).AsQStr() + "\n" +
+				Reader.Find(API_S_VALUE).AsQStr() + " = " + Reader.Find(API_S_DATA).AsQStr();
 		}
 		else if (m_Type == ETweakType::eGpo)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_REG_KEY).AsQStr() + "\n" +
-				Tweak.Find(API_S_VALUE).AsQStr() + " = " + Tweak.Find(API_S_DATA).AsQStr();
+				Reader.Find(API_S_REG_KEY).AsQStr() + "\n" +
+				Reader.Find(API_S_VALUE).AsQStr() + " = " + Reader.Find(API_S_DATA).AsQStr();
 		}
 		else if (m_Type == ETweakType::eSvc)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_SERVICE_TAG).AsQStr();
+				Reader.Find(API_S_SERVICE_TAG).AsQStr();
 		}
 		else if (m_Type == ETweakType::eTask)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_FOLDER).AsQStr() + "\\" + Tweak.Find(API_S_ENTRY).AsQStr();
+				Reader.Find(API_S_FOLDER).AsQStr() + "\\" + Reader.Find(API_S_ENTRY).AsQStr();
 		}
 		else if (m_Type == ETweakType::eFS)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_FILE_PATH).AsQStr();
+				Reader.Find(API_S_FILE_PATH).AsQStr();
 		}
 		else if (m_Type == ETweakType::eExec)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_S_FILE_PATH).AsQStr();
+				Reader.Find(API_S_FILE_PATH).AsQStr();
 		}
 		else if (m_Type == ETweakType::eFw)
 		{
 			CProgramID ID;
-			ID.FromVariant(Tweak.Find(API_S_PROG_ID));
+			ID.FromVariant(Reader.Find(API_S_PROG_ID));
 			m_Info = GetTypeStr() + ":\n" +
 				ID.ToString();
 		}
 	}
 	else if (Tweak.GetType() == VAR_TYPE_INDEX)
 	{
-		ETweakType Type = (ETweakType)Tweak.Find(API_V_TWEAK_TYPE).To<uint32>();
+		ETweakType Type = (ETweakType)Reader.Find(API_V_TWEAK_TYPE).To<uint32>();
 		if (Type == ETweakType::eReg)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_REG_KEY).AsQStr() + "\n" +
-				Tweak.Find(API_V_VALUE).AsQStr() + " = " + Tweak.Find(API_V_DATA).AsQStr();
+				Reader.Find(API_V_REG_KEY).AsQStr() + "\n" +
+				Reader.Find(API_V_VALUE).AsQStr() + " = " + Reader.Find(API_V_DATA).AsQStr();
 		}
 		else if (m_Type == ETweakType::eGpo)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_REG_KEY).AsQStr() + "\n" +
-				Tweak.Find(API_V_VALUE).AsQStr() + " = " + Tweak.Find(API_V_DATA).AsQStr();
+				Reader.Find(API_V_REG_KEY).AsQStr() + "\n" +
+				Reader.Find(API_V_VALUE).AsQStr() + " = " + Reader.Find(API_V_DATA).AsQStr();
 		}
 		else if (m_Type == ETweakType::eSvc)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_SERVICE_TAG).AsQStr();
+				Reader.Find(API_V_SERVICE_TAG).AsQStr();
 		}
 		else if (m_Type == ETweakType::eTask)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_FOLDER).AsQStr() + "\\" + Tweak.Find(API_V_ENTRY).AsQStr();
+				Reader.Find(API_V_FOLDER).AsQStr() + "\\" + Reader.Find(API_V_ENTRY).AsQStr();
 		}
 		else if (m_Type == ETweakType::eFS)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_FILE_PATH).AsQStr();
+				Reader.Find(API_V_FILE_PATH).AsQStr();
 		}
 		else if (m_Type == ETweakType::eExec)
 		{
 			m_Info = GetTypeStr() + ":\n" +
-				Tweak.Find(API_V_FILE_PATH).AsQStr();
+				Reader.Find(API_V_FILE_PATH).AsQStr();
 		}
 		else if (m_Type == ETweakType::eFw)
 		{
 			CProgramID ID;
-			ID.FromVariant(Tweak.Find(API_V_PROG_ID));
+			ID.FromVariant(Reader.Find(API_V_PROG_ID));
 			m_Info = GetTypeStr() + ":\n" +
 				ID.ToString();
 		}

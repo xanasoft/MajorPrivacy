@@ -39,9 +39,9 @@ QString VariantTypeToString(uint8_t type)
 	}
 }
 
-QString VariantFormatInt(const CVariant& Value)
+QString VariantFormatInt(const QtVariant& Value)
 {
-	QString Number = ((XVariant*)&Value)->AsQStr();
+	QString Number = ((QtVariant*)&Value)->AsQStr();
 	size_t Size = Value.GetSize();
 	if (Size <= 4) {
 		union {
@@ -172,18 +172,18 @@ void CVariantEditorWnd::OpenFile()
 		return;
 
 	CBuffer Buffer;
-	if (!ReadFile(FileName.toStdWString(), 0, Buffer)) {
+	if (!ReadFile(FileName.toStdWString(), Buffer)) {
 		QMessageBox::critical(this, tr("Error"), tr("Can't open file"));
 		return;
 	}
 
-	//CVariant Data;
+	//QtVariant Data;
 	//try {
 	auto ret = m_Root.FromPacket(&Buffer, true);
 	//} catch (const CException&) {
 	//	return ERR(STATUS_UNSUCCESSFUL);
 	//}
-	if (ret != CVariant::eErrNone) {
+	if (ret != QtVariant::eErrNone) {
 		QMessageBox::critical(this, tr("Error"), tr("Can't parse file"));
 		return;
 	}
@@ -200,7 +200,7 @@ void CVariantEditorWnd::SaveFile()
 
 	CBuffer Buffer;
 	m_Root.ToPacket(&Buffer);
-	WriteFile(FileName.toStdWString(), 0, Buffer);
+	WriteFile(FileName.toStdWString(), Buffer);
 }
 
 void CVariantEditorWnd::OnMenuRequested(const QPoint &point)
@@ -220,7 +220,7 @@ CVariantModel::CVariantModel(QObject* parent)
 {
 }
 
-void CVariantModel::Update(const CVariant& pRoot)
+void CVariantModel::Update(const QtVariant& pRoot)
 {
 	CAbstractTreeModel::Update(&pRoot);
 }
@@ -228,7 +228,7 @@ void CVariantModel::Update(const CVariant& pRoot)
 CAbstractTreeModel::SAbstractTreeNode* CVariantModel::MkNode(const void* data, const QVariant& key, SAbstractTreeNode* parent)
 {
 	SVariantNode* pNode = new SVariantNode;
-	pNode->data = *(CVariant*)data;
+	pNode->data = *(QtVariant*)data;
 	pNode->key = key;
 	pNode->parentNode = parent;
 	pNode->values.resize(columnCount());
@@ -238,7 +238,7 @@ CAbstractTreeModel::SAbstractTreeNode* CVariantModel::MkNode(const void* data, c
 
 void CVariantModel::ForEachChild(SAbstractTreeNode* parentNode, const std::function<void(const QVariant& key, const void* data)>& func)
 {
-	CVariant Value = ((SVariantNode*)parentNode)->data;
+	QtVariant Value = ((SVariantNode*)parentNode)->data;
 
 	switch (Value.GetType())
 	{
@@ -274,7 +274,7 @@ void CVariantModel::ForEachChild(SAbstractTreeNode* parentNode, const std::funct
 void CVariantModel::updateNodeData(SAbstractTreeNode* node, const void* data, const QModelIndex& nodeIndex)
 {
 	SVariantNode* pNode = (SVariantNode*)node;
-	pNode->data = *(CVariant*)data;
+	pNode->data = *(QtVariant*)data;
 
 	int Col = 0;
 	bool State = false;
@@ -290,7 +290,7 @@ void CVariantModel::updateNodeData(SAbstractTreeNode* node, const void* data, co
 		{
 		case eName:			Value = pNode->key; break;
 		case eType:			Value = pNode->data.GetType(); break;
-		case eValue:		Value = ((XVariant*)&pNode->data)->AsQStr(); break;
+		case eValue:		Value = ((QtVariant*)&pNode->data)->AsQStr(); break;
 		}
 
 		SAbstractTreeNode::SValue& ColValue = pNode->values[section];
@@ -335,7 +335,7 @@ void CVariantModel::updateNodeData(SAbstractTreeNode* node, const void* data, co
 
 const void* CVariantModel::childData(SAbstractTreeNode* node, const QVariant& key)
 {
-	CVariant Value = ((SVariantNode*)node)->data;
+	QtVariant Value = ((SVariantNode*)node)->data;
 
 	switch (Value.GetType())
 	{
@@ -905,8 +905,14 @@ QString VariantIndexToName(uint32 Index)
 		return "DNS Data";
 	case API_V_DNS_TTL:
 		return "DNS TTL";
+	case API_V_DNS_STATUS:
+		return "DNS Status";
 	case API_V_DNS_QUERY_COUNT:
 		return "DNS Query Count";
+	case API_V_DNS_RULES:
+		return "DNS Rules";
+	case API_V_DNS_RULE_ACTION:
+		return "DNS Rule Action";
 
 
 		////////////////////////////

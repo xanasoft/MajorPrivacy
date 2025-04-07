@@ -33,7 +33,7 @@
 
 
 // machine types
-#include "Types.h"
+#include "..\Framework\Core\Types.h"
 
 
 

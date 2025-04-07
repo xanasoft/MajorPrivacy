@@ -43,7 +43,7 @@ public:
 	void Reset();
 	void Merge(const QSharedPointer<CTrafficEntry>& pOther);
 
-	void FromVariant(const class XVariant& TrafficEntry);
+	void FromVariant(const class QtVariant& TrafficEntry);
 
 protected:
 
@@ -58,4 +58,4 @@ protected:
 
 typedef QSharedPointer<CTrafficEntry> CTrafficEntryPtr;
 
-quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const class XVariant& TrafficList);
+quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const class QtVariant& TrafficList);

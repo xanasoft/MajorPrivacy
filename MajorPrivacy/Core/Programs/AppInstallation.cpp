@@ -2,7 +2,7 @@
 #include "AppInstallation.h"
 #include "../../Library/Helpers/SID.h"
 #include "../../Library/Helpers/AppUtil.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyAPI.h"
 
 CAppInstallation::CAppInstallation(QObject* parent)

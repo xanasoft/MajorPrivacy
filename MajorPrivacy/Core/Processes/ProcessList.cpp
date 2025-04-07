@@ -4,7 +4,7 @@
 #include "Core/PrivacyCore.h"
 #include "Core/Programs/ProgramManager.h"
 #include "../Library/API/PrivacyAPI.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 
 CProcessList::CProcessList(QObject* parent)
  : QObject(parent)
@@ -19,14 +19,14 @@ STATUS CProcessList::Update()
 
 	m_SocketCount = 0;
 
-	XVariant& Processes = Ret.GetValue();
+	QtVariant& Processes = Ret.GetValue();
 
 	QMap<quint64, CProcessPtr> OldMap = m_List;
 
-	Processes.ReadRawList([&](const CVariant& vData) {
-		const XVariant& Process = *(XVariant*)&vData;
+	QtVariantReader(Processes).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& Process = *(QtVariant*)&vData;
 
-		quint64 Pid = Process.Find(API_V_PID);
+		quint64 Pid = QtVariantReader(Process).Find(API_V_PID);
 
 		CProcessPtr pProcess = OldMap.take(Pid);
 		bool bAdded;

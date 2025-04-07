@@ -4,7 +4,7 @@
 #include "../Access/Handle.h"
 #include "../Network/Socket.h"
 #include "../Programs/ImageSignInfo.h"
-#include "../Library/Common/FlexGuid.h"
+#include "./Common/QtFlexGuid.h"
 
 class CProcess : public QObject
 {
@@ -50,16 +50,16 @@ public:
 	QList<CSocketPtr> GetSockets() const { return m_Sockets.values(); }
 	int GetSocketCount() const { return m_Sockets.count(); }
 
-	void FromVariant(const class XVariant& Process);
+	void FromVariant(const class QtVariant& Process);
 
 private slots:
 	void OnSidResolved(const QByteArray& SID, const QString& Name);
 
 protected:
 
-	void UpdateHandles(const class XVariant& Handles);
+	void UpdateHandles(const class QtVariant& Handles);
 
-	void UpdateSockets(const class XVariant& Sockets);
+	void UpdateSockets(const class QtVariant& Sockets);
 
 	quint64 m_Pid = 0;
 	quint64 m_CreationTime = 0;

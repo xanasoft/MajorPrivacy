@@ -4,7 +4,7 @@
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/API/PrivacyAPI.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "./MiscHelpers/Common/Common.h"
 #include "../Programs/ProgramManager.h"
 
@@ -28,13 +28,13 @@ bool CAccessManager::UpdateAllAccessRules()
 	if (Ret.IsError())
 		return false;
 
-	XVariant& Rules = Ret.GetValue();
+	QtVariant& Rules = Ret.GetValue();
 
 	QMap<QFlexGuid, CAccessRulePtr> OldRules = m_AccessRules;
 
 	for (int i = 0; i < Rules.Count(); i++)
 	{
-		const XVariant& Rule = Rules[i];
+		const QtVariant& Rule = Rules[i];
 
 		QFlexGuid Guid;
 		Guid.FromVariant(Rule[API_V_GUID]);
@@ -78,7 +78,7 @@ bool CAccessManager::UpdateAccessRule(const QFlexGuid& Guid)
 	if (Ret.IsError())
 		return false;
 
-	XVariant& Rule = Ret.GetValue();
+	QtVariant& Rule = Ret.GetValue();
 
 	QFlexGuid Guid2;
 	Guid2.FromVariant(Rule[API_V_GUID]);
@@ -148,7 +148,7 @@ RESULT(CAccessRulePtr) CAccessManager::GetAccessRule(const QFlexGuid& Guid)
 	if (Ret.IsError())
 		return Ret;
 
-	XVariant& Rule = Ret.GetValue();
+	QtVariant& Rule = Ret.GetValue();
 
 	QString ProgramPath = Rule[API_V_FILE_PATH].AsQStr();
 	CProgramID ID;

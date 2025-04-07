@@ -65,8 +65,13 @@ STATUS CPipeServer::Open(const std::wstring& name)
 
     m_PipeName = name;
 
-    m_ListeningPipes.resize(PhSystemBasicInformation.NumberOfProcessors);
-    for (ULONG i = 0; i < PhSystemBasicInformation.NumberOfProcessors; ++i) 
+    ULONG NumThreads = 1;
+#ifndef _DEBUG
+    NumThreads = PhSystemBasicInformation.NumberOfProcessors;
+#endif
+
+    m_ListeningPipes.resize(NumThreads);
+    for (ULONG i = 0; i < NumThreads; ++i) 
     {
         auto res = MakePipe();
         if (!res) {
@@ -235,7 +240,7 @@ void CPipeServer::RunClientThread(SPipeClient* pClient)
 
         // process request
         NTSTATUS status;
-        sendBuff.SetData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
+        sendBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
 //#ifndef _DEBUG
         try
 //#endif
@@ -272,7 +277,7 @@ int CPipeServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint32 PID, 
 {
     CBuffer sendBuff(sizeof(MSG_HEADER) + msg->GetSize());
 
-    MSG_HEADER* out_msg = (MSG_HEADER*)sendBuff.SetData(NULL, sizeof(MSG_HEADER));
+    MSG_HEADER* out_msg = (MSG_HEADER*)sendBuff.WriteData(NULL, sizeof(MSG_HEADER));
     out_msg->Flag = 1;
     out_msg->Size = (ULONG)sendBuff.GetSize();
     out_msg->MessageId = msgId;
@@ -331,7 +336,7 @@ STATUS SPipeSocket::ReadPacket(CBuffer& recvBuff)
             recvBuff.SetSize(recvBuff.GetSize(), true, max(PIPE_BUFSIZE, recvBuff.GetCapacityLeft() + recvBuff.GetCapacity()));
 
         DWORD bytesRead;
-        if (!ReadFile(hPipe, recvBuff.GetData(0), PIPE_BUFSIZE, &bytesRead, &olRead))
+        if (!::ReadFile(hPipe, (byte*)recvBuff.ReadData(0), PIPE_BUFSIZE, &bytesRead, &olRead))
         {
             DWORD dwError = GetLastError();
             if (dwError == ERROR_IO_PENDING)
@@ -367,7 +372,7 @@ STATUS SPipeSocket::WritePacket(const CBuffer& sendBuff)
         DWORD bytesToGo = min(PIPE_BUFSIZE, (DWORD)sendBuff.GetSizeLeft());
 
         DWORD bytesWritten;
-        if (!WriteFile(hPipe, sendBuff.GetData(0), bytesToGo, &bytesWritten, &olWrite)) 
+        if (!::WriteFile(hPipe, sendBuff.ReadData(0), bytesToGo, &bytesWritten, &olWrite)) 
         {
             DWORD dwError = GetLastError();
             if (dwError == ERROR_IO_PENDING) 

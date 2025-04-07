@@ -21,6 +21,7 @@
 #include "Programs/ProgramID.h"
 #include "Programs/ProgramRule.h"
 #include "Network/FwRule.h"
+#include "Network/DnsRule.h"
 #include "Tweaks/Tweak.h"
 #include "Programs/ProgramLibrary.h"
 #include "Programs/ProgramItem.h"
@@ -29,17 +30,25 @@
 #include "Programs/ProgramPattern.h"
 #include "Programs/AppInstallation.h"
 
-#define TO_STR(x) (x).toStdWString()
+#define XVariant QtVariant
+#define VariantWriter QtVariantWriter
+#define VariantReader QtVariantReader
+#define TO_STR(x) (x)
 #define AS_STR(x) (x).AsQStr()
 #define AS_ASTR AS_STR
+#define TO_STR_A(x) (x)
+#define AS_STR_A(s, x) s = (x).AsQStr()
+#define TO_STR_W(x) (x)
+#define AS_STR_W(s, x) s = (x).AsQStr()
 #define TO_BYTES(x) (x).AsQBytes()
 #define AS_LIST(x) (x).AsQList()
 #define AS_ALIST(x) (x).AsQList()
 #define IS_EMPTY(x) (x).isEmpty()
-#define GET_BYTES(x) (XVariant(x))
-#define GET_PATH(x) (x).toStdWString()
+#define GET_BYTES(x) (QtVariant(x))
+#define GET_PATH(x) (x)
 #define SET_PATH(x, y) x = y.AsQStr()
-#define ASTR std::string
+#define ASTR QString // todo switch to QByteArray or soemthing
+#define ASTR_VECTOR QStringList
 
 #define LOAD_NT_PATHS
 
@@ -52,6 +61,8 @@
 #include "../../Library/API/API_AccessRule.cpp"
 
 #include "../../Library/API/API_FwRule.cpp"
+
+#include "../../Library/API/API_DnsRule.cpp"
 
 #include "../../Library/API/API_ProgramID.cpp"
 

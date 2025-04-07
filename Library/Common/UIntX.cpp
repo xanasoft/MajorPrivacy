@@ -33,7 +33,7 @@ void CUIntX::Init(const unsigned char* pRaw)
 	memcpy(GetData(), pRaw, GetSize());
 }
 
-void CUIntX::Init(const CVariant& Variant)
+void CUIntX::Init(const StVariant& Variant)
 {
 	if(Variant.GetSize() != GetSize())
 		throw CException(L"Variant is not a uInt128");

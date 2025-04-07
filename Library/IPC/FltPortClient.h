@@ -1,7 +1,7 @@
 #pragma once
 #include "../Status.h"
 #include "../lib_global.h"
-#include "../Common/Variant.h"
+#include "../Common/StVariant.h"
 #include "AbstractClient.h"
 
 typedef struct _FLTMGR_CALLBACK_CONTEXT {

@@ -13,7 +13,7 @@ public:
 
 	quint64 GetProcessId() const			{ return m_ProcessId; }
 
-	void FromVariant(const class XVariant& Handle);
+	void FromVariant(const class QtVariant& Handle);
 
 protected:
 

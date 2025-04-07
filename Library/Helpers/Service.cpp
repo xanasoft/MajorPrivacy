@@ -9,7 +9,7 @@
 #include <fltuser.h>
 
 
-STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group, uint32 Options, const CVariant& Params)
+STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group, uint32 Options, const StVariant& Params)
 {
     CScopedHandle scmHandle(OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE), CloseServiceHandle);
     if (!scmHandle)
@@ -73,7 +73,7 @@ STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group
         for (uint32 i = 0; i < Params.Count(); i++) 
         {
             std::wstring Name = Params.WKey(i);
-            CVariant Value = Params[Params.Key(i)];
+            StVariant Value = Params[Params.Key(i)];
             switch (Value.GetType())
             {
                 case VAR_TYPE_BYTES: {

@@ -40,8 +40,11 @@ CFlexGuid& CFlexGuid::operator = (const CFlexGuid& Other)
         m_Length = Other.m_Length;
         m_String = malloc(m_Length + 1);
         memcpy(m_String, Other.m_String, m_Length + 1);
-    } else
-		memcpy(m_Data, Other.m_Data, 16);
+    }
+    else {
+        memcpy(m_Data, Other.m_Data, 16);
+		m_LowerCaseMask = Other.m_LowerCaseMask;
+    }
 
 	return *this;
 }
@@ -80,8 +83,14 @@ int CFlexGuid::Compare(const CFlexGuid& other) const
     if (m_Type < other.m_Type) return -1;
     if (m_Type > other.m_Type) return 1;
 
-    if (!IsString()) 
-        return memcmp(m_Data, other.m_Data, 16);
+    if (!IsString()) {
+        int ret = memcmp(m_Data, other.m_Data, 16);
+        if (ret == 0) {
+			if (m_LowerCaseMask < other.m_LowerCaseMask) return -1;
+			if (m_LowerCaseMask > other.m_LowerCaseMask) return 1;
+        }
+        return ret;
+    }
 
     if (m_Length < other.m_Length) return -1;
     if (m_Length > other.m_Length) return 1;
@@ -391,9 +400,9 @@ std::string CFlexGuid::ToString() const
     return std::string();
 }
 
-bool CFlexGuid::FromVariant(const CVariant& Variant)
+bool CFlexGuid::FromVariant(const FW::CVariant& Variant)
 {
-    CVariant::EType Type = Variant.GetType();
+    FW::CVariant::EType Type = Variant.GetType();
     if ((Type == VAR_TYPE_UINT || Type == VAR_TYPE_SINT) && Variant.GetSize() == 16)
 		SetRegularGuid((SGuid*)Variant.GetData());
 	else if (Type == VAR_TYPE_BYTES && (Variant.GetSize() == 16 || Variant.GetSize() == 20)) {
@@ -409,8 +418,8 @@ bool CFlexGuid::FromVariant(const CVariant& Variant)
     else if (Type == VAR_TYPE_UNICODE && Variant.GetSize() >= sizeof(wchar_t))
         FromWString((wchar_t*)Variant.GetData(), Variant.GetSize()/sizeof(wchar_t));
     else if (Type == VAR_TYPE_UTF8 && Variant.GetSize() >= 1) {
-		std::wstring Str = Variant.ToWString(); // this will convert the utf8 to unicode
-        FromWString(Str.c_str(), Str.size());
+		FW::StringW StrW = Variant.ToStringW(); // this will convert the utf8 to unicode
+        FromWString(StrW.ConstData(), StrW.Length());
     } 
     else {
         Clear();
@@ -419,22 +428,22 @@ bool CFlexGuid::FromVariant(const CVariant& Variant)
     return true;
 }
 
-CVariant CFlexGuid::ToVariant(bool bTextOnly) const
+FW::CVariant CFlexGuid::ToVariant(bool bTextOnly) const
 {
 	if (IsNull())
-		return CVariant();
+		return FW::CVariant();
     if (m_Type == Unicode)
-        return CVariant((wchar_t*)m_String, m_Length);
+        return FW::CVariant((wchar_t*)m_String, m_Length);
     if (m_Type == Ascii)
-        return CVariant((char*)m_String, m_Length);
+        return FW::CVariant((char*)m_String, m_Length);
 	// Ok, it's a regular guid
     if (bTextOnly) {
         char GuidStr[39];
         CFlexGuid__ToString(m_Data, GuidStr, m_LowerCaseMask);
-        return CVariant(GuidStr, 38);
+        return FW::CVariant(GuidStr, 38);
     }
     //
     // WARNING: This is a HACK which relays on the order of the fields in the header!!!
     //
-    return CVariant((byte*)m_Data, m_LowerCaseMask ? 20 : 16, VAR_TYPE_BYTES);
+    return FW::CVariant((byte*)m_Data, m_LowerCaseMask ? 20 : 16, VAR_TYPE_BYTES);
 }

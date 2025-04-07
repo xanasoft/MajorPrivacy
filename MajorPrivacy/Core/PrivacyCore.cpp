@@ -32,16 +32,10 @@
 CSettings* theConf = NULL;
 CPrivacyCore* theCore = NULL;
 
-#ifdef _DEBUG
-void XVariantTest();
-#endif
-
 CPrivacyCore::CPrivacyCore(QObject* parent)
 : QObject(parent), m_Driver(CDriverAPI::eDevice)
 {
 #ifdef _DEBUG
-	XVariantTest();
-
 	/*NTSTATUS Status;
 	CBuffer Text1((void*)"Hello, World 123Hello, World", 28, true);
 	CBuffer Key((void*)"1234567890abcdef", 16, true);
@@ -99,6 +93,7 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 
 	m_Service.RegisterEventHandler(SVC_API_EVENT_ENCLAVE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_FW_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
+	m_Service.RegisterEventHandler(SVC_API_EVENT_DNS_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_EXEC_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_RES_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
 
@@ -249,13 +244,14 @@ void CPrivacyCore::Disconnect(bool bKeepEngine)
 	m_Driver.Disconnect();
 
 	if (m_bEngineMode && !bKeepEngine)
-		m_Service.Call(SVC_API_SHUTDOWN, CVariant());
+		m_Service.Call(SVC_API_SHUTDOWN, QtVariant());
 	m_Service.Disconnect();
 
 	m_EnclavesUpToDate = false;
 	m_ProgramRulesUpToDate = false;
 	m_AccessRulesUpToDate = false;
 	m_FwRulesUpToDate = false;
+	m_DnsRulesUpToDate = false;
 }
 
 bool CPrivacyCore::IsGuiHighSecurity() const
@@ -297,6 +293,7 @@ void CPrivacyCore::ProcessEvents()
 	
 	auto EnclaveEvents = m_SvcEventQueue.take(SVC_API_EVENT_ENCLAVE_CHANGED);
 	auto FwRuleEvents = m_SvcEventQueue.take(SVC_API_EVENT_FW_RULE_CHANGED);
+	auto DnsRuleEvents = m_SvcEventQueue.take(SVC_API_EVENT_DNS_RULE_CHANGED);
 	auto ExecRuleEvents = m_SvcEventQueue.take(SVC_API_EVENT_EXEC_RULE_CHANGED);
 	auto ResRuleEvents = m_SvcEventQueue.take(SVC_API_EVENT_RES_RULE_CHANGED);
 
@@ -315,7 +312,7 @@ void CPrivacyCore::ProcessEvents()
 		}
 	}
 	else if(!EnclaveEvents.isEmpty()) {
-		foreach(const XVariant& vEvent, EnclaveEvents) {
+		foreach(const QtVariant& vEvent, EnclaveEvents) {
 			QFlexGuid Guid;
 			Guid.FromVariant(vEvent[API_V_GUID]);
 			if (vEvent[API_V_EVENT_TYPE].To<uint32>() == (uint32)EConfigEvent::eRemoved)
@@ -336,7 +333,7 @@ void CPrivacyCore::ProcessEvents()
 		}
 	}
 	else if(!ExecRuleEvents.isEmpty()) {
-		foreach(const XVariant& vEvent, ExecRuleEvents) {
+		foreach(const QtVariant& vEvent, ExecRuleEvents) {
 			QFlexGuid Guid;
 			Guid.FromVariant(vEvent[API_V_GUID]);
 			if (vEvent[API_V_EVENT_TYPE].To<uint32>() == (uint32)EConfigEvent::eRemoved)
@@ -354,7 +351,7 @@ void CPrivacyCore::ProcessEvents()
 		}
 	}
 	else if(!ResRuleEvents.isEmpty()){
-		foreach(const XVariant& vEvent, ResRuleEvents) {
+		foreach(const QtVariant& vEvent, ResRuleEvents) {
 			QFlexGuid Guid;
 			Guid.FromVariant(vEvent[API_V_GUID]);
 			if (vEvent[API_V_EVENT_TYPE].To<uint32>() == (uint32)EConfigEvent::eRemoved)
@@ -372,7 +369,7 @@ void CPrivacyCore::ProcessEvents()
 		}
 	}
 	else if(!FwRuleEvents.isEmpty()){
-		foreach(const XVariant& vEvent, FwRuleEvents) {
+		foreach(const QtVariant& vEvent, FwRuleEvents) {
 			QFlexGuid Guid;
 			Guid.FromVariant(vEvent[API_V_GUID]);
 			if (vEvent[API_V_EVENT_TYPE].To<uint32>() == (uint32)EConfigEvent::eRemoved)
@@ -383,10 +380,28 @@ void CPrivacyCore::ProcessEvents()
 		emit FwRulesChanged();
 	}
 
+	if (!m_DnsRulesUpToDate) {
+		if (m_pNetworkManager->UpdateAllDnsRules()) {
+			m_DnsRulesUpToDate = true;
+			emit DnsRulesChanged();
+		}
+	}
+	else if(!DnsRuleEvents.isEmpty()){
+		foreach(const QtVariant& vEvent, DnsRuleEvents) {
+			QFlexGuid Guid;
+			Guid.FromVariant(vEvent[API_V_GUID]);
+			if (vEvent[API_V_EVENT_TYPE].To<uint32>() == (uint32)EConfigEvent::eRemoved)
+				m_pNetworkManager->RemoveDnsRule(Guid);
+			else
+				m_pNetworkManager->UpdateDnsRule(Guid);
+		}
+		emit DnsRulesChanged();
+	}
+
 	//////////////////
 	// Events
 
-	foreach(const XVariant& Event, NetEvents)
+	foreach(const QtVariant& Event, NetEvents)
 	{
 		//QJsonDocument doc(QJsonValue::fromVariant(Event.ToQVariant()).toObject());			
 		//QByteArray data = doc.toJson();
@@ -408,7 +423,7 @@ void CPrivacyCore::ProcessEvents()
 			pRule->IncrHitCount();
 	}
 
-	foreach(const XVariant& Event, ExecEvents)
+	foreach(const QtVariant& Event, ExecEvents)
 	{
 		CProgramID ID;
 		ID.FromVariant(Event[API_V_PROG_ID]);
@@ -435,7 +450,7 @@ void CPrivacyCore::ProcessEvents()
 		}
 	}
 
-	foreach(const XVariant& Event, ResEvents)
+	foreach(const QtVariant& Event, ResEvents)
 	{
 		CProgramID ID;
 		ID.FromVariant(Event[API_V_PROG_ID]);
@@ -462,7 +477,7 @@ void CPrivacyCore::OnSvcEvent(uint32 MessageId, const CBuffer* pEvent)
 {
 	// WARNING: this function is invoked from a worker thread !!!
 
-	XVariant vEvent;
+	QtVariant vEvent;
 	try {
 		vEvent.FromPacket(pEvent);
 	}
@@ -496,7 +511,7 @@ void CPrivacyCore::OnCleanUpDone(uint32 MessageId, const CBuffer* pEvent)
 {
 	// WARNING: this function is invoked from a worker thread !!!
 
-	XVariant vEvent;
+	QtVariant vEvent;
 	try {
 		vEvent.FromPacket(pEvent);
 	}
@@ -605,10 +620,10 @@ STATUS CPrivacyCore::HashFile(const QString& Path, CBuffer& Hash)
 
 QByteArray CPrivacyCore__MakeFileSig(const CBuffer& Signature, const QString& Path)
 {
-	XVariant SigData;
+	QtVariant SigData;
 	// Note: the driver supportrs also teh V version
 	SigData[API_S_VERSION] = DEF_MP_SIG_VERSION;
-	SigData[API_S_SIGNATURE] = CVariant(Signature);
+	SigData[API_S_SIGNATURE] = Signature;
 	SigData[API_S_TYPE] = "File";
 	SigData[API_S_FILE_PATH] = Path;
 
@@ -619,10 +634,10 @@ QByteArray CPrivacyCore__MakeFileSig(const CBuffer& Signature, const QString& Pa
 
 QByteArray CPrivacyCore__MakeCertSig(const CBuffer& Signature, const QString& Subject)
 {
-	XVariant SigData;
+	QtVariant SigData;
 	// Note: the driver supportrs also teh V version
 	SigData[API_S_VERSION] = DEF_MP_SIG_VERSION;
-	SigData[API_S_SIGNATURE] = CVariant(Signature);
+	SigData[API_S_SIGNATURE] = Signature;
 	SigData[API_S_TYPE] = "Certificate";
 	SigData[API_S_NAME] = Subject;
 
@@ -768,11 +783,11 @@ STATUS CPrivacyCore::RemoveCertSignature(const QMap<QByteArray, QString>& Certs)
 	return Status;
 }
 
-XVariant CPrivacyCore::MakeIDs(const QList<const class CProgramItem*>& Nodes)
+QtVariant CPrivacyCore::MakeIDs(const QList<const class CProgramItem*>& Nodes)
 {
 	SVarWriteOpt Opts;
 
-	XVariant IDs;
+	QtVariant IDs;
 	foreach(auto Item, Nodes) 
 	{
 		IDs.Append(Item->GetID().ToVariant(Opts));
@@ -784,141 +799,141 @@ XVariant CPrivacyCore::MakeIDs(const QList<const class CProgramItem*>& Nodes)
 auto Ret = r; \
 if (Ret.IsError()) \
 return ERR(Ret.GetStatus()); \
-RETURN((XVariant&)Ret.GetValue());
+RETURN((QtVariant&)Ret.GetValue());
 
 #define RET_GET_XVARIANT(r, n) \
 auto Ret = r; \
 if (Ret.IsError()) \
 return ERR(Ret.GetStatus()); \
-CVariant& Res = Ret.GetValue(); \
-RETURN((XVariant&)Res.Get(n));
+const QtVariant& Res = (const FW::CVariant&)Ret.GetValue(); \
+RETURN((QtVariant&)Res.Get(n));
 
 QString CPrivacyCore::QueryConfigDir()
 {
-	CVariant Request;
+	QtVariant Request;
 	auto Ret = m_Service.Call(SVC_API_GET_CONFIG_DIR, Request);
 	if (Ret.IsError())
 		return "";
-	XVariant& Response = (XVariant&)Ret.GetValue();
+	QtVariant& Response = (QtVariant&)Ret.GetValue();
 	return Response[API_V_VALUE].AsQStr();
 }
 
 bool CPrivacyCore::CheckConfigFile(const QString& Name)
 {
-	CVariant Request;
-	Request[API_V_FILE_PATH] = Name.toStdString();
+	QtVariant Request;
+	Request[API_V_FILE_PATH] = Name;
 	auto Ret = m_Service.Call(SVC_API_CHECK_CONFIG_FILE, Request);
 	if (Ret.IsError())
 		return false;
-	XVariant& Response = (XVariant&)Ret.GetValue();
+	QtVariant& Response = (QtVariant&)Ret.GetValue();
 	return Response.To<bool>();
 }
 
 RESULT(QByteArray) CPrivacyCore::ReadConfigFile(const QString& Name)
 {
-	CVariant Request;
-	Request[API_V_FILE_PATH] = Name.toStdString();
+	QtVariant Request;
+	Request[API_V_FILE_PATH] = Name;
 	auto Ret = m_Service.Call(SVC_API_GET_CONFIG_FILE, Request);
 	if (Ret.IsError())
 		return Ret.GetStatus();
-	XVariant& Response = (XVariant&)Ret.GetValue();
+	QtVariant& Response = (QtVariant&)Ret.GetValue();
 	return Response[API_V_DATA].AsQBytes();
 }
 
 STATUS CPrivacyCore::WriteConfigFile(const QString& Name, const QByteArray& Data)
 {
-	CVariant Request;
-	Request[API_V_FILE_PATH] = Name.toStdString();
-	Request[API_V_DATA] = XVariant(Data);
+	QtVariant Request;
+	Request[API_V_FILE_PATH] = Name;
+	Request[API_V_DATA] = QtVariant(Data);
 	return m_Service.Call(SVC_API_SET_CONFIG_FILE, Request);
 }
 
 STATUS CPrivacyCore::RemoveConfigFile(const QString& Name)
 {
-	CVariant Request;
-	Request[API_V_FILE_PATH] = Name.toStdString();
+	QtVariant Request;
+	Request[API_V_FILE_PATH] = Name;
 	return m_Service.Call(SVC_API_DEL_CONFIG_FILE, Request);
 }
 
 RESULT(QStringList) CPrivacyCore::ListConfigFiles(const QString& Name)
 {
-	CVariant Request;
-	Request[API_V_FILE_PATH] = Name.toStdString();
+	QtVariant Request;
+	Request[API_V_FILE_PATH] = Name;
 	auto Ret = m_Service.Call(SVC_API_LIST_CONFIG_FILES, Request);
 	if (Ret.IsError())
 		return Ret.GetStatus();
 	//
 	// Note: the returned names are sufixed with L'\\' if they represent a directory
 	//
-	XVariant& Response = (XVariant&)Ret.GetValue();
+	QtVariant& Response = (QtVariant&)Ret.GetValue();
 	return Response[API_V_FILES].AsQList();
 }
 
-RESULT(XVariant) CPrivacyCore::GetConfig(const QString& Name) 
+RESULT(QtVariant) CPrivacyCore::GetConfig(const QString& Name) 
 {
-	CVariant Request;
-	Request[API_V_KEY] = Name.toStdString();
+	QtVariant Request;
+	Request[API_V_KEY] = Name;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_CONFIG, Request), API_V_VALUE);
 }
 
-STATUS CPrivacyCore::SetConfig(const QString& Name, const XVariant& Value)
+STATUS CPrivacyCore::SetConfig(const QString& Name, const QtVariant& Value)
 {
-	CVariant Request;
-	Request[API_V_KEY] = Name.toStdString();
+	QtVariant Request;
+	Request[API_V_KEY] = Name;
 	Request[API_V_VALUE] = Value;
 	return m_Service.Call(SVC_API_SET_CONFIG, Request);
 }
 
-RESULT(XVariant) CPrivacyCore::GetSvcConfig()
+RESULT(QtVariant) CPrivacyCore::GetSvcConfig()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_CONFIG, Request), API_V_DATA);
 }
 
-STATUS CPrivacyCore::SetSvcConfig(const XVariant& Data)
+STATUS CPrivacyCore::SetSvcConfig(const QtVariant& Data)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_DATA] = Data;
 	return m_Service.Call(SVC_API_SET_CONFIG, Request);
 }
 
-RESULT(XVariant) CPrivacyCore::GetDrvConfig()
+RESULT(QtVariant) CPrivacyCore::GetDrvConfig()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_GET_XVARIANT(m_Driver.Call(API_GET_CONFIG_VALUE, Request), API_V_DATA);
 }
 
-STATUS CPrivacyCore::SetDrvConfig(const XVariant& Data)
+STATUS CPrivacyCore::SetDrvConfig(const QtVariant& Data)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_DATA] = Data;
 	return m_Driver.Call(API_SET_CONFIG_VALUE, Request);
 }
 
 // Process Manager
-RESULT(XVariant) CPrivacyCore::GetProcesses()
+RESULT(QtVariant) CPrivacyCore::GetProcesses()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_PROCESSES, Request), API_V_PROCESSES);
 }
 
-RESULT(XVariant) CPrivacyCore::GetProcess(uint64 Pid)
+RESULT(QtVariant) CPrivacyCore::GetProcess(uint64 Pid)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_PID] = Pid;
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_PROCESS, Request))
 }
 
 STATUS CPrivacyCore::StartProcessBySvc(const QString& Command)
 {
-	XVariant Request;
+	QtVariant Request;
 	Request[API_V_CMD_LINE] = Command;
 	return m_Service.Call(SVC_API_START_SECURE, Request);
 }
 
 STATUS CPrivacyCore::TerminateProcess(uint64 Pid)
 {
-	//CVariant Request;
+	//QtVariant Request;
 	//Request[API_V_PID] = Pid;
 	//return m_Service.Call(SVC_API_TERMINATE_PROCESS, Request);
 
@@ -941,32 +956,32 @@ STATUS CPrivacyCore::TerminateProcess(uint64 Pid)
 }
 
 // Secure Enclaves
-STATUS CPrivacyCore::SetAllEnclaves(const XVariant& Enclaves)
+STATUS CPrivacyCore::SetAllEnclaves(const QtVariant& Enclaves)
 {
 	return m_Driver.Call(API_SET_ENCLAVES, Enclaves);
 }
 
-RESULT(XVariant) CPrivacyCore::GetAllEnclaves()
+RESULT(QtVariant) CPrivacyCore::GetAllEnclaves()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_AS_XVARIANT(m_Driver.Call(API_GET_ENCLAVES, Request));
 }
 
-STATUS CPrivacyCore::SetEnclave(const XVariant& Enclave)
+STATUS CPrivacyCore::SetEnclave(const QtVariant& Enclave)
 {
 	return m_Driver.Call(API_SET_ENCLAVE, Enclave);
 }
 
-RESULT(XVariant) CPrivacyCore::GetEnclave(const QFlexGuid& Guid)
+RESULT(QtVariant) CPrivacyCore::GetEnclave(const QFlexGuid& Guid)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
 	RET_AS_XVARIANT(m_Driver.Call(API_GET_ENCLAVE, Request));
 }
 
 STATUS CPrivacyCore::DelEnclave(const QFlexGuid& Guid)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
 	return m_Driver.Call(API_DEL_ENCLAVE, Request);
 }
@@ -1000,15 +1015,15 @@ STATUS CPrivacyCore::StartProcessInEnclave(const QString& Command, const QFlexGu
 }
 
 // Program Manager
-RESULT(XVariant) CPrivacyCore::GetPrograms()
+RESULT(QtVariant) CPrivacyCore::GetPrograms()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_PROGRAMS, Request), API_V_PROGRAMS);
 }
 
-RESULT(XVariant) CPrivacyCore::GetLibraries(uint64 CacheToken)
+RESULT(QtVariant) CPrivacyCore::GetLibraries(uint64 CacheToken)
 {
-	CVariant Request;
+	QtVariant Request;
 	if(CacheToken != -1)
 		Request[API_V_CACHE_TOKEN] = CacheToken;
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_LIBRARIES, Request));
@@ -1021,13 +1036,13 @@ RESULT(quint64) CPrivacyCore::SetProgram(const CProgramItemPtr& pItem)
 	auto Ret = m_Service.Call(SVC_API_SET_PROGRAM, pItem->ToVariant(Opts));
 	if (Ret.IsError())
 		return Ret;
-	CVariant& Response = Ret.GetValue();
+	const QtVariant& Response = (const FW::CVariant&)(Ret.GetValue());
 	RETURN(Response.Get(API_V_PROG_UID).To<uint64>());
 }
 
 STATUS CPrivacyCore::AddProgramTo(uint64 UID, uint64 ParentUID)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_PROG_UID] = UID;
 	Request[API_V_PROG_PARENT] = ParentUID;
 	return m_Service.Call(SVC_API_ADD_PROGRAM, Request);
@@ -1035,7 +1050,7 @@ STATUS CPrivacyCore::AddProgramTo(uint64 UID, uint64 ParentUID)
 
 STATUS CPrivacyCore::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRules)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_PROG_UID] = UID;
 	Request[API_V_PROG_PARENT] = ParentUID;
 	Request[API_V_DEL_WITH_RULES] = bDelRules;
@@ -1044,196 +1059,221 @@ STATUS CPrivacyCore::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRu
 
 STATUS CPrivacyCore::CleanUpPrograms(bool bPurgeRules)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_PURGE_RULES] = bPurgeRules;
 	return m_Service.Call(SVC_API_CLEANUP_PROGRAMS, Request);
 }
 
 STATUS CPrivacyCore::ReGroupPrograms()
 {
-	CVariant Request;
+	QtVariant Request;
 	return m_Service.Call(SVC_API_REGROUP_PROGRAMS, Request);
 }
 
-STATUS CPrivacyCore::SetAllProgramRules(const XVariant& Rules)
+STATUS CPrivacyCore::SetAllProgramRules(const QtVariant& Rules)
 {
 	return m_Driver.Call(API_SET_PROGRAM_RULES, Rules);
 }
 
-RESULT(XVariant) CPrivacyCore::GetAllProgramRules()
+RESULT(QtVariant) CPrivacyCore::GetAllProgramRules()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_AS_XVARIANT(m_Driver.Call(API_GET_PROGRAM_RULES, Request));
 }
 
-STATUS CPrivacyCore::SetProgramRule(const XVariant& Rule)
+STATUS CPrivacyCore::SetProgramRule(const QtVariant& Rule)
 {
 	return m_Driver.Call(API_SET_PROGRAM_RULE, Rule);
 }
 
-RESULT(XVariant) CPrivacyCore::GetProgramRule(const QFlexGuid& Guid)
+RESULT(QtVariant) CPrivacyCore::GetProgramRule(const QFlexGuid& Guid)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
 	RET_AS_XVARIANT(m_Driver.Call(API_GET_PROGRAM_RULE, Request));
 }
 
 STATUS CPrivacyCore::DelProgramRule(const QFlexGuid& Guid)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
 	return m_Driver.Call(API_DEL_PROGRAM_RULE, Request);
 }
 
 // Access Manager
-STATUS CPrivacyCore::SetAllAccessRules(const XVariant& Rules)
+STATUS CPrivacyCore::SetAllAccessRules(const QtVariant& Rules)
 {
 	return m_Driver.Call(API_SET_ACCESS_RULES, Rules);
 }
 
-RESULT(XVariant) CPrivacyCore::GetAllAccessRules()
+RESULT(QtVariant) CPrivacyCore::GetAllAccessRules()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_AS_XVARIANT(m_Driver.Call(API_GET_ACCESS_RULES, Request));
 }
 
-STATUS CPrivacyCore::SetAccessRule(const XVariant& Rule)
+STATUS CPrivacyCore::SetAccessRule(const QtVariant& Rule)
 {
 	return m_Driver.Call(API_SET_ACCESS_RULE, Rule);
 }
 
-RESULT(XVariant) CPrivacyCore::GetAccessRule(const QFlexGuid& Guid)
+RESULT(QtVariant) CPrivacyCore::GetAccessRule(const QFlexGuid& Guid)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
 	RET_AS_XVARIANT(m_Driver.Call(API_GET_ACCESS_RULE, Request));
 }
 
 STATUS CPrivacyCore::DelAccessRule(const QFlexGuid& Guid)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
 	return m_Driver.Call(API_DEL_ACCESS_RULE, Request);
 }
 
 // Network Manager
-RESULT(XVariant) CPrivacyCore::GetFwRulesFor(const QList<const class CProgramItem*>& Nodes)
+RESULT(QtVariant) CPrivacyCore::GetFwRulesFor(const QList<const class CProgramItem*>& Nodes)
 {
-	CVariant Request;
+	QtVariant Request;
 	if(!Nodes.isEmpty())
 		Request[API_V_PROG_IDS] = MakeIDs(Nodes);
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULES, Request), API_V_FW_RULES);
 }
 
-RESULT(XVariant) CPrivacyCore::GetAllFwRules(bool bReLoad)
+RESULT(QtVariant) CPrivacyCore::GetAllFwRules(bool bReLoad)
 {
-	CVariant Request;
+	QtVariant Request;
 	if(bReLoad)
 		Request[API_V_RELOAD] = true;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULES, Request), API_V_FW_RULES);
 }
 
-STATUS CPrivacyCore::SetFwRule(const XVariant& FwRule)
+STATUS CPrivacyCore::SetFwRule(const QtVariant& FwRule)
 {
 	return m_Service.Call(SVC_API_SET_FW_RULE, FwRule);
 }
 
-RESULT(XVariant) CPrivacyCore::GetFwRule(const QFlexGuid& Guid)
+RESULT(QtVariant) CPrivacyCore::GetFwRule(const QFlexGuid& Guid)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULE, Request));
 }
 
 STATUS CPrivacyCore::DelFwRule(const QFlexGuid& Guid)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
 	return m_Service.Call(SVC_API_DEL_FW_RULE, Request);
 }
 
 RESULT(FwFilteringModes) CPrivacyCore::GetFwProfile()
 {
-	CVariant Request;
+	QtVariant Request;
 	auto Ret = m_Service.Call(SVC_API_GET_FW_PROFILE, Request);
 	if (Ret.IsError())
 		return Ret;
-	CVariant& Response = Ret.GetValue();
+	const QtVariant& Response = (const FW::CVariant&)Ret.GetValue();
 	return (FwFilteringModes) Response.Get(API_V_FW_RULE_FILTER_MODE).To<uint32>();
 }
 
 STATUS CPrivacyCore::SetFwProfile(FwFilteringModes Profile)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_FW_RULE_FILTER_MODE] = (uint32)Profile;
 	return m_Service.Call(SVC_API_SET_FW_PROFILE, Request);
 }
 
 RESULT(FwAuditPolicy) CPrivacyCore::GetAuditPolicy()
 {
-	CVariant Request;
+	QtVariant Request;
 	auto Ret = m_Service.Call(SVC_API_GET_FW_AUDIT_MODE, Request);
 	if (Ret.IsError())
 		return Ret;
-	CVariant& Response = Ret.GetValue();
+	const QtVariant& Response = (const FW::CVariant&)Ret.GetValue();
 	return (FwAuditPolicy) Response.Get(API_V_FW_AUDIT_MODE).To<uint32>();
 }
 
 STATUS CPrivacyCore::SetAuditPolicy(FwAuditPolicy Profile)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_FW_AUDIT_MODE] = (uint32)Profile;
 	return m_Service.Call(SVC_API_SET_FW_AUDIT_MODE, Request);
 }
 
-RESULT(XVariant) CPrivacyCore::GetSocketsFor(const QList<const class CProgramItem*>& Nodes)
+RESULT(QtVariant) CPrivacyCore::GetSocketsFor(const QList<const class CProgramItem*>& Nodes)
 {
-	CVariant Request;
+	QtVariant Request;
 	if(!Nodes.isEmpty())
 		Request[API_V_PROG_IDS] = MakeIDs(Nodes);
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_SOCKETS, Request), API_V_SOCKETS);
 }
 
-RESULT(XVariant) CPrivacyCore::GetAllSockets()
+RESULT(QtVariant) CPrivacyCore::GetAllSockets()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_SOCKETS, Request), API_V_SOCKETS);
 }
 
-RESULT(XVariant) CPrivacyCore::GetTrafficLog(const class CProgramID& ID, quint64 MinLastActivity)
+RESULT(QtVariant) CPrivacyCore::GetTrafficLog(const class CProgramID& ID, quint64 MinLastActivity)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
 	if(MinLastActivity) 
 		Request[API_V_SOCK_LAST_NET_ACT] = MinLastActivity;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_TRAFFIC, Request), API_V_TRAFFIC_LOG);
 }
 
-RESULT(XVariant) CPrivacyCore::GetDnsCache()
+RESULT(QtVariant)  CPrivacyCore::GetAllDnsRules()
 {
-	CVariant Request;
+	QtVariant Request;
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_DNS_RULES, Request), API_V_DNS_RULES);
+}
+
+STATUS CPrivacyCore::SetDnsRule(const QtVariant& FwRule)
+{
+	return m_Service.Call(SVC_API_SET_DNS_RULE, FwRule);
+}
+
+RESULT(QtVariant) CPrivacyCore::GetDnsRule(const QFlexGuid& Guid)
+{
+	QtVariant Request;
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_DNS_RULE, Request));
+}
+
+STATUS CPrivacyCore::DelDnsRule(const QFlexGuid& Guid)
+{
+	QtVariant Request;
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	return m_Service.Call(SVC_API_DEL_DNS_RULE, Request);
+}
+
+RESULT(QtVariant) CPrivacyCore::GetDnsCache()
+{
+	QtVariant Request;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_DNC_CACHE, Request), API_V_DNS_CACHE);
 }
 
 STATUS CPrivacyCore::FlushDnsCache()
 {
-	CVariant Request;
+	QtVariant Request;
 	return m_Service.Call(SVC_API_FLUSH_DNS_CACHE, Request);
 }
 
 // Access Manager
 
-RESULT(XVariant) CPrivacyCore::GetHandlesFor(const QList<const class CProgramItem*>& Nodes)
+RESULT(QtVariant) CPrivacyCore::GetHandlesFor(const QList<const class CProgramItem*>& Nodes)
 {
-	CVariant Request;
+	QtVariant Request;
 	if(!Nodes.isEmpty())
 		Request[API_V_PROG_IDS] = MakeIDs(Nodes);
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_HANDLES, Request), API_V_HANDLES);
 }
 
-RESULT(XVariant) CPrivacyCore::GetAllHandles()
+RESULT(QtVariant) CPrivacyCore::GetAllHandles()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_HANDLES, Request), API_V_HANDLES);
 }
 
@@ -1246,7 +1286,7 @@ STATUS CPrivacyCore::ClearTraceLog(ETraceLogs Log, const CProgramItemPtr& pItem)
 			OnClearTraceLog(pItem, Log);
 	}
 
-	CVariant Request;
+	QtVariant Request;
 	if(pItem) Request[API_V_PROG_ID] = pItem->GetID().ToVariant(SVarWriteOpt());
 	Request[API_V_LOG_TYPE] = (int)Log;
 	return m_Service.Call(SVC_API_CLEAR_LOGS, Request);
@@ -1254,14 +1294,14 @@ STATUS CPrivacyCore::ClearTraceLog(ETraceLogs Log, const CProgramItemPtr& pItem)
 
 STATUS CPrivacyCore::CleanUpAccessTree()
 {
-	CVariant Request;
+	QtVariant Request;
 	return m_Service.Call(SVC_API_CLEANUP_ACCESS_TREE, Request);
 }
 
 // Program Item
-RESULT(XVariant) CPrivacyCore::GetLibraryStats(const class CProgramID& ID)
+RESULT(QtVariant) CPrivacyCore::GetLibraryStats(const class CProgramID& ID)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_LIBRARY_STATS, Request), API_V_LIBRARIES);
 }
@@ -1279,129 +1319,128 @@ STATUS CPrivacyCore::CleanUpLibraries(const CProgramItemPtr& pItem)
 		}
 	}
 
-	CVariant Request;
+	QtVariant Request;
 	if(pItem) Request[API_V_PROG_ID] = pItem->GetID().ToVariant(SVarWriteOpt());
 	return m_Service.Call(SVC_API_CLEANUP_LIBS, Request);
 }
 
-RESULT(XVariant) CPrivacyCore::GetExecStats(const class CProgramID& ID)
+RESULT(QtVariant) CPrivacyCore::GetExecStats(const class CProgramID& ID)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_EXEC_STATS, Request));
 }
 
-RESULT(XVariant) CPrivacyCore::GetIngressStats(const class CProgramID& ID)
+RESULT(QtVariant) CPrivacyCore::GetIngressStats(const class CProgramID& ID)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_INGRESS_STATS, Request));
 }
 
-RESULT(XVariant) CPrivacyCore::GetAccessStats(const class CProgramID& ID, quint64 MinLastActivity)
+RESULT(QtVariant) CPrivacyCore::GetAccessStats(const class CProgramID& ID, quint64 MinLastActivity)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
 	if(MinLastActivity) 
 		Request[API_V_LAST_ACTIVITY] = MinLastActivity;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_ACCESS_STATS, Request), API_V_PROG_RESOURCE_ACCESS);
 }
 
-RESULT(XVariant) CPrivacyCore::GetTraceLog(const class CProgramID& ID, ETraceLogs Log)
+RESULT(QtVariant) CPrivacyCore::GetTraceLog(const class CProgramID& ID, ETraceLogs Log)
 {
-	CVariant Request;
+	QtVariant Request;
 	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
 	Request[API_V_LOG_TYPE] = (uint32)Log;
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_TRACE_LOG, Request));	
 }
 
 // Volume Manager
-RESULT(XVariant) CPrivacyCore::GetVolumes()
+RESULT(QtVariant) CPrivacyCore::GetVolumes()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_VOL_GET_ALL_VOLUMES, Request), API_V_VOLUMES);
 }
 
 STATUS CPrivacyCore::MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect)
 {
-	CVariant Request;
-	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\").toStdWString();
-	Request[API_V_VOL_MOUNT_POINT] = MountPoint.toStdWString();
-	Request[API_V_VOL_PASSWORD] = Password.toStdWString();
+	QtVariant Request;
+	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\");
+	Request[API_V_VOL_MOUNT_POINT] = MountPoint;
+	Request[API_V_VOL_PASSWORD] = Password;
 	Request[API_V_VOL_PROTECT] = bProtect;
 	return m_Service.Call(SVC_API_VOL_MOUNT_IMAGE, Request);
 }
 
 STATUS CPrivacyCore::DismountVolume(const QString& MountPoint)
 {
-	CVariant Request;
-	Request[API_V_VOL_MOUNT_POINT] = MountPoint.toStdWString();
+	QtVariant Request;
+	Request[API_V_VOL_MOUNT_POINT] = MountPoint;
 	return m_Service.Call(SVC_API_VOL_DISMOUNT_VOLUME, Request);
 }
 
 STATUS CPrivacyCore::DismountAllVolumes()
 {
-	CVariant Request;
+	QtVariant Request;
 	return m_Service.Call(SVC_API_VOL_DISMOUNT_ALL, Request);
 }
 
 STATUS CPrivacyCore::CreateVolume(const QString& Path, const QString& Password, quint64 ImageSize, const QString& Cipher)
 {
-	CVariant Request;
-	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\").toStdWString();
-	Request[API_V_VOL_PASSWORD] = Password.toStdWString();
+	QtVariant Request;
+	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\");
+	Request[API_V_VOL_PASSWORD] = Password;
 	if(ImageSize) Request[API_V_VOL_SIZE] = ImageSize;
-	if(!Cipher.isEmpty()) Request[API_V_VOL_CIPHER] = Cipher.toStdWString();
+	if(!Cipher.isEmpty()) Request[API_V_VOL_CIPHER] = Cipher;
 	return m_Service.Call(SVC_API_VOL_CREATE_IMAGE, Request);
 }
 
 STATUS CPrivacyCore::ChangeVolumePassword(const QString& Path, const QString& OldPassword, const QString& NewPassword)
 {
-	CVariant Request;
-	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\").toStdWString();
-	Request[API_V_VOL_OLD_PASS] = OldPassword.toStdWString();
-	Request[API_V_VOL_NEW_PASS] = NewPassword.toStdWString();
+	QtVariant Request;
+	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\");
+	Request[API_V_VOL_OLD_PASS] = OldPassword;
+	Request[API_V_VOL_NEW_PASS] = NewPassword;
 	return m_Service.Call(SVC_API_VOL_CHANGE_PASSWORD, Request);
 }
 
 // Tweak Manager
-RESULT(XVariant) CPrivacyCore::GetTweaks()
+RESULT(QtVariant) CPrivacyCore::GetTweaks()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_TWEAKS, Request), API_V_TWEAKS);
 }
 
 STATUS CPrivacyCore::ApplyTweak(const QString& Name)
 {
-	CVariant Request;
-	Request[API_V_NAME] = Name.toStdWString();
+	QtVariant Request;
+	Request[API_V_NAME] = Name;
 	return m_Service.Call(SVC_API_APPLY_TWEAK, Request);
 }
 
 STATUS CPrivacyCore::UndoTweak(const QString& Name)
 {
-	CVariant Request;
-	Request[API_V_NAME] = Name.toStdWString();
+	QtVariant Request;
+	Request[API_V_NAME] = Name;
 	return m_Service.Call(SVC_API_UNDO_TWEAK, Request);
 }
 
 //
 STATUS CPrivacyCore::SetWatchedPrograms(const QSet<CProgramItemPtr>& Programs)
 {
-	XVariant ProgramList;
+	QtVariantWriter ProgramList;
 	ProgramList.BeginList();
 	foreach(auto pProgram, Programs)
 		ProgramList.Write(pProgram->GetUID());
-	ProgramList.Finish();
 
-	XVariant Request;
-	Request[API_V_PROG_UIDS] = ProgramList;
+	QtVariant Request;
+	Request[API_V_PROG_UIDS] = ProgramList.Finish();
 	return m_Service.Call(SVC_API_SET_WATCHED_PROG, Request);
 }
 
 // Support
-RESULT(XVariant) CPrivacyCore::GetSupportInfo()
+RESULT(QtVariant) CPrivacyCore::GetSupportInfo()
 {
-	CVariant Request;
+	QtVariant Request;
 	RET_AS_XVARIANT(m_Driver.Call(API_GET_SUPPORT_INFO, Request));
 }

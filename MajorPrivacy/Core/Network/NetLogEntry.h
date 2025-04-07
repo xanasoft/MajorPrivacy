@@ -1,7 +1,7 @@
 #pragma once
 #include "../TraceLogEntry.h"
 #include "../../Service\Network\Firewall\FirewallDefs.h"
-#include "../../Library/Common/FlexGuid.h"
+#include "./Common/QtFlexGuid.h"
 
 class CNetLogEntry : public CAbstractLogEntry
 {
@@ -36,7 +36,7 @@ public:
 
 protected:
 
-	virtual void ReadValue(uint32 Index, const XVariant& Data);
+	virtual void ReadValue(uint32 Index, const QtVariant& Data);
 
 	EFwEventStates      m_State = EFwEventStates::Undefined;
 

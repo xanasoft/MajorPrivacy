@@ -78,8 +78,9 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	ui.tabs->setTabIcon(3, QIcon(":/Icons/Process.png"));
 	ui.tabs->setTabIcon(4, QIcon(":/Icons/Ampel.png"));
 	ui.tabs->setTabIcon(5, QIcon(":/Icons/Wall3.png"));
-	ui.tabs->setTabIcon(6, QIcon(":/Icons/Advanced.png"));
-	ui.tabs->setTabIcon(7, QIcon(":/Icons/Support.png"));
+	ui.tabs->setTabIcon(6, QIcon(":/Icons/Network2.png"));
+	ui.tabs->setTabIcon(7, QIcon(":/Icons/Advanced.png"));
+	ui.tabs->setTabIcon(8, QIcon(":/Icons/Support.png"));
 
 	ui.tabSupport->setEnabled(false);
 
@@ -97,6 +98,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	AddIconToLabel(ui.lblFw, QPixmap(":/Icons/Options.png").scaled(size, size));
 	AddIconToLabel(ui.lblFwInfo, QPixmap(":/Icons/Wall3.png").scaled(size, size));
 	AddIconToLabel(ui.lblLogging, QPixmap(":/Icons/List.png").scaled(size, size));
+	AddIconToLabel(ui.lblDns, QPixmap(":/Icons/DNS.png").scaled(size, size));
 
 	ui.tabs->setCurrentIndex(0);
 
@@ -143,6 +145,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.chkLogNotFound, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLogRegistry, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
+	connect(ui.chkFwPlus, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkTrafficRecord, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkReverseDNS, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
@@ -165,6 +168,15 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.chkFwShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnFwShowPopUpChanged()));
 	connect(ui.chkFwInOutRules, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLoadFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+
+	connect(ui.chkDnsFilter, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged()));
+	connect(ui.chkDnsInstall, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged()));
+	connect(ui.txtDnsResolvers, SIGNAL(textChanged(const QString &)), this, SLOT(OnDnsChanged2()));
+	connect(ui.chkDnsBlockLists, SIGNAL(textChanged(const QString &)), this, SLOT(OnDnsChanged3()));
+	connect(ui.treeDnsBlockLists, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(OnDnsBlockListClicked(QTreeWidgetItem*, int)));
+	connect(ui.treeDnsBlockLists, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(OnDnsBlockDoubleClicked(QTreeWidgetItem*, int)));
+	connect(ui.btnAddBlockList, SIGNAL(clicked(bool)), this, SLOT(OnAddBlockList()));
+	connect(ui.btnDelBlockList, SIGNAL(clicked(bool)), this, SLOT(OnDelBlockList()));
 
 	connect(ui.txtLogLimit, SIGNAL(textChanged(const QString &)), this, SLOT(OnOptChanged()));
 	connect(ui.txtLogRetention, SIGNAL(textChanged(const QString &)), this, SLOT(OnOptChanged()));
@@ -353,6 +365,68 @@ void CSettingsWindow::OnOptChanged()
 	ui.buttonBox->button(QDialogButtonBox::Apply)->setEnabled(true);
 }
 
+void CSettingsWindow::OnDnsChanged()
+{
+	ui.chkDnsInstall->setEnabled(ui.chkDnsFilter->isChecked());
+	ui.txtDnsResolvers->setEnabled(ui.chkDnsFilter->isChecked());
+	ui.chkDnsBlockLists->setEnabled(ui.chkDnsFilter->isChecked());
+	OnOptChanged();
+}
+
+void CSettingsWindow::OnDnsChanged2()
+{ 
+	if (!m_HoldChange) m_ResolverChanged = true; 
+	OnOptChanged(); 
+}
+
+void CSettingsWindow::OnDnsBlockListClicked(QTreeWidgetItem* pItem, int Column)
+{
+	/*QTreeWidgetItem* pItem = ui.treeDnsBlockLists->currentItem();
+	if (!pItem)
+		return;
+
+	pItem->setCheckState(0, Qt::Unchecked);*/
+	if (!m_HoldChange) m_BlockListChanged = true;
+	OnOptChanged();
+}
+
+void CSettingsWindow::OnDnsBlockDoubleClicked(QTreeWidgetItem* pItem, int Column)
+{
+}
+
+void CSettingsWindow::OnAddBlockList()
+{
+	QString Value = QInputDialog::getText(this, "MajorPrivacy", tr("Enter Block Lisz URL to be added"), QLineEdit::Normal);
+	if (Value.isEmpty())
+		return;
+	QTreeWidgetItem* pItem = new QTreeWidgetItem();
+	pItem->setText(0, Value);
+	pItem->setCheckState(0, Qt::Checked);
+	//pItem->setFlags(pItem->flags() | Qt::ItemIsEditable);
+	ui.treeDnsBlockLists->addTopLevelItem(pItem);
+
+	if (!m_HoldChange) m_BlockListChanged = true;
+}
+
+void CSettingsWindow::OnDelBlockList()
+{
+	QTreeWidgetItem* pItem = ui.treeDnsBlockLists->currentItem();
+	if (!pItem)
+		return;
+
+	delete pItem;
+	if (!m_HoldChange) m_BlockListChanged = true;
+}
+
+void CSettingsWindow::OnDnsChanged3()
+{
+	ui.treeDnsBlockLists->setEnabled(ui.chkDnsBlockLists->isChecked() && ui.chkDnsFilter->isChecked());
+	ui.btnAddBlockList->setEnabled(ui.chkDnsBlockLists->isChecked() && ui.chkDnsFilter->isChecked());
+	ui.btnDelBlockList->setEnabled(ui.chkDnsBlockLists->isChecked() && ui.chkDnsFilter->isChecked());
+	if (!m_HoldChange) m_BlockListChanged = true;
+	OnOptChanged();
+}
+
 void CSettingsWindow::LoadSettings()
 {
 	m_HoldChange = true;
@@ -386,6 +460,7 @@ void CSettingsWindow::LoadSettings()
 	ui.chkLogNotFound->setChecked(theCore->GetConfigBool("Service/LogNotFound", false));
 	ui.chkLogRegistry->setChecked(theCore->GetConfigBool("Service/LogRegistry", false));
 
+	ui.chkFwPlus->setChecked(theCore->GetConfigBool("Service/UseFwRuleTemplates", false));
 	ui.chkTrafficRecord->setChecked(theCore->GetConfigBool("Service/SaveTrafficRecord", false));
 	ui.chkFwLog->setChecked(theCore->GetConfigBool("Service/NetLog", true));
 	ui.chkReverseDNS->setChecked(theCore->GetConfigBool("Service/UseReverseDns", false));
@@ -415,6 +490,27 @@ void CSettingsWindow::LoadSettings()
 	ui.chkFwInOutRules->setChecked(theConf->GetBool("NetworkFirewall/MakeInOutRules", false));
 
 	ui.chkLoadFwLog->setChecked(theCore->GetConfigBool("Service/LoadWindowsFirewallLog", false));
+
+	ui.chkDnsFilter->setChecked(theCore->GetConfigBool("Service/DnsEnableFilter", false));
+	ui.chkDnsInstall->setChecked(theCore->GetConfigBool("Service/DnsInstallFilter", false));
+	ui.txtDnsResolvers->setText(theCore->GetConfigStr("Service/DnsResolvers"));
+	QStringList BlockLists = theCore->GetConfigStr("Service/DnsBlockLists").split(";");
+	ui.treeDnsBlockLists->clear();
+	foreach(QString BlockList, BlockLists) {
+		if(BlockList.isEmpty()) continue;
+		QTreeWidgetItem* pItem = new QTreeWidgetItem();
+		if (BlockList.left(1) == "-") {
+			BlockList.remove(0, 1);
+			pItem->setCheckState(0, Qt::Unchecked);
+		}
+		else
+			pItem->setCheckState(0, Qt::Checked);
+		pItem->setText(0, BlockList);
+		//pItem->setFlags(pItem->flags() | Qt::ItemIsEditable);
+		ui.treeDnsBlockLists->addTopLevelItem(pItem);
+	}
+
+	OnDnsChanged();
 
 	ui.txtLogLimit->setText(QString::number(theCore->GetConfigInt64("Service/TraceLogRetentionCount", 10000)));
 	ui.txtLogRetention->setText(QString::number(theCore->GetConfigInt64("Service/TraceLogRetentionMinutes", 60 * 24 * 14) / 60));
@@ -456,6 +552,7 @@ void CSettingsWindow::SaveSettings()
 	theCore->SetConfig("Service/LogNotFound", ui.chkLogNotFound->isChecked());
 	theCore->SetConfig("Service/LogRegistry", ui.chkLogRegistry->isChecked());
 
+	theCore->SetConfig("Service/UseFwRuleTemplates", ui.chkFwPlus->isChecked());
 	theCore->SetConfig("Service/SaveTrafficRecord", ui.chkTrafficRecord->isChecked());
 	theCore->SetConfig("Service/NetLog", ui.chkFwLog->isChecked());
 	theCore->SetConfig("Service/UseReverseDns", ui.chkReverseDNS->isChecked());
@@ -488,6 +585,23 @@ void CSettingsWindow::SaveSettings()
 	theConf->SetValue("NetworkFirewall/MakeInOutRules", ui.chkFwInOutRules->isChecked());
 
 	theCore->SetConfig("Service/LoadWindowsFirewallLog", ui.chkLoadFwLog->isChecked());
+
+	theCore->SetConfig("Service/DnsEnableFilter", ui.chkDnsFilter->isChecked());
+	theCore->SetConfig("Service/DnsInstallFilter", ui.chkDnsInstall->isChecked());
+	if (m_ResolverChanged)
+		theCore->SetConfig("Service/DnsResolvers", ui.txtDnsResolvers->text());
+	if (m_BlockListChanged) {
+		QStringList BlockLists;
+		for (int i = 0; i < ui.treeDnsBlockLists->topLevelItemCount(); i++) {
+			QTreeWidgetItem* pItem = ui.treeDnsBlockLists->topLevelItem(i);
+			QString Value = pItem->text(0);
+			if (pItem->checkState(0) == Qt::Unchecked)
+				Value = "-" + Value;
+			BlockLists.append(Value);
+		}
+		theCore->SetConfig("Service/DnsBlockLists", BlockLists.join(";"));
+		m_BlockListChanged = false;
+	}
 
 	theCore->SetConfig("Service/TraceLogRetentionCount", ui.txtLogLimit->text().toULongLong());
 	theCore->SetConfig("Service/TraceLogRetentionMinutes", ui.txtLogRetention->text().toULongLong() * 60);

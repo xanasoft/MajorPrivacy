@@ -136,6 +136,7 @@ private slots:
 
 	void				OnPopUpPreset();
 	void				OnFwProfile();
+	void				OnDnsPreset();
 
 	void				OnPageChanged(int index);
 
@@ -295,13 +296,13 @@ private:
 
 	CHomePage*			m_HomePage = nullptr;
 
-	CEnclavePage*		m_EnclavePage = nullptr;
 	CProcessPage*		m_ProcessPage = nullptr;
+	CEnclavePage*		m_EnclavePage = nullptr;
 	CAccessPage*		m_AccessPage = nullptr;
+	CVolumePage*		m_VolumePage = nullptr;
 	CNetworkPage*		m_NetworkPage = nullptr;
 	CDnsPage*			m_DnsPage = nullptr;
 	CTweakPage*			m_TweakPage = nullptr;
-	CVolumePage*		m_VolumePage = nullptr;
 
 	CProgramView*		m_pProgramView = nullptr;
 
@@ -317,6 +318,7 @@ private:
 	QAction*			m_pFwAllowList = nullptr;
 	QAction*			m_pFwBlockList = nullptr;
 	QAction*			m_pFwDisabled = nullptr;
+	QAction*			m_pDnsFilter = nullptr;
 
 protected:
 	friend class CNativeEventFilter;

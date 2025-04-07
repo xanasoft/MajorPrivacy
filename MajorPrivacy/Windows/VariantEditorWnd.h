@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../../MiscHelpers/Common/AbstractTreeModel.h"
 
 
@@ -24,7 +24,7 @@ protected:
 	
 	void				ExpandRecursively(const QModelIndex& index, quint64 TimeOut = -1);
 
-	CVariant			m_Root;	
+	QtVariant			m_Root;	
 
 	bool				m_ReadOnly;
 
@@ -53,7 +53,7 @@ class CVariantModel : public CAbstractTreeModel
 public:
 	CVariantModel(QObject* parent = nullptr);
 
-	void			Update(const CVariant& pRoot);
+	void			Update(const QtVariant& pRoot);
 
 	int				columnCount(const QModelIndex& parent = QModelIndex()) const { return eCount; }
 	QVariant		headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
@@ -70,7 +70,7 @@ protected:
 
 	struct SVariantNode : SAbstractTreeNode
 	{
-		CVariant data;
+		QtVariant data;
 	};
 
 	SAbstractTreeNode* MkNode(const void* data, const QVariant& key = QVariant(), SAbstractTreeNode* parent = nullptr) override;

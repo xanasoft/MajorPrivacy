@@ -19,6 +19,8 @@ public:
     QString GetServiceTag() const           { return m_ServiceTag; }
     QString GetAppContainerSid() const      { return m_AppContainerSid; }
 
+    bool IsTemplate() const					{ return m_ProgramID.GetType() == EProgramType::eFilePattern; }
+
     QString GetProgram() const;
 
     QString GetGrouping() const				{ return m_Grouping; }
@@ -59,10 +61,10 @@ public:
 protected:
     friend class CFirewallRuleWnd;
 
-    void WriteIVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
-    void WriteMVariant(XVariant& Rule, const SVarWriteOpt& Opts) const override;
-    void ReadIValue(uint32 Index, const XVariant& Data) override;
-    void ReadMValue(const SVarName& Name, const XVariant& Data) override;
+    void WriteIVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const override;
+    void WriteMVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const override;
+    void ReadIValue(uint32 Index, const QtVariant& Data) override;
+    void ReadMValue(const SVarName& Name, const QtVariant& Data) override;
 
     // Note: m_Guid usually this is a guid but some default windows rules use a string name instead
     int m_Index = 0; // this is only used for sorting by newest rules

@@ -3,11 +3,11 @@
 #include "../MiscHelpers/Common/Settings.h"
 #include "../../Library/API/DriverAPI.h"
 #include "../../Library/API/ServiceAPI.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "TraceLogEntry.h"
 #include "Programs/ProgramFile.h"
 #include "../Helpers/SidResolver.h"
-#include "../../Library/Common/FlexGuid.h"
+#include "./Common/QtFlexGuid.h"
 #include "../../Library/Helpers/EvtUtil.h"
 
 class CPrivacyCore : public QObject
@@ -64,9 +64,9 @@ public:
 
 	QString				GetConfigDir() { return m_ConfigDir; }
 
-	RESULT(XVariant)	GetConfig(const QString& Name);
+	RESULT(QtVariant)	GetConfig(const QString& Name);
 
-	QString GetConfigInt(const QString& Name, const QString& defaultValue = QString()) {
+	QString GetConfigStr(const QString& Name, const QString& defaultValue = QString()) {
 		auto value = GetConfig(Name);
 		if(!value.GetValue().IsValid())
 			return defaultValue;
@@ -113,7 +113,7 @@ public:
 		return false;
 	}
 
-	STATUS				SetConfig(const QString& Name, const XVariant& Value);
+	STATUS				SetConfig(const QString& Name, const QtVariant& Value);
 
 	QString				QueryConfigDir();
 	bool				CheckConfigFile(const QString& Name);
@@ -122,29 +122,29 @@ public:
 	STATUS				RemoveConfigFile(const QString& Name);
 	RESULT(QStringList)	ListConfigFiles(const QString& Name);
 
-	RESULT(XVariant)	GetSvcConfig();
-	STATUS				SetSvcConfig(const XVariant& Data);
+	RESULT(QtVariant)	GetSvcConfig();
+	STATUS				SetSvcConfig(const QtVariant& Data);
 
-	RESULT(XVariant)	GetDrvConfig();
-	STATUS				SetDrvConfig(const XVariant& Data);
+	RESULT(QtVariant)	GetDrvConfig();
+	STATUS				SetDrvConfig(const QtVariant& Data);
 
 	// Process Manager
-	RESULT(XVariant)	GetProcesses();
-	RESULT(XVariant)	GetProcess(uint64 Pid);
+	RESULT(QtVariant)	GetProcesses();
+	RESULT(QtVariant)	GetProcess(uint64 Pid);
 	STATUS				StartProcessBySvc(const QString& Command);
 	STATUS				TerminateProcess(uint64 Pid);
 
 	// Secure Enclaves
-	STATUS				SetAllEnclaves(const XVariant& Enclaves);
-	RESULT(XVariant)	GetAllEnclaves();
-	STATUS				SetEnclave(const XVariant& Enclave);
-	RESULT(XVariant)	GetEnclave(const QFlexGuid& Guid);
+	STATUS				SetAllEnclaves(const QtVariant& Enclaves);
+	RESULT(QtVariant)	GetAllEnclaves();
+	STATUS				SetEnclave(const QtVariant& Enclave);
+	RESULT(QtVariant)	GetEnclave(const QFlexGuid& Guid);
 	STATUS				DelEnclave(const QFlexGuid& Guid);
 	STATUS				StartProcessInEnclave(const QString& Command, const QFlexGuid& Guid);
 
 	// ProgramManager
-	RESULT(XVariant)	GetPrograms();
-	RESULT(XVariant)	GetLibraries(uint64 CacheToken = -1);
+	RESULT(QtVariant)	GetPrograms();
+	RESULT(QtVariant)	GetLibraries(uint64 CacheToken = -1);
 
 	RESULT(quint64)		SetProgram(const CProgramItemPtr& pItem);
 	STATUS				AddProgramTo(uint64 UID, uint64 ParentUID);
@@ -153,24 +153,24 @@ public:
 	STATUS				CleanUpPrograms(bool bPurgeRules = false);
 	STATUS				ReGroupPrograms();
 
-	STATUS				SetAllProgramRules(const XVariant& Rules);
-	RESULT(XVariant)	GetAllProgramRules();
-	STATUS				SetProgramRule(const XVariant& Rule);
-	RESULT(XVariant)	GetProgramRule(const QFlexGuid& Guid);
+	STATUS				SetAllProgramRules(const QtVariant& Rules);
+	RESULT(QtVariant)	GetAllProgramRules();
+	STATUS				SetProgramRule(const QtVariant& Rule);
+	RESULT(QtVariant)	GetProgramRule(const QFlexGuid& Guid);
 	STATUS				DelProgramRule(const QFlexGuid& Guid);
 
 	// Access Manager
-	STATUS				SetAllAccessRules(const XVariant& Rules);
-	RESULT(XVariant)	GetAllAccessRules();
-	STATUS				SetAccessRule(const XVariant& Rule);
-	RESULT(XVariant)	GetAccessRule(const QFlexGuid& Guid);
+	STATUS				SetAllAccessRules(const QtVariant& Rules);
+	RESULT(QtVariant)	GetAllAccessRules();
+	STATUS				SetAccessRule(const QtVariant& Rule);
+	RESULT(QtVariant)	GetAccessRule(const QFlexGuid& Guid);
 	STATUS				DelAccessRule(const QFlexGuid& Guid);
 
 	// Network Manager
-	RESULT(XVariant)	GetFwRulesFor(const QList<const class CProgramItem*>& Nodes);
-	RESULT(XVariant)	GetAllFwRules(bool bReLoad = false);
-	STATUS				SetFwRule(const XVariant& Rule);
-	RESULT(XVariant)	GetFwRule(const QFlexGuid& Guid);
+	RESULT(QtVariant)	GetFwRulesFor(const QList<const class CProgramItem*>& Nodes);
+	RESULT(QtVariant)	GetAllFwRules(bool bReLoad = false);
+	STATUS				SetFwRule(const QtVariant& Rule);
+	RESULT(QtVariant)	GetFwRule(const QFlexGuid& Guid);
 	STATUS				DelFwRule(const QFlexGuid& Guid);
 
 	RESULT(FwFilteringModes) GetFwProfile();
@@ -179,34 +179,39 @@ public:
 	RESULT(FwAuditPolicy) GetAuditPolicy();
 	STATUS				SetAuditPolicy(FwAuditPolicy Mode);
 
-	RESULT(XVariant)	GetSocketsFor(const QList<const class CProgramItem*>& Nodes);
-	RESULT(XVariant)	GetAllSockets();
+	RESULT(QtVariant)	GetSocketsFor(const QList<const class CProgramItem*>& Nodes);
+	RESULT(QtVariant)	GetAllSockets();
 
-	RESULT(XVariant)	GetTrafficLog(const class CProgramID& ID, quint64 MinLastActivity);
+	RESULT(QtVariant)	GetTrafficLog(const class CProgramID& ID, quint64 MinLastActivity);
 
-	RESULT(XVariant)	GetDnsCache();
+	RESULT(QtVariant)	GetAllDnsRules();
+	STATUS				SetDnsRule(const QtVariant& Rule);
+	RESULT(QtVariant)	GetDnsRule(const QFlexGuid& Guid);
+	STATUS				DelDnsRule(const QFlexGuid& Guid);
+
+	RESULT(QtVariant)	GetDnsCache();
 
 	STATUS				FlushDnsCache();
 
 	// Access Manager
-	RESULT(XVariant)	GetHandlesFor(const QList<const class CProgramItem*>& Nodes);
-	RESULT(XVariant)	GetAllHandles();
+	RESULT(QtVariant)	GetHandlesFor(const QList<const class CProgramItem*>& Nodes);
+	RESULT(QtVariant)	GetAllHandles();
 	STATUS				ClearTraceLog(ETraceLogs Log, const CProgramItemPtr& pItem = CProgramItemPtr());
 
 	STATUS				CleanUpAccessTree();
 
 	// Program Item
-	RESULT(XVariant)	GetLibraryStats(const class CProgramID& ID);
+	RESULT(QtVariant)	GetLibraryStats(const class CProgramID& ID);
 	STATUS				CleanUpLibraries(const CProgramItemPtr& pItem = CProgramItemPtr());
-	RESULT(XVariant)	GetExecStats(const class CProgramID& ID);
-	RESULT(XVariant)	GetIngressStats(const class CProgramID& ID);
+	RESULT(QtVariant)	GetExecStats(const class CProgramID& ID);
+	RESULT(QtVariant)	GetIngressStats(const class CProgramID& ID);
 
-	RESULT(XVariant)	GetAccessStats(const class CProgramID& ID, quint64 MinLastActivity);
+	RESULT(QtVariant)	GetAccessStats(const class CProgramID& ID, quint64 MinLastActivity);
 
-	RESULT(XVariant)	GetTraceLog(const class CProgramID& ID, ETraceLogs Log);
+	RESULT(QtVariant)	GetTraceLog(const class CProgramID& ID, ETraceLogs Log);
 
 	// Volume Manager
-	RESULT(XVariant)	GetVolumes();
+	RESULT(QtVariant)	GetVolumes();
 	STATUS				MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect);
 	STATUS				DismountVolume(const QString& MountPoint);
 	STATUS				DismountAllVolumes();
@@ -214,7 +219,7 @@ public:
 	STATUS				ChangeVolumePassword(const QString& Path, const QString& OldPassword, const QString& NewPassword);
 
 	// Tweak Manager
-	RESULT(XVariant)	GetTweaks();
+	RESULT(QtVariant)	GetTweaks();
 	STATUS				ApplyTweak(const QString& Name);
 	STATUS				UndoTweak(const QString& Name);
 
@@ -222,7 +227,7 @@ public:
 	STATUS				SetWatchedPrograms(const QSet<CProgramItemPtr>& Programs);
 
 	// Support
-	RESULT(XVariant)	GetSupportInfo();
+	RESULT(QtVariant)	GetSupportInfo();
 
 	// 
 
@@ -239,6 +244,7 @@ signals:
 	void				ExecRulesChanged();
 	void				ResRulesChanged();
 	void				FwRulesChanged();
+	void				DnsRulesChanged();
 	
 	void				ExecutionEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
 	void				AccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
@@ -267,7 +273,7 @@ protected:
 	
 	static void			DeviceChangedCallback(void* param);
 
-	static XVariant		MakeIDs(const QList<const class CProgramItem*>& Nodes);
+	static QtVariant		MakeIDs(const QList<const class CProgramItem*>& Nodes);
 
 	class CEventLogger*		m_pLog = NULL;
 
@@ -291,9 +297,10 @@ protected:
 	bool m_ProgramRulesUpToDate = false;
 	bool m_AccessRulesUpToDate = false;
 	bool m_FwRulesUpToDate = false;
+	bool m_DnsRulesUpToDate = false;
 
 	QMutex m_EventQueueMutex;
-	QMap<quint32, QQueue<XVariant>> m_SvcEventQueue;
+	QMap<quint32, QQueue<QtVariant>> m_SvcEventQueue;
 	//struct SDrvRuleEvent
 	//{
 	//	QString Guid;

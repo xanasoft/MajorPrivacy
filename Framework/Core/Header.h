@@ -21,7 +21,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "../Driver/Driver.h"
+#include "../../Driver/Driver.h"
 #ifdef __cplusplus
 }
 #endif
@@ -42,6 +42,7 @@ extern "C" {
 #include <phnt_windows.h>
 #include <phnt.h>
 
+
 #ifndef ASSERT
 #ifdef _DEBUG
 #define ASSERT(x)	if(!(x)) __debugbreak();
@@ -50,9 +51,9 @@ extern "C" {
 #endif
 #endif
 
+#ifndef DBG_MSG
 #define DBG_MSG(x) DbgPrint(x)
-
-extern struct POOL* Driver_Pool;
+#endif
 
 #endif
 

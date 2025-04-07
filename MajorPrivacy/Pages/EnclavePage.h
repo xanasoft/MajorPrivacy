@@ -12,6 +12,9 @@ public:
 	CEnclavePage(QWidget* parent);
 	~CEnclavePage();
 
+	void LoadState();
+	void SetMergePanels(bool bMerge);
+
 	void	Update();
 
 private:

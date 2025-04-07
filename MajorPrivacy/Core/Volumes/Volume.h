@@ -34,7 +34,7 @@ public:
 	bool IsMounted() const							{ return m_Status == eMounted; }
 	void SetMounted(bool Mounted);
 
-	void FromVariant(const class XVariant& Volume);
+	void FromVariant(const class QtVariant& Volume);
 
 protected:
 

@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "ProgramFile.h"
 #include "../Processes/ExecLogEntry.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../PrivacyCore.h"
 #include "../Network/NetLogEntry.h"
@@ -36,8 +36,8 @@ QMultiMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
 			m_Libraries.clear();
 			m_LibrariesChanged = false;
 
-			Res.GetValue().ReadRawList([&](const CVariant& vData) {
-				const XVariant& Data = *(XVariant*)&vData;
+			QtVariantReader(Res.GetValue()).ReadRawList([&](const FW::CVariant& vData) {
+				const QtVariant& Data = *(QtVariant*)&vData;
 
 				quint64 LibraryRef = Data.Get(API_V_LIB_REF).To<uint64>(0);
 
@@ -68,8 +68,8 @@ QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 			auto Data = Res.GetValue();
 
 			auto Targets = Data.Get(API_V_PROG_EXEC_CHILDREN);
-			Targets.ReadRawList([&](const CVariant& vData) {
-				const XVariant& Data = *(XVariant*)&vData;
+			QtVariantReader(Targets).ReadRawList([&](const FW::CVariant& vData) {
+				const QtVariant& Data = *(QtVariant*)&vData;
 
 				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
@@ -91,8 +91,8 @@ QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 			});
 
 			auto Actors = Data.Get(API_V_PROG_EXEC_PARENTS);
-			Actors.ReadRawList([&](const CVariant& vData) {
-				const XVariant& Data = *(XVariant*)&vData;
+			QtVariantReader(Actors).ReadRawList([&](const FW::CVariant& vData) {
+				const QtVariant& Data = *(QtVariant*)&vData;
 
 				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
@@ -132,8 +132,8 @@ QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 			auto Data = Res.GetValue();
 
 			auto Targets = Data.Get(API_V_PROG_INGRESS_TARGETS);
-			Targets.ReadRawList([&](const CVariant& vData) {
-				const XVariant& Data = *(XVariant*)&vData;
+			QtVariantReader(Targets).ReadRawList([&](const FW::CVariant& vData) {
+				const QtVariant& Data = *(QtVariant*)&vData;
 
 				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
@@ -156,8 +156,8 @@ QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 			});
 
 			auto Actors = Data.Get(API_V_PROG_INGRESS_ACTORS);
-			Actors.ReadRawList([&](const CVariant& vData) {
-				const XVariant& Data = *(XVariant*)&vData;
+			QtVariantReader(Actors).ReadRawList([&](const FW::CVariant& vData) {
+				const QtVariant& Data = *(QtVariant*)&vData;
 
 				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
@@ -244,15 +244,15 @@ STraceLogList* CProgramFile::GetTraceLog(ETraceLogs Log)
 		
 		pLog->Entries.clear();
 		pLog->MissingCount = 0;
-		XVariant& LogData = Ret.GetValue();
-		XVariant Entries = LogData.Get(API_V_LOG_DATA);
+		QtVariant& LogData = Ret.GetValue();
+		QtVariant Entries = LogData.Get(API_V_LOG_DATA);
 		pLog->IndexOffset = LogData.Get(API_V_LOG_OFFSET).To<uint64>(0);
 
 		switch (Log)
 		{
 		case ETraceLogs::eNetLog:
-			Entries.ReadRawList([&](const CVariant& vData) {
-				const XVariant& Entry = *(XVariant*)&vData;
+			QtVariantReader(Entries).ReadRawList([&](const FW::CVariant& vData) {
+				const QtVariant& Entry = *(QtVariant*)&vData;
 
 				CLogEntryPtr pEntry = CLogEntryPtr(new CNetLogEntry());
 				pEntry->FromVariant(Entry);
@@ -261,8 +261,8 @@ STraceLogList* CProgramFile::GetTraceLog(ETraceLogs Log)
 			break;
 
 		case ETraceLogs::eExecLog:
-			Entries.ReadRawList([&](const CVariant& vData) {
-				const XVariant& Entry = *(XVariant*)&vData;
+			QtVariantReader(Entries).ReadRawList([&](const FW::CVariant& vData) {
+				const QtVariant& Entry = *(QtVariant*)&vData;
 
 				CLogEntryPtr pEntry = CLogEntryPtr(new CExecLogEntry());
 				pEntry->FromVariant(Entry);
@@ -271,8 +271,8 @@ STraceLogList* CProgramFile::GetTraceLog(ETraceLogs Log)
 			break;
 
 		case ETraceLogs::eResLog:
-			Entries.ReadRawList([&](const CVariant& vData) {
-				const XVariant& Entry = *(XVariant*)&vData;
+			QtVariantReader(Entries).ReadRawList([&](const FW::CVariant& vData) {
+				const QtVariant& Entry = *(QtVariant*)&vData;
 
 				CLogEntryPtr pEntry = CLogEntryPtr(new CResLogEntry());
 				pEntry->FromVariant(Entry);
@@ -372,7 +372,7 @@ QMap<quint64, SAccessStatsPtr> CProgramFile::GetAccessStats()
 {
 	auto Res = theCore->GetAccessStats(m_ID, m_AccessLastActivity);
 	if (!Res.IsError()) {
-		XVariant Root = Res.GetValue();
+		QtVariant Root = Res.GetValue();
 //#ifdef _DEBUG
 //		int oldCount = m_AccessStats.count();
 //#endif

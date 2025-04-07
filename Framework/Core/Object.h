@@ -21,7 +21,7 @@
 
 FW_NAMESPACE_BEGIN
 
-class Object
+class FRAMEWORK_EXPORT Object
 {
 public:
 	Object(AbstractMemPool* pMem) { m_pMem = pMem; }
@@ -64,14 +64,13 @@ public:
 	AbstractMemPool* Allocator() const { return m_pMem; }
 
 	template <typename T, class... Types>
-	SharedPtr<T> New(Types&&... Args) {
-		return m_pMem->New<T>(Args...);
-	}
+	SharedPtr<T> New(Types&&... Args) { return m_pMem->New<T>(Args...); }
 
 	template <typename T, class... Types>
-	NTSTATUS InitNew(SharedPtr<T>& Ptr, Types&&... Args) {
-		return m_pMem->InitNew(Ptr, Args...);
-	}
+	FWSTATUS InitNew(SharedPtr<T>& Ptr, Types&&... Args) { return m_pMem->InitNew(Ptr, Args...); }
+
+	void* MemAlloc(size_t size) const { return m_pMem->Alloc(size); }
+	void MemFree(void* ptr) const { m_pMem->Free(ptr); }
 
 	void SetDestroyCallback(void(*pDestroyCallback)(PVOID This, PVOID Param), PVOID Param) {
 		m_pDestroyCallback = pDestroyCallback;

@@ -25,14 +25,8 @@
     <Filter Include="PHlib\include">
       <UniqueIdentifier>{c6158929-61b8-4371-b21f-02deda91d7c7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Framework">
-      <UniqueIdentifier>{8f2ad962-764b-4552-941b-002aa6b712e5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Crypto">
       <UniqueIdentifier>{b4dc1078-adca-4d0e-a1b5-333d0cae2cc4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Core">
-      <UniqueIdentifier>{e7a1af14-4f2e-4272-ac43-d9b2af0d12b3}</UniqueIdentifier>
     </Filter>
     <Filter Include="IPC">
       <UniqueIdentifier>{9710633e-4bf3-46f8-b50e-3dd19c787212}</UniqueIdentifier>
@@ -60,22 +54,13 @@
     <ClInclude Include="lib_global.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Status.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Helpers\NtIO.h">
       <Filter>Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Buffer.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Common\Strings.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\Variant.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Helpers\Scoped.h">
@@ -90,13 +75,7 @@
     <ClInclude Include="Helpers\NtObj.h">
       <Filter>Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="Common\SVariant.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Common\DbgHelp.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\VariantDefs.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Helpers\WinUtil.h">
@@ -219,59 +198,8 @@
     <ClInclude Include="Common\Pointers.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="Common\PoolAllocator.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Helpers\SchdUtil.h">
       <Filter>Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Array.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Defer.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Framework.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\List.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Map.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Memory.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Object.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Pair.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\SafeRef.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\SharedPtr.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\String.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Table.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\UniquePtr.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\WeakPtr.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\RetValue.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Header.h">
-      <Filter>Framework</Filter>
     </ClInclude>
     <ClInclude Include="PHlib\include\hndlinfo.h">
       <Filter>PHlib\include</Filter>
@@ -342,9 +270,6 @@
     <ClInclude Include="Common\ObjectTracker.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="Common\XVariant.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Helpers\NtPathMgr.h">
       <Filter>Helpers</Filter>
     </ClInclude>
@@ -378,6 +303,12 @@
     <ClInclude Include="Hooking\HookUtils.h">
       <Filter>Hooking</Filter>
     </ClInclude>
+    <ClInclude Include="Helpers\WebUtils.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\StVariant.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -392,25 +323,13 @@
     <ClCompile Include="Helpers\NtIO.cpp">
       <Filter>Helpers</Filter>
     </ClCompile>
-    <ClCompile Include="Common\Buffer.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="Common\Strings.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\Variant.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="Helpers\AppUtil.cpp">
       <Filter>Helpers</Filter>
     </ClCompile>
     <ClCompile Include="Common\FileIO.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\SVariant.c">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\VariantTest.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="Common\DbgHelp.cpp">
@@ -500,9 +419,6 @@
     <ClCompile Include="PHlib\util.c">
       <Filter>PHlib</Filter>
     </ClCompile>
-    <ClCompile Include="..\Framework\Memory.cpp">
-      <Filter>Framework</Filter>
-    </ClCompile>
     <ClCompile Include="PHlib\hndlinfo.c">
       <Filter>PHlib</Filter>
     </ClCompile>
@@ -569,9 +485,6 @@
     <ClCompile Include="Common\ObjectTracker.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="Common\XVariant.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="Helpers\NtPathMgr.cpp">
       <Filter>Helpers</Filter>
     </ClCompile>
@@ -635,6 +548,15 @@
     <ClCompile Include="Hooking\HookUtils.cpp">
       <Filter>Hooking</Filter>
     </ClCompile>
+    <ClCompile Include="Helpers\WebUtils.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="API\API_DnsRule.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\StVariant.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\Service.rc">
@@ -642,9 +564,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Framework\README.MD">
-      <Filter>Framework</Filter>
-    </None>
     <None Include="Hooking\Detours\Makefile">
       <Filter>Hooking\Detours</Filter>
     </None>

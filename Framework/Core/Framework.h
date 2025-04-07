@@ -19,8 +19,55 @@
 #define FW_NAMESPACE_BEGIN namespace FW {
 #define FW_NAMESPACE_END }
 
-#ifndef FRAMEWORK_EXPORT
+#ifdef KERNEL_MODE
 #define FRAMEWORK_EXPORT
+#else
+#ifndef BUILD_STATIC
+# ifdef BUILD_DLL
+#  define FRAMEWORK_EXPORT __declspec(dllexport)
+# else
+#  define FRAMEWORK_EXPORT __declspec(dllimport)
+# endif
+#else
+# define FRAMEWORK_EXPORT
+#endif
+#endif
+
+#include "Types.h"
+
+FW_NAMESPACE_BEGIN
+
+enum class EInsertMode
+{
+	eNormal = 0, // Insert or Repalce if exists
+	eMulti,
+	eNoReplace,
+	eNoInsert
+};
+
+enum class EInsertResult
+{
+	eOK = 0,
+	eNoMemory,
+	eNoEntry,
+	eKeyExists
+};
+
+FW_NAMESPACE_END
+
+#define FWSTATUS sint32
+
+//#define NO_CRT_TEST
+
+#ifdef NO_CRT_TEST
+#define KERNEL_MODE
+
+#ifdef KERNEL_MODE
+#define NO_CRT
+#endif
+
+#undef DBG_MSG
+#define DBG_MSG(x)
 #endif
 
 #define C_BEGIN extern "C" {

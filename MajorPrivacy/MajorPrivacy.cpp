@@ -177,7 +177,7 @@ void CMajorPrivacy::SetTitle()
 	{
 		auto Res = theCore->GetSupportInfo();
 		if (Res) {
-			XVariant Info = Res.GetValue();
+			QtVariant Info = Res.GetValue();
 			g_CertName = Info[API_V_SUPPORT_NAME].AsQStr();
 			g_CertInfo.State = Info[API_V_SUPPORT_STATUS].To<uint64>();
 		}
@@ -523,9 +523,12 @@ void CMajorPrivacy::LoadState(bool bFull)
 	m_pProgramSplitter->restoreState(theConf->GetBlob("MainWindow/ProgramSplitter"));
 
 	if(m_pTabBar) m_pTabBar->setCurrentIndex(theConf->GetInt("MainWindow/MainTab", 0));
-	m_AccessPage->LoadState();
-	m_NetworkPage->LoadState();
 	m_ProcessPage->LoadState();
+	m_EnclavePage->LoadState();
+	m_AccessPage->LoadState();
+	m_VolumePage->LoadState();
+	m_NetworkPage->LoadState();
+	m_DnsPage->LoadState();
 }
 
 void CMajorPrivacy::StoreState()
@@ -903,6 +906,10 @@ void CMajorPrivacy::CreateTrayMenu()
 	m_pFwDisabled->setCheckable(true);
 
 	m_pTrayMenu->addSeparator();
+	m_pDnsFilter = m_pTrayMenu->addAction(tr("DNS Filtering"), this, SLOT(OnDnsPreset()));
+	m_pDnsFilter->setCheckable(true);
+
+	m_pTrayMenu->addSeparator();
 	m_pTrayMenu->addAction(m_pExit);
 }
 
@@ -1006,7 +1013,7 @@ STATUS CMajorPrivacy::InitSigner(ESignerPurpose Purpose, class CPrivateKey& Priv
 		Encryption.Decrypt(pInfo->EncryptedBlob, KeyBlob);
 		if(Status.IsError()) break;
 
-		CVariant KeyData;
+		QtVariant KeyData;
 		KeyData.FromPacket(&KeyBlob);
 
 		CBuffer PrivKey = KeyData[API_S_PUB_KEY];
@@ -1113,7 +1120,7 @@ void CMajorPrivacy::OnUnprotectConfig()
 	}
 
 	CBuffer ConfigHash;
-	CVariant Data;
+	QtVariant Data;
 	if (!m_pClearKeys->isEnabled()) {
         QMessageBox::warning(this, "MajorPrivacy", tr("The user key is locked. Please reboot the system to complete the removal of the config protection."));
 		Data[API_S_UNLOCK] = true;
@@ -1276,7 +1283,7 @@ void CMajorPrivacy::OnMakeKeyPair()
 		CHashFunction::Hash(PrivKey, Hash);
 		if(Status.IsError()) break;
 
-		CVariant KeyData;
+		QtVariant KeyData;
 		KeyData[API_S_PUB_KEY] = PrivKey;
 		KeyData[API_S_HASH] = Hash;
 
@@ -1349,6 +1356,11 @@ void CMajorPrivacy::OnFwProfile()
 	CheckResults(QList<STATUS>() << Status, this);
 }
 
+void CMajorPrivacy::OnDnsPreset()
+{
+	theCore->SetConfig("Service/DnsInstallFilter", m_pDnsFilter->isChecked());
+}
+
 void CMajorPrivacy::OnSysTray(QSystemTrayIcon::ActivationReason Reason)
 {
 	static bool TriggerSet = false;
@@ -1373,6 +1385,9 @@ void CMajorPrivacy::OnSysTray(QSystemTrayIcon::ActivationReason Reason)
 			m_pFwBlockList->setChecked(Profile == FwFilteringModes::BlockList);
 			m_pFwDisabled->setChecked(Profile == FwFilteringModes::NoFiltering);
 		}
+
+		m_pDnsFilter->setEnabled(theCore->GetConfigBool("Service/DnsEnableFilter", false));
+		m_pDnsFilter->setChecked(theCore->GetConfigBool("Service/DnsInstallFilter", false));
 
 		m_pTrayMenu->popup(QCursor::pos());	
 		break;
@@ -1863,7 +1878,7 @@ void CMajorPrivacy::OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEnt
 void CMajorPrivacy::OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry)
 {
 	const CNetLogEntry* pEntry = dynamic_cast<const CNetLogEntry*>(pLogEntry.constData());
-	if(pEntry->GetRemoteAddress().isLoopback())
+	if(pEntry->GetRemoteAddress().isLoopback() || pEntry->GetDirection() == EFwDirections::Inbound) // ignore loopback ignroe incomming
 		return;
 
 	if (theConf->GetBool("NetworkFirewall/ShowNotifications", false)) {
@@ -1957,7 +1972,7 @@ void CMajorPrivacy::OnMaintenance()
 
 		QString Xml = ReadFileAsString(FileName);
 
-		XVariant Options;
+		QtVariant Options;
 		bool bOk = Options.ParseXml(Xml);
 		if (!bOk) {
 			QMessageBox::warning(this, "MajorPrivacy", tr("Failed to parse XML data!"));
@@ -1995,13 +2010,13 @@ void CMajorPrivacy::OnMaintenance()
 		Selection = wnd.GetOptions();
 
 		if (Selection & COptionsTransferWnd::eGUI) {
-			XVariant Data = Options[API_S_GUI_CONFIG];
+			QtVariant Data = Options[API_S_GUI_CONFIG];
 			for (size_t i = 0; i < Data.Count(); i++) {
 				QString Section = Data.Key(i);
-				XVariant Values = Data[Data.Key(i)];
+				QtVariant Values = Data[Data.Key(i)];
 				for (size_t j = 0; j < Values.Count(); j++) {
 					QString Key = Values.Key(j);
-					XVariant Value = Values[Values.Key(j)];
+					QtVariant Value = Values[Values.Key(j)];
 					theConf->SetValue(Section + "/" + Key, Value.ToQVariant());
 				}
 			}
@@ -2012,7 +2027,7 @@ void CMajorPrivacy::OnMaintenance()
 		}
 
 		if (Selection & COptionsTransferWnd::eUserKeys) {
-			XVariant Keys = Options[API_S_USER_KEY];
+			QtVariant Keys = Options[API_S_USER_KEY];
 			theCore->Driver()->SetUserKey(Keys[API_S_PUB_KEY], Keys[API_S_KEY_BLOB]);
 		}
 
@@ -2054,24 +2069,21 @@ void CMajorPrivacy::OnMaintenance()
 		Ops.Format = SVarWriteOpt::eMap; // todo: allow to select index format when exporting??
 		Ops.Flags = SVarWriteOpt::eSaveToFile | SVarWriteOpt::eTextGuids;
 
-		XVariant Options;
+		QtVariant Options;
 
 		if (Selection & COptionsTransferWnd::eGUI) {
 
-			XVariant Data;
+			QtVariantWriter Data;
 			Data.BeginMap();
 			for(auto Section: theConf->ListGroupes())
 			{
-				XVariant Values;
+				QtVariantWriter Values;
 				Values.BeginMap();
 				for(auto Key: theConf->ListKeys(Section))
-					Values.WriteQStr(Key.toStdString().c_str(), theConf->GetString(Section, Key));
-				Values.Finish();
-				Data.WriteVariant(Section.toStdString().c_str(), Values);
+					Values.WriteEx(Key.toStdString().c_str(), theConf->GetString(Section, Key));
+				Data.WriteVariant(Section.toStdString().c_str(), Values.Finish());
 			}
-			Data.Finish();
-
-			Options[API_S_GUI_CONFIG] = Data;
+			Options[API_S_GUI_CONFIG] = Data.Finish();
 		}
 
 		if (Selection & COptionsTransferWnd::eDriver) {
@@ -2080,15 +2092,15 @@ void CMajorPrivacy::OnMaintenance()
 		}
 
 		if (Selection & COptionsTransferWnd::eUserKeys) {
-			XVariant Keys;
-			Keys[API_S_PUB_KEY] = CVariant(UserKey.GetValue()->PubKey);
-			Keys[API_S_KEY_BLOB] = CVariant(UserKey.GetValue()->EncryptedBlob);
+			QtVariant Keys;
+			Keys[API_S_PUB_KEY] = UserKey.GetValue()->PubKey;
+			Keys[API_S_KEY_BLOB] = UserKey.GetValue()->EncryptedBlob;
 			Options[API_S_USER_KEY] = Keys;
 		}
 
 
 		if (Selection & COptionsTransferWnd::eEnclaves) {
-			XVariant Enclaves;
+			QtVariant Enclaves;
 			for (auto pEnclave : theCore->EnclaveManager()->GetAllEnclaves()) {
 				Enclaves.Append(pEnclave->ToVariant(Ops));
 			}
@@ -2096,7 +2108,7 @@ void CMajorPrivacy::OnMaintenance()
 		}
 
 		if (Selection & COptionsTransferWnd::eExecRules) {
-			XVariant ProgramRules;
+			QtVariant ProgramRules;
 			for (auto pRule : theCore->ProgramManager()->GetProgramRules()) {
 				if (pRule->IsTemporary()) continue;
 				ProgramRules.Append(pRule->ToVariant(Ops));
@@ -2105,7 +2117,7 @@ void CMajorPrivacy::OnMaintenance()
 		}
 
 		if (Selection & COptionsTransferWnd::eResRules) {
-			XVariant AccessRules;
+			QtVariant AccessRules;
 			for (auto pRule : theCore->AccessManager()->GetAccessRules()) {
 				if (pRule->IsTemporary()) continue;
 				AccessRules.Append(pRule->ToVariant(Ops));
@@ -2119,14 +2131,14 @@ void CMajorPrivacy::OnMaintenance()
 		}
 
 		if (Selection & COptionsTransferWnd::eFwRules) {
-			XVariant FwRules;
+			QtVariant FwRules;
 			for (auto pRule : theCore->NetworkManager()->GetFwRules())
 				FwRules.Append(pRule->ToVariant(Ops));
 			Options[API_S_FW_RULES] = FwRules;
 		}
 
 		if (Selection & COptionsTransferWnd::ePrograms) {
-			XVariant Programs;
+			QtVariant Programs;
 			for (auto pProgram : theCore->ProgramManager()->GetItems()) {
 				if (pProgram == theCore->ProgramManager()->GetRoot() || pProgram == theCore->ProgramManager()->GetAll())
 					continue; // skip built in items
@@ -2218,8 +2230,11 @@ void CMajorPrivacy::OnMergePanels()
 	theConf->SetValue("Options/MergePanels", m_pMergePanels->isChecked());
 
 	m_ProcessPage->SetMergePanels(m_pMergePanels->isChecked());
+	m_EnclavePage->SetMergePanels(m_pMergePanels->isChecked());
 	m_AccessPage->SetMergePanels(m_pMergePanels->isChecked());
+	m_VolumePage->SetMergePanels(m_pMergePanels->isChecked());
 	m_NetworkPage->SetMergePanels(m_pMergePanels->isChecked());
+	m_DnsPage->SetMergePanels(m_pMergePanels->isChecked());
 }
 
 QWidget* g_GUIParent = NULL;
@@ -2250,6 +2265,10 @@ QString CMajorPrivacy::GetResourceStr(const QString& Name)
 		return tr("Volume Unmount Rule for: %1").arg(StrAux.second);
 	else if(StrAux.first == "&Temporary")
 		return tr("Temporary rule");
+	else if(StrAux.first == "&MP-Rule")
+		return tr("%1 - MajorPrivacy Rule").arg(StrAux.second);
+	else if(StrAux.first == "&MP-Template")
+		return tr("%1 - MajorPrivacy Rule Template").arg(StrAux.second);
 
 	//
 	// Convert Windows resource strings to full strings

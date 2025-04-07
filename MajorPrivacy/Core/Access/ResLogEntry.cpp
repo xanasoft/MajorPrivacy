@@ -112,7 +112,7 @@ QString CResLogEntry::GetAccessStrEx() const
 	return GetAccessStrEx(m_AccessMask);
 }
 
-void CResLogEntry::ReadValue(uint32 Index, const XVariant& Data)
+void CResLogEntry::ReadValue(uint32 Index, const QtVariant& Data)
 {
     switch (Index)
     {

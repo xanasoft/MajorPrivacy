@@ -23,7 +23,7 @@ public:
 
 protected:
 
-	virtual void ReadValue(uint32 Index, const XVariant& Data);
+	virtual void ReadValue(uint32 Index, const QtVariant& Data);
 
 	QString				m_NtPath;
 	quint32				m_AccessMask = 0;	

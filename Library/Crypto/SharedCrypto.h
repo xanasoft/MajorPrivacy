@@ -1,8 +1,8 @@
 #pragma once
-
-#include "../Library/Common/Buffer.h"
+#include "../lib_global.h"
+#include "../Framework/Common/Buffer.h"
 #include "../Library/Helpers/ScopedHandle.h"
-#include "../Framework/SafeRef.h"
+#include "../Framework/Core/SafeRef.h"
 
 #define CRYPTO_SIGN_ALGORITHM BCRYPT_ECDSA_P256_ALGORITHM
 #define CRYPTO_SIGN_ALGORITHM_BITS 256

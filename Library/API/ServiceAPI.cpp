@@ -17,9 +17,8 @@ typedef long NTSTATUS;
 #include <fltuser.h>
 
 #include "../Helpers/AppUtil.h"
-#include "../Helpers/Service.h"
 #include "../Library/API/PrivacyAPI.h"
-#include "../Common/Variant.h"
+#include "../Common/StVariant.h"
 
 #include "../IPC/PipeClient.h"
 #include "../IPC/AlpcPortClient.h"
@@ -183,11 +182,12 @@ uint32 CServiceAPI::GetProcessId() const
 	return m_pClient->GetServerPID();
 }
 
-RESULT(CVariant) CServiceAPI::Call(uint32 MessageId, const CVariant& Message)
+RESULT(StVariant) CServiceAPI::Call(uint32 MessageId, const StVariant& Message)
 {
 	auto Ret = m_pClient->Call(MessageId, Message);
-	if (!Ret.IsError() && (Ret.GetValue().Get(API_V_ERR_CODE).To<uint32>() != 0 || Ret.GetValue().Has(API_V_ERR_MSG)))
-		return ERR(Ret.GetValue()[API_V_ERR_CODE], Ret.GetValue()[API_V_ERR_MSG].AsStr());
+	auto& Val = Ret.GetValue();
+	if (!Ret.IsError() && (Val.Get(API_V_ERR_CODE).To<uint32>() != 0 || Val.Has(API_V_ERR_MSG)))
+		return ERR(Val[API_V_ERR_CODE], Val[API_V_ERR_MSG].AsStr());
 	return Ret;
 }
 
@@ -199,29 +199,29 @@ bool CServiceAPI::RegisterEventHandler(uint32 MessageId, const std::function<voi
 
 uint32 CServiceAPI::GetABIVersion()
 {
-	CVariant Request;
+	StVariant Request;
 	auto Ret = Call(SVC_API_GET_VERSION, Request);
-	CVariant Response = Ret.GetValue();
+	StVariant Response = Ret.GetValue();
 	uint32 version = Response.Get(API_V_VERSION).To<uint32>();
 	return version;
 }
 
 uint32 CServiceAPI::GetConfigStatus()
 {
-    CVariant ReqVar;
+	StVariant ReqVar;
 
     auto Ret = m_pClient->Call(SVC_API_GET_CONFIG_STATUS, ReqVar);
     if (Ret.IsError())
         return false;
 
-    CVariant ResVar = Ret.GetValue();
+	StVariant ResVar = Ret.GetValue();
 
     return ResVar.To<uint32>();
 }
 
 STATUS CServiceAPI::CommitConfigChanges(const CBuffer& ConfigSignature)
 {
-	CVariant ReqVar;
+	StVariant ReqVar;
     if(ConfigSignature.GetSize() > 0)
 	    ReqVar[API_V_SIGNATURE] = ConfigSignature;
 
@@ -230,7 +230,7 @@ STATUS CServiceAPI::CommitConfigChanges(const CBuffer& ConfigSignature)
 
 STATUS CServiceAPI::DiscardConfigChanges()
 {
-	CVariant ReqVar;
+	StVariant ReqVar;
 
 	return m_pClient->Call(SVC_API_DISCARD_CHANGES, ReqVar);
 }

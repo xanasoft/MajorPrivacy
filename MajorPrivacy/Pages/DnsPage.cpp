@@ -12,13 +12,66 @@ CDnsPage::CDnsPage(QWidget* parent)
 
 	//m_pToolBar = new QToolBar();
 	//m_pMainLayout->addWidget(m_pToolBar);
-	
-	//m_pVSplitter = new QSplitter(Qt::Vertical);
-	//m_pMainLayout->addWidget(m_pVSplitter);
+
+	m_pRuleTabs = new QTabWidget();
+
+	m_pRuleView = new CDnsRuleView();
+	m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Dns Rules"));
+
+	//m_pProxyView = new QWidget();
+	//m_pRuleTabs->addTab(m_pProxyView, tr("Proxy Injection"));
+
+
+	m_pTabs = new QTabWidget();
 
 	m_pDnsCacheView = new CDnsCacheView();
+	m_pTabs->addTab(m_pDnsCacheView, QIcon(":/Icons/Network3.png"), tr("DnsCache"));
 
-	m_pMainLayout->addWidget(m_pDnsCacheView);
+	m_pVSplitter = new QSplitter(Qt::Vertical);
+	m_pMainLayout->addWidget(m_pVSplitter);
+	m_pVSplitter->addWidget(m_pRuleTabs);
+	m_pVSplitter->setCollapsible(0, false);
+	m_pVSplitter->addWidget(m_pTabs);
+	m_pVSplitter->setCollapsible(1, false);
+
+}
+
+CDnsPage::~CDnsPage()
+{
+	theConf->SetValue("MainWindow/DnsTab", m_pTabs->currentIndex());
+}
+
+void CDnsPage::LoadState()
+{
+	m_pTabs->setCurrentIndex(theConf->GetInt("MainWindow/DnsTab", 0));
+}
+
+void CDnsPage::SetMergePanels(bool bMerge)
+{
+	if (!m_pVSplitter == bMerge)
+		return;
+
+	if (bMerge)
+	{
+		m_pMainLayout->addWidget(m_pTabs);
+		m_pTabs->insertTab(0, m_pRuleView, QIcon(":/Icons/Rules.png"), tr("Firewall Rules"));
+		delete m_pVSplitter;
+		m_pVSplitter = nullptr;
+	}
+	else
+	{
+		m_pVSplitter = new QSplitter(Qt::Vertical);
+		m_pRuleTabs = new QTabWidget();
+		m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Firewall Rules"));
+		m_pVSplitter->addWidget(m_pRuleTabs);
+		m_pRuleView->setVisible(true);
+		m_pVSplitter->setCollapsible(0, false);
+		m_pVSplitter->addWidget(m_pTabs);
+		m_pVSplitter->setCollapsible(1, false);
+		m_pMainLayout->addWidget(m_pVSplitter);
+	}
+
+	LoadState();
 }
 
 void CDnsPage::Update()
@@ -27,4 +80,6 @@ void CDnsPage::Update()
 		return;
 	
 	m_pDnsCacheView->Sync();
+
+	m_pRuleView->Sync(theCore->NetworkManager()->GetDnsRules());
 }

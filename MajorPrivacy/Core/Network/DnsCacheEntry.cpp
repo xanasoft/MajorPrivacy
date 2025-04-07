@@ -1,22 +1,13 @@
 #include "pch.h"
 #include "DnsCacheEntry.h"
 #include "../../MiscHelpers/Common/Common.h"
-#include "../../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyAPI.h"
 
 CDnsCacheEntry::CDnsCacheEntry(QObject *parent) 
 	: QObject(parent)
 {
 }
-
-#ifndef DNS_TYPE_A
-#define DNS_TYPE_A          0x0001      //  1
-#define DNS_TYPE_AAAA       0x001c      //  28
-#define DNS_TYPE_PTR        0x000c      //  12
-#define DNS_TYPE_CNAME      0x0005      //  5
-#define DNS_TYPE_SRV        0x0021      //  33
-#define DNS_TYPE_MX         0x000f      //  15
-#endif
 
 QString CDnsCacheEntry::GetTypeString() const
 {
@@ -25,35 +16,31 @@ QString CDnsCacheEntry::GetTypeString() const
 
 QString CDnsCacheEntry::GetTypeString(quint16 Type)
 {
-	switch (Type)
+	switch ((EType)Type)
 	{
-		case DNS_TYPE_A:	return "A";
-		case DNS_TYPE_AAAA:	return "AAAA";
-		case DNS_TYPE_PTR:	return "PTR";
-		case DNS_TYPE_CNAME:return "CNAME";
-		case DNS_TYPE_SRV:	return "SRV";
-		case DNS_TYPE_MX:	return "MX";
-		default:			return QString("UNKNOWN (%1)").arg(Type);
+	case EType::A:		return "A";
+	case EType::NA:		return "AN";
+	case EType::CNAME:	return "CNAME";
+	case EType::SOA:	return "SOA";
+	case EType::WKS:	return "WKS";
+	case EType::PTR:	return "PTR";
+	case EType::MX:		return "MX";
+	case EType::TXT:	return "TXT";
+	case EType::AAAA:	return "AAAA";
+	case EType::SRV:	return "SRV";
+	default:			return tr("UNKNOWN (%1)").arg(Type);
 	}
 }
 
-void CDnsCacheEntry::SetTTL(quint64 TTL)
+QString CDnsCacheEntry::GetStatusString() const
 {
-	if (m_TTL <= 0) {
-		//m_CreateTimeStamp = GetTime() * 1000;
-		m_RemoveTimeStamp = 0;
-		m_QueryCounter++;
+	switch (m_Status)
+	{
+	case eCached:	return tr("Cached");
+	case eAllowed:	return tr("Allowed");
+	case eBlocked:	return tr("Blocked");
+	default:		return tr("Unknown");
 	}
-
-	m_TTL = TTL; 
-}
-
-void CDnsCacheEntry::SubtractTTL(quint64 Delta)
-{ 
-	if (m_TTL > 0) // in case we flushed the cache and the entries were gone before the TTL expired
-		m_TTL = 0;
-
-	m_TTL -= Delta;	
 }
 
 /*
@@ -67,10 +54,10 @@ void CDnsCacheEntry::RecordProcess(const QString& ProcessName, quint64 ProcessId
 }
 */
 
-void CDnsCacheEntry::FromVariant(const class XVariant& Variant)
+void CDnsCacheEntry::FromVariant(const class QtVariant& Variant)
 {
-	Variant.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
-		const XVariant& Data = *(XVariant*)&vData;
+	QtVariantReader(Variant).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
+		const QtVariant& Data = *(QtVariant*)&vData;
 
 		switch (Index)
 		{
@@ -79,7 +66,9 @@ void CDnsCacheEntry::FromVariant(const class XVariant& Variant)
 		case API_V_DNS_ADDR:		m_Address = QHostAddress(Data.AsQStr()); break;
 		case API_V_DNS_DATA:		m_ResolvedString = Data.AsQStr(); break;
 		case API_V_DNS_TTL:			m_TTL = Data; break;
+		case API_V_DNS_STATUS:		m_Status = (EStatus)Data.To<int>(); break;
 		case API_V_DNS_QUERY_COUNT:	m_QueryCounter = Data; break;
+		case API_V_CREATE_TIME:		m_CreateTimeStamp = Data; break;
 		}
 	});
 }

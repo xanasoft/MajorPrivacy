@@ -10,7 +10,7 @@ EProgramType CProgramID::ReadType(const XVariant& Data, SVarWriteOpt::EFormat& F
 	if (Data.GetType() == VAR_TYPE_MAP)
 	{
 		Format = SVarWriteOpt::eMap;
-		ASTR TypeStr = Data.Find(API_S_PROG_TYPE);
+		ASTR TypeStr = VariantReader(Data).Find(API_S_PROG_TYPE);
 		if (TypeStr == API_S_PROG_TYPE_FILE)			Type = EProgramType::eProgramFile;
 		else if (TypeStr == API_S_PROG_TYPE_PATTERN)	Type = EProgramType::eFilePattern;
 		else if (TypeStr == API_S_PROG_TYPE_INSTALL)	Type = EProgramType::eAppInstallation;
@@ -23,7 +23,7 @@ EProgramType CProgramID::ReadType(const XVariant& Data, SVarWriteOpt::EFormat& F
 	else if (Data.GetType() == VAR_TYPE_INDEX)
 	{
 		Format = SVarWriteOpt::eIndex;
-		Type = (EProgramType)Data.Find(API_V_PROG_TYPE).To<uint32>();
+		Type = (EProgramType)VariantReader(Data).Find(API_V_PROG_TYPE).To<uint32>();
 	}
 	return Type;
 }
@@ -48,47 +48,47 @@ ASTR CProgramID::TypeToStr(EProgramType Type)
 
 XVariant CProgramID::ToVariant(const SVarWriteOpt& Opts) const
 {
-	XVariant ID;
+	VariantWriter ID;
 	if (Opts.Format == SVarWriteOpt::eIndex) 
 	{
-		ID.BeginIMap();
+		ID.BeginIndex();
 
 		ID.Write(API_V_PROG_TYPE, (uint32)m_Type);
 		if (m_Type != EProgramType::eAllPrograms && m_Type != EProgramType::eProgramGroup)
-			ID.Write(API_V_FILE_PATH, TO_STR(m_FilePath));
+			ID.WriteEx(API_V_FILE_PATH, TO_STR(m_FilePath));
 
 		switch (m_Type)
 		{
-		case EProgramType::eAppInstallation:	ID.Write(API_V_REG_KEY, TO_STR(m_AuxValue)); break;
-		case EProgramType::eWindowsService:		ID.Write(API_V_SERVICE_TAG, TO_STR(m_ServiceTag)); break;
-		case EProgramType::eProgramGroup:		ID.Write(API_V_GUID, TO_STR(m_AuxValue)); break;
-		case EProgramType::eAppPackage:			ID.Write(API_V_APP_SID, TO_STR(m_AuxValue)); break;
+		case EProgramType::eAppInstallation:	ID.WriteEx(API_V_REG_KEY, TO_STR(m_AuxValue)); break;
+		case EProgramType::eWindowsService:		ID.WriteEx(API_V_SERVICE_TAG, TO_STR(m_ServiceTag)); break;
+		case EProgramType::eProgramGroup:		ID.WriteEx(API_V_GUID, TO_STR(m_AuxValue)); break;
+		case EProgramType::eAppPackage:			ID.WriteEx(API_V_APP_SID, TO_STR(m_AuxValue)); break;
 		}
 	} 
 	else 
 	{ 
 		ID.BeginMap();
 
-		ID.Write(API_S_PROG_TYPE, TypeToStr(m_Type));
+		ID.WriteEx(API_S_PROG_TYPE, TypeToStr(m_Type));
 		if (m_Type != EProgramType::eAllPrograms && m_Type != EProgramType::eProgramGroup)
-			ID.Write(API_S_FILE_PATH, TO_STR(m_FilePath));
+			ID.WriteEx(API_S_FILE_PATH, TO_STR(m_FilePath));
 
 		switch (m_Type)
 		{
-		case EProgramType::eAppInstallation:	ID.Write(API_S_REG_KEY, TO_STR(m_AuxValue)); break;
-		case EProgramType::eWindowsService:		ID.Write(API_S_SERVICE_TAG, TO_STR(m_ServiceTag)); break;
-		case EProgramType::eProgramGroup:		ID.Write(API_S_GUID, TO_STR(m_AuxValue)); break;
-		case EProgramType::eAppPackage:			ID.Write(API_S_APP_SID, TO_STR(m_AuxValue)); break;
+		case EProgramType::eAppInstallation:	ID.WriteEx(API_S_REG_KEY, TO_STR(m_AuxValue)); break;
+		case EProgramType::eWindowsService:		ID.WriteEx(API_S_SERVICE_TAG, TO_STR(m_ServiceTag)); break;
+		case EProgramType::eProgramGroup:		ID.WriteEx(API_S_GUID, TO_STR(m_AuxValue)); break;
+		case EProgramType::eAppPackage:			ID.WriteEx(API_S_APP_SID, TO_STR(m_AuxValue)); break;
 		}
 	}
-	ID.Finish();
-	return ID;
+	return ID.Finish();
 }
 
-bool CProgramID::FromVariant(const class XVariant& ID)
+bool CProgramID::FromVariant(const class XVariant& _ID)
 {
+	VariantReader ID(_ID);
 	SVarWriteOpt::EFormat Format;
-	m_Type = ReadType(ID, Format);
+	m_Type = ReadType(_ID, Format); // todo pass reader !! ZZZZZZZZZZZZZZ
 
 	if (m_Type != EProgramType::eAllPrograms && m_Type != EProgramType::eProgramGroup)
 		m_FilePath = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_FILE_PATH) : ID.Find(API_V_FILE_PATH));

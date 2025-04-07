@@ -23,22 +23,6 @@
 
 FW_NAMESPACE_BEGIN
 
-enum class EMapInsertMode
-{
-	eNormal = 0, // Insert or Repalce if exists
-	eMulti,
-	eNoReplace,
-	eNoInsert
-};
-
-enum class EMapResult
-{
-	eOK = 0,
-	eNoMemory,
-	eNoEntry,
-	eKeyExists
-};
-
 template <typename K>
 struct MapDefaultLess {
 	bool operator()(const K& l, const K& r) const {
@@ -46,12 +30,13 @@ struct MapDefaultLess {
 	}
 };
 
-template <typename K, typename V, typename LESS = MapDefaultLess<K>>
+template <typename K, typename V, typename LESS = MapDefaultLess<K>, typename NEW = DefaultValue<V>>
 class Map : public AbstractContainer
 {
-	struct SRBTreeNode 
+public:
+	struct SRBTreeNode
 	{
-		SRBTreeNode(const K& Key, const V& Value = V()) : key(Key), Value(Value) {}
+		SRBTreeNode(const K& Key, const V& Value) : key(Key), Value(Value) {}
 		SRBTreeNode* parent = nullptr;
 		SRBTreeNode* left = nullptr;
 		SRBTreeNode* right = nullptr;
@@ -60,14 +45,13 @@ class Map : public AbstractContainer
 		V Value;
 	};
 
-public:
 	Map(AbstractMemPool* pMem = nullptr) : AbstractContainer(pMem) {}
 	Map(const Map& Other) : AbstractContainer(Other){ Assign(Other); }
 	Map(Map&& Other) : AbstractContainer(Other)		{ m_ptr = Other.m_ptr; Other.m_ptr = nullptr; }
 	~Map()											{ DetachData(); }
 
-	Map& operator=(const Map& Other)				{ if(m_ptr == Other.m_ptr) return *this; Assign(Other); return *this; }
-	Map& operator=(Map&& Other)						{ if(m_ptr == Other.m_ptr) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
+	Map& operator=(const Map& Other)				{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; Assign(Other); return *this; }
+	Map& operator=(Map&& Other)						{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
 
 	const SafeRef<const V> operator[](const K& Key) const	{ return GetContrPtr(Key); }
 	SafeRef<V> operator[](const K& Key)				{ return SetValuePtr(Key, nullptr).first; }
@@ -79,7 +63,7 @@ public:
 
 	bool MakeExclusive()							{ if(m_ptr && m_ptr->Refs > 1) return MakeExclusive(nullptr); return true; }
 
-	EMapResult Assign(const Map& Other)
+	EInsertResult Assign(const Map& Other)
 	{
 		if (!m_pMem)
 			m_pMem = Other.m_pMem;
@@ -88,19 +72,19 @@ public:
 			return Merge(Other);
 		}
 		AttachData(Other.m_ptr);
-		return EMapResult::eOK;
+		return EInsertResult::eOK;
 	}
 
-	EMapResult Merge(const Map& Other)
+	EInsertResult Merge(const Map& Other)
 	{
 		if (!MakeExclusive(nullptr))
-			return EMapResult::eNoMemory;
+			return EInsertResult::eNoMemory;
 
 		for (auto I = Other.begin(); I != Other.end(); ++I) {
 			if(!InsertValue(I.Key(), &I.Value())) 
-				return EMapResult::eNoMemory;
+				return EInsertResult::eNoMemory;
 		}
-		return EMapResult::eOK;
+		return EInsertResult::eOK;
 	}
 
 	Array<K> Keys() const // Keys may repeat if there are multiple entries with the same Key
@@ -129,7 +113,8 @@ public:
 			return &pNode->Value;
 		if(!bCanAdd)
 			return nullptr;
-		return &InsertValue(Key, nullptr)->Value;
+		pNode = InsertValue(Key, nullptr);
+		return pNode ? &pNode->Value : nullptr;
 	}
 	const SafeRef<const V> FindValue(const K& Key) const { return GetContrPtr(Key); }
 	SafeRef<const V> FindValue(const K& Key)  { return GetContrPtr(Key); }
@@ -159,54 +144,53 @@ public:
 	}
 	bool SetValue(const K& Key, const V& Value)		{ return SetValuePtr(Key, &Value).second;}
 
-	EMapResult Insert(const K& Key, const V& Value, EMapInsertMode Mode = EMapInsertMode::eNormal)
+	EInsertResult Insert(const K& Key, const V& Value, EInsertMode Mode = EInsertMode::eNormal)
 	{ 
 		if (!MakeExclusive(nullptr))
-			return EMapResult::eNoMemory;
+			return EInsertResult::eNoMemory;
 
-		if (Mode != EMapInsertMode::eMulti) {
+		if (Mode != EInsertMode::eMulti) {
 			SRBTreeNode* pNode = rbtree_search(m_ptr, Key);
 			if (pNode) {
-				if (Mode == EMapInsertMode::eNoReplace) 
-					return EMapResult::eKeyExists;
+				if (Mode == EInsertMode::eNoReplace) 
+					return EInsertResult::eKeyExists;
 				pNode->Value = Value;
-				return EMapResult::eOK;
+				return EInsertResult::eOK;
 			}
 		}
 
-		if(Mode == EMapInsertMode::eNoInsert)
-			return EMapResult::eNoEntry;
+		if(Mode == EInsertMode::eNoInsert)
+			return EInsertResult::eNoEntry;
 
-		return InsertValue(Key, &Value) ? EMapResult::eOK : EMapResult::eNoMemory;
+		return InsertValue(Key, &Value) ? EInsertResult::eOK : EInsertResult::eNoMemory;
 	}
 
-	EMapResult Remove(const K& Key/*, bool bAll = true*/)
+	bool Remove(const K& Key/*, bool bAll = true*/)
 	{
 		if (!MakeExclusive(nullptr))
-			return EMapResult::eNoMemory;
+			return false;
 
 		SRBTreeNode* pNode = rbtree_delete(m_ptr, Key);
 		if (pNode) {
 			pNode->~SRBTreeNode();
-			m_pMem->Free(pNode);
+			MemFree(pNode);
+			return true;
 		}
-
-		return EMapResult::eOK;
+		return false;
 	}
 
-	EMapResult Remove(const K& Key, const V& Value/*, bool bAll = true*/)
+	bool Remove(const K& Key, const V& Value/*, bool bAll = true*/)
 	{
 		if (!MakeExclusive(nullptr))
-			return EMapResult::eNoMemory;
+			return false;
 
 		for(auto I = find(Key); I != end() && I.Key() == Key; ++I) {
 			if(I.Value() == Value) {
 				erase(I);
-				break;
+				return true;
 			}
 		}
-
-		return EMapResult::eOK;
+		return false;
 	}
 
 	V Take(const K& Key)
@@ -217,7 +201,7 @@ public:
 			if (pNode) {
 				Value = pNode->Value;
 				pNode->~SRBTreeNode();
-				m_pMem->Free(pNode);
+				MemFree(pNode);
 			}
 		}
 		return Value;
@@ -295,7 +279,7 @@ public:
 		if (pNode != &m_ptr->NullNode) {
 			rbtree_delete(m_ptr, pNode);
 			pNode->~SRBTreeNode();
-			m_pMem->Free(pNode);
+			MemFree(pNode);
 		}
 		return I;
 	}
@@ -303,10 +287,11 @@ public:
 protected:
 	struct SMapData
 	{
+		SMapData(const V& Null) : NullNode(K(), Null) {}
 		volatile LONG Refs = 0;
 		size_t count = 0;
 		SRBTreeNode* root = nullptr;
-		SRBTreeNode NullNode = SRBTreeNode(K());
+		SRBTreeNode NullNode;
 	}* m_ptr = nullptr;
 
 	bool MakeExclusive(Iterator* pI)
@@ -322,14 +307,14 @@ protected:
 			SMapData* ptr = MakeData();
 			if (!ptr) return false;
 			for (SRBTreeNode* pNode = rbtree_first(m_ptr); pNode != &m_ptr->NullNode; pNode = rbtree_next(m_ptr, pNode)) {
-				SRBTreeNode* pNew = (SRBTreeNode*)m_pMem->Alloc(sizeof(SRBTreeNode));
+				SRBTreeNode* pNew = (SRBTreeNode*)MemAlloc(sizeof(SRBTreeNode));
 				if (!pNew) break; // todo
 				new (pNew) SRBTreeNode(pNode->key, pNode->Value);
 				rbtree_insert(ptr, pNew);
 				// we need to update the iterator if it points to the current entry
 				if (pI && pI->pNode == pNode) {
 					pI->pNode = pNew;
-					pI = NULL;
+					pI = nullptr;
 				}
 			}
 			AttachData(ptr);
@@ -341,10 +326,15 @@ protected:
 	{
 		ASSERT(m_ptr);
 
-		SRBTreeNode* pNode = (SRBTreeNode*)m_pMem->Alloc(sizeof(SRBTreeNode));
+		SRBTreeNode* pNode = (SRBTreeNode*)MemAlloc(sizeof(SRBTreeNode));
 		if (!pNode) return nullptr;
-		if(pValue) new (pNode) SRBTreeNode(Key, *pValue);
-		else new (pNode) SRBTreeNode(Key);
+		if(pValue) 
+			new (pNode) SRBTreeNode(Key, *pValue);
+		else
+		{
+			NEW New;
+			new (pNode) SRBTreeNode(Key, New(m_pMem));
+		}
 
 		rbtree_insert(m_ptr, pNode);
 
@@ -540,7 +530,7 @@ protected:
 		if (rbtree && rbtree_find_less_equal(rbtree, key, &node)) {
 			return node;
 		} else {
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -775,7 +765,7 @@ protected:
 		/* We start at root... */
 		node = rbtree->root;
 
-		*result = NULL;
+		*result = nullptr;
 
 		/* While there are children... */
 		while (node != RBTREE_NULL) {
@@ -804,7 +794,7 @@ protected:
 		/* We start at root... */
 		node = rbtree->root;
 
-		*result = NULL;
+		*result = nullptr;
 
 		/* While there are children... */
 		while (node != RBTREE_NULL) {
@@ -894,12 +884,11 @@ protected:
 
 	SMapData* MakeData()
 	{
-		if (!m_pMem) 
-			return nullptr;
-		SMapData* ptr = (SMapData*)m_pMem->Alloc(sizeof(SMapData));
+		SMapData* ptr = (SMapData*)MemAlloc(sizeof(SMapData));
 		if(!ptr) 
 			return nullptr;
-		new (ptr) SMapData();
+		NEW New;
+		new (ptr) SMapData(New(m_pMem));
 		ptr->NullNode.parent = ptr->NullNode.left = ptr->NullNode.right = &ptr->NullNode;
 		ptr->NullNode.color = BLACK;
 		ptr->root = &ptr->NullNode;
@@ -930,11 +919,11 @@ protected:
 					else {
 						SRBTreeNode* tmpNode = node->left;
 						node->~SRBTreeNode();
-						m_pMem->Free(node);
+						MemFree(node);
 						node = tmpNode;
 					}
 				}
-				m_pMem->Free(m_ptr);
+				MemFree(m_ptr);
 			}
 			m_ptr = nullptr;
 		}

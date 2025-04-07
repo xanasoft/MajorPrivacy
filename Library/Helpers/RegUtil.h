@@ -1,6 +1,6 @@
 #pragma once
 #include "../lib_global.h"
-#include "../Common/Variant.h"
+#include "../Common/StVariant.h"
 
 LIBRARY_EXPORT bool RegEnumKeys(HANDLE keyHandle, ULONG Index, std::wstring& OutName);
 
@@ -8,11 +8,11 @@ LIBRARY_EXPORT std::wstring RegQueryWString(HANDLE keyHandle, const std::wstring
 LIBRARY_EXPORT DWORD RegQueryDWord(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, DWORD defaultValue);
 LIBRARY_EXPORT DWORD RegSetDWord(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, DWORD value);
 
-LIBRARY_EXPORT CVariant RegQuery(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const CVariant& defaultValue = CVariant());
-LIBRARY_EXPORT CVariant RegQuery(HKEY hKey, const WCHAR* valueName, const CVariant& defaultValue = CVariant());
+LIBRARY_EXPORT StVariant RegQuery(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const StVariant& defaultValue = StVariant());
+LIBRARY_EXPORT StVariant RegQuery(HKEY hKey, const WCHAR* valueName, const StVariant& defaultValue = StVariant());
 
-LIBRARY_EXPORT DWORD RegSet(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const CVariant& value);
-LIBRARY_EXPORT DWORD RegSet(HKEY hKey, const WCHAR* valueName, const CVariant& value);
+LIBRARY_EXPORT DWORD RegSet(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName, const StVariant& value);
+LIBRARY_EXPORT DWORD RegSet(HKEY hKey, const WCHAR* valueName, const StVariant& value);
 
 LIBRARY_EXPORT DWORD RegDelValue(HKEY hKey, const WCHAR* subKey, const WCHAR* valueName);
 LIBRARY_EXPORT DWORD RegDelKey(HKEY hKey, const WCHAR* subKey);

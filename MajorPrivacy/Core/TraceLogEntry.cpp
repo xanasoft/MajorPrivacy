@@ -2,15 +2,15 @@
 #include "TraceLogEntry.h"
 #include "../Library/API/PrivacyAPI.h"
 
-void CAbstractLogEntry::FromVariant(const class XVariant& FwEvent)
+void CAbstractLogEntry::FromVariant(const class QtVariant& FwEvent)
 {
-	FwEvent.ReadRawIMap([&](uint32 Index, const CVariant& vData) {
-		const XVariant& Data = *(XVariant*)&vData;
+	QtVariantReader(FwEvent).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
+		const QtVariant& Data = *(QtVariant*)&vData;
 		ReadValue(Index, Data);
 	});
 }
 
-void CAbstractLogEntry::ReadValue(uint32 Index, const XVariant& Data)
+void CAbstractLogEntry::ReadValue(uint32 Index, const QtVariant& Data)
 {
 	switch (Index)
 	{

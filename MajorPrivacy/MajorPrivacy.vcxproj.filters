@@ -56,9 +56,6 @@
     <Filter Include="Core\Tweaks">
       <UniqueIdentifier>{54f9408a-dc1d-4cc1-8912-2183fc4281c5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Framework">
-      <UniqueIdentifier>{76cce916-0e6a-499a-bc07-d656fc11deaf}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core\Processes">
       <UniqueIdentifier>{55f1a6fc-3b81-4405-afc7-d03822200f72}</UniqueIdentifier>
     </Filter>
@@ -160,9 +157,6 @@
     <ClCompile Include="Pages\HomePage.cpp">
       <Filter>Pages</Filter>
     </ClCompile>
-    <ClCompile Include="..\Library\Common\XVariant.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Programs\AppInstallation.cpp">
       <Filter>Core\Programs</Filter>
     </ClCompile>
@@ -222,9 +216,6 @@
     </ClCompile>
     <ClCompile Include="Core\Programs\ProgramRule.cpp">
       <Filter>Core\Programs</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Framework\Memory.cpp">
-      <Filter>Framework</Filter>
     </ClCompile>
     <ClCompile Include="Windows\ProgramRuleWnd.cpp">
       <Filter>Windows</Filter>
@@ -445,6 +436,18 @@
     <ClCompile Include="Windows\SignatureDbWnd.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Views\DnsRuleView.cpp">
+      <Filter>Views\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\DnsRuleModel.cpp">
+      <Filter>Models\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Network\DnsRule.cpp">
+      <Filter>Core\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\QtVariant.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -459,9 +462,6 @@
     <ClInclude Include="Core\Programs\ProgramID.h">
       <Filter>Core\Programs</Filter>
     </ClInclude>
-    <ClInclude Include="..\Library\Common\XVariant.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Helpers\WinHelper.h">
       <Filter>Helpers</Filter>
     </ClInclude>
@@ -470,54 +470,6 @@
     </ClInclude>
     <ClInclude Include="Core\TraceLogEntry.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Array.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Defer.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Framework.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Header.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\List.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Map.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Memory.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Object.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Pair.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\RetValue.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\SafeRef.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\SharedPtr.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\String.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\Table.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\UniquePtr.h">
-      <Filter>Framework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Framework\WeakPtr.h">
-      <Filter>Framework</Filter>
     </ClInclude>
     <ClInclude Include="Core\Processes\ExecLogEntry.h">
       <Filter>Core\Processes</Filter>
@@ -533,6 +485,12 @@
     </ClInclude>
     <ClInclude Include="Core\Programs\ImageSignInfo.h">
       <Filter>Core\Programs</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\QtVariant.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\QtFlexGuid.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -855,6 +813,15 @@
     </QtMoc>
     <QtMoc Include="Windows\SignatureDbWnd.h">
       <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\DnsRuleView.h">
+      <Filter>Views\Network</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\DnsRuleModel.h">
+      <Filter>Models\Network</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Network\DnsRule.h">
+      <Filter>Core\Network</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

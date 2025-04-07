@@ -4,7 +4,7 @@
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/API/PrivacyAPI.h"
-#include "../Library/Common/XVariant.h"
+#include "./Common/QtVariant.h"
 
 CProgramManager::CProgramManager(QObject* parent)
 	: QObject(parent)
@@ -14,14 +14,14 @@ CProgramManager::CProgramManager(QObject* parent)
 	m_Items.insert(m_Root->GetUID(), m_Root);
 }
 
-//void CProgramManager::UpdateGroup(const CProgramGroupPtr& Group, const class XVariant& Root)
+//void CProgramManager::UpdateGroup(const CProgramGroupPtr& Group, const class QtVariant& Root)
 //{
 //	QMap<quint64, CProgramItemPtr> OldMap = Group->m_Nodes;
 //
-//	const XVariant& Items = Root[SVC_API_PROG_ITEMS];
+//	const QtVariant& Items = Root[SVC_API_PROG_ITEMS];
 //	for (int i = 0; i < Items.Count(); i++)
 //	{
-//		const XVariant& Item = Items[i];
+//		const QtVariant& Item = Items[i];
 //
 //		quint64 uId = Item[SVC_API_PROG_UID];
 //		CProgramItemPtr pItem = OldMap.take(uId);
@@ -60,24 +60,26 @@ STATUS CProgramManager::Update()
 
 	//UpdateGroup(m_Root, Ret.GetValue());
 
-	const XVariant& Items = Ret.GetValue();
+	const QtVariant& Items = Ret.GetValue();
 
 	QMap<quint64, QSet<quint64>> Tree;
 
 	QMap<quint64, CProgramItemPtr> OldMap = m_Items;
 
-	Items.ReadRawList([&](const CVariant& vData) {
-		const XVariant& Item = *(XVariant*)&vData;
+	QtVariantReader(Items).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& Item = *(QtVariant*)&vData;
 
-		quint64 uId = Item.Find(API_V_PROG_UID);
+		QtVariantReader Reader(Item);
+
+		quint64 uId = Reader.Find(API_V_PROG_UID);
 
 		CProgramItemPtr pItem = OldMap.take(uId);
 		if (!pItem) 
 		{
 			CProgramID ID;
-			ID.FromVariant(Item.Find(API_V_PROG_ID));
+			ID.FromVariant(Reader.Find(API_V_PROG_ID));
 
-			EProgramType Type = (EProgramType)Item.Find(API_V_PROG_TYPE).To<uint32>();
+			EProgramType Type = (EProgramType)Reader.Find(API_V_PROG_TYPE).To<uint32>();
 			if (Type == EProgramType::eProgramFile)				pItem = CProgramItemPtr(new CProgramFile());
 			else if (Type == EProgramType::eFilePattern)		pItem = CProgramItemPtr(new CProgramPattern());
 			else if (Type == EProgramType::eAppInstallation)	pItem = CProgramItemPtr(new CAppInstallation());
@@ -101,9 +103,9 @@ STATUS CProgramManager::Update()
 
 		if (pItem->inherits("CProgramSet")) 
 		{
-			auto Items = Item.Find(API_V_PROG_ITEMS);
+			auto Items = Reader.Find(API_V_PROG_ITEMS);
 			QSet<quint64> ItemIDs;
-			Items.ReadRawList([&](const CVariant& vData) {
+			QtVariantReader(Items).ReadRawList([&](const FW::CVariant& vData) {
 				//Q_ASSERT(!ItemIDs.contains(vData.Get(SVC_API_PROG_UID))); // todo: xxx
 				ItemIDs.insert(vData.Get(API_V_PROG_UID));
 			});
@@ -158,29 +160,32 @@ STATUS  CProgramManager::UpdateLibs()
 	if (Ret.IsError())
 		return Ret.GetStatus();
 
-	const XVariant& Libraries = Ret.GetValue().Get(API_V_LIBRARIES);
+	const QtVariant& Libraries = Ret.GetValue().Get(API_V_LIBRARIES);
 
 	QMap<quint64, CProgramLibraryPtr> OldLibraries = m_Libraries;
 
-	Libraries.ReadRawList([&](const CVariant& vData) {
-		const XVariant& Library = *(XVariant*)&vData;
+	QtVariantReader(Libraries).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& Library = *(QtVariant*)&vData;
 
-		quint64 UID = Library.Find(API_V_PROG_UID);
+		quint64 UID = QtVariantReader(Library).Find(API_V_PROG_UID);
 
 		CProgramLibraryPtr pLibrary = OldLibraries.take(UID);
+		bool bUpdate = false; // we dont have live library  data currently hence we dont update it once its enlisted
 		if (!pLibrary) {
 			pLibrary = CProgramLibraryPtr(new CProgramLibrary());
 			m_Libraries.insert(UID, pLibrary);
+			bUpdate = true;
 		} 
 
-		pLibrary->FromVariant(Library);
+		if(bUpdate)
+			pLibrary->FromVariant(Library);
 	});
 
 	//m_LibrariesCacheToken = Ret.GetValue().Get(SVC_API_CACHE_TOKEN).To<uint64>(0);
 
 	//if (m_LibrariesCacheToken)
 	//{
-	//	const XVariant& OldLibraries = Ret.GetValue().Get(SVC_API_OLD_LIBRARIES);
+	//	const QtVariant& OldLibraries = Ret.GetValue().Get(SVC_API_OLD_LIBRARIES);
 
 	//	OldLibraries.ReadRawList([&](const CVariant& vData) {
 	//		quint64 UID = vData;
@@ -353,13 +358,13 @@ bool CProgramManager::UpdateAllProgramRules()
 	if (Ret.IsError())
 		return false;
 
-	XVariant& Rules = Ret.GetValue();
+	QtVariant& Rules = Ret.GetValue();
 
 	QMap<QFlexGuid, CProgramRulePtr> OldRules = m_ProgramRules;
 
 	for (int i = 0; i < Rules.Count(); i++)
 	{
-		const XVariant& Rule = Rules[i];
+		const QtVariant& Rule = Rules[i];
 
 		QFlexGuid Guid;
 		Guid.FromVariant(Rule[API_V_GUID]);
@@ -403,7 +408,7 @@ bool CProgramManager::UpdateProgramRule(const QFlexGuid& Guid)
 	if (Ret.IsError())
 		return false;
 
-	XVariant& Rule = Ret.GetValue();
+	QtVariant& Rule = Ret.GetValue();
 
 	QFlexGuid Guid2;
 	Guid2.FromVariant(Rule[API_V_GUID]);
@@ -473,7 +478,7 @@ RESULT(CProgramRulePtr) CProgramManager::GetProgramRule(const QFlexGuid& Guid)
 	if (Ret.IsError())
 		return Ret;
 
-	XVariant& Rule = Ret.GetValue();
+	QtVariant& Rule = Ret.GetValue();
 
 	QString ProgramPath = Rule[API_V_FILE_PATH].AsQStr();
 	CProgramID ID;

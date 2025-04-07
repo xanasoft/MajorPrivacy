@@ -205,13 +205,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Framework\Memory.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="..\Library\Common\XVariant.cpp" />
+    <ClCompile Include="Common\QtVariant.cpp" />
     <ClCompile Include="Core\Access\AccessEntry.cpp" />
     <ClCompile Include="Core\Access\AccessManager.cpp" />
     <ClCompile Include="Core\Access\AccessRule.cpp" />
@@ -222,6 +216,7 @@
     <ClCompile Include="Core\Enclaves\EnclaveManager.cpp" />
     <ClCompile Include="Core\GenericRule.cpp" />
     <ClCompile Include="Core\Network\DnsCacheEntry.cpp" />
+    <ClCompile Include="Core\Network\DnsRule.cpp" />
     <ClCompile Include="Core\Network\FwRule.cpp" />
     <ClCompile Include="Core\Network\NetLogEntry.cpp" />
     <ClCompile Include="Core\Network\NetworkManager.cpp" />
@@ -256,6 +251,7 @@
     <ClCompile Include="Models\AccessListModel.cpp" />
     <ClCompile Include="Models\AccessModel.cpp" />
     <ClCompile Include="Models\DnsCacheModel.cpp" />
+    <ClCompile Include="Models\DnsRuleModel.cpp" />
     <ClCompile Include="Models\EnclaveModel.cpp" />
     <ClCompile Include="Models\ExecutionModel.cpp" />
     <ClCompile Include="Models\HandleModel.cpp" />
@@ -291,6 +287,7 @@
     <ClCompile Include="Views\AccessListView.cpp" />
     <ClCompile Include="Views\AccessView.cpp" />
     <ClCompile Include="Views\DnsCacheView.cpp" />
+    <ClCompile Include="Views\DnsRuleView.cpp" />
     <ClCompile Include="Views\EnclaveView.cpp" />
     <ClCompile Include="Views\ExecutionView.cpp" />
     <ClCompile Include="Views\HandleView.cpp" />
@@ -327,6 +324,7 @@
     <ClCompile Include="Windows\VolumeWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Views\DnsRuleView.h" />
     <QtMoc Include="Windows\SignatureDbWnd.h" />
     <QtMoc Include="Windows\EnclaveWnd.h" />
     <QtMoc Include="Views\LibraryInfoView.h" />
@@ -347,30 +345,17 @@
     <QtMoc Include="Windows\ProgramRuleWnd.h" />
     <QtMoc Include="Windows\PopUpWindow.h" />
     <QtMoc Include="Core\Network\DnsCacheEntry.h" />
-    <ClInclude Include="..\Framework\Array.h" />
-    <ClInclude Include="..\Framework\Defer.h" />
-    <ClInclude Include="..\Framework\Framework.h" />
-    <ClInclude Include="..\Framework\Header.h" />
-    <ClInclude Include="..\Framework\List.h" />
-    <ClInclude Include="..\Framework\Map.h" />
-    <ClInclude Include="..\Framework\Memory.h" />
-    <ClInclude Include="..\Framework\Object.h" />
-    <ClInclude Include="..\Framework\Pair.h" />
-    <ClInclude Include="..\Framework\RetValue.h" />
-    <ClInclude Include="..\Framework\SafeRef.h" />
-    <ClInclude Include="..\Framework\SharedPtr.h" />
-    <ClInclude Include="..\Framework\String.h" />
-    <ClInclude Include="..\Framework\Table.h" />
-    <ClInclude Include="..\Framework\UniquePtr.h" />
-    <ClInclude Include="..\Framework\WeakPtr.h" />
     <QtMoc Include="Core\Access\AccessManager.h" />
     <QtMoc Include="Core\Access\AccessRule.h" />
+    <ClInclude Include="Common\QtFlexGuid.h" />
+    <ClInclude Include="Common\QtVariant.h" />
     <ClInclude Include="Core\Access\AccessEntry.h" />
     <QtMoc Include="Core\Access\Handle.h" />
     <ClInclude Include="Core\Access\ResLogEntry.h" />
     <QtMoc Include="Core\GenericRule.h" />
     <QtMoc Include="Core\Enclaves\Enclave.h" />
     <QtMoc Include="Core\Enclaves\EnclaveManager.h" />
+    <QtMoc Include="Core\Network\DnsRule.h" />
     <ClInclude Include="Core\Network\NetLogEntry.h" />
     <QtMoc Include="Windows\SettingsWindow.h" />
     <QtMoc Include="Core\Network\TrafficEntry.h" />
@@ -428,7 +413,6 @@
     <QtMoc Include="Core\Programs\ProgramManager.h" />
     <QtMoc Include="Core\Programs\ProgramPattern.h" />
     <QtMoc Include="Core\Programs\WindowsService.h" />
-    <ClInclude Include="..\Library\Common\XVariant.h" />
     <QtMoc Include="Core\Programs\AppInstallation.h" />
     <QtMoc Include="Core\Network\FwRule.h" />
     <QtMoc Include="Core\Network\Socket.h" />
@@ -448,6 +432,7 @@
     <QtMoc Include="Models\HandleModel.h" />
     <QtMoc Include="Models\EnclaveModel.h" />
     <QtMoc Include="Models\AccessListModel.h" />
+    <QtMoc Include="Models\DnsRuleModel.h" />
     <ClInclude Include="version.h" />
     <QtMoc Include="MajorPrivacy.h" />
     <ClInclude Include="Resources\resource.h" />
