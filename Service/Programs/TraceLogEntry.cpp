@@ -2,26 +2,31 @@
 #include "TraceLogEntry.h"
 #include "../../Library/API/PrivacyAPI.h"
 
-CVariant CTraceLogEntry::ToVariant() const
+StVariant CTraceLogEntry::ToVariant() const
 {
-	CVariant Entry;
-	Entry.BeginIMap();
+	StVariantWriter Entry;
+	Entry.BeginIndex();
 	
 	WriteVariant(Entry);
 
-	Entry.Finish();
-	return Entry;
+	return Entry.Finish();
 }
 
-void CTraceLogEntry::WriteVariant(CVariant& Entry) const
+void CTraceLogEntry::WriteVariant(StVariantWriter& Entry) const
 {
 	Entry.Write(API_V_EVENT_REF, (uint64)this);
 
 	Entry.Write(API_V_PID, m_PID);
 
-	if(!m_ServiceTag.empty()) Entry.Write(API_V_SERVICE_TAG, m_ServiceTag);
-	if(!m_AppSid.empty()) Entry.Write(API_V_APP_SID, m_AppSid);
+#ifdef DEF_USE_POOL
+	if(!m_ServiceTag.IsEmpty()) Entry.Write(API_V_SERVICE_TAG, m_ServiceTag);
+	if(!m_AppSid.IsEmpty()) Entry.Write(API_V_APP_SID, m_AppSid);
+#else
+	if(!m_ServiceTag.empty()) Entry.WriteEx(API_V_SERVICE_TAG, m_ServiceTag);
+	if(!m_AppSid.empty()) Entry.WriteEx(API_V_APP_SID, m_AppSid);
+#endif
 	if(!m_EnclaveGuid.IsNull()) Entry.WriteVariant(API_V_ENCLAVE, m_EnclaveGuid.ToVariant(false));
 
 	Entry.Write(API_V_EVENT_TIME_STAMP, m_TimeStamp);
 }
+

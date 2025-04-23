@@ -105,6 +105,21 @@ void CAccessPage::Update()
 
 	auto Current = theGUI->GetCurrentItems();
 
+	QSet<CProgramFilePtr> Programs = Current.ProgramsEx;
+	if (m_pAccessView->isVisible() || m_pTraceView->isVisible()) {
+		for (auto& pProgram : Current.ProgramsIm) {
+			if(pProgram->GetResTrace() != ETracePreset::ePrivate)
+				Programs.insert(pProgram);
+		}
+	}
+	QSet<CWindowsServicePtr> Services = Current.ServicesEx;
+	if (m_pAccessView->isVisible()) {
+		for (auto& pService : Current.ServicesIm) {
+			if (pService->GetResTrace() != ETracePreset::ePrivate)
+				Services.insert(pService);
+		}
+	}
+
 	if (m_pRuleView->isVisible())
 	{
 		if(Current.bAllPrograms)
@@ -124,12 +139,12 @@ void CAccessPage::Update()
 
 	if (m_pAccessView->isVisible())
 	{
-		m_pAccessView->Sync(Current.Programs, Current.ServicesEx | Current.ServicesIm);
+		m_pAccessView->Sync(Programs, Services);
 	}
 
 	if (m_pTraceView->isVisible())
 	{
-		m_pTraceView->Sync(ETraceLogs::eResLog, Current.Programs, Current.ServicesEx);
+		m_pTraceView->Sync(ETraceLogs::eResLog, Programs, Current.ServicesEx);
 	}
 }
 

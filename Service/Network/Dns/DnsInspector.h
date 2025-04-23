@@ -2,7 +2,7 @@
 #include "../Library/Status.h"
 #include "DnsCacheEntry.h"
 #include "..\Library\Common\Address.h"
-#include "..\Library\Common\Variant.h"
+#include "..\Library\Common\StVariant.h"
 #include "DnsHostName.h"
 
 class CDnsInspector
@@ -20,12 +20,13 @@ public:
 
 	bool ResolveHost(const CAddress& Address, const CHostNamePtr& pHostName);
 
-	CVariant DumpDnsCache();
+	StVariant DumpDnsCache();
 
 	void FlushDnsCache();
 
 protected:
 	void OnEtwDnsEvent(const struct SEtwDnsEvent* pEvent);
+	void OnDnsFilterEvent(const struct SDnsFilterEvent* pEvent);
 
 	void ProcessJobList();
 

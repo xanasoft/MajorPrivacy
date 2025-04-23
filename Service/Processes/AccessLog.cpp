@@ -17,48 +17,93 @@ void CAccessLog::AddExecParent(uint64 ProgramUID, const CFlexGuid& EnclaveGuid, 
 {
 	std::unique_lock lock(m_Mutex);
 
-	SExecInfo* pInfo = &m_ExecParents[ProgramUID].Infos[ProcessUID.Get()];
+	if (!m_Data) {
+#ifdef DEF_USE_POOL
+		if(!m_pMem)
+			return;
+		m_Data = m_pMem->New<SAccessLog>();
+#else
+		m_Data = std::make_shared<SAccessLog>();
+#endif
+	}
+
+#ifdef DEF_USE_POOL
+	auto Ref = m_Data->ExecParents[ProgramUID];
+	SExecInfo* pInfo = &(&Ref)->Infos[ProcessUID.Get()];
+#else
+	SExecInfo* pInfo = &m_Data->ExecParents[ProgramUID].Infos[ProcessUID.Get()];
+#endif
 	pInfo->bBlocked = bBlocked;
 	pInfo->LastExecTime = CreateTime;
+#ifdef DEF_USE_POOL
+	pInfo->CommandLine.Assign(CmdLine.c_str(), CmdLine.length());
+#else
 	pInfo->CommandLine = CmdLine;
+#endif
 }
 
-void CAccessLog::StoreAllExecParents(CVariant& List, const CFlexGuid& EnclaveGuid, const SVarWriteOpt& Opts) const
+void CAccessLog::StoreAllExecParents(StVariantWriter& List, const CFlexGuid& EnclaveGuid, const SVarWriteOpt& Opts) const
 {
 	std::unique_lock lock(m_Mutex);
 
-	for (auto& Log : m_ExecParents)
+	if(!m_Data)
+		return;
+
+#ifdef DEF_USE_POOL
+	for (auto I = m_Data->ExecParents.begin(); I != m_Data->ExecParents.end(); ++I)
 	{
-		for (auto& Entry : Log.second.Infos)
+		auto& Log = *I;
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end(); ++J)
 		{
-			CVariant vActor;
-			vActor.BeginIMap();
+			auto& Entry = *J;
+#else
+	for (auto I = m_Data->ExecParents.begin(); I != m_Data->ExecParents.end(); ++I)
+	{
+		auto& Log = I->second;
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end(); ++J)
+		{
+			auto& Entry = J->second;
+#endif
+			StVariantWriter vActor;
+			vActor.BeginIndex();
 			if (Opts.Flags & SVarWriteOpt::eSaveToFile) {
-				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(Log.first);
+#ifdef DEF_USE_POOL
+				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I.Key());
+#else
+				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
+#endif
 				if (!pProg) continue;
 				vActor.WriteVariant(API_V_PROG_ID, pProg->GetID().ToVariant(Opts));
 			}
 			else {
-				vActor.Write(API_V_PROCESS_REF, (uint64)&Entry.second);
-				vActor.Write(API_V_EVENT_ACTOR_UID, Log.first); // Program UID
+#ifdef DEF_USE_POOL
+				vActor.Write(API_V_PROCESS_REF, (uint64)&Entry);
+				vActor.Write(API_V_EVENT_ACTOR_UID, I.Key()); // Program UID
+#else
+				vActor.Write(API_V_PROCESS_REF, (uint64)&J->second);
+				vActor.Write(API_V_EVENT_ACTOR_UID, I->first); // Program UID
+#endif
 			}
 			if (!EnclaveGuid.IsNull()) // this is the Enclave we have been started into
 				vActor.WriteVariant(API_V_EVENT_TARGET_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
-			vActor.Write(API_V_PID, Entry.first); // Process UID
-			if (!Entry.second.EnclaveGuid.IsNull()) // this is the Enclave of the process starting us
-				vActor.WriteVariant(API_V_EVENT_ACTOR_EID, Entry.second.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+#ifdef DEF_USE_POOL
+			vActor.Write(API_V_PID, J.Key()); // Process UID
+#else
+			vActor.Write(API_V_PID, J->first); // Process UID
+#endif
+			if (!Entry.EnclaveGuid.IsNull()) // this is the Enclave of the process starting us
+				vActor.WriteVariant(API_V_EVENT_ACTOR_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
 
-			vActor.Write(API_V_LAST_ACTIVITY, Entry.second.LastExecTime);
-			vActor.Write(API_V_WAS_BLOCKED, Entry.second.bBlocked);
-			vActor.Write(API_V_CMD_LINE, Entry.second.CommandLine);
+			vActor.Write(API_V_LAST_ACTIVITY, Entry.LastExecTime);
+			vActor.Write(API_V_WAS_BLOCKED, Entry.bBlocked);
+			vActor.WriteEx(API_V_CMD_LINE, Entry.CommandLine);
 
-			vActor.Finish();
-			List.WriteVariant(vActor);
+			List.WriteVariant(vActor.Finish());
 		}
 	}
 }
 
-bool CAccessLog::LoadExecParent(const CVariant& vData)
+bool CAccessLog::LoadExecParent(const StVariant& vData)
 {
 	CProgramID ID;
 	ID.FromVariant(vData[API_V_PROG_ID]);
@@ -73,10 +118,29 @@ bool CAccessLog::LoadExecParent(const CVariant& vData)
 
 	std::unique_lock lock(m_Mutex);
 
-	SExecInfo* pInfo = &m_ExecParents[pItem->GetUID()].Infos[ProcessUID];
+	if (!m_Data) {
+#ifdef DEF_USE_POOL
+		if (!m_pMem)
+			return true;
+		m_Data = m_pMem->New<SAccessLog>();
+#else
+		m_Data = std::make_shared<SAccessLog>();
+#endif
+	}
+
+#ifdef DEF_USE_POOL
+	auto Ref = m_Data->ExecParents[pItem->GetUID()];
+	SExecInfo* pInfo = &(&Ref)->Infos[ProcessUID];
+#else
+	SExecInfo* pInfo = &m_Data->ExecParents[pItem->GetUID()].Infos[ProcessUID];
+#endif
 	pInfo->bBlocked = vData[API_V_WAS_BLOCKED];
 	pInfo->LastExecTime = vData[API_V_LAST_ACTIVITY];
+#ifdef DEF_USE_POOL
+	pInfo->CommandLine = vData[API_V_CMD_LINE].ToStringW();
+#else
 	pInfo->CommandLine = vData[API_V_CMD_LINE].AsStr();
+#endif
 
 	return true;
 }
@@ -85,49 +149,93 @@ void CAccessLog::AddExecChild(uint64 ProgramUID, const CFlexGuid& EnclaveGuid, c
 {
 	std::unique_lock lock(m_Mutex);
 
-	SExecInfo* pInfo = &m_ExecChildren[ProgramUID].Infos[ProcessUID.Get()];
+	if (!m_Data) {
+#ifdef DEF_USE_POOL
+		if(!m_pMem)
+			return;
+		m_Data = m_pMem->New<SAccessLog>();
+#else
+		m_Data = std::make_shared<SAccessLog>();
+#endif
+	}
+
+#ifdef DEF_USE_POOL
+	auto Ref = m_Data->ExecChildren[ProgramUID];
+	SExecInfo* pInfo = &(&Ref)->Infos[ProcessUID.Get()];
+#else
+	SExecInfo* pInfo = &m_Data->ExecChildren[ProgramUID].Infos[ProcessUID.Get()];
+#endif
 	pInfo->bBlocked = bBlocked;
 	pInfo->LastExecTime = CreateTime;
+#ifdef DEF_USE_POOL
+	pInfo->CommandLine.Assign(CmdLine.c_str(), CmdLine.length());
+#else
 	pInfo->CommandLine = CmdLine;
+#endif
 }
 
-void CAccessLog::StoreAllExecChildren(CVariant& List, const CFlexGuid& EnclaveGuid, const SVarWriteOpt& Opts, const std::wstring& SvcTag) const
+void CAccessLog::StoreAllExecChildren(StVariantWriter& List, const CFlexGuid& EnclaveGuid, const SVarWriteOpt& Opts, const std::wstring& SvcTag) const
 {
 	std::unique_lock lock(m_Mutex);
 
-	for (auto& Log : m_ExecChildren)
+	if(!m_Data)
+		return;
+
+#ifdef DEF_USE_POOL
+	for (auto I = m_Data->ExecChildren.begin(); I != m_Data->ExecChildren.end(); ++I)
 	{
-		for (auto& Entry : Log.second.Infos)
+		auto& Log = *I;
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end(); ++J)
 		{
-			CVariant vTarget;
-			vTarget.BeginIMap();
+			auto& Entry = *J;
+#else
+	for (auto I = m_Data->ExecChildren.begin(); I != m_Data->ExecChildren.end(); ++I)
+	{
+		auto& Log = I->second;
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end(); ++J)
+		{
+			auto& Entry = J->second;
+#endif
+			StVariantWriter vTarget;
+			vTarget.BeginIndex();
 			if (Opts.Flags & SVarWriteOpt::eSaveToFile) {
-				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(Log.first);
+#ifdef DEF_USE_POOL
+				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I.Key());
+#else
+				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
+#endif
 				if (!pProg) continue;
 				vTarget.WriteVariant(API_V_PROG_ID, pProg->GetID().ToVariant(Opts));
 			}
 			else {
-				vTarget.Write(API_V_PROCESS_REF, (uint64)&Entry.second);
-				vTarget.Write(API_V_EVENT_TARGET_UID, Log.first); // Program UID
-				if (!SvcTag.empty()) vTarget.Write(API_V_SERVICE_TAG, SvcTag);
+				vTarget.Write(API_V_PROCESS_REF, (uint64)&Entry);
+#ifdef DEF_USE_POOL
+				vTarget.Write(API_V_EVENT_TARGET_UID, I.Key()); // Program UID
+#else
+				vTarget.Write(API_V_EVENT_TARGET_UID, I->first); // Program UID
+#endif
+				if (!SvcTag.empty()) vTarget.WriteEx(API_V_SERVICE_TAG, SvcTag);
 			}
 			if (!EnclaveGuid.IsNull()) // this is the Enclave we are in while starting an otherprocess
 				vTarget.WriteVariant(API_V_EVENT_ACTOR_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
-			vTarget.Write(API_V_PID, Entry.first); // Process UID
-			if (!Entry.second.EnclaveGuid.IsNull()) // this is the Enclave of the process we are starting
-				vTarget.WriteVariant(API_V_EVENT_TARGET_EID, Entry.second.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+#ifdef DEF_USE_POOL
+			vTarget.Write(API_V_PID, J.Key()); // Process UID
+#else
+			vTarget.Write(API_V_PID, J->first); // Process UID
+#endif
+			if (!Entry.EnclaveGuid.IsNull()) // this is the Enclave of the process we are starting
+				vTarget.WriteVariant(API_V_EVENT_TARGET_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
 
-			vTarget.Write(API_V_LAST_ACTIVITY, Entry.second.LastExecTime);
-			vTarget.Write(API_V_WAS_BLOCKED, Entry.second.bBlocked);
-			vTarget.Write(API_V_CMD_LINE, Entry.second.CommandLine);
+			vTarget.Write(API_V_LAST_ACTIVITY, Entry.LastExecTime);
+			vTarget.Write(API_V_WAS_BLOCKED, Entry.bBlocked);
+			vTarget.WriteEx(API_V_CMD_LINE, Entry.CommandLine);
 
-			vTarget.Finish();
-			List.WriteVariant(vTarget);
+			List.WriteVariant(vTarget.Finish());
 		}
 	}
 }
 
-bool CAccessLog::LoadExecChild(const CVariant& vData)
+bool CAccessLog::LoadExecChild(const StVariant& vData)
 {
 	CProgramID ID;
 	ID.FromVariant(vData[API_V_PROG_ID]);
@@ -142,10 +250,29 @@ bool CAccessLog::LoadExecChild(const CVariant& vData)
 
 	std::unique_lock lock(m_Mutex);
 
-	SExecInfo* pInfo = &m_ExecChildren[pItem->GetUID()].Infos[ProcessUID];
+	if (!m_Data) {
+#ifdef DEF_USE_POOL
+		if (!m_pMem)
+			return  true;
+		m_Data = m_pMem->New<SAccessLog>();
+#else
+		m_Data = std::make_shared<SAccessLog>();
+#endif
+	}
+
+#ifdef DEF_USE_POOL
+	auto Ref = m_Data->ExecChildren[pItem->GetUID()];
+	SExecInfo* pInfo = &(&Ref)->Infos[ProcessUID];
+#else
+	SExecInfo* pInfo = &m_Data->ExecChildren[pItem->GetUID()].Infos[ProcessUID];
+#endif
 	pInfo->bBlocked = vData[API_V_WAS_BLOCKED];
 	pInfo->LastExecTime = vData[API_V_LAST_ACTIVITY];
+#ifdef DEF_USE_POOL
+	pInfo->CommandLine = vData[API_V_CMD_LINE].ToStringW();
+#else
 	pInfo->CommandLine = vData[API_V_CMD_LINE].AsStr();
+#endif
 
 	return true;
 }
@@ -154,7 +281,22 @@ void CAccessLog::AddIngressActor(uint64 ProgramUID, const CFlexGuid& EnclaveGuid
 {
 	std::unique_lock lock(m_Mutex);
 
-	SAccessInfo* pInfo = &m_IngressActors[ProgramUID].Infos[ProcessUID.Get()];
+	if (!m_Data) {
+#ifdef DEF_USE_POOL
+		if(!m_pMem)
+			return;
+		m_Data = m_pMem->New<SAccessLog>();
+#else
+		m_Data = std::make_shared<SAccessLog>();
+#endif
+	}
+
+#ifdef DEF_USE_POOL
+	auto Ref = m_Data->IngressActors[ProgramUID];
+	SAccessInfo* pInfo = &(&Ref)->Infos[ProcessUID.Get()];
+#else
+	SAccessInfo* pInfo = &m_Data->IngressActors[ProgramUID].Infos[ProcessUID.Get()];
+#endif
 	pInfo->bBlocked = bBlocked;
 	pInfo->LastAccessTime = AccessTime;
 	if (bThread)
@@ -163,43 +305,68 @@ void CAccessLog::AddIngressActor(uint64 ProgramUID, const CFlexGuid& EnclaveGuid
 		pInfo->ProcessAccessMask |= AccessMask;
 }
 
-void CAccessLog::StoreAllIngressActors(CVariant& List, const CFlexGuid& EnclaveGuid, const SVarWriteOpt& Opts) const
+void CAccessLog::StoreAllIngressActors(StVariantWriter& List, const CFlexGuid& EnclaveGuid, const SVarWriteOpt& Opts) const
 {
 	std::unique_lock lock(m_Mutex);
 
-	for (auto& Log : m_IngressActors)
+	if(!m_Data)
+		return;
+
+#ifdef DEF_USE_POOL
+	for (auto I = m_Data->IngressActors.begin(); I != m_Data->IngressActors.end(); ++I)
 	{
-		for (auto& Entry : Log.second.Infos)
+		auto& Log = *I;
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end(); ++J)
 		{
-			CVariant vActor;
-			vActor.BeginIMap();
+			auto& Entry = *J;
+#else
+	for (auto I = m_Data->IngressActors.begin(); I != m_Data->IngressActors.end(); ++I)
+	{
+		auto& Log = I->second;
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end(); ++J)
+		{
+			auto& Entry = J->second;
+#endif
+			StVariantWriter vActor;
+			vActor.BeginIndex();
 			if (Opts.Flags & SVarWriteOpt::eSaveToFile) {
-				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(Log.first);
+#ifdef DEF_USE_POOL
+				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I.Key());
+#else
+				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
+#endif
 				if (!pProg) continue;
 				vActor.WriteVariant(API_V_PROG_ID, pProg->GetID().ToVariant(Opts));
 			}
 			else {
-				vActor.Write(API_V_PROCESS_REF, (uint64)&Entry.second);
-				vActor.Write(API_V_EVENT_ACTOR_UID, Log.first); // Program UID
+				vActor.Write(API_V_PROCESS_REF, (uint64)&Entry);
+#ifdef DEF_USE_POOL
+				vActor.Write(API_V_EVENT_ACTOR_UID, I.Key()); // Program UID
+#else
+				vActor.Write(API_V_EVENT_ACTOR_UID, I->first); // Program UID
+#endif
 			}
 			if (!EnclaveGuid.IsNull()) // this is the Enclave we are in while being accesses
 				vActor.WriteVariant(API_V_EVENT_TARGET_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
-			vActor.Write(API_V_PID, Entry.first); // Process UID
-			if (!Entry.second.EnclaveGuid.IsNull()) // this is the Enclave of the process accessing us
-				vActor.WriteVariant(API_V_EVENT_ACTOR_EID, Entry.second.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+#ifdef DEF_USE_POOL
+			vActor.Write(API_V_PID, J.Key()); // Process UID
+#else
+			vActor.Write(API_V_PID, J->first); // Process UID
+#endif
+			if (!Entry.EnclaveGuid.IsNull()) // this is the Enclave of the process accessing us
+				vActor.WriteVariant(API_V_EVENT_ACTOR_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
 
-			vActor.Write(API_V_THREAD_ACCESS_MASK, Entry.second.ThreadAccessMask);
-			vActor.Write(API_V_PROCESS_ACCESS_MASK, Entry.second.ProcessAccessMask);
-			vActor.Write(API_V_LAST_ACTIVITY, Entry.second.LastAccessTime);
-			vActor.Write(API_V_WAS_BLOCKED, Entry.second.bBlocked);
+			vActor.Write(API_V_THREAD_ACCESS_MASK, Entry.ThreadAccessMask);
+			vActor.Write(API_V_PROCESS_ACCESS_MASK, Entry.ProcessAccessMask);
+			vActor.Write(API_V_LAST_ACTIVITY, Entry.LastAccessTime);
+			vActor.Write(API_V_WAS_BLOCKED, Entry.bBlocked);
 
-			vActor.Finish();
-			List.WriteVariant(vActor);
+			List.WriteVariant(vActor.Finish());
 		}
 	}
 }
 
-bool CAccessLog::LoadIngressActor(const CVariant& vData)
+bool CAccessLog::LoadIngressActor(const StVariant& vData)
 {
 	CProgramID ID;
 	ID.FromVariant(vData[API_V_PROG_ID]);
@@ -214,7 +381,22 @@ bool CAccessLog::LoadIngressActor(const CVariant& vData)
 	
 	std::unique_lock lock(m_Mutex);
 	
-	SAccessInfo* pInfo = &m_IngressActors[pItem->GetUID()].Infos[ProcessUID];
+	if (!m_Data) {
+#ifdef DEF_USE_POOL
+		if (!m_pMem)
+			return  true;
+		m_Data = m_pMem->New<SAccessLog>();
+#else
+		m_Data = std::make_shared<SAccessLog>();
+#endif
+	}
+
+#ifdef DEF_USE_POOL
+	auto Ref = m_Data->IngressActors[pItem->GetUID()];
+	SAccessInfo* pInfo = &(&Ref)->Infos[ProcessUID];
+#else
+	SAccessInfo* pInfo = &m_Data->IngressActors[pItem->GetUID()].Infos[ProcessUID];
+#endif
 	pInfo->bBlocked = vData[API_V_WAS_BLOCKED];
 	pInfo->LastAccessTime = vData[API_V_LAST_ACTIVITY];
 	pInfo->ThreadAccessMask = vData[API_V_THREAD_ACCESS_MASK].To<uint32>(0);
@@ -227,7 +409,22 @@ void CAccessLog::AddIngressTarget(uint64 ProgramUID, const CFlexGuid& EnclaveGui
 {
 	std::unique_lock lock(m_Mutex);
 
-	SAccessInfo* pInfo = &m_IngressTargets[ProgramUID].Infos[ProcessUID.Get()];
+	if (!m_Data) {
+#ifdef DEF_USE_POOL
+		if(!m_pMem)
+			return;
+		m_Data = m_pMem->New<SAccessLog>();
+#else
+		m_Data = std::make_shared<SAccessLog>();
+#endif
+	}
+
+#ifdef DEF_USE_POOL
+	auto Ref = m_Data->IngressTargets[ProgramUID];
+	SAccessInfo* pInfo = &(&Ref)->Infos[ProcessUID.Get()];
+#else
+	SAccessInfo* pInfo = &m_Data->IngressTargets[ProgramUID].Infos[ProcessUID.Get()];
+#endif
 	pInfo->bBlocked = bBlocked;
 	pInfo->LastAccessTime = AccessTime;
 	if (bThread)
@@ -236,44 +433,69 @@ void CAccessLog::AddIngressTarget(uint64 ProgramUID, const CFlexGuid& EnclaveGui
 		pInfo->ProcessAccessMask |= AccessMask;
 }
 
-void CAccessLog::StoreAllIngressTargets(CVariant& List, const CFlexGuid& EnclaveGuid, const SVarWriteOpt& Opts, const std::wstring& SvcTag) const
+void CAccessLog::StoreAllIngressTargets(StVariantWriter& List, const CFlexGuid& EnclaveGuid, const SVarWriteOpt& Opts, const std::wstring& SvcTag) const
 {
 	std::unique_lock lock(m_Mutex);
 
-	for (auto& Log : m_IngressTargets)
+	if(!m_Data)
+		return;
+
+#ifdef DEF_USE_POOL
+	for (auto I = m_Data->IngressTargets.begin(); I != m_Data->IngressTargets.end(); ++I)
 	{
-		for (auto& Entry : Log.second.Infos)
+		auto& Log = *I;
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end(); ++J)
 		{
-			CVariant vTarget;
-			vTarget.BeginIMap();
+			auto& Entry = *J;
+#else
+	for (auto I = m_Data->IngressTargets.begin(); I != m_Data->IngressTargets.end(); ++I)
+	{
+		auto& Log = I->second;
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end(); ++J)
+		{
+			auto& Entry = J->second;
+#endif
+			StVariantWriter vTarget;
+			vTarget.BeginIndex();
 			if (Opts.Flags & SVarWriteOpt::eSaveToFile) {
-				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(Log.first);
+#ifdef DEF_USE_POOL
+				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I.Key());
+#else
+				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
+#endif
 				if (!pProg) continue;
 				vTarget.WriteVariant(API_V_PROG_ID, pProg->GetID().ToVariant(Opts));
 			}
 			else {
-				vTarget.Write(API_V_PROCESS_REF, (uint64)&Entry.second);
-				vTarget.Write(API_V_EVENT_TARGET_UID, Log.first); // Program UID
-				if (!SvcTag.empty()) vTarget.Write(API_V_SERVICE_TAG, SvcTag);
+				vTarget.Write(API_V_PROCESS_REF, (uint64)&Entry);
+#ifdef DEF_USE_POOL
+				vTarget.Write(API_V_EVENT_TARGET_UID, I.Key()); // Program UID
+#else
+				vTarget.Write(API_V_EVENT_TARGET_UID, I->first); // Program UID
+#endif
+				if (!SvcTag.empty()) vTarget.WriteEx(API_V_SERVICE_TAG, SvcTag);
 			}
 			if (!EnclaveGuid.IsNull()) // this is the Enclave we are in while accessign an other process
 				vTarget.WriteVariant(API_V_EVENT_ACTOR_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
-			vTarget.Write(API_V_PID, Entry.first); // Process UID
-			if (!Entry.second.EnclaveGuid.IsNull()) // this is the Enclave of the process we are accessing
-				vTarget.WriteVariant(API_V_EVENT_TARGET_EID, Entry.second.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+#ifdef DEF_USE_POOL
+			vTarget.Write(API_V_PID, J.Key()); // Process UID
+#else
+			vTarget.Write(API_V_PID, J->first); // Process UID
+#endif
+			if (!Entry.EnclaveGuid.IsNull()) // this is the Enclave of the process we are accessing
+				vTarget.WriteVariant(API_V_EVENT_TARGET_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
 
-			vTarget.Write(API_V_THREAD_ACCESS_MASK, Entry.second.ThreadAccessMask);
-			vTarget.Write(API_V_PROCESS_ACCESS_MASK, Entry.second.ProcessAccessMask);
-			vTarget.Write(API_V_LAST_ACTIVITY, Entry.second.LastAccessTime);
-			vTarget.Write(API_V_WAS_BLOCKED, Entry.second.bBlocked);
+			vTarget.Write(API_V_THREAD_ACCESS_MASK, Entry.ThreadAccessMask);
+			vTarget.Write(API_V_PROCESS_ACCESS_MASK, Entry.ProcessAccessMask);
+			vTarget.Write(API_V_LAST_ACTIVITY, Entry.LastAccessTime);
+			vTarget.Write(API_V_WAS_BLOCKED, Entry.bBlocked);
 
-			vTarget.Finish();
-			List.WriteVariant(vTarget);
+			List.WriteVariant(vTarget.Finish());
 		}
 	}
 }
 
-bool CAccessLog::LoadIngressTarget(const CVariant& vData)
+bool CAccessLog::LoadIngressTarget(const StVariant& vData)
 {
 	CProgramID ID;
 	ID.FromVariant(vData[API_V_PROG_ID]);
@@ -288,7 +510,22 @@ bool CAccessLog::LoadIngressTarget(const CVariant& vData)
 	
 	std::unique_lock lock(m_Mutex);
 	
-	SAccessInfo* pInfo = &m_IngressTargets[pItem->GetUID()].Infos[ProcessUID];
+	if (!m_Data) {
+#ifdef DEF_USE_POOL
+		if (!m_pMem)
+			return true;
+		m_Data = m_pMem->New<SAccessLog>();
+#else
+		m_Data = std::make_shared<SAccessLog>();
+#endif
+	}
+
+#ifdef DEF_USE_POOL
+	auto Ref = m_Data->IngressTargets[pItem->GetUID()];
+	SAccessInfo* pInfo = &(&Ref)->Infos[ProcessUID];
+#else
+	SAccessInfo* pInfo = &m_Data->IngressTargets[pItem->GetUID()].Infos[ProcessUID];
+#endif
 	pInfo->bBlocked = vData[API_V_WAS_BLOCKED];
 	pInfo->LastAccessTime = vData[API_V_LAST_ACTIVITY];
 	pInfo->ThreadAccessMask = vData[API_V_THREAD_ACCESS_MASK].To<uint32>(0);
@@ -301,11 +538,7 @@ void CAccessLog::Clear()
 {
 	std::unique_lock lock(m_Mutex);
 
-	m_ExecParents.clear();
-	m_ExecChildren.clear();
-
-	m_IngressActors.clear();
-	m_IngressTargets.clear();
+	m_Data.reset();
 }
 
 void CAccessLog::Truncate()
@@ -315,67 +548,113 @@ void CAccessLog::Truncate()
 
 	std::unique_lock lock(m_Mutex);
 
+	if(!m_Data)
+		return;
 
-	for (auto I = m_ExecParents.begin(); I != m_ExecParents.end();) 
+	for (auto I = m_Data->ExecParents.begin(); I != m_Data->ExecParents.end();) 
 	{
-		for (auto J = I->second.Infos.begin(); J != I->second.Infos.end();)
+#ifdef DEF_USE_POOL
+		auto& Log = *I;
+#else
+		auto& Log = I->second;
+#endif
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end();)
 		{
+#ifdef DEF_USE_POOL
+			if (J->LastExecTime < CleanupDate)
+#else
 			if (J->second.LastExecTime < CleanupDate)
-				I->second.Infos.erase(J++);
+#endif
+				J = Log.Infos.erase(J);
 			else
 				++J;
 		}
 
-		if (I->second.Infos.empty())
-			m_ExecParents.erase(I++);
+#ifdef DEF_USE_POOL
+		if (Log.Infos.IsEmpty())
+#else
+		if (Log.Infos.empty())
+#endif
+			I = m_Data->ExecParents.erase(I);
 		else
 			++I;
 	}
 
-	for (auto I = m_ExecChildren.begin(); I != m_ExecChildren.end();)
+	for (auto I = m_Data->ExecChildren.begin(); I != m_Data->ExecChildren.end();)
 	{
-		for (auto J = I->second.Infos.begin(); J != I->second.Infos.end();)
+#ifdef DEF_USE_POOL
+		auto& Log = *I;
+#else
+		auto& Log = I->second;
+#endif
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end();)
 		{
+#ifdef DEF_USE_POOL
+			if (J->LastExecTime < CleanupDate)
+#else
 			if (J->second.LastExecTime < CleanupDate)
-				I->second.Infos.erase(J++);
+#endif
+				J = Log.Infos.erase(J);
 			else
 				++J;
 		}
 
-		if (I->second.Infos.empty())
-			m_ExecChildren.erase(I++);
+#ifdef DEF_USE_POOL
+		if (Log.Infos.IsEmpty())
+#else
+		if (Log.Infos.empty())
+#endif
+			I = m_Data->ExecChildren.erase(I);
 		else
 			++I;
 	}
 
-	for (auto I = m_IngressActors.begin(); I != m_IngressActors.end();)
+	for (auto I = m_Data->IngressActors.begin(); I != m_Data->IngressActors.end();)
 	{
-		for (auto J = I->second.Infos.begin(); J != I->second.Infos.end();)
+#ifdef DEF_USE_POOL
+		auto& Log = *I;
+#else
+		auto& Log = I->second;
+#endif
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end();)
 		{
+#ifdef DEF_USE_POOL
+			if (J->LastAccessTime < CleanupDate)
+#else
 			if (J->second.LastAccessTime < CleanupDate)
-				I->second.Infos.erase(J++);
+#endif
+				J = Log.Infos.erase(J);
 			else
 				++J;
 		}
 
-		if (I->second.Infos.empty())
-			m_IngressActors.erase(I++);
+		if (Log.Infos.empty())
+			I = m_Data->IngressActors.erase(I);
 		else
 			++I;
 	}
 
-	for (auto I = m_IngressTargets.begin(); I != m_IngressTargets.end();)
+	for (auto I = m_Data->IngressTargets.begin(); I != m_Data->IngressTargets.end();)
 	{
-		for (auto J = I->second.Infos.begin(); J != I->second.Infos.end();)
+#ifdef DEF_USE_POOL
+		auto& Log = *I;
+#else
+		auto& Log = I->second;
+#endif
+		for (auto J = Log.Infos.begin(); J != Log.Infos.end();)
 		{
+#ifdef DEF_USE_POOL
+			if (J->LastAccessTime < CleanupDate)
+#else
 			if (J->second.LastAccessTime < CleanupDate)
-				I->second.Infos.erase(J++);
+#endif
+				J = Log.Infos.erase(J);
 			else
 				++J;
 		}
 
-		if (I->second.Infos.empty())
-			m_IngressTargets.erase(I++);
+		if (Log.Infos.empty())
+			I = m_Data->IngressTargets.erase(I);
 		else
 			++I;
 	}

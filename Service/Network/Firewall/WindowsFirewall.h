@@ -131,7 +131,7 @@ class CWindowsFirewall
 public:
 
 	static CWindowsFirewall* Instance();
-    static void Dispose();
+    static void Discard();
    
     bool IsReady();
 

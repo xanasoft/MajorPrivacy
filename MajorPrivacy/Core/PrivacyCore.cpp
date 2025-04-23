@@ -282,6 +282,14 @@ STATUS CPrivacyCore::Update()
 	Status = m_pProgramManager->Update(); if (!Status) return Status;
 	Status = m_pAccessManager->Update(); if (!Status) return Status;
 
+	auto Ret = GetServiceStats();
+	if (Ret.IsError())
+		return Ret.GetStatus();
+	QtVariant Stats = Ret.GetValue();
+
+	m_TotalMemoryUsed = Stats[API_V_SVC_MEM_PB].To<uint64>();
+	m_LogMemoryUsed = Stats[API_V_LOG_MEM_USAGE].To<uint64>();
+
 	return OK;
 }
 
@@ -1261,6 +1269,12 @@ STATUS CPrivacyCore::FlushDnsCache()
 	return m_Service.Call(SVC_API_FLUSH_DNS_CACHE, Request);
 }
 
+RESULT(QtVariant) CPrivacyCore::GetBlockListInfo()
+{
+	QtVariant Request;
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_DNS_LIST_INFO, Request), API_V_DNS_LIST_INFO);
+}
+
 // Access Manager
 
 RESULT(QtVariant) CPrivacyCore::GetHandlesFor(const QList<const class CProgramItem*>& Nodes)
@@ -1423,6 +1437,13 @@ STATUS CPrivacyCore::UndoTweak(const QString& Name)
 	QtVariant Request;
 	Request[API_V_NAME] = Name;
 	return m_Service.Call(SVC_API_UNDO_TWEAK, Request);
+}
+
+// Other
+RESULT(QtVariant) CPrivacyCore::GetServiceStats()
+{
+	QtVariant Request;
+	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_SVC_STATS, Request));
 }
 
 //

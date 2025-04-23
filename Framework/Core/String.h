@@ -41,14 +41,14 @@ public:
 	const static size_t NPos = (size_t)-1;
 
 	String(AbstractMemPool* pMem = nullptr, const C* pStr = nullptr, size_t Length = NPos) : AbstractContainer(pMem) { if (pStr) Assign(pStr, Length); }
-	String(const String& Other) : AbstractContainer(Other) { Assign(Other); }
-	String(String&& Other) : AbstractContainer(Other) { m_ptr = Other.m_ptr; Other.m_ptr = nullptr; }
+	String(const String& Other) : AbstractContainer(nullptr) { Assign(Other); }
+	String(String&& Other) : AbstractContainer(nullptr) { Move(Other); }
 	//template <typename T>
 	//String(const String<T>& Other) : AbstractContainer(Other) { Assign(Other.ConstData(), Other.Length()); }
 	~String()										{ DetachData(); }
 
-	String& operator=(const String& Other)			{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; Assign(Other); return *this; }
-	String& operator=(String&& Other)				{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
+	String& operator=(const String& Other)			{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Assign(Other); return *this; }
+	String& operator=(String&& Other)				{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Move(Other); return *this; }
 	String& operator=(const C* pStr)				{ Assign(pStr); return *this; }
 	String& operator+=(const String& Other)			{ if (!m_pMem) m_pMem = Other.m_pMem; Append(Other.ConstData(), Other.Length()); return *this; }
 	String& operator+=(const C* pStr)				{ Append(pStr); return *this; }
@@ -77,10 +77,14 @@ public:
 	C* Data()										{ MakeExclusive(); return m_ptr ? m_ptr->Data : nullptr; }
 	const C* ConstData() const						{ return m_ptr ? m_ptr->Data : nullptr; }
 	size_t Length() const							{ return m_ptr ? m_ptr->Length : 0; }
+	size_t length() const							{ return Length(); } // for STL compatibility
+	size_t size() const								{ return Length(); } // for STL compatibility
 	bool IsEmpty() const							{ return m_ptr ? m_ptr->Length == 0 : true; }
+	bool empty() const								{ return IsEmpty(); } // for STL compatibility
 	size_t Capacity() const							{ return m_ptr ? m_ptr->Capacity : 0; }
 
 	void Clear()									{ DetachData(); }
+	void clear()									{ Clear(); } // for STL compatibility
 
 	bool Reserve(size_t Capacity)
 	{
@@ -108,6 +112,7 @@ public:
 			m_pMem = Other.m_pMem;
 		else if(m_pMem != Other.m_pMem) // if the containers use different memory pools, we need to make a copy of the data
 			return Assign(Other.ConstData(), Other.Length());
+
 		AttachData(Other.m_ptr);
 		return true;
 	}
@@ -121,6 +126,19 @@ public:
 		MemCopy(m_ptr->Data, pStr, uLength * sizeof(C));
 		m_ptr->Length = uLength;
 		m_ptr->Data[m_ptr->Length] = 0;
+		return true;
+	}
+
+	bool Move(String& Other)
+	{
+		if (!m_pMem)
+			m_pMem = Other.m_pMem;
+		else if(m_pMem != Other.m_pMem) // if the containers use different memory pools, we need to make a copy of the data
+			return Assign(Other.ConstData(), Other.Length());
+
+		DetachData();
+		m_ptr = Other.m_ptr; 
+		Other.m_ptr = nullptr;
 		return true;
 	}
 
@@ -168,20 +186,16 @@ public:
 		return pStr - pBegin;
 	}
 
-	int Compare(const String& Other) const
+	int Compare(const String& Other, bool bCaseInsensitive = false) const
 	{
 		if (!m_ptr || !m_ptr->Data)
 			return Other.m_ptr && Other.m_ptr->Data ? -1 : 0;
 		if (!Other.m_ptr || !Other.m_ptr->Data)
 			return 1;
 
-		size_t len = Length();
-		size_t lenO = Other.Length();
-		if(len < lenO) return -1;
-		if(len > lenO) return 1;
-		if(len == 0) return 0;
-
-		return MemCmp(m_ptr->Data, Other.m_ptr->Data, len * sizeof(C));
+		if(bCaseInsensitive)
+			return CompareI(Other.m_ptr->Data, Other.m_ptr->Length);
+		return Compare(Other.m_ptr->Data, Other.m_ptr->Length);
 	}
 
 	int Compare(const C* pStr, size_t uLength = NPos) const
@@ -199,6 +213,36 @@ public:
 		if(len == 0) return 0;
 
 		return MemCmp(m_ptr->Data, pStr, len * sizeof(C));
+	}
+
+	int CompareI(const C* pStr, size_t uLength = NPos) const
+	{
+		if (!m_ptr || !m_ptr->Data)
+			return pStr ? -1 : 0;
+		if (!pStr)
+			return 1;
+
+		if(uLength == NPos)
+			uLength = StrLen(pStr);
+		size_t len = Length();
+		if(len < uLength) return -1;
+		if(len > uLength) return 1;
+		if(len == 0) return 0;
+
+		for (size_t i = 0; i < len; ++i)
+		{
+			C c1 = m_ptr->Data[i];
+			if ((c1 >= (C)'A') && (c1 <= (C)'Z'))
+				c1 += 32;
+
+			C c2 = pStr[i];
+			if ((c2 >= (C)'A') && (c2 <= (C)'Z'))
+				c2 += 32;
+
+			if (c1 < c2) return -1;
+			if (c1 > c2) return  1;
+		}
+		return 0;
 	}
 
 	int CompareAt(size_t uStart, const C* pStr, size_t uLength = NPos) const

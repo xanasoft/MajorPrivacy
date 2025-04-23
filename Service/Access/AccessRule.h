@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "Programs/ProgramID.h"
 #include "../GenericRule.h"
 
@@ -28,10 +28,10 @@ public:
 	void Update(const std::shared_ptr<CAccessRule>& Rule);
 
 protected:
-	void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
-	void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
-	void ReadIValue(uint32 Index, const CVariant& Data) override;
-	void ReadMValue(const SVarName& Name, const CVariant& Data) override;
+	void WriteIVariant(StVariantWriter& Rule, const SVarWriteOpt& Opts) const override;
+	void WriteMVariant(StVariantWriter& Rule, const SVarWriteOpt& Opts) const override;
+	void ReadIValue(uint32 Index, const StVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const StVariant& Data) override;
 
 	EAccessRuleType m_Type = EAccessRuleType::eNone;
 	std::wstring m_AccessPath; // can be pattern

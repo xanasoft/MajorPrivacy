@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 
 class CEnclave
 {
@@ -13,7 +13,7 @@ protected:
 	mutable std::shared_mutex m_Mutex;
 
 
-	CVariant m_Data;
+	StVariant m_Data;
 };
 
 typedef std::shared_ptr<CEnclave> CEnclavePtr;

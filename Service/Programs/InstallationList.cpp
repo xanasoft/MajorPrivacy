@@ -2,7 +2,7 @@
 #include "InstallationList.h"
 #include "ServiceCore.h"
 #include "../Programs/ProgramManager.h"
-#include "../../Library/Common/Buffer.h"
+#include "../../Framework/Common/Buffer.h"
 #include "../../Library/Helpers/RegUtil.h"
 #include "../../Library/Helpers/NtUtil.h"
 #include "../../Library/Helpers/NtObj.h"

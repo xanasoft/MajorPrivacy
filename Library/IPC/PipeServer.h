@@ -53,6 +53,7 @@ public:
 	};
 
     STATUS Open(const std::wstring& name);
+    void Close();
 
     // todo lock when registering events
 

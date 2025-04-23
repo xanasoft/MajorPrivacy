@@ -201,6 +201,20 @@ enum class EHashStatus // API_S_... TODO
 	eHashNone
 };
 
+enum class ETracePreset
+{
+	eDefault = 0,
+	eTrace,
+	eNoTrace,
+	ePrivate
+};
+
+enum class ESavePreset
+{
+	eDefault = 0,
+	eSaveToDisk,
+	eDontSave,
+};
 
 /////////////////////////////////////////////////////////////////////////////
 // Tweaks

@@ -119,7 +119,6 @@ int main(int argc, char *argv[])
 
 #endif
 
-
 	QString AppDir = QString::fromStdWString(GetApplicationDirectory());
 	theConf = new CSettings(AppDir, "MajorPrivacy", "Xanasoft");
 

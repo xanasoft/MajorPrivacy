@@ -243,21 +243,20 @@ void CSocket::AddNetworkIO(int Type, uint32 TransferSize)
 	}
 }
 
-CVariant CSocket::ToVariant() const
+StVariant CSocket::ToVariant() const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	CVariant Socket;
-
-	Socket.BeginIMap();
+	StVariantWriter Socket;
+	Socket.BeginIndex();
 
 	Socket.Write(API_V_SOCK_REF, (uint64)this);
 	//m_HashID; // not guaranteed unique
 
 	Socket.Write(API_V_SOCK_TYPE, m_ProtocolType);
-	Socket.Write(API_V_SOCK_LADDR, m_LocalAddress.ToString());
+	Socket.WriteEx(API_V_SOCK_LADDR, m_LocalAddress.ToString());
 	Socket.Write(API_V_SOCK_LPORT, m_LocalPort);
-	Socket.Write(API_V_SOCK_RADDR, m_RemoteAddress.ToString());
+	Socket.WriteEx(API_V_SOCK_RADDR, m_RemoteAddress.ToString());
 	Socket.Write(API_V_SOCK_RPORT, m_RemotePort);
 	Socket.Write(API_V_SOCK_STATE, m_State);
 	Socket.Write(API_V_SOCK_LSCOPE, m_LocalScopeId); // Ipv6
@@ -267,11 +266,11 @@ CVariant CSocket::ToVariant() const
 	//m_FwStatus
 
 	Socket.Write(API_V_PID, m_ProcessId);
-	Socket.Write(API_V_SERVICE_TAG, m_OwnerService);
+	Socket.WriteEx(API_V_SERVICE_TAG, m_OwnerService);
 	//m_ProcessName;
 	//m_pProcess;
 
-	Socket.Write(API_V_SOCK_RHOST, m_pRemoteHostName ? m_pRemoteHostName->ToString() : L"");
+	Socket.WriteEx(API_V_SOCK_RHOST, m_pRemoteHostName ? m_pRemoteHostName->ToString() : L"");
 
 	Socket.Write(API_V_CREATE_TIME, m_CreateTimeStamp); // in ms
 
@@ -286,7 +285,5 @@ CVariant CSocket::ToVariant() const
 	Socket.Write(API_V_SOCK_UPLOADED, m_Stats.Net.SendRaw);
 	Socket.Write(API_V_SOCK_DOWNLOADED, m_Stats.Net.ReceiveRaw);
 
-	Socket.Finish();
-
-	return Socket;
+	return Socket.Finish();
 }

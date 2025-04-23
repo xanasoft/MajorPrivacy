@@ -4,13 +4,23 @@
 #include "Firewall/WindowsFwLog.h"
 #include "../../Library/API/PrivacyAPI.h"
 
+#ifdef DEF_USE_POOL
+CNetLogEntry::CNetLogEntry(FW::AbstractMemPool* pMem, const struct SWinFwLogEvent* pEvent, EFwEventStates State, const CHostNamePtr& pRemoteHostName, const std::vector<CFlexGuid>& AllowRules, const std::vector<CFlexGuid>& BlockRules, uint64 PID, const std::wstring& ServiceTag, const std::wstring& AppSid)
+	: CTraceLogEntry(pMem, PID)
+#else
 CNetLogEntry::CNetLogEntry(const struct SWinFwLogEvent* pEvent, EFwEventStates State, const CHostNamePtr& pRemoteHostName, const std::vector<CFlexGuid>& AllowRules, const std::vector<CFlexGuid>& BlockRules, uint64 PID, const std::wstring& ServiceTag, const std::wstring& AppSid)
 	: CTraceLogEntry(PID)
+#endif
 {
 	m_State			= State;
 	m_pRemoteHostName = pRemoteHostName;
+#ifdef DEF_USE_POOL
+	m_ServiceTag.Assign(ServiceTag.c_str(), ServiceTag.length());
+	m_AppSid.Assign(AppSid.c_str(), AppSid.length());
+#else
 	m_ServiceTag	= ServiceTag;
 	m_AppSid		= AppSid;
+#endif
 
 	m_Action		= pEvent->Type;
 	m_Direction		= pEvent->Direction;
@@ -27,7 +37,7 @@ CNetLogEntry::CNetLogEntry(const struct SWinFwLogEvent* pEvent, EFwEventStates S
 	m_BlockRules	= BlockRules;
 }
 
-void CNetLogEntry::WriteVariant(CVariant& Entry) const
+void CNetLogEntry::WriteVariant(StVariantWriter& Entry) const
 {
 	CTraceLogEntry::WriteVariant(Entry);
 
@@ -37,11 +47,11 @@ void CNetLogEntry::WriteVariant(CVariant& Entry) const
 	Entry.Write(API_V_FW_RULE_DIRECTION, (uint32)m_Direction);
 	
 	Entry.Write(API_V_FW_RULE_PROTOCOL, (uint32)m_ProtocolType);
-	Entry.Write(API_V_FW_RULE_LOCAL_ADDR, m_LocalAddress.ToString());
+	Entry.WriteEx(API_V_FW_RULE_LOCAL_ADDR, m_LocalAddress.ToString());
 	Entry.Write(API_V_FW_RULE_LOCAL_PORT, m_LocalPort);
-	Entry.Write(API_V_FW_RULE_REMOTE_ADDR, m_RemoteAddress.ToString());
+	Entry.WriteEx(API_V_FW_RULE_REMOTE_ADDR, m_RemoteAddress.ToString());
 	Entry.Write(API_V_FW_RULE_REMOTE_PORT, m_RemotePort);
-	Entry.Write(API_V_FW_RULE_REMOTE_HOST, m_pRemoteHostName ? m_pRemoteHostName->ToString() : L"");
+	Entry.WriteEx(API_V_FW_RULE_REMOTE_HOST, m_pRemoteHostName ? m_pRemoteHostName->ToString() : L"");
 
     //m_Realm // todo
 

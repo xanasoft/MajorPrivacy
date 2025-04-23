@@ -1,11 +1,13 @@
 #pragma once
 #include "../Library/Status.h"
-#include "../Library/Common/Buffer.h"
-#include "../Library/Common/Variant.h"
+#include "../Framework/Common/Buffer.h"
+#include "../Library/Common/StVariant.h"
 #include "../Library/Helpers/ConfigIni.h"
 #include "../Library/Helpers/EvtUtil.h"
 #include "../Library/Common/ThreadPool.h"
+#include "../Framework/Core/Memory.h"
 
+#define DEF_CORE_TIMER_INTERVAL		250
 
 class CServiceCore
 {
@@ -47,7 +49,7 @@ public:
 
 	class CEtwEventMonitor*	EtwEventMonitor()		{ return m_pEtwEventMonitor; }
 
-	void					BroadcastMessage(uint32 MessageID, const CVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram = NULL);
+	void					BroadcastMessage(uint32 MessageID, const StVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram = NULL);
 
 	HANDLE					GetThreadHandle() const { return m_hThread; }
 
@@ -135,3 +137,5 @@ protected:
 };
 
 extern CServiceCore* theCore;
+
+extern FW::DefaultMemPool g_DefaultMemPool;

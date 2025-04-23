@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "WindowsFwGuard.h"
 #include "../Library/Common/Strings.h"
-#include "../Library/Common/Buffer.h"
+#include "../Framework/Common/Buffer.h"
 #include "../Library/Helpers/EvtUtil.h"
 #include "../Library/Helpers/NtUtil.h"
 

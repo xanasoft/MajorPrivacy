@@ -1120,17 +1120,17 @@ STATUS CVolumeManager::LoadVolumeRules(const std::shared_ptr<CVolume>& pMount)
         return status;
     }
     
-    CVariant Data;
-    if (Data.FromPacket(&Buffer, true) != CVariant::eErrNone)
+    StVariant Data;
+    if (Data.FromPacket(&Buffer, true) != StVariant::eErrNone)
         return STATUS_UNSUCCESSFUL;
 
     pMount->m_Data = Data.Clone(); // we want the m_Data to be writable
 
-    const CVariant& RuleList = pMount->m_Data[API_S_ACCESS_RULES];
+    const StVariant& RuleList = pMount->m_Data[API_S_ACCESS_RULES];
 
     for (uint32 i = 0; i < RuleList.Count(); i++)
     {
-        CVariant Rule = RuleList[i];
+        StVariant Rule = RuleList[i];
 
         std::wstring Guid = Rule[API_V_GUID].AsStr();
 
@@ -1150,7 +1150,7 @@ STATUS CVolumeManager::LoadVolumeRules(const std::shared_ptr<CVolume>& pMount)
 
 STATUS CVolumeManager::SaveVolumeRules(const std::shared_ptr<CVolume>& pMount)
 {
-    CVariant RuleList;
+    StVariant RuleList;
 
     SVarWriteOpt Opts;
     Opts.Format = SVarWriteOpt::eMap;

@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "../Library/API/PrivacyDefs.h"
 
 class CProgramID
@@ -21,11 +21,11 @@ public:
 	const std::wstring& GetGuid() const;
 	const std::wstring& GetRegKey() const;
 
-	static EProgramType ReadType(const CVariant& Data, SVarWriteOpt::EFormat& Format);
+	static EProgramType ReadType(const StVariant& Data, SVarWriteOpt::EFormat& Format);
 	static std::string TypeToStr(EProgramType Type);
 
-	CVariant ToVariant(const SVarWriteOpt& Opts) const;
-	bool FromVariant(const CVariant& ID);
+	StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	bool FromVariant(const StVariant& ID);
 
 protected:
 

@@ -100,6 +100,8 @@ public:
 
 	bool							IsNtOsKrnl(const std::wstring& FilePath) const;
 
+	size_t							GetLogMemUsage() const;	
+
 protected:
 
 	void CollectSoftware();

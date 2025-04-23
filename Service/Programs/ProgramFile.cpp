@@ -21,6 +21,34 @@ CProgramFile::CProgramFile(const std::wstring& FileName)
 
 	SImageVersionInfoPtr pInfo = GetImageVersionInfo(m_Path);
 	m_Name = pInfo ? pInfo->FileDescription : FileName;
+
+#ifdef DEF_USE_POOL
+	m_pMem = FW::MemoryPool::Create();
+
+	m_AccessLog.SetPool(m_pMem);
+	m_AccessTree.SetPool(m_pMem);
+	m_TrafficLog.SetPool(m_pMem);
+
+	for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
+		m_TraceLogs[i] = m_pMem->New<STraceLog>();
+#endif
+}
+
+CProgramFile::~CProgramFile()
+{
+#ifdef DEF_USE_POOL
+	m_AccessLog.Clear();
+	m_AccessTree.Clear();
+	m_TrafficLog.Clear();
+
+	for (auto& Record : m_EnclaveRecord)
+		Record.second->AccessLog.Clear();
+
+	for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
+		m_TraceLogs[i].Clear();
+
+	FW::MemoryPool::Destroy(m_pMem);
+#endif
 }
 
 void CProgramFile::AddProcess(const CProcessPtr& pProcess)
@@ -69,7 +97,7 @@ CAppPackagePtr CProgramFile::GetAppPackage() const
 
 std::list<CWindowsServicePtr> CProgramFile::GetAllServices() const
 {
-	std::unique_lock lock(m_Mutex);
+	auto Nodes = GetNodes(); // when we lock our own mutex and the service wants to lock its own mutex, we may run into a deadlock if its already locked
 
 	std::list<CWindowsServicePtr> Svcs;
 	for (auto pNode : m_Nodes) {
@@ -146,13 +174,13 @@ void CProgramFile::AddLibrary(const CFlexGuid& EnclaveGuid, const CProgramLibrar
 	}
 }
 
-CVariant CProgramFile::DumpLibraries() const
+StVariant CProgramFile::DumpLibraries() const
 {
 	std::unique_lock lock(m_Mutex);
 
-	auto DumpLibrary = [](CVariant& List, uint64 Ref, const SLibraryInfo& Info, const CFlexGuid& EnclaveGuid) {
-		CVariant vLib;
-		vLib.BeginIMap();
+	auto DumpLibrary = [](StVariantWriter& List, uint64 Ref, const SLibraryInfo& Info, const CFlexGuid& EnclaveGuid) {
+		StVariantWriter vLib;
+		vLib.BeginIndex();
 		vLib.Write(API_V_LIB_REF, Ref);
 		if (!EnclaveGuid.IsNull())
 			vLib.WriteVariant(API_V_ENCLAVE, EnclaveGuid.ToVariant(false));
@@ -160,13 +188,10 @@ CVariant CProgramFile::DumpLibraries() const
 		vLib.Write(API_V_LIB_LOAD_COUNT, Info.TotalLoadCount);
 		vLib.Write(API_V_LIB_STATUS, (uint32)Info.LastStatus);
 		vLib.WriteVariant(API_V_SIGN_INFO, Info.SignInfo.ToVariant(SVarWriteOpt()));
-		vLib.Finish();
-		List.WriteVariant(vLib);
+		List.WriteVariant(vLib.Finish());
 	};
 
-
-
-	CVariant List;
+	StVariantWriter List;
 	List.BeginList();
 
 	for (auto& Lib : m_Libraries)
@@ -177,11 +202,10 @@ CVariant CProgramFile::DumpLibraries() const
 			DumpLibrary(List, Lib.first, Lib.second, Record.first);
 	}
 
-	List.Finish();
-	return List;
+	return List.Finish();
 }
 
-CVariant CProgramFile::StoreLibraries(const SVarWriteOpt& Opts) const
+StVariant CProgramFile::StoreLibraries(const SVarWriteOpt& Opts) const
 {
 	std::unique_lock lock(m_Mutex);
 
@@ -200,22 +224,22 @@ CVariant CProgramFile::StoreLibraries(const SVarWriteOpt& Opts) const
 
 	lock.unlock();
 
-	CVariant List;
+	StVariantWriter List;
 	List.BeginList();
 	for (auto& Lib : Libraries) 
 	{
-		CVariant vLib;
+		StVariantWriter vLib;
 		vLib.BeginMap();
 		CProgramLibraryPtr pLib = theCore->ProgramManager()->GetLibrary(Lib.first);
 		if(!pLib) continue;
-		vLib.Write(API_S_FILE_PATH, pLib->GetPath());
+		vLib.WriteEx(API_S_FILE_PATH, pLib->GetPath());
 		
-		CVariant vLog;
+		StVariantWriter vLog;
 		vLog.BeginList();
 
 		for (auto& Entry : Lib.second)
 		{
-			CVariant vEntry;
+			StVariantWriter vEntry;
 			vEntry.BeginMap();
 			if (!Entry.first.IsNull())
 				vEntry.WriteVariant(API_S_ENCLAVE, Entry.first.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
@@ -223,34 +247,29 @@ CVariant CProgramFile::StoreLibraries(const SVarWriteOpt& Opts) const
 			vEntry.Write(API_S_LIB_LOAD_COUNT, Entry.second.TotalLoadCount);
 			vEntry.Write(API_S_LIB_STATUS, (uint32)Entry.second.LastStatus);
 			vEntry.WriteVariant(API_S_SIGN_INFO, Entry.second.SignInfo.ToVariant(Opts));
-			vEntry.Finish();
-			vLog.WriteVariant(vEntry);
+			vLog.WriteVariant(vEntry.Finish());
 		}
 
-		vLog.Finish();
+		vLib.WriteVariant(API_S_LIB_LOAD_LOG, vLog.Finish());
 
-		vLib.WriteVariant(API_S_LIB_LOAD_LOG, vLog);
-
-		vLib.Finish();
-		List.WriteVariant(vLib);
+		List.WriteVariant(vLib.Finish());
 	}
-	List.Finish();
-	return List;
+	return List.Finish();
 }
 
-void CProgramFile::LoadLibraries(const CVariant& Data)
+void CProgramFile::LoadLibraries(const StVariant& Data)
 {
 	std::unique_lock lock(m_Mutex);
 
-	Data.ReadRawList([&](const CVariant& vData) {
+	StVariantReader(Data).ReadRawList([&](const StVariant& vData) {
 
 		std::wstring Path = vData[API_S_FILE_PATH].AsStr();
 		if (Path.empty()) return;
 		CProgramLibraryPtr pLib = theCore->ProgramManager()->GetLibrary(Path, true);
 		if (!pLib) return;
 
-		CVariant vLog = vData[API_S_LIB_LOAD_LOG];
-		vLog.ReadRawList([&](const CVariant& vEntry) {
+		StVariant vLog = vData[API_S_LIB_LOAD_LOG];
+		StVariantReader(vLog).ReadRawList([&](const StVariant& vEntry) {
 
 			CFlexGuid EnclaveGuid;
 			EnclaveGuid.FromVariant(vEntry[API_S_ENCLAVE]);
@@ -291,8 +310,12 @@ CProgramFile::SEnclaveRecordPtr CProgramFile::GetEnclaveRecord(const CFlexGuid& 
 {
 	std::unique_lock lock(m_Mutex);
 	SEnclaveRecordPtr& pRecord = m_EnclaveRecord[EnclaveGuid];
-	if(!pRecord)
+	if (!pRecord) {
 		pRecord = std::make_shared<SEnclaveRecord>();
+#ifdef DEF_USE_POOL
+		pRecord->AccessLog.SetPool(m_pMem);
+#endif
+	}
 	return pRecord;
 }
 
@@ -328,16 +351,16 @@ void CProgramFile::AddExecChild(const CFlexGuid& ActorEnclave, const std::wstrin
 	}
 }
 
-CVariant CProgramFile::DumpExecStats() const
+StVariant CProgramFile::DumpExecStats() const
 {
 	SVarWriteOpt Opts;
 
-	CVariant ExecParents;
+	StVariantWriter ExecParents;
 	ExecParents.BeginList();
 	StoreExecParents(ExecParents, Opts);
-	ExecParents.Finish();
+	;
 
-	CVariant ExecChildren;
+	StVariantWriter ExecChildren;
 	ExecChildren.BeginList();
 	StoreExecChildren(ExecChildren, Opts);
 
@@ -347,14 +370,13 @@ CVariant CProgramFile::DumpExecStats() const
 		if(!pSvc) continue;
 		pSvc->StoreExecChildren(ExecChildren, Opts, pSvc->GetServiceTag());
 	}
-	ExecChildren.Finish();
+	;
 
-	CVariant Data;
-	Data.BeginIMap();
-	Data.WriteVariant(API_V_PROG_EXEC_PARENTS, ExecParents);
-	Data.WriteVariant(API_V_PROG_EXEC_CHILDREN, ExecChildren);
-	Data.Finish();
-	return Data;
+	StVariantWriter Data;
+	Data.BeginIndex();
+	Data.WriteVariant(API_V_PROG_EXEC_PARENTS, ExecParents.Finish());
+	Data.WriteVariant(API_V_PROG_EXEC_CHILDREN, ExecChildren.Finish());
+	return Data.Finish();
 }
 
 void CProgramFile::AddIngressActor(const CFlexGuid& TargetEnclave, 
@@ -389,16 +411,15 @@ void CProgramFile::AddIngressTarget(const CFlexGuid& ActorEnclave, const std::ws
 	}
 }
 
-CVariant CProgramFile::DumpIngress() const
+StVariant CProgramFile::DumpIngress() const
 {
 	SVarWriteOpt Opts;
 
-	CVariant IngressActors;
+	StVariantWriter IngressActors;
 	IngressActors.BeginList();
 	StoreIngressActors(IngressActors, Opts);
-	IngressActors.Finish();
 
-	CVariant IngressTargets;
+	StVariantWriter IngressTargets;
 	IngressTargets.BeginList();
 	StoreIngressTargets(IngressTargets, Opts);
 
@@ -408,19 +429,19 @@ CVariant CProgramFile::DumpIngress() const
 		if(!pSvc) continue;
 		pSvc->StoreIngressTargets(IngressTargets, Opts, pSvc->GetServiceTag());
 	}
-	IngressTargets.Finish();
 	
-	CVariant Data;
-	Data.BeginIMap();
-	Data.WriteVariant(API_V_PROG_INGRESS_ACTORS, IngressActors);
-	Data.WriteVariant(API_V_PROG_INGRESS_TARGETS, IngressTargets);
-	Data.Finish();
-	return Data;
+	StVariantWriter Data;
+	Data.BeginIndex();
+	Data.WriteVariant(API_V_PROG_INGRESS_ACTORS, IngressActors.Finish());
+	Data.WriteVariant(API_V_PROG_INGRESS_TARGETS, IngressTargets.Finish());
+	return Data.Finish();
 }
 
 void CProgramFile::AddAccess(const std::wstring& ActorServiceTag, const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked)
 {
-	if (!theCore->Config()->GetBool("Service", "ResTrace", true))
+	bool bSave = theCore->Config()->GetBool("Service", "ResTrace", true);
+	ETracePreset ePreset = m_ResTrace;
+	if (ePreset == ETracePreset::eNoTrace || (ePreset == ETracePreset::eDefault && !bSave))
 		return;
 
 	if (!ActorServiceTag.empty()) {
@@ -434,7 +455,7 @@ void CProgramFile::AddAccess(const std::wstring& ActorServiceTag, const std::wst
 	m_AccessTree.Add(Path, AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked);
 }
 
-void CProgramFile::StoreExecParents(CVariant& ExecParents, const SVarWriteOpt& Opts) const
+void CProgramFile::StoreExecParents(StVariantWriter& ExecParents, const SVarWriteOpt& Opts) const
 {
 	m_AccessLog.StoreAllExecParents(ExecParents, CFlexGuid(), Opts);
 
@@ -446,12 +467,12 @@ void CProgramFile::StoreExecParents(CVariant& ExecParents, const SVarWriteOpt& O
 		Record.second->AccessLog.StoreAllExecParents(ExecParents, Record.first, Opts);
 }
 
-bool CProgramFile::LoadExecParents(const CVariant& ExecParents)
+bool CProgramFile::LoadExecParents(const StVariant& ExecParents)
 {
-	ExecParents.ReadRawList([&](const CVariant& vData) {
+	StVariantReader(ExecParents).ReadRawList([&](const StVariant& vData) {
 
 		CFlexGuid EnclaveGuid;
-		EnclaveGuid.FromVariant(vData.Find(API_V_EVENT_TARGET_EID));
+		EnclaveGuid.FromVariant(StVariantReader(vData).Find(API_V_EVENT_TARGET_EID));
 		if (EnclaveGuid.IsNull())
 			m_AccessLog.LoadExecParent(vData);
 		else {
@@ -462,7 +483,7 @@ bool CProgramFile::LoadExecParents(const CVariant& ExecParents)
 	return true;
 }
 
-void CProgramFile::StoreExecChildren(CVariant& ExecChildren, const SVarWriteOpt& Opts) const
+void CProgramFile::StoreExecChildren(StVariantWriter& ExecChildren, const SVarWriteOpt& Opts) const
 {
 	m_AccessLog.StoreAllExecChildren(ExecChildren, CFlexGuid(), Opts);
 
@@ -474,12 +495,12 @@ void CProgramFile::StoreExecChildren(CVariant& ExecChildren, const SVarWriteOpt&
 		Record.second->AccessLog.StoreAllExecChildren(ExecChildren, Record.first, Opts);
 }
 
-bool CProgramFile::LoadExecChildren(const CVariant& ExecChildren)
+bool CProgramFile::LoadExecChildren(const StVariant& ExecChildren)
 {
-	ExecChildren.ReadRawList([&](const CVariant& vData) {
+	StVariantReader(ExecChildren).ReadRawList([&](const StVariant& vData) {
 
 		CFlexGuid EnclaveGuid;
-		EnclaveGuid.FromVariant(vData.Find(API_V_EVENT_ACTOR_EID));
+		EnclaveGuid.FromVariant(StVariantReader(vData).Find(API_V_EVENT_ACTOR_EID));
 		if (EnclaveGuid.IsNull())
 			m_AccessLog.LoadExecChild(vData);
 		else {
@@ -490,7 +511,7 @@ bool CProgramFile::LoadExecChildren(const CVariant& ExecChildren)
 	return true;
 }
 
-void CProgramFile::StoreIngressActors(CVariant& IngressActors, const SVarWriteOpt& Opts) const
+void CProgramFile::StoreIngressActors(StVariantWriter& IngressActors, const SVarWriteOpt& Opts) const
 {
 	m_AccessLog.StoreAllIngressActors(IngressActors, CFlexGuid(), Opts);
 
@@ -502,12 +523,12 @@ void CProgramFile::StoreIngressActors(CVariant& IngressActors, const SVarWriteOp
 		Record.second->AccessLog.StoreAllIngressActors(IngressActors, Record.first, Opts);
 }
 
-bool CProgramFile::LoadIngressActors(const CVariant& IngressActors)
+bool CProgramFile::LoadIngressActors(const StVariant& IngressActors)
 {
-	IngressActors.ReadRawList([&](const CVariant& vData) {
+	StVariantReader(IngressActors).ReadRawList([&](const StVariant& vData) {
 
 		CFlexGuid EnclaveGuid;
-		EnclaveGuid.FromVariant(vData.Find(API_V_EVENT_TARGET_EID));
+		EnclaveGuid.FromVariant(StVariantReader(vData).Find(API_V_EVENT_TARGET_EID));
 		if (EnclaveGuid.IsNull())
 			m_AccessLog.LoadIngressActor(vData);
 		else {
@@ -518,7 +539,7 @@ bool CProgramFile::LoadIngressActors(const CVariant& IngressActors)
 	return true;
 }
 
-void CProgramFile::StoreIngressTargets(CVariant& IngressTargets, const SVarWriteOpt& Opts) const
+void CProgramFile::StoreIngressTargets(StVariantWriter& IngressTargets, const SVarWriteOpt& Opts) const
 {
 	m_AccessLog.StoreAllIngressTargets(IngressTargets, CFlexGuid(), Opts);
 
@@ -530,12 +551,12 @@ void CProgramFile::StoreIngressTargets(CVariant& IngressTargets, const SVarWrite
 		Record.second->AccessLog.StoreAllIngressTargets(IngressTargets, Record.first, Opts);
 }
 
-bool CProgramFile::LoadIngressTargets(const CVariant& IngressTargets)
+bool CProgramFile::LoadIngressTargets(const StVariant& IngressTargets)
 {
-	IngressTargets.ReadRawList([&](const CVariant& vData) {
+	StVariantReader(IngressTargets).ReadRawList([&](const StVariant& vData) {
 
 		CFlexGuid EnclaveGuid;
-		EnclaveGuid.FromVariant(vData.Find(API_V_EVENT_ACTOR_EID));
+		EnclaveGuid.FromVariant(StVariantReader(vData).Find(API_V_EVENT_ACTOR_EID));
 		if (EnclaveGuid.IsNull())
 			m_AccessLog.LoadIngressTarget(vData);
 		else {
@@ -546,38 +567,35 @@ bool CProgramFile::LoadIngressTargets(const CVariant& IngressTargets)
 	return true;
 }
 
-CVariant CProgramFile::StoreIngress(const SVarWriteOpt& Opts) const
+StVariant CProgramFile::StoreIngress(const SVarWriteOpt& Opts) const
 {
-	CVariant ExecParents;
+	StVariantWriter ExecParents;
 	ExecParents.BeginList();
 	StoreExecParents(ExecParents, Opts);
-	ExecParents.Finish();
 
-	CVariant ExecChildren;
+	StVariantWriter ExecChildren;
 	ExecChildren.BeginList();
 	StoreExecChildren(ExecChildren, Opts);
-	ExecChildren.Finish();
 
-	CVariant IngressActors;
+	StVariantWriter IngressActors;
 	IngressActors.BeginList();
 	StoreIngressActors(IngressActors, Opts);
-	IngressActors.Finish();
 
-	CVariant IngressTargets;
+	StVariantWriter IngressTargets;
 	IngressTargets.BeginList();
 	StoreIngressTargets(IngressTargets, Opts);
-	IngressTargets.Finish();
 
-	CVariant Data;
-	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
-	Data[API_V_PROG_EXEC_PARENTS] = ExecParents;
-	Data[API_V_PROG_EXEC_CHILDREN] = ExecChildren;
-	Data[API_V_PROG_INGRESS_ACTORS] = IngressActors;
-	Data[API_V_PROG_INGRESS_TARGETS] = IngressTargets;
-	return Data;
+	StVariantWriter Data;
+	Data.BeginIndex();
+	Data.WriteVariant(API_V_PROG_ID, m_ID.ToVariant(Opts));
+	Data.WriteVariant(API_V_PROG_EXEC_PARENTS, ExecParents.Finish());
+	Data.WriteVariant(API_V_PROG_EXEC_CHILDREN, ExecChildren.Finish());
+	Data.WriteVariant(API_V_PROG_INGRESS_ACTORS, IngressActors.Finish());
+	Data.WriteVariant(API_V_PROG_INGRESS_TARGETS, IngressTargets.Finish());
+	return Data.Finish();
 }
 
-void CProgramFile::LoadIngress(const CVariant& Data)
+void CProgramFile::LoadIngress(const StVariant& Data)
 {
 	LoadExecParents(Data[API_V_PROG_EXEC_PARENTS]);
 	LoadExecChildren(Data[API_V_PROG_EXEC_CHILDREN]);
@@ -585,35 +603,35 @@ void CProgramFile::LoadIngress(const CVariant& Data)
 	LoadIngressTargets(Data[API_V_PROG_INGRESS_TARGETS]);
 }
 
-CVariant CProgramFile::StoreAccess(const SVarWriteOpt& Opts) const
+StVariant CProgramFile::StoreAccess(const SVarWriteOpt& Opts) const
 {
-	CVariant Data;
+	StVariant Data;
 	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts);
 	return Data;
 }
 
-void CProgramFile::LoadAccess(const CVariant& Data)
+void CProgramFile::LoadAccess(const StVariant& Data)
 {
 	m_AccessTree.LoadTree(Data[API_V_PROG_RESOURCE_ACCESS]);
 }
 
-CVariant CProgramFile::DumpResAccess(uint64 LastActivity) const
+StVariant CProgramFile::DumpResAccess(uint64 LastActivity) const
 {
 	return m_AccessTree.DumpTree(LastActivity);
 }
 
-CVariant CProgramFile::StoreTraffic(const SVarWriteOpt& Opts) const
+StVariant CProgramFile::StoreTraffic(const SVarWriteOpt& Opts) const
 {
 	std::unique_lock lock(m_Mutex);
 
-	CVariant Data;
+	StVariant Data;
 	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_TRAFFIC_LOG] = m_TrafficLog.StoreTraffic(Opts);
 	return Data;
 }
 
-void CProgramFile::LoadTraffic(const CVariant& Data)
+void CProgramFile::LoadTraffic(const StVariant& Data)
 {
 	std::unique_lock lock(m_Mutex);
 
@@ -622,68 +640,81 @@ void CProgramFile::LoadTraffic(const CVariant& Data)
 
 uint64 CProgramFile::AddTraceLogEntry(const CTraceLogEntryPtr& pLogEntry, ETraceLogs Log)
 {
-	std::unique_lock lock(m_Mutex); 
+	ASSERT(pLogEntry->Allocator() == m_pMem);
 
-	switch (Log)
-	{
-	case ETraceLogs::eExecLog:
-		if (!theCore->Config()->GetBool("Service", "ExecLog", true))
-			return -1;
+	bool bSave = false;
+	ETracePreset ePreset = ETracePreset::eDefault;
+
+	switch (Log) {
+	case ETraceLogs::eExecLog: 
+		bSave = theCore->Config()->GetBool("Service", "ExecLog", true); 
+		//ePreset = m_ExecTrace;
 		break;
-	case ETraceLogs::eResLog:
-		if (!theCore->Config()->GetBool("Service", "ResLog", true))
-			return -1;
+	case ETraceLogs::eResLog: 
+		bSave = theCore->Config()->GetBool("Service", "ResLog", true); 
+		ePreset = m_ResTrace;
 		break;
-	case ETraceLogs::eNetLog:
-		if (!theCore->Config()->GetBool("Service", "NetLog", true))
-			return -1;
+	case ETraceLogs::eNetLog: 
+		bSave = theCore->Config()->GetBool("Service", "NetLog", true); 
+		ePreset = m_NetTrace;
 		break;
 	}
 
-	STraceLog& TraceLog = m_TraceLogs[(int)Log];
-	TraceLog.Entries.push_back(pLogEntry);
-	return TraceLog.IndexOffset + TraceLog.Entries.size() - 1;
+	if (ePreset == ETracePreset::eNoTrace || (ePreset == ETracePreset::eDefault && !bSave))
+		return -1;
+
+	STraceLogPtr& TraceLog = m_TraceLogs[(int)Log];
+	std::unique_lock LogLock(TraceLog->Mutex);
+#ifdef DEF_USE_POOL
+	TraceLog->Entries.Append(pLogEntry);
+#else
+	TraceLog->Entries.push_back(pLogEntry);
+#endif
+	return TraceLog->IndexOffset + TraceLog->Entries.size() - 1;
 }
 
-CProgramFile::STraceLog CProgramFile::GetTraceLog(ETraceLogs Log) const
+CProgramFile::STraceLogPtr CProgramFile::GetTraceLog(ETraceLogs Log) const
 { 
-	std::unique_lock lock(m_Mutex); 
-
 	return m_TraceLogs[(int)Log];
 }
 
 void CProgramFile::TruncateTraceLog()
 {
-	std::unique_lock lock(m_Mutex); 
-
 	size_t CleanupCount = theCore->Config()->GetUInt64("Service", "TraceLogRetentionCount", 10000); // keep last 10000 entries by default
 	uint64 CleanupDateMinutes = theCore->Config()->GetUInt64("Service", "TraceLogRetentionMinutes", 60 * 24 * 14); // default 14 days
 	uint64 CleanupDate = GetCurrentTimeAsFileTime() - (CleanupDateMinutes * 60 * 10000000ULL);
 
 	for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
 	{
-		STraceLog& TraceLog = m_TraceLogs[i];
+		STraceLogPtr& TraceLog = m_TraceLogs[i];
+		std::unique_lock LogLock(TraceLog->Mutex);
 
 		//
 		// check if we exceed the maximum number of entries
 		//
 		size_t pos = 0;
-		if(TraceLog.Entries.size() > CleanupCount)
-			pos = TraceLog.Entries.size() - CleanupCount;
+		if(TraceLog->Entries.size() > CleanupCount)
+			pos = TraceLog->Entries.size() - CleanupCount;
 
 		//
 		// find the first entry older than CleanupDate
 		// note: the entries are sorted by timestamp
 		//
-		auto it = std::lower_bound(TraceLog.Entries.begin(), TraceLog.Entries.end(), CleanupDate, [](const CTraceLogEntryPtr& entry, uint64 CleanupData) {
+#ifdef DEF_USE_POOL
+		auto it = FW::lower_bound(TraceLog->Entries.begin(), TraceLog->Entries.end(), CleanupDate, [](const CTraceLogEntryPtr& entry, uint64 CleanupData) {
 			return entry->GetTimeStamp() < CleanupData;
 		});
+#else
+		auto it = std::lower_bound(TraceLog->Entries.begin(), TraceLog->Entries.end(), CleanupDate, [](const CTraceLogEntryPtr& entry, uint64 CleanupData) {
+			return entry->GetTimeStamp() < CleanupData;
+		});
+#endif
 
 		//
 		// check if entrys by date require us to clean up more entries than by count alone
 		// 
-		if (it != TraceLog.Entries.begin()) {
-			size_t pos2 = std::distance(TraceLog.Entries.begin(), it);
+		if (it != TraceLog->Entries.begin()) {
+			size_t pos2 = it - TraceLog->Entries.begin();
 			if (pos2 > pos)
 				pos = pos2;
 		}
@@ -692,33 +723,37 @@ void CProgramFile::TruncateTraceLog()
 		// remove the entries
 		//
 		if(pos > 0){
-			TraceLog.IndexOffset += pos;
-			TraceLog.Entries.erase(TraceLog.Entries.begin(), TraceLog.Entries.begin() + pos);
+			TraceLog->IndexOffset += pos;
+			TraceLog->Entries.erase(TraceLog->Entries.begin(), TraceLog->Entries.begin() + pos);
 		}
 	}
 }
 
 void CProgramFile::ClearTraceLog(ETraceLogs Log)
 {
-	std::unique_lock lock(m_Mutex);
-
 	if (Log == ETraceLogs::eLogMax)
 	{
 		for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
 		{
-			STraceLog& TraceLog = m_TraceLogs[i];
+			STraceLogPtr& TraceLog = m_TraceLogs[i];
+			std::unique_lock LogLock(TraceLog->Mutex);
 
-			TraceLog.IndexOffset = 0;
-			TraceLog.Entries.clear();
+			TraceLog->IndexOffset = 0;
+			TraceLog->Entries.clear();
 		}
 	}
 	else
 	{
-		STraceLog& TraceLog = m_TraceLogs[(int)Log];
+		STraceLogPtr& TraceLog = m_TraceLogs[(int)Log];
+		std::unique_lock LogLock(TraceLog->Mutex);
 
-		TraceLog.IndexOffset = 0;
-		TraceLog.Entries.clear();
+		TraceLog->IndexOffset = 0;
+		TraceLog->Entries.clear();
 	}
+
+#ifdef DEF_USE_POOL
+	m_pMem->CleanUp();
+#endif
 }
 
 void CProgramFile::UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked)
@@ -770,18 +805,22 @@ void CProgramFile::CollectStats(SStats& Stats) const
 
 void CProgramFile::ClearLogs(ETraceLogs Log)
 {
-	ClearTraceLog(Log);
-
 	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
 		m_TrafficLog.Clear();
 
 	if (Log == ETraceLogs::eLogMax || Log == ETraceLogs::eExecLog) {
 		m_AccessLog.Clear();
 		m_LastExec = 0;
+
+		std::unique_lock lock(m_Mutex);
+		for (auto& Record : m_EnclaveRecord)
+			Record.second->AccessLog.Clear();
 	}
 
 	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
 		m_AccessTree.Clear();
+
+	ClearTraceLog(Log); // does m_pMem->CleanUp();
 }
 
 void CProgramFile::TruncateAccessLog()
@@ -803,4 +842,13 @@ void CProgramFile::TestMissing()
 {
 	std::wstring NtPath = CNtPathMgr::Instance()->TranslateDosToNtPath(m_Path);
 	m_IsMissing = (!NtPath.empty() && NtIo_FileExists(SNtObject(NtPath).Get())) ? ePresent : eMissing;
+}
+
+size_t CProgramFile::GetLogMemUsage() const
+{
+#ifdef DEF_USE_POOL
+	return m_pMem->GetSize();
+#else
+	return 0;
+#endif
 }

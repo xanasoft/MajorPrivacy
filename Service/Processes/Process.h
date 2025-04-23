@@ -1,6 +1,6 @@
 #pragma once
 #include "../Common/AbstractInfo.h"
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "../Network/Socket.h"
 #include "../Network/Dns/DnsProcLog.h"
 #include "../Access/Handle.h"
@@ -76,7 +76,7 @@ public:
 
 	void	AddNetworkIO(int Type, uint32 TransferSize);
 
-	CVariant ToVariant(const SVarWriteOpt& Opts) const;
+	StVariant ToVariant(const SVarWriteOpt& Opts) const;
 
 	static const wchar_t* NtOsKernel_exe; 
 

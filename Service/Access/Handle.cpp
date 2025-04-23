@@ -27,19 +27,16 @@ void CHandle::LinkProcess(const CProcessPtr& pProcess)
 	//ProcessSetNetworkFlag();
 }
 
-CVariant CHandle::ToVariant() const
+StVariant CHandle::ToVariant() const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	CVariant Handle;
-
-	Handle.BeginIMap();
+	StVariantWriter Handle;
+	Handle.BeginIndex();
 
 	Handle.Write(API_V_ACCESS_REF, (uint64)this);
-	Handle.Write(API_V_ACCESS_PATH, m_FileName);
+	Handle.WriteEx(API_V_ACCESS_PATH, m_FileName);
 	Handle.Write(API_V_PID, m_ProcessId);
 
-	Handle.Finish();
-
-	return Handle;
+	return Handle.Finish();
 }

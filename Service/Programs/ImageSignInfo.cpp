@@ -45,24 +45,23 @@ void CImageSignInfo::Update(const struct SVerifierInfo* pVerifyInfo)
 	}
 }
 
-CVariant CImageSignInfo::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CImageSignInfo::ToVariant(const SVarWriteOpt& Opts) const
 {
-	CVariant Data;
+	StVariantWriter Data;
 	if (Opts.Format == SVarWriteOpt::eIndex) {
-		Data.BeginIMap();
+		Data.BeginIndex();
 		WriteIVariant(Data, Opts);
 	} else {  
 		Data.BeginMap();
 		WriteMVariant(Data, Opts);
 	}
-	Data.Finish();
-	return Data;
+	return Data.Finish();
 }
 
-NTSTATUS CImageSignInfo::FromVariant(const class CVariant& Data)
+NTSTATUS CImageSignInfo::FromVariant(const class StVariant& Data)
 {
-	if (Data.GetType() == VAR_TYPE_MAP)         Data.ReadRawMap([&](const SVarName& Name, const CVariant& Data) { ReadMValue(Name, Data); });
-	else if (Data.GetType() == VAR_TYPE_INDEX)  Data.ReadRawIMap([&](uint32 Index, const CVariant& Data)        { ReadIValue(Index, Data); });
+	if (Data.GetType() == VAR_TYPE_MAP)         StVariantReader(Data).ReadRawMap([&](const SVarName& Name, const StVariant& Data) { ReadMValue(Name, Data); });
+	else if (Data.GetType() == VAR_TYPE_INDEX)  StVariantReader(Data).ReadRawIndex([&](uint32 Index, const StVariant& Data) { ReadIValue(Index, Data); });
 	else
 		return STATUS_UNKNOWN_REVISION;
 	return STATUS_SUCCESS;

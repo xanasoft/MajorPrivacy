@@ -316,7 +316,7 @@ void CTraceView::ClearTraceLog(ETraceLogs Log)
 		theCore->ClearTraceLog(Log);
 	else
 	{
-		foreach(CProgramFilePtr pProgram, Current.Programs)
+		foreach(CProgramFilePtr pProgram, Current.ProgramsEx | Current.ProgramsIm)
 			theCore->ClearTraceLog(Log, pProgram);
 
 		foreach(CWindowsServicePtr pService, Current.ServicesEx | Current.ServicesIm)

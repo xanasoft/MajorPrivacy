@@ -59,6 +59,8 @@ CProgramID CProgramID::FromFw(const std::wstring& FilePath, const std::wstring& 
 		ID.m_Type = EProgramType::eAppPackage;
 	else if (!ServiceTag.empty())
 		ID.m_Type = EProgramType::eWindowsService;
+	else if (FilePath.find_first_of(L"*?<>|") != std::wstring::npos)
+		ID.m_Type = EProgramType::eFilePattern;
 	else if (!FilePath.empty())
 		ID.m_Type = EProgramType::eProgramFile;
 	else

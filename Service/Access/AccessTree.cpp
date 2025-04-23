@@ -10,7 +10,6 @@
 
 CAccessTree::CAccessTree()
 {
-	m_Root = std::make_shared<SPathNode>();
 }
 
 CAccessTree::~CAccessTree()
@@ -21,10 +20,20 @@ void CAccessTree::Add(const std::wstring& Path, uint32 AccessMask, uint64 Access
 { 
 	std::unique_lock lock(m_Mutex); 
 
-	Add(std::make_shared<SAccessStats>(AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked), m_Root, Path);
+	if (!m_Root) {
+#ifdef DEF_USE_POOL
+		if(!m_pMem)
+			return;
+		m_Root = m_pMem->New<SPathNode>();
+#else
+		m_Root = std::make_shared<SPathNode>();
+#endif
+	}
+
+	Add(SAccessStats(AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked), m_Root, Path);
 }
 
-bool CAccessTree::Add(const SAccessStatsPtr& pStat, SPathNodePtr& pParent, const std::wstring& Path, size_t uOffset)
+bool CAccessTree::Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std::wstring& Path, size_t uOffset)
 {
 	while (uOffset < Path.length() && Path.at(uOffset) == L'\\')
 		uOffset++;
@@ -33,25 +42,46 @@ bool CAccessTree::Add(const SAccessStatsPtr& pStat, SPathNodePtr& pParent, const
 	if (uPos == -1 && uOffset < Path.length())
 		uPos = Path.length();
 	
+#ifdef DEF_USE_POOL
+	FW::StringW Name(m_pMem);
+	if (uPos != -1)
+		Name.Assign(Path.c_str() + uOffset, uPos - uOffset);
+#else
 	std::wstring Name;
 	if (uPos != -1)
 		Name = Path.substr(uOffset, uPos - uOffset);
+#endif
 
 	if (uPos == -1)
 	{
-		pParent->pStats = pStat;
+		pParent->Stats = Stat;
 		return false;
 	}
 
 	bool bAdded = false;
+#ifdef DEF_USE_POOL
+	FW::StringW name = Name;
+	name.MakeLower();
+	auto pBranch = pParent->Branches[name];
+#else
 	auto &pBranch = pParent->Branches[MkLower(Name)];
+#endif
 	if (!pBranch) {
 		bAdded = true;
+#ifdef DEF_USE_POOL
+		pBranch = m_pMem->New<SPathNode>();
+		(*&pBranch)->Name = Name;
+#else
 		pBranch = std::make_shared<SPathNode>();
 		pBranch->Name = Name;
+#endif
 	}
 
-	if(Add(pStat, pBranch, Path, uPos + 1))
+#ifdef DEF_USE_POOL
+	if(Add(Stat, *&pBranch, Path, uPos + 1))
+#else
+	if(Add(Stat, pBranch, Path, uPos + 1))
+#endif
 		bAdded = true;
 
 	if(bAdded)
@@ -63,112 +93,160 @@ void CAccessTree::Clear()
 {
 	std::unique_lock lock(m_Mutex); 
 
-	m_Root->Branches.clear();
+	m_Root.reset();
 }
 
-CVariant CAccessTree::StoreTree(const SVarWriteOpt& Opts) const
+StVariant CAccessTree::StoreTree(const SVarWriteOpt& Opts) const
 {
+	if(!m_Root)
+		return StVariant();
+
 	return StoreTree(m_Root);
 }
 
-CVariant CAccessTree::StoreTree(const SPathNodePtr& pParent) const
+StVariant CAccessTree::StoreTree(const SPathNodePtr& pParent) const
 {
 	std::unique_lock lock(m_Mutex);
 	auto Branches = pParent->Branches;
 	lock.unlock();
 
-	CVariant Children;
+	StVariantWriter Children;
 	Children.BeginList();
 	for (auto &Branch : Branches)
+#ifdef DEF_USE_POOL
+		Children.WriteVariant(StoreTree(Branch));
+#else
 		Children.WriteVariant(StoreTree(Branch.second));
-	Children.Finish();
+#endif
 
-	return StoreNode(pParent, Children);
+	return StoreNode(pParent, Children.Finish());
 }
 
-void CAccessTree::LoadTree(const CVariant& Data)
+void CAccessTree::LoadTree(const StVariant& Data)
 {
 	std::unique_lock lock(m_Mutex); 
+
+	if(!Data.IsValid())
+		return;
+
+	if (!m_Root) {
+#ifdef DEF_USE_POOL
+		if(!m_pMem)
+			return;
+		m_Root = m_pMem->New<SPathNode>();
+#else
+		m_Root = std::make_shared<SPathNode>();
+#endif
+	}
 
 	LoadTree(Data, m_Root);
 }
 
-uint32 CAccessTree::LoadTree(const CVariant& Data, SPathNodePtr& pParent)
+uint32 CAccessTree::LoadTree(const StVariant& Data, SPathNodePtr& pParent)
 {
 	uint32 Count = 0;
-	pParent->pStats = std::make_shared<SAccessStats>(Data[API_V_ACCESS_MASK], Data[API_V_LAST_ACTIVITY], Data[API_V_NT_STATUS], Data[API_V_IS_DIRECTORY], Data[API_V_WAS_BLOCKED]);
-	CVariant Nodes = Data[API_V_ACCESS_NODES];
+	pParent->Stats = SAccessStats(Data[API_V_ACCESS_MASK], Data[API_V_LAST_ACTIVITY], Data[API_V_NT_STATUS], Data[API_V_IS_DIRECTORY], Data[API_V_WAS_BLOCKED]);
+	StVariant Nodes = Data[API_V_ACCESS_NODES];
 	for (uint32 i = 0; i < Nodes.Count(); i++)
 	{
-		CVariant Node = Nodes[i];
+		StVariant Node = Nodes[i];
+#ifdef DEF_USE_POOL
+		FW::StringW Name(m_pMem);
+		Name = Node[API_V_ACCESS_NAME].ToStringW();
+		FW::StringW name = Name;
+		name.MakeLower();
+		auto pBranch = pParent->Branches[name];
+#else
 		std::wstring Name = Node[API_V_ACCESS_NAME].AsStr();
 		auto& pBranch = pParent->Branches[MkLower(Name)];
+#endif
 		if (!pBranch) {
 			Count++;
+#ifdef DEF_USE_POOL
+			pBranch = m_pMem->New<SPathNode>();
+			(*&pBranch)->Name = Name;
+#else
 			pBranch = std::make_shared<SPathNode>();
 			pBranch->Name = Name;
+#endif
 		}
+#ifdef DEF_USE_POOL
+		Count += LoadTree(Node, *&pBranch);
+#else
 		Count += LoadTree(Node, pBranch);
+#endif
 	}
 	pParent->TotalCount += Count;
 	return Count;
 }
 
-CVariant CAccessTree::DumpTree(uint64 LastActivity) const
+StVariant CAccessTree::DumpTree(uint64 LastActivity) const
 {
 	std::unique_lock lock(m_Mutex); 
+
+	if (!m_Root)
+		return StVariant();
 
 	return DumpTree(m_Root, LastActivity);
 }
 
-CVariant CAccessTree::DumpTree(const SPathNodePtr& pParent, uint64 LastActivity) const
+StVariant CAccessTree::DumpTree(const SPathNodePtr& pParent, uint64 LastActivity) const
 {
 	int Count = 0;
-	CVariant Children;
+	StVariantWriter Children;
 	Children.BeginList();
 	for (auto& Branch : pParent->Branches) {
-		CVariant Child = DumpTree(Branch.second, LastActivity);
+#ifdef DEF_USE_POOL
+		StVariant Child = DumpTree(Branch, LastActivity);
+#else
+		StVariant Child = DumpTree(Branch.second, LastActivity);
+#endif
 		if (Child.IsValid()) {
 			Count++;
 			Children.WriteVariant(Child);
 		}
 	}
-	Children.Finish();
 
 	if (Count == 0) {
-		if(pParent->pStats && pParent->pStats->LastAccessTime <= LastActivity)
-			return CVariant();
-		return StoreNode(pParent, CVariant());
+		if(pParent->Stats.LastAccessTime && pParent->Stats.LastAccessTime <= LastActivity)
+			return StVariant();
+		return StoreNode(pParent, StVariant());
 	}
-	return StoreNode(pParent, Children);
+	return StoreNode(pParent, Children.Finish());
 }
 
-CVariant CAccessTree::StoreNode(const SPathNodePtr& pParent, const CVariant& Children) const
+StVariant CAccessTree::StoreNode(const SPathNodePtr& pParent, const StVariant& Children) const
 {
-	CVariant Node;
-	Node.BeginIMap();
+	StVariantWriter Node;
+	Node.BeginIndex();
 
+#ifdef DEF_USE_POOL
+	Node.Write(API_V_ACCESS_REF, (uint64)pParent.Get());
+#else
 	Node.Write(API_V_ACCESS_REF, (uint64)pParent.get());
-	Node.Write(API_V_ACCESS_NAME, pParent->Name);
+#endif
+	Node.WriteEx(API_V_ACCESS_NAME, pParent->Name);
 
-	if (pParent->pStats)
+	if (pParent->Stats.LastAccessTime)
 	{
-		Node.Write(API_V_LAST_ACTIVITY, pParent->pStats->LastAccessTime);
-		Node.Write(API_V_WAS_BLOCKED, pParent->pStats->bBlocked);
-		Node.Write(API_V_ACCESS_MASK, pParent->pStats->AccessMask);
-		Node.Write(API_V_NT_STATUS, pParent->pStats->NtStatus);
-		Node.Write(API_V_IS_DIRECTORY, pParent->pStats->IsDirectory);
+		Node.Write(API_V_LAST_ACTIVITY, pParent->Stats.LastAccessTime);
+		Node.Write(API_V_WAS_BLOCKED, pParent->Stats.bBlocked);
+		Node.Write(API_V_ACCESS_MASK, pParent->Stats.AccessMask);
+		Node.Write(API_V_NT_STATUS, pParent->Stats.NtStatus);
+		Node.Write(API_V_IS_DIRECTORY, pParent->Stats.IsDirectory);
 	}
 
 	if(Children.IsValid())
 		Node.WriteVariant(API_V_ACCESS_NODES, Children);
 
-	Node.Finish();
-	return Node;
+	return Node.Finish();
 }
 
 void CAccessTree::CleanUp(bool* pbCancel, uint32* puCounter)
 {
+	if (!m_Root)
+		return;
+
 	CleanUp(m_Root, L"", pbCancel, puCounter);
 }
 
@@ -237,31 +315,67 @@ bool CAccessTree::CleanUp(SPathNodePtr& pParent, const std::wstring& Path, bool*
 
 	uint32 Count = 0;
 
+#ifdef DEF_USE_POOL
+	for (auto I = Branches.begin(); I != Branches.end();++I)
+#else
 	for (auto& Branch : Branches)
+#endif
 	{
 		if (pbCancel && *pbCancel)
 			break;
 
 		std::wstring ChildPath;
 		if (!Path.empty())
+#ifdef DEF_USE_POOL
+			ChildPath = Path + L"\\" + I.Key().ConstData();
+#else
 			ChildPath = Path + L"\\" + Branch.first;
+#endif
+#ifdef DEF_USE_POOL
+		else if (I.Key().Length() == 2 && I.Key().At(1) == L':')
+#else
 		else if (Branch.first.size() == 2 && Branch.first[1] == L':')
+#endif
+#ifdef DEF_USE_POOL
+			ChildPath = I.Key().ConstData();
+#else
 			ChildPath = Branch.first;
+#endif
 		else
+#ifdef DEF_USE_POOL
+			ChildPath = L"\\" + std::wstring(I.Key().ConstData());
+#else
 			ChildPath = L"\\" + Branch.first;
+#endif
+#ifdef DEF_USE_POOL
+		bool bOk = CleanUp(I.Value(), ChildPath, pbCancel, puCounter);
+#else
 		bool bOk = CleanUp(Branch.second, ChildPath, pbCancel, puCounter);
+#endif
 
 		if (puCounter) {
 			*puCounter += 1;
 			if (!bOk)
+#ifdef DEF_USE_POOL
+				*puCounter += I.Value()->TotalCount;
+#else
 				*puCounter += Branch.second->TotalCount;
+#endif
 		}
 
 		lock.lock();
 		if (!bOk)
+#ifdef DEF_USE_POOL
+			pParent->Branches.Remove(I.Key());
+#else
 			pParent->Branches.erase(Branch.first);
+#endif
 		else
+#ifdef DEF_USE_POOL
+			Count += 1 + I.Value()->TotalCount;
+#else
 			Count += 1 + Branch.second->TotalCount;
+#endif
 		lock.unlock();
 	}
 
@@ -276,6 +390,9 @@ void CAccessTree::Truncate()
 {
 	std::unique_lock lock(m_Mutex);
 
+	if (!m_Root)
+		return;
+
 	uint64 CleanupDateMinutes = theCore->Config()->GetUInt64("Service", "TraceLogRetentionMinutes", 60 * 24 * 14); // default 14 days
 	uint64 CleanupDate = GetCurrentTimeAsFileTime() - (CleanupDateMinutes * 60 * 10000000ULL);
 
@@ -284,13 +401,17 @@ void CAccessTree::Truncate()
 
 uint64 CAccessTree::Truncate(SPathNodePtr& pParent, uint64 CleanupDate)
 {
-	uint64 LatestAccess = pParent->pStats ? pParent->pStats->LastAccessTime : 0;
+	uint64 LatestAccess = pParent->Stats.LastAccessTime;
 
 	uint32 Count = 0;
 
 	for (auto I = pParent->Branches.begin(); I != pParent->Branches.end();)
 	{
+#ifdef DEF_USE_POOL
+		uint64 LastAccess = Truncate(I.Value(), CleanupDate);
+#else
 		uint64 LastAccess = Truncate(I->second, CleanupDate);
+#endif
 		if (LastAccess > LatestAccess)
 			LatestAccess = LastAccess;
 
@@ -300,7 +421,11 @@ uint64 CAccessTree::Truncate(SPathNodePtr& pParent, uint64 CleanupDate)
 		}
 		else
 		{
+#ifdef DEF_USE_POOL
+			Count += 1 + I.Value()->TotalCount;
+#else
 			Count += 1 + I->second->TotalCount;
+#endif
 			++I;
 		}
 	}

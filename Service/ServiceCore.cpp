@@ -9,6 +9,8 @@
 #include "../Library/IPC/PipeServer.h"
 #include "../Library/IPC/AlpcPortServer.h"
 #include "Network/NetworkManager.h"
+#include "Network/Firewall/Firewall.h"
+#include "Network/Dns/DnsFilter.h"
 #include "Etw/EtwEventMonitor.h"
 #include "../Library/API/DriverAPI.h"
 #include "../Library/API/PrivacyAPI.h"
@@ -17,7 +19,6 @@
 #include "Enclaves/EnclaveManager.h"
 #include "Programs/ProgramManager.h"
 #include "Network/SocketList.h"
-#include "Network/Firewall/Firewall.h"
 #include "Access/AccessManager.h"
 #include "Volumes/VolumeManager.h"
 #include "Tweaks/TweakManager.h"
@@ -30,14 +31,11 @@
 
 CServiceCore* theCore = NULL;
 
+FW::DefaultMemPool g_DefaultMemPool;
 
 CServiceCore::CServiceCore()
 	: m_Pool(4)
 {
-#ifdef _DEBUG
-	TestVariant();
-#endif
-
 	m_pLog = new CEventLogger(API_SERVICE_NAME);
 
 	m_pUserPipe = new CPipeServer();
@@ -68,6 +66,9 @@ CServiceCore::CServiceCore()
 
 CServiceCore::~CServiceCore()
 {
+	m_pUserPipe->Close();
+	m_pUserPort->Close();
+
 	delete m_pEtwEventMonitor;
 
 	delete m_pDriver;
@@ -170,37 +171,37 @@ STATUS CServiceCore::InitDriver()
 			if (RegCreateKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, NULL, 0, KEY_WRITE, NULL, &hKey, &disposition) == ERROR_SUCCESS)
 			{
 				CBuffer Buffer;
-				if (ReadFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Buffer))
+				if (ReadFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", Buffer))
 				{
-					CVariant DriverData;
+					StVariant DriverData;
 					//try {
 					auto ret = DriverData.FromPacket(&Buffer, true);
 
-					CVariant ConfigData = DriverData[API_S_CONFIG];
+					StVariant ConfigData = DriverData[API_S_CONFIG];
 					CBuffer ConfigBuff;
 					ConfigData.ToPacket(&ConfigBuff);
 
-					RegSet(hKey, L"Config", L"Data", CVariant(ConfigBuff));
+					RegSet(hKey, L"Config", L"Data", StVariant(ConfigBuff));
 					if (DriverData.Has(API_S_USER_KEY))
 					{
-						CVariant UserKey = DriverData[API_S_USER_KEY];
+						StVariant UserKey = DriverData[API_S_USER_KEY];
 						RegSet(hKey, L"UserKey", L"PublicKey", UserKey[API_S_PUB_KEY]);
 						if (UserKey.Has(API_S_KEY_BLOB)) RegSet(hKey, L"UserKey", L"KeyBlob", UserKey[API_S_KEY_BLOB]);
 					}
 					//}
 					//catch (const CException&) {
-					if (ret != CVariant::eErrNone)
+					if (ret != StVariant::eErrNone)
 						Status = ERR(STATUS_UNSUCCESSFUL);
 					//}
 				}
 				else // todo: remove fix for 0.97.0 driver failing when no config is found
 				{
-					CVariant ConfigData;
-					ConfigData.BeginMap();
-					ConfigData.Finish();
+					StVariantWriter ConfigWriter;
+					ConfigWriter.BeginMap();
+					StVariant ConfigData = ConfigWriter.Finish();
 					CBuffer ConfigBuff;
 					ConfigData.ToPacket(&ConfigBuff);
-					RegSet(hKey, L"Config", L"Data", CVariant(ConfigBuff));
+					RegSet(hKey, L"Config", L"Data", StVariant(ConfigBuff));
 				}
 			}
 		}
@@ -237,18 +238,18 @@ void CServiceCore::CloseDriver()
 		CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
 		if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
 		{
-			CVariant Config = RegQuery(hKey, L"Config", L"Data");
+			StVariant Config = RegQuery(hKey, L"Config", L"Data");
 			CBuffer ConfigBuff = Config;
-			CVariant ConfigData;
+			StVariant ConfigData;
 			ConfigData.FromPacket(&ConfigBuff, true);
 
-			CVariant KeyBlob = RegQuery(hKey, L"UserKey", L"KeyBlob");
-			CVariant PublicKey = RegQuery(hKey, L"UserKey", L"PublicKey");
+			StVariant KeyBlob = RegQuery(hKey, L"UserKey", L"KeyBlob");
+			StVariant PublicKey = RegQuery(hKey, L"UserKey", L"PublicKey");
 
-			CVariant DriverData;
+			StVariant DriverData;
 			DriverData[API_S_CONFIG] = ConfigData;
 			if (PublicKey.GetSize() > 0) {
-				CVariant UserKey;
+				StVariant UserKey;
 				UserKey[API_S_PUB_KEY] = PublicKey;
 				if (KeyBlob.GetSize() > 0) UserKey[API_S_KEY_BLOB] = KeyBlob;
 				DriverData[API_S_USER_KEY] = UserKey;
@@ -256,7 +257,7 @@ void CServiceCore::CloseDriver()
 
 			CBuffer Buffer;
 			DriverData.ToPacket(&Buffer);
-			WriteFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", 0, Buffer);
+			WriteFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", Buffer);
 
 			RemoveService(API_DRIVER_NAME);
 		}
@@ -387,7 +388,7 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
     LARGE_INTEGER liDueTime;
     liDueTime.QuadPart = -10000000LL; // let the timer start after 1 seconds and the repeat every 250 ms
-	if (!SetWaitableTimer(This->m_hTimer, &liDueTime, 250, CServiceCore__TimerProc, This, FALSE))if (!SetWaitableTimer(This->m_hTimer, &liDueTime, 250, CServiceCore__TimerProc, This, FALSE))
+	if (!SetWaitableTimer(This->m_hTimer, &liDueTime, DEF_CORE_TIMER_INTERVAL, CServiceCore__TimerProc, This, FALSE))
         return ERR(GetLastWin32ErrorAsNtStatus());
 
 	//
@@ -399,6 +400,9 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 
 	CloseHandle(theCore->m_hTimer);
+
+	//if (This->IsConfigDirty())
+	This->CommitConfig();
 
 	This->m_LastStoreTime = GetTickCount64();
 	This->StoreRecords();
@@ -443,6 +447,22 @@ STATUS CServiceCore::Init()
 	}
 
 	m_pConfig = new CConfigIni(m_DataFolder + L"\\" + API_SERVICE_NAME + L".ini");
+
+	if (m_pConfig->GetInt("Service", "ConfigLevel", 0) < 1)
+	{
+		m_pConfig->SetInt("Service", "ConfigLevel", 1);
+		
+		m_pConfig->SetValue("Service", "DnsResolvers", L"8.8.8.8;1.1.1.1");
+		m_pConfig->SetValue("Service", "DnsTestHost", L"example.com");
+
+		std::vector<std::wstring> DnsBlockLists;
+		DnsBlockLists.push_back(L"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts");
+		DnsBlockLists.push_back(L"http://sysctl.org/cameleon/hosts");
+		DnsBlockLists.push_back(L"https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt");
+		DnsBlockLists.push_back(L"https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt");
+
+		m_pConfig->SetValue("Service", "DnsBlockLists", JoinStr(DnsBlockLists, L";"));
+	}
 
 	m_LastStoreTime = GetTickCount64();
 
@@ -517,7 +537,8 @@ void CServiceCore::Reconfigure(const std::string& Key)
 
 	//m_pAccessManager->Reconfigure();
 
-	//m_pNetworkManager->Reconfigure();
+	if(Key.substr(0, 3) == "Dns")
+		m_pNetworkManager->Reconfigure(Key == "DnsResolvers", Key == "DnsBlockLists");
 
 	//m_pEtwEventMonitor->Reconfigure();
 }
@@ -525,6 +546,8 @@ void CServiceCore::Reconfigure(const std::string& Key)
 STATUS CServiceCore::CommitConfig()
 {
 	m_pProgramManager->Store();
+	m_pNetworkManager->DnsFilter()->Store();
+	m_pNetworkManager->Firewall()->Store();
 	m_bConfigDirty = false;
 
 	return OK;

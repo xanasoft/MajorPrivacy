@@ -52,9 +52,13 @@ public:
 
 	void Update();
 
+	void Reconfigure(bool bWithResolvers = true, bool bWithBlocklist = true);
+	void UpdateDnsConfig(bool bInstallFilter);
+
 	class CFirewall* Firewall()			{ return m_pFirewall; }
 	class CSocketList* SocketList()		{ return m_pSocketList; }
 	class CDnsInspector* DnsInspector()	{ return m_pDnsInspector; }
+	class CDnsFilter* DnsFilter()		{ return m_pDnsFilter; }
 
 	SAdapterInfoPtr GetAdapterInfoByIP(const CAddress& IP);
 	EFwProfiles GetDefaultProfile()		{ return m_DefaultProfile; }
@@ -66,6 +70,13 @@ protected:
 	class CFirewall*		m_pFirewall = NULL;
 	class CSocketList*		m_pSocketList = NULL;
 	class CDnsInspector*	m_pDnsInspector = NULL;
+	class CDnsFilter*		m_pDnsFilter = NULL;
+
+	enum DnsState {
+		eNoDnsFilter = 0,
+		eDnsFilterOk = 1,
+		eDnsFilterFailed = 2
+	}						m_pDnsState = eNoDnsFilter;
 
 	CRegWatcher				m_NicKeyWatcher;
 	bool					m_UpdateAdapterInfo = true;

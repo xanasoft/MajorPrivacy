@@ -9,11 +9,13 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 // CProgramSet
 
-//void CProgramSet::MergeStats()
-//{
-//
-//}
-
+size_t CProgramSet::GetLogMemUsage() const
+{ 
+	size_t LogMemoryUsed = m_LogMemoryUsed;
+	foreach(auto pNode, m_Nodes)
+		LogMemoryUsed += pNode->GetLogMemUsage();
+	return LogMemoryUsed; 
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // CAllPrograms

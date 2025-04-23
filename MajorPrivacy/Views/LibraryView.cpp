@@ -363,7 +363,7 @@ void CLibraryView::OnCleanUpLibraries()
 		theCore->CleanUpLibraries();
 	else
 	{
-		foreach(CProgramFilePtr pProgram, Current.Programs)
+		foreach(CProgramFilePtr pProgram, Current.ProgramsEx | Current.ProgramsIm)
 			theCore->CleanUpLibraries(pProgram);
 	}
 

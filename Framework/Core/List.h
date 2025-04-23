@@ -26,12 +26,12 @@ class List : public AbstractContainer
 {
 public:
 	List(AbstractMemPool* pMem = nullptr) : AbstractContainer(pMem) {}
-	List(const List& Other) : AbstractContainer(Other) { Assign(Other); }
-	List(List&& Other) : AbstractContainer(Other)	{ m_ptr = Other.m_ptr; Other.m_ptr = nullptr; }
+	List(const List& Other) : AbstractContainer(nullptr) { Assign(Other); }
+	List(List&& Other) : AbstractContainer(nullptr)	{ Move(Other); }
 	~List()											{ DetachData(); }
 
-	List& operator=(const List& Other)				{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; Assign(Other); return *this; }
-	List& operator=(List&& Other)					{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
+	List& operator=(const List& Other)				{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Assign(Other); return *this; }
+	List& operator=(List&& Other)					{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Move(Other); return *this; }
 	List& operator+=(const List& Other)				{ if (!m_pMem) m_pMem = Other.m_pMem; Append(Other); return *this; } 
 	List& operator+=(const V& Value)				{ Append(Value); return *this; }
 	List operator+(const List& Other) const			{ List str(*this); str.Append(Other); return str; }
@@ -46,9 +46,12 @@ public:
 	};
 
 	size_t Count() const							{ return m_ptr ? m_ptr->Count : 0; }
+	size_t size() const								{ return Count(); } // for STL compatibility
 	bool IsEmpty() const							{ return m_ptr ? m_ptr->Count == 0 : true; }
+	bool empty() const								{ return IsEmpty(); } // for STL compatibility
 
 	void Clear()									{ DetachData(); }
+	void clear()									{ Clear(); } // for STL compatibility
 
 	bool MakeExclusive()							{ if(m_ptr && m_ptr->Refs > 1) return MakeExclusive(nullptr); return true; }
 
@@ -60,7 +63,23 @@ public:
 			Clear();
 			return Append(Other);
 		}
+
 		AttachData(Other.m_ptr);
+		return true;
+	}
+
+	bool Move(List& Other)
+	{
+		if (!m_pMem)
+			m_pMem = Other.m_pMem;
+		else if(m_pMem != Other.m_pMem) { // if the containers use different memory pools, we need to make a copy of the data
+			Clear();
+			return Append(Other);
+		}
+
+		DetachData();
+		m_ptr = Other.m_ptr; 
+		Other.m_ptr = nullptr;
 		return true;
 	}
 

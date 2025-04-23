@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Library/API/PrivacyDefs.h"
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 
 struct CImageSignInfo
 {
@@ -16,15 +16,15 @@ public:
 
 	void Update(const struct SVerifierInfo* pVerifyInfo);
 
-	CVariant ToVariant(const SVarWriteOpt& Opts) const;
-	NTSTATUS FromVariant(const CVariant& Data);
+	StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	NTSTATUS FromVariant(const StVariant& Data);
 
 protected:
 
-	void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
-	void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
-	void ReadIValue(uint32 Index, const CVariant& Data);
-	void ReadMValue(const SVarName& Name, const CVariant& Data);
+	void WriteIVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const;
+	void WriteMVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const;
+	void ReadIValue(uint32 Index, const StVariant& Data);
+	void ReadMValue(const SVarName& Name, const StVariant& Data);
 
 	UCISignInfo					m_SignInfo;
 	EHashStatus					m_HashStatus = EHashStatus::eHashUnknown;

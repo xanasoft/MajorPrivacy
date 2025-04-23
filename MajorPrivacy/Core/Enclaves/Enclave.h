@@ -41,6 +41,12 @@ public:
 	bool GetImageLoadProtection() const				{ return m_ImageLoadProtection; }
 	void SetImageLoadProtection(bool bProtect)		{ m_ImageLoadProtection = bProtect; }
 
+	bool GetAllowDebugging() const					{ return m_AllowDebugging; }
+	void SetAllowDebugging(bool bAllow)				{ m_AllowDebugging = bAllow; }
+
+	bool GetKeepAlive() const						{ return m_KeepAlive; }
+	void SetKeepAlive(bool bKeepAlive)				{ m_KeepAlive = bKeepAlive; }
+
 	void AddProcess(CProcessPtr Process)			{ m_Processes.insert(Process->GetProcessId(), Process); }
 	void RemoveProcess(CProcessPtr Process)			{ m_Processes.remove(Process->GetProcessId()); }
 	QMap<quint64, CProcessPtr> GetProcesses()		{ return m_Processes; }
@@ -77,6 +83,9 @@ protected:
 	EProgramOnSpawn m_OnTrustedSpawn = EProgramOnSpawn::eAllow;
 	EProgramOnSpawn m_OnSpawn = EProgramOnSpawn::eEject;
 	bool m_ImageLoadProtection = true;
+
+	bool m_AllowDebugging = false;
+	bool m_KeepAlive = false;
 
 	QtVariant m_Data;
 

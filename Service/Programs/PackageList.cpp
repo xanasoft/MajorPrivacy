@@ -2,7 +2,7 @@
 #include "PackageList.h"
 #include "ServiceCore.h"
 #include "../Programs/ProgramManager.h"
-#include "../../Library/Common/Buffer.h"
+#include "../../Framework/Common/Buffer.h"
 #include "../../Library/Helpers/AppUtil.h"
 #include "../../Library/Helpers/NtUtil.h"
 #include "../Library/Common/DbgHelp.h"
@@ -172,12 +172,12 @@ void CPackageList::Update()
 bool CPackageList::LoadFromCache()
 {
     CBuffer Buffer;
-    if (!ReadFile(theCore->GetDataFolder() + L"\\AppPackages.dat", 0, Buffer))
+    if (!ReadFile(theCore->GetDataFolder() + L"\\AppPackages.dat", Buffer))
         return false;
 
-    CVariant List;
+    StVariant List;
     //try {
-    if(List.FromPacket(&Buffer, true) != CVariant::eErrNone)
+    if(List.FromPacket(&Buffer, true) != StVariant::eErrNone)
 		return false;
     //} catch (const CException&) {
     //    return false;
@@ -185,19 +185,19 @@ bool CPackageList::LoadFromCache()
 
     for (uint32 i = 0; i < List.Count(); i++)
     {
-        CVariant Package = List[i];
+        StVariant Package = List[i];
         SPackagePtr pAppPackage = SPackagePtr(new SPackage());
 
-        pAppPackage->PackageFullName = Package["FullName"];
-        pAppPackage->PackageSid = Package["Sid"];
+        pAppPackage->PackageFullName = Package["FullName"].ToWString(); // todo: fix-me shoudl work without ToWString
+        pAppPackage->PackageSid = Package["Sid"].ToWString();
 
-        pAppPackage->PackageName = Package["Name"];
-        pAppPackage->PackageFamilyName = Package["FamilyName"];
-        pAppPackage->PackageVersion = Package["Version"];
+        pAppPackage->PackageName = Package["Name"].ToWString();
+        pAppPackage->PackageFamilyName = Package["FamilyName"].ToWString();
+        pAppPackage->PackageVersion = Package["Version"].ToWString();
 
-        pAppPackage->PackageInstallPath = Package["InstallPath"];
-        pAppPackage->PackageDisplayName = Package["DisplayName"];
-        pAppPackage->SmallLogoPath = Package["LogoPath"];
+        pAppPackage->PackageInstallPath = Package["InstallPath"].ToWString();
+        pAppPackage->PackageDisplayName = Package["DisplayName"].ToWString();
+        pAppPackage->SmallLogoPath = Package["LogoPath"].ToWString();
 
         m_List.insert(std::make_pair(pAppPackage->PackageFullName, pAppPackage));
         theCore->ProgramManager()->AddPackage(pAppPackage);
@@ -208,12 +208,12 @@ bool CPackageList::LoadFromCache()
 
 void CPackageList::StoreToCache()
 {
-    CVariant List;
+    StVariant List;
 
     for (auto I : m_List)
     {
         SPackagePtr pAppPackage = I.second;
-        CVariant Package;
+        StVariant Package;
 
         Package["FullName"] = pAppPackage->PackageFullName;
 		Package["Sid"] = pAppPackage->PackageSid;
@@ -231,5 +231,5 @@ void CPackageList::StoreToCache()
 
     CBuffer Buffer;
     List.ToPacket(&Buffer);
-    WriteFile(theCore->GetDataFolder() + L"\\AppPackages.dat", 0, Buffer); 
+    WriteFile(theCore->GetDataFolder() + L"\\AppPackages.dat", Buffer); 
 }

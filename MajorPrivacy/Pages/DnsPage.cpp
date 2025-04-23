@@ -54,7 +54,7 @@ void CDnsPage::SetMergePanels(bool bMerge)
 	if (bMerge)
 	{
 		m_pMainLayout->addWidget(m_pTabs);
-		m_pTabs->insertTab(0, m_pRuleView, QIcon(":/Icons/Rules.png"), tr("Firewall Rules"));
+		m_pTabs->insertTab(0, m_pRuleView, QIcon(":/Icons/Rules.png"), tr("Dns Rules"));
 		delete m_pVSplitter;
 		m_pVSplitter = nullptr;
 	}
@@ -62,7 +62,7 @@ void CDnsPage::SetMergePanels(bool bMerge)
 	{
 		m_pVSplitter = new QSplitter(Qt::Vertical);
 		m_pRuleTabs = new QTabWidget();
-		m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Firewall Rules"));
+		m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Dns Rules"));
 		m_pVSplitter->addWidget(m_pRuleTabs);
 		m_pRuleView->setVisible(true);
 		m_pVSplitter->setCollapsible(0, false);

@@ -61,6 +61,17 @@ public:
 	virtual QString GetInfo() const					{ return m_Info; }
 	virtual QString GetPath() const					{ return ""; }
 
+	//virtual ETracePreset GetExecTrace() const		{ return m_ExecTrace; }
+	//virtual void SetExecTrace(ETracePreset Trace)	{ m_ExecTrace = Trace; }
+	virtual ETracePreset GetResTrace() const		{ return m_ResTrace; }
+	virtual void SetResTrace(ETracePreset Trace)	{ m_ResTrace = Trace; }
+	virtual ETracePreset GetNetTrace() const		{ return m_NetTrace; }
+	virtual void SetNetTrace(ETracePreset Trace)	{ m_NetTrace = Trace; }
+
+	virtual ESavePreset GetSaveTrace() const		{ return m_SaveTrace; }
+	virtual void SetSaveTrace(ESavePreset Trace)	{ m_SaveTrace = Trace; }
+
+
 	virtual QList<QWeakPointer<QObject>> GetGroups() const	{ return m_Groups; }
 
 	virtual int GetFwRuleCount() const				{ return m_FwRuleIDs.count(); }
@@ -76,6 +87,8 @@ public:
 
 	virtual void CountStats() = 0;
 	virtual const SProgramStats* GetStats()			{ return &m_Stats; }
+
+	virtual size_t GetLogMemUsage() const			{ return m_LogMemoryUsed; }
 
 	virtual QtVariant ToVariant(const SVarWriteOpt& Opts) const;
 	virtual NTSTATUS FromVariant(const QtVariant& Data);
@@ -99,6 +112,11 @@ protected:
 	QIcon								m_Icon;
 	QString								m_Info;
 
+	//ETracePreset 						m_ExecTrace = ETracePreset::eDefault;
+	ETracePreset 						m_ResTrace = ETracePreset::eDefault;
+	ETracePreset 						m_NetTrace = ETracePreset::eDefault;
+	ESavePreset 						m_SaveTrace = ESavePreset::eDefault;
+
 	QList<QWeakPointer<QObject>>		m_Groups;
 
 	QSet<QFlexGuid>						m_FwRuleIDs;
@@ -108,6 +126,8 @@ protected:
 	bool								m_IsMissing = false;
 
 	SProgramStats						m_Stats;
+
+	size_t								m_LogMemoryUsed = 0;		
 };
 
 typedef QSharedPointer<CProgramItem> CProgramItemPtr;

@@ -1,5 +1,4 @@
 #pragma once
-//#include "../lib_global.h"
 
 #include "SmartPattern.h"
 

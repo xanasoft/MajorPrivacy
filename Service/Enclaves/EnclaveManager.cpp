@@ -35,13 +35,13 @@ STATUS CEnclaveManager::Init()
 
 void CEnclaveManager::LoadEnclaves()
 {
-	/*CVariant Request;
+	/*StVariant Request;
 	auto Res = theCore->Driver()->Call(API_GET_ENCLAVES, Request);
 	if (Res.IsSuccess()) {
-		CVariant Enclaves = Res.GetValue();
+		StVariant Enclaves = Res.GetValue();
 		for (uint32 i = 0; i < Enclaves.Count(); i++)
 		{
-			CVariant Enclave = Enclaves[i];
+			StVariant Enclave = Enclaves[i];
 			std::wstring Guid = Enclave[API_V_GUID].AsStr();
 			OnEnclaveChanged(Guid, EConfigEvent::eAdded, EConfigGroup::eEnclaves, 0);
 		}
@@ -59,7 +59,7 @@ void CEnclaveManager::OnEnclaveChanged(const std::wstring& Guid, enum class ECon
 		
 	}
 
-	CVariant vEvent;
+	StVariant vEvent;
 	vEvent[API_V_GUID] = Guid;
 	//vEvent[API_V_NAME] = ;
 	vEvent[API_V_EVENT_TYPE] = (uint32)Event;

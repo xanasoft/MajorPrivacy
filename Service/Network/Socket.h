@@ -1,7 +1,7 @@
 #pragma once
 #include "../Library/Common/Address.h"
 #include "../Common/AbstractInfo.h"
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "../Library/Common/MiscStats.h"
 #include "Dns/DnsHostName.h"
 
@@ -71,7 +71,7 @@ public:
 
 	static uint64 MkHash(uint64 ProcessId, uint32 ProtocolType, const CAddress& LocalAddress, uint16 LocalPort, const CAddress& RemoteAddress, uint16 RemotePort);
 
-	CVariant ToVariant() const;
+	StVariant ToVariant() const;
 
 protected:
 	friend class CSocketList;

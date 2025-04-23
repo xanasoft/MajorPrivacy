@@ -6,6 +6,10 @@ CTrafficLog::CTrafficLog()
 {
 }
 
+CTrafficLog::~CTrafficLog()
+{
+}
+
 void CTrafficLog::AddSocket(const CSocketPtr& pSocket)
 {
 	std::unique_lock Lock(m_Mutex);
@@ -27,7 +31,17 @@ bool CTrafficLog::RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit)
 	m_Uploaded += Data.Uploaded;
 	m_Downloaded += Data.Downloaded;
 
-	CommitTraffic(pSocket, Data, m_TrafficLog);
+	if (!m_Data) {
+#ifdef DEF_USE_POOL
+		if(!m_pMem)
+			return true;
+		m_Data = m_pMem->New<STrafficLog>();
+#else
+		m_Data = std::make_shared<STrafficLog>();
+#endif
+	}
+
+	CommitTraffic(pSocket, Data, m_Data->TrafficLog);
 
 	return true;
 }
@@ -49,14 +63,22 @@ void CTrafficLog::STrafficLogEntry::Merge(const STrafficLogEntry& Data)
 	Downloaded += Data.Downloaded;
 }
 
+#ifdef DEF_USE_POOL
+void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, FW::Map<FW::StringW, STrafficLogEntry>& TrafficLog)
+#else
 void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, std::map<std::wstring, STrafficLogEntry>& TrafficLog)
+#endif
 {
 	std::wstring Host;
 	CHostNamePtr pHostName = pSocket->GetRemoteHostName();
 	if (pHostName) Host = pHostName->ToString(); // may be empty
 	if (Host.empty()) Host = pSocket->GetRemoteAddress().ToWString();
 
+#ifdef DEF_USE_POOL
+	STrafficLogEntry* pEntry = &TrafficLog[FW::StringW(TrafficLog.Allocator(), Host.c_str(), Host.length())];
+#else
 	STrafficLogEntry* pEntry = &TrafficLog[Host];
+#endif
 	if (pEntry->IpAddress.IsNull())
 		pEntry->IpAddress = pSocket->GetRemoteAddress();
 	//STrafficLogEntryPtr& pEntry = m_TrafficLog[Host];
@@ -68,65 +90,101 @@ void CTrafficLog::Clear()
 {
 	std::unique_lock Lock(m_Mutex);
 
-	m_TrafficLog.clear();
+	m_Data.reset();
 
 	m_LastActivity = 0;
 	m_Uploaded = 0;
 	m_Downloaded = 0;
 }
 
-CVariant CTrafficLog::StoreTraffic(const SVarWriteOpt& Opts) const
+StVariant CTrafficLog::StoreTraffic(const SVarWriteOpt& Opts) const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	CVariant TrafficLog;
+	if (!m_Data)
+		return StVariant();
+
+	StVariantWriter TrafficLog;
 	TrafficLog.BeginList();
 
-	for (auto I : m_TrafficLog)
-		TrafficLog.WriteVariant(I.second.ToVariant(I.first));
+#ifdef DEF_USE_POOL
+	for (auto I = m_Data->TrafficLog.begin(); I != m_Data->TrafficLog.end(); ++I)
+		TrafficLog.WriteVariant(DumpEntry(I.Key(), I.Value()));
+#else
+	for (auto I : m_Data->TrafficLog)
+		TrafficLog.WriteVariant(DumpEntry(I.first, I.second));
+#endif
 
-	TrafficLog.Finish();
-	return TrafficLog;
+	return TrafficLog.Finish();
 }
 
-void CTrafficLog::LoadTraffic(const CVariant& Data)
+void CTrafficLog::LoadTraffic(const StVariant& Data)
 {
 	std::unique_lock Lock(m_Mutex);
 
+	if (!Data.IsValid())
+		return;
+
+	if (!m_Data) {
+#ifdef DEF_USE_POOL
+		if(!m_pMem)
+			return;
+		m_Data = m_pMem->New<STrafficLog>();
+#else
+		m_Data = std::make_shared<STrafficLog>();
+#endif
+	}
+
 	for (uint32 i = 0; i < Data.Count(); i++)
 	{
-		const CVariant& Entry = Data[i];
-		STrafficLogEntry &Data = m_TrafficLog[Entry[API_V_SOCK_RHOST].AsStr()];
-		Data.IpAddress.FromString(Entry[API_V_SOCK_RADDR]);
-		Data.LastActivity = Entry[API_V_SOCK_LAST_NET_ACT];
-		Data.Uploaded = Entry[API_V_SOCK_UPLOADED];
-		Data.Downloaded = Entry[API_V_SOCK_DOWNLOADED];
+		const StVariant& Entry = Data[i];
+#ifdef DEF_USE_POOL
+		FW::StringW Host(m_pMem);
+		Host = Entry[API_V_SOCK_RHOST].ToStringW();
+		STrafficLogEntry* Data = &m_Data->TrafficLog[Host];
+#else
+		STrafficLogEntry* Data = &m_Data->TrafficLog[Entry[API_V_SOCK_RHOST].AsStr()];
+#endif
+		Data->IpAddress.FromString(Entry[API_V_SOCK_RADDR]);
+		Data->LastActivity = Entry[API_V_SOCK_LAST_NET_ACT];
+		Data->Uploaded = Entry[API_V_SOCK_UPLOADED];
+		Data->Downloaded = Entry[API_V_SOCK_DOWNLOADED];
 	}
 }
 
-CVariant CTrafficLog::STrafficLogEntry::ToVariant(const std::wstring& Host) const
+#ifdef DEF_USE_POOL
+StVariant CTrafficLog::DumpEntry(const FW::StringW& Host, const STrafficLogEntry& Data) const
+#else
+StVariant CTrafficLog::DumpEntry(const std::wstring& Host, const STrafficLogEntry& Data) const
+#endif
 {
-	CVariant Entry;
-	Entry.BeginIMap();
+	StVariantWriter Entry;
+	Entry.BeginIndex();
 
-	Entry.Write(API_V_SOCK_RHOST, Host);
-	Entry.Write(API_V_SOCK_RADDR, IpAddress.ToString());
-	Entry.Write(API_V_SOCK_LAST_NET_ACT, LastActivity);
-	Entry.Write(API_V_SOCK_UPLOADED, Uploaded);
-	Entry.Write(API_V_SOCK_DOWNLOADED, Downloaded);
+	Entry.WriteEx(API_V_SOCK_RHOST, Host);
+	Entry.WriteEx(API_V_SOCK_RADDR, Data.IpAddress.ToString());
+	Entry.Write(API_V_SOCK_LAST_NET_ACT, Data.LastActivity);
+	Entry.Write(API_V_SOCK_UPLOADED, Data.Uploaded);
+	Entry.Write(API_V_SOCK_DOWNLOADED, Data.Downloaded);
 
-	Entry.Finish();
-	return Entry;
+	return Entry.Finish();
 }
 
-CVariant CTrafficLog::ToVariant(uint64 MinLastActivity) const
+StVariant CTrafficLog::ToVariant(uint64 MinLastActivity) const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	CVariant TrafficLog;
+	if (!m_Data)
+		return StVariant();
+
+	StVariantWriter TrafficLog;
 	TrafficLog.BeginList();
 
+#ifdef DEF_USE_POOL
+	FW::Map<FW::StringW, STrafficLogEntry> Current(m_Data->TrafficLog.Allocator());
+#else
 	std::map<std::wstring, STrafficLogEntry> Current;
+#endif
 	for (auto I : m_SocketList) {
 		STrafficLogEntry Data(I);
 		if(Data.LastActivity == 0)
@@ -134,32 +192,62 @@ CVariant CTrafficLog::ToVariant(uint64 MinLastActivity) const
 		CommitTraffic(I, Data, Current);
 	}
 
-	for(auto I: m_TrafficLog)
+#ifdef DEF_USE_POOL
+	for (auto I = m_Data->TrafficLog.begin(); I != m_Data->TrafficLog.end(); ++I)
+#else
+	for (auto I: m_Data->TrafficLog)
+#endif
 	{
+#ifdef DEF_USE_POOL
+		auto F = Current.find(I.Key());
+#else
 		auto F = Current.find(I.first);
+#endif
 		if (F != Current.end())
 		{
+#ifdef DEF_USE_POOL
+			if (MinLastActivity > F->LastActivity)
+				continue;
+			F->Merge(*I);
+			TrafficLog.WriteVariant(DumpEntry(I.Key(), F.Value()));
+#else
 			if(MinLastActivity > F->second.LastActivity)
 				continue;
 			F->second.Merge(I.second);
-			TrafficLog.WriteVariant(F->second.ToVariant(I.first));
+			TrafficLog.WriteVariant(DumpEntry(I.first, F->second));
+#endif
 			Current.erase(F);
 		}
 		else 
 		{
+#ifdef DEF_USE_POOL
+			if (MinLastActivity > I.Value().LastActivity)
+				continue;
+			TrafficLog.WriteVariant(DumpEntry(I.Key(), I.Value()));
+#else
 			if(MinLastActivity > I.second.LastActivity)
 				continue;
-			TrafficLog.WriteVariant(I.second.ToVariant(I.first));
+			TrafficLog.WriteVariant(DumpEntry(I.first, I.second));
+#endif
 		}
 	}
 
+#ifdef DEF_USE_POOL
+	for (auto I = Current.begin(); I != Current.end(); ++I)
+#else
 	for (auto I : Current) 
+#endif
 	{
+#ifdef DEF_USE_POOL
+		if (MinLastActivity > I.Value().LastActivity)
+			continue;
+		TrafficLog.WriteVariant(DumpEntry(I.Key(), I.Value()));
+#else
 		if(MinLastActivity > I.second.LastActivity)
 			continue;
-		TrafficLog.WriteVariant(I.second.ToVariant(I.first));
+		TrafficLog.WriteVariant(DumpEntry(I.first, I.second));
+#endif
 	}
 
-	TrafficLog.Finish();
-	return TrafficLog;
+	return TrafficLog.Finish();
 }

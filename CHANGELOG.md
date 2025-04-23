@@ -13,6 +13,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - added DNS filter server
 - added support for firewall rule templates, these allow to define windows firewall rule tempaltes with wildcard enabled paths
+- log and trace data memory usage column per program item
+- added total service memory usage indicator
+- added trace presets per process for Resoruce and network access
+- added option to allow debugging of processes in an enclave (disabled security!!!)
 
 ### Changed
 - Reworked path rule handling the new mechanism
@@ -21,6 +25,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - refactored project structure
 - improved and cleaned up framwork
 - improved and cleaned up variant implementation
+- log and trace data are now stored in per program memory pools
+
+### Fixed
+- deadlock when cleaning up program list
+- fixed crash when stoping service while UI is still active
 
 
 

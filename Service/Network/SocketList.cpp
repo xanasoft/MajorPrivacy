@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "SocketList.h"
-#include "../Library/Common/Buffer.h"
+#include "../Framework/Common/Buffer.h"
 #include "../Library/Helpers/NetUtil.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Helpers/Scoped.h"

@@ -2,8 +2,13 @@
 #include "ExecLogEntry.h"
 #include "../../Library/API/PrivacyAPI.h"
 
+#ifdef DEF_USE_POOL
+CExecLogEntry::CExecLogEntry(FW::AbstractMemPool* pMem, const CFlexGuid& EnclaveGuid, EExecLogRole Role, EExecLogType Type, EEventStatus Status, uint64 MiscID, const CFlexGuid& OtherEnclave, std::wstring ActorServiceTag, uint64 TimeStamp, uint64 PID, uint32 AccessMask)
+	: CTraceLogEntry(pMem, PID)
+#else
 CExecLogEntry::CExecLogEntry(const CFlexGuid& EnclaveGuid, EExecLogRole Role, EExecLogType Type, EEventStatus Status, uint64 MiscID, const CFlexGuid& OtherEnclave, std::wstring ActorServiceTag, uint64 TimeStamp, uint64 PID, uint32 AccessMask)
 	: CTraceLogEntry(PID)
+#endif
 {
 	m_Role = Role;
 	m_Type = Type;
@@ -13,11 +18,15 @@ CExecLogEntry::CExecLogEntry(const CFlexGuid& EnclaveGuid, EExecLogRole Role, EE
 	m_AccessMask = AccessMask;
 
 	m_TimeStamp = TimeStamp;
+#ifdef DEF_USE_POOL
+	m_ServiceTag.Assign(ActorServiceTag.c_str(), ActorServiceTag.length());
+#else
 	m_ServiceTag = ActorServiceTag;
+#endif
 	m_EnclaveGuid = EnclaveGuid;
 }
 
-void CExecLogEntry::WriteVariant(CVariant& Entry) const
+void CExecLogEntry::WriteVariant(StVariantWriter& Entry) const
 {
 	CTraceLogEntry::WriteVariant(Entry);
 

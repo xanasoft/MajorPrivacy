@@ -1,7 +1,7 @@
 #pragma once
 #include "../Library/Common/Address.h"
 #include "../Common/AbstractInfo.h"
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "../Library/Common/MiscStats.h"
 
 class CHandle: public CAbstractInfoEx
@@ -17,7 +17,7 @@ public:
 	std::shared_ptr<class CProcess> GetProcess() const	{ std::shared_lock Lock(m_Mutex); return m_pProcess.lock(); }
 
 
-	CVariant ToVariant() const;
+	StVariant ToVariant() const;
 
 protected:
 	friend class CHandleList;

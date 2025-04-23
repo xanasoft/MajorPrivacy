@@ -2,7 +2,7 @@
 #include "DnsCacheEntry.h"
 #include "../../Library/API/PrivacyAPI.h"
 
-CDnsCacheEntry::CDnsCacheEntry(const std::wstring& HostName, uint16 Type, const CAddress& Address, const std::wstring& ResolvedString)
+CDnsCacheEntry::CDnsCacheEntry(const std::wstring& HostName, uint16 Type, const CAddress& Address, const std::wstring& ResolvedString, EStatus Status)
 {
 	m_CreateTimeStamp = GetCurTime() * 1000;
 
@@ -12,35 +12,9 @@ CDnsCacheEntry::CDnsCacheEntry(const std::wstring& HostName, uint16 Type, const 
 	m_ResolvedString = ResolvedString;
 	m_TTL = 0;
 
+	m_Status = Status;
+
 	m_QueryCounter = 0;
-}
-
-#ifndef DNS_TYPE_A
-#define DNS_TYPE_A          0x0001      //  1
-#define DNS_TYPE_AAAA       0x001c      //  28
-#define DNS_TYPE_PTR        0x000c      //  12
-#define DNS_TYPE_CNAME      0x0005      //  5
-#define DNS_TYPE_SRV        0x0021      //  33
-#define DNS_TYPE_MX         0x000f      //  15
-#endif
-
-std::wstring CDnsCacheEntry::GetTypeString() const
-{
-	return GetTypeString(GetType());
-}
-
-std::wstring CDnsCacheEntry::GetTypeString(uint16 Type)
-{
-	switch (Type)
-	{
-	case DNS_TYPE_A:	return L"A";
-	case DNS_TYPE_AAAA:	return L"AAAA";
-	case DNS_TYPE_PTR:	return L"PTR";
-	case DNS_TYPE_CNAME:return L"CNAME";
-	case DNS_TYPE_SRV:	return L"SRV";
-	case DNS_TYPE_MX:	return L"MX";
-	default:			return L"UNKNOWN (" + std::to_wstring(Type) + L")";
-	}
 }
 
 void CDnsCacheEntry::SetTTL(uint64 TTL)
@@ -56,27 +30,28 @@ void CDnsCacheEntry::SetTTL(uint64 TTL)
 	m_TTL = TTL; 
 }
 
-void CDnsCacheEntry::SubtractTTL(uint64 Delta)
+void CDnsCacheEntry::SubtractTTL(uint64 Delta, bool bKill)
 { 
 	std::unique_lock Lock(m_Mutex);
 
-	if (m_TTL > 0) // in case we flushed the cache and the entries were gone before the TTL expired
+	if (bKill && m_TTL > 0) // in case we flushed the cache and the entries were gone before the TTL expired
 		m_TTL = 0;
 
 	m_TTL -= Delta;	
 }
 
-CVariant CDnsCacheEntry::ToVariant() const
+StVariant CDnsCacheEntry::ToVariant() const
 {
-	CVariant Entry;
-	Entry.BeginIMap();
+	StVariantWriter Entry;
+	Entry.BeginIndex();
 	Entry.Write(API_V_DNS_CACHE_REF, (uint64)this);
-	Entry.Write(API_V_DNS_HOST, m_HostName);
+	Entry.WriteEx(API_V_DNS_HOST, m_HostName);
 	Entry.Write(API_V_DNS_TYPE, m_Type);
-	Entry.Write(API_V_DNS_ADDR, m_Address.ToString());
-	Entry.Write(API_V_DNS_DATA, m_ResolvedString);
+	Entry.WriteEx(API_V_DNS_ADDR, m_Address.ToString());
+	Entry.WriteEx(API_V_DNS_DATA, m_ResolvedString);
 	Entry.Write(API_V_DNS_TTL, m_TTL);
+	Entry.Write(API_V_DNS_STATUS, (int)m_Status);
 	Entry.Write(API_V_DNS_QUERY_COUNT, m_QueryCounter);
-	Entry.Finish();
-	return Entry;
+	Entry.Write(API_V_CREATE_TIME, m_CreateTimeStamp);
+	return Entry.Finish();
 }

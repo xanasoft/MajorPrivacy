@@ -58,6 +58,9 @@
     <Filter Include="Enclaves">
       <UniqueIdentifier>{01c7bbb0-7152-44d1-9e0c-82c764964e2e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Network\Dns\Filter">
+      <UniqueIdentifier>{acfc8bd5-7dd7-465e-a0c7-74546edfe47c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -210,9 +213,6 @@
     <ClCompile Include="Programs\ProgramID.cpp">
       <Filter>Programs</Filter>
     </ClCompile>
-    <ClCompile Include="API_Impl.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Processes\AccessLog.cpp">
       <Filter>Processes</Filter>
     </ClCompile>
@@ -224,6 +224,27 @@
     </ClCompile>
     <ClCompile Include="Enclaves\EnclaveManager.cpp">
       <Filter>Enclaves</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Dns\DnsClient.cpp">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Dns\DnsPacket.cpp">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Dns\DnsFilter.cpp">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Dns\DnsServer.cpp">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Dns\DnsSocket.cpp">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Dns\DnsConfigurator.cpp">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClCompile>
+    <ClCompile Include="API_Impl.cpp">
+      <Filter>API</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -472,6 +493,24 @@
     </ClInclude>
     <ClInclude Include="Enclaves\EnclaveManager.h">
       <Filter>Enclaves</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsClient.h">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsPacket.h">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsFilter.h">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsServer.h">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsSocket.h">
+      <Filter>Network\Dns\Filter</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsConfigurator.h">
+      <Filter>Network\Dns\Filter</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

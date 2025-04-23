@@ -30,8 +30,10 @@
     <ClInclude Include="Core\Framework.h" />
     <ClInclude Include="Core\Header.h" />
     <ClInclude Include="Core\List.h" />
+    <ClInclude Include="Core\Lock.h" />
     <ClInclude Include="Core\Map.h" />
     <ClInclude Include="Core\Memory.h" />
+    <ClInclude Include="Core\MemoryPool.h" />
     <ClInclude Include="Core\Object.h" />
     <ClInclude Include="Core\Pair.h" />
     <ClInclude Include="Core\RetValue.h" />
@@ -49,7 +51,9 @@
     <ClCompile Include="Common\SmartPattern.cpp" />
     <ClCompile Include="Common\Variant.cpp" />
     <ClCompile Include="Common\VariantRW.cpp" />
+    <ClCompile Include="Core\Lock.cpp" />
     <ClCompile Include="Core\Memory.cpp" />
+    <ClCompile Include="Core\MemoryPool.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

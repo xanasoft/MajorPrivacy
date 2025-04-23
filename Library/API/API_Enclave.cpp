@@ -24,6 +24,9 @@ void CEnclave::WriteIVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 	Enclave.Write(API_V_EXEC_ON_SPAWN, (uint32)m_OnSpawn);
 	Enclave.Write(API_V_IMAGE_LOAD_PROTECTION, m_ImageLoadProtection);
 
+	Enclave.Write(API_V_ALLOW_DEBUGGING, m_AllowDebugging);
+	Enclave.Write(API_V_KEEP_ALIVE, m_KeepAlive);
+
 	Enclave.WriteVariant(API_V_DATA, m_Data);
 }
 
@@ -46,6 +49,9 @@ void CEnclave::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_EXEC_ON_TRUSTED_SPAWN: m_OnTrustedSpawn = (EProgramOnSpawn)Data.To<uint32>(); break;
 	case API_V_EXEC_ON_SPAWN: m_OnSpawn = (EProgramOnSpawn)Data.To<uint32>(); break;
 	case API_V_IMAGE_LOAD_PROTECTION: m_ImageLoadProtection = Data.To<bool>(); break;
+
+	case API_V_ALLOW_DEBUGGING:	m_AllowDebugging = Data.To<bool>(); break;
+	case API_V_KEEP_ALIVE:	m_KeepAlive = Data.To<bool>(); break;
 
 	case API_V_DATA:		m_Data = Data.Clone(); break;
 	}
@@ -99,6 +105,9 @@ void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 	}
 
 	Enclave.Write(API_S_IMAGE_LOAD_PROTECTION, m_ImageLoadProtection);
+
+	Enclave.Write(API_S_ALLOW_DEBUGGING, m_AllowDebugging);
+	Enclave.Write(API_S_KEEP_ALIVE, m_KeepAlive);
 
 	Enclave.WriteVariant(API_S_DATA, m_Data);
 }
@@ -160,6 +169,9 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 	}
 
 	else if (VAR_TEST_NAME(Name, API_S_IMAGE_LOAD_PROTECTION))	m_ImageLoadProtection = Data.To<bool>();
+
+	else if (VAR_TEST_NAME(Name, API_S_ALLOW_DEBUGGING))		m_AllowDebugging = Data.To<bool>();
+	else if (VAR_TEST_NAME(Name, API_S_KEEP_ALIVE))			m_KeepAlive = Data.To<bool>();
 
 	else if (VAR_TEST_NAME(Name, API_S_DATA))	        m_Data = Data.Clone();
 }

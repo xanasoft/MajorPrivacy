@@ -1,18 +1,26 @@
 #pragma once
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "../Library/API/PrivacyDefs.h"
+
+#include "../Framework/Core/MemoryPool.h"
+#include "../Framework/Core/Object.h"
+#include "../Framework/Core/Map.h"
 
 class CAccessTree
 {
 	TRACK_OBJECT(CAccessTree)
 public:
 	CAccessTree();
-	virtual ~CAccessTree();
+	~CAccessTree();
+
+#ifdef DEF_USE_POOL
+	void SetPool(FW::AbstractMemPool* pMem) { m_pMem = pMem; }
+#endif
 
 	struct SAccessStats
 	{
-		TRACK_OBJECT(SAccessStats)
-		SAccessStats(uint32 AccessMask, uint64 AccessTime, uint32 NtStatus, bool IsDirectory, bool bBlocked)
+		//TRACK_OBJECT(SAccessStats)
+		SAccessStats(uint32 AccessMask = 0, uint64 AccessTime = 0, uint32 NtStatus = 0, bool IsDirectory = false, bool bBlocked = false)
 			: LastAccessTime(AccessTime), bBlocked(bBlocked), NtStatus(NtStatus), IsDirectory(IsDirectory), AccessMask(AccessMask) {}
 		~SAccessStats() {}
 
@@ -23,46 +31,65 @@ public:
 		bool	IsDirectory = false;
 	};	
 
-	typedef std::shared_ptr<SAccessStats> SAccessStatsPtr;
-
 	void Add(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked);
 
-	uint32 GetAccessCount() const { std::unique_lock lock(m_Mutex); return m_Root->TotalCount; }
+	uint32 GetAccessCount() const { std::unique_lock lock(m_Mutex); return m_Root ? m_Root->TotalCount : 0; }
 
 	void Clear();
 
 	void CleanUp(bool* pbCancel, uint32* puCounter);
 	void Truncate();
-	
+
+#ifdef DEF_USE_POOL
+	struct SPathNode : FW::Object
+#else
 	struct SPathNode
+#endif
 	{
-		TRACK_OBJECT(SPathNode)
+		//TRACK_OBJECT(SPathNode)
+#ifdef DEF_USE_POOL
+		SPathNode(FW::AbstractMemPool* pMem) : FW::Object(pMem), Name(pMem), Branches(pMem) {}
+#else
 		SPathNode() {}
+#endif
 		~SPathNode() {}
+#ifdef DEF_USE_POOL
+		FW::StringW Name;
+		FW::Map<FW::StringW, FW::SharedPtr<SPathNode>> Branches;
+#else
 		std::wstring Name;
 		std::map<std::wstring, std::shared_ptr<SPathNode>> Branches;
-		SAccessStatsPtr pStats;
+#endif
+		SAccessStats Stats;
 		uint32 TotalCount = 0;
 	};
 
+#ifdef DEF_USE_POOL
+	typedef FW::SharedPtr<SPathNode> SPathNodePtr;
+#else
 	typedef std::shared_ptr<SPathNode> SPathNodePtr;
+#endif
 
-	CVariant StoreTree(const SVarWriteOpt& Opts) const;
-	void LoadTree(const CVariant& Data);
-	CVariant DumpTree(uint64 LastActivity) const;
+	StVariant StoreTree(const SVarWriteOpt& Opts) const;
+	void LoadTree(const StVariant& Data);
+	StVariant DumpTree(uint64 LastActivity) const;
 
 protected:
 	mutable std::recursive_mutex	m_Mutex;
 
-	bool Add(const SAccessStatsPtr& pStat, SPathNodePtr& pParent, const std::wstring& Path, size_t uOffset = 0);
+	bool Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std::wstring& Path, size_t uOffset = 0);
 
-	CVariant StoreTree(const SPathNodePtr& pParent) const;
-	CVariant StoreNode(const SPathNodePtr& pParent, const CVariant& Children) const;
-	uint32 LoadTree(const CVariant& Data, SPathNodePtr& pParent);
-	CVariant DumpTree(const SPathNodePtr& pParent, uint64 LastActivity) const;
+	StVariant StoreTree(const SPathNodePtr& pParent) const;
+	StVariant StoreNode(const SPathNodePtr& pParent, const StVariant& Children) const;
+	uint32 LoadTree(const StVariant& Data, SPathNodePtr& pParent);
+	StVariant DumpTree(const SPathNodePtr& pParent, uint64 LastActivity) const;
 
 	bool CleanUp(SPathNodePtr& pParent, const std::wstring& Path, bool* pbCancel, uint32* puCounter);
 	uint64 Truncate(SPathNodePtr& pParent, uint64 CleanupDate);
 
 	SPathNodePtr			m_Root;
+
+#ifdef DEF_USE_POOL
+	FW::AbstractMemPool*	m_pMem = nullptr;
+#endif
 };

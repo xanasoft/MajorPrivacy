@@ -227,6 +227,8 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 			case eUploaded:			Value = pStats->Uploaded; break;
 			case eDownloaded:		Value = pStats->Downloaded; break;
 
+			case eLogSize:			Value = pItem->GetLogMemUsage(); break;
+
 			case ePath:				Value = pItem->GetPath(); break;
 
 			//case eInfo:				Value = pItem->GetInfo(); break;
@@ -255,6 +257,8 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 				case eDownload:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 				case eUploaded:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 				case eDownloaded:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
+
+				case eLogSize:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 				}
 			}
 
@@ -347,6 +351,8 @@ QString CProgramModel::GetColumHeader(int section) const
 		case eDownload:				return tr("Download");
 		case eUploaded:				return tr("Uploaded");
 		case eDownloaded:			return tr("Downloaded");
+
+		case eLogSize:				return tr("Log Size");
 
 		case ePath:					return tr("Path");
 

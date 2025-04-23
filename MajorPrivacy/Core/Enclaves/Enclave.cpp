@@ -31,6 +31,9 @@ CEnclave* CEnclave::Clone() const
 	pEnclave->m_OnSpawn = m_OnSpawn;
 	pEnclave->m_ImageLoadProtection = m_ImageLoadProtection;
 
+	pEnclave->m_AllowDebugging = m_AllowDebugging;
+	pEnclave->m_KeepAlive = m_KeepAlive;
+
 	pEnclave->m_Data = m_Data;
 
 	return pEnclave;

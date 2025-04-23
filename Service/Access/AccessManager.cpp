@@ -91,8 +91,14 @@ void CAccessManager::Update()
 	if (m_UpdateAllRules)
 		LoadRules();
 
-	if(theCore->Config()->GetBool("Service", "EnumAllOpenFiles", false))
+	if (theCore->Config()->GetBool("Service", "EnumAllOpenFiles", false))
+	{
+#if DEF_CORE_TIMER_INTERVAL < 1000
+		static int UpdateDivider = 0;
+		if (++UpdateDivider % (1000/DEF_CORE_TIMER_INTERVAL) == 0)
+#endif
 		m_pHandleList->Update();
+	}
 
 	// purge rules once per minute
 	if(m_LastRulePurge + 60*1000 < GetTickCount64())
@@ -132,7 +138,7 @@ DWORD CALLBACK CAccessManager__CleanUp(LPVOID lpThreadParameter)
 
 		//DbgPrint("CAccessManager__CleanUp completed %llu of %llu\r\n", uDoneCounter, uTotalCounter);
 
-		CVariant Event;
+		StVariant Event;
 		Event[API_V_PROGRESS_FINISHED] = false;
 		Event[API_V_PROGRESS_TOTAL] = uTotalCounter;
 		Event[API_V_PROGRESS_DONE] = uDoneCounter;
@@ -140,7 +146,7 @@ DWORD CALLBACK CAccessManager__CleanUp(LPVOID lpThreadParameter)
 	}
 
 	if (!This->m_bCancelCleanUp) {
-		CVariant Event;
+		StVariant Event;
 		Event[API_V_PROGRESS_FINISHED] = true;
 		theCore->BroadcastMessage(SVC_API_EVENT_CLEANUP_PROGRESS, Event);
 	}
@@ -182,7 +188,7 @@ RESULT(std::wstring) CAccessManager::AddRule(const CAccessRulePtr& pRule)
 	SVarWriteOpt Opts;
 	Opts.Flags = SVarWriteOpt::eTextGuids;
 
-	CVariant Request = pRule->ToVariant(Opts);
+	StVariant Request = pRule->ToVariant(Opts);
 	auto Res = theCore->Driver()->Call(API_SET_ACCESS_RULE, Request);
 	//if (Res.IsSuccess()) // will be done by the notification event
 	//	UpdateRule(pRule, pRule->GetGuid());
@@ -193,7 +199,7 @@ RESULT(std::wstring) CAccessManager::AddRule(const CAccessRulePtr& pRule)
 
 STATUS CAccessManager::RemoveRule(const CFlexGuid& Guid)
 {
-	CVariant Request;
+	StVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
 	auto Res = theCore->Driver()->Call(API_DEL_ACCESS_RULE, Request);
 	//if (Res.IsSuccess()) // will be done by the notification event
@@ -203,7 +209,7 @@ STATUS CAccessManager::RemoveRule(const CFlexGuid& Guid)
 
 STATUS CAccessManager::LoadRules()
 {
-	CVariant Request;
+	StVariant Request;
 
 	auto Res = theCore->Driver()->Call(API_GET_ACCESS_RULES, Request);
 	if(Res.IsError())
@@ -213,10 +219,10 @@ STATUS CAccessManager::LoadRules()
 
 	std::map<CFlexGuid, CAccessRulePtr> OldRules = m_Rules;
 
-	CVariant Rules = Res.GetValue();
+	StVariant Rules = Res.GetValue();
 	for(uint32 i=0; i < Rules.Count(); i++)
 	{
-		CVariant Rule = Rules[i];
+		StVariant Rule = Rules[i];
 
 		CFlexGuid Guid;
 		Guid.FromVariant(Rule[API_V_GUID]);
@@ -310,11 +316,11 @@ void CAccessManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEven
 	{
 		CAccessRulePtr pRule;
 		if (Event != EConfigEvent::eRemoved) {
-			CVariant Request;
+			StVariant Request;
 			Request[API_V_GUID] = Guid.ToVariant(true);
 			auto Res = theCore->Driver()->Call(API_GET_ACCESS_RULE, Request);
 			if (Res.IsSuccess()) {
-				CVariant Rule = Res.GetValue();
+				StVariant Rule = Res.GetValue();
 				std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
 				CProgramID ID(ProgramPath);
 				pRule = std::make_shared<CAccessRule>(ID);
@@ -331,7 +337,7 @@ void CAccessManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEven
 		UpdateRule(pRule, Guid);
 	}
 
-	CVariant vEvent;
+	StVariant vEvent;
 	vEvent[API_V_GUID] = Guid.ToVariant(false);
 	//vEvent[API_V_NAME] = ;
 	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
@@ -345,18 +351,18 @@ void CAccessManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEven
 STATUS CAccessManager::Load()
 {
 	CBuffer Buffer;
-	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_ACCESS_RECORD_FILE_NAME, 0, Buffer)) {
+	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_ACCESS_RECORD_FILE_NAME, Buffer)) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_ACCESS_RECORD_FILE_NAME L" not found");
 		return ERR(STATUS_NOT_FOUND);
 	}
 
-	CVariant Data;
+	StVariant Data;
 	//try {
 	auto ret = Data.FromPacket(&Buffer, true);
 	//} catch (const CException&) {
 	//	return ERR(STATUS_UNSUCCESSFUL);
 	//}
-	if (ret != CVariant::eErrNone) {
+	if (ret != StVariant::eErrNone) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_ACCESS_RECORD_FILE_NAME);
 		return ERR(STATUS_UNSUCCESSFUL);
 	}
@@ -366,14 +372,15 @@ STATUS CAccessManager::Load()
 		return ERR(STATUS_UNSUCCESSFUL);
 	}
 
-	CVariant List = Data[API_S_ACCESS_LOG];
+	StVariant List = Data[API_S_ACCESS_LOG];
 
 	for (uint32 i = 0; i < List.Count(); i++)
 	{
-		CVariant Item = List[i];
+		StVariant Item = List[i];
 	
 		CProgramID ID;
-		ID.FromVariant(Item.Find(API_V_PROG_ID));
+		if(!ID.FromVariant(StVariantReader(Item).Find(API_V_PROG_ID)))
+			continue;
 		CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
 		if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
 			pProgram->LoadAccess(Item);
@@ -390,28 +397,31 @@ STATUS CAccessManager::Store()
 	Opts.Format = SVarWriteOpt::eIndex;
 	Opts.Flags = SVarWriteOpt::eSaveToFile;
 
-	CVariant List;
+	StVariantWriter List;
+	List.BeginList();
 
-	if (theCore->Config()->GetBool("Service", "SaveAccessRecord", false))
+	bool bSave = theCore->Config()->GetBool("Service", "SaveAccessRecord", false);
+
+	for (auto pItem : theCore->ProgramManager()->GetItems())
 	{
-		for (auto pItem : theCore->ProgramManager()->GetItems())
-		{
-			// StoreAccess saves API_V_PROG_ID
-			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
-				List.Append(pProgram->StoreAccess(Opts));
-			else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
-				List.Append(pService->StoreAccess(Opts));
-		}
-	}
-	// we save the file on false as well to clear it
+		ESavePreset ePreset = pItem.second->GetSaveTrace();
+		if (ePreset == ESavePreset::eDontSave || (ePreset == ESavePreset::eDefault && !bSave))
+			continue;
 
-	CVariant Data;
+		// StoreAccess saves API_V_PROG_ID
+		if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+			List.WriteVariant(pProgram->StoreAccess(Opts));
+		else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+			List.WriteVariant(pService->StoreAccess(Opts));	
+	}
+
+	StVariant Data;
 	Data[API_S_VERSION] = API_ACCESS_RECORD_FILE_VERSION;
-	Data[API_S_ACCESS_LOG] = List;
+	Data[API_S_ACCESS_LOG] = List.Finish();
 
 	CBuffer Buffer;
 	Data.ToPacket(&Buffer);
-	WriteFile(theCore->GetDataFolder() + L"\\" API_ACCESS_RECORD_FILE_NAME, 0, Buffer);
+	WriteFile(theCore->GetDataFolder() + L"\\" API_ACCESS_RECORD_FILE_NAME, Buffer);
 
 	return OK;
 }

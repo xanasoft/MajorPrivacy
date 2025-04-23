@@ -7,6 +7,25 @@ CWindowsService::CWindowsService(const std::wstring& ServiceTag)
 {
 	m_ID = CProgramID(MkLower(ServiceTag), EProgramType::eWindowsService);
 	m_ServiceTag = ServiceTag;
+
+#ifdef DEF_USE_POOL
+	m_pMem = FW::MemoryPool::Create();
+
+	m_AccessLog.SetPool(m_pMem);
+	m_AccessTree.SetPool(m_pMem);
+	m_TrafficLog.SetPool(m_pMem);
+#endif
+}
+
+CWindowsService::~CWindowsService()
+{
+#ifdef DEF_USE_POOL
+	m_AccessLog.Clear();
+	m_AccessTree.Clear();
+	m_TrafficLog.Clear();
+
+	FW::MemoryPool::Destroy(m_pMem);
+#endif
 }
 
 CProgramFilePtr CWindowsService::GetProgramFile() const
@@ -36,20 +55,18 @@ void CWindowsService::AddExecChild(
 	m_AccessLog.AddExecChild(pTargetProgram->GetUID(), TargetEnclave, ProcessUID, CmdLine, CreateTime, bBlocked);
 }
 
-CVariant CWindowsService::DumpExecStats() const
+StVariant CWindowsService::DumpExecStats() const
 {
 	SVarWriteOpt Opts;
 
-	CVariant ExecChildren;
+	StVariantWriter ExecChildren;
 	ExecChildren.BeginList();
 	StoreExecChildren(ExecChildren, Opts);
-	ExecChildren.Finish();
 
-	CVariant Data;
-	Data.BeginIMap();
-	Data.WriteVariant(API_V_PROG_EXEC_CHILDREN, ExecChildren);
-	Data.Finish();
-	return Data;
+	StVariantWriter Data;
+	Data.BeginIndex();
+	Data.WriteVariant(API_V_PROG_EXEC_CHILDREN, ExecChildren.Finish());
+	return Data.Finish();
 }
 
 void CWindowsService::AddIngressTarget(
@@ -59,20 +76,18 @@ void CWindowsService::AddIngressTarget(
 	m_AccessLog.AddIngressTarget(pTargetProgram->GetUID(), TargetEnclave, ProcessUID, bThread, AccessMask, AccessTime, bBlocked);
 }
 
-CVariant CWindowsService::DumpIngress() const
+StVariant CWindowsService::DumpIngress() const
 {
 	SVarWriteOpt Opts;
 
-	CVariant IngressTargets;
+	StVariantWriter IngressTargets;
 	IngressTargets.BeginList();
 	StoreIngressTargets(IngressTargets, Opts);
-	IngressTargets.Finish();
 
-	CVariant Data;
-	Data.BeginIMap();
-	Data.WriteVariant(API_V_PROG_INGRESS_TARGETS, IngressTargets);
-	Data.Finish();
-	return Data;
+	StVariantWriter Data;
+	Data.BeginIndex();
+	Data.WriteVariant(API_V_PROG_INGRESS_TARGETS, IngressTargets.Finish());
+	return Data.Finish();
 }
 
 void CWindowsService::AddAccess(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked)
@@ -80,87 +95,86 @@ void CWindowsService::AddAccess(const std::wstring& Path, uint32 AccessMask, uin
 	m_AccessTree.Add(Path, AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked);
 }
 
-void CWindowsService::StoreExecChildren(CVariant& ExecChildren, const SVarWriteOpt& Opts, const std::wstring& SvcTag) const
+void CWindowsService::StoreExecChildren(StVariantWriter& ExecChildren, const SVarWriteOpt& Opts, const std::wstring& SvcTag) const
 {
 	m_AccessLog.StoreAllExecChildren(ExecChildren, CFlexGuid(), Opts, SvcTag);
 }
 
-bool CWindowsService::LoadExecChildren(const CVariant& ExecChildren)
+bool CWindowsService::LoadExecChildren(const StVariant& ExecChildren)
 {
-	ExecChildren.ReadRawList([&](const CVariant& vData) {
+	StVariantReader(ExecChildren).ReadRawList([&](const StVariant& vData) {
 		m_AccessLog.LoadExecChild(vData);
 	});
 	return true;
 }
 
-void CWindowsService::StoreIngressTargets(CVariant& IngressTargets, const SVarWriteOpt& Opts, const std::wstring& SvcTag) const
+void CWindowsService::StoreIngressTargets(StVariantWriter& IngressTargets, const SVarWriteOpt& Opts, const std::wstring& SvcTag) const
 {
 	m_AccessLog.StoreAllIngressTargets(IngressTargets, CFlexGuid(), Opts, SvcTag);
 }
 
-bool CWindowsService::LoadIngressTargets(const CVariant& IngressTargets)
+bool CWindowsService::LoadIngressTargets(const StVariant& IngressTargets)
 {
-	IngressTargets.ReadRawList([&](const CVariant& vData) {
+	StVariantReader(IngressTargets).ReadRawList([&](const StVariant& vData) {
 		m_AccessLog.LoadIngressTarget(vData);
 	});
 	return true;
 }
 
-CVariant CWindowsService::StoreIngress(const SVarWriteOpt& Opts) const
+StVariant CWindowsService::StoreIngress(const SVarWriteOpt& Opts) const
 {
-	CVariant ExecChildren;
+	StVariantWriter ExecChildren;
 	ExecChildren.BeginList();
 	StoreExecChildren(ExecChildren, Opts);
-	ExecChildren.Finish();
 
-	CVariant IngressTargets;
+	StVariantWriter IngressTargets;
 	IngressTargets.BeginList();
 	StoreIngressTargets(IngressTargets, Opts);
-	IngressTargets.Finish();
 
-	CVariant Data;
-	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
-	Data[API_V_PROG_EXEC_CHILDREN] = ExecChildren;
-	Data[API_V_PROG_INGRESS_TARGETS] = IngressTargets;
-	return Data;
+	StVariantWriter Data;
+	Data.BeginIndex();
+	Data.WriteVariant(API_V_PROG_ID, m_ID.ToVariant(Opts));
+	Data.WriteVariant(API_V_PROG_EXEC_CHILDREN, ExecChildren.Finish());
+	Data.WriteVariant(API_V_PROG_INGRESS_TARGETS, IngressTargets.Finish());
+	return Data.Finish();
 }
 
-void CWindowsService::LoadIngress(const CVariant& Data)
+void CWindowsService::LoadIngress(const StVariant& Data)
 {
 	LoadExecChildren(Data[API_V_PROG_EXEC_CHILDREN]);
 	LoadIngressTargets(Data[API_V_PROG_INGRESS_TARGETS]);
 }
 
-CVariant CWindowsService::StoreAccess(const SVarWriteOpt& Opts) const
+StVariant CWindowsService::StoreAccess(const SVarWriteOpt& Opts) const
 {
-	CVariant Data;
+	StVariant Data;
 	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts);
 	return Data;
 }
 
-void CWindowsService::LoadAccess(const CVariant& Data)
+void CWindowsService::LoadAccess(const StVariant& Data)
 {
 	m_AccessTree.LoadTree(Data[API_V_PROG_RESOURCE_ACCESS]);
 }
 
-CVariant CWindowsService::DumpResAccess(uint64 LastActivity) const
+StVariant CWindowsService::DumpResAccess(uint64 LastActivity) const
 {
 	return m_AccessTree.DumpTree(LastActivity);
 }
 
-CVariant CWindowsService::StoreTraffic(const SVarWriteOpt& Opts) const
+StVariant CWindowsService::StoreTraffic(const SVarWriteOpt& Opts) const
 {
 	std::unique_lock lock(m_Mutex);
 
-	CVariant Data;
+	StVariant Data;
 	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_TRAFFIC_LOG] = m_TrafficLog.StoreTraffic(Opts);
 	return Data;
 
 }
 
-void CWindowsService::LoadTraffic(const CVariant& Data)
+void CWindowsService::LoadTraffic(const StVariant& Data)
 {
 	std::unique_lock lock(m_Mutex);
 
@@ -220,6 +234,10 @@ void CWindowsService::ClearLogs(ETraceLogs Log)
 
 	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
 		m_AccessTree.Clear();
+
+#ifdef DEF_USE_POOL
+	m_pMem->CleanUp();
+#endif
 }
 
 void CWindowsService::TruncateAccessLog()
@@ -235,4 +253,13 @@ void CWindowsService::CleanUpAccessTree(bool* pbCancel, uint32* puCounter)
 void CWindowsService::TruncateAccessTree()
 {
 	m_AccessTree.Truncate();
+}
+
+size_t CWindowsService::GetLogMemUsage() const
+{
+#ifdef DEF_USE_POOL
+	return m_pMem->GetSize();
+#else
+	return 0;
+#endif
 }

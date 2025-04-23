@@ -59,6 +59,7 @@ public:
 			m_ptr->RemoveRef(false);
 		m_ptr = nullptr;
 	}
+	void reset() { Clear(); } // for STL compatibility
 
 	bool IsEmpty() const		{ return m_ptr == nullptr; }
 

@@ -52,6 +52,7 @@ enum class EFwEventStates
     RuleAllowed,
     RuleBlocked,
     RuleError, // a rule was found but it appears it was not obeyed (!)
+    RuleGenerated,
 };
 
 enum class EFwRealms

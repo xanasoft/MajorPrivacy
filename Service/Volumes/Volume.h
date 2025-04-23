@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 
 class CVolume
 {
@@ -13,7 +13,7 @@ public:
 	std::wstring MountPoint() const { std::shared_lock Lock(m_Mutex); return m_MountPoint; }
 	uint64 VolumeSize() const { std::shared_lock Lock(m_Mutex); return m_VolumeSize; }
 
-	CVariant ToVariant() const;
+	StVariant ToVariant() const;
 
 //protected:
 	mutable std::shared_mutex m_Mutex;
@@ -26,7 +26,7 @@ public:
 	bool m_bProtected = false;
 	bool m_bDataDirty = false;
 
-	CVariant m_Data;
+	StVariant m_Data;
 };
 
 typedef std::shared_ptr<CVolume> CVolumePtr;

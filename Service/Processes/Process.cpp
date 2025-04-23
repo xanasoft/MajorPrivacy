@@ -530,9 +530,13 @@ void CProcess::RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit)
 	std::unique_lock Lock(m_SocketMutex);
 	m_SocketList.erase(pSocket);
 
+	bool bSave = theCore->Config()->GetBool("Service", "NetTrace", true);
 	if (pProg) {
-		if (!pProg->TrafficLog()->RemoveSocket(pSocket, bNoCommit) && pSvc)
-			pSvc->TrafficLog()->RemoveSocket(pSocket, bNoCommit);
+		ETracePreset ePreset = pProg->GetResTrace();
+		if (!pProg->TrafficLog()->RemoveSocket(pSocket, bNoCommit || ePreset == ETracePreset::eNoTrace || (ePreset == ETracePreset::eDefault && !bSave)) && pSvc) {
+			ePreset = pSvc->GetResTrace();
+			pSvc->TrafficLog()->RemoveSocket(pSocket, bNoCommit|| ePreset == ETracePreset::eNoTrace || (ePreset == ETracePreset::eDefault && !bSave));
+		}
 	}
 }
 
@@ -549,21 +553,20 @@ void CProcess::AddNetworkIO(int Type, uint32 TransferSize)
 	}
 }
 
-CVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	CVariant Process;
-
-	Process.BeginIMap();
+	StVariantWriter Process;
+	Process.BeginIndex();
 
 	Process.Write(API_V_PID, m_Pid);
 	Process.Write(API_V_CREATE_TIME, m_CreationTime);
 	Process.Write(API_V_PARENT_PID, m_ParentPid);
 	
-	Process.Write(API_V_NAME, m_Name);
-	Process.Write(API_V_FILE_NT_PATH, m_NtFilePath);
-	Process.Write(API_V_CMD_LINE, m_CommandLine);
+	Process.WriteEx(API_V_NAME, m_Name);
+	Process.WriteEx(API_V_FILE_NT_PATH, m_NtFilePath);
+	Process.WriteEx(API_V_CMD_LINE, m_CommandLine);
 
 	Process.WriteVariant(API_V_ENCLAVE, m_EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
 	Process.Write(API_V_KPP_STATE, m_SecState);
@@ -579,13 +582,13 @@ CVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
 	Process.Write(API_V_NUM_S_IMG, m_NumberOfSignedImageLoads);
 	Process.Write(API_V_NUM_U_IMG, m_NumberOfUntrustedImageLoads);
 
-	Process.Write(API_V_SERVICES, m_ServiceList);
+	Process.WriteVariant(API_V_SERVICES, StVariant(m_ServiceList));
 
-	Process.Write(API_V_APP_SID, m_AppContainerSid);
-	Process.Write(API_V_APP_NAME, m_AppContainerName);
-	Process.Write(API_V_PACK_NAME, m_PackageFullName);
+	Process.WriteEx(API_V_APP_SID, m_AppContainerSid);
+	Process.WriteEx(API_V_APP_NAME, m_AppContainerName);
+	Process.WriteEx(API_V_PACK_NAME, m_PackageFullName);
 
-	Process.Write(API_V_USER_SID, m_UserSid);
+	Process.WriteEx(API_V_USER_SID, m_UserSid);
 
 	Process.Write(API_V_SOCK_LAST_NET_ACT, m_LastNetActivity);
 	
@@ -602,30 +605,26 @@ CVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
 
 	std::shared_lock HandleLock(m_HandleMutex);
 
-	CVariant Handles;
+	StVariantWriter Handles;
 	Handles.BeginList();
 	for (auto I : m_HandleList) {
 		if(I->GetFileName().empty())
 			continue; // skip unnamed handles
 		Handles.WriteVariant(I->ToVariant());
 	}
-	Handles.Finish();
-	Process.WriteVariant(API_V_HANDLES, Handles);
+	Process.WriteVariant(API_V_HANDLES, Handles.Finish());
 
 	HandleLock.unlock();
 
 	std::shared_lock SocketLock(m_SocketMutex);
 
-	CVariant Sockets;
+	StVariantWriter Sockets;
 	Sockets.BeginList();
 	for (auto I : m_SocketList)
 		Sockets.WriteVariant(I->ToVariant());
-	Sockets.Finish();
-	Process.WriteVariant(API_V_SOCKETS, Sockets);
+	Process.WriteVariant(API_V_SOCKETS, Sockets.Finish());
 
 	SocketLock.unlock();
 
-	Process.Finish();
-
-	return Process;
+	return Process.Finish();
 }

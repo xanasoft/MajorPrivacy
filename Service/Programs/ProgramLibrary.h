@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "../Library/API/PrivacyDefs.h"
 
 class CProgramLibrary
@@ -11,15 +11,15 @@ public:
 	uint64 GetUID() const { return m_UID; }
 	std::wstring GetPath() const { std::unique_lock lock(m_Mutex); return m_Path; }
 
-	virtual CVariant ToVariant(const SVarWriteOpt& Opts) const;
-	virtual NTSTATUS FromVariant(const CVariant& Data);
+	virtual StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual NTSTATUS FromVariant(const StVariant& Data);
 
 protected:
 
-	virtual void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void ReadIValue(uint32 Index, const CVariant& Data);
-	virtual void ReadMValue(const SVarName& Name, const CVariant& Data);
+	virtual void WriteIVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const;
+	virtual void WriteMVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const;
+	virtual void ReadIValue(uint32 Index, const StVariant& Data);
+	virtual void ReadMValue(const SVarName& Name, const StVariant& Data);
 
 	mutable std::recursive_mutex					m_Mutex;
 

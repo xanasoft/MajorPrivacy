@@ -69,8 +69,8 @@ public:
 	template <typename T, class... Types>
 	FWSTATUS InitNew(SharedPtr<T>& Ptr, Types&&... Args) { return m_pMem->InitNew(Ptr, Args...); }
 
-	void* MemAlloc(size_t size) const { return m_pMem->Alloc(size); }
-	void MemFree(void* ptr) const { m_pMem->Free(ptr); }
+	void* MemAlloc(size_t size, uint32 flags = 0) const { return m_pMem->Alloc(size, flags); }
+	void MemFree(void* ptr, uint32 flags = 0) const { m_pMem->Free(ptr, flags); }
 
 	void SetDestroyCallback(void(*pDestroyCallback)(PVOID This, PVOID Param), PVOID Param) {
 		m_pDestroyCallback = pDestroyCallback;

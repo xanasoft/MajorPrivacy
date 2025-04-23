@@ -81,6 +81,9 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 	SetComboBoxValue(ui.cmbOnTrustedExec, (int)m_pEnclave->m_OnTrustedSpawn);
 	SetComboBoxValue(ui.cmbOnUnTrustedExec, (int)m_pEnclave->m_OnSpawn);
 	ui.chkImageProtection->setChecked(m_pEnclave->m_ImageLoadProtection);
+
+	ui.chkAllowDebugging->setChecked(m_pEnclave->m_AllowDebugging);
+	ui.chkKeepAlive->setChecked(m_pEnclave->m_KeepAlive);
 }
 
 CEnclaveWnd::~CEnclaveWnd()
@@ -117,6 +120,9 @@ bool CEnclaveWnd::Save()
 	m_pEnclave->m_OnTrustedSpawn = (EProgramOnSpawn)GetComboBoxValue(ui.cmbOnTrustedExec).toInt();
 	m_pEnclave->m_OnSpawn = (EProgramOnSpawn)GetComboBoxValue(ui.cmbOnUnTrustedExec).toInt();
 	m_pEnclave->m_ImageLoadProtection = ui.chkImageProtection->isChecked();
+
+	m_pEnclave->m_AllowDebugging = ui.chkAllowDebugging->isChecked();
+	m_pEnclave->m_KeepAlive = ui.chkKeepAlive->isChecked();
 
 	return true;
 }

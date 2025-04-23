@@ -95,10 +95,26 @@ bool CProgramID::FromVariant(const class XVariant& _ID)
 
 	switch (m_Type)
 	{
-	case EProgramType::eAppInstallation:	m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_REG_KEY) : ID.Find(API_V_REG_KEY)); break;
-	case EProgramType::eWindowsService:		m_ServiceTag = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_SERVICE_TAG) : ID.Find(API_V_SERVICE_TAG)); break;
-	case EProgramType::eProgramGroup:		m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_GUID) : ID.Find(API_V_GUID)); break;
-	case EProgramType::eAppPackage:			m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_APP_SID) : ID.Find(API_V_APP_SID)); break;
+	case EProgramType::eProgramFile:
+	case EProgramType::eFilePattern:
+		if (IS_EMPTY(m_FilePath)) return false;
+		break;
+	case EProgramType::eAppInstallation:	
+		m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_REG_KEY) : ID.Find(API_V_REG_KEY));
+		if (IS_EMPTY(m_AuxValue)) return false;
+		break;
+	case EProgramType::eWindowsService:	
+		m_ServiceTag = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_SERVICE_TAG) : ID.Find(API_V_SERVICE_TAG));
+		if (IS_EMPTY(m_ServiceTag)) return false;
+		break;
+	case EProgramType::eProgramGroup:
+		m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_GUID) : ID.Find(API_V_GUID));
+		if (IS_EMPTY(m_AuxValue)) return false;
+		break;
+	case EProgramType::eAppPackage:	
+		m_AuxValue = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_APP_SID) : ID.Find(API_V_APP_SID)); 
+		if (IS_EMPTY(m_AuxValue)) return false;
+		break;
 	}
 
 	return true;

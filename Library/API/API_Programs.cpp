@@ -15,6 +15,11 @@ void CProgramItem::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) 
 	Data.WriteEx(API_V_ICON, TO_STR(m_IconFile));
 	Data.WriteEx(API_V_INFO, TO_STR(m_Info));
 
+	//Data.Write(API_V_EXEC_TRACE, (int)m_ExecTrace);
+	Data.Write(API_V_RES_TRACE, (int)m_ResTrace);
+	Data.Write(API_V_NET_TRACE, (int)m_NetTrace);
+	Data.Write(API_V_SAVE_TRACE, (int)m_SaveTrace);
+
 #ifdef PROG_SVC
 	Data.WriteVariant(API_V_FW_RULES, CollectFwRules());
 	Data.WriteVariant(API_V_PROGRAM_RULES, CollectProgRules());
@@ -27,6 +32,8 @@ void CProgramItem::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) 
 	{
 		Data.Write(API_V_PROG_ITEM_MISSING, IsMissing());
 	}
+
+	Data.Write(API_V_LOG_MEM_USAGE, GetLogMemUsage());
 #endif
 }
 
@@ -42,12 +49,19 @@ void CProgramItem::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_ICON:			m_IconFile = AS_STR(Data); break;
 	case API_V_INFO:			m_Info = AS_STR(Data); break;
 
+	//case API_V_EXEC_TRACE:		m_ExecTrace = (ETracePreset)Data.To<int>(); break;
+	case API_V_RES_TRACE:		m_ResTrace = (ETracePreset)Data.To<int>(); break;
+	case API_V_NET_TRACE:		m_NetTrace = (ETracePreset)Data.To<int>(); break;
+	case API_V_SAVE_TRACE:		m_SaveTrace = (ESavePreset)Data.To<int>(); break;
+
 #ifdef PROG_GUI
 	case API_V_FW_RULES:		m_FwRuleIDs = QFlexGuid::ReadVariantSet(Data); break;
 	case API_V_PROGRAM_RULES:	m_ProgRuleIDs = QFlexGuid::ReadVariantSet(Data); break;
 	case API_V_ACCESS_RULES:	m_ResRuleIDs = QFlexGuid::ReadVariantSet(Data); break;
 
 	case API_V_PROG_ITEM_MISSING:	m_IsMissing = Data; break;
+
+	case API_V_LOG_MEM_USAGE:		m_LogMemoryUsed = Data; break;
 #else
 	case API_V_FW_RULES: break;
 	case API_V_PROGRAM_RULES: break;
@@ -60,6 +74,29 @@ void CProgramItem::ReadIValue(uint32 Index, const XVariant& Data)
 
 /////////////////////////////////////////////////////////////////////////////
 
+const char* TracePresetToStr(ETracePreset Trace)
+{
+	switch (Trace)
+	{
+	default:
+	case ETracePreset::eDefault:		return API_S_TRACE_DEFAULT;
+	case ETracePreset::eTrace:			return API_S_TRACE_ONLY;
+	case ETracePreset::eNoTrace:		return API_S_TRACE_NONE;
+	case ETracePreset::ePrivate:		return API_S_TRACE_PRIVATE;
+	}
+}
+
+const char* SavePresetToStr(ESavePreset Trace)
+{
+	switch (Trace)
+	{
+	default:
+	case ESavePreset::eDefault:			return API_S_SAVE_TRACE_DEFAULT;
+	case ESavePreset::eSaveToDisk:		return API_S_SAVE_TRACE_TO_DISK;
+	case ESavePreset::eDontSave:		return API_S_SAVE_TRACE_TO_RAM;
+	}
+}
+
 void CProgramItem::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
 	Data.Write(API_S_PROG_UID, m_UID);
@@ -70,6 +107,11 @@ void CProgramItem::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) 
 	Data.WriteEx(API_S_NAME, TO_STR(m_Name));
 	Data.WriteEx(API_S_ICON, TO_STR(m_IconFile));
 	Data.WriteEx(API_S_INFO, TO_STR(m_Info));
+
+	//Data.Write(API_S_EXEC_TRACE, TracePresetToStr(m_ExecTrace));
+	Data.Write(API_S_RES_TRACE, TracePresetToStr(m_ResTrace));
+	Data.Write(API_S_NET_TRACE, TracePresetToStr(m_NetTrace));
+	Data.Write(API_S_SAVE_TRACE, SavePresetToStr(m_SaveTrace));
 
 #ifdef PROG_SVC
 	Data.WriteVariant(API_S_FW_RULES, CollectFwRules());
@@ -83,7 +125,26 @@ void CProgramItem::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) 
 	{
 		Data.Write(API_S_ITEM_MISSING, IsMissing());
 	}
+
+	Data.Write(API_S_LOG_MEM_USAGE, GetLogMemUsage());
 #endif
+}
+
+ETracePreset StrToTracePreset(const FW::StringA& Str)
+{
+	if (Str == API_S_TRACE_DEFAULT)				return ETracePreset::eDefault;
+	else if (Str == API_S_TRACE_ONLY)			return ETracePreset::eTrace;
+	else if (Str == API_S_TRACE_NONE)			return ETracePreset::eNoTrace;
+	else if (Str == API_S_TRACE_PRIVATE)		return ETracePreset::ePrivate;
+	return ETracePreset::eDefault;
+}
+
+ESavePreset StrToSavePreset(const FW::StringA& Str)
+{
+	if (Str == API_S_SAVE_TRACE_DEFAULT)		return ESavePreset::eDefault;
+	else if (Str == API_S_SAVE_TRACE_TO_DISK)	return ESavePreset::eSaveToDisk;
+	else if (Str == API_S_SAVE_TRACE_TO_RAM)	return ESavePreset::eDontSave;
+	return ESavePreset::eDefault;
 }
 
 void CProgramItem::ReadMValue(const SVarName& Name, const XVariant& Data)
@@ -95,12 +156,19 @@ void CProgramItem::ReadMValue(const SVarName& Name, const XVariant& Data)
 	else if (VAR_TEST_NAME(Name, API_S_ICON))				m_IconFile = AS_STR(Data);
 	else if (VAR_TEST_NAME(Name, API_S_INFO))				m_Info = AS_STR(Data);
 
+	//else if (VAR_TEST_NAME(Name, API_S_EXEC_TRACE))			m_ExecTrace = StrToTracePreset(Data);
+	else if (VAR_TEST_NAME(Name, API_S_RES_TRACE))			m_ResTrace = StrToTracePreset(Data);
+	else if (VAR_TEST_NAME(Name, API_S_NET_TRACE))			m_NetTrace = StrToTracePreset(Data);
+	else if (VAR_TEST_NAME(Name, API_S_SAVE_TRACE))			m_SaveTrace = StrToSavePreset(Data);
+
 #ifdef PROG_GUI
 	else if (VAR_TEST_NAME(Name, API_S_FW_RULES))			m_FwRuleIDs = QFlexGuid::ReadVariantSet(Data);
 	else if (VAR_TEST_NAME(Name, API_S_PROGRAM_RULES))		m_ProgRuleIDs = QFlexGuid::ReadVariantSet(Data);
 	else if (VAR_TEST_NAME(Name, API_S_ACCESS_RULES))		m_ResRuleIDs = QFlexGuid::ReadVariantSet(Data);
 
 	else if (VAR_TEST_NAME(Name, API_S_ITEM_MISSING))		m_IsMissing = Data;
+
+	else if (VAR_TEST_NAME(Name, API_S_LOG_MEM_USAGE))		m_LogMemoryUsed = Data;
 
 #else
 	else if (VAR_TEST_NAME(Name, API_S_FW_RULES))			(void)0;

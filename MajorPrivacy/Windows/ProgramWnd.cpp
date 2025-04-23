@@ -49,6 +49,26 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 
 	setWindowTitle(bNew ? tr("Create Program Item") : tr("Edit Program Item"));
 
+
+	//ui.cmbExecTrace->addItem(tr("Use Global Preset"), (int)ETracePreset::eDefault);
+	//ui.cmbExecTrace->addItem(tr("Trace"), (int)ETracePreset::eTrace);
+	//ui.cmbExecTrace->addItem(tr("Private Trace"), (int)ETracePreset::ePrivate);
+	//ui.cmbExecTrace->addItem(tr("Don't Trace"), (int)ETracePreset::eNoTrace);
+
+	ui.cmbResTrace->addItem(tr("Use Global Preset"), (int)ETracePreset::eDefault);
+	ui.cmbResTrace->addItem(tr("Trace"), (int)ETracePreset::eTrace);
+	ui.cmbResTrace->addItem(tr("Private Trace"), (int)ETracePreset::ePrivate);
+	ui.cmbResTrace->addItem(tr("Don't Trace"), (int)ETracePreset::eNoTrace);
+
+	ui.cmbNetTrace->addItem(tr("Use Global Preset"), (int)ETracePreset::eDefault);
+	ui.cmbNetTrace->addItem(tr("Trace"), (int)ETracePreset::eTrace);
+	ui.cmbNetTrace->addItem(tr("Private Trace"), (int)ETracePreset::ePrivate);
+	ui.cmbNetTrace->addItem(tr("Don't Trace"), (int)ETracePreset::eNoTrace);
+
+	ui.cmbSaveTrace->addItem(tr("Use Global Preset"), (int)ESavePreset::eDefault);
+	ui.cmbSaveTrace->addItem(tr("Save to Disk"), (int)ESavePreset::eSaveToDisk);
+	ui.cmbSaveTrace->addItem(tr("Cache only in RAM"), (int)ESavePreset::eDontSave);
+	
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
 
@@ -57,6 +77,11 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 		ui.txtName->setText(tr("New Program Item"));
 
 		ui.txtPath->setReadOnly(false);
+
+		//ui.cmbExecTrace->setEnabled(false);
+		ui.cmbResTrace->setEnabled(false);
+		ui.cmbNetTrace->setEnabled(false);
+		ui.cmbSaveTrace->setEnabled(false);
 	}
 	else
 	{
@@ -70,6 +95,8 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 		QString Path = pProgram->GetPath();
 		ui.txtPath->setText(Path);
 		
+		CProgramFilePtr pFile = pProgram.objectCast<CProgramFile>();
+
 		CWindowsServicePtr pService = pProgram.objectCast<CWindowsService>();
 		if(pService)
 			ui.txtService->setText(pService->GetServiceTag());
@@ -81,6 +108,25 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 		CAppInstallationPtr pInstallation = pProgram.objectCast<CAppInstallation>();
 		if(pInstallation)
 			ui.txtApp->setText(pInstallation->GetRegKey());
+
+
+		//int iExecTrace = ui.cmbExecTrace->findData((int)pProgram->GetExecTrace());
+		//if (iExecTrace != -1)
+		//	ui.cmbExecTrace->setCurrentIndex(iExecTrace);
+		int iResTrace = ui.cmbResTrace->findData((int)pProgram->GetResTrace());
+		if (iResTrace != -1)
+			ui.cmbResTrace->setCurrentIndex(iResTrace);
+		int iNetTrace = ui.cmbNetTrace->findData((int)pProgram->GetNetTrace());
+		if (iNetTrace != -1)
+			ui.cmbNetTrace->setCurrentIndex(iNetTrace);
+		int iSaveTrace = ui.cmbSaveTrace->findData((int)pProgram->GetSaveTrace());
+		if (iSaveTrace != -1)
+			ui.cmbSaveTrace->setCurrentIndex(iSaveTrace);	
+
+		//ui.cmbExecTrace->setEnabled(pFile || pService);
+		ui.cmbResTrace->setEnabled(pFile || pService);
+		ui.cmbNetTrace->setEnabled(pFile || pService);
+		ui.cmbSaveTrace->setEnabled(pFile || pService);
 	}
 }
 
@@ -181,6 +227,11 @@ void CProgramWnd::OnSaveAndClose()
 	pProgram->SetName(ui.txtName->text());
 	pProgram->SetInfo(ui.txtInfo->toPlainText());
 	pProgram->SetIconFile(m_IconFile);
+
+	//pProgram->SetExecTrace((ETracePreset)ui.cmbExecTrace->currentData().toInt());
+	pProgram->SetResTrace((ETracePreset)ui.cmbResTrace->currentData().toInt());
+	pProgram->SetNetTrace((ETracePreset)ui.cmbNetTrace->currentData().toInt());
+	pProgram->SetSaveTrace((ESavePreset)ui.cmbSaveTrace->currentData().toInt());
 
 	RESULT(quint64) Ret = theCore->ProgramManager()->SetProgram(pProgram);
 	if (theGUI->CheckResults(QList<STATUS>() << Ret, this))

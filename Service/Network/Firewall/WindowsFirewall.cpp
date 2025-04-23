@@ -994,7 +994,7 @@ CWindowsFirewall* CWindowsFirewall::Instance()
     return m_Instance;
 }
 
-void CWindowsFirewall::Dispose()
+void CWindowsFirewall::Discard()
 {
 	if (m_Instance)
 	{

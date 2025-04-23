@@ -14,6 +14,8 @@ public:
 
 	virtual QMap<quint64, CProgramItemPtr> GetNodes() const { return m_Nodes; }
 
+	virtual size_t GetLogMemUsage() const;
+
 protected:
 	friend class CProgramManager;
 

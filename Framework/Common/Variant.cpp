@@ -199,6 +199,14 @@ CVariant::EResult CVariant::InitAssign(const CVariant& From)
 
 void CVariant::InitMove(CVariant& From)
 {
+	if (!m_pMem && From.m_pMem)
+		m_pMem = From.m_pMem;
+
+	if (m_pMem != From.m_pMem || From.m_bDerived) {
+		Clone(&From, this);
+		return;
+	}
+
 	m_Type = From.m_Type;
 	m_uFlags = From.m_uFlags;
 	if (m_uEmbeddedSize)
@@ -213,6 +221,7 @@ void CVariant::InitMove(CVariant& From)
 	}
 	From.m_uFlags = 0;
 	From.m_Type = VAR_TYPE_EMPTY;
+	From.m_p.Void = nullptr;
 }
 
 void CVariant::InitFromContainer(SContainer* pContainer, EType Type)

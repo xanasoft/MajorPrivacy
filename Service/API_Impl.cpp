@@ -20,6 +20,7 @@
 #include "Programs/ProgramID.h"
 #include "Programs/ProgramRule.h"
 #include "Network/Firewall/FirewallRule.h"
+#include "Network/Dns/DnsFilter.h"
 #include "Tweaks/Tweak.h"
 #include "Programs/ProgramLibrary.h"
 #include "Programs/ProgramItem.h"
@@ -28,18 +29,25 @@
 #include "Programs/AppInstallation.h"
 #include "Programs/ImageSignInfo.h"
 
-#define XVariant CVariant
+#define XVariant StVariant
+#define VariantWriter StVariantWriter
+#define VariantReader StVariantReader
 #define TO_STR(x) (x)
 #define AS_STR(x) (x).AsStr()
+#define TO_STR_A(x) (x)
+#define AS_STR_A(s, x) ((x).GetStringA(s))
+#define TO_STR_W(x) (x)
+#define AS_STR_W(s, x) ((x).GetStringW(s))
 #define AS_ASTR(x) (x).To<std::string>()
 #define TO_BYTES(x) (x).AsBytes()
 #define AS_LIST(x) (x).AsList<std::wstring>()
 #define AS_ALIST(x) (x).AsList<std::string>()
 #define IS_EMPTY(x) (x).empty()
-#define GET_BYTES(x) (CVariant(x))
+#define GET_BYTES(x) (StVariant(x))
 #define GET_PATH TO_STR
 #define SET_PATH(x, y) (x) = (y)
 #define ASTR std::string
+#define ASTR_VECTOR std::vector<std::string>
 #define CFwRule CFirewallRule
 
 #include "../../Library/API/API_GenericRule.cpp"
@@ -47,6 +55,8 @@
 #include "../../Library/API/API_ProgramRule.cpp"
 
 #include "../../Library/API/API_AccessRule.cpp"
+
+#include "../../Library/API/API_DnsRule.cpp"
 
 #include "Network/Firewall/WindowsFirewall.h"
 #include "../Library/Common/Strings.h"

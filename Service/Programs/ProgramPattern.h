@@ -22,10 +22,10 @@ protected:
 
 	void SetDosPattern(const std::wstring& Pattern);
 
-	void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
-	void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
-	void ReadIValue(uint32 Index, const CVariant& Data) override;
-	void ReadMValue(const SVarName& Name, const CVariant& Data) override;
+	void WriteIVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const override;
+	void WriteMVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const override;
+	void ReadIValue(uint32 Index, const StVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const StVariant& Data) override;
 
 	std::wstring m_Pattern;
 	std::wregex m_RegExp;

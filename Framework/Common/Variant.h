@@ -1,5 +1,4 @@
 #pragma once
-//#include "../lib_global.h"
 
 #define VAR_NO_EXCEPTIONS
 

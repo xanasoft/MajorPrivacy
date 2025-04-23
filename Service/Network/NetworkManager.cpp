@@ -10,10 +10,14 @@
 #include "Firewall/Firewall.h"
 #include "SocketList.h"
 #include "Dns/DnsInspector.h"
+#include "Dns/DnsFilter.h"
+#include "Dns/DnsClient.h"
+#include "Dns/DnsConfigurator.h"
 
 #include "../ServiceCore.h"
 #include "../Programs/ProgramManager.h"
 #include "../Library/Common/FileIO.h"
+#include "../Library/Common/Strings.h"
 
 #define API_TRAFFIC_RECORD_FILE_NAME L"TrafficRecord.dat"
 #define API_TRAFFIC_RECORD_FILE_VERSION 1
@@ -34,6 +38,7 @@ CNetworkManager::CNetworkManager()
 	m_pFirewall = new CFirewall();
 	m_pSocketList = new CSocketList();
     m_pDnsInspector = new CDnsInspector();
+    m_pDnsFilter = new CDnsFilter();
 }
 
 CNetworkManager::~CNetworkManager()
@@ -43,6 +48,10 @@ CNetworkManager::~CNetworkManager()
 	delete m_pFirewall;
 	delete m_pSocketList;
     delete m_pDnsInspector;
+    delete m_pDnsFilter;
+
+    if (CDnsConfigurator::IsAnyLocalDNS())
+        CDnsConfigurator::RestoreDNS();
 }
 
 DWORD CALLBACK CNetworkManager__LoadProc(LPVOID lpThreadParameter)
@@ -69,8 +78,11 @@ STATUS CNetworkManager::Init()
     m_pDnsInspector->Init();
 	m_pFirewall->Init();
 	m_pSocketList->Init();
+	m_pDnsFilter->Init();
 
     m_hStoreThread = CreateThread(NULL, 0, CNetworkManager__LoadProc, (void*)this, 0, NULL);
+
+    Reconfigure();
 
 	return OK;
 }
@@ -102,11 +114,90 @@ STATUS CNetworkManager::StoreAsync()
 void CNetworkManager::Update()
 {
     if (m_UpdateAdapterInfo)
+    {
         UpdateAdapterInfo();
+
+        UpdateDnsConfig(theCore->Config()->GetBool("Service", "DnsEnableFilter", false) && theCore->Config()->GetBool("Service", "DnsInstallFilter", false));
+    }
 
     m_pDnsInspector->Update();
     m_pSocketList->Update();
     m_pFirewall->Update();
+}
+
+void CNetworkManager::Reconfigure(bool bWithResolvers, bool bWithBlocklist)
+{
+    bool bEnableFilter = theCore->Config()->GetBool("Service", "DnsEnableFilter", false);
+
+    if (m_pDnsFilter->IsRunning() != bEnableFilter)
+    {
+        if(bEnableFilter){
+            if (m_pDnsFilter->Start())
+                m_pDnsFilter->LoadHosts(theCore->GetDataFolder() + L"\\dns\\hosts");
+            else
+                theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_DNS_INIT_FAILED, L"Failed to start DNS server");
+        } else {
+            m_pDnsFilter->Stop();
+            m_pDnsFilter->Clear();
+        }
+    }
+
+    if (!bEnableFilter)
+        m_pDnsState = eNoDnsFilter;
+    else if(!m_pDnsFilter->IsRunning())
+		m_pDnsState = eDnsFilterFailed;
+	else
+    {
+        m_pDnsState = eDnsFilterOk;
+
+        if (bWithResolvers || m_pDnsFilter->GetForwardAddress().empty())
+        {
+            auto Resolvers = SplitStr(theCore->Config()->GetValue("Service", "DnsResolvers"), L";");
+            //bool contains = std::find(Resolvers.begin(), Resolvers.end(), m_pDnsFilter->GetForwardAddress()) == Resolvers.end();
+
+            std::wstring ForwardAddress;
+            std::wstring TestHost = theCore->Config()->GetValue("Service", "DnsTestHost", L"example.com");
+            for (auto& Resolver : Resolvers)
+            {
+                if (!TestHost.empty()) {
+                    CDnsClient TestClient(Resolver);
+                    CDnsSocket::SAddress Addr;
+                    bool bOk = TestClient.ResolveHost(w2s(TestHost), Addr);
+                    //auto Ret = Addr.ntop();
+                    if (!bOk)
+                        continue;
+                }
+                ForwardAddress = Resolver;
+                break;
+            }
+
+            if (ForwardAddress.empty()) {
+                theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_DNS_INIT_FAILED, L"No functional upstream DNS resolver found");
+                m_pDnsState = eDnsFilterFailed;
+            }
+            m_pDnsFilter->SetForwardAddress(ForwardAddress);
+        }
+
+        if(bWithBlocklist || !m_pDnsFilter->AreBlockListsLoaded())
+            m_pDnsFilter->UpdateBlockLists();
+    }
+
+    bool bInstallFilter = bEnableFilter && theCore->Config()->GetBool("Service", "DnsInstallFilter", false);
+	UpdateDnsConfig(bInstallFilter);
+}
+
+void CNetworkManager::UpdateDnsConfig(bool bInstallFilter)
+{
+    if (bInstallFilter)
+    {
+        if(!CDnsConfigurator::IsLocalDNS())
+            CDnsConfigurator::SetLocalDNS();
+    }
+    else // off
+    {
+        if(CDnsConfigurator::IsAnyLocalDNS())
+            CDnsConfigurator::RestoreDNS();
+    }
 }
 
 void CNetworkManager::UpdateAdapterInfo()
@@ -324,18 +415,18 @@ SAdapterInfoPtr CNetworkManager::GetAdapterInfoByIP(const CAddress& IP)
 STATUS CNetworkManager::Load()
 {
     CBuffer Buffer;
-    if (!ReadFile(theCore->GetDataFolder() + L"\\" API_TRAFFIC_RECORD_FILE_NAME, 0, Buffer)) {
+    if (!ReadFile(theCore->GetDataFolder() + L"\\" API_TRAFFIC_RECORD_FILE_NAME, Buffer)) {
         theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_TRAFFIC_RECORD_FILE_NAME L" not found");
         return ERR(STATUS_NOT_FOUND);
     }
 
-    CVariant Data;
+    StVariant Data;
     //try {
     auto ret = Data.FromPacket(&Buffer, true);
     //} catch (const CException&) {
     //	return ERR(STATUS_UNSUCCESSFUL);
     //}
-    if (ret != CVariant::eErrNone) {
+    if (ret != StVariant::eErrNone) {
         theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_TRAFFIC_RECORD_FILE_NAME);
         return ERR(STATUS_UNSUCCESSFUL);
     }
@@ -345,19 +436,19 @@ STATUS CNetworkManager::Load()
         return ERR(STATUS_UNSUCCESSFUL);
     }
 
-    CVariant List = Data[API_S_TRAFFIC_LOG];
+    StVariant List = Data[API_S_TRAFFIC_LOG];
 
     for (uint32 i = 0; i < List.Count(); i++)
     {
-
-        CVariant Item = List[i];
+        StVariant Item = List[i];
 
         CProgramID ID;
-        ID.FromVariant(Item.Find(API_V_PROG_ID));
+        if(!ID.FromVariant(StVariantReader(Item).Find(API_V_PROG_ID)))
+            continue;
         CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
         if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
             pProgram->LoadTraffic(Item);
-        else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+        else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
             pService->LoadTraffic(Item);
     }
 
@@ -370,28 +461,31 @@ STATUS CNetworkManager::Store()
     Opts.Format = SVarWriteOpt::eIndex;
     Opts.Flags = SVarWriteOpt::eSaveToFile;
 
-    CVariant List;
+    StVariantWriter List;
+    List.BeginList();
 
-    if (theCore->Config()->GetBool("Service", "SaveTrafficRecord", false))
+    bool bSave = theCore->Config()->GetBool("Service", "SaveTrafficRecord", false);
+
+    for (auto pItem : theCore->ProgramManager()->GetItems())
     {
-        for (auto pItem : theCore->ProgramManager()->GetItems())
-        {
-            // StoreTraffic saves API_V_PROG_ID
-            if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
-                List.Append(pProgram->StoreTraffic(Opts));
-            else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
-                List.Append(pService->StoreTraffic(Opts));
-        }
-    }
-    // we save the file on false as well to clear it
+        ESavePreset ePreset = pItem.second->GetSaveTrace();
+        if (ePreset == ESavePreset::eDontSave || (ePreset == ESavePreset::eDefault && !bSave))
+            continue;
 
-    CVariant Data;
+        // StoreTraffic saves API_V_PROG_ID
+        if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+            List.WriteVariant(pProgram->StoreTraffic(Opts));
+        else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+            List.WriteVariant(pService->StoreTraffic(Opts));
+    }
+
+    StVariant Data;
     Data[API_S_VERSION] = API_TRAFFIC_RECORD_FILE_VERSION;
-    Data[API_S_TRAFFIC_LOG] = List;
+    Data[API_S_TRAFFIC_LOG] = List.Finish();
 
     CBuffer Buffer;
     Data.ToPacket(&Buffer);
-    WriteFile(theCore->GetDataFolder() + L"\\" API_TRAFFIC_RECORD_FILE_NAME, 0, Buffer);
+    WriteFile(theCore->GetDataFolder() + L"\\" API_TRAFFIC_RECORD_FILE_NAME, Buffer);
 
     return OK;
 }

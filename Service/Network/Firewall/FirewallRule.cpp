@@ -59,6 +59,20 @@ std::wstring CFirewallRule::GetGuidStr() const
 	return m_Data->Guid;
 }
 
+std::wstring CFirewallRule::GetBinaryPath() const
+{
+	std::shared_lock Lock(m_Mutex);
+
+	return m_BinaryPath;
+}
+
+bool CFirewallRule::IsEnabled() const
+{ 
+	std::shared_lock Lock(m_Mutex); 
+
+	return m_Data->Enabled; 
+}
+
 bool CFirewallRule::IsExpired() const
 { 
 	std::shared_lock Lock(m_Mutex); 
@@ -77,30 +91,29 @@ bool CFirewallRule::IsExpired() const
 	return false;
 }
 
-CVariant CFirewallRule::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CFirewallRule::ToVariant(const SVarWriteOpt& Opts) const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	CVariant Rule;
+	StVariantWriter Rule;
 	if (Opts.Format == SVarWriteOpt::eIndex) {
-		Rule.BeginIMap();
+		Rule.BeginIndex();
 		WriteIVariant(Rule, Opts);
 	} else {  
 		Rule.BeginMap();
 		WriteMVariant(Rule, Opts);
 	}
-	Rule.Finish();
-	return Rule;
+	return Rule.Finish();
 }
 
-bool CFirewallRule::FromVariant(const CVariant& Rule)
+bool CFirewallRule::FromVariant(const StVariant& Rule)
 {
 	std::unique_lock Lock(m_Mutex);
 
 	if (!m_Data) m_Data = std::make_shared<SWindowsFwRule>();
 
-	if (Rule.GetType() == VAR_TYPE_MAP)         Rule.ReadRawMap([&](const SVarName& Name, const CVariant& Data) { ReadMValue(Name, Data); });
-	else if (Rule.GetType() == VAR_TYPE_INDEX)  Rule.ReadRawIMap([&](uint32 Index, const CVariant& Data)        { ReadIValue(Index, Data); });
+	if (Rule.GetType() == VAR_TYPE_MAP)         StVariantReader(Rule).ReadRawMap([&](const SVarName& Name, const StVariant& Data) { ReadMValue(Name, Data); });
+	else if (Rule.GetType() == VAR_TYPE_INDEX)  StVariantReader(Rule).ReadRawIndex([&](uint32 Index, const StVariant& Data) { ReadIValue(Index, Data); });
 	else
 		return false;
 

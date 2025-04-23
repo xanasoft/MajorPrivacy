@@ -4,7 +4,7 @@
 #include "ProcessList.h"
 #include "../Programs/ProgramManager.h"
 
-#include "../../Library/Common/Buffer.h"
+#include "../../Framework/Common/Buffer.h"
 #include "../../Library/Common/Strings.h"
 #include "../../Library/Helpers/WinUtil.h"
 #include "../../Library/Helpers/Scoped.h"

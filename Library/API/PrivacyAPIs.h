@@ -104,12 +104,26 @@
 #define API_S_NAME							"Name"
 #define API_S_ICON							"Icon"
 #define API_S_INFO							"Info"	
+
+#define API_S_EXEC_TRACE					"ExecTrace"
+	#define API_S_TRACE_DEFAULT					"Default"
+	#define API_S_TRACE_ONLY					"Trace"
+	#define API_S_TRACE_NONE					"NoTrace"
+	#define API_S_TRACE_PRIVATE					"Private"
+#define API_S_RES_TRACE						"ResTrace"
+#define API_S_NET_TRACE						"NetTrace"
+#define API_S_SAVE_TRACE					"SaveTrace"
+	#define API_S_SAVE_TRACE_DEFAULT			"Default"
+	#define API_S_SAVE_TRACE_TO_DISK			"ToDisk"
+	#define API_S_SAVE_TRACE_TO_RAM				"ToRam"
+
 #define API_S_RULE_GROUP					"Group"
 #define API_S_RULE_DESCR					"Description"
 
 // Status
 #define API_S_LAST_EXEC						"LastExec"
 #define API_S_ITEM_MISSING					"Missing"
+#define API_S_MEM_USED						"MemUsed"
 
 
 ////////////////////////////
@@ -168,6 +182,8 @@
 	#define API_S_EXEC_ON_SPAWN_BLOCK			"Block"
 	#define API_S_EXEC_ON_SPAWN_EJECT			"Eject"
 #define API_S_IMAGE_LOAD_PROTECTION			"ImageProtection"
+#define API_S_ALLOW_DEBUGGING 				"AllowDebugging"
+#define API_S_KEEP_ALIVE 					"KeepAlive"
 
 ////////////////////////////
 // Firewall Rules
@@ -215,6 +231,7 @@
 ////////////////////////////
 // Logs
 #define API_S_ACCESS_LOG					"AccessLog"
+#define API_S_INGRESS_LOG					"IngressLog"
 #define API_S_TRAFFIC_LOG					"TrafficLog"
 #define API_S_PROG_SOCKETS					"Sockets"
 
@@ -256,5 +273,7 @@
 	#define API_S_TWEAK_TYPE_FW					"Fw"
 #define API_S_TWEAK_IS_SET					"IsSet"
 
-
+////////////////////////////
+// Other
+#define API_S_LOG_MEM_USAGE					"LogMemUsage"
 

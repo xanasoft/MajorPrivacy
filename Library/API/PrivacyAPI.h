@@ -135,6 +135,8 @@ enum {
 	SVC_API_SET_DNS_RULE = 'SDFR',
 	SVC_API_DEL_DNS_RULE = 'DDFR',
 
+	SVC_API_GET_DNS_LIST_INFO = 'DBLI',
+
 	// Program Manager
 	SVC_API_GET_PROCESSES = 'GPRC', // live runnign or recently terminated processes
 	SVC_API_GET_PROCESS = 'GPRX',
@@ -197,6 +199,8 @@ enum {
 
 	SVC_API_EVENT_CLEANUP_PROGRESS = 'ECLN',
 
+	// other
+	SVC_API_GET_SVC_STATS = 'GSST',
 	// shutdown
 	SVC_API_SHUTDOWN = 'SHUT',
 };
@@ -312,6 +316,12 @@ API_V_VALUES : unsigned long
 	API_V_NAME = 'name',
 	API_V_ICON = 'icon',
 	API_V_INFO = 'info',
+
+	API_V_EXEC_TRACE = 'etrc',
+	API_V_RES_TRACE = 'rtrc',
+	API_V_NET_TRACE = 'ntrc',
+	API_V_SAVE_TRACE = 'strc',
+
 	API_V_RULE_GROUP = 'grup',
 	API_V_RULE_DESCR = 'desc',
 	API_V_CMD_LINE = 'cmdl',
@@ -320,6 +330,7 @@ API_V_VALUES : unsigned long
 	////////////////////////////
 	// Generic Fields
 	API_V_ENUM_ALL = 'eall',
+	API_V_URL = 'url',
 	API_V_COUNT = 'cnt',
 	API_V_RELOAD = 'rld',
 	API_V_GET_DATA = 'gdat',
@@ -356,6 +367,7 @@ API_V_VALUES : unsigned long
 	API_V_PROG_SOCKET_REFS = 'psok',
 	API_V_PROG_LAST_EXEC = 'plst',
 	API_V_PROG_ITEM_MISSING = 'pims',
+	API_V_MEM_USED = 'muse',
 
 	// Mgmt Fields
 	API_V_PROG_PARENT = 'ppar',
@@ -398,6 +410,8 @@ API_V_VALUES : unsigned long
 	API_V_IMAGE_LOAD_PROTECTION = 'ilpr',
 	//API_V_PATH_PREFIX,
 	//API_V_DEVICE_PATH,
+	API_V_ALLOW_DEBUGGING = 'adbg',
+	API_V_KEEP_ALIVE = 'kpal',
 
 	////////////////////////////
 	// Firewall Rules
@@ -596,6 +610,7 @@ API_V_VALUES : unsigned long
 	API_V_DNS_QUERY_COUNT = 'dqc',
 	API_V_DNS_RULES = 'drul',
 	API_V_DNS_RULE_ACTION = 'drac',
+	API_V_DNS_LIST_INFO = 'dlin',
 
 
 	////////////////////////////
@@ -645,6 +660,12 @@ API_V_VALUES : unsigned long
 	API_V_CACHE_TOKEN = 'ctok',
 	API_V_ERR_CODE = 'ecod',
 	API_V_ERR_MSG = 'emsg',
+
+	////////////////////////////
+	// Other
+	API_V_LOG_MEM_USAGE = 'lmus',
+	API_V_SVC_MEM_WS = 'smws',
+	API_V_SVC_MEM_PB = 'smpb',
 
 	API_V_LAST = 0x80000000
 };

@@ -117,20 +117,23 @@ public:
 	};
 
 	Table(AbstractMemPool* pMem = nullptr) : AbstractContainer(pMem) {}
-	Table(const Table& Other) : AbstractContainer(Other) { Assign(Other); }
-	Table(Table&& Other) : AbstractContainer(Other)	{ m_ptr = Other.m_ptr; Other.m_ptr = nullptr; }
+	Table(const Table& Other) : AbstractContainer(nullptr) { Assign(Other); }
+	Table(Table&& Other) : AbstractContainer(nullptr)	{ Move(Other); }
 	~Table()										{ DetachData(); }
 
-	Table& operator=(const Table& Other)			{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; Assign(Other); return *this; }
-	Table& operator=(Table&& Other)					{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
+	Table& operator=(const Table& Other)			{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Assign(Other); return *this; }
+	Table& operator=(Table&& Other)					{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Move(Other); return *this; }
 	
 	const SafeRef<V> operator[](const K& Key) const	{ return GetContrPtr(Key); }
 	SafeRef<V> operator[](const K& Key)				{ return SetValuePtr(Key, nullptr); }
 
 	size_t Count() const							{ return m_ptr ? m_ptr->Count : 0; }
+	size_t size() const								{ return Count(); } // for STL compatibility
 	bool IsEmpty() const							{ return m_ptr ? m_ptr->Count == 0 : true; }
+	bool empty() const								{ return IsEmpty(); } // for STL compatibility
 
 	void Clear()									{ DetachData(); }
+	void clear()									{ Clear(); } // for STL compatibility
 
 	bool MakeExclusive()							{ if(m_ptr && m_ptr->Refs > 1) return MakeExclusive(nullptr); return true; }
 
@@ -142,7 +145,23 @@ public:
 			Clear();
 			return Merge(Other);
 		}
+
 		AttachData(Other.m_ptr);
+		return EInsertResult::eOK;
+	}
+
+	EInsertResult Move(Table& Other)
+	{
+		if (!m_pMem)
+			m_pMem = Other.m_pMem;
+		else if(m_pMem != Other.m_pMem) { // if the containers use different memory pools, we need to make a copy of the data
+			Clear();
+			return Merge(Other);
+		}
+
+		DetachData();
+		m_ptr = Other.m_ptr; 
+		Other.m_ptr = nullptr;
 		return EInsertResult::eOK;
 	}
 
@@ -591,7 +610,7 @@ public:
 			*pEntry = (*pEntry)->Next;
 			pOld->~SBucketEntry();
 			if(pMem) pMem->Free(pOld);
-			else ::MemFree(pOld);
+			else ::MemFree(pOld, 0);
 			Count++;
 			if(!bAll)
 				break;

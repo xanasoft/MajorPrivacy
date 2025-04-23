@@ -121,6 +121,23 @@ void CProcessPage::Update()
 
 	auto Current = theGUI->GetCurrentItems();
 
+	QSet<CProgramFilePtr> Programs = Current.ProgramsEx;
+	Programs |= Current.ProgramsIm;
+	//if (m_pExecutionView->isVisible() || m_pIngressView->isVisible() || m_pTraceView->isVisible()) {
+	//	for (auto& pProgram : Current.ProgramsIm) {
+	//		if(pProgram->GetExecTrace() != ETracePreset::ePrivate)
+	//			Programs.insert(pProgram);
+	//	}
+	//}
+	QSet<CWindowsServicePtr> Services = Current.ServicesEx;
+	Services |= Current.ServicesIm;
+	//if (m_pExecutionView->isVisible() || m_pIngressView->isVisible()) {
+	//	for (auto& pService : Current.ServicesIm) {
+	//		if (pService->GetExecTrace() != ETracePreset::ePrivate)
+	//			Services.insert(pService);
+	//	}
+	//}
+
 	if (m_pRuleView->isVisible())
 	{
 		if(Current.bAllPrograms)
@@ -140,22 +157,22 @@ void CProcessPage::Update()
 
 	if (m_pLibraryView->isVisible())
 	{
-		m_pLibraryView->Sync(Current.Programs);
+		m_pLibraryView->Sync(Current.ProgramsEx | Current.ProgramsIm);
 	}
 
 	if (m_pExecutionView->isVisible())
 	{
-		m_pExecutionView->Sync(Current.Programs, Current.ServicesEx | Current.ServicesIm);
+		m_pExecutionView->Sync(Programs, Services);
 	}
 
 	if (m_pIngressView->isVisible())
 	{
-		m_pIngressView->Sync(Current.Programs, Current.ServicesEx | Current.ServicesIm);
+		m_pIngressView->Sync(Programs, Services);
 	}
 
 	if (m_pTraceView->isVisible())
 	{
-		m_pTraceView->Sync(ETraceLogs::eExecLog, Current.Programs, Current.ServicesEx);
+		m_pTraceView->Sync(ETraceLogs::eExecLog, Programs, Current.ServicesEx);
 	}
 }
 

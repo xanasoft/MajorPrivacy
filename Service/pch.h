@@ -10,6 +10,8 @@
 // add headers that you want to pre-compile here
 #include "../Library/framework.h"
 
+#define DEF_USE_POOL
+
 #include "../Library/Common/ObjectTracker.h"
 
 #endif //PCH_H

@@ -2,7 +2,7 @@
 #include "Tweak.h"
 #include "../Library/Common/DbgHelp.h"
 
-#define V(x) CVariant(x)
+#define V(x) StVariant(x)
 
 // Windows Versions
 #define WinVer_Win2k        SWinVer(2195)

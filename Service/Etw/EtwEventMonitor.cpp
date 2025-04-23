@@ -3,7 +3,7 @@
 #include <vector>
 #include <thread>
 #include <mutex>
-#include "..\Library\Types.h"
+#include "..\Framework\Core\Types.h"
 #ifndef ASSERT
 #define ASSERT(x)
 #endif

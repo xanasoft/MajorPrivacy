@@ -46,20 +46,23 @@ public:
 	};
 
 	Map(AbstractMemPool* pMem = nullptr) : AbstractContainer(pMem) {}
-	Map(const Map& Other) : AbstractContainer(Other){ Assign(Other); }
-	Map(Map&& Other) : AbstractContainer(Other)		{ m_ptr = Other.m_ptr; Other.m_ptr = nullptr; }
+	Map(const Map& Other) : AbstractContainer(nullptr)	{ Assign(Other); }
+	Map(Map&& Other) : AbstractContainer(nullptr)		{ Move(Other); }
 	~Map()											{ DetachData(); }
 
-	Map& operator=(const Map& Other)				{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; Assign(Other); return *this; }
-	Map& operator=(Map&& Other)						{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
+	Map& operator=(const Map& Other)				{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Assign(Other); return *this; }
+	Map& operator=(Map&& Other)						{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Move(Other); return *this; }
 
 	const SafeRef<const V> operator[](const K& Key) const	{ return GetContrPtr(Key); }
 	SafeRef<V> operator[](const K& Key)				{ return SetValuePtr(Key, nullptr).first; }
 
 	size_t Count() const							{ return m_ptr ? m_ptr->count : 0; }
+	size_t size() const								{ return Count(); } // for STL compatibility
 	bool IsEmpty() const							{ return !m_ptr || m_ptr->count == 0; }
+	bool empty() const								{ return IsEmpty(); } // for STL compatibility
 
 	void Clear()									{ DetachData(); }
+	void clear()									{ Clear(); } // for STL compatibility
 
 	bool MakeExclusive()							{ if(m_ptr && m_ptr->Refs > 1) return MakeExclusive(nullptr); return true; }
 
@@ -71,7 +74,23 @@ public:
 			Clear();
 			return Merge(Other);
 		}
+
 		AttachData(Other.m_ptr);
+		return EInsertResult::eOK;
+	}
+
+	EInsertResult Move(Map& Other)
+	{
+		if (!m_pMem)
+			m_pMem = Other.m_pMem;
+		else if(m_pMem != Other.m_pMem) { // if the containers use different memory pools, we need to make a copy of the data
+			Clear();
+			return Merge(Other);
+		}
+
+		DetachData();
+		m_ptr = Other.m_ptr; 
+		Other.m_ptr = nullptr;
 		return EInsertResult::eOK;
 	}
 

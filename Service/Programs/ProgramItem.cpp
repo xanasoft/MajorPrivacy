@@ -17,59 +17,55 @@ CProgramItem::CProgramItem()
 	m_UID = InterlockedIncrement64(&VolatileIdCounter);
 }
 
-CVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const
 {
 	std::unique_lock Lock(m_Mutex);
 
-	CVariant Data;
+	StVariantWriter Data;
 	if (Opts.Format == SVarWriteOpt::eIndex) {
-		Data.BeginIMap();
+		Data.BeginIndex();
 		WriteIVariant(Data, Opts);
 	} else {  
 		Data.BeginMap();
 		WriteMVariant(Data, Opts);
 	}
-	Data.Finish();
-	return Data;
+	return Data.Finish();;
 }
 
-NTSTATUS CProgramItem::FromVariant(const class CVariant& Data)
+NTSTATUS CProgramItem::FromVariant(const class StVariant& Data)
 {
 	std::unique_lock Lock(m_Mutex);
 
-	if (Data.GetType() == VAR_TYPE_MAP)         Data.ReadRawMap([&](const SVarName& Name, const CVariant& Data) { ReadMValue(Name, Data); });
-	else if (Data.GetType() == VAR_TYPE_INDEX)  Data.ReadRawIMap([&](uint32 Index, const CVariant& Data)        { ReadIValue(Index, Data); });
+	if (Data.GetType() == VAR_TYPE_MAP)         StVariantReader(Data).ReadRawMap([&](const SVarName& Name, const StVariant& Data) { ReadMValue(Name, Data); });
+	else if (Data.GetType() == VAR_TYPE_INDEX)  StVariantReader(Data).ReadRawIndex([&](uint32 Index, const StVariant& Data) { ReadIValue(Index, Data); });
 	else
 		return STATUS_UNKNOWN_REVISION;
 	return STATUS_SUCCESS;
 }
 
-CVariant CProgramItem::CollectFwRules() const
+StVariant CProgramItem::CollectFwRules() const
 {
-	CVariant FwRules;
+	StVariantWriter FwRules;
 	FwRules.BeginList();
 	for (auto FwRule : m_FwRules)
-		FwRules.Write(FwRule->GetGuidStr());
-	FwRules.Finish();
-	return FwRules;
+		FwRules.WriteEx(FwRule->GetGuidStr());
+	return FwRules.Finish();
 }
 
-CVariant CProgramItem::CollectProgRules() const
+StVariant CProgramItem::CollectProgRules() const
 {
-	CVariant ProgRules;
+	StVariantWriter ProgRules;
 	ProgRules.BeginList();
 	for (auto ProgRule : m_ProgRules)
 		ProgRules.WriteVariant(ProgRule->GetGuid().ToVariant(false));
-	ProgRules.Finish();
-	return ProgRules;
+	return ProgRules.Finish();
 }
 
-CVariant CProgramItem::CollectResRules() const
+StVariant CProgramItem::CollectResRules() const
 {
-	CVariant ResRules;
+	StVariantWriter ResRules;
 	ResRules.BeginList();
 	for (auto ResRule : m_ResRules)
 		ResRules.WriteVariant(ResRule->GetGuid().ToVariant(false));
-	ResRules.Finish();
-	return ResRules;
+	return ResRules.Finish();
 }

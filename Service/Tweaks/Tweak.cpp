@@ -30,20 +30,19 @@ bool SWinVer::Test() const
 ///////////////////////////////////////////////////////////////////////////////////////
 // CAbstractTweak
 
-CVariant CAbstractTweak::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CAbstractTweak::ToVariant(const SVarWriteOpt& Opts) const
 {
     std::unique_lock Lock(m_Mutex);
 
-    CVariant Rule;
+    StVariantWriter Rule;
     if (Opts.Format == SVarWriteOpt::eIndex) {
-        Rule.BeginIMap();
+        Rule.BeginIndex();
         WriteIVariant(Rule, Opts);
     } else {  
         Rule.BeginMap();
         WriteMVariant(Rule, Opts);
     }
-    Rule.Finish();
-    return Rule;
+    return Rule.Finish();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -127,7 +126,7 @@ ETweakStatus CRegTweak::GetStatus() const
 
     std::pair<HKEY, const wchar_t*> RegPath = SplitRegKeyPath(m_Key);
 
-    CVariant Value = RegQuery(RegPath.first, RegPath.second, m_Value.c_str());
+    StVariant Value = RegQuery(RegPath.first, RegPath.second, m_Value.c_str());
     if (Value == m_Data)
 		return m_Set ? ETweakStatus::eSet : ETweakStatus::eApplied;
 	return m_Set ? ETweakStatus::eMissing : ETweakStatus::eNotSet;
@@ -185,7 +184,7 @@ ETweakStatus CGpoTweak::GetStatus() const
     if(RegOpenKeyExW(hRoot, RegPath.second, 0, KEY_READ, &hKey) != ERROR_SUCCESS)
         return m_Set ? ETweakStatus::eMissing : ETweakStatus::eNotSet;
 
-    CVariant Value = RegQuery(hKey, m_Value.c_str());
+    StVariant Value = RegQuery(hKey, m_Value.c_str());
     if (Value == m_Data)
         return m_Set ? ETweakStatus::eSet : ETweakStatus::eApplied;
     return m_Set ? ETweakStatus::eMissing : ETweakStatus::eNotSet;

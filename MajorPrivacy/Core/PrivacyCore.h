@@ -193,6 +193,8 @@ public:
 
 	STATUS				FlushDnsCache();
 
+	RESULT(QtVariant)	GetBlockListInfo();
+
 	// Access Manager
 	RESULT(QtVariant)	GetHandlesFor(const QList<const class CProgramItem*>& Nodes);
 	RESULT(QtVariant)	GetAllHandles();
@@ -223,6 +225,9 @@ public:
 	STATUS				ApplyTweak(const QString& Name);
 	STATUS				UndoTweak(const QString& Name);
 
+	// Other
+	RESULT(QtVariant)	GetServiceStats();
+
 	//
 	STATUS				SetWatchedPrograms(const QSet<CProgramItemPtr>& Programs);
 
@@ -233,6 +238,10 @@ public:
 
 
 	void				OnClearTraceLog(const CProgramItemPtr& pItem, ETraceLogs Log);
+
+
+	virtual size_t		GetTotalMemUsage() const { return m_TotalMemoryUsed; }
+	virtual size_t		GetLogMemUsage() const { return m_LogMemoryUsed; }
 
 	CSidResolver*		GetSidResolver() {return m_pSidResolver;}
 
@@ -298,6 +307,9 @@ protected:
 	bool m_AccessRulesUpToDate = false;
 	bool m_FwRulesUpToDate = false;
 	bool m_DnsRulesUpToDate = false;
+
+	quint64 m_TotalMemoryUsed = 0;
+	quint64 m_LogMemoryUsed = 0;
 
 	QMutex m_EventQueueMutex;
 	QMap<quint32, QQueue<QtVariant>> m_SvcEventQueue;

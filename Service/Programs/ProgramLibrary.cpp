@@ -11,28 +11,27 @@ CProgramLibrary::CProgramLibrary(const std::wstring& Path)
 	m_Path = Path;	
 }
 
-CVariant CProgramLibrary::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CProgramLibrary::ToVariant(const SVarWriteOpt& Opts) const
 {
     std::unique_lock Lock(m_Mutex);
 
-    CVariant Data;
+    StVariantWriter Data;
     if (Opts.Format == SVarWriteOpt::eIndex) {
-        Data.BeginIMap();
+        Data.BeginIndex();
         WriteIVariant(Data, Opts);
     } else {  
         Data.BeginMap();
         WriteMVariant(Data, Opts);
     }
-    Data.Finish();
-    return Data;
+    return Data.Finish();
 }
 
-NTSTATUS CProgramLibrary::FromVariant(const class CVariant& Data)
+NTSTATUS CProgramLibrary::FromVariant(const class StVariant& Data)
 {
     std::unique_lock Lock(m_Mutex);
 
-    if (Data.GetType() == VAR_TYPE_MAP)         Data.ReadRawMap([&](const SVarName& Name, const CVariant& Data) { ReadMValue(Name, Data); });
-    else if (Data.GetType() == VAR_TYPE_INDEX)  Data.ReadRawIMap([&](uint32 Index, const CVariant& Data)        { ReadIValue(Index, Data); });
+    if (Data.GetType() == VAR_TYPE_MAP)         StVariantReader(Data).ReadRawMap([&](const SVarName& Name, const StVariant& Data) { ReadMValue(Name, Data); });
+    else if (Data.GetType() == VAR_TYPE_INDEX)  StVariantReader(Data).ReadRawIndex([&](uint32 Index, const StVariant& Data) { ReadIValue(Index, Data); });
     else
         return STATUS_UNKNOWN_REVISION;
     return STATUS_SUCCESS;

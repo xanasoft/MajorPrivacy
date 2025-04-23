@@ -4,8 +4,23 @@
 #include "Programs/ProgramFile.h"
 #include "Programs/AppPackage.h"
 #include "Programs/WindowsService.h"
+#include "../Library/API/PrivacyDefs.h"
 #include "../Library/Helpers/RegUtil.h"
 #include "../Library/Common/FlexGuid.h"
+#include "../Framework/Common/PathTree.h"
+
+class CFwRuleTemplate : public CPathEntry
+{
+public:
+	CFwRuleTemplate(FW::AbstractMemPool* pMem, const CFirewallRulePtr& pRule) : CPathEntry(pMem, FW::StringW(pMem, pRule->GetBinaryPath().c_str())) {
+		m_pRule = pRule;
+	}
+
+	CFirewallRulePtr GetRule() const { return m_pRule; }
+
+protected:
+	CFirewallRulePtr m_pRule;
+};
 
 class CFirewall
 {
@@ -16,20 +31,26 @@ public:
 
 	STATUS Init();
 
+	STATUS Load();
+	STATUS Store();
+
+	STATUS LoadRules(const StVariant& Entries);
+	StVariant SaveRules(const SVarWriteOpt& Opts);
+
 	void Update();
 
-	STATUS LoadRules();
-	void LoadDefaults();
+	STATUS UpdateRules();
+	void UpdateDefaults();
 
 	void PurgeExpired(bool All);
 
-	std::map<std::wstring, CFirewallRulePtr> FindRules(const CProgramID& ID);
+	std::map<CFlexGuid, CFirewallRulePtr> FindRules(const CProgramID& ID);
 
-	std::map<std::wstring, CFirewallRulePtr> GetAllRules();
+	std::map<CFlexGuid, CFirewallRulePtr> GetAllRules();
 
 	STATUS SetRule(const CFirewallRulePtr& pRule);
-	CFirewallRulePtr GetRule(const std::wstring& RuleId);
-	STATUS DelRule(const std::wstring& RuleId);
+	CFirewallRulePtr GetRule(const CFlexGuid& Guid);
+	STATUS DelRule(const CFlexGuid& Guid);
 
 	STATUS SetFilteringMode(FwFilteringModes Mode);
 	FwFilteringModes GetFilteringMode();
@@ -46,13 +67,18 @@ public:
 protected:
 	bool MatchRuleID(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule);
 
-	CFirewallRulePtr UpdateFWRule(const std::shared_ptr<struct SWindowsFwRule>& pRule, const std::wstring& RuleId);
+	CFirewallRulePtr UpdateFWRule(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFlexGuid& Guid);
 
 	void AddRuleUnsafe(const CFirewallRulePtr& pFwRule);
 	void RemoveRuleUnsafe(const CFirewallRulePtr& pFwRule);
 
+	void SetTempalte(const CFirewallRulePtr& pFwRule);
+	bool TryRemoveTemplate(const CFlexGuid& Guid);
+
 	uint32 OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent);
 	uint32 OnFwLogEvent(const struct SWinFwLogEvent* pEvent);
+
+	void EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event);
 
 	void ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocket* pSocket);
 
@@ -79,7 +105,9 @@ protected:
 	CRegWatcher				m_RegWatcher;
 
 	bool					m_UpdateAllRules = true;
-	std::map<std::wstring, CFirewallRulePtr> m_FwRules;
+	std::map<CFlexGuid, CFirewallRulePtr> m_FwRules;
+	FW::Map<CFlexGuid, FW::SharedPtr<CFwRuleTemplate>> m_FwRuleTemplates;
+	CPathTree				m_FwTemplatesTree;
 
 	std::unordered_multimap<std::wstring, CFirewallRulePtr>	m_FileRules;
 	std::unordered_multimap<std::wstring, CFirewallRulePtr>	m_SvcRules;

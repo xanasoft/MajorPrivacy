@@ -66,28 +66,27 @@ void CGenericRule::Update(const std::shared_ptr<CGenericRule>& Rule)
     m_Data = Rule->m_Data;
 }
 
-CVariant CGenericRule::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CGenericRule::ToVariant(const SVarWriteOpt& Opts) const
 {
     std::shared_lock Lock(m_Mutex);
 
-    CVariant Rule;
+    StVariantWriter Rule;
     if (Opts.Format == SVarWriteOpt::eIndex) {
-        Rule.BeginIMap();
+        Rule.BeginIndex();
         WriteIVariant(Rule, Opts);
     } else {  
         Rule.BeginMap();
         WriteMVariant(Rule, Opts);
     }
-    Rule.Finish();
-	return Rule;
+	return Rule.Finish();
 }
 
-NTSTATUS CGenericRule::FromVariant(const class CVariant& Rule)
+NTSTATUS CGenericRule::FromVariant(const class StVariant& Rule)
 {
     std::unique_lock Lock(m_Mutex);
 
-    if (Rule.GetType() == VAR_TYPE_MAP)         Rule.ReadRawMap([&](const SVarName& Name, const CVariant& Data) { ReadMValue(Name, Data); });
-    else if (Rule.GetType() == VAR_TYPE_INDEX)  Rule.ReadRawIMap([&](uint32 Index, const CVariant& Data)        { ReadIValue(Index, Data); });
+    if (Rule.GetType() == VAR_TYPE_MAP)         StVariantReader(Rule).ReadRawMap([&](const SVarName& Name, const StVariant& Data) { ReadMValue(Name, Data); });
+    else if (Rule.GetType() == VAR_TYPE_INDEX)  StVariantReader(Rule).ReadRawIndex([&](uint32 Index, const StVariant& Data) { ReadIValue(Index, Data); });
     else
         return STATUS_UNKNOWN_REVISION;
     return STATUS_SUCCESS;

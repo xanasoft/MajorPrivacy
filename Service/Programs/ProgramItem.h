@@ -23,6 +23,16 @@ public:
 	virtual void SetInfo(const std::wstring& Info)			{ std::unique_lock lock(m_Mutex); m_Info = Info; }
 	virtual std::wstring GetInfo() const					{ std::unique_lock lock(m_Mutex); return m_Info; }
 
+	//virtual ETracePreset GetExecTrace() const				{ std::unique_lock lock(m_Mutex); return m_ExecTrace; }
+	//virtual void SetExecTrace(ETracePreset Trace)			{ std::unique_lock lock(m_Mutex); m_ExecTrace = Trace; }
+	virtual ETracePreset GetResTrace() const				{ std::unique_lock lock(m_Mutex); return m_ResTrace; }
+	virtual void SetResTrace(ETracePreset Trace)			{ std::unique_lock lock(m_Mutex); m_ResTrace = Trace; }
+	virtual ETracePreset GetNetTrace() const				{ std::unique_lock lock(m_Mutex); return m_NetTrace; }
+	virtual void SetNetTrace(ETracePreset Trace)			{ std::unique_lock lock(m_Mutex); m_NetTrace = Trace; }
+
+	virtual ESavePreset GetSaveTrace() const				{ std::unique_lock lock(m_Mutex); return m_SaveTrace; }
+	virtual void SetSaveTrace(ESavePreset Trace)			{ std::unique_lock lock(m_Mutex); m_SaveTrace = Trace; }
+
 	virtual std::map<void*, std::weak_ptr<class CProgramSet>> GetGroups() const { std::unique_lock lock(m_Mutex); return m_Groups; }
 	virtual size_t GetGroupCount() const					{ std::unique_lock lock(m_Mutex); return m_Groups.size(); }
 
@@ -36,16 +46,18 @@ public:
 	virtual bool IsMissing() const { std::unique_lock lock(m_Mutex); return m_IsMissing == eMissing; }
 	virtual void SetMissing(bool bMissing) { std::unique_lock lock(m_Mutex); m_IsMissing = bMissing ? eMissing : ePresent; }
 
-	virtual CVariant ToVariant(const SVarWriteOpt& Opts) const;
-	virtual NTSTATUS FromVariant(const CVariant& Data);
+	virtual size_t GetLogMemUsage() const {return 0;}
+
+	virtual StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual NTSTATUS FromVariant(const StVariant& Data);
 
 protected:
 	friend class CProgramManager;
 
-	virtual void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void ReadIValue(uint32 Index, const CVariant& Data);
-	virtual void ReadMValue(const SVarName& Name, const CVariant& Data);
+	virtual void WriteIVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const;
+	virtual void WriteMVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const;
+	virtual void ReadIValue(uint32 Index, const StVariant& Data);
+	virtual void ReadMValue(const SVarName& Name, const StVariant& Data);
 
 	mutable std::recursive_mutex					m_Mutex;
 
@@ -55,6 +67,11 @@ protected:
 	//std::vector<std::wstring>						m_Categories;
 	std::wstring									m_IconFile;
 	std::wstring									m_Info;
+
+	//ETracePreset 									m_ExecTrace = ETracePreset::eDefault;
+	ETracePreset 									m_ResTrace = ETracePreset::eDefault;
+	ETracePreset 									m_NetTrace = ETracePreset::eDefault;
+	ESavePreset 									m_SaveTrace = ESavePreset::eDefault;
 
 	enum EMissing {
 		ePresent = 0,
@@ -74,9 +91,9 @@ public:
 	std::set<std::shared_ptr<class CAccessRule>>	m_ResRules;
 
 private:
-	CVariant CollectFwRules() const;
-	CVariant CollectProgRules() const;
-	CVariant CollectResRules() const;
+	StVariant CollectFwRules() const;
+	StVariant CollectProgRules() const;
+	StVariant CollectResRules() const;
 	
 };
 

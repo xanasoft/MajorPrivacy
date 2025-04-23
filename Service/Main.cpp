@@ -9,6 +9,10 @@
 #include "../Library/Helpers/NtUtil.h"
 #include <shellapi.h>
 
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
@@ -134,13 +138,19 @@ int WinMain(
 		arguments.push_back(szArglist[i]);
 	LocalFree(szArglist);
 
+    WSADATA wsaData;
+    WORD  wVersionRequested = MAKEWORD(2, 2);
+    WSAStartup(wVersionRequested, &wsaData);
+
     STATUS Status = OK;
 
     if (HasFlag(arguments, L"engine"))
     {
         Status = CServiceCore::Startup(true);
-        if(HANDLE hThread = theCore->GetThreadHandle()) 
-            WaitForSingleObject(hThread, INFINITE);
+        if (Status) {
+            if (HANDLE hThread = theCore->GetThreadHandle())
+                WaitForSingleObject(hThread, INFINITE);
+        }
     }
     else if (HasFlag(arguments, L"startup"))
     {
@@ -204,6 +214,8 @@ int WinMain(
             return err;
         }
     }
+
+    WSACleanup();
 
     CNtPathMgr::Dispose();
 

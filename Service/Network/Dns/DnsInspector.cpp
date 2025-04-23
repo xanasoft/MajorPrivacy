@@ -6,6 +6,8 @@
 #include "..\Library\Common\Strings.h"
 #include "..\Library\Common\DbgHelp.h"
 #include "..\..\Processes\ProcessList.h"
+#include "../NetworkManager.h"
+#include "DnsFilter.h"
 
 #pragma comment(lib, "dnsapi.lib")
 
@@ -68,6 +70,8 @@ STATUS CDnsInspector::Init()
 		*(void**)&m->DnsFlushResolverCacheEntry_I = GetProcAddress(m->DnsApiHandle, "DnsFlushResolverCacheEntry_W");
 	}
 
+	theCore->NetworkManager()->DnsFilter()->RegisterEventHandler(&CDnsInspector::OnDnsFilterEvent, this);
+
 	return OK;
 }
 
@@ -109,6 +113,9 @@ std::multimap<std::wstring, CDnsCacheEntryPtr>::iterator FindDnsEntry(std::multi
 	return Entries.end();
 }
 
+static const CAddress LocalHost("127.0.0.1");
+static const CAddress LocalHostV6("::1");
+
 CAddress RevDnsHost2Address(const std::wstring& HostName)
 {
 	// 10.0.0.1 -> 1.0.0.10.in-addr.arpa
@@ -127,6 +134,74 @@ CAddress RevDnsHost2Address(const std::wstring& HostName)
 		return CAddress(JoinStr(std::vector<std::wstring>(HostStr.rbegin()+2, HostStr.rend()), L"."));
 	}
 	return CAddress();
+}
+
+void CDnsInspector::OnDnsFilterEvent(const struct SDnsFilterEvent* pEvent)
+{
+//#ifdef _DEBUG
+//	DbgPrint("TEST %S -> %S\n", pEvent->HostName.c_str(), pEvent->ResolvedString.empty() 
+//		?  pEvent->Address.ToWString().c_str() : pEvent->ResolvedString.c_str());
+//#endif
+
+	std::shared_lock Lock(m_Mutex);
+	std::multimap<std::wstring, CDnsCacheEntryPtr>::iterator I;
+
+	CAddress Address;
+	std::wstring ResolvedString = pEvent->ResolvedString;
+
+	if (pEvent->Type == DNS_TYPE_A || pEvent->Type  == DNS_TYPE_AAAA)
+	{
+		Address = pEvent->Address;
+		ResolvedString = Address.ToWString();
+
+		if (Address == LocalHost || Address == LocalHostV6)
+			return;
+
+		I = FindDnsEntry(m_DnsCache, pEvent->HostName, Address);
+	}
+	else
+	{
+		switch (pEvent->Type)
+		{
+		case DNS_TYPE_PTR:
+			Address = RevDnsHost2Address(pEvent->HostName);
+			// we don't care for entries without a valid address
+			if (Address.IsNull())
+				return;
+			break;
+		//case DNS_TYPE_DNAME:	
+		case DNS_TYPE_CNAME:	
+		case DNS_TYPE_SRV:		
+		case DNS_TYPE_MX:		
+			break;
+		default:
+			return;
+		}
+
+		I = FindDnsEntry(m_DnsCache, pEvent->HostName, pEvent->Type, ResolvedString);
+	}
+
+	CDnsCacheEntryPtr pEntry;
+	if (I == m_DnsCache.end())
+	{
+		CDnsCacheEntry::EStatus Status = CDnsCacheEntry::eNone;
+		switch (pEvent->Action)
+		{
+		case CDnsRule::eBlock:	Status = CDnsCacheEntry::eBlocked; break;
+		case CDnsRule::eAllow:	Status = CDnsCacheEntry::eAllowed; break;
+		}
+
+		pEntry = CDnsCacheEntryPtr(new CDnsCacheEntry(pEvent->HostName, pEvent->Type, Address, ResolvedString, Status));
+		m_DnsCache.insert(std::make_pair(pEvent->HostName, pEntry));
+		if(!Address.IsNull())
+			m_AddressCache.insert(std::make_pair(Address, pEntry));
+		else
+			m_RedirectionCache.insert(std::make_pair(ResolvedString, pEntry));
+	}
+	else
+		pEntry = I->second;
+
+	pEntry->SetTTL(pEvent->TTL * 1000); // we need that in ms
 }
 
 //#define DNS_SCRAPE
@@ -185,9 +260,6 @@ CleanupExit:
 	return root;
 }
 #endif
-
-static const CAddress LocalHost("127.0.0.1");
-static const CAddress LocalHostV6("::1");
 
 void CDnsInspector::Update()
 {
@@ -262,12 +334,13 @@ void CDnsInspector::Update()
 			{
 				switch (Type)
 				{
-				case DNS_TYPE_PTR:		ResolvedString = dnsRecordPtr->Data.PTR.pNameHost;	break;
+				case DNS_TYPE_PTR:		ResolvedString = dnsRecordPtr->Data.PTR.pNameHost;
 					Address = RevDnsHost2Address(HostName);
 					// we don't care for entries without a valid address
 					if (Address.IsNull())
 						continue;
-					//case DNS_TYPE_DNAME:	ResolvedString = dnsRecordPtr->Data.DNAME.pNameHost; break; // entire zone
+					break;
+				//case DNS_TYPE_DNAME:	ResolvedString = dnsRecordPtr->Data.DNAME.pNameHost; break; // entire zone
 				case DNS_TYPE_CNAME:	ResolvedString = dnsRecordPtr->Data.CNAME.pNameHost; break; // one host
 				case DNS_TYPE_SRV:		ResolvedString = std::wstring(dnsRecordPtr->Data.SRV.pNameTarget) + L":" + std::to_wstring((uint16)dnsRecordPtr->Data.SRV.wPort); break;
 				case DNS_TYPE_MX:		ResolvedString = dnsRecordPtr->Data.MX.pNameExchange; break;
@@ -327,7 +400,7 @@ void CDnsInspector::Update()
 	{
 		if (I->second->GetDeadTime() < DnsPersistenceTime)
 		{
-			I->second->SubtractTTL(TimeToSubtract); // continue TTL countdown
+			I->second->SubtractTTL(TimeToSubtract, I->second->GetStatus() == CDnsCacheEntry::eCached); // continue TTL countdown
 			I = OldEntries.erase(I);
 		}
 		else
@@ -608,16 +681,15 @@ void CDnsInspector::ProcessJobList()
 	}
 }
 
-CVariant CDnsInspector::DumpDnsCache()
+StVariant CDnsInspector::DumpDnsCache()
 {
 	std::shared_lock Lock(m_Mutex);
 
-	CVariant DnsCache;
+	StVariantWriter DnsCache;
 	DnsCache.BeginList();
 	for (auto I = m_DnsCache.begin(); I != m_DnsCache.end(); ++I)
 		DnsCache.WriteVariant(I->second->ToVariant());
-	DnsCache.Finish();
-	return DnsCache;
+	return DnsCache.Finish();
 }
 
 void CDnsInspector::FlushDnsCache()

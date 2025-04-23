@@ -1,14 +1,22 @@
 #pragma once
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "../Library/API/PrivacyDefs.h"
 #include "../Network/Socket.h"
+
+#include "../Framework/Core/MemoryPool.h"
+#include "../Framework/Core/Object.h"
+#include "../Framework/Core/Map.h"
 
 class CTrafficLog
 {
 	TRACK_OBJECT(CTrafficLog)
 public:
 	CTrafficLog();
-	//~CTrafficLog();
+	~CTrafficLog();
+
+#ifdef DEF_USE_POOL
+	void SetPool(FW::AbstractMemPool* pMem) { m_pMem = pMem; }
+#endif
 
 	void AddSocket(const CSocketPtr& pSocket);
 	bool RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit = false);
@@ -22,10 +30,10 @@ public:
 
 	void Clear();
 
-	CVariant StoreTraffic(const SVarWriteOpt& Opts) const;
-	void LoadTraffic(const CVariant& Data);
+	StVariant StoreTraffic(const SVarWriteOpt& Opts) const;
+	void LoadTraffic(const StVariant& Data);
 
-	CVariant ToVariant(uint64 MinLastActivity = 0) const;
+	StVariant ToVariant(uint64 MinLastActivity = 0) const;
 
 protected:
 
@@ -33,28 +41,56 @@ protected:
 
 	struct STrafficLogEntry
 	{
-		TRACK_OBJECT(STrafficLogEntry)
-
+		//TRACK_OBJECT(STrafficLogEntry)
 		STrafficLogEntry() {}
 		STrafficLogEntry(const CSocketPtr& pSocket);
 
 		void Merge(const STrafficLogEntry& Data);
-
-		CVariant ToVariant(const std::wstring& Host) const;
 
 		CAddress IpAddress;
 		uint64 LastActivity = 0;
 		uint64 Uploaded = 0;
 		uint64 Downloaded = 0;
 	};
-	//typedef std::shared_ptr<STrafficLogEntry> STrafficLogEntryPtr;
 
+#ifdef DEF_USE_POOL
+	static void CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, FW::Map<FW::StringW, STrafficLogEntry>& TrafficLog);
+
+	StVariant DumpEntry(const FW::StringW& Host, const STrafficLogEntry& Data) const;
+#else
 	static void CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, std::map<std::wstring, STrafficLogEntry>& TrafficLog);
 
-	//std::map<std::wstring, STrafficLogEntryPtr> m_TrafficLog;
-	std::map<std::wstring, STrafficLogEntry> m_TrafficLog;
+	StVariant DumpEntry(const std::wstring& Host, const STrafficLogEntry& Data) const;
+#endif
 
-	std::set<CSocketPtr> m_SocketList;
+#ifdef DEF_USE_POOL
+	struct STrafficLog : FW::Object
+#else
+	struct STrafficLog
+#endif
+	{
+#ifdef DEF_USE_POOL
+		STrafficLog(FW::AbstractMemPool* pMem) : FW::Object(pMem), TrafficLog(pMem) {}
+
+		FW::Map<FW::StringW, STrafficLogEntry> TrafficLog;
+#else
+		std::map<std::wstring, STrafficLogEntry> TrafficLog;
+#endif
+	};
+
+#ifdef DEF_USE_POOL
+	typedef FW::SharedPtr<STrafficLog> STrafficLogPtr;
+#else
+	typedef std::shared_ptr<STrafficLog> STrafficLogPtr;
+#endif
+
+	STrafficLogPtr			m_Data;
+
+#ifdef DEF_USE_POOL
+	FW::AbstractMemPool*	m_pMem = nullptr;
+#endif
+
+	std::set<CSocketPtr>	m_SocketList;
 
 	uint64 m_LastActivity = 0;
 	uint64 m_Uploaded = 0;

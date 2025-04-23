@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "Programs/ProgramID.h"
 #include "../GenericRule.h"
 #include "../Library/API/PrivacyDefs.h"
@@ -23,10 +23,10 @@ public:
 	void Update(const std::shared_ptr<CProgramRule>& Rule);
 
 protected:
-	void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
-	void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
-	void ReadIValue(uint32 Index, const CVariant& Data) override;
-	void ReadMValue(const SVarName& Name, const CVariant& Data) override;
+	void WriteIVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const override;
+	void WriteMVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const override;
+	void ReadIValue(uint32 Index, const StVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const StVariant& Data) override;
 
 	EExecRuleType m_Type = EExecRuleType::eUnknown;
 	std::wstring m_ProgramPath; // can be pattern

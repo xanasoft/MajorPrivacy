@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "Programs/ProgramID.h"
 #include "../Library/Common/FlexGuid.h"
 
@@ -27,26 +27,26 @@ public:
 
 	const CProgramID& GetProgramID()		{ std::shared_lock Lock(m_Mutex); return m_ProgramID; } // the prog id is unmutable
 
-	void SetData(const CVariant& Data)		{ std::unique_lock Lock(m_Mutex); m_Data = Data; }
-	CVariant GetData() const				{ std::shared_lock Lock(m_Mutex); return m_Data; }
-	void SetData(const char* Name, const CVariant& Value)	{ std::unique_lock Lock(m_Mutex); m_Data[Name] = Value; }
-	CVariant GetData(const char* Name) const				{ std::shared_lock Lock(m_Mutex); return m_Data[Name]; }
-	void SetData(uint32 Index, const CVariant& Value)	{ std::unique_lock Lock(m_Mutex); m_Data[Index] = Value; }
-	CVariant GetData(uint32 Index) const				{ std::shared_lock Lock(m_Mutex); return m_Data[Index]; }
+	void SetData(const StVariant& Data)		{ std::unique_lock Lock(m_Mutex); m_Data = Data; }
+	StVariant GetData() const				{ std::shared_lock Lock(m_Mutex); return m_Data; }
+	void SetData(const char* Name, const StVariant& Value)	{ std::unique_lock Lock(m_Mutex); m_Data[Name] = Value; }
+	StVariant GetData(const char* Name) const				{ std::shared_lock Lock(m_Mutex); return m_Data[Name]; }
+	void SetData(uint32 Index, const StVariant& Value)	{ std::unique_lock Lock(m_Mutex); m_Data[Index] = Value; }
+	StVariant GetData(uint32 Index) const				{ std::shared_lock Lock(m_Mutex); return m_Data[Index]; }
 
 
 	void Update(const std::shared_ptr<CGenericRule>& Rule);
 
-	virtual CVariant ToVariant(const SVarWriteOpt& Opts) const;
-	virtual NTSTATUS FromVariant(const CVariant& Rule);
+	virtual StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual NTSTATUS FromVariant(const StVariant& Rule);
 
 protected:
 	void CopyTo(CGenericRule* Rule, bool CloneGuid = false) const;
 
-	virtual void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void ReadIValue(uint32 Index, const CVariant& Data);
-	virtual void ReadMValue(const SVarName& Name, const CVariant& Data);
+	virtual void WriteIVariant(StVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	virtual void WriteMVariant(StVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	virtual void ReadIValue(uint32 Index, const StVariant& Data);
+	virtual void ReadMValue(const SVarName& Name, const StVariant& Data);
 
 	mutable std::shared_mutex  m_Mutex;
 
@@ -64,6 +64,6 @@ protected:
 
 	CProgramID m_ProgramID;
 
-	CVariant m_Data;
+	StVariant m_Data;
 };
 

@@ -23,6 +23,8 @@
 
 FW_NAMESPACE_BEGIN
 
+#define NO_MEM_POOL ((AbstractMemPool*)(UINT_PTR)-1) // use to prevent adoption ot an other objects pool when this object is suposed to use none
+
 class FRAMEWORK_EXPORT AbstractContainer
 {
 	friend class AbstractMemPool;
@@ -31,8 +33,8 @@ public:
 	AbstractContainer(const AbstractContainer& other) { m_pMem = other.m_pMem; }
 	AbstractMemPool* Allocator() const { return m_pMem; }
 
-	void* MemAlloc(size_t size) const;
-	void MemFree(void* ptr) const;
+	void* MemAlloc(size_t size, uint32 flags = 0) const;
+	void MemFree(void* ptr, uint32 flags = 0) const;
 
 protected:
 	AbstractMemPool* m_pMem = nullptr;
@@ -84,18 +86,18 @@ public:
 	virtual void* Alloc(size_t size, uint32 flags = 0) = 0;
 	virtual void Free(void* ptr, uint32 flags = 0) = 0;
 
-	void Adopt(AbstractContainer** ppContainers = NULL)
-	{
-		for (AbstractContainer** pp = ppContainers; *pp; pp++)
-			(*pp)->m_pMem = this;
-	}
+	//void Adopt(AbstractContainer** ppContainers = nullptr)
+	//{
+	//	for (AbstractContainer** pp = ppContainers; *pp; pp++)
+	//		(*pp)->m_pMem = this;
+	//}
 };
 
 class FRAMEWORK_EXPORT DefaultMemPool : public AbstractMemPool
 {
 public:
-	virtual void* Alloc(size_t size, uint32 flags = 0);
-	virtual void Free(void* ptr, uint32 flags = 0);
+	void* Alloc(size_t size, uint32 flags = 0) override;
+	void Free(void* ptr, uint32 flags = 0) override;
 };
 
 class FRAMEWORK_EXPORT StackedMem : public AbstractMemPool
@@ -133,8 +135,10 @@ void __cdecl operator delete[](void* ptr);
 
 extern "C" {
 
-FRAMEWORK_EXPORT void* MemAlloc(size_t size);
-FRAMEWORK_EXPORT void MemFree(void* ptr);
+//FRAMEWORK_EXPORT void* MemAllocTagged(size_t size, uint32 flags, uint32 tag);
+FRAMEWORK_EXPORT void* MemAlloc(size_t size, uint32 flags);
+//FRAMEWORK_EXPORT void MemFreeTagged(void* ptr, uint32 flags, uint32 tag);
+FRAMEWORK_EXPORT void MemFree(void* ptr, uint32 flags);
 
 FRAMEWORK_EXPORT void MemCopy(void* dst, const void* src, size_t size);
 FRAMEWORK_EXPORT void MemMove(void* dst, const void* src, size_t size);

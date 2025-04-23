@@ -24,39 +24,7 @@ CAlpcPortServer::CAlpcPortServer()
 
 CAlpcPortServer::~CAlpcPortServer()
 {
-    HANDLE PortHandle = InterlockedExchangePointer(&m_hServerPort, NULL);
-
-    if (PortHandle) 
-    {
-        //
-        // wake up workers and shutdown
-        //
-
-        UCHAR space[MAX_PORTMSG_LENGTH];
-        for (ULONG i = 0; i < m_NumThreads; ++i) 
-        {
-            PORT_MESSAGE *msg = (PORT_MESSAGE *)space;
-            memset(msg, 0, MAX_PORTMSG_LENGTH);
-            msg->u1.s1.TotalLength = (USHORT)sizeof(PORT_MESSAGE);
-            NtRequestPort(PortHandle, msg);
-        }
-    }
-
-    if (WaitForMultipleObjects((DWORD)m_Threads.size(), m_Threads.data(), TRUE, 5000) == WAIT_TIMEOUT)
-    {
-        //
-        // termiate not yet finished workers
-        //
-
-        for (DWORD i = 0; i < (DWORD)m_Threads.size(); ++i)
-            TerminateThread(m_Threads[i], 0);
-    }
-
-    for (DWORD i = 0; i < (DWORD)m_Threads.size(); ++i)
-        NtClose(m_Threads[i]);
-
-    if (PortHandle)
-        NtClose(PortHandle);
+    Close();
 
 	DeleteCriticalSection(&m_Lock);
 }
@@ -102,6 +70,44 @@ STATUS CAlpcPortServer::Open(const std::wstring& name)
     }
 
 	return OK;
+}
+
+void CAlpcPortServer::Close()
+{
+    HANDLE PortHandle = InterlockedExchangePointer(&m_hServerPort, NULL);
+
+    if (PortHandle)
+    {
+        //
+        // wake up workers and shutdown
+        //
+
+        UCHAR space[MAX_PORTMSG_LENGTH];
+        for (ULONG i = 0; i < m_NumThreads; ++i)
+        {
+            PORT_MESSAGE* msg = (PORT_MESSAGE*)space;
+            memset(msg, 0, MAX_PORTMSG_LENGTH);
+            msg->u1.s1.TotalLength = (USHORT)sizeof(PORT_MESSAGE);
+            NtRequestPort(PortHandle, msg);
+        }
+    }
+
+    if (WaitForMultipleObjects((DWORD)m_Threads.size(), m_Threads.data(), TRUE, 5000) == WAIT_TIMEOUT)
+    {
+        //
+        // termiate not yet finished workers
+        //
+
+        for (DWORD i = 0; i < (DWORD)m_Threads.size(); ++i)
+            TerminateThread(m_Threads[i], 0);
+    }
+
+    for (DWORD i = 0; i < (DWORD)m_Threads.size(); ++i)
+        NtClose(m_Threads[i]);
+    m_Threads.clear();
+
+    if (PortHandle)
+        NtClose(PortHandle);
 }
 
 DWORD __stdcall CAlpcPortServer::ThreadStub(void *param)

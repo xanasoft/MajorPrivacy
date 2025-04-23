@@ -139,13 +139,14 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.btnDelIgnore, SIGNAL(clicked(bool)), this, SLOT(OnDelIgnore()));
 
 	connect(ui.chkListOpenFiles, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
-	connect(ui.chkAccessTree, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkAccessTrace, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkAccessRecord, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkAccessLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLogNotFound, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLogRegistry, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
 	connect(ui.chkFwPlus, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkNetTrace, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkTrafficRecord, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkReverseDNS, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
@@ -172,7 +173,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.chkDnsFilter, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged()));
 	connect(ui.chkDnsInstall, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged()));
 	connect(ui.txtDnsResolvers, SIGNAL(textChanged(const QString &)), this, SLOT(OnDnsChanged2()));
-	connect(ui.chkDnsBlockLists, SIGNAL(textChanged(const QString &)), this, SLOT(OnDnsChanged3()));
+	connect(ui.chkDnsBlockLists, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged3()));
 	connect(ui.treeDnsBlockLists, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(OnDnsBlockListClicked(QTreeWidgetItem*, int)));
 	connect(ui.treeDnsBlockLists, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(OnDnsBlockDoubleClicked(QTreeWidgetItem*, int)));
 	connect(ui.btnAddBlockList, SIGNAL(clicked(bool)), this, SLOT(OnAddBlockList()));
@@ -215,6 +216,8 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 		this->addAction(pSetTree);
 	}
 	m_pSearch->setPlaceholderText(tr("Search for settings"));
+
+	m_uTimerID = startTimer(1000);
 }
 
 void CSettingsWindow::OnSetTree()
@@ -228,10 +231,41 @@ void CSettingsWindow::OnSetTree()
 
 CSettingsWindow::~CSettingsWindow()
 {
+	killTimer(m_uTimerID);
+
 	theConf->SetBlob("SettingsWindow/Window_Geometry",saveGeometry());
 
 	foreach(QTreeWidget * pTree, this->findChildren<QTreeWidget*>()) 
 		theConf->SetBlob("SettingsWindow/" + pTree->objectName() + "_Columns", pTree->header()->saveState());
+}
+
+void CSettingsWindow::timerEvent(QTimerEvent* pEvent)
+{
+	if (pEvent->timerId() != m_uTimerID)
+		return;
+
+	if (m_pCurrentTab == ui.tabDns) 
+	{
+		auto ret = theCore->GetBlockListInfo();
+		if (!ret.IsError())
+		{
+			QMap<QString, QTreeWidgetItem*> Lists;
+			for (int i = 0; i < ui.treeDnsBlockLists->topLevelItemCount(); i++)
+			{
+				QTreeWidgetItem* pItem = ui.treeDnsBlockLists->topLevelItem(i);
+				Lists.insert(pItem->text(0).toLower(), pItem);
+			}
+
+			auto var = ret.GetValue();
+			for (int i = 0; i < var.Count(); i++)
+			{
+				QtVariant Item = var[i];
+				QString Url = Item[API_V_URL].AsQStr();
+				if(QTreeWidgetItem* pItem = Lists.value(Url.toLower()))
+					pItem->setText(1, QString::number(Item[API_V_COUNT].To<int>()));
+			}
+		}
+	}
 }
 
 void CSettingsWindow::showTab(const QString& Name, bool bExclusive)
@@ -454,13 +488,14 @@ void CSettingsWindow::LoadSettings()
 	ui.chkEnumApps->setChecked(theCore->GetConfigBool("Service/EnumInstallations", true));
 
 	ui.chkListOpenFiles->setChecked(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));
-	ui.chkAccessTree->setChecked(theCore->GetConfigBool("Service/ResTrace", true));
+	ui.chkAccessTrace->setChecked(theCore->GetConfigBool("Service/ResTrace", true));
 	ui.chkAccessRecord->setChecked(theCore->GetConfigBool("Service/SaveAccessRecord", false));
 	ui.chkAccessLog->setChecked(theCore->GetConfigBool("Service/ResLog", true));
 	ui.chkLogNotFound->setChecked(theCore->GetConfigBool("Service/LogNotFound", false));
 	ui.chkLogRegistry->setChecked(theCore->GetConfigBool("Service/LogRegistry", false));
 
 	ui.chkFwPlus->setChecked(theCore->GetConfigBool("Service/UseFwRuleTemplates", false));
+	ui.chkNetTrace->setChecked(theCore->GetConfigBool("Service/NetTrace", true));
 	ui.chkTrafficRecord->setChecked(theCore->GetConfigBool("Service/SaveTrafficRecord", false));
 	ui.chkFwLog->setChecked(theCore->GetConfigBool("Service/NetLog", true));
 	ui.chkReverseDNS->setChecked(theCore->GetConfigBool("Service/UseReverseDns", false));
@@ -470,7 +505,7 @@ void CSettingsWindow::LoadSettings()
 	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseFusionTheme", 1)));
 
 	ui.chkExecShowPopUp->setChecked(theConf->GetBool("ProcessProtection/ShowNotifications", true));
-	ui.chkExecRecord->setChecked(theCore->GetConfigBool("Service/SaveIngressRecord", false));
+	ui.chkExecRecord->setChecked(theCore->GetConfigBool("Service/SaveIngressRecord", true));
 	ui.chkExecLog->setChecked(theCore->GetConfigBool("Service/ExecLog", true));
 
 	ui.chkResShowPopUp->setChecked(theConf->GetBool("ResourceAccess/ShowNotifications", true));
@@ -546,13 +581,14 @@ void CSettingsWindow::SaveSettings()
 	theCore->SetConfig("Service/EnumInstallations", ui.chkEnumApps->isChecked());
 
 	theCore->SetConfig("Service/EnumAllOpenFiles", ui.chkListOpenFiles->isChecked());
-	theCore->SetConfig("Service/ResTrace", ui.chkAccessTree->isChecked());
+	theCore->SetConfig("Service/ResTrace", ui.chkAccessTrace->isChecked());
 	theCore->SetConfig("Service/SaveAccessRecord", ui.chkAccessRecord->isChecked());
 	theCore->SetConfig("Service/ResLog", ui.chkAccessLog->isChecked());
 	theCore->SetConfig("Service/LogNotFound", ui.chkLogNotFound->isChecked());
 	theCore->SetConfig("Service/LogRegistry", ui.chkLogRegistry->isChecked());
 
 	theCore->SetConfig("Service/UseFwRuleTemplates", ui.chkFwPlus->isChecked());
+	theCore->SetConfig("Service/NetTrace", ui.chkNetTrace->isChecked());
 	theCore->SetConfig("Service/SaveTrafficRecord", ui.chkTrafficRecord->isChecked());
 	theCore->SetConfig("Service/NetLog", ui.chkFwLog->isChecked());
 	theCore->SetConfig("Service/UseReverseDns", ui.chkReverseDNS->isChecked());

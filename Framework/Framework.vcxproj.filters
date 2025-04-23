@@ -90,6 +90,12 @@
     <ClInclude Include="Common\VariantRW.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Lock.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\MemoryPool.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Buffer.cpp">
@@ -109,6 +115,12 @@
     </ClCompile>
     <ClCompile Include="Common\VariantRW.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Lock.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\MemoryPool.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

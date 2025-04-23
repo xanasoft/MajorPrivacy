@@ -287,7 +287,7 @@ STATUS CProgramManager::RemoveAllRules(const CProgramItemPtr& pItem)
 
 	auto ProgRules = pItem->GetProgRules();
 	for (auto I = ProgRules.begin(); I != ProgRules.end(); ++I) {
-		CVariant Request;
+		StVariant Request;
 		Request[API_V_GUID] = (*I)->GetGuid().ToVariant(true);
 		STATUS Status = theCore->Driver()->Call(API_DEL_PROGRAM_RULE, Request);
 		if (!Status) return Status;
@@ -295,7 +295,7 @@ STATUS CProgramManager::RemoveAllRules(const CProgramItemPtr& pItem)
 
 	auto ResRules = pItem->GetResRules();
 	for (auto I = ResRules.begin(); I != ResRules.end(); ++I) {
-		CVariant Request;
+		StVariant Request;
 		Request[API_V_GUID] = (*I)->GetGuid().ToVariant(true);
 		STATUS Status = theCore->Driver()->Call(API_DEL_ACCESS_RULE, Request);
 		if (!Status) return Status;
@@ -552,7 +552,7 @@ CProgramPatternPtr CProgramManager::GetPattern(const std::wstring& DosPattern, b
 	CProgramPatternPtr pPattern = CProgramPatternPtr(new CProgramPattern(DosPattern));
 	pPattern->SetName(DosPattern);
 
-	m_PatternMap.insert(std::make_pair(pPattern->GetPattern(), pPattern));
+	m_PatternMap.insert(std::make_pair(Key, pPattern));
 	m_Items.insert(std::make_pair(pPattern->GetUID(), pPattern));
 	lock.unlock();
 
@@ -830,11 +830,9 @@ STATUS CProgramManager::AddProgramTo(uint64 UID, uint64 ParentUID)
 
 STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRules)
 {
-	std::unique_lock lock(m_Mutex);
-	auto F = m_Items.find(UID);
-	if (F == m_Items.end())
+	CProgramItemPtr pItem = GetItem(UID);
+	if(!pItem)
 		return ERR(STATUS_ERR_PROG_NOT_FOUND);
-	CProgramItemPtr pItem = F->second;
 
 	if (pItem->GetGroupCount() == 1) // removing from all groups or from last group
 	{
@@ -894,17 +892,23 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 	}
 	else
 	{
-		std::unique_lock lock(pItem->m_Mutex);
 		for(;;) {
+			std::unique_lock lock(pItem->m_Mutex);
 			auto B = pItem->m_Groups.begin();
 			if(B == pItem->m_Groups.end())
 				break;
+			void* Key = B->first;
 			auto pGroup = B->second.lock();
-			if (!pGroup || !RemoveProgramFromGroupEx(pItem, pGroup))
-				pItem->m_Groups.erase(B);
+			lock.unlock();
+			if (!pGroup || !RemoveProgramFromGroupEx(pItem, pGroup)) {
+				lock.lock();
+				pItem->m_Groups.erase(Key);
+			}
 		}
 	}
 
+	// remove the item from all maps
+	std::unique_lock lock(pItem->m_Mutex);
 	switch (ID.GetType())
 	{
 		case EProgramType::eProgramFile: {
@@ -937,14 +941,15 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 			break;
 		}
 	}
-	m_Items.erase(F);
-
+	auto F = m_Items.find(UID);
+	if (F != m_Items.end())
+		m_Items.erase(F);
 	return OK;
 }
 
 //void CProgramManager::BroadcastItemChanged(const CProgramItemPtr& pItem, EConfigEvent Event)
 //{
-//	CVariant vEvent;
+//	StVariant vEvent;
 //	vEvent[API_V_PROG_UID] = pItem->GetUID();
 //	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
 //
@@ -962,13 +967,13 @@ bool CProgramManager::AddProgramToGroup(const CProgramItemPtr& pItem, const CPro
 		return false; // can't link to itself
 
 	std::unique_lock lock1(pItem->m_Mutex);
-	std::unique_lock lock2(pGroup->m_Mutex);
-
 	auto I = pItem->m_Groups.find(pGroup.get());
 	if(I != pItem->m_Groups.end())
 		return false; // already linked
-
 	pItem->m_Groups.insert(std::make_pair(pGroup.get(), pGroup));
+	lock1.unlock();
+
+	std::unique_lock lock2(pGroup->m_Mutex);
 	pGroup->m_Nodes.push_back(pItem);
 	return true;
 }
@@ -976,13 +981,13 @@ bool CProgramManager::AddProgramToGroup(const CProgramItemPtr& pItem, const CPro
 bool CProgramManager::RemoveProgramFromGroup(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup)
 {
 	std::unique_lock lock1(pItem->m_Mutex);
-	std::unique_lock lock2(pGroup->m_Mutex);
-
 	auto I = pItem->m_Groups.find(pGroup.get());
 	if(I == pItem->m_Groups.end())
 		return false; // not linked
-
 	pItem->m_Groups.erase(I);
+	lock1.unlock();
+
+	std::unique_lock lock2(pGroup->m_Mutex);
 	for(auto I = pGroup->m_Nodes.begin(); I != pGroup->m_Nodes.end(); I++) {
 		if(*I == pItem) {
 			pGroup->m_Nodes.erase(I);
@@ -1088,6 +1093,19 @@ void CProgramManager::TryAddChildren(const CProgramListPtr& pBranche, const CPro
 	}
 }
 
+size_t CProgramManager::GetLogMemUsage() const
+{
+	size_t Size = 0;
+	for (auto I = m_Items.begin(); I != m_Items.end(); ++I) {
+		CProgramItemPtr pItem = I->second;
+		if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+			Size += pProgram->GetLogMemUsage();
+		else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+			Size += pService->GetLogMemUsage();
+	}
+	return Size;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Librarys
 
@@ -1156,7 +1174,7 @@ void CProgramManager::RemoveResRule(const CAccessRulePtr& pResRule)
 
 STATUS CProgramManager::LoadRules()
 {
-	CVariant Request;
+	StVariant Request;
 	auto Res = theCore->Driver()->Call(API_GET_PROGRAM_RULES, Request);
 	if(Res.IsError())
 		return Res;
@@ -1165,10 +1183,10 @@ STATUS CProgramManager::LoadRules()
 
 	std::map<CFlexGuid, CProgramRulePtr> OldRules = m_Rules;
 
-	CVariant Rules = Res.GetValue();
+	StVariant Rules = Res.GetValue();
 	for(uint32 i=0; i < Rules.Count(); i++)
 	{
-		CVariant Rule = Rules[i];
+		StVariant Rule = Rules[i];
 
 		CFlexGuid Guid;
 		Guid.FromVariant(Rule[API_V_GUID]);
@@ -1255,11 +1273,11 @@ void CProgramManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEve
 	{
 		CProgramRulePtr pRule;
 		if (Event != EConfigEvent::eRemoved) {
-			CVariant Request;
+			StVariant Request;
 			Request[API_V_GUID] = Guid.ToVariant(true);
 			auto Res = theCore->Driver()->Call(API_GET_PROGRAM_RULE, Request);
 			if (Res.IsSuccess()) {
-				CVariant Rule = Res.GetValue();
+				StVariant Rule = Res.GetValue();
 				std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
 				CProgramID ID(ProgramPath);
 				pRule = std::make_shared<CProgramRule>(ID);
@@ -1270,7 +1288,7 @@ void CProgramManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEve
 		UpdateRule(pRule, Guid);
 	}
 
-	CVariant vEvent;
+	StVariant vEvent;
 	vEvent[API_V_GUID] = Guid.ToVariant(false);
 	//vEvent[API_V_NAME] = ;
 	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
@@ -1284,18 +1302,18 @@ void CProgramManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEve
 STATUS CProgramManager::Load()
 {
 	CBuffer Buffer;
-	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_PROGRAMS_FILE_NAME, 0, Buffer)) {
+	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_PROGRAMS_FILE_NAME, Buffer)) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_PROGRAMS_FILE_NAME L" not found");
 		return ERR(STATUS_NOT_FOUND);
 	}
 
-	CVariant Data;
+	StVariant Data;
 	//try {
 	auto ret = Data.FromPacket(&Buffer, true);
 	//} catch (const CException&) {
 	//	return ERR(STATUS_UNSUCCESSFUL);
 	//}
-	if (ret != CVariant::eErrNone) {
+	if (ret != StVariant::eErrNone) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_PROGRAMS_FILE_NAME);
 		return ERR(STATUS_UNSUCCESSFUL);
 	}
@@ -1307,11 +1325,11 @@ STATUS CProgramManager::Load()
 
 	std::unique_lock lock(m_Mutex);
 
-	//CVariant Librarys = Data[API_S_LIBRARIES];
+	//StVariant Librarys = Data[API_S_LIBRARIES];
 
 	//for (uint32 i = 0; i < Librarys.Count(); i++)
 	//{
-	//	const CVariant& Library = Librarys[i];
+	//	const StVariant& Library = Librarys[i];
 	//
 	//	std::wstring Path = Library[API_S_FILE_PATH].AsStr();
 	//	CProgramLibraryPtr pLibrary = GetLibrary(Path, eCanAdd);
@@ -1319,13 +1337,13 @@ STATUS CProgramManager::Load()
 	//		pLibrary->FromVariant(Library);
 	//}
 
-	CVariant Programs = Data[API_S_PROGRAMS];
+	StVariant Programs = Data[API_S_PROGRAMS];
 
 	std::map<CProgramSetPtr, std::list<CProgramID>> Tree;
 
 	for (uint32 i = 0; i < Programs.Count(); i++)
 	{
-		const CVariant& Item = Programs[i];
+		const StVariant& Item = Programs[i];
 
 		//CProgramID ID;
 		//ID.FromVariant(Item.Find(API_S_PROG_ID));
@@ -1336,9 +1354,11 @@ STATUS CProgramManager::Load()
 		EProgramType Type = CProgramID::ReadType(Item, Format);
 		bool IsMap = (Format == SVarWriteOpt::eMap);
 
+		StVariantReader Reader(Item);
+
 		if (Type == EProgramType::eProgramFile) 
 		{
-			std::wstring FileName = theCore->NormalizePath(IsMap ? Item.Find(API_S_FILE_PATH) : Item.Find(API_V_FILE_PATH), false);
+			std::wstring FileName = theCore->NormalizePath(IsMap ? Reader.Find(API_S_FILE_PATH) : Reader.Find(API_V_FILE_PATH), false);
 			std::wstring Key = MkLower(FileName);
 			CProgramFilePtr& pFile = m_PathMap[Key];
 			if (!pFile) {
@@ -1349,7 +1369,7 @@ STATUS CProgramManager::Load()
 		}
 		else if (Type == EProgramType::eFilePattern)
 		{
-			std::wstring Pattern = IsMap ? Item.Find(API_S_PROG_PATTERN) : Item.Find(API_V_PROG_PATTERN);
+			std::wstring Pattern = IsMap ? Reader.Find(API_S_PROG_PATTERN) : Reader.Find(API_V_PROG_PATTERN);
 			std::wstring Key = MkLower(Pattern);
 			CProgramPatternPtr& pPattern = m_PatternMap[Key];
 			if (!pPattern) {
@@ -1360,7 +1380,7 @@ STATUS CProgramManager::Load()
 		}
 		else if (Type == EProgramType::eAppInstallation)
 		{
-			std::wstring RegKey = IsMap ? Item.Find(API_S_REG_KEY) : Item.Find(API_V_REG_KEY);
+			std::wstring RegKey = IsMap ? Reader.Find(API_S_REG_KEY) : Reader.Find(API_V_REG_KEY);
 			std::wstring Key = MkLower(RegKey);
 			CAppInstallationPtr& pInstall = m_InstallMap[Key];
 			if (!pInstall) {
@@ -1371,7 +1391,7 @@ STATUS CProgramManager::Load()
 		}
 		else if (Type == EProgramType::eWindowsService)	
 		{
-			std::wstring ServiceTag = IsMap ? Item.Find(API_S_SERVICE_TAG) : Item.Find(API_V_SERVICE_TAG);
+			std::wstring ServiceTag = IsMap ? Reader.Find(API_S_SERVICE_TAG) : Reader.Find(API_V_SERVICE_TAG);
 			std::wstring Key = MkLower(ServiceTag);
 			CWindowsServicePtr& pService = m_ServiceMap[Key];
 			if (!pService) {
@@ -1382,7 +1402,7 @@ STATUS CProgramManager::Load()
 		}
 		else if (Type == EProgramType::eAppPackage)	
 		{
-			std::wstring AppContainerSid = IsMap ? Item.Find(API_S_APP_SID) : Item.Find(API_V_APP_SID);
+			std::wstring AppContainerSid = IsMap ? Reader.Find(API_S_APP_SID) : Reader.Find(API_V_APP_SID);
 			std::wstring Key = MkLower(AppContainerSid);
 			CAppPackagePtr& pPackage = m_PackageMap[Key];
 			if (!pPackage) {
@@ -1393,8 +1413,8 @@ STATUS CProgramManager::Load()
 		}
 		else if (Type == EProgramType::eProgramGroup)
 		{
-			CVariant ID = IsMap ? Item.Find(API_S_PROG_ID) : Item.Find(API_V_PROG_ID);
-			std::wstring Guid = IsMap ? ID.Find(API_S_APP_SID) : ID.Find(API_V_APP_SID);
+			StVariant ID = IsMap ? Reader.Find(API_S_PROG_ID) : Reader.Find(API_V_PROG_ID);
+			std::wstring Guid = IsMap ? StVariantReader(ID).Find(API_S_APP_SID) : StVariantReader(ID).Find(API_V_APP_SID);
 			std::wstring Key = MkLower(Guid);
 			CProgramGroupPtr& pGroup = m_GroupMap[Key];
 			if (!pGroup) {
@@ -1416,11 +1436,11 @@ STATUS CProgramManager::Load()
 		auto pSet = std::dynamic_pointer_cast<CProgramSet>(pItem);
 		if (pSet) 
 		{
-			auto Items = IsMap ? Item.Find(API_S_PROG_ITEMS) : Item.Find(API_V_PROG_ITEMS);
+			auto Items = IsMap ? Reader.Find(API_S_PROG_ITEMS) : Reader.Find(API_V_PROG_ITEMS);
 			std::list<CProgramID> ItemIDs;
-			Items.ReadRawList([&](const CVariant& vData) {
+			StVariantReader(Items).ReadRawList([&](const StVariant& vData) {
 				CProgramID ID;
-				if (ID.FromVariant((vData.GetType() == VAR_TYPE_MAP) ? vData.Find(API_S_PROG_ID) : vData.Get(API_V_PROG_ID))) {
+				if (ID.FromVariant((vData.GetType() == VAR_TYPE_MAP) ? StVariantReader(vData).Find(API_S_PROG_ID) : StVariantReader(vData).Find(API_V_PROG_ID))) {
 					if(ID == pSet->GetID())
 						return;
 					ItemIDs.push_back(ID);
@@ -1459,22 +1479,22 @@ STATUS CProgramManager::Store()
 	Opts.Format = SVarWriteOpt::eMap;
 	Opts.Flags = SVarWriteOpt::eSaveToFile | SVarWriteOpt::eTextGuids;
 
-	CVariant Programs;
+	StVariant Programs;
 	for (auto I : m_Items)
 		Programs.Append(I.second->ToVariant(Opts));
 
-	//CVariant Libraries;
+	//StVariant Libraries;
 	//for (auto I : m_Libraries)
 	//	Libraries.Append(I.second->ToVariant(Opts));
 
-	CVariant Data;
+	StVariant Data;
 	Data[API_S_VERSION] = API_PROGRAMS_FILE_VERSION;
 	Data[API_S_PROGRAMS] = Programs;
 	//Data[API_S_LIBRARIES] = Libraries;
 
 	CBuffer Buffer;
 	Data.ToPacket(&Buffer);
-	WriteFile(theCore->GetDataFolder() + L"\\" API_PROGRAMS_FILE_NAME, 0, Buffer);
+	WriteFile(theCore->GetDataFolder() + L"\\" API_PROGRAMS_FILE_NAME, Buffer);
 
 	return OK;
 }

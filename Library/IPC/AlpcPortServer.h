@@ -11,6 +11,7 @@ public:
 	~CAlpcPortServer();
 
     STATUS Open(const std::wstring& name);
+    void Close();
 
     bool RegisterHandler(uint32 MessageId, const std::function<uint32(uint32 msgId, const CBuffer* req, CBuffer* rpl, uint32 PID, uint32 TID)>& Handler) { 
         return m_MessageHandlers.insert(std::make_pair(MessageId, Handler)).second; 

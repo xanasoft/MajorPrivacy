@@ -15,6 +15,11 @@ class CProgramFile: public CProgramSet
 	TRACK_OBJECT(CProgramFile)
 public:
 	CProgramFile(const std::wstring& FileName);
+	~CProgramFile();
+
+#ifdef DEF_USE_POOL
+	virtual FW::MemoryPool* Allocator() const { return m_pMem; }
+#endif
 
 	virtual EProgramType GetType() const { return EProgramType::eProgramFile; }
 
@@ -39,9 +44,9 @@ public:
 	//virtual SLibraryInfo GetLibrary(uint64 UID) const { std::unique_lock lock(m_Mutex); auto it = m_Libraries.find(UID); return it != m_Libraries.end() ? it->second : SLibraryInfo(); }
 	
 	
-	virtual CVariant DumpLibraries() const;
-	virtual CVariant StoreLibraries(const SVarWriteOpt& Opts) const;
-	virtual void LoadLibraries(const CVariant& Data);
+	virtual StVariant DumpLibraries() const;
+	virtual StVariant StoreLibraries(const SVarWriteOpt& Opts) const;
+	virtual void LoadLibraries(const StVariant& Data);
 	virtual void CleanUpLibraries();
 
 	virtual void AddExecParent(const CFlexGuid& TargetEnclave, 
@@ -50,7 +55,7 @@ public:
 	virtual void AddExecChild(const CFlexGuid& ActorEnclave, const std::wstring& ActorServiceTag, 
 		const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
 		const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked);
-	virtual CVariant DumpExecStats() const;
+	virtual StVariant DumpExecStats() const;
 
 	virtual void AddIngressActor(const CFlexGuid& TargetEnclave, 
 		const std::shared_ptr<CProgramFile>& pActorProgram, const CFlexGuid& ActorEnclave, const SProcessUID& ProcessUID, const std::wstring& ActorServiceTag, 
@@ -58,33 +63,51 @@ public:
 	virtual void AddIngressTarget(const CFlexGuid& ActorEnclave, const std::wstring& ActorServiceTag, 
 		const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
 		bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
-	virtual CVariant DumpIngress() const;
+	virtual StVariant DumpIngress() const;
 
 	virtual void AddAccess(const std::wstring& ActorServiceTag, const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked);
-	virtual CVariant DumpResAccess(uint64 LastActivity) const;
+	virtual StVariant DumpResAccess(uint64 LastActivity) const;
 
-	virtual CVariant StoreIngress(const SVarWriteOpt& Opts) const;
-	virtual void LoadIngress(const CVariant& Data);
+	virtual StVariant StoreIngress(const SVarWriteOpt& Opts) const;
+	virtual void LoadIngress(const StVariant& Data);
 
-	virtual CVariant StoreAccess(const SVarWriteOpt& Opts) const;
-	virtual void LoadAccess(const CVariant& Data);
+	virtual StVariant StoreAccess(const SVarWriteOpt& Opts) const;
+	virtual void LoadAccess(const StVariant& Data);
 
 	virtual void UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked);
 
 	virtual CTrafficLog* TrafficLog()							{ return &m_TrafficLog; }
 
-	virtual CVariant StoreTraffic(const SVarWriteOpt& Opts) const;
-	virtual void LoadTraffic(const CVariant& Data);
+	virtual StVariant StoreTraffic(const SVarWriteOpt& Opts) const;
+	virtual void LoadTraffic(const StVariant& Data);
 
+#ifdef DEF_USE_POOL
+	struct STraceLog : FW::Object
+#else
 	struct STraceLog
+#endif
 	{
-		TRACK_OBJECT(STraceLog)
+		//TRACK_OBJECT(STraceLog)
+#ifdef DEF_USE_POOL
+		STraceLog(FW::AbstractMemPool* pMem) : FW::Object(pMem), Entries(pMem) {}
+
+		FW::Array<CTraceLogEntryPtr> Entries;
+#else
 		std::vector<CTraceLogEntryPtr> Entries;
+#endif
 		size_t IndexOffset = 0;
+
+		std::shared_mutex Mutex;
 	};
 
+#ifdef DEF_USE_POOL
+	typedef FW::SharedPtr<STraceLog> STraceLogPtr;
+#else
+	typedef std::shared_ptr<STraceLog> STraceLogPtr;
+#endif
+
 	virtual uint64 AddTraceLogEntry(const CTraceLogEntryPtr& pLogEntry, ETraceLogs Log);
-	virtual STraceLog GetTraceLog(ETraceLogs Log) const;
+	virtual STraceLogPtr GetTraceLog(ETraceLogs Log) const;
 	virtual void TruncateTraceLog();
 	virtual void ClearTraceLog(ETraceLogs Log);
 
@@ -98,13 +121,15 @@ public:
 
 	virtual void TestMissing();
 
+	virtual size_t GetLogMemUsage() const;
+
 protected:
 	friend class CProgramManager;
 
-	void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
-	void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const override;
-	void ReadIValue(uint32 Index, const CVariant& Data) override;
-	void ReadMValue(const SVarName& Name, const CVariant& Data) override;
+	void WriteIVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const override;
+	void WriteMVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const override;
+	void ReadIValue(uint32 Index, const StVariant& Data) override;
+	void ReadMValue(const SVarName& Name, const StVariant& Data) override;
 
 	std::wstring					m_Path;
 
@@ -144,21 +169,25 @@ protected:
 
 	std::map<CFlexGuid, SEnclaveRecordPtr> m_EnclaveRecord;
 
-	virtual void StoreExecParents(CVariant& ExecParents, const SVarWriteOpt& Opts) const;
-	virtual bool LoadExecParents(const CVariant& ExecParents);
-	virtual void StoreExecChildren(CVariant& ExecChildren, const SVarWriteOpt& Opts) const;
-	virtual bool LoadExecChildren(const CVariant& ExecChildren);
-	virtual void StoreIngressActors(CVariant& IngressActors, const SVarWriteOpt& Opts) const;
-	virtual bool LoadIngressActors(const CVariant& IngressActors);
-	virtual void StoreIngressTargets(CVariant& IngressTargets, const SVarWriteOpt& Opts) const;
-	virtual bool LoadIngressTargets(const CVariant& IngressTargets);
+	virtual void StoreExecParents(StVariantWriter& ExecParents, const SVarWriteOpt& Opts) const;
+	virtual bool LoadExecParents(const StVariant& ExecParents);
+	virtual void StoreExecChildren(StVariantWriter& ExecChildren, const SVarWriteOpt& Opts) const;
+	virtual bool LoadExecChildren(const StVariant& ExecChildren);
+	virtual void StoreIngressActors(StVariantWriter& IngressActors, const SVarWriteOpt& Opts) const;
+	virtual bool LoadIngressActors(const StVariant& IngressActors);
+	virtual void StoreIngressTargets(StVariantWriter& IngressTargets, const SVarWriteOpt& Opts) const;
+	virtual bool LoadIngressTargets(const StVariant& IngressTargets);
 
 	//
 	// Note: log entries don't have mutexes, we thread them as read only objects
 	// thay must not be modificed after being added to the list !!!
 	//
 
-	STraceLog						m_TraceLogs[(int)ETraceLogs::eLogMax];
+	STraceLogPtr					m_TraceLogs[(int)ETraceLogs::eLogMax];
+
+#ifdef DEF_USE_POOL
+	FW::MemoryPool*					m_pMem = nullptr;
+#endif
 
 private:
 	struct SStats

@@ -57,7 +57,10 @@ protected:
 
 	bool eventFilter(QObject *watched, QEvent *e);
 
-	void OnTab(QWidget* pTab);
+	void	timerEvent(QTimerEvent* pEvent);
+	int		m_uTimerID;
+
+	void	OnTab(QWidget* pTab);
 
 	void	LoadSettings();
 	void	SaveSettings();

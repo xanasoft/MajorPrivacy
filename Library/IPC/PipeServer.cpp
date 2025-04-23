@@ -24,37 +24,7 @@ CPipeServer::CPipeServer()
 
 CPipeServer::~CPipeServer()
 {
-    HANDLE hListener = InterlockedExchangePointer(&m_hListener, NULL);
-
-    if (hListener)
-    {
-        if (WaitForSingleObject(hListener, 5000) == WAIT_TIMEOUT)
-            TerminateThread(hListener, 0);
-    }
-
-    std::vector<HANDLE> Threads;
-
-	EnterCriticalSection(&m_Lock);
-    std::unordered_map<HANDLE, SPipeClientPtr> PipeClients = m_PipeClients;
-    for (auto I : PipeClients) {
-        Threads.push_back(I.first);
-        HANDLE hPipe = InterlockedExchangePointer(&I.second->pPipe->hPipe, NULL);
-        NtClose(hPipe);
-    }
-    LeaveCriticalSection(&m_Lock);
-
-    if (WaitForMultipleObjects((DWORD)Threads.size(), Threads.data(), TRUE, 5000) == WAIT_TIMEOUT)
-    {
-        //
-        // termiate not yet finished workers
-        //
-            
-        for (DWORD i = 0; i < (DWORD)Threads.size(); ++i)
-            TerminateThread(Threads[i], 0);
-    }
-
-    if (hListener) 
-        NtClose(hListener);
+    Close();
 
 	DeleteCriticalSection(&m_Lock);
 }
@@ -89,6 +59,41 @@ STATUS CPipeServer::Open(const std::wstring& name)
     }
 
     return Status;
+}
+
+void CPipeServer::Close()
+{
+    HANDLE hListener = InterlockedExchangePointer(&m_hListener, NULL);
+
+    if (hListener)
+    {
+        if (WaitForSingleObject(hListener, 5000) == WAIT_TIMEOUT)
+            TerminateThread(hListener, 0);
+    }
+
+    std::vector<HANDLE> Threads;
+
+    EnterCriticalSection(&m_Lock);
+    for (auto I : m_PipeClients) {
+        Threads.push_back(I.first);
+        HANDLE hPipe = InterlockedExchangePointer(&I.second->pPipe->hPipe, NULL);
+        NtClose(hPipe);
+    }
+    m_PipeClients.clear();
+    LeaveCriticalSection(&m_Lock);
+
+    if (WaitForMultipleObjects((DWORD)Threads.size(), Threads.data(), TRUE, 5000) == WAIT_TIMEOUT)
+    {
+        //
+        // termiate not yet finished workers
+        //
+
+        for (DWORD i = 0; i < (DWORD)Threads.size(); ++i)
+            TerminateThread(Threads[i], 0);
+    }
+
+    if (hListener) 
+        NtClose(hListener);
 }
 
 RESULT(PPipeSocket) CPipeServer::MakePipe()

@@ -109,14 +109,15 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 
 	//ui.setupUi(this);
 
-	statusBar()->showMessage(tr("Starting ..."), 10000);
-
-	m_pMainWidget = NULL;
-	
 	extern QString g_IconCachePath;
 	g_IconCachePath = theConf->GetConfigDir() + "/IconCache/";
 
 	LoadLanguage();
+
+	statusBar()->showMessage(tr("Starting ..."), 10000);
+
+	m_pStatusLabel = new QLabel(this);
+	statusBar()->addPermanentWidget(m_pStatusLabel);
 
 	CFinder::m_CaseInsensitiveIcon = QIcon(":/Icons/CaseSensitive.png");
 	CFinder::m_RegExpStrIcon = QIcon(":/Icons/RegExp.png");
@@ -319,10 +320,11 @@ STATUS CMajorPrivacy::Connect()
 #ifndef _DEBUG
 		if (theCore->IsSvcMaxSecurity() && (!theCore->IsGuiMaxSecurity() && theCore->IsGuiHighSecurity()))
 		{
-			theCore->StartProcessBySvc(QCoreApplication::applicationFilePath().replace("/", "\\"));
-			theCore->Disconnect(true);
-			((QtSingleApplication*)QApplication::instance())->disableSingleApp();
-			PostQuitMessage(0);
+			if (theCore->StartProcessBySvc(QCoreApplication::applicationFilePath().replace("/", "\\"))) {
+				theCore->Disconnect(true);
+				((QtSingleApplication*)QApplication::instance())->disableSingleApp();
+				PostQuitMessage(0);
+			}
 		}
 #endif
 
@@ -470,10 +472,14 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 			STATUS Status = theCore->Update();
 			//if (!Status)
 			//	Connect();
+
+			m_pStatusLabel->setText(tr("Mem Usage: %1 + %2 (Logs)").arg(FormatSize(theCore->GetTotalMemUsage() - theCore->GetLogMemUsage())).arg(FormatSize(theCore->GetTotalMemUsage())));
 		}
 
 		theCore->ProcessEvents();
 	}
+	else
+		m_pStatusLabel->setText(tr("Disconnected from privacy agent"));
 
 
 	quint64 CurTime = QDateTime::currentSecsSinceEpoch();
@@ -1551,6 +1557,12 @@ CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems(const QList<CProgra
 			continue;
 		}
 
+		CProgramFilePtr pFile = pItem.objectCast<CProgramFile>();
+		if (pFile) {
+			if (!Filter || Filter(pFile))
+				Current.ProgramsEx.insert(pFile);
+		}
+
 		if (!Filter || Filter(pItem))
 			AddItem(pItem);
 
@@ -1558,22 +1570,23 @@ CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems(const QList<CProgra
 			Current.bAllPrograms = true;
 	}
 
-	Current.ServicesEx.subtract(Current.ServicesIm);
+	Current.ServicesIm.subtract(Current.ServicesEx);
 	
-
 	foreach(CProgramItemPtr pItem, Current.Items)
 	{
 		CProgramFilePtr pProgram = pItem.objectCast<CProgramFile>();
 		if (!pProgram) continue;
 
 		if (!Filter || Filter(pProgram))
-			Current.Programs.insert(pProgram);
+			Current.ProgramsIm.insert(pProgram);
 
 		/*foreach(quint64 Pid, pProgram->GetProcessPids()) {
 			CProcessPtr pProcess = theCore->ProcessList()->GetProcess(Pid);
 			if (pProcess) Current.Processes.insert(Pid, pProcess);
 		}*/
 	}
+
+	Current.ProgramsIm.subtract(Current.ProgramsEx);
 
 	return Current;
 }
@@ -1587,7 +1600,7 @@ QMap<quint64, CProcessPtr> CMajorPrivacy::GetCurrentProcesses() const
 {
 	QMap<quint64, CProcessPtr> Processes;
 
-	foreach(CProgramFilePtr pProgram, m_CurrentItems.Programs) {
+	foreach(CProgramFilePtr pProgram, m_CurrentItems.ProgramsEx | m_CurrentItems.ProgramsIm) {
 		foreach(quint64 Pid, pProgram->GetProcessPids()) {
 			CProcessPtr pProcess = theCore->ProcessList()->GetProcess(Pid);
 			if (pProcess) Processes.insert(Pid, pProcess);

@@ -80,6 +80,8 @@ public:
 		eUploaded,
 		eDownloaded,
 
+		eLogSize,
+
 		ePath,
 
 		//eInfo,

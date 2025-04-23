@@ -490,7 +490,8 @@ bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPi
     if (pVerifyInfo) 
     {
         pChildProcess->UpdateSignInfo(pVerifyInfo);
-        pProgram->UpdateSignInfo(pVerifyInfo);
+        if(pProgram)
+            pProgram->UpdateSignInfo(pVerifyInfo);
     }
 
     CProcessPtr pParentProcess = GetProcess(ActorPid, true);
@@ -507,10 +508,18 @@ bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPi
             pProgram, TargetEnclave, pChildProcess->GetProcessUID(), 
             Command, CreateTime, (Status != EEventStatus::eAllowed));
 
+#ifdef DEF_USE_POOL
+		CExecLogEntryPtr pLogActorEntry = pActorProgram->Allocator()->New<CExecLogEntry>(ActorEnclave, EExecLogRole::eActor, EExecLogType::eProcessStarted, Status, pProgram->GetUID(), TargetEnclave, ActorServiceTag, CreateTime, Pid);
+#else
         CExecLogEntryPtr pLogActorEntry = CExecLogEntryPtr(new CExecLogEntry(ActorEnclave, EExecLogRole::eActor, EExecLogType::eProcessStarted, Status, pProgram->GetUID(), TargetEnclave, ActorServiceTag, CreateTime, Pid));
+#endif
         AddExecLogEntry(pActorProgram, pLogActorEntry);
 
+#ifdef DEF_USE_POOL
+		CExecLogEntryPtr pLogEntry = pProgram->Allocator()->New<CExecLogEntry>(TargetEnclave, EExecLogRole::eTarget, EExecLogType::eProcessStarted, Status, pActorProgram->GetUID(), ActorEnclave, ActorServiceTag, CreateTime, Pid);
+#else
         CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(TargetEnclave, EExecLogRole::eTarget, EExecLogType::eProcessStarted, Status, pActorProgram->GetUID(), ActorEnclave, ActorServiceTag, CreateTime, Pid));
+#endif
         AddExecLogEntry(pProgram, pLogEntry);
     }
 
@@ -561,10 +570,18 @@ void CProcessList::OnProcessAccessed(uint64 Pid, uint64 ActorPid, const std::wst
         pTargetProgram, TargetEnclave, pTargetProcess->GetProcessUID(), 
         bThread, AccessMask, AccessTime, (Status != EEventStatus::eAllowed));
 
+#ifdef DEF_USE_POOL
+	CExecLogEntryPtr pLogActorEntry = pActorProgram->Allocator()->New<CExecLogEntry>(TargetEnclave, EExecLogRole::eActor, bThread ? EExecLogType::eThreadAccess : EExecLogType::eProcessAccess, Status, pActorProgram->GetUID(), ActorEnclave, ActorServiceTag, AccessTime, Pid, AccessMask);
+#else
     CExecLogEntryPtr pLogActorEntry = CExecLogEntryPtr(new CExecLogEntry(ActorEnclave, EExecLogRole::eActor, bThread ? EExecLogType::eThreadAccess : EExecLogType::eProcessAccess, Status, pTargetProgram->GetUID(), TargetEnclave, ActorServiceTag, AccessTime, Pid, AccessMask));
+#endif
     AddExecLogEntry(pActorProgram, pLogActorEntry);
 
+#ifdef DEF_USE_POOL
+	CExecLogEntryPtr pLogEntry = pTargetProgram->Allocator()->New<CExecLogEntry>(TargetEnclave, EExecLogRole::eTarget, bThread ? EExecLogType::eThreadAccess : EExecLogType::eProcessAccess, Status, pActorProgram->GetUID(), ActorEnclave, ActorServiceTag, AccessTime, Pid, AccessMask);
+#else
     CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(TargetEnclave, EExecLogRole::eTarget, bThread ? EExecLogType::eThreadAccess : EExecLogType::eProcessAccess, Status, pActorProgram->GetUID(), ActorEnclave, ActorServiceTag, AccessTime, Pid, AccessMask));
+#endif
     AddExecLogEntry(pTargetProgram, pLogEntry);
 }
 
@@ -625,7 +642,11 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
     pProcess->AddLibrary(pLibrary);
     pProgram->AddLibrary(EnclaveGuid, pLibrary, pImageEvent->TimeStamp, &pImageEvent->VerifierInfo, Status);
 
+#ifdef DEF_USE_POOL
+	CExecLogEntryPtr pLogEntry = pProgram->Allocator()->New<CExecLogEntry>(EnclaveGuid, EExecLogRole::eBooth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId);
+#else
     CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EnclaveGuid, EExecLogRole::eBooth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId));
+#endif
     AddExecLogEntry(pProgram, pLogEntry);
 }
 
@@ -657,11 +678,15 @@ void CProcessList::OnResourceAccessed(const std::wstring& NtPath, uint64 ActorPi
 
     pActorProgram->AddAccess(ActorServiceTag, DosPath, AccessMask, AccessTime, NtStatus, IsDirectory, (Status != EEventStatus::eAllowed));
 
+#ifdef DEF_USE_POOL
+	CResLogEntryPtr pLogEntry = pActorProgram->Allocator()->New<CResLogEntry>(pActorProcess->GetEnclave(), NtPath, ActorServiceTag, AccessMask, Status, AccessTime, ActorPid);
+#else
     CResLogEntryPtr pLogEntry = CResLogEntryPtr(new CResLogEntry(pActorProcess->GetEnclave(), NtPath, ActorServiceTag, AccessMask, Status, AccessTime, ActorPid));
+#endif
     
     uint64 LogIndex = pActorProgram->AddTraceLogEntry(pLogEntry, ETraceLogs::eResLog);
 
-    CVariant Event;
+    StVariant Event;
     //Event[SVC_API_EVENT_TYPE]	= SVC_API_EVENT_FW_EVENT;
     Event[API_V_PROG_ID]		= pActorProgram->GetID().ToVariant(SVarWriteOpt());
     Event[API_V_EVENT_INDEX]	= LogIndex;
@@ -677,7 +702,7 @@ void CProcessList::AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram
 {
     uint64 LogIndex = pProgram->AddTraceLogEntry(pLogEntry, ETraceLogs::eExecLog);
 
-    CVariant Event;
+    StVariant Event;
     //Event[SVC_API_EVENT_TYPE]	= SVC_API_EVENT_FW_EVENT;
     Event[API_V_PROG_ID]		= pProgram->GetID().ToVariant(SVarWriteOpt());
     Event[API_V_EVENT_INDEX]	= LogIndex;
@@ -788,18 +813,18 @@ void CProcessList::OnProcessEtwEvent(const struct SEtwProcessEvent* pEvent)
 STATUS CProcessList::Load()
 {
     CBuffer Buffer;
-    if (!ReadFile(theCore->GetDataFolder() + L"\\" API_INGRESS_RECORD_FILE_NAME, 0, Buffer)) {
+    if (!ReadFile(theCore->GetDataFolder() + L"\\" API_INGRESS_RECORD_FILE_NAME, Buffer)) {
         theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_INGRESS_RECORD_FILE_NAME L" not found");
         return ERR(STATUS_NOT_FOUND);
     }
 
-    CVariant Data;
+    StVariant Data;
     //try {
     auto ret = Data.FromPacket(&Buffer, true);
     //} catch (const CException&) {
     //	return ERR(STATUS_UNSUCCESSFUL);
     //}
-    if (ret != CVariant::eErrNone) {
+    if (ret != StVariant::eErrNone) {
         theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_INGRESS_RECORD_FILE_NAME);
         return ERR(STATUS_UNSUCCESSFUL);
     }
@@ -809,14 +834,15 @@ STATUS CProcessList::Load()
         return ERR(STATUS_UNSUCCESSFUL);
     }
 
-    CVariant List = Data[API_S_ACCESS_LOG];
+    StVariant List = Data[API_S_INGRESS_LOG];
 
     for (uint32 i = 0; i < List.Count(); i++)
     {
-        CVariant Item = List[i];
+        StVariant Item = List[i];
 
         CProgramID ID;
-        ID.FromVariant(Item.Find(API_V_PROG_ID));
+        if(!ID.FromVariant(StVariantReader(Item).Find(API_V_PROG_ID)))
+			continue;
         CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
         if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
             pProgram->LoadIngress(Item);
@@ -833,28 +859,32 @@ STATUS CProcessList::Store()
     Opts.Format = SVarWriteOpt::eIndex;
     Opts.Flags = SVarWriteOpt::eSaveToFile;
 
-    CVariant List;
+    StVariantWriter List;
+    List.BeginList();
 
-    if (theCore->Config()->GetBool("Service", "SaveIngressRecord", false))
+    bool bSave = theCore->Config()->GetBool("Service", "SaveIngressRecord", true);
+
+    for (auto pItem : theCore->ProgramManager()->GetItems())
     {
-        for (auto pItem : theCore->ProgramManager()->GetItems())
-        {
-            // StoreAccess saves API_V_PROG_ID
-            if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
-                List.Append(pProgram->StoreIngress(Opts));
-            else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
-                List.Append(pService->StoreIngress(Opts));
-        }
-    }
-    // we save the file on false as well to clear it
+        //ESavePreset ePreset = pItem.second->GetSaveTrace();
+        //if (ePreset == ESavePreset::eDontSave || (ePreset == ESavePreset::eDefault && !bSave))
+        if (!bSave)
+			continue;
 
-    CVariant Data;
+        // StoreAccess saves API_V_PROG_ID
+        if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+            List.WriteVariant(pProgram->StoreIngress(Opts));
+        else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+            List.WriteVariant(pService->StoreIngress(Opts));
+    }
+
+    StVariant Data;
     Data[API_S_VERSION] = API_INGRESS_RECORD_FILE_VERSION;
-    Data[API_S_ACCESS_LOG] = List;
+    Data[API_S_INGRESS_LOG] = List.Finish();
 
     CBuffer Buffer;
     Data.ToPacket(&Buffer);
-    WriteFile(theCore->GetDataFolder() + L"\\" API_INGRESS_RECORD_FILE_NAME, 0, Buffer);
+    WriteFile(theCore->GetDataFolder() + L"\\" API_INGRESS_RECORD_FILE_NAME, Buffer);
 
     return OK;
 }

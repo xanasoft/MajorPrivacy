@@ -1,5 +1,5 @@
 #pragma once
-#include "../Library/Common/Variant.h"
+#include "../Library/Common/StVariant.h"
 #include "Programs/ProgramID.h"
 
 class CFirewallRule
@@ -14,7 +14,12 @@ public:
 	void Update(const std::shared_ptr<CFirewallRule>& pRule);
 
 	std::wstring GetGuidStr() const;
-	const CProgramID& GetProgramID() { return m_ProgramID; }
+	const CProgramID& GetProgramID()		{ return m_ProgramID; }
+	std::wstring GetBinaryPath() const;
+
+	bool IsTemplate() const					{ return m_ProgramID.GetType() == EProgramType::eFilePattern; }
+
+	bool IsEnabled() const;
 
 	bool IsTemporary() const				{ std::shared_lock Lock(m_Mutex); return m_bTemporary; }
 	void SetTemporary(bool bTemporary)		{ std::unique_lock Lock(m_Mutex); m_bTemporary = bTemporary; }
@@ -26,16 +31,16 @@ public:
 
 	void IncrHitCount() { std::unique_lock Lock(m_Mutex); m_HitCount++; }
 
-	CVariant ToVariant(const SVarWriteOpt& Opts) const;
-	bool FromVariant(const CVariant& Rule);
+	StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	bool FromVariant(const StVariant& Rule);
 
 protected:
 	mutable std::shared_mutex  m_Mutex;
 
-	virtual void WriteIVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void WriteMVariant(CVariant& Rule, const SVarWriteOpt& Opts) const;
-	virtual void ReadIValue(uint32 Index, const CVariant& Data);
-	virtual void ReadMValue(const SVarName& Name, const CVariant& Data);
+	virtual void WriteIVariant(StVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	virtual void WriteMVariant(StVariantWriter& Rule, const SVarWriteOpt& Opts) const;
+	virtual void ReadIValue(uint32 Index, const StVariant& Data);
+	virtual void ReadMValue(const SVarName& Name, const StVariant& Data);
 
 	CProgramID m_ProgramID;
 	

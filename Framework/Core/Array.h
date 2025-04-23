@@ -26,12 +26,12 @@ class Array : public AbstractContainer
 {
 public:
 	Array(AbstractMemPool* pMem = nullptr) : AbstractContainer(pMem) {}
-	Array(const Array& Other) : AbstractContainer(Other) { Assign(Other); }
-	Array(Array&& Other) : AbstractContainer(Other)	{ m_ptr = Other.m_ptr; Other.m_ptr = nullptr; }
+	Array(const Array& Other) : AbstractContainer(nullptr) { Assign(Other); }
+	Array(Array&& Other) : AbstractContainer(nullptr)	{ Move(Other); }
 	~Array()										{ DetachData(); }
 
-	Array& operator=(const Array& Other)			{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; Assign(Other); return *this; }
-	Array& operator=(Array&& Other)					{ if(m_ptr == Other.m_ptr && m_pMem == Other.m_pMem) return *this; DetachData(); m_pMem = Other.m_pMem; m_ptr = Other.m_ptr; Other.m_ptr = nullptr; return *this; }
+	Array& operator=(const Array& Other)			{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) return *this; Assign(Other); return *this; }
+	Array& operator=(Array&& Other)					{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) return *this; Move(Other); return *this; }
 	Array& operator+=(const Array& Other)			{ if (!m_pMem) m_pMem = Other.m_pMem; Append(Other.Data(), Other.Count()); return *this; } 
 	Array& operator+=(const V& Value)				{ Append(&Value, 1); return *this; }
 	Array operator+(const Array& Other) const		{ Array str(*this); str.Append(Other.Data(), Other.Count()); return str; }
@@ -42,10 +42,13 @@ public:
 
 	const V* Data() const							{ return m_ptr ? m_ptr->Data : nullptr; }
 	size_t Count() const							{ return m_ptr ? m_ptr->Count : 0; }
+	size_t size() const								{ return Count(); } // for STL compatibility
 	bool IsEmpty() const							{ return m_ptr ? m_ptr->Count == 0 : true; }
+	bool empty() const								{ return IsEmpty(); } // for STL compatibility
 	size_t Capacity() const							{ return m_ptr ? m_ptr->Capacity : 0; }
 
 	void Clear()									{ DetachData(); }
+	void clear()									{ Clear(); } // for STL compatibility
 
 	bool Reserve(size_t Capacity)
 	{
@@ -71,6 +74,19 @@ public:
 		else if(m_pMem != Other.m_pMem) // if the containers use different memory pools, we need to make a copy of the data
 			return Assign(Other.Data(), Other.Count());
 		AttachData(Other.m_ptr);
+		return true;
+	}
+
+	bool Move(Array& Other)
+	{
+		if (!m_pMem)
+			m_pMem = Other.m_pMem;
+		else if(m_pMem != Other.m_pMem) // if the containers use different memory pools, we need to make a copy of the data
+			return Assign(Other.Data(), Other.Count());
+
+		DetachData();
+		m_ptr = Other.m_ptr; 
+		Other.m_ptr = nullptr;
 		return true;
 	}
 
@@ -117,17 +133,29 @@ public:
 		Iterator(V* pData = nullptr, size_t uCount = 0) : pData(pData), uRemCount(uCount) {}
 
 		Iterator& operator++() {
-			if(uRemCount > 0) uRemCount--;
-			if(uRemCount > 0) pData++;
-			else pData = nullptr;
+			if (uRemCount > 0){
+				uRemCount--;
+				pData++;
+			}
 			return *this;
 		}
 
 		Iterator& operator+=(size_t uCount) {
-			if(uRemCount >= uCount) uRemCount -= uCount;
-			if(uRemCount >= 0) pData += uCount;
-			else pData = nullptr;
+			if (uCount > uRemCount) 
+				uCount = uRemCount;
+			uRemCount -= uCount;
+			pData += uCount;
 			return *this;
+		}
+
+		Iterator operator+(size_t uCount) const {
+			if (uCount > uRemCount) 
+				uCount = uRemCount;
+			return Iterator(pData + uCount, uRemCount - uCount);
+		}
+
+		size_t operator-(const Iterator& other) const {
+			return pData - other.pData;
 		}
 
 		V& operator*() const { return *pData; }
@@ -143,7 +171,7 @@ public:
 	};
 
 	Iterator begin() const							{ return m_ptr ? Iterator(m_ptr->Data, m_ptr->Count) : end(); }
-	Iterator end() const							{ return Iterator(); }
+	Iterator end() const							{ return Iterator(m_ptr ? m_ptr->Data + m_ptr->Count : nullptr, 0); }
 
 	Iterator erase(Iterator I)
 	{
@@ -155,6 +183,23 @@ public:
 		m_ptr->Data[m_ptr->Count].~V();
 		return I;
 	}
+
+	Iterator erase(Iterator I, size_t Count)
+	{
+		if (!I.pData || !MakeExclusive(&I))
+			return end();
+		for (size_t i = I.pData - m_ptr->Data; i < m_ptr->Count - Count; i++)
+			m_ptr->Data[i] = m_ptr->Data[i + Count];
+		m_ptr->Count -= Count;
+		for (size_t i = m_ptr->Count; i < m_ptr->Count + Count; i++)
+			m_ptr->Data[i].~V();
+		return I;
+	}
+
+	Iterator erase(Iterator From, Iterator To) {
+		return erase(From, To.pData - From.pData);
+	}
+	
 
 protected:
 
@@ -235,5 +280,33 @@ protected:
 		}
 	}
 };
+
+// for sorted arrays
+
+template<typename Iterator, typename T, typename Compare>
+Iterator lower_bound(Iterator first, Iterator last, const T& value, Compare comp) {
+	while (first != last) {
+		Iterator mid = first + (last - first) / 2;
+		if (comp(*mid, value)) {
+			first = mid + 1;
+		} else {
+			last = mid;
+		}
+	}
+	return first;
+}
+
+template<typename Iterator, typename T, typename Compare>
+Iterator upper_bound(Iterator first, Iterator last, const T& value, Compare comp) {
+	while (first != last) {
+		Iterator mid = first + (last - first) / 2;
+		if (comp(value, *mid)) {
+			last = mid;
+		} else {
+			first = mid + 1;
+		}
+	}
+	return first;
+}
 
 FW_NAMESPACE_END

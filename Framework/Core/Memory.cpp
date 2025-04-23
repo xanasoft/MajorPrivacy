@@ -30,24 +30,26 @@ FW_NAMESPACE_BEGIN
 //////////////////////////////////////////////////////////////////////////////////////////////
 // AbstractContainer
 
-void* AbstractContainer::MemAlloc(size_t size) const
+void* AbstractContainer::MemAlloc(size_t size, uint32 flags) const
 {
-	if (m_pMem)
-		return m_pMem->Alloc(size);
+	if (m_pMem && m_pMem != NO_MEM_POOL)
+		return m_pMem->Alloc(size, flags);
 #ifdef KERNEL_MODE
 	DBG_MSG("AbstractContainer::MemAlloc NO POOL !!!\n");
-#elif defined(NO_CRT_TEST)
-	DebugBreak();
 #endif
-	return ::MemAlloc(size);
+	return ::MemAlloc(size, flags);
 }
 
-void AbstractContainer::MemFree(void* ptr) const
+void AbstractContainer::MemFree(void* ptr, uint32 flags) const
 {
-	if (m_pMem)
-		m_pMem->Free(ptr);
-	else
-		::MemFree(ptr);
+	if (m_pMem && m_pMem != NO_MEM_POOL)
+		m_pMem->Free(ptr, flags);
+	else {
+#ifdef KERNEL_MODE
+		DBG_MSG("AbstractContainer::MemAlloc NO POOL !!!\n");
+#endif
+		::MemFree(ptr, flags);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,12 +57,12 @@ void AbstractContainer::MemFree(void* ptr) const
 
 void* DefaultMemPool::Alloc(size_t size, uint32 flags)
 {
-	return MemAlloc(size);
+	return MemAlloc(size, flags);
 }
 
 void DefaultMemPool::Free(void* ptr, uint32 flags)
 {
-	if(ptr) MemFree(ptr);
+	if(ptr) MemFree(ptr, flags);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,13 +115,13 @@ int __cdecl _purecall() { return 0; }
 void* __cdecl operator new(size_t size) 
 {
 	DBG_MSG("operator new(size_t size)\n");
-	return MemAlloc(size);
+	return MemAlloc(size, 0);
 }
 
 void* __cdecl operator new[](size_t size)
 {
 	DBG_MSG("operator new[](size_t size)\n");
-	return MemAlloc(size);
+	return MemAlloc(size, 0);
 }
 
 void* __cdecl operator new(size_t size, void* ptr) 
@@ -133,20 +135,26 @@ void __cdecl operator delete(void* ptr, size_t size)
 {
 	UNREFERENCED_PARAMETER(size);
 	DBG_MSG("operator delete(void* ptr, size_t size)\n");
-	MemFree(ptr);
+	MemFree(ptr, 0);
 }
 
 void __cdecl operator delete[](void* ptr) 
 {
 	DBG_MSG("operator delete(void* ptr, size_t size)\n");
-	MemFree(ptr);
+	MemFree(ptr, 0);
 }
 
 #endif
 
 C_BEGIN
 
-void* MemAlloc(size_t size)
+/*
+void* MemAlloc(size_t size, uint32 flags)
+{
+	return MemAllocTagged(size, flags, 0);
+}
+
+void* MemAllocTagged(size_t size, uint32 flags, uint32 tag)
 {
 	void* ptr = nullptr;
 #ifndef KERNEL_MODE
@@ -156,15 +164,20 @@ void* MemAlloc(size_t size)
 	ptr = malloc(size);
 #endif
 #elif (NTDDI_VERSION >= NTDDI_WIN10_VB)
-	ptr = ExAllocatePool2(POOL_FLAG_NON_PAGED, size, KPP_TAG);
+	ptr = ExAllocatePool2(POOL_FLAG_NON_PAGED, size, tag);
 #else
 #pragma warning(suppress: 4996) // suppress deprecation warning
-	ptr = ExAllocatePoolWithTag(PagedPool, size, KPP_TAG);
+	ptr = ExAllocatePoolWithTag(PagedPool, size, tag);
 #endif
 	return ptr;
 }
 
-void MemFree(void* ptr)
+void MemFree(void* ptr, uint32 flags)
+{
+	MemFreeTagged(ptr, flags, 0);
+}
+
+void MemFreeTagged(void* ptr, uint32 flags, uint32 tag)
 {
 	if (!ptr) return;
 #ifndef KERNEL_MODE
@@ -174,9 +187,10 @@ void MemFree(void* ptr)
 	free(ptr);
 #endif
 #else
-	ExFreePoolWithTag(ptr, KPP_TAG);
+	ExFreePoolWithTag(ptr, tag);
 #endif
 }
+*/
 
 void MemCopy(void* dst, const void* src, size_t size)
 {

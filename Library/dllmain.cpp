@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "../Framework/Common/Buffer.h"
 #include "../Framework/Common/PathTree.h"
+#include "../Framework/Core/MemoryPool.h"
 #include "Helpers/WinUtil.h"
 
 #include <phnt_windows.h>
@@ -39,3 +40,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     return TRUE;
 }
 
+extern "C" void* MemAlloc(size_t uSize, uint32 flags)
+{
+	return malloc(uSize);
+}
+
+extern "C" void MemFree(void* pMem, uint32 flags)
+{
+	free(pMem);
+}

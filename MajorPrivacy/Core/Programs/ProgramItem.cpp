@@ -80,19 +80,24 @@ NTSTATUS CProgramItem::FromVariant(const class QtVariant& Data)
 
 QString CProgramItem::GetTypeStr() const
 {
+	QString Type;
+
 	switch (GetType())
 	{
-	case EProgramType::eProgramFile:		return tr("Executable File");
-	case EProgramType::eFilePattern:		return tr("File Path Pattern");
-	case EProgramType::eAppInstallation:	return tr("Installation");
-	case EProgramType::eWindowsService:		return tr("Windows Service");
-	case EProgramType::eAppPackage:			return tr("Application Package");
+	case EProgramType::eProgramFile:		Type = tr("Executable File"); break;
+	case EProgramType::eFilePattern:		Type = tr("File Path Pattern"); break;
+	case EProgramType::eAppInstallation:	Type = tr("Installation"); break;
+	case EProgramType::eWindowsService:		Type = tr("Windows Service"); break;
+	case EProgramType::eAppPackage:			Type = tr("Application Package"); break;
 
-	case EProgramType::eProgramSet:			return tr("Program Set");
-	case EProgramType::eProgramList:		return tr("Program List");
-	case EProgramType::eProgramGroup:		return tr("Program Group");
-	case EProgramType::eAllPrograms:		return tr("All Programs");
-	//case EProgramType::eProgramRoot:		return tr("Program Root");
+	case EProgramType::eProgramSet:			Type = tr("Program Set"); break;
+	case EProgramType::eProgramList:		Type = tr("Program List"); break;
+	case EProgramType::eProgramGroup:		Type = tr("Program Group"); break;
+	case EProgramType::eAllPrograms:		Type = tr("All Programs"); break;
+	//case EProgramType::eProgramRoot:		Type = tr("Program Root"); break;
+
+	default:								Type = tr("Unknown"); break;		
 	}
-	return tr("Unknown");
+
+	return Type;
 }

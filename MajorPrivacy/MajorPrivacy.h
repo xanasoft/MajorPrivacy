@@ -36,7 +36,8 @@ public:
 		QSet<CProgramItemPtr> Items; // all items including not sellected children
 
 		//QMap<quint64, CProcessPtr> Processes;
-		QSet<CProgramFilePtr> Programs;
+		QSet<CProgramFilePtr> ProgramsEx; // explicitly sellected program
+		QSet<CProgramFilePtr> ProgramsIm; // implicitly sellected program
 		QSet<CWindowsServicePtr> ServicesEx; // explicitly sellected services
 		QSet<CWindowsServicePtr> ServicesIm; // implicitly sellected services
 
@@ -223,6 +224,7 @@ private:
 	QTabBar*			m_pTabBar = nullptr;
 	QStackedLayout*		m_pPageStack = nullptr;
 
+	QLabel*				m_pStatusLabel = nullptr;
 	
 	QWidget*			m_pProgramWidget = nullptr;
 	QVBoxLayout*		m_pProgramLayout = nullptr;

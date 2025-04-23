@@ -97,6 +97,21 @@ void CNetworkPage::Update()
 
 	auto Current = theGUI->GetCurrentItems();
 
+	QSet<CProgramFilePtr> Programs = Current.ProgramsEx;
+	if (m_pTrafficView->isVisible() ||m_pTraceView->isVisible()) {
+		for (auto& pProgram : Current.ProgramsIm) {
+			if(pProgram->GetNetTrace() != ETracePreset::ePrivate)
+				Programs.insert(pProgram);
+		}
+	}
+	QSet<CWindowsServicePtr> Services = Current.ServicesEx;
+	if (m_pTrafficView->isVisible()) {
+		for (auto& pService : Current.ServicesIm) {
+			if (pService->GetNetTrace() != ETracePreset::ePrivate)
+				Services.insert(pService);
+		}
+	}
+
 	if (m_pRuleView->isVisible())
 	{
 		if(Current.bAllPrograms)
@@ -114,13 +129,13 @@ void CNetworkPage::Update()
 		m_pSocketView->Sync(theGUI->GetCurrentProcesses(), Current.ServicesEx);
 	}
 
-	if (m_pTraceView->isVisible())
-	{
-		m_pTraceView->Sync(ETraceLogs::eNetLog, Current.Programs, Current.ServicesEx);
-	}
-
 	if (m_pTrafficView->isVisible())
 	{
-		m_pTrafficView->Sync(Current.Programs, Current.ServicesEx | Current.ServicesIm);
+		m_pTrafficView->Sync(Programs, Services);
+	}
+
+	if (m_pTraceView->isVisible())
+	{
+		m_pTraceView->Sync(ETraceLogs::eNetLog, Programs, Current.ServicesEx);
 	}
 }
