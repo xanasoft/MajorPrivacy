@@ -8,15 +8,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.97.2] - 2025-03-?
+## [0.97.2] - 2025-04-24
 
 ### Added
 - added DNS filter server
 - added support for firewall rule templates, these allow to define windows firewall rule tempaltes with wildcard enabled paths
 - log and trace data memory usage column per program item
 - added total service memory usage indicator
-- added trace presets per process for Resoruce and network access
+- added trace presets per process
 - added option to allow debugging of processes in an enclave (disabled security!!!)
+- added operation filter to ingress view
+- added expand/colapse all button to program tree
 
 ### Changed
 - Reworked path rule handling the new mechanism
