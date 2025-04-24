@@ -50,9 +50,9 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 	setWindowTitle(bNew ? tr("Create Program Item") : tr("Edit Program Item"));
 
 
-	//ui.cmbExecTrace->addItem(tr("Use Global Preset"), (int)ETracePreset::eDefault);
+	ui.cmbExecTrace->addItem(tr("Use Global Preset"), (int)ETracePreset::eDefault);
 	//ui.cmbExecTrace->addItem(tr("Trace"), (int)ETracePreset::eTrace);
-	//ui.cmbExecTrace->addItem(tr("Private Trace"), (int)ETracePreset::ePrivate);
+	ui.cmbExecTrace->addItem(tr("Private Trace"), (int)ETracePreset::ePrivate);
 	//ui.cmbExecTrace->addItem(tr("Don't Trace"), (int)ETracePreset::eNoTrace);
 
 	ui.cmbResTrace->addItem(tr("Use Global Preset"), (int)ETracePreset::eDefault);
@@ -78,7 +78,7 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 
 		ui.txtPath->setReadOnly(false);
 
-		//ui.cmbExecTrace->setEnabled(false);
+		ui.cmbExecTrace->setEnabled(false);
 		ui.cmbResTrace->setEnabled(false);
 		ui.cmbNetTrace->setEnabled(false);
 		ui.cmbSaveTrace->setEnabled(false);
@@ -110,9 +110,9 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 			ui.txtApp->setText(pInstallation->GetRegKey());
 
 
-		//int iExecTrace = ui.cmbExecTrace->findData((int)pProgram->GetExecTrace());
-		//if (iExecTrace != -1)
-		//	ui.cmbExecTrace->setCurrentIndex(iExecTrace);
+		int iExecTrace = ui.cmbExecTrace->findData((int)pProgram->GetExecTrace());
+		if (iExecTrace != -1)
+			ui.cmbExecTrace->setCurrentIndex(iExecTrace);
 		int iResTrace = ui.cmbResTrace->findData((int)pProgram->GetResTrace());
 		if (iResTrace != -1)
 			ui.cmbResTrace->setCurrentIndex(iResTrace);
@@ -123,7 +123,7 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 		if (iSaveTrace != -1)
 			ui.cmbSaveTrace->setCurrentIndex(iSaveTrace);	
 
-		//ui.cmbExecTrace->setEnabled(pFile || pService);
+		ui.cmbExecTrace->setEnabled(pFile || pService);
 		ui.cmbResTrace->setEnabled(pFile || pService);
 		ui.cmbNetTrace->setEnabled(pFile || pService);
 		ui.cmbSaveTrace->setEnabled(pFile || pService);
@@ -228,7 +228,7 @@ void CProgramWnd::OnSaveAndClose()
 	pProgram->SetInfo(ui.txtInfo->toPlainText());
 	pProgram->SetIconFile(m_IconFile);
 
-	//pProgram->SetExecTrace((ETracePreset)ui.cmbExecTrace->currentData().toInt());
+	pProgram->SetExecTrace((ETracePreset)ui.cmbExecTrace->currentData().toInt());
 	pProgram->SetResTrace((ETracePreset)ui.cmbResTrace->currentData().toInt());
 	pProgram->SetNetTrace((ETracePreset)ui.cmbNetTrace->currentData().toInt());
 	pProgram->SetSaveTrace((ESavePreset)ui.cmbSaveTrace->currentData().toInt());

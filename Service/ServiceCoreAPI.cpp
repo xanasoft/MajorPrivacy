@@ -716,7 +716,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if(vReq.Has(API_V_ICON)) pItem->SetIcon(vReq[API_V_ICON]);
 			if(vReq.Has(API_V_INFO)) pItem->SetInfo(vReq[API_V_INFO]);
 
-			//if(vReq.Has(API_V_EXEC_TRACE)) pItem->SetExecTrace((ETracePreset)vReq[API_V_EXEC_TRACE].To<int>());
+			if(vReq.Has(API_V_EXEC_TRACE)) pItem->SetExecTrace((ETracePreset)vReq[API_V_EXEC_TRACE].To<int>());
 			if(vReq.Has(API_V_RES_TRACE))  pItem->SetResTrace((ETracePreset)vReq[API_V_RES_TRACE].To<int>());
 			if(vReq.Has(API_V_NET_TRACE))  pItem->SetNetTrace((ETracePreset)vReq[API_V_NET_TRACE].To<int>());
 			if(vReq.Has(API_V_SAVE_TRACE)) pItem->SetSaveTrace((ESavePreset)vReq[API_V_SAVE_TRACE].To<int>());

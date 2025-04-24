@@ -41,6 +41,13 @@ CExecutionView::CExecutionView(QWidget *parent)
 	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
 	m_pToolBar->addWidget(m_pCmbAction);
 
+	m_pBtnAll = new QToolButton();
+	m_pBtnAll->setIcon(QIcon(":/Icons/all.png"));
+	m_pBtnAll->setCheckable(true);
+	m_pBtnAll->setToolTip(tr("Show entries per UPID"));
+	m_pBtnAll->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnAll);
+
 	m_pToolBar->addSeparator();
 	m_pBtnExpand = new QToolButton();
 	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
@@ -79,13 +86,19 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 	qint32 FilterRole = m_pCmbRole->currentData().toInt();
 	qint32 FilterAction = m_pCmbAction->currentData().toInt();
 
-	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_CurServices != Services || m_FilterRole != FilterRole || m_FilterAction != FilterAction || m_RecentLimit != theGUI->GetRecentLimit()) {
+	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_CurServices != Services 
+	 //|| m_FilterRole != FilterRole 
+	 //|| m_FilterAction != FilterAction 
+	 //|| m_FilterAll != m_pBtnAll->isChecked()
+	 || m_RecentLimit != theGUI->GetRecentLimit()) 
+	{
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
 		m_CurEnclaveGuid = EnclaveGuid;
 		m_RecentLimit = theGUI->GetRecentLimit();
 		m_ParentMap.clear();
 		m_ExecutionMap.clear();
+		m_pTreeView->collapseAll();
 		m_pItemModel->Clear();
 	}
 
@@ -93,6 +106,7 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 
 	m_FilterRole = FilterRole;
 	m_FilterAction = FilterAction;
+	m_FilterAll = m_pBtnAll->isChecked();
 
 	auto OldMap = m_ExecutionMap;
 
@@ -109,7 +123,12 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 		else
 			OldMap.remove(qMakePair((uint64)pProg1.get(), 0));
 
-		quint64 SubID = Info.SubjectPID ? Info.SubjectPID : -1;
+		quint64 SubID = (m_FilterAll && Info.SubjectPID) ? Info.SubjectPID : -1;
+		if (SubID == -1) {
+			SubID = (uint64)pProg2.get();
+			if (Info.bBlocked)
+				SubID |= 0x8000000000000000;
+		}
 		//SExecutionItemPtr pSubItem = OldMap.take(qMakePair((uint64)pProg1.get(), (uint64)pProg2.get()));
 		SExecutionItemPtr pSubItem = OldMap.take(qMakePair((uint64)pProg1.get(), SubID));
 		if (!pSubItem) {
@@ -118,9 +137,14 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 			pSubItem->Parent = QString("%1_%2").arg((uint64)pProg1.get()).arg(0);
 			//m_ExecutionMap.insert(qMakePair((uint64)pProg1.get(), (uint64)pProg2.get()), pSubItem);
 			m_ExecutionMap.insert(qMakePair((uint64)pProg1.get(), SubID), pSubItem);
+			pSubItem->Info = Info;
 		}
-
-		pSubItem->Info = Info;
+		else {
+			if (pSubItem->Info.LastExecTime < Info.LastExecTime) {
+				pSubItem->Info.LastExecTime = Info.LastExecTime;
+				pSubItem->Info.CommandLine = Info.CommandLine;
+			}
+		}
 	};
 
 	auto FilterEntry = [&](const CProgramFile::SExecutionInfo& Info) -> bool {

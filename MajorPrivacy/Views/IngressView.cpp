@@ -5,6 +5,7 @@
 #include "../Core/Programs/ProgramManager.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
 #include "../../Library/Helpers/NtUtil.h"
+#include "../MiscHelpers/Common/SettingsWidgets.h"
 
 CIngressView::CIngressView(QWidget *parent)
 	:CPanelViewEx<CIngressModel>(parent)
@@ -40,6 +41,32 @@ CIngressView::CIngressView(QWidget *parent)
 	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)EEventStatus::eAllowed);
 	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
 	m_pToolBar->addWidget(m_pCmbAction);
+
+	m_pCmbOperation = new QComboBox();
+	AddColoredComboBoxEntry(m_pCmbOperation, tr("All Operations"), CExecLogEntry::GetAccessColor(EProcAccessClass::eNone), (qint32)EProcAccessClass::eNone);
+	AddColoredComboBoxEntry(m_pCmbOperation, tr("Control Execution"), CExecLogEntry::GetAccessColor(EProcAccessClass::eControlExecution), (qint32)EProcAccessClass::eControlExecution);
+	AddColoredComboBoxEntry(m_pCmbOperation, tr("Change Permissions"), CExecLogEntry::GetAccessColor(EProcAccessClass::eChangePermissions), (qint32)EProcAccessClass::eChangePermissions);
+	AddColoredComboBoxEntry(m_pCmbOperation, tr("Write Memory"), CExecLogEntry::GetAccessColor(EProcAccessClass::eWriteMemory), (qint32)EProcAccessClass::eWriteMemory);
+	AddColoredComboBoxEntry(m_pCmbOperation, tr("Read Memory"), CExecLogEntry::GetAccessColor(EProcAccessClass::eReadMemory), (qint32)EProcAccessClass::eReadMemory);
+	AddColoredComboBoxEntry(m_pCmbOperation, tr("Special Permissions"), CExecLogEntry::GetAccessColor(EProcAccessClass::eSpecial), (qint32)EProcAccessClass::eSpecial);
+	AddColoredComboBoxEntry(m_pCmbOperation, tr("Write Properties"), CExecLogEntry::GetAccessColor(EProcAccessClass::eWriteProperties), (qint32)EProcAccessClass::eWriteProperties);
+	AddColoredComboBoxEntry(m_pCmbOperation, tr("Read Properties"), CExecLogEntry::GetAccessColor(EProcAccessClass::eReadProperties), (qint32)EProcAccessClass::eReadProperties);
+	m_pCmbOperation->setMinimumHeight(24);
+	m_pToolBar->addWidget(m_pCmbOperation);
+
+	m_pBtnPrivate = new QToolButton();
+	m_pBtnPrivate->setIcon(QIcon(":/Icons/Invisible.png"));
+	m_pBtnPrivate->setCheckable(true);
+	m_pBtnPrivate->setToolTip(tr("Show Private Entries"));
+	m_pBtnPrivate->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnPrivate);
+
+	m_pBtnAll = new QToolButton();
+	m_pBtnAll->setIcon(QIcon(":/Icons/all.png"));
+	m_pBtnAll->setCheckable(true);
+	m_pBtnAll->setToolTip(tr("Show entries per UPID"));
+	m_pBtnAll->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnAll);
 
 	m_pToolBar->addSeparator();
 	m_pBtnExpand = new QToolButton();
@@ -78,14 +105,23 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 {
 	qint32 FilterRole = m_pCmbRole->currentData().toInt();
 	qint32 FilterAction = m_pCmbAction->currentData().toInt();
+	qint32 FilterOperation = m_pCmbOperation->currentData().toInt();
 
-	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_CurServices != Services || m_FilterRole != FilterRole || m_FilterAction != FilterAction || m_RecentLimit != theGUI->GetRecentLimit()) {
+	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_CurServices != Services 
+	 //|| m_FilterRole != FilterRole 
+	 //|| m_FilterAction != FilterAction 
+	 //|| m_FilterOperation != FilterOperation
+	 //|| m_FilterPrivate != !m_pBtnPrivate->isChecked()
+	 //|| m_FilterAll != m_pBtnAll->isChecked()
+	 || m_RecentLimit != theGUI->GetRecentLimit()) 
+	{
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
 		m_CurEnclaveGuid = EnclaveGuid;
 		m_RecentLimit = theGUI->GetRecentLimit();
 		m_ParentMap.clear();
 		m_IngressMap.clear();
+		m_pTreeView->collapseAll();
 		m_pItemModel->Clear();
 	}
 
@@ -93,6 +129,9 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 
 	m_FilterRole = FilterRole;
 	m_FilterAction = FilterAction;
+	m_FilterOperation = FilterOperation;
+	m_FilterPrivate = !m_pBtnPrivate->isChecked();
+	m_FilterAll = m_pBtnAll->isChecked();
 
 	auto OldMap = m_IngressMap;
 
@@ -109,7 +148,13 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		else
 			OldMap.remove(qMakePair((uint64)pProg1.get(), 0));
 
-		quint64 SubID = Info.SubjectPID ? Info.SubjectPID : -1;
+
+		quint64 SubID = (m_FilterAll && Info.SubjectPID) ? Info.SubjectPID : -1;
+		if (SubID == -1) {
+			SubID = (uint64)pProg2.get();
+			if (Info.bBlocked)
+				SubID |= 0x8000000000000000;
+		}
 		//SIngressItemPtr pSubItem = OldMap.take(qMakePair((uint64)pProg1.get(), (uint64)pProg2.get()));
 		SIngressItemPtr pSubItem = OldMap.take(qMakePair((uint64)pProg1.get(), SubID));
 		if (!pSubItem) {
@@ -118,19 +163,40 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 			pSubItem->Parent = QString("%1_%2").arg((uint64)pProg1.get()).arg(0);
 			//m_IngressMap.insert(qMakePair((uint64)pProg1.get(), (uint64)pProg2.get()), pSubItem);
 			m_IngressMap.insert(qMakePair((uint64)pProg1.get(), SubID), pSubItem);
+			pSubItem->Info = Info;
 		}
-
-		pSubItem->Info = Info;
+		else {
+			if (pSubItem->Info.LastAccessTime < Info.LastAccessTime)
+				pSubItem->Info.LastAccessTime = Info.LastAccessTime;
+			pSubItem->Info.ProcessAccessMask |= Info.ProcessAccessMask;
+			pSubItem->Info.ThreadAccessMask |= Info.ThreadAccessMask;
+		}
 	};
 
 	auto FilterEntry = [&](const CProgramFile::SIngressInfo& Info) -> bool {
 		if (m_FilterRole && Info.Role != (EExecLogRole)m_FilterRole)
 			return false;
-		if (m_FilterAction != -1 && (uint32)(Info.bBlocked ? EEventStatus::eBlocked : EEventStatus::eAllowed) != m_FilterAction)
+		if (m_FilterAction != -1 && (qint32)(Info.bBlocked ? EEventStatus::eBlocked : EEventStatus::eAllowed) != m_FilterAction)
 			return false;
+		if (m_FilterOperation)
+		{
+			EProcAccessClass ProcessClass = CExecLogEntry::ClassifyProcessAccess(Info.ProcessAccessMask);
+			EProcAccessClass ThreadClass = CExecLogEntry::ClassifyThreadAccess(Info.ThreadAccessMask);
+
+			EProcAccessClass AccessClass = (EProcAccessClass)std::max((int)ProcessClass, (int)ThreadClass);
+			if ((qint32)AccessClass < m_FilterOperation)
+				return false;
+		}
 		if (uRecentLimit && FILETIME2ms(Info.LastAccessTime) < uRecentLimit)
 			return false;
 		if (!m_CurEnclaveGuid.IsNull() && Info.EnclaveGuid != m_CurEnclaveGuid)
+			return false;
+		return true;
+	};
+
+	auto FilterPrivate = [](CProgramFilePtr pProgram2, QString ServiceTag) -> bool {
+		// todo: use service tag
+		if(pProgram2->GetExecTrace() == ETracePreset::ePrivate)
 			return false;
 		return true;
 	};
@@ -142,6 +208,8 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 				continue;
 			CProgramFilePtr pProgram2 = theCore->ProgramManager()->GetProgramByUID(I.value().SubjectUID).objectCast<CProgramFile>();
 			if (!pProgram2) continue;
+			if (m_FilterPrivate && I.value().Role == EExecLogRole::eActor && !FilterPrivate(pProgram2, I.value().ActorSvcTag))
+				continue;
 			AddEntry(pProgram, pProgram2, I.value());
 		}
 	}
@@ -152,6 +220,8 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 				continue;
 			CProgramFilePtr pProgram2 = theCore->ProgramManager()->GetProgramByUID(I.value().SubjectUID).objectCast<CProgramFile>();
 			if (!pProgram2) continue;
+			if (m_FilterPrivate && I.value().Role == EExecLogRole::eActor && !FilterPrivate(pProgram2, I.value().ActorSvcTag))
+				continue;
 			AddEntry(pService->GetProgramFile(), pProgram2, I.value());
 		}
 	}

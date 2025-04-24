@@ -131,6 +131,7 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		m_RecentLimit = theGUI->GetRecentLimit();
 		m_ParentMap.clear();
 		m_TrafficMap.clear();
+		m_pTreeView->collapseAll();
 		m_pItemModel->Clear();
 	}
 

@@ -306,8 +306,7 @@ void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, con
 
 void CTraceView::ClearTraceLog(ETraceLogs Log)
 {
-	if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the trace logs for the current program items?"), 
-		QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+	if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the trace logs for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
 		return;
 
 	auto Current = theGUI->GetCurrentItems();

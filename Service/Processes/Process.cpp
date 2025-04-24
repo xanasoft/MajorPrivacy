@@ -529,6 +529,7 @@ void CProcess::RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit)
 
 	std::unique_lock Lock(m_SocketMutex);
 	m_SocketList.erase(pSocket);
+	Lock.unlock();
 
 	bool bSave = theCore->Config()->GetBool("Service", "NetTrace", true);
 	if (pProg) {

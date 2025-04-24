@@ -75,6 +75,7 @@ private:
 
 	QToolBar*					m_pToolBar = nullptr;
 	QToolButton*				m_pBtnAdd;
+	QToolButton*				m_pBtnExpand;
 
 	QToolButton*				m_pTypeFilter = nullptr;
 	QMenu*						m_pTypeMenu = nullptr;
@@ -115,6 +116,15 @@ private:
 
 	QAction*					m_pCreateProgram = nullptr;
 	QAction*					m_pEditProgram = nullptr;
+	QMenu*						m_pClearTrace = nullptr;
+		QAction*					m_pClearExec = nullptr;
+		QAction*					m_pClearRes = nullptr;
+		QAction*					m_pClearNet = nullptr;
+	QMenu*						m_pTraceConfig = nullptr;
+		QMenu*						m_pExecTraceConfig = nullptr;
+		QMenu*						m_pResTraceConfig = nullptr;
+		QMenu*						m_pNetTraceConfig = nullptr;
+		QMenu*						m_pStoreTraceConfig = nullptr;
 	QMenu*						m_pAddToGroup = nullptr;
 	QAction*					m_pRemoveItem = nullptr;
 

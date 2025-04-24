@@ -30,14 +30,16 @@ protected:
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbRole;
 	QComboBox*				m_pCmbAction;
+	QToolButton*			m_pBtnAll;
 	QToolButton*			m_pBtnExpand;
 
-	QSet<CProgramFilePtr>						m_CurPrograms;
-	QSet<CWindowsServicePtr>					m_CurServices;
-	QFlexGuid									m_CurEnclaveGuid;
-	QMap<SExecutionKey, SExecutionItemPtr>		m_ParentMap;
-	QMap<SExecutionKey, SExecutionItemPtr>		m_ExecutionMap;
-	qint32										m_FilterRole = 0;
-	qint32										m_FilterAction = 0;
-	quint64										m_RecentLimit = 0;
+	QSet<CProgramFilePtr>					m_CurPrograms;
+	QSet<CWindowsServicePtr>				m_CurServices;
+	QFlexGuid								m_CurEnclaveGuid;
+	QMap<SExecutionKey, SExecutionItemPtr>	m_ParentMap;
+	QMap<SExecutionKey, SExecutionItemPtr>	m_ExecutionMap;
+	qint32									m_FilterRole = 0;
+	qint32									m_FilterAction = 0;
+	bool									m_FilterAll = false;	
+	quint64									m_RecentLimit = 0;
 };

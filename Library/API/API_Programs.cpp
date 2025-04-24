@@ -15,7 +15,7 @@ void CProgramItem::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) 
 	Data.WriteEx(API_V_ICON, TO_STR(m_IconFile));
 	Data.WriteEx(API_V_INFO, TO_STR(m_Info));
 
-	//Data.Write(API_V_EXEC_TRACE, (int)m_ExecTrace);
+	Data.Write(API_V_EXEC_TRACE, (int)m_ExecTrace);
 	Data.Write(API_V_RES_TRACE, (int)m_ResTrace);
 	Data.Write(API_V_NET_TRACE, (int)m_NetTrace);
 	Data.Write(API_V_SAVE_TRACE, (int)m_SaveTrace);
@@ -49,7 +49,7 @@ void CProgramItem::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_ICON:			m_IconFile = AS_STR(Data); break;
 	case API_V_INFO:			m_Info = AS_STR(Data); break;
 
-	//case API_V_EXEC_TRACE:		m_ExecTrace = (ETracePreset)Data.To<int>(); break;
+	case API_V_EXEC_TRACE:		m_ExecTrace = (ETracePreset)Data.To<int>(); break;
 	case API_V_RES_TRACE:		m_ResTrace = (ETracePreset)Data.To<int>(); break;
 	case API_V_NET_TRACE:		m_NetTrace = (ETracePreset)Data.To<int>(); break;
 	case API_V_SAVE_TRACE:		m_SaveTrace = (ESavePreset)Data.To<int>(); break;
@@ -108,7 +108,7 @@ void CProgramItem::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) 
 	Data.WriteEx(API_S_ICON, TO_STR(m_IconFile));
 	Data.WriteEx(API_S_INFO, TO_STR(m_Info));
 
-	//Data.Write(API_S_EXEC_TRACE, TracePresetToStr(m_ExecTrace));
+	Data.Write(API_S_EXEC_TRACE, TracePresetToStr(m_ExecTrace));
 	Data.Write(API_S_RES_TRACE, TracePresetToStr(m_ResTrace));
 	Data.Write(API_S_NET_TRACE, TracePresetToStr(m_NetTrace));
 	Data.Write(API_S_SAVE_TRACE, SavePresetToStr(m_SaveTrace));
@@ -156,7 +156,7 @@ void CProgramItem::ReadMValue(const SVarName& Name, const XVariant& Data)
 	else if (VAR_TEST_NAME(Name, API_S_ICON))				m_IconFile = AS_STR(Data);
 	else if (VAR_TEST_NAME(Name, API_S_INFO))				m_Info = AS_STR(Data);
 
-	//else if (VAR_TEST_NAME(Name, API_S_EXEC_TRACE))			m_ExecTrace = StrToTracePreset(Data);
+	else if (VAR_TEST_NAME(Name, API_S_EXEC_TRACE))			m_ExecTrace = StrToTracePreset(Data);
 	else if (VAR_TEST_NAME(Name, API_S_RES_TRACE))			m_ResTrace = StrToTracePreset(Data);
 	else if (VAR_TEST_NAME(Name, API_S_NET_TRACE))			m_NetTrace = StrToTracePreset(Data);
 	else if (VAR_TEST_NAME(Name, API_S_SAVE_TRACE))			m_SaveTrace = StrToSavePreset(Data);

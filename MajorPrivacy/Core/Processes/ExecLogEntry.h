@@ -3,6 +3,18 @@
 
 #include "../../Library/API/PrivacyDefs.h"
 
+enum class EProcAccessClass
+{
+	eNone = 0,
+	eReadProperties,
+	eWriteProperties,
+	eSpecial,
+	eReadMemory,
+	eWriteMemory,
+	eChangePermissions,
+	eControlExecution,
+};
+
 class CExecLogEntry: public CAbstractLogEntry
 {
 public:
@@ -20,12 +32,16 @@ public:
 	QFlexGuid GetOtherEnclave() const	{ return m_OtherEnclave; }
 	quint32 GetAccessMask() const		{ return m_AccessMask; }
 
+	static EProcAccessClass ClassifyProcessAccess(quint32 uAccessMask);
+	static EProcAccessClass ClassifyThreadAccess(quint32 uAccessMask);
+
 	static QStringList GetProcessPermissions(quint32 uAccessMask);
 	static QStringList GetThreadPermissions(quint32 uAccessMask);
 
 	static QString GetRoleStr(EExecLogRole Role);
 	static QString GetTypeStr(EExecLogType Type);
 	static QColor GetAccessColor(quint32 uProcessAccessMask, quint32 uThreadAccessMask);
+	static QColor CExecLogEntry::GetAccessColor(EProcAccessClass eAccess);
 	static QString GetAccessStr(quint32 uProcessAccessMask, quint32 uThreadAccessMask);
 	static QString GetAccessStrEx(quint32 uProcessAccessMask, quint32 uThreadAccessMask);
 

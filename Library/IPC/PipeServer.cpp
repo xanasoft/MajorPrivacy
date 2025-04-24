@@ -79,7 +79,6 @@ void CPipeServer::Close()
         HANDLE hPipe = InterlockedExchangePointer(&I.second->pPipe->hPipe, NULL);
         NtClose(hPipe);
     }
-    m_PipeClients.clear();
     LeaveCriticalSection(&m_Lock);
 
     if (WaitForMultipleObjects((DWORD)Threads.size(), Threads.data(), TRUE, 5000) == WAIT_TIMEOUT)
@@ -91,6 +90,10 @@ void CPipeServer::Close()
         for (DWORD i = 0; i < (DWORD)Threads.size(); ++i)
             TerminateThread(Threads[i], 0);
     }
+
+    EnterCriticalSection(&m_Lock);
+    m_PipeClients.clear();
+    LeaveCriticalSection(&m_Lock);
 
     if (hListener) 
         NtClose(hListener);

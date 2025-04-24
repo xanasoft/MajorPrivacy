@@ -23,8 +23,8 @@ public:
 	virtual void SetInfo(const std::wstring& Info)			{ std::unique_lock lock(m_Mutex); m_Info = Info; }
 	virtual std::wstring GetInfo() const					{ std::unique_lock lock(m_Mutex); return m_Info; }
 
-	//virtual ETracePreset GetExecTrace() const				{ std::unique_lock lock(m_Mutex); return m_ExecTrace; }
-	//virtual void SetExecTrace(ETracePreset Trace)			{ std::unique_lock lock(m_Mutex); m_ExecTrace = Trace; }
+	virtual ETracePreset GetExecTrace() const				{ std::unique_lock lock(m_Mutex); return m_ExecTrace; }
+	virtual void SetExecTrace(ETracePreset Trace)			{ std::unique_lock lock(m_Mutex); m_ExecTrace = Trace; }
 	virtual ETracePreset GetResTrace() const				{ std::unique_lock lock(m_Mutex); return m_ResTrace; }
 	virtual void SetResTrace(ETracePreset Trace)			{ std::unique_lock lock(m_Mutex); m_ResTrace = Trace; }
 	virtual ETracePreset GetNetTrace() const				{ std::unique_lock lock(m_Mutex); return m_NetTrace; }
@@ -68,7 +68,7 @@ protected:
 	std::wstring									m_IconFile;
 	std::wstring									m_Info;
 
-	//ETracePreset 									m_ExecTrace = ETracePreset::eDefault;
+	ETracePreset 									m_ExecTrace = ETracePreset::eDefault;
 	ETracePreset 									m_ResTrace = ETracePreset::eDefault;
 	ETracePreset 									m_NetTrace = ETracePreset::eDefault;
 	ESavePreset 									m_SaveTrace = ESavePreset::eDefault;

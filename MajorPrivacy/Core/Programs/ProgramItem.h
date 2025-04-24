@@ -61,8 +61,8 @@ public:
 	virtual QString GetInfo() const					{ return m_Info; }
 	virtual QString GetPath() const					{ return ""; }
 
-	//virtual ETracePreset GetExecTrace() const		{ return m_ExecTrace; }
-	//virtual void SetExecTrace(ETracePreset Trace)	{ m_ExecTrace = Trace; }
+	virtual ETracePreset GetExecTrace() const		{ return m_ExecTrace; }
+	virtual void SetExecTrace(ETracePreset Trace)	{ m_ExecTrace = Trace; }
 	virtual ETracePreset GetResTrace() const		{ return m_ResTrace; }
 	virtual void SetResTrace(ETracePreset Trace)	{ m_ResTrace = Trace; }
 	virtual ETracePreset GetNetTrace() const		{ return m_NetTrace; }
@@ -112,7 +112,7 @@ protected:
 	QIcon								m_Icon;
 	QString								m_Info;
 
-	//ETracePreset 						m_ExecTrace = ETracePreset::eDefault;
+	ETracePreset 						m_ExecTrace = ETracePreset::eDefault;
 	ETracePreset 						m_ResTrace = ETracePreset::eDefault;
 	ETracePreset 						m_NetTrace = ETracePreset::eDefault;
 	ESavePreset 						m_SaveTrace = ESavePreset::eDefault;

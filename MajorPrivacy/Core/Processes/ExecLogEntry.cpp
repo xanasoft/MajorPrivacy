@@ -152,26 +152,16 @@ QStringList CExecLogEntry::GetThreadPermissions(quint32 uAccessMask)
 	return permissions;
 }
 
-enum class EProcAccessClass
-{
-	eNone = 0,
-	eReadProperties,
-	eWriteProperties,
-	eSpecial,
-	eReadMemory,
-	eWriteMemory,
-	eChangePermissions,
-	eControlExecution,
-};
-
-EProcAccessClass CResLogEntry__ClassifyProcessAccess(quint32 uAccessMask)
+EProcAccessClass CExecLogEntry::ClassifyProcessAccess(quint32 uAccessMask)
 {
 	if((uAccessMask & PROCESS_ALL_ACCESS) == PROCESS_ALL_ACCESS
 	|| (uAccessMask & PROCESS_DUP_HANDLE) == PROCESS_DUP_HANDLE
 	|| (uAccessMask & PROCESS_VM_OPERATION) == PROCESS_VM_OPERATION // Allocate/Free virtual memory
-	|| (uAccessMask & PROCESS_VM_WRITE) == PROCESS_VM_WRITE
 	|| (uAccessMask & PROCESS_CREATE_THREAD) == PROCESS_CREATE_THREAD) // Required to create a thread in the process
 		return EProcAccessClass::eControlExecution;
+
+	if ((uAccessMask & PROCESS_VM_WRITE) == PROCESS_VM_WRITE)
+		return EProcAccessClass::eWriteMemory;
 
 	if((uAccessMask & WRITE_DAC) == WRITE_DAC
 	|| (uAccessMask & WRITE_OWNER) == WRITE_OWNER)
@@ -198,7 +188,7 @@ EProcAccessClass CResLogEntry__ClassifyProcessAccess(quint32 uAccessMask)
 	return EProcAccessClass::eNone;
 }
 
-EProcAccessClass CResLogEntry__ClassifyThreadAccess(quint32 uAccessMask)
+EProcAccessClass CExecLogEntry::ClassifyThreadAccess(quint32 uAccessMask)
 {
 	if((uAccessMask & THREAD_ALL_ACCESS) == THREAD_ALL_ACCESS
 	|| (uAccessMask & THREAD_SET_CONTEXT) == THREAD_SET_CONTEXT)
@@ -231,26 +221,31 @@ EProcAccessClass CResLogEntry__ClassifyThreadAccess(quint32 uAccessMask)
 
 QColor CExecLogEntry::GetAccessColor(quint32 uProcessAccessMask, quint32 uThreadAccessMask)
 {
-	EProcAccessClass ProcessClass = CResLogEntry__ClassifyProcessAccess(uProcessAccessMask);
-	EProcAccessClass ThreadClass = CResLogEntry__ClassifyThreadAccess(uThreadAccessMask);
+	EProcAccessClass ProcessClass = ClassifyProcessAccess(uProcessAccessMask);
+	EProcAccessClass ThreadClass = ClassifyThreadAccess(uThreadAccessMask);
 
-	switch ((EProcAccessClass)std::max((int)ProcessClass, (int)ThreadClass))
+	return GetAccessColor((EProcAccessClass)std::max((int)ProcessClass, (int)ThreadClass));
+}
+
+QColor CExecLogEntry::GetAccessColor(EProcAccessClass eAccess)
+{
+	switch (eAccess)
 	{
 	case EProcAccessClass::eControlExecution:
 	case EProcAccessClass::eChangePermissions:
 	case EProcAccessClass::eWriteMemory:		return QColor(255, 192, 192);
-	case EProcAccessClass::eReadMemory:			return QColor(144, 238, 144);
-	case EProcAccessClass::eSpecial:			return QColor(255, 182, 193);
+	case EProcAccessClass::eReadMemory:			return QColor(173, 216, 230);
+	case EProcAccessClass::eSpecial:
 	case EProcAccessClass::eWriteProperties:	return QColor(255, 223, 128);
-	case EProcAccessClass::eReadProperties:		return QColor(173, 216, 230);
+	case EProcAccessClass::eReadProperties:		return QColor(144, 238, 144);
 	default: return QColor();
 	}
 }
 
 QString CExecLogEntry::GetAccessStr(quint32 uProcessAccessMask, quint32 uThreadAccessMask)
 {
-	EProcAccessClass ProcessClass = CResLogEntry__ClassifyProcessAccess(uProcessAccessMask);
-	EProcAccessClass ThreadClass = CResLogEntry__ClassifyThreadAccess(uThreadAccessMask);
+	EProcAccessClass ProcessClass = ClassifyProcessAccess(uProcessAccessMask);
+	EProcAccessClass ThreadClass = ClassifyThreadAccess(uThreadAccessMask);
 
 	switch ((EProcAccessClass)std::max((int)ProcessClass, (int)ThreadClass))
 	{

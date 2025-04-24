@@ -648,7 +648,7 @@ uint64 CProgramFile::AddTraceLogEntry(const CTraceLogEntryPtr& pLogEntry, ETrace
 	switch (Log) {
 	case ETraceLogs::eExecLog: 
 		bSave = theCore->Config()->GetBool("Service", "ExecLog", true); 
-		//ePreset = m_ExecTrace;
+		ePreset = m_ExecTrace;
 		break;
 	case ETraceLogs::eResLog: 
 		bSave = theCore->Config()->GetBool("Service", "ResLog", true); 
