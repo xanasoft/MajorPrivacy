@@ -81,6 +81,9 @@ enum {
 	API_SET_CONFIG_VALUE = 'SCFG',
 	API_GET_CONFIG_VALUE = 'GCFG',
 
+	API_ACQUIRE_NO_UNLOAD = 'ANUL',
+	API_RELEASE_NO_UNLOAD = 'RNUL',
+
 	API_GET_SUPPORT_INFO = 'SUPP',
 };
 
@@ -201,6 +204,9 @@ enum {
 
 	// other
 	SVC_API_GET_SVC_STATS = 'GSST',
+
+	SVC_API_SHOW_SECURE_PROMPT = 'SSPT',
+
 	// shutdown
 	SVC_API_SHUTDOWN = 'SHUT',
 };
@@ -408,6 +414,7 @@ API_V_VALUES : unsigned long
 	API_V_EXEC_ON_SPAWN = 'exos',
 		// ...
 	API_V_IMAGE_LOAD_PROTECTION = 'ilpr',
+	API_V_INTEGRITY_LEVEL = 'ilvl',
 	//API_V_PATH_PREFIX,
 	//API_V_DEVICE_PATH,
 	API_V_ALLOW_DEBUGGING = 'adbg',
@@ -563,6 +570,7 @@ API_V_VALUES : unsigned long
 	// Image Load Event
 	API_V_EVENT_IMG_BASE = 'ibas',
 	API_V_EVENT_NO_PROTECT = 'nprt',
+	API_V_EVENT_CREATING = 'crtn',
 	API_V_EVENT_IMG_PROPS = 'iprp',
 	API_V_EVENT_IMG_SEL = 'isel',
 	API_V_EVENT_IMG_SECT_NR = 'isnr',
@@ -666,6 +674,11 @@ API_V_VALUES : unsigned long
 	API_V_LOG_MEM_USAGE = 'lmus',
 	API_V_SVC_MEM_WS = 'smws',
 	API_V_SVC_MEM_PB = 'smpb',
+
+	API_V_MB_TEXT = 'mbtx',
+	API_V_MB_TITLE = 'mbti',
+	API_V_MB_TYPE = 'mbty',
+	API_V_MB_CODE = 'mbec',
 
 	API_V_LAST = 0x80000000
 };

@@ -84,6 +84,8 @@ protected:
 	EProgramOnSpawn m_OnSpawn = EProgramOnSpawn::eEject;
 	bool m_ImageLoadProtection = true;
 
+	EIntegrityLevel	m_IntegrityLevel = EIntegrityLevel::eUnknown;
+
 	bool m_AllowDebugging = false;
 	bool m_KeepAlive = false;
 

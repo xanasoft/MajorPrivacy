@@ -61,6 +61,9 @@
     <Filter Include="Network\Dns\Filter">
       <UniqueIdentifier>{acfc8bd5-7dd7-465e-a0c7-74546edfe47c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Helpers">
+      <UniqueIdentifier>{18a4d058-8eac-4e18-9ef7-6f1aec767dc8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -245,6 +248,9 @@
     </ClCompile>
     <ClCompile Include="API_Impl.cpp">
       <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\SecDeskHelper.cpp">
+      <Filter>Helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -511,6 +517,9 @@
     </ClInclude>
     <ClInclude Include="Network\Dns\DnsConfigurator.h">
       <Filter>Network\Dns\Filter</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\SecDeskHelper.h">
+      <Filter>Helpers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

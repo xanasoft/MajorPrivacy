@@ -75,18 +75,18 @@ public:
 			if (Type == VAR_TYPE_SINT) {
 				sint64 sint = 0;
 				GetInt(sizeof(sint64), &sint);
-				return sint;
+				return (T)sint;
 			}
 			else if (Type == VAR_TYPE_UINT) {
 				uint64 uint = 0;
 				GetInt(sizeof(sint64), &uint);
-				return uint;
+				return (T)uint;
 			}
 #ifndef VAR_NO_FPU
 			else if (Type == VAR_TYPE_DOUBLE) {
 				double val = 0;
 				GetDouble(sizeof(double), &val);
-				return (long long)val;
+				return (T)val;
 			}
 #endif
 			else if (Type == VAR_TYPE_ASCII || Type == VAR_TYPE_BYTES || Type == VAR_TYPE_UTF8 || Type == VAR_TYPE_UNICODE)

@@ -36,6 +36,10 @@ void* AbstractContainer::MemAlloc(size_t size, uint32 flags) const
 		return m_pMem->Alloc(size, flags);
 #ifdef KERNEL_MODE
 	DBG_MSG("AbstractContainer::MemAlloc NO POOL !!!\n");
+#ifdef KERNEL_DEBUG
+	if (KD_DEBUGGER_ENABLED)
+		NT_ASSERT(0);
+#endif
 #endif
 	return ::MemAlloc(size, flags);
 }
@@ -46,7 +50,11 @@ void AbstractContainer::MemFree(void* ptr, uint32 flags) const
 		m_pMem->Free(ptr, flags);
 	else {
 #ifdef KERNEL_MODE
-		DBG_MSG("AbstractContainer::MemAlloc NO POOL !!!\n");
+		DBG_MSG("AbstractContainer::MemFree NO POOL !!!\n");
+#ifdef KERNEL_DEBUG
+		if (KD_DEBUGGER_ENABLED)
+			NT_ASSERT(0);
+#endif
 #endif
 		::MemFree(ptr, flags);
 	}

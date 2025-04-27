@@ -57,6 +57,9 @@ public:
 
 	CThreadPool*			ThreadPool()			{ return &m_Pool; }
 
+	static STATUS InstallDriver();
+	static STATUS RemoveDriver();
+
 protected:
 	friend DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter);
 	friend VOID CALLBACK CServiceCore__TimerProc(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue);
@@ -68,6 +71,8 @@ protected:
 
 	STATUS InitDriver();
 	void CloseDriver();
+
+	STATUS PrepareShutdown();
 
 	void StoreRecords(bool bAsync = false);
 
@@ -117,6 +122,8 @@ protected:
 
 	struct SClient
 	{
+		bool bIsTrusted = false;
+
 		mutable std::shared_mutex Mutex;
 
 		std::set<uint64> WatchedPrograms;

@@ -316,6 +316,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="GenericRule.cpp" />
+    <ClCompile Include="Helpers\SecDeskHelper.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Network\Dns\DnsCacheEntry.cpp" />
     <ClCompile Include="Network\Dns\DnsClient.cpp" />
@@ -413,6 +414,7 @@
     <ClInclude Include="Etw\krabs\version_helpers.hpp" />
     <ClInclude Include="Etw\krabs\wstring_convert.hpp" />
     <ClInclude Include="GenericRule.h" />
+    <ClInclude Include="Helpers\SecDeskHelper.h" />
     <ClInclude Include="Network\Dns\DnsCacheEntry.h" />
     <ClInclude Include="Network\Dns\DnsClient.h" />
     <ClInclude Include="Network\Dns\DnsConfigurator.h" />

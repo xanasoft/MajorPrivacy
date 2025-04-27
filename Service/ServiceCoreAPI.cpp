@@ -118,6 +118,9 @@ void CServiceCore::RegisterUserAPI()
 	m_pUserPipe->RegisterHandler(SVC_API_SET_WATCHED_PROG, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_GET_SVC_STATS, &CServiceCore::OnRequest, this);
+
+	m_pUserPipe->RegisterHandler(SVC_API_SHOW_SECURE_PROMPT, &CServiceCore::OnRequest, this);
+	
 	m_pUserPipe->RegisterHandler(SVC_API_SHUTDOWN, &CServiceCore::OnRequest, this);
 
 
@@ -129,10 +132,22 @@ void CServiceCore::OnClient(uint32 uEvent, struct SPipeClientInfo& pClient)
 	std::unique_lock Lock(m_ClientsMutex);
 	switch (uEvent)
 	{
-		case CPipeServer::eClientConnected:
+		case CPipeServer::eClientConnected: {
 			DbgPrint("Client connected %d %d\n", pClient.PID, pClient.TID);
 			m_Clients[pClient.PID] = std::make_shared<SClient>();
+
+			if (pClient.PID != -1) {
+
+				ProcessIdToSessionId(pClient.PID, &pClient.SessionId);
+
+				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pClient.PID, true);
+				auto SignInfo = pProcess->GetSignInfo().GetInfo();
+				//if ((pProcess->GetSecFlags() & KPH_PROCESS_STATE_MEDIUM) == KPH_PROCESS_STATE_MEDIUM)
+				if (SignInfo.Authority == KphDevAuthority)
+					m_Clients[pClient.PID]->bIsTrusted = true;
+			}
 			break;
+		}
 		case CPipeServer::eClientDisconnected:
 			DbgPrint("Client disconnected %d %d\n", pClient.PID, pClient.TID);
 			m_Clients.erase(pClient.PID);
@@ -158,6 +173,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		return STATUS_BAD_KEY;
 	SClientPtr pClientData = F->second;
 	Lock.unlock();
+
+	if(!pClientData->bIsTrusted) {
+		DbgPrint("Client not trusted %d %d\n", pClient.PID, pClient.TID);
+		return STATUS_ACCESS_DENIED;
+	}
 
 	switch (msgId)
 	{
@@ -791,8 +811,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			std::wstring path = vReq[API_V_CMD_LINE];
 
-			/*
-            WTSQueryUserToken(CallerSession, &PrimaryTokenHandle);
+			/*WTSQueryUserToken(CallerSession, &PrimaryTokenHandle);
 
             if (req->elevate == 1) {
 
@@ -824,9 +843,10 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			si.dwFlags = STARTF_FORCEOFFFEEDBACK;
 			si.wShowWindow = SW_SHOWNORMAL;
 			PROCESS_INFORMATION pi = { 0 };
-			if (CreateProcessAsUserW(hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+			if (CreateProcessAsUserW(hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, 0/*CREATE_SUSPENDED*/, NULL, NULL, &si, &pi))
 			{
 				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pi.dwProcessId, true);
+				//ResumeThread(pi.hThread);
 				CloseHandle(pi.hProcess);
 				CloseHandle(pi.hThread);
 
@@ -1227,13 +1247,90 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			return STATUS_SUCCESS;
 		}
 
+		case SVC_API_SHOW_SECURE_PROMPT:
+		{
+			NTSTATUS status = STATUS_UNSUCCESSFUL;
+
+			StVariant vReq;
+			vReq.FromPacket(req);
+
+			std::wstring Text = vReq[API_V_MB_TEXT].AsStr();
+			//std::wstring Title = vReq.Get(API_V_MB_TITLE).AsStr();
+			//if(Title.empty()) Title = L"Major Privacy";
+			uint32 Type = vReq[API_V_MB_TYPE].To<uint32>();
+		
+			CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hToken(NULL, CloseHandle);
+			if (OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &hToken)) 
+			{
+				CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hNewToken(NULL, CloseHandle);
+				if (DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &hNewToken)) 
+				{
+					// Set the new session ID on the duplicated token
+					if (SetTokenInformation(hNewToken, TokenSessionId, (LPVOID)&pClient.SessionId, sizeof(pClient.SessionId))) 
+					{
+						wchar_t szPath[MAX_PATH];
+						GetModuleFileNameW(NULL, szPath, ARRAYSIZE(szPath));
+						std::wstring CmdLine = L"\"" + std::wstring(szPath) + L"\"";
+
+						CmdLine += L" \"-MSGBOX:";
+
+						switch (Type & 0xF) {
+						case MB_OK: CmdLine += L"OK"; break;
+						case MB_OKCANCEL: CmdLine += L"OKCANCEL"; break;
+						case MB_ABORTRETRYIGNORE: CmdLine += L"ABORTRETRYIGNORE"; break;
+						case MB_YESNOCANCEL: CmdLine += L"YESNOCANCEL"; break;
+						case MB_YESNO: CmdLine += L"YESNO"; break;
+						case MB_RETRYCANCEL: CmdLine += L"RETRYCANCEL"; break;
+						case MB_CANCELTRYCONTINUE: CmdLine += L"CANCELTRYCONTINUE"; break;
+						}
+
+						switch (Type & 0xF0) {
+						case MB_ICONHAND: CmdLine += L"-STOP"; break;
+						case MB_ICONQUESTION: CmdLine += L"-QUESTION"; break;
+						case MB_ICONEXCLAMATION: CmdLine += L"-EXCLAMATION"; break;
+						case MB_ICONASTERISK: CmdLine += L"-INFORMATION"; break;
+						}
+
+						CmdLine += L":" + Text + L"\"";
+
+						STARTUPINFOW si = { 0 };
+						si.cb = sizeof(si);
+						si.dwFlags = STARTF_FORCEOFFFEEDBACK;
+						si.wShowWindow = SW_SHOWNORMAL;
+						PROCESS_INFORMATION pi = { 0 };
+						if (CreateProcessAsUserW(hNewToken, NULL, (wchar_t*)CmdLine.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+						{
+							if (WaitForSingleObject(pi.hProcess, 100 * 1000) == 0)
+							{
+								DWORD Code = 0;
+								if (GetExitCodeProcess(pi.hProcess, &Code))
+								{
+									StVariant vRpl;
+									vRpl[API_V_MB_CODE] = (uint32)Code;
+									vRpl.ToPacket(rpl);
+
+									status = STATUS_SUCCESS;
+								}
+							}
+
+							CloseHandle(pi.hProcess);
+							CloseHandle(pi.hThread);
+						}
+					}
+				}
+			}
+
+			return status;
+		}
+
 		case SVC_API_SHUTDOWN:
 		{
-			if (theCore->m_bEngineMode) {
+			STATUS Status = theCore->PrepareShutdown();
+
+			if (theCore->m_bEngineMode)
 				CServiceCore::Shutdown(false);
-				return STATUS_SUCCESS;
-			}
-			return STATUS_INVALID_DEVICE_REQUEST;
+
+			return Status.GetStatus();
 		}
 
 		default:

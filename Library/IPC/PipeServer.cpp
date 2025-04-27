@@ -156,6 +156,8 @@ void CPipeServer::RunServerThread()
     for (;;)
     {
         DWORD dwWait = WaitForMultipleObjects((DWORD)Events.size(), Events.data(), FALSE, 1000);
+        if(dwWait == WAIT_FAILED)
+            break;
 
         if (!m_hListener) break;
 
@@ -165,10 +167,9 @@ void CPipeServer::RunServerThread()
 
             PPipeSocket& pPipe = m_ListeningPipes[index];
 
-            ULONG ClientPid = -1; // todo: fix me when a process duplicates the clients pipe handle we won't notice that here
-            GetNamedPipeClientProcessId(pPipe->hPipe, &ClientPid);
-
-            ClientConnected(pPipe, ClientPid, -1);
+            ULONG ClientPid = 0; // todo: fix me when a process duplicates the clients pipe handle we won't notice that here
+            if (GetNamedPipeClientProcessId(pPipe->hPipe, &ClientPid))
+                ClientConnected(pPipe, ClientPid, -1);
 
             auto res = MakePipe();
             if (!res) {

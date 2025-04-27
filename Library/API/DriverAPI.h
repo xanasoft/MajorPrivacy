@@ -14,6 +14,8 @@ struct SProcessInfo
 	uint64 CreateTime = 0;
 	//uint64 SeqNr = 0;
 	uint64 ParentPid = 0;
+	uint64 CreatorPid = 0;
+	uint64 CreatorTid = 0;
 	//uint64 ParentSeqN = 0r;
 	//std::vector<uint8> FileHash;
 	std::wstring Enclave;
@@ -131,6 +133,8 @@ struct SProcessAccessEvent : public SProcessEventEx
 	//bool bThread = false;
 	uint32 AccessMask = 0;
 	EEventStatus Status = EEventStatus::eUndefined;
+	bool bSupressed = false;
+	bool bCreating = false;
 };
 
 struct SResourceAccessEvent : public SProcessEventEx
@@ -172,12 +176,12 @@ public:
 	CDriverAPI(EInterface Interface = eFltPort);
 	virtual ~CDriverAPI();
 
-	STATUS InstallDrv(uint32 TraceLogLevel = 0);
+	static STATUS InstallDrv(uint32 TraceLogLevel = 0);
 	STATUS ConnectDrv();
 	bool IsConnected();
 	void Disconnect();
 
-	RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message);
+	RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message, struct SCallParams* pParams = NULL);
 
 	uint32 GetABIVersion();
 
@@ -187,6 +191,57 @@ public:
 	RESULT(SHandleInfoPtr) GetHandleInfo(ULONG_PTR UniqueProcessId, ULONG_PTR HandleValue);
 
 	STATUS PrepareEnclave(const CFlexGuid& EnclaveGuid);
+
+	RESULT(StVariant) GetConfig(const char* Name);
+
+	std::wstring GetConfigStr(const char* Name, const std::wstring& defaultValue = std::wstring()) {
+		auto value = GetConfig(Name);
+		if(!value.GetValue().IsValid())
+			return defaultValue;
+		return value.GetValue().AsStr();
+	}
+
+	sint32 GetConfigInt(const char* Name, sint32 defaultValue = 0) {
+		auto value = GetConfig(Name);
+		if(!value.GetValue().IsValid())
+			return defaultValue;
+		return value.GetValue().AsNum<sint32>();
+	}
+
+	uint32 GetConfigUInt(const char* Name, uint32 defaultValue = 0) {
+		auto value = GetConfig(Name);
+		if(!value.GetValue().IsValid())
+			return defaultValue;
+		return value.GetValue().AsNum<uint32>();
+	}
+
+	sint64 GetConfigInt64(const char* Name, sint64 defaultValue = 0) {
+		auto value = GetConfig(Name);
+		if(!value.GetValue().IsValid())
+			return defaultValue;
+		return value.GetValue().AsNum<sint64>();
+	}
+
+	uint64 GetConfigUInt64(const char* Name, uint64 defaultValue = 0) {
+		auto value = GetConfig(Name);
+		if(!value.GetValue().IsValid())
+			return defaultValue;
+		return value.GetValue().AsNum<uint64>();
+	}
+
+	bool GetConfigBool(const char* Name, bool defaultValue = false) {
+		auto value = GetConfig(Name);
+		if(!value.GetValue().IsValid())
+			return defaultValue;
+		if(value.GetValue().GetType() == VAR_TYPE_UINT || value.GetValue().GetType() == VAR_TYPE_SINT)
+			return value.GetValue().AsNum<uint32>() != 0;
+		std::wstring str = value.GetValue().AsStr();
+		if(str == L"true" || str == L"1")
+			return true;
+		return false;
+	}
+
+	STATUS SetConfig(const char* Name, const StVariant& Value);
 
 	STATUS SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, bool bLock = false);
 	RESULT(SUserKeyInfoPtr) GetUserKey();
@@ -204,6 +259,9 @@ public:
 
 	//STATUS SetupRuleAlias(const std::wstring& PrefixPath, const std::wstring& DevicePath);
 	//STATUS ClearRuleAlias(const std::wstring& DevicePath);
+
+	STATUS AcquireUnloadProtection();
+	LONG ReleaseUnloadProtection();
 
 	STATUS RegisterForProcesses(uint32 uEvents, bool bRegister = true);
 	void RegisterProcessHandler(const std::function<sint32(const SProcessEvent* pEvent)>& Handler);

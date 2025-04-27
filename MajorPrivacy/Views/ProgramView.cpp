@@ -486,7 +486,19 @@ void CProgramView::OnDoubleClicked(const QModelIndex& Index)
 
 void CProgramView::OnMenu(const QPoint& Point)
 {
-	m_pEditProgram->setEnabled(m_pTreeList->selectionModel()->selectedIndexes().count() == 1);
+	QSet<CProgramItemPtr> Programs;
+	foreach(const QModelIndex & index, m_pTreeList->selectionModel()->selectedIndexes())
+	{
+		if (index.column() != 0)
+			continue;
+		QModelIndex ModelIndex = m_pSortProxy->mapToSource(index);
+
+		CProgramItemPtr pProgram = m_pProgramModel->GetItem(ModelIndex);
+		if(pProgram)
+			Programs.insert(pProgram);
+	}
+
+	m_pEditProgram->setEnabled(Programs.count() == 1);
 
 	QMap<QString, CProgramGroupPtr> Groups; // use map to sort groups alphabetically
 	for(auto pGroup: theCore->ProgramManager()->GetGroups())
@@ -513,18 +525,6 @@ void CProgramView::OnMenu(const QPoint& Point)
 			m_Groups.removeAt(index);
 			--index;
 		}
-	}
-
-	QSet<CProgramItemPtr> Programs;
-	foreach(const QModelIndex & index, m_pTreeList->selectionModel()->selectedIndexes())
-	{
-		if (index.column() != 0)
-			continue;
-		QModelIndex ModelIndex = m_pSortProxy->mapToSource(index);
-
-		CProgramItemPtr pProgram = m_pProgramModel->GetItem(ModelIndex);
-		if(pProgram)
-			Programs.insert(pProgram);
 	}
 
 	int ExecTrace = -1;

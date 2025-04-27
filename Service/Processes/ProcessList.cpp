@@ -545,6 +545,7 @@ void CProcessList::OnProcessAccessed(uint64 Pid, uint64 ActorPid, const std::wst
     CProcessPtr pTargetProcess = GetProcess(Pid, true);
     CProgramFilePtr pTargetProgram = pTargetProcess ? pTargetProcess->GetProgram() : NULL;
 
+
     CProcessPtr pActorProcess = GetProcess(ActorPid, true);
     CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
 
@@ -723,6 +724,11 @@ NTSTATUS CProcessList::OnInjectionRequest(uint64 Pid)
 
     CScopedHandle hProcess = CScopedHandle(OpenProcess(DesiredAccess, FALSE, (DWORD)Pid), CloseHandle);
 
+    /*CScopedHandle hHandle = CScopedHandle((HANDLE)0, CloseHandle);
+    if (NT_SUCCESS(NtOpenProcessToken(hProcess, TOKEN_QUERY | TOKEN_ADJUST_DEFAULT, &hHandle)))
+    { 
+    }*/
+
     ULONG errlvl = InjectLdr(hProcess, 0);
 
 	return STATUS_SUCCESS;
@@ -767,6 +773,8 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
         case SProcessEvent::EType::ThreadAccess:
 		{
 			const SProcessAccessEvent* pAccessEvent = (SProcessAccessEvent*)(pEvent);
+            if(pAccessEvent->bCreating)
+                break; // don't log events which are part of regular process creation process
             OnProcessAccessed(pAccessEvent->ProcessId, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pEvent->Type == SProcessEvent::EType::ThreadAccess, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status);
 			break;
 		}

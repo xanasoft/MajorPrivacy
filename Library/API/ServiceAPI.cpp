@@ -182,9 +182,9 @@ uint32 CServiceAPI::GetProcessId() const
 	return m_pClient->GetServerPID();
 }
 
-RESULT(StVariant) CServiceAPI::Call(uint32 MessageId, const StVariant& Message)
+RESULT(StVariant) CServiceAPI::Call(uint32 MessageId, const StVariant& Message, SCallParams* pParams)
 {
-	auto Ret = m_pClient->Call(MessageId, Message);
+	auto Ret = m_pClient->Call(MessageId, Message, pParams);
 	auto& Val = Ret.GetValue();
 	if (!Ret.IsError() && (Val.Get(API_V_ERR_CODE).To<uint32>() != 0 || Val.Has(API_V_ERR_MSG)))
 		return ERR(Val[API_V_ERR_CODE], Val[API_V_ERR_MSG].AsStr());
@@ -210,7 +210,7 @@ uint32 CServiceAPI::GetConfigStatus()
 {
 	StVariant ReqVar;
 
-    auto Ret = m_pClient->Call(SVC_API_GET_CONFIG_STATUS, ReqVar);
+    auto Ret = m_pClient->Call(SVC_API_GET_CONFIG_STATUS, ReqVar, NULL);
     if (Ret.IsError())
         return false;
 
@@ -225,12 +225,12 @@ STATUS CServiceAPI::CommitConfigChanges(const CBuffer& ConfigSignature)
     if(ConfigSignature.GetSize() > 0)
 	    ReqVar[API_V_SIGNATURE] = ConfigSignature;
 
-	return m_pClient->Call(SVC_API_COMMIT_CONFIG, ReqVar);
+	return m_pClient->Call(SVC_API_COMMIT_CONFIG, ReqVar, NULL);
 }
 
 STATUS CServiceAPI::DiscardConfigChanges()
 {
 	StVariant ReqVar;
 
-	return m_pClient->Call(SVC_API_DISCARD_CHANGES, ReqVar);
+	return m_pClient->Call(SVC_API_DISCARD_CHANGES, ReqVar, NULL);
 }

@@ -18,7 +18,7 @@ public:
 
 	uint32 GetProcessId() const;
 
-	RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message);
+	RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message, struct SCallParams* pParams = NULL);
 
 	uint32 GetABIVersion();
 

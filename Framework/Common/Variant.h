@@ -468,8 +468,8 @@ public:
 	CVariant::EResult GetStringA(FW::StringA& StrA) const {if (!m_ptr) return CVariant::eErrIsEmpty; return m_ptr->GetStringA(StrA);}
 	CVariant::EResult GetStringW(FW::StringW& StrW) const {if (!m_ptr) return CVariant::eErrIsEmpty; return m_ptr->GetStringW(StrW);}
 
-	FW::StringA ToStringA() const						{FW::StringA StrA; GetStringA(StrA); return StrA;}
-	FW::StringW ToStringW() const						{FW::StringW StrW; GetStringW(StrW); return StrW;}
+	FW::StringA ToStringA() const						{if(!m_ptr) return FW::StringA(nullptr); FW::StringA StrA(m_ptr->Allocator()); m_ptr->GetStringA(StrA); return StrA;}
+	FW::StringW ToStringW() const						{if(!m_ptr) return FW::StringW(nullptr); FW::StringW StrW(m_ptr->Allocator()); m_ptr->GetStringW(StrW); return StrW;}
 
 	V* Ptr() const										{return m_ptr;}
 

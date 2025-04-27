@@ -16,7 +16,7 @@ public:
 
     uint32 GetServerPID() const override;
 
-    virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff);
+    virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff, SCallParams* pParams);
 
 protected:
     friend struct SPipeClient;

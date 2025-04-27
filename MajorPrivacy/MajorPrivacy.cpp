@@ -245,6 +245,9 @@ void CMajorPrivacy::UpdateLockStatus(bool bOnConnect)
 {
 	bool bConnected = theCore->Driver()->IsConnected();
 
+	m_pUnloadProtection->setEnabled(bConnected);
+	m_pUnloadProtection->setChecked(theCore->Driver()->GetConfigBool("UnloadProtection", false));
+
 	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
 	uConfigStatus |= theCore->Service()->GetConfigStatus();
 
@@ -327,6 +330,9 @@ STATUS CMajorPrivacy::Connect()
 			}
 		}
 #endif
+
+		// Log all user config dirs in the global config file for cleanup during uninstall
+		theCore->SetConfig("Users/" + QString::fromLocal8Bit(qgetenv("USERNAME")), theConf->GetConfigDir());
 
 		UpdateLockStatus(true);
 
@@ -611,6 +617,9 @@ void CMajorPrivacy::BuildMenu()
 		CSignatureDbWnd* pWnd = new CSignatureDbWnd();
 		pWnd->show();
 	});
+	m_pSecurity->addSeparator();
+	m_pUnloadProtection = m_pSecurity->addAction(QIcon(":/Icons/Shield15.png"), tr("Unload Protection"), this, SLOT(OnUnloadProtection()));
+	m_pUnloadProtection->setCheckable(true);
 	m_pSecurity->addSeparator();
 	m_pProtectConfig = m_pSecurity->addAction(QIcon(":/Icons/LockClosed.png"), tr("Enable Rule Protection"), this, SLOT(OnProtectConfig()));
 	m_pUnprotectConfig = m_pSecurity->addAction(QIcon(":/Icons/LockOpen2.png"), tr("Disable Rules Protection"), this, SLOT(OnUnprotectConfig()));
@@ -1082,6 +1091,20 @@ STATUS CMajorPrivacy::SignCerts(const QMap<QByteArray, QString>& Certs)
 
 	return Status;
 
+}
+
+void CMajorPrivacy::OnUnloadProtection()
+{
+	theCore->Driver()->SetConfig("UnloadProtection", m_pUnloadProtection->isChecked());
+
+	if (theConf->GetBool("Options/WarnProtection", true)) {
+		bool State = false;
+		CCheckableMessageBox::question(this, "MajorPrivacy",
+			tr("This setting required the service to be restarted to tak effect")
+			, tr("Don't show this message again."), &State, QDialogButtonBox::Ok, QDialogButtonBox::Ok, QMessageBox::Information);
+		if (State)
+			theConf->SetValue("Options/WarnProtection", false);
+	}
 }
 
 void CMajorPrivacy::OnProtectConfig()
@@ -1971,6 +1994,7 @@ void CMajorPrivacy::ResetPrompts()
 	theConf->DelValue("Options/WarnBoxCrypto");
 	theConf->DelValue("Options/WarnFolderProtection");
 	theConf->DelValue("Options/WarnTerminate");
+	theConf->DelValue("Options/WarnProtection");
 }
 
 void CMajorPrivacy::OnMaintenance()

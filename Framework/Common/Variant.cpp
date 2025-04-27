@@ -66,6 +66,10 @@ CVariant::EResult CVariant::Throw(EResult Error)
 	{
 #ifdef KERNEL_DEBUG
 		DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "CVariant::Throw: %s\n", ErrorString(Error));
+#ifdef KERNEL_DEBUG
+		if (KD_DEBUGGER_ENABLED)
+			NT_ASSERT(0);
+#endif
 #elif defined(_DEBUG)
 		//DbgPrint("CVariant::Throw: %s\n", ErrorString(Error));
 		DebugBreak();

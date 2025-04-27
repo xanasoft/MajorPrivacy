@@ -586,7 +586,7 @@ bool CFltPortClient::IsConnected()
     return m->IsConnected();
 }
 
-STATUS CFltPortClient::Call(const CBuffer& inBuff, CBuffer& outBuff)
+STATUS CFltPortClient::Call(const CBuffer& inBuff, CBuffer& outBuff, SCallParams* pParams)
 {
     if (!m->FltPortHandle)
         return ERR(STATUS_FLT_NOT_INITIALIZED);

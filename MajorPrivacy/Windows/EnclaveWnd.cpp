@@ -67,6 +67,11 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 	ui.cmbOnUnTrustedExec->addItem(tr("Prevent Execution"), (int)EProgramOnSpawn::eBlock);
 	ui.cmbOnUnTrustedExec->addItem(tr("Allow Execution"), (int)EProgramOnSpawn::eAllow);
 
+	ui.cmbLevel->addItem(tr("Don't change"), (int)EIntegrityLevel::eUnknown);
+	ui.cmbLevel->addItem(tr("Medium +"), (int)EIntegrityLevel::eMediumPlus);
+	ui.cmbLevel->addItem(tr("High"), (int)EIntegrityLevel::eHigh);
+	ui.cmbLevel->addItem(tr("System"), (int)EIntegrityLevel::eSystem);
+
 	//FixComboBoxEditing(ui.cmbGroup);
 
 
@@ -81,6 +86,8 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 	SetComboBoxValue(ui.cmbOnTrustedExec, (int)m_pEnclave->m_OnTrustedSpawn);
 	SetComboBoxValue(ui.cmbOnUnTrustedExec, (int)m_pEnclave->m_OnSpawn);
 	ui.chkImageProtection->setChecked(m_pEnclave->m_ImageLoadProtection);
+
+	SetComboBoxValue(ui.cmbLevel, (int)m_pEnclave->m_IntegrityLevel);
 
 	ui.chkAllowDebugging->setChecked(m_pEnclave->m_AllowDebugging);
 	ui.chkKeepAlive->setChecked(m_pEnclave->m_KeepAlive);
@@ -120,6 +127,8 @@ bool CEnclaveWnd::Save()
 	m_pEnclave->m_OnTrustedSpawn = (EProgramOnSpawn)GetComboBoxValue(ui.cmbOnTrustedExec).toInt();
 	m_pEnclave->m_OnSpawn = (EProgramOnSpawn)GetComboBoxValue(ui.cmbOnUnTrustedExec).toInt();
 	m_pEnclave->m_ImageLoadProtection = ui.chkImageProtection->isChecked();
+
+	m_pEnclave->m_IntegrityLevel = (EIntegrityLevel)GetComboBoxValue(ui.cmbLevel).toInt();
 
 	m_pEnclave->m_AllowDebugging = ui.chkAllowDebugging->isChecked();
 	m_pEnclave->m_KeepAlive = ui.chkKeepAlive->isChecked();

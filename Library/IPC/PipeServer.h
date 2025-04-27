@@ -33,6 +33,7 @@ struct LIBRARY_EXPORT SPipeClientInfo
 {
     uint32 PID = 0;
     uint32 TID = 0;
+    DWORD SessionId = -1;
     PVOID pContext = NULL;
 };
 

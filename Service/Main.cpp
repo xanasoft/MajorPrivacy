@@ -3,11 +3,14 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/Service.h"
 #include "../Library/API/ServiceAPI.h"
+#include "../Library/API/DriverAPI.h"
 #include "../Library/Helpers/NtPathMgr.h"
 #include "../Library/Helpers/ScopedHandle.h"
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/Helpers/NtUtil.h"
+#include "../Library/IPC/AbstractClient.h"
 #include <shellapi.h>
+#include "Helpers/SecDeskHelper.h"
 
 #include <windows.h>
 #include <winsock2.h>
@@ -27,26 +30,29 @@ void __cdecl _wassert(wchar_t const* _Message, wchar_t const* _File, unsigned _L
 //SYSTEM_INFO g_SystemInfo;
 
 
-
 static WCHAR                *ServiceName = (WCHAR*)API_SERVICE_NAME;
-static SERVICE_STATUS        ServiceStatus;
-static SERVICE_STATUS_HANDLE ServiceStatusHandle = NULL;
+       SERVICE_STATUS        g_ServiceStatus;
+       SERVICE_STATUS_HANDLE g_ServiceStatusHandle = NULL;
+       BOOLEAN               g_UnloadProtection = FALSE;
 
 
 DWORD WINAPI ServiceHandlerEx(DWORD dwControl, DWORD dwEventType, LPVOID lpEventData, LPVOID lpContext)
 {
     if (dwControl == SERVICE_CONTROL_STOP || dwControl == SERVICE_CONTROL_SHUTDOWN)
     {
+        if(g_UnloadProtection)
+			return ERROR_SERVICE_CANNOT_ACCEPT_CTRL;
+
         CServiceCore::Shutdown();
 
-        ServiceStatus.dwCurrentState        = SERVICE_STOPPED;
-        ServiceStatus.dwCheckPoint          = 0;
-        ServiceStatus.dwWaitHint            = 0;
+        g_ServiceStatus.dwCurrentState        = SERVICE_STOPPED;
+        g_ServiceStatus.dwCheckPoint          = 0;
+        g_ServiceStatus.dwWaitHint            = 0;
 
     } else if (dwControl != SERVICE_CONTROL_INTERROGATE)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    if (! SetServiceStatus(ServiceStatusHandle, &ServiceStatus))
+    if (! SetServiceStatus(g_ServiceStatusHandle, &g_ServiceStatus))
         return GetLastError();
 
     return 0;
@@ -54,21 +60,21 @@ DWORD WINAPI ServiceHandlerEx(DWORD dwControl, DWORD dwEventType, LPVOID lpEvent
 
 void WINAPI ServiceMain(DWORD argc, WCHAR *argv[])
 {
-    ServiceStatusHandle = RegisterServiceCtrlHandlerEx(ServiceName, ServiceHandlerEx, NULL);
-    if (! ServiceStatusHandle)
+    g_ServiceStatusHandle = RegisterServiceCtrlHandlerEx(ServiceName, ServiceHandlerEx, NULL);
+    if (! g_ServiceStatusHandle)
         return;
 
-    ServiceStatus.dwServiceType                 = SERVICE_WIN32;
-    ServiceStatus.dwCurrentState                = SERVICE_START_PENDING;
-    ServiceStatus.dwControlsAccepted            = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
-    ServiceStatus.dwWin32ExitCode               = 0;
-    ServiceStatus.dwServiceSpecificExitCode     = 0;
-    ServiceStatus.dwCheckPoint                  = 1;
-    ServiceStatus.dwWaitHint                    = 6000;
+    g_ServiceStatus.dwServiceType                 = SERVICE_WIN32;
+    g_ServiceStatus.dwCurrentState                = SERVICE_START_PENDING;
+    g_ServiceStatus.dwControlsAccepted            = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
+    g_ServiceStatus.dwWin32ExitCode               = 0;
+    g_ServiceStatus.dwServiceSpecificExitCode     = 0;
+    g_ServiceStatus.dwCheckPoint                  = 1;
+    g_ServiceStatus.dwWaitHint                    = 6000;
 
     ULONG status = 0;
 
-    if (!SetServiceStatus(ServiceStatusHandle, &ServiceStatus))
+    if (!SetServiceStatus(g_ServiceStatusHandle, &g_ServiceStatus))
         status = GetLastError();
 
     /*while (! IsDebuggerPresent()) {
@@ -82,18 +88,18 @@ void WINAPI ServiceMain(DWORD argc, WCHAR *argv[])
 
     if (status == 0) {
 
-        ServiceStatus.dwCurrentState        = SERVICE_RUNNING;
-        ServiceStatus.dwCheckPoint          = 0;
-        ServiceStatus.dwWaitHint            = 0;
+        g_ServiceStatus.dwCurrentState        = SERVICE_RUNNING;
+        g_ServiceStatus.dwCheckPoint          = 0;
+        g_ServiceStatus.dwWaitHint            = 0;
 
     } else {
 
-        ServiceStatus.dwCurrentState        = SERVICE_STOPPED;
-        ServiceStatus.dwWin32ExitCode       = ERROR_SERVICE_SPECIFIC_ERROR;
-        ServiceStatus.dwServiceSpecificExitCode = status;
+        g_ServiceStatus.dwCurrentState        = SERVICE_STOPPED;
+        g_ServiceStatus.dwWin32ExitCode       = ERROR_SERVICE_SPECIFIC_ERROR;
+        g_ServiceStatus.dwServiceSpecificExitCode = status;
     }
 
-    SetServiceStatus(ServiceStatusHandle, &ServiceStatus);
+    SetServiceStatus(g_ServiceStatusHandle, &g_ServiceStatus);
 }
 
 bool HasFlag(const std::vector<std::wstring>& arguments, std::wstring name)
@@ -144,7 +150,35 @@ int WinMain(
 
     STATUS Status = OK;
 
-    if (HasFlag(arguments, L"engine"))
+    bool bStartup = false;
+    std::wstring MsgBox = GetArgument(arguments, L"MsgBox");
+    if (!MsgBox.empty())
+    {
+        auto TypePrompt = Split2(MsgBox, L":");
+
+        auto TypeIcon = Split2(TypePrompt.first, L"-");
+
+        UINT Type = MB_OK;
+        if(_wcsicmp(TypeIcon.first.c_str(), L"OK") == 0) Type = MB_OK;
+        else if(_wcsicmp(TypeIcon.first.c_str(), L"OKCANCEL") == 0) Type = MB_OKCANCEL;
+        else if(_wcsicmp(TypeIcon.first.c_str(), L"ABORTRETRYIGNORE") == 0) Type = MB_ABORTRETRYIGNORE;
+        else if(_wcsicmp(TypeIcon.first.c_str(), L"YESNOCANCEL") == 0) Type = MB_YESNOCANCEL;
+        else if(_wcsicmp(TypeIcon.first.c_str(), L"YESNO") == 0) Type = MB_YESNO;
+        else if(_wcsicmp(TypeIcon.first.c_str(), L"RETRYCANCEL") == 0) Type = MB_RETRYCANCEL;
+        else if(_wcsicmp(TypeIcon.first.c_str(), L"CANCELTRYCONTINUE") == 0) Type = MB_CANCELTRYCONTINUE;
+
+        if(_wcsicmp(TypeIcon.second.c_str(), L"STOP") == 0) Type |= MB_ICONHAND;
+        else if(_wcsicmp(TypeIcon.second.c_str(), L"QUESTION") == 0) Type |= MB_ICONQUESTION;
+        else if(_wcsicmp(TypeIcon.second.c_str(), L"EXCLAMATION") == 0) Type |= MB_ICONEXCLAMATION;
+
+        wchar_t szPath[MAX_PATH];
+        GetModuleFileNameW(NULL, szPath, ARRAYSIZE(szPath));
+        *wcsrchr(szPath, L'\\') = L'\0';
+        wcscat_s(szPath, MAX_PATH, L"\\MajorWallpaper.png");
+
+        return ShowSecureMessageBox(TypePrompt.second, L"Major Privacy", Type, szPath);
+    }
+    else if (HasFlag(arguments, L"engine"))
     {
         Status = CServiceCore::Startup(true);
         if (Status) {
@@ -152,51 +186,76 @@ int WinMain(
                 WaitForSingleObject(hThread, INFINITE);
         }
     }
-    else if (HasFlag(arguments, L"startup"))
+    else if ((bStartup = HasFlag(arguments, L"startup")) || HasFlag(arguments, L"install"))
     {
-        SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
-
-        //
-        // Check if the service is ours
-        //
-
-        if ((SvcState & SVC_INSTALLED) == SVC_INSTALLED && (SvcState & SVC_RUNNING) != SVC_RUNNING)
-        {
+        /*SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+        if ((SvcState & SVC_INSTALLED) == SVC_INSTALLED && (SvcState & SVC_RUNNING) != SVC_RUNNING) {
             std::wstring BinaryPath = GetServiceBinaryPath(API_SERVICE_NAME);
-
             std::wstring ServicePath = CServiceCore::NormalizePath(GetFileFromCommand(BinaryPath));
             std::wstring AppDir = CServiceCore::NormalizePath(GetApplicationDirectory());
             if (ServicePath.length() < AppDir.length() || ServicePath.compare(0, AppDir.length(), AppDir) != 0)
-            {
                 RemoveService(API_SERVICE_NAME);
-                SvcState = SVC_NOT_FOUND;
-            }
-        }
+        }*/
 
-        if (SvcState == SVC_NOT_FOUND)
-            Status = CServiceAPI::InstallSvc();
-        if (Status && (SvcState & SVC_RUNNING) == 0)
-            Status = RunService(API_SERVICE_NAME);
-    }
-    else if (HasFlag(arguments, L"install"))
-    {
+        SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
+        if ((DrvState & SVC_INSTALLED) == 0)
+            Status = CServiceCore::InstallDriver();
+        if (bStartup && (DrvState & SVC_RUNNING) == 0)
+            Status = RunService(API_DRIVER_NAME);
+
         SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
         if ((SvcState & SVC_INSTALLED) == 0)
             Status = CServiceAPI::InstallSvc();
+        if (bStartup && (SvcState & SVC_RUNNING) == 0)
+            Status = RunService(API_SERVICE_NAME);
     }
     else if (HasFlag(arguments, L"remove"))
     {
         SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
-        if ((SvcState & SVC_RUNNING) == SVC_RUNNING)
+        if ((SvcState & SVC_RUNNING) == SVC_RUNNING) 
+        {
+            CDriverAPI* pDrvApi = new CDriverAPI();
+            Status = pDrvApi->ConnectDrv();
+            if (Status) {
+                g_UnloadProtection = pDrvApi->GetConfigBool("UnloadProtection", false);
+                pDrvApi->Disconnect();
+            }
+            delete pDrvApi;
+            pDrvApi = NULL;
+
+            CServiceAPI* pSvcAPI = new CServiceAPI();
+            Status = pSvcAPI->ConnectSvc();
+            if (Status) {
+
+                if (g_UnloadProtection) 
+                {
+                    StVariant Args;
+                    Args[API_V_MB_TEXT] = L"Do you want to remove Major Privacy Service and Driver?";
+                    //Args[API_V_MB_TITLE]
+                    Args[API_V_MB_TYPE] = (uint32)MB_YESNO;
+                    auto Ret = pSvcAPI->Call(SVC_API_SHOW_SECURE_PROMPT, Args, NULL);
+                    if (!Ret || Ret.GetValue().Get(API_V_MB_CODE).To<uint32>() != IDYES)
+                        return -1;
+                }
+
+                Status = pSvcAPI->Call(SVC_API_SHUTDOWN, StVariant(), NULL);
+                pSvcAPI->Disconnect();
+            }
+            delete pSvcAPI;
+            pSvcAPI = NULL;
+
             Status = KillService(API_SERVICE_NAME);
+        }
 		if (Status && (SvcState & SVC_INSTALLED) == SVC_INSTALLED)
             Status = RemoveService(API_SERVICE_NAME);
 
         SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
-        if (Status && (DrvState & SVC_RUNNING) == SVC_RUNNING)
-            Status = KillService(API_DRIVER_NAME);
-        if (Status && (DrvState & SVC_INSTALLED) == SVC_INSTALLED)
-            Status = RemoveService(API_DRIVER_NAME);
+        if ((DrvState & SVC_RUNNING) == SVC_INSTALLED) 
+            Status = CServiceCore::RemoveDriver();
+    }
+    else if (HasFlag(arguments, L"cleanup"))
+    {
+        // todo: remove all user config
     }
     else
     {
@@ -204,6 +263,12 @@ int WinMain(
             { ServiceName, ServiceMain },
             { NULL, NULL }
         };
+
+#if 0
+        while(!IsDebuggerPresent())
+            Sleep(100);
+        DebugBreak();
+#endif
 
         if (!StartServiceCtrlDispatcher(myServiceTable)) {
             DWORD err = GetLastError();

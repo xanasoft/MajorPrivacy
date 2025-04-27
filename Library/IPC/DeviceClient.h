@@ -35,7 +35,7 @@ public:
 
     uint32 GetServerPID() const override { return 4; } // return SYSTEM pid
 
-    virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff)
+    virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff, SCallParams* pParams)
     {
         if (!m_IoDeviceHandle)
             return ERR(STATUS_DEVICE_NOT_CONNECTED);

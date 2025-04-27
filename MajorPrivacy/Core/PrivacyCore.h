@@ -73,28 +73,28 @@ public:
 		return value.GetValue().AsQStr();
 	}
 
-	sint32 GetConfigInt(const QString& Name, qint32 defaultValue = 0) {
+	qint32 GetConfigInt(const QString& Name, qint32 defaultValue = 0) {
 		auto value = GetConfig(Name);
 		if(!value.GetValue().IsValid())
 			return defaultValue;
 		return value.GetValue().AsNum<sint32>();
 	}
 
-	uint32 GetConfigUInt(const QString& Name, quint32 defaultValue = 0) {
+	quint32 GetConfigUInt(const QString& Name, quint32 defaultValue = 0) {
 		auto value = GetConfig(Name);
 		if(!value.GetValue().IsValid())
 			return defaultValue;
 		return value.GetValue().AsNum<uint32>();
 	}
 
-	int64_t GetConfigInt64(const QString& Name, qint64 defaultValue = 0) {
+	qint64 GetConfigInt64(const QString& Name, qint64 defaultValue = 0) {
 		auto value = GetConfig(Name);
 		if(!value.GetValue().IsValid())
 			return defaultValue;
 		return value.GetValue().AsNum<sint64>();
 	}
 
-	uint64_t GetConfigUInt64(const QString& Name, quint64 defaultValue = 0) {
+	quint64 GetConfigUInt64(const QString& Name, quint64 defaultValue = 0) {
 		auto value = GetConfig(Name);
 		if(!value.GetValue().IsValid())
 			return defaultValue;
@@ -124,6 +124,9 @@ public:
 
 	RESULT(QtVariant)	GetSvcConfig();
 	STATUS				SetSvcConfig(const QtVariant& Data);
+
+	//RESULT(QtVariant)	GetDrvConfig(const QString& Name);
+	//STATUS				SetDrvConfig(const QString& Name, const QtVariant& Value);
 
 	RESULT(QtVariant)	GetDrvConfig();
 	STATUS				SetDrvConfig(const QtVariant& Data);

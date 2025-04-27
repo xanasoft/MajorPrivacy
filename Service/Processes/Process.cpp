@@ -113,6 +113,7 @@ bool CProcess::Init()
 		SetRawCreationTime(Data->CreateTime);
 
 		m_ParentPid = Data->ParentPid;
+		m_CreatorPid = Data->CreatorPid;
 		m_Name = Data->ImageName;
 		m_NtFilePath = Data->FileName;
 		if(m_NtFilePath.empty() && (m_Pid == NT_OS_KERNEL_PID || m_Name == L"Secure System"))
@@ -564,6 +565,7 @@ StVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
 	Process.Write(API_V_PID, m_Pid);
 	Process.Write(API_V_CREATE_TIME, m_CreationTime);
 	Process.Write(API_V_PARENT_PID, m_ParentPid);
+	Process.Write(API_V_CREATOR_PID, m_CreatorPid);
 	
 	Process.WriteEx(API_V_NAME, m_Name);
 	Process.WriteEx(API_V_FILE_NT_PATH, m_NtFilePath);

@@ -97,7 +97,7 @@ STATUS CAlpcPortClient::Connect()
 	recvBuff.WriteData(NULL, sizeof(MSG_HEADER) + sizeof(uint32));
 	PMSG_HEADER resHeader = (PMSG_HEADER)recvBuff.GetBuffer();
 	
-	if (NT_SUCCESS(Call(sendBuff, recvBuff)))
+	if (NT_SUCCESS(Call(sendBuff, recvBuff, NULL)))
 	{
 		if (NT_SUCCESS(resHeader->Status)) {
 			recvBuff.SetPosition(sizeof(MSG_HEADER));
@@ -127,7 +127,7 @@ uint32 CAlpcPortClient::GetServerPID() const
 	return m->dwServerPid;
 }
 
-STATUS CAlpcPortClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff)
+STATUS CAlpcPortClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff, SCallParams* pParams)
 {
 	if (!m->PortHandle) {
 		if (!m_AutoConnect)

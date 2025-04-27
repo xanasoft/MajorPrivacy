@@ -148,7 +148,7 @@ uint32 CPipeClient::GetServerPID() const
 	return m->dwServerPid;
 }
 
-STATUS CPipeClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff)
+STATUS CPipeClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff, SCallParams* pParams)
 {
 	if (!m->pPipe) {
 		if (!m_AutoConnect)
@@ -165,7 +165,7 @@ STATUS CPipeClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff)
 	STATUS Status = m->pPipe->WritePacket(sendBuff);
 
 	HANDLE Events[] = { m->hEvent, m->hThread };
-	DWORD Ret = WaitForMultipleObjects(2, Events, FALSE, 100*1000);
+	DWORD Ret = WaitForMultipleObjects(2, Events, FALSE, pParams ? pParams->TimeOut : 100*1000);
 	if (Ret != WAIT_OBJECT_0) // if not hEvent then the thread died
 	{
 		Disconnect();

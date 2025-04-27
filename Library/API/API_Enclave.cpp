@@ -24,6 +24,8 @@ void CEnclave::WriteIVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 	Enclave.Write(API_V_EXEC_ON_SPAWN, (uint32)m_OnSpawn);
 	Enclave.Write(API_V_IMAGE_LOAD_PROTECTION, m_ImageLoadProtection);
 
+	Enclave.Write(API_V_INTEGRITY_LEVEL, (uint32)m_IntegrityLevel);
+
 	Enclave.Write(API_V_ALLOW_DEBUGGING, m_AllowDebugging);
 	Enclave.Write(API_V_KEEP_ALIVE, m_KeepAlive);
 
@@ -49,6 +51,8 @@ void CEnclave::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_EXEC_ON_TRUSTED_SPAWN: m_OnTrustedSpawn = (EProgramOnSpawn)Data.To<uint32>(); break;
 	case API_V_EXEC_ON_SPAWN: m_OnSpawn = (EProgramOnSpawn)Data.To<uint32>(); break;
 	case API_V_IMAGE_LOAD_PROTECTION: m_ImageLoadProtection = Data.To<bool>(); break;
+
+	case API_V_INTEGRITY_LEVEL: m_IntegrityLevel = (EIntegrityLevel)Data.To<uint32>(); break;
 
 	case API_V_ALLOW_DEBUGGING:	m_AllowDebugging = Data.To<bool>(); break;
 	case API_V_KEEP_ALIVE:	m_KeepAlive = Data.To<bool>(); break;
@@ -105,6 +109,16 @@ void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 	}
 
 	Enclave.Write(API_S_IMAGE_LOAD_PROTECTION, m_ImageLoadProtection);
+
+	switch (m_IntegrityLevel)
+	{
+	case EIntegrityLevel::eUntrusted:	Enclave.Write(API_S_INTEGRITY_LEVEL, API_S_INTEGRITY_LEVEL_UNTRUSTED); break;
+	case EIntegrityLevel::eLow:			Enclave.Write(API_S_INTEGRITY_LEVEL, API_S_INTEGRITY_LEVEL_LOW); break;
+	case EIntegrityLevel::eMedium:		Enclave.Write(API_S_INTEGRITY_LEVEL, API_S_INTEGRITY_LEVEL_MEDIUM); break;
+	case EIntegrityLevel::eMediumPlus:	Enclave.Write(API_S_INTEGRITY_LEVEL, API_S_INTEGRITY_LEVEL_MEDIUM_PLUS); break;
+	case EIntegrityLevel::eHigh:		Enclave.Write(API_S_INTEGRITY_LEVEL, API_S_INTEGRITY_LEVEL_HIGH); break;
+	case EIntegrityLevel::eSystem:		Enclave.Write(API_S_INTEGRITY_LEVEL, API_S_INTEGRITY_LEVEL_SYSTEM); break;
+	}
 
 	Enclave.Write(API_S_ALLOW_DEBUGGING, m_AllowDebugging);
 	Enclave.Write(API_S_KEEP_ALIVE, m_KeepAlive);
@@ -169,6 +183,17 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 	}
 
 	else if (VAR_TEST_NAME(Name, API_S_IMAGE_LOAD_PROTECTION))	m_ImageLoadProtection = Data.To<bool>();
+
+	else if (VAR_TEST_NAME(Name, API_S_INTEGRITY_LEVEL))
+	{
+		ASTR IntegrityLevel = Data;
+		if (IntegrityLevel == API_S_INTEGRITY_LEVEL_UNTRUSTED)			m_IntegrityLevel = EIntegrityLevel::eUntrusted;
+		else if (IntegrityLevel == API_S_INTEGRITY_LEVEL_LOW)			m_IntegrityLevel = EIntegrityLevel::eLow;
+		else if (IntegrityLevel == API_S_INTEGRITY_LEVEL_MEDIUM)		m_IntegrityLevel = EIntegrityLevel::eMedium;
+		else if (IntegrityLevel == API_S_INTEGRITY_LEVEL_MEDIUM_PLUS)	m_IntegrityLevel = EIntegrityLevel::eMediumPlus;
+		else if (IntegrityLevel == API_S_INTEGRITY_LEVEL_HIGH)			m_IntegrityLevel = EIntegrityLevel::eHigh;
+		else if (IntegrityLevel == API_S_INTEGRITY_LEVEL_SYSTEM)		m_IntegrityLevel = EIntegrityLevel::eSystem;
+	}
 
 	else if (VAR_TEST_NAME(Name, API_S_ALLOW_DEBUGGING))		m_AllowDebugging = Data.To<bool>();
 	else if (VAR_TEST_NAME(Name, API_S_KEEP_ALIVE))			m_KeepAlive = Data.To<bool>();

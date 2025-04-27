@@ -25,6 +25,7 @@ public:
 
 	uint64 GetProcessId() const { std::shared_lock Lock(m_Mutex); return m_Pid; }
 	uint64 GetParentId() const { std::shared_lock Lock(m_Mutex); return m_ParentPid; }
+	uint64 GetCreatorId() const { std::shared_lock Lock(m_Mutex); return m_CreatorPid; }
 	SProcessUID GetProcessUID() const { std::shared_lock Lock(m_Mutex); return SProcessUID(m_Pid, m_CreateTimeStamp); }
 	std::wstring GetName() const { std::shared_lock Lock(m_Mutex); return m_Name; }
 	std::wstring GetNtFilePath() const { std::shared_lock Lock(m_Mutex); return m_NtFilePath; }
@@ -102,6 +103,7 @@ protected:
 
 	uint64 m_Pid = -1;
 	uint64 m_ParentPid = -1;
+	uint64 m_CreatorPid = -1;
 	uint64 m_CreationTime = 0;
 	//uint64 m_SeqNr = -1;
 	//uint64 m_ParentSeqNr = -1;

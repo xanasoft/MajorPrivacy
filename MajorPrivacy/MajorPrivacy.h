@@ -122,6 +122,8 @@ private slots:
 	void				OnShowHide();
 	void				OnSysTray(QSystemTrayIcon::ActivationReason Reason);
 
+	void				OnUnloadProtection();
+
 	void				OnProtectConfig();
 	void				OnUnprotectConfig();
 	void				OnUnlockConfig();
@@ -267,6 +269,7 @@ private:
 	QAction*			m_pCreateVolume = nullptr;
 
 	QMenu*				m_pSecurity = nullptr;
+	QAction*			m_pUnloadProtection = nullptr;
 	QAction*			m_pProtectConfig = nullptr;
 	QAction*			m_pUnprotectConfig = nullptr;
 	QAction*			m_pUnlockConfig = nullptr;

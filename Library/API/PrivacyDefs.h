@@ -44,6 +44,18 @@ enum class EProgramOnSpawn // API_S_EXEC_ON_SPAWN
 	eEject
 };
 
+enum class EIntegrityLevel
+{
+	eUnknown = -1,
+	eUntrusted = 0,
+	eLow,
+	eMedium,
+	eMediumPlus,
+	eHigh,
+	eSystem
+};
+
+
 #ifndef KERNEL_MODE // todo
 enum KPH_VERIFY_AUTHORITY // API_S_... TODO
 {

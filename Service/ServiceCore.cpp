@@ -33,6 +33,10 @@ CServiceCore* theCore = NULL;
 
 FW::DefaultMemPool g_DefaultMemPool;
 
+extern BOOLEAN				 g_UnloadProtection;
+extern SERVICE_STATUS        g_ServiceStatus;
+extern SERVICE_STATUS_HANDLE g_ServiceStatusHandle;
+
 CServiceCore::CServiceCore()
 	: m_Pool(4)
 {
@@ -162,60 +166,52 @@ STATUS CServiceCore::InitDriver()
 
 	if ((DrvState & SVC_INSTALLED) == 0)
 	{
-		uint32 TraceLogLevel = m_pConfig->GetInt("Driver", "TraceLogLevel", 0);
-		STATUS Status = m_pDriver->InstallDrv(TraceLogLevel);
-		if (Status) 
-		{
-			CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
-			DWORD disposition;
-			if (RegCreateKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, NULL, 0, KEY_WRITE, NULL, &hKey, &disposition) == ERROR_SUCCESS)
-			{
-				CBuffer Buffer;
-				if (ReadFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", Buffer))
-				{
-					StVariant DriverData;
-					//try {
-					auto ret = DriverData.FromPacket(&Buffer, true);
-
-					StVariant ConfigData = DriverData[API_S_CONFIG];
-					CBuffer ConfigBuff;
-					ConfigData.ToPacket(&ConfigBuff);
-
-					RegSet(hKey, L"Config", L"Data", StVariant(ConfigBuff));
-					if (DriverData.Has(API_S_USER_KEY))
-					{
-						StVariant UserKey = DriverData[API_S_USER_KEY];
-						RegSet(hKey, L"UserKey", L"PublicKey", UserKey[API_S_PUB_KEY]);
-						if (UserKey.Has(API_S_KEY_BLOB)) RegSet(hKey, L"UserKey", L"KeyBlob", UserKey[API_S_KEY_BLOB]);
-					}
-					//}
-					//catch (const CException&) {
-					if (ret != StVariant::eErrNone)
-						Status = ERR(STATUS_UNSUCCESSFUL);
-					//}
-				}
-				else // todo: remove fix for 0.97.0 driver failing when no config is found
-				{
-					StVariantWriter ConfigWriter;
-					ConfigWriter.BeginMap();
-					StVariant ConfigData = ConfigWriter.Finish();
-					CBuffer ConfigBuff;
-					ConfigData.ToPacket(&ConfigBuff);
-					RegSet(hKey, L"Config", L"Data", StVariant(ConfigBuff));
-				}
-			}
-		}
-		if (Status.IsError()) {
-			theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to install driver, error: 0x%08X", Status.GetStatus());
-			return Status;
-		}
+		InstallDriver();
 	}
 
 	//
 	// Connect to the driver, its started when not running
 	//
 
-	return m_pDriver->ConnectDrv();
+	STATUS Status = m_pDriver->ConnectDrv();
+	if(Status.IsError())
+		return Status;
+
+	g_UnloadProtection = m_pDriver->GetConfigBool("UnloadProtection", false);
+	if (g_UnloadProtection)
+	{
+		m_pDriver->AcquireUnloadProtection();
+
+		if (g_ServiceStatusHandle) {
+			g_ServiceStatus.dwControlsAccepted = 0;
+			SetServiceStatus(g_ServiceStatusHandle, &g_ServiceStatus);
+		}
+	}
+
+	return OK;
+}
+
+STATUS CServiceCore::PrepareShutdown()
+{
+	LONG UnloadProtectionCount = 0;
+	if (g_UnloadProtection) 
+	{
+		UnloadProtectionCount = m_pDriver->ReleaseUnloadProtection();
+
+		if (g_ServiceStatusHandle) {
+			g_ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
+			SetServiceStatus(g_ServiceStatusHandle, &g_ServiceStatus);
+		}
+
+		g_UnloadProtection = FALSE;
+	}
+
+	if (UnloadProtectionCount > 1 && theCore->m_bEngineMode)
+	{
+		// todo kill all protected processes
+	}
+
+	return OK;
 }
 
 void CServiceCore::CloseDriver()
@@ -224,44 +220,101 @@ void CServiceCore::CloseDriver()
 
 	if (theCore->m_bEngineMode)
 	{
-		KillService(API_DRIVER_NAME);
-
-		for (;;) {
-			SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
-			if ((SvcState & SVC_RUNNING) == SVC_RUNNING) {
-				Sleep(100);
-				continue;
-			}
-			break;
-		}
-
-		CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
-		if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, KEY_READ, &hKey) == ERROR_SUCCESS)
-		{
-			StVariant Config = RegQuery(hKey, L"Config", L"Data");
-			CBuffer ConfigBuff = Config;
-			StVariant ConfigData;
-			ConfigData.FromPacket(&ConfigBuff, true);
-
-			StVariant KeyBlob = RegQuery(hKey, L"UserKey", L"KeyBlob");
-			StVariant PublicKey = RegQuery(hKey, L"UserKey", L"PublicKey");
-
-			StVariant DriverData;
-			DriverData[API_S_CONFIG] = ConfigData;
-			if (PublicKey.GetSize() > 0) {
-				StVariant UserKey;
-				UserKey[API_S_PUB_KEY] = PublicKey;
-				if (KeyBlob.GetSize() > 0) UserKey[API_S_KEY_BLOB] = KeyBlob;
-				DriverData[API_S_USER_KEY] = UserKey;
-			}
-
-			CBuffer Buffer;
-			DriverData.ToPacket(&Buffer);
-			WriteFile(theCore->GetDataFolder() + L"\\KernelIsolator.dat", Buffer);
-
-			RemoveService(API_DRIVER_NAME);
-		}
+		RemoveDriver();
 	}
+}
+
+STATUS CServiceCore::InstallDriver()
+{
+	STATUS Status = CDriverAPI::InstallDrv();
+	if (!Status)
+		return Status;
+	
+	CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
+	DWORD disposition;
+	if (RegCreateKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, NULL, 0, KEY_WRITE, NULL, &hKey, &disposition) != ERROR_SUCCESS)
+		return ERR(STATUS_UNSUCCESSFUL);
+	
+	std::wstring DataFolder = CConfigIni::GetAppDataFolder() + L"\\" + GROUP_NAME + L"\\" + APP_NAME;
+
+	CBuffer Buffer;
+	if (ReadFile(DataFolder + L"\\KernelIsolator.dat", Buffer))
+	{
+		StVariant DriverData;
+		//try {
+		auto ret = DriverData.FromPacket(&Buffer, true);
+
+		StVariant ConfigData = DriverData[API_S_CONFIG];
+		CBuffer ConfigBuff;
+		ConfigData.ToPacket(&ConfigBuff);
+
+		RegSet(hKey, L"Config", L"Data", StVariant(ConfigBuff));
+		if (DriverData.Has(API_S_USER_KEY))
+		{
+			StVariant UserKey = DriverData[API_S_USER_KEY];
+			RegSet(hKey, L"UserKey", L"PublicKey", UserKey[API_S_PUB_KEY]);
+			if (UserKey.Has(API_S_KEY_BLOB)) RegSet(hKey, L"UserKey", L"KeyBlob", UserKey[API_S_KEY_BLOB]);
+		}
+		//}
+		//catch (const CException&) {
+		if (ret != StVariant::eErrNone)
+			Status = ERR(STATUS_UNSUCCESSFUL);
+		//}
+	}
+	// else file not found thats ok means first start
+
+	return OK;
+}
+
+STATUS CServiceCore::RemoveDriver()
+{
+	//KillService(API_DRIVER_NAME);
+
+	for (int i=0; i < 10; i++) 
+	{
+		SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
+		if ((SvcState & SVC_RUNNING) != SVC_RUNNING)
+			break;
+		
+		UNICODE_STRING uni;
+		RtlInitUnicodeString(&uni, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\" API_DRIVER_NAME);
+		NtUnloadDriver(&uni);
+
+		Sleep((i+1) * 100);
+	}
+
+	SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
+	if ((SvcState & SVC_RUNNING) == SVC_RUNNING)
+		return ERR(STATUS_UNSUCCESSFUL);
+
+	CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
+	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
+		return OK; // no key, nothing to do
+	
+	StVariant Config = RegQuery(hKey, L"Config", L"Data");
+	CBuffer ConfigBuff = Config;
+	StVariant ConfigData;
+	ConfigData.FromPacket(&ConfigBuff, true);
+
+	StVariant KeyBlob = RegQuery(hKey, L"UserKey", L"KeyBlob");
+	StVariant PublicKey = RegQuery(hKey, L"UserKey", L"PublicKey");
+
+	StVariant DriverData;
+	DriverData[API_S_CONFIG] = ConfigData;
+	if (PublicKey.GetSize() > 0) {
+		StVariant UserKey;
+		UserKey[API_S_PUB_KEY] = PublicKey;
+		if (KeyBlob.GetSize() > 0) UserKey[API_S_KEY_BLOB] = KeyBlob;
+		DriverData[API_S_USER_KEY] = UserKey;
+	}
+
+	std::wstring DataFolder = CConfigIni::GetAppDataFolder() + L"\\" + GROUP_NAME + L"\\" + APP_NAME;
+
+	CBuffer Buffer;
+	DriverData.ToPacket(&Buffer);
+	WriteFile(DataFolder + L"\\KernelIsolator.dat", Buffer);
+
+	return RemoveService(API_DRIVER_NAME);
 }
 
 DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)

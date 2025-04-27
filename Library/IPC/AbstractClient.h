@@ -1,9 +1,15 @@
 #pragma once
 #include "../Framework/Core/Types.h"
-#include "Status.h"
+#include "../Status.h"
 #include "../lib_global.h"
 #include "../Common/StVariant.h"
 #include "PortMessage.h"
+
+struct SCallParams
+{
+	ULONG TimeOut = 100*1000;
+	size_t RetBufferSize = 0x1000;
+};
 
 class LIBRARY_EXPORT CAbstractClient
 {
@@ -18,8 +24,8 @@ public:
 
 	virtual uint32 GetServerPID() const = 0;
 
-    virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff) = 0;
-    virtual RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message, size_t RetBufferSize = 0x1000)
+    virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff, SCallParams* pParams) = 0;
+    virtual RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message, SCallParams* pParams)
     {
 	    CBuffer sendBuff;
 	    sendBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
@@ -33,12 +39,13 @@ public:
 	    CBuffer recvBuff;
 	    STATUS Status;
 		PMSG_HEADER resHeader;
+		size_t RetBufferSize = pParams ? pParams->RetBufferSize : 0x1000;
 
 	retry:
 
 		recvBuff.AllocBuffer(RetBufferSize);
 
-		Status = Call(sendBuff, recvBuff);
+		Status = Call(sendBuff, recvBuff, pParams);
 		if (!Status || recvBuff.GetSize() == 0)
 			return Status;
 

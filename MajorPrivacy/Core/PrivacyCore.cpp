@@ -905,6 +905,21 @@ STATUS CPrivacyCore::SetSvcConfig(const QtVariant& Data)
 	return m_Service.Call(SVC_API_SET_CONFIG, Request);
 }
 
+//RESULT(QtVariant) CPrivacyCore::GetDrvConfig(const QString& Name)
+//{
+//	QtVariant Request;
+//	Request[API_V_KEY] = Name;
+//	RET_AS_XVARIANT(m_Driver.Call(API_GET_CONFIG_VALUE, Request), API_V_VALUE);
+//}
+//
+//STATUS CPrivacyCore::SetDrvConfig(const QString& Name, const QtVariant& Value)
+//{
+//	QtVariant Request;
+//	Request[API_V_KEY] = Name;
+//	Request[API_V_VALUE] = Value;
+//	return m_Driver.Call(API_SET_CONFIG_VALUE, Request);
+//}
+
 RESULT(QtVariant) CPrivacyCore::GetDrvConfig()
 {
 	QtVariant Request;

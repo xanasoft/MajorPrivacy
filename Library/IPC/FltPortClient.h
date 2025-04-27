@@ -27,7 +27,7 @@ public:
 
 	uint32 GetServerPID() const override { return 4; } // return SYSTEM pid
 
-	STATUS Call(const CBuffer& inBuff, CBuffer& outBuff);
+	STATUS Call(const CBuffer& inBuff, CBuffer& outBuff, SCallParams* pParams);
 
 //	bool RegisterHandler(uint32 MessageId, const std::function<uint32(uint32 msgId, const CBuffer* req, CBuffer* rpl)>& Handler) { 
 //		// todo: add section and lock
