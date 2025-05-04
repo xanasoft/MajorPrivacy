@@ -565,8 +565,8 @@ void CMajorPrivacy::BuildMenu()
 			m_pConnect = m_pMaintenanceItems->addAction(QIcon(":/Icons/Connect.png"), tr("Connect"), this, SLOT(OnMaintenance()));
 			m_pDisconnect = m_pMaintenanceItems->addAction(QIcon(":/Icons/Disconnect.png"), tr("Disconnect"), this, SLOT(OnMaintenance()));
 			m_pMaintenance->addSeparator();
-			m_pInstallService = m_pMaintenanceItems->addAction(QIcon(":/Icons/Install.png"), tr("Install Service"), this, SLOT(OnMaintenance()));
-			m_pRemoveService = m_pMaintenanceItems->addAction(QIcon(":/Icons/Stop.png"), tr("Remove Service"), this, SLOT(OnMaintenance()));
+			m_pInstallService = m_pMaintenanceItems->addAction(QIcon(":/Icons/Install.png"), tr("Install Services"), this, SLOT(OnMaintenance()));
+			m_pRemoveService = m_pMaintenanceItems->addAction(QIcon(":/Icons/Stop.png"), tr("Remove Services"), this, SLOT(OnMaintenance()));
 		
 		m_pMaintenance->addSeparator();
 		m_pOpenUserFolder = m_pMaintenance->addAction(QIcon(":/Icons/Folder.png"), tr("Open User Data Folder"), this, SLOT(OnMaintenance()));
@@ -865,8 +865,14 @@ void CMajorPrivacy::BuildGUI()
 			m_pTabBar->setTabToolTip(i, m_pTabBar->tabText(i));
 	}
 
-	OnStackPanels();
-	OnMergePanels();
+	m_pProgramSplitter->setOrientation(m_pStackPanels->isChecked() ? Qt::Vertical : Qt::Horizontal);
+	
+	m_ProcessPage->SetMergePanels(m_pMergePanels->isChecked());
+	m_EnclavePage->SetMergePanels(m_pMergePanels->isChecked());
+	m_AccessPage->SetMergePanels(m_pMergePanels->isChecked());
+	m_VolumePage->SetMergePanels(m_pMergePanels->isChecked());
+	m_NetworkPage->SetMergePanels(m_pMergePanels->isChecked());
+	m_DnsPage->SetMergePanels(m_pMergePanels->isChecked());
 
 	CreateTrayIcon();
 
@@ -1995,6 +2001,7 @@ void CMajorPrivacy::ResetPrompts()
 	theConf->DelValue("Options/WarnFolderProtection");
 	theConf->DelValue("Options/WarnTerminate");
 	theConf->DelValue("Options/WarnProtection");
+	theConf->DelValue("Options/WarnBreakingTweaks");
 }
 
 void CMajorPrivacy::OnMaintenance()

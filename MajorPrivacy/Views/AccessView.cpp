@@ -66,6 +66,8 @@ CAccessView::CAccessView(QWidget *parent)
 	pBtnSearch->setMaximumHeight(22);
 	m_pToolBar->addWidget(pBtnSearch);
 
+	m_pCopyPath = m_pMenu->addAction(tr("Copy Path"), this, SLOT(OnMenuAction()));
+
 	AddPanelItemsToMenu();
 
 	connect(theCore, SIGNAL(CleanUpDone()), this, SLOT(OnCleanUpDone()));
@@ -371,4 +373,23 @@ void CAccessView::OnCleanUpDone()
 	// refresh
 	m_CurPrograms.clear();
 	m_CurServices.clear();
+}
+
+void CAccessView::OnMenuAction()
+{
+	QAction* pAction = (QAction*)sender();
+
+	if (pAction == m_pCopyPath)
+	{
+		QStringList Paths;
+		foreach(const QModelIndex & Index, m_pTreeView->selectedRows())
+		{
+			QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
+			SAccessItemPtr pItem = m_pItemModel->GetItem(ModelIndex);
+			if (!pItem)
+				continue;
+			Paths.append(pItem->Path);
+		}
+		QApplication::clipboard()->setText(Paths.join("\n"));
+	}
 }

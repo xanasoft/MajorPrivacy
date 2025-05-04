@@ -243,18 +243,22 @@ enum class ESavePreset
 
 enum class ETweakStatus // API_S_TWEAK_STATUS
 {
+	eNotAvailable = -2, // tweak is not available
 	eGroup = -1,    // tweak is group
-	eNotSet = 0,    // tweak is not set
+	eNotSet = 0,    // tweak is not set and not applied
 	eApplied,       // tweak was not set by user but is applied
-	eSet,           // tweak is set
-	eMissing        // tweak was set but is not applied
+	eSet,           // tweak is set and applied
+	eMissing,       // tweak was set but is not applied
+	eIneffective,	// tweak is applied but is not effective
+	eCustom,		// tweak is not applied and the current value is not the default
 };
 
 enum class ETweakHint // API_S_TWEAK_HINT
 {
 	eNone = 0,
 	eRecommended,
-
+	eNotRecommended,
+	eBreaking,
 	eMax
 };
 
@@ -278,7 +282,7 @@ enum class ETweakType // API_S_TWEAK_TYPE
 	eGpo,
 	eSvc,
 	eTask,
-	eFS,
+	eRes,
 	eExec,
 	eFw,
 

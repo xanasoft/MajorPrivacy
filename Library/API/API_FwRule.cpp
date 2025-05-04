@@ -33,7 +33,7 @@ void CFwRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteEx(API_V_APP_NAME, TO_STR(M(PackageFamilyName)));
 
 #ifdef CFwRule
-    Rule.WriteVariant(API_V_PROG_ID, m_ProgramID.ToVariant(Opts));
+    Rule.WriteVariant(API_V_ID, m_ProgramID.ToVariant(Opts));
 
     Rule.WriteEx(API_V_NAME, TO_STR(M(Name)));
 #endif
@@ -98,7 +98,7 @@ void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
     case API_V_APP_NAME: M(PackageFamilyName) = AS_STR(Data); break;
 
 #ifdef CFwRule
-    case API_V_PROG_ID: break; // set from actual data
+    case API_V_ID: break; // set from actual data
     case API_V_NAME: M(Name) = AS_STR(Data); break;
 #endif
     case API_V_RULE_GROUP: M(Grouping) = AS_STR(Data); break;
@@ -179,7 +179,7 @@ void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteEx(API_S_APP_NAME, TO_STR(M(PackageFamilyName)));
 
 #ifdef CFwRule
-    Rule.WriteVariant(API_S_PROG_ID, m_ProgramID.ToVariant(Opts));
+    Rule.WriteVariant(API_S_ID, m_ProgramID.ToVariant(Opts));
 
     Rule.WriteEx(API_S_NAME, TO_STR(M(Name)));
 #endif
@@ -278,7 +278,7 @@ void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
         M(PackageFamilyName) = AS_STR(Data);
 
 #ifdef CFwRule
-    else if (VAR_TEST_NAME(Name, API_S_PROG_ID))
+    else if (VAR_TEST_NAME(Name, API_S_ID))
         ; // set from actual data
     else if (VAR_TEST_NAME(Name, API_S_NAME))
         M(Name) = AS_STR(Data);

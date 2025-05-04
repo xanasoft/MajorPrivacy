@@ -87,9 +87,9 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 	qint32 FilterAction = m_pCmbAction->currentData().toInt();
 
 	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_CurServices != Services 
-	 //|| m_FilterRole != FilterRole 
-	 //|| m_FilterAction != FilterAction 
-	 //|| m_FilterAll != m_pBtnAll->isChecked()
+	 || m_FilterRole != FilterRole 
+	 || m_FilterAction != FilterAction 
+	 || m_FilterAll != m_pBtnAll->isChecked()
 	 || m_RecentLimit != theGUI->GetRecentLimit()) 
 	{
 		m_CurPrograms = Programs;

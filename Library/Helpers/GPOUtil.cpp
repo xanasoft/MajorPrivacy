@@ -23,17 +23,15 @@ CGPO::~CGPO()
     delete m;
 }
 
-bool CGPO::Open(bool bWritable)
+HRESULT CGPO::OpenGPO(bool bWritable)
 {
     if (!SUCCEEDED(CoCreateInstance(CLSID_GroupPolicyObject, NULL, CLSCTX_INPROC_SERVER, IID_IGroupPolicyObject, (LPVOID*)&m->pGPO))) 
-        return false;
+        return S_FALSE;
 
     DWORD dwFlags = GPO_OPEN_LOAD_REGISTRY;
     if (!bWritable) 
         dwFlags = GPO_OPEN_READ_ONLY;
-    if (!SUCCEEDED(m->pGPO->OpenLocalMachineGPO(dwFlags))) 
-        return false;
-    return true;
+    return m->pGPO->OpenLocalMachineGPO(dwFlags);
 }
 
 HKEY CGPO::GetUserRoot()
@@ -52,10 +50,10 @@ HKEY CGPO::GetMachineRoot()
     return hKey;
 }
 
-bool CGPO::Save()
+HRESULT CGPO::SaveGPO()
 {
     if (!m->pGPO)
-        return false;
+        return S_FALSE;
 
     GUID RegistryId = REGISTRY_EXTENSION_GUID;
 
@@ -68,12 +66,30 @@ bool CGPO::Save()
     };
 
     HRESULT hr;
-    bool bOk = true;
-    hr = m->pGPO->Save(TRUE, TRUE, &RegistryId, &MyRandomGuid);
-    if (!SUCCEEDED(hr)) bOk = false;
-    hr = m->pGPO->Save(FALSE, TRUE, &RegistryId, &MyRandomGuid);
-    if (!SUCCEEDED(hr)) bOk = false;
-    return bOk;
+    // machine
+    for (int i = 0; i < 5; i++) {
+        hr = m->pGPO->Save(TRUE, TRUE, &RegistryId, &MyRandomGuid);
+        if (hr == HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION)) {
+			Sleep(100 * (i+1));
+			continue;
+        }
+        break;
+    }
+    if (!SUCCEEDED(hr)) 
+        return hr;
+    // user
+    for (int i = 0; i < 5; i++) {
+        hr = m->pGPO->Save(FALSE, TRUE, &RegistryId, &MyRandomGuid);
+        if (hr == HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION)) {
+            Sleep(100 * (i+1));
+            continue;
+        }
+        break;
+    }
+    if (!SUCCEEDED(hr)) 
+        return hr;
+    // all ok
+    return S_OK;
 }
 
 void CGPO::Close()

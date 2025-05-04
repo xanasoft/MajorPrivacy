@@ -67,5 +67,5 @@
 #define PROG_SVC
 #include "../../Library/API/API_Programs.cpp"
 
-#define TWEAKS_WO
+#define TWEAK_SVC
 #include "../../Library/API/API_Tweak.cpp"

@@ -271,5 +271,11 @@
         <file>Icons/Enclave2.png</file>
         <file>Icons/CertDB.png</file>
         <file>Icons/CertDB1.png</file>
+        <file>Icons/Telemetry.png</file>
+        <file>Icons/MsOffice.png</file>
+        <file>Icons/VisualStudio.png</file>
+        <file>Icons/MsStore.png</file>
+        <file>Icons/Telemetry2.png</file>
+        <file>Icons/Telemetry3.png</file>
     </qresource>
 </RCC>

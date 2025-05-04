@@ -16,16 +16,30 @@ public:
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;
-	void					OnDoubleClicked(const QModelIndex& Index) override;
+	//void					OnDoubleClicked(const QModelIndex& Index) override;
 
 private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
 
+	void					OnRefresh();
+
+	void					OnApprove();
+	void					OnRestore();
+
 	void					OnCheckChanged(const QModelIndex& Index, bool State);
+
+protected:
+	CTweakPtr				m_pRoot;
 
 private:
 
-	QToolBar*				m_pToolBar;
+	QToolBar*				m_pToolBar = nullptr;
+	QToolButton*			m_pBtnRefresh = nullptr;
+	QToolButton*			m_pBtnHidden = nullptr;
+	QToolButton*			m_pBtnApprove = nullptr;
+	QToolButton*			m_pBtnRestore = nullptr;
+	QToolButton*			m_pBtnExpand = nullptr;
 
+	quint64					m_uRefreshPending = 0;
 };

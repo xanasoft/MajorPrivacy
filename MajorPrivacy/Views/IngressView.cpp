@@ -108,11 +108,11 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 	qint32 FilterOperation = m_pCmbOperation->currentData().toInt();
 
 	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_CurServices != Services 
-	 //|| m_FilterRole != FilterRole 
-	 //|| m_FilterAction != FilterAction 
-	 //|| m_FilterOperation != FilterOperation
-	 //|| m_FilterPrivate != !m_pBtnPrivate->isChecked()
-	 //|| m_FilterAll != m_pBtnAll->isChecked()
+	 || m_FilterRole != FilterRole 
+	 || m_FilterAction != FilterAction 
+	 || m_FilterOperation != FilterOperation
+	 || m_FilterPrivate != !m_pBtnPrivate->isChecked()
+	 || m_FilterAll != m_pBtnAll->isChecked()
 	 || m_RecentLimit != theGUI->GetRecentLimit()) 
 	{
 		m_CurPrograms = Programs;

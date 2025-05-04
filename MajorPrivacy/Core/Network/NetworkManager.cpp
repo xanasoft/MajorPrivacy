@@ -28,7 +28,7 @@ bool CNetworkManager::UpdateAllFwRules(bool bReLoad)
 		Guid.FromVariant(Rule[API_V_GUID]);
 
 		CProgramID ID;
-		ID.FromVariant(Rule[API_V_PROG_ID]);
+		ID.FromVariant(Rule[API_V_ID]);
 
 		CFwRulePtr pRule = OldRules.value(Guid);
 		if (pRule) {
@@ -70,7 +70,7 @@ bool CNetworkManager::UpdateFwRule(const QFlexGuid& Guid)
 	QString RuleID = Rule[API_V_GUID].AsQStr();
 
 	CProgramID ID;
-	ID.FromVariant(Rule[API_V_PROG_ID]);
+	ID.FromVariant(Rule[API_V_ID]);
 
 	CFwRulePtr pRule = m_FwRules.value(RuleID);
 	if (pRule) {
@@ -167,7 +167,7 @@ STATUS CNetworkManager::SetFwRule(const CFwRulePtr& pRule)
 //	QtVariant& Rule = Ret.GetValue();
 //
 //	CProgramID ID;
-//	ID.FromVariant(Rule[API_V_PROG_ID]);
+//	ID.FromVariant(Rule[API_V_ID]);
 //
 //	CFwRulePtr pRule = CFwRulePtr(new CFwRule(ID));
 //	pRule->FromVariant(Rule);
@@ -198,7 +198,7 @@ bool CNetworkManager::UpdateAllDnsRules()
 		Guid.FromVariant(Rule[API_V_GUID]);
 
 		//CProgramID ID;
-		//ID.FromVariant(Rule[API_V_PROG_ID]);
+		//ID.FromVariant(Rule[API_V_ID]);
 
 		CDnsRulePtr pRule = OldRules.value(Guid);
 		if (pRule) {

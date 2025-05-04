@@ -7,8 +7,6 @@ CAccessRule::CAccessRule(const CProgramID& ID)
 	: CGenericRule(ID)
 {
 	m_ProgramPath = ID.GetFilePath();
-	if(!m_ProgramPath.empty()) 
-		m_ProgramPath = m_ProgramPath;
 }
 
 CAccessRule::~CAccessRule()

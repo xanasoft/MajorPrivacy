@@ -43,6 +43,10 @@
 #define STR2(X) #X
 #define STR(X) STR2(X)
 
+// Preprocessor macro to convert to wchar_t*
+#define WIDEN2(x) L ## x
+#define WIDEN(x) WIDEN2(x)
+
 
 #ifndef ARRAYSIZE
 #define ARRAYSIZE(x)		(sizeof(x)/sizeof(x[0]))
@@ -60,5 +64,5 @@
 #ifdef _DEBUG
 #define ASSERT(x)	if(!(x)) __debugbreak();
 #else
-#define ASSERT(x)
+#define ASSERT(x)   ;
 #endif

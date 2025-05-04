@@ -1296,6 +1296,45 @@ void CProgramManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEve
 	theCore->BroadcastMessage(SVC_API_EVENT_EXEC_RULE_CHANGED, vEvent);
 }
 
+std::map<CFlexGuid, CProgramRulePtr> CProgramManager::GetAllRules()
+{
+	std::unique_lock lock(m_RulesMutex); 
+	return m_Rules;
+}
+
+CProgramRulePtr CProgramManager::GetRule(const CFlexGuid& Guid)
+{
+	std::unique_lock Lock(m_RulesMutex);
+	auto F = m_Rules.find(Guid);
+	if (F != m_Rules.end())
+		return F->second;
+	return nullptr;
+}
+
+RESULT(std::wstring) CProgramManager::AddRule(const CProgramRulePtr& pRule)
+{
+	SVarWriteOpt Opts;
+	Opts.Flags = SVarWriteOpt::eTextGuids;
+
+	StVariant Request = pRule->ToVariant(Opts);
+	auto Res = theCore->Driver()->Call(API_SET_PROGRAM_RULE, Request);
+	//if (Res.IsSuccess()) // will be done by the notification event
+	//	UpdateRule(pRule, pRule->GetGuid());
+	if(Res.IsError())
+		return ERR(Res.GetStatus());
+	RETURN(Res.GetValue().AsStr());
+}
+
+STATUS CProgramManager::RemoveRule(const CFlexGuid& Guid)
+{
+	StVariant Request;
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	auto Res = theCore->Driver()->Call(API_DEL_ACCESS_RULE, Request);
+	//if (Res.IsSuccess()) // will be done by the notification event
+	//	UpdateRule(nullptr, Guid);
+	return Res;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Load/Store
 
@@ -1346,7 +1385,7 @@ STATUS CProgramManager::Load()
 		const StVariant& Item = Programs[i];
 
 		//CProgramID ID;
-		//ID.FromVariant(Item.Find(API_S_PROG_ID));
+		//ID.FromVariant(Item.Find(API_S_ID));
 
 		CProgramItemPtr pItem;
 
@@ -1413,7 +1452,7 @@ STATUS CProgramManager::Load()
 		}
 		else if (Type == EProgramType::eProgramGroup)
 		{
-			StVariant ID = IsMap ? Reader.Find(API_S_PROG_ID) : Reader.Find(API_V_PROG_ID);
+			StVariant ID = IsMap ? Reader.Find(API_S_ID) : Reader.Find(API_V_ID);
 			std::wstring Guid = IsMap ? StVariantReader(ID).Find(API_S_APP_SID) : StVariantReader(ID).Find(API_V_APP_SID);
 			std::wstring Key = MkLower(Guid);
 			CProgramGroupPtr& pGroup = m_GroupMap[Key];
@@ -1440,7 +1479,7 @@ STATUS CProgramManager::Load()
 			std::list<CProgramID> ItemIDs;
 			StVariantReader(Items).ReadRawList([&](const StVariant& vData) {
 				CProgramID ID;
-				if (ID.FromVariant((vData.GetType() == VAR_TYPE_MAP) ? StVariantReader(vData).Find(API_S_PROG_ID) : StVariantReader(vData).Find(API_V_PROG_ID))) {
+				if (ID.FromVariant((vData.GetType() == VAR_TYPE_MAP) ? StVariantReader(vData).Find(API_S_ID) : StVariantReader(vData).Find(API_V_ID))) {
 					if(ID == pSet->GetID())
 						return;
 					ItemIDs.push_back(ID);

@@ -16,5 +16,6 @@ public:
 	CTweakPtr GetRoot();
 
 protected:
-	CTweakPtr m_pRoot;
+	QSharedPointer<CTweakList> m_pRoot;
+	QMap<QString, CTweakPtr> m_Map;
 };

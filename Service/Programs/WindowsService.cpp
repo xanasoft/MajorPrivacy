@@ -133,7 +133,7 @@ StVariant CWindowsService::StoreIngress(const SVarWriteOpt& Opts) const
 
 	StVariantWriter Data;
 	Data.BeginIndex();
-	Data.WriteVariant(API_V_PROG_ID, m_ID.ToVariant(Opts));
+	Data.WriteVariant(API_V_ID, m_ID.ToVariant(Opts));
 	Data.WriteVariant(API_V_PROG_EXEC_CHILDREN, ExecChildren.Finish());
 	Data.WriteVariant(API_V_PROG_INGRESS_TARGETS, IngressTargets.Finish());
 	return Data.Finish();
@@ -148,7 +148,7 @@ void CWindowsService::LoadIngress(const StVariant& Data)
 StVariant CWindowsService::StoreAccess(const SVarWriteOpt& Opts) const
 {
 	StVariant Data;
-	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
+	Data[API_V_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts);
 	return Data;
 }
@@ -168,7 +168,7 @@ StVariant CWindowsService::StoreTraffic(const SVarWriteOpt& Opts) const
 	std::unique_lock lock(m_Mutex);
 
 	StVariant Data;
-	Data[API_V_PROG_ID] = m_ID.ToVariant(Opts);
+	Data[API_V_ID] = m_ID.ToVariant(Opts);
 	Data[API_V_TRAFFIC_LOG] = m_TrafficLog.StoreTraffic(Opts);
 	return Data;
 

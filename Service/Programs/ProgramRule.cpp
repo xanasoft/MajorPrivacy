@@ -5,7 +5,7 @@
 CProgramRule::CProgramRule(const CProgramID& ID)
 	: CGenericRule(ID)
 {
-
+	m_ProgramPath = ID.GetFilePath();
 }
 
 CProgramRule::~CProgramRule()

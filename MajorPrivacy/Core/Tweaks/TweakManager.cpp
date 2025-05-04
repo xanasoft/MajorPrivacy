@@ -6,12 +6,14 @@
 CTweakManager::CTweakManager(QObject* parent)
 	: QObject(parent)
 {
-	m_pRoot = CTweakPtr(new CTweakList());
 }
 
 CTweakPtr CTweakManager::GetRoot() 
 {
-	Update();
+	if (!m_pRoot) {
+		m_pRoot = QSharedPointer<CTweakList>(new CTweakList());
+		Update();
+	}
 
 	return m_pRoot; 
 }
@@ -24,15 +26,52 @@ void CTweakManager::Update()
 
 	QtVariant& Tweaks = Ret.GetValue();
 
-	m_pRoot->FromVariant(Tweaks);
+	m_pRoot = QSharedPointer<CTweakList>(new CTweakList());
+	m_Map.clear();
+
+	QtVariantReader(Tweaks).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& Tweak = *(QtVariant*)&vData;
+
+		QtVariantReader Reader(Tweak);
+
+		QString Id = Reader.Find(API_V_TWEAK_ID).AsQStr();
+
+		CTweakPtr pTweak;
+		ETweakType Type = (ETweakType)Reader.Find(API_V_TWEAK_TYPE).To<uint32>();
+		if (Type == ETweakType::eGroup)		pTweak = CTweakPtr(new CTweakGroup());
+		else if (Type == ETweakType::eSet)	pTweak = CTweakPtr(new CTweakSet());
+		else								pTweak = CTweakPtr(new CTweak(Type));
+
+		pTweak->FromVariant(Tweak);
+
+		pTweak->SetStatus((ETweakStatus)Reader.Find(API_V_TWEAK_STATUS).To<uint32>()); 
+
+		m_Map[pTweak->GetId()] = pTweak;
+
+		if (!pTweak->GetParentId().isEmpty()) {
+			QSharedPointer<CTweakList> pParent;
+			auto F = m_Map.find(pTweak->GetParentId());
+			if (F != m_Map.end())
+				pParent = F.value().objectCast<CTweakList>();
+			ASSERT(pParent);
+			if (pParent) {
+				pParent->AddTweak(pTweak);
+				if(QSharedPointer<CTweak> TweakPtr = pTweak.objectCast<CTweak>())
+					TweakPtr->SetParent(pParent);
+				return;
+			}
+		}
+
+		m_pRoot->AddTweak(pTweak);
+	});
 }
 
 STATUS CTweakManager::ApplyTweak(const CTweakPtr& pTweak)
 {
-	return theCore->ApplyTweak(pTweak->GetName());
+	return theCore->ApplyTweak(pTweak->GetId());
 }
 
 STATUS CTweakManager::UndoTweak(const CTweakPtr& pTweak)
 {
-	return theCore->UndoTweak(pTweak->GetName());
+	return theCore->UndoTweak(pTweak->GetId());
 }

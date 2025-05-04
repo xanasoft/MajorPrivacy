@@ -14,7 +14,7 @@ public:
 
 	typedef CTweakPtr ItemType;
 
-	QList<QModelIndex> Sync(const CTweakPtr& pRoot);
+	QList<QModelIndex> Sync(const CTweakPtr& pRoot, bool bShowNotAvailable = false);
 
 	CTweakPtr		GetItem(const QModelIndex& index);
 
@@ -28,13 +28,14 @@ public:
 		eName = 0,
 		eStatus,
 		eType,
-		//eInfo,
+		eHint,
+		eInfo,
 		eCount
 	};
 
 protected:
 	
-	void Sync(const CTweakPtr& pTweak, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
+	void Sync(const CTweakPtr& pTweak, bool bShowNotAvailable, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
 
 	struct STweakNode : STreeNode
 	{

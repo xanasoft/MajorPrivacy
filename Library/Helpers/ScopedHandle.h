@@ -26,6 +26,8 @@ public:
 	inline operator T& ()		{ return m_handle; }
 	inline T* operator&()		{ ASSERT(!m_handle); return &m_handle;}
 
+	inline T operator->()		{ ASSERT(m_handle); return m_handle; }
+
 	explicit operator bool()	{ return m_handle != NULL; }
 
 private:

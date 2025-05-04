@@ -69,5 +69,5 @@
 #define PROG_GUI
 #include "../../Library/API/API_Programs.cpp"
 
-#define TWEAKS_RO
+#define TWEAK_GUI
 #include "../../Library/API/API_Tweak.cpp"

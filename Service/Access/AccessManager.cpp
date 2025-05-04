@@ -379,7 +379,7 @@ STATUS CAccessManager::Load()
 		StVariant Item = List[i];
 	
 		CProgramID ID;
-		if(!ID.FromVariant(StVariantReader(Item).Find(API_V_PROG_ID)))
+		if(!ID.FromVariant(StVariantReader(Item).Find(API_V_ID)))
 			continue;
 		CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
 		if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
@@ -408,7 +408,7 @@ STATUS CAccessManager::Store()
 		if (ePreset == ESavePreset::eDontSave || (ePreset == ESavePreset::eDefault && !bSave))
 			continue;
 
-		// StoreAccess saves API_V_PROG_ID
+		// StoreAccess saves API_V_ID
 		if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
 			List.WriteVariant(pProgram->StoreAccess(Opts));
 		else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))

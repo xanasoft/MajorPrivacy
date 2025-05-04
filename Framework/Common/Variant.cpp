@@ -249,10 +249,13 @@ CVariant::EResult CVariant::InitFromBuffer(CBuffer::SBuffer* pBuffer, size_t uSi
 {
 	m_Type = VAR_TYPE_BYTES;
 	m_uFlags = 0;
-	m_p.Buffer = pBuffer;
-	InterlockedIncrement(&m_p.Buffer->Refs);
-	m_uPayloadSize = (uint32)uSize;
-	m_bContainer = true;
+	if (pBuffer) {
+		m_p.Buffer = pBuffer;
+		InterlockedIncrement(&m_p.Buffer->Refs);
+		m_uPayloadSize = (uint32)uSize;
+		m_bContainer = true;
+	} else
+		m_uPayloadSize = 0;
 	return eErrNone;
 }
 
@@ -260,9 +263,12 @@ CVariant::EResult CVariant::InitFromStringA(FW::StringA::SStringData* pStrA, boo
 {
 	m_Type = bUtf8 ? VAR_TYPE_UTF8 : VAR_TYPE_ASCII;
 	m_uFlags = 0;
-	m_p.StrA = pStrA;
-	InterlockedIncrement(&m_p.StrA->Refs);
-	m_bContainer = true;
+	if (pStrA) {
+		m_p.StrA = pStrA;
+		InterlockedIncrement(&m_p.StrA->Refs);
+		m_bContainer = true;
+	} else
+		m_uPayloadSize = 0;
 	return eErrNone;
 }
 
@@ -270,9 +276,12 @@ CVariant::EResult CVariant::InitFromStringW(FW::StringW::SStringData* pStrW)
 {
 	m_Type = VAR_TYPE_UNICODE;
 	m_uFlags = 0;
-	m_p.StrW = pStrW;
-	InterlockedIncrement(&m_p.StrW->Refs);
-	m_bContainer = true;
+	if (pStrW) {
+		m_p.StrW = pStrW;
+		InterlockedIncrement(&m_p.StrW->Refs);
+		m_bContainer = true;
+	} else
+		m_uPayloadSize = 0;
 	return eErrNone;
 }
 

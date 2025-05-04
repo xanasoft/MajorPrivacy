@@ -10,17 +10,28 @@ public:
 
 	STATUS Init();
 
-	CTweakPtr GetRoot() const { std::unique_lock Lock(m_Mutex); return m_Root; }
+	STATUS Load();
+	STATUS Store();
 
-	STATUS ApplyTweak(const std::wstring& Name, ETweakMode Mode = ETweakMode::eDefault);
-	STATUS UndoTweak(const std::wstring& Name, ETweakMode Mode = ETweakMode::eDefault);
+	void CheckTweaks();
+
+	StVariant GetTweaks(const SVarWriteOpt& Opts, uint32 CallerPID) const;
+
+	STATUS ApplyTweak(const std::wstring& Id, uint32 CallerPID, ETweakMode Mode = ETweakMode::eDefault);
+	STATUS UndoTweak(const std::wstring& Id, uint32 CallerPID, ETweakMode Mode = ETweakMode::eDefault);
+	STATUS ApproveTweak(const std::wstring& Id, uint32 CallerPID);
+
+	bool AreTweaksDirty() const { return m_bTweaksDirty; }
+
+	class CGPO* GetLockedGPO();
+	void ReleaseGPO(class CGPO* pGPO);
 
 protected:
-	friend class CGpoTweak;
-	class CGPO* GetGPOLocked();
-
 	mutable std::mutex m_Mutex;
-	std::map<std::wstring, CTweakPtr> m_List;
-	CTweakPtr m_Root;
+	std::shared_ptr<CTweakList> m_pRoot;
+	std::map<std::wstring, CTweakPtr> m_Map;
 	class CGPO* m_pGPO = NULL;
+	std::mutex m_GPOMutex;
+
+	bool m_bTweaksDirty = false;
 };

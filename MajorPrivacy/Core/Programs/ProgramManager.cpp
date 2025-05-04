@@ -77,7 +77,7 @@ STATUS CProgramManager::Update()
 		if (!pItem) 
 		{
 			CProgramID ID;
-			ID.FromVariant(Reader.Find(API_V_PROG_ID));
+			ID.FromVariant(Reader.Find(API_V_ID));
 
 			EProgramType Type = (EProgramType)Reader.Find(API_V_PROG_TYPE).To<uint32>();
 			if (Type == EProgramType::eProgramFile)				pItem = CProgramItemPtr(new CProgramFile());

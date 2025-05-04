@@ -73,7 +73,7 @@ void CAccessLog::StoreAllExecParents(StVariantWriter& List, const CFlexGuid& Enc
 				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
 #endif
 				if (!pProg) continue;
-				vActor.WriteVariant(API_V_PROG_ID, pProg->GetID().ToVariant(Opts));
+				vActor.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts));
 			}
 			else {
 #ifdef DEF_USE_POOL
@@ -106,7 +106,7 @@ void CAccessLog::StoreAllExecParents(StVariantWriter& List, const CFlexGuid& Enc
 bool CAccessLog::LoadExecParent(const StVariant& vData)
 {
 	CProgramID ID;
-	ID.FromVariant(vData[API_V_PROG_ID]);
+	ID.FromVariant(vData[API_V_ID]);
 	CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
 	if (!pItem) return false;
 
@@ -205,7 +205,7 @@ void CAccessLog::StoreAllExecChildren(StVariantWriter& List, const CFlexGuid& En
 				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
 #endif
 				if (!pProg) continue;
-				vTarget.WriteVariant(API_V_PROG_ID, pProg->GetID().ToVariant(Opts));
+				vTarget.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts));
 			}
 			else {
 				vTarget.Write(API_V_PROCESS_REF, (uint64)&Entry);
@@ -238,7 +238,7 @@ void CAccessLog::StoreAllExecChildren(StVariantWriter& List, const CFlexGuid& En
 bool CAccessLog::LoadExecChild(const StVariant& vData)
 {
 	CProgramID ID;
-	ID.FromVariant(vData[API_V_PROG_ID]);
+	ID.FromVariant(vData[API_V_ID]);
 	CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
 	if (!pItem) return false;
 
@@ -336,7 +336,7 @@ void CAccessLog::StoreAllIngressActors(StVariantWriter& List, const CFlexGuid& E
 				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
 #endif
 				if (!pProg) continue;
-				vActor.WriteVariant(API_V_PROG_ID, pProg->GetID().ToVariant(Opts));
+				vActor.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts));
 			}
 			else {
 				vActor.Write(API_V_PROCESS_REF, (uint64)&Entry);
@@ -369,7 +369,7 @@ void CAccessLog::StoreAllIngressActors(StVariantWriter& List, const CFlexGuid& E
 bool CAccessLog::LoadIngressActor(const StVariant& vData)
 {
 	CProgramID ID;
-	ID.FromVariant(vData[API_V_PROG_ID]);
+	ID.FromVariant(vData[API_V_ID]);
 	CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
 	if (!pItem) return false;
 	
@@ -464,7 +464,7 @@ void CAccessLog::StoreAllIngressTargets(StVariantWriter& List, const CFlexGuid& 
 				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
 #endif
 				if (!pProg) continue;
-				vTarget.WriteVariant(API_V_PROG_ID, pProg->GetID().ToVariant(Opts));
+				vTarget.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts));
 			}
 			else {
 				vTarget.Write(API_V_PROCESS_REF, (uint64)&Entry);
@@ -498,7 +498,7 @@ void CAccessLog::StoreAllIngressTargets(StVariantWriter& List, const CFlexGuid& 
 bool CAccessLog::LoadIngressTarget(const StVariant& vData)
 {
 	CProgramID ID;
-	ID.FromVariant(vData[API_V_PROG_ID]);
+	ID.FromVariant(vData[API_V_ID]);
 	CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
 	if (!pItem) return false;
 	

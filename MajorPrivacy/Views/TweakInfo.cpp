@@ -26,7 +26,7 @@ CTweakInfo::CTweakInfo(QWidget *parent)
 	m_pName->setReadOnly(true);
 	pGroupLayout->addWidget(m_pName, row++, 1);
 
-	pGroupLayout->addWidget(new QLabel(tr("Description")), row, 0);
+	pGroupLayout->addWidget(new QLabel(tr("Summary")), row, 0);
 	m_pDescription = new QPlainTextEdit();
 	m_pDescription->setReadOnly(true);
 	pGroupLayout->addWidget(m_pDescription, row, 1, 2, 1);
@@ -64,8 +64,8 @@ void CTweakInfo::ShowTweak(const CTweakPtr& pTweak)
 	else
 		m_pDescription->setPlainText(pTweak->GetInfo());
 
-	m_pActivate->setEnabled(pTweak->GetStatus() != ETweakStatus::eSet && pTweak->GetStatus() != ETweakStatus::eApplied);
-	m_pDeactivate->setEnabled(pTweak->GetStatus() == ETweakStatus::eSet || pTweak->GetStatus() == ETweakStatus::eApplied);
+	//m_pActivate->setEnabled(pTweak->GetStatus() != ETweakStatus::eSet && pTweak->GetStatus() != ETweakStatus::eApplied);
+	//m_pDeactivate->setEnabled(pTweak->GetStatus() == ETweakStatus::eSet || pTweak->GetStatus() == ETweakStatus::eApplied);
 }
 
 void CTweakInfo::OnActivate()

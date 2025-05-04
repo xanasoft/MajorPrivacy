@@ -19,7 +19,7 @@ CTweakModel::~CTweakModel()
 	m_Root = NULL;
 }
 
-QList<QModelIndex>	CTweakModel::Sync(const CTweakPtr& pRoot)
+QList<QModelIndex>	CTweakModel::Sync(const CTweakPtr& pRoot, bool bShowNotAvailable)
 {
 	QList<QVariant> Added;
 #pragma warning(push)
@@ -30,16 +30,18 @@ QList<QModelIndex>	CTweakModel::Sync(const CTweakPtr& pRoot)
 
 	auto pList = pRoot.objectCast<CTweakList>();
 	foreach(const CTweakPtr& pTweak, pList->GetList())
-		Sync(pTweak, QList<QVariant>(), New, Old, Added);
+		Sync(pTweak, bShowNotAvailable, QList<QVariant>(), New, Old, Added);
 
 	QList<QModelIndex>	NewBranches;
 	CTreeItemModel::Sync(New, Old, &NewBranches);
 	return NewBranches;
 }
 
-void CTweakModel::Sync(const CTweakPtr& pTweak, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
+void CTweakModel::Sync(const CTweakPtr& pTweak, bool bShowNotAvailable, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
 {
-	QVariant ID = pTweak->GetName();
+	QVariant ID = pTweak->GetId();
+
+	auto pGroup = pTweak.objectCast<CTweakGroup>();
 
 	QModelIndex Index;
 
@@ -50,14 +52,15 @@ void CTweakModel::Sync(const CTweakPtr& pTweak, const QList<QVariant>& Path, QMa
 		pNode = static_cast<STweakNode*>(MkNode(ID));
 		pNode->Values.resize(columnCount());
 		pNode->Path = Path;
-		pNode->pTweak = pTweak;
 		New[pNode->Path].append(pNode);
+		pNode->Values[eName].SortKey = pTweak->GetIndex();
 	}
 	else
 	{
 		I.value() = NULL;
 		Index = Find(m_Root, pNode);
 	}
+	pNode->pTweak = pTweak;
 
 	//if(Index.isValid()) // this is to slow, be more precise
 	//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
@@ -65,11 +68,11 @@ void CTweakModel::Sync(const CTweakPtr& pTweak, const QList<QVariant>& Path, QMa
 	int Col = 0;
 	bool State = false;
 	int Changed = 0;
-	/*if (pNode->Icon.isNull() && )
+	if (pNode->Icon.isNull() && pGroup && !pGroup->GetIcon().isNull())
 	{
-	pNode->Icon = 
-	Changed = 1;
-	}*/
+		pNode->Icon = pGroup->GetIcon();
+		Changed = 1;
+	}
 	/*if (pNode->IsGray != ...) {
 	pNode->IsGray = ...;
 	Changed = 2; // set change for all columns
@@ -89,8 +92,9 @@ void CTweakModel::Sync(const CTweakPtr& pTweak, const QList<QVariant>& Path, QMa
 		switch (section)
 		{
 		case eName: Value = pTweak->GetName(); break;
-		case eStatus: Value = pTweak->GetStatusStr(); break;
-		case eType: Value = pTweak->GetTypeStr(); break;
+		case eStatus: Value = (int)pTweak->GetStatus(); break;
+		case eType: Value = (int)pTweak->GetType(); break;
+		case eHint: Value = (int)pTweak->GetHint(); break;
 		//case eInfo: Value = pTweak->GetInfo(); break;
 		}
 
@@ -102,10 +106,15 @@ void CTweakModel::Sync(const CTweakPtr& pTweak, const QList<QVariant>& Path, QMa
 				Changed = 1;
 			ColValue.Raw = Value;
 
-			/*switch (section)
+			switch (section)
 			{
-			case eName:			break;
-			}*/
+				case eStatus: 
+					ColValue.Formatted = pTweak->GetStatusStr(); 
+					ColValue.Color = pTweak->GetStatusColor();
+					break;
+				case eType: ColValue.Formatted = pTweak->GetTypeStr(); break;
+				case eHint: ColValue.Formatted = pTweak->GetHintStr(); break;
+			}
 		}
 
 		if (State != (Changed != 0))
@@ -123,8 +132,11 @@ void CTweakModel::Sync(const CTweakPtr& pTweak, const QList<QVariant>& Path, QMa
 
 	auto pList = pTweak.objectCast<CTweakList>();
 	if (pList) {
-		foreach(const CTweakPtr & pTweak, pList->GetList())
-			Sync(pTweak, QList<QVariant>(Path) << ID, New, Old, Added);
+		foreach(const CTweakPtr & pTweak, pList->GetList()) {
+			if (pTweak->GetStatus() == ETweakStatus::eNotAvailable && !bShowNotAvailable)
+				continue;
+			Sync(pTweak, bShowNotAvailable, QList<QVariant>(Path) << ID, New, Old, Added);
+		}
 	}
 }
 
@@ -196,7 +208,8 @@ QVariant CTweakModel::headerData(int section, Qt::Orientation orientation, int r
 		case eName:					return tr("Name");
 		case eStatus:				return tr("Status");
 		case eType:					return tr("Type");
-		//case eInfo:					return tr("Info");
+		case eHint:					return tr("Hint");
+		case eInfo:					return tr("Info");
 		}
 	}
 	return QVariant();

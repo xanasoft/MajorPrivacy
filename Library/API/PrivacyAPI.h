@@ -184,6 +184,7 @@ enum {
 	SVC_API_GET_TWEAKS = 'GTWK',
 	SVC_API_APPLY_TWEAK = 'ATWK',
 	SVC_API_UNDO_TWEAK = 'UTWK',
+	SVC_API_APPROVE_TWEAK = 'CTWK',
 
 	SVC_API_SET_WATCHED_PROG = 'SWAT',
 
@@ -344,8 +345,9 @@ API_V_VALUES : unsigned long
 
 	////////////////////////////
 	// Program ID
-	API_V_PROG_ID = 'id',
-	API_V_PROG_IDS = 'ids',
+	API_V_ID = 'id',
+	API_V_IDS = 'ids',
+	API_V_PARENT = 'prnt',
 
 	API_V_PROG_TYPE = 'ptyp',
 		// ...
@@ -645,8 +647,13 @@ API_V_VALUES : unsigned long
 		// ...
 	API_V_TWEAK_LIST = 'twkl',
 	API_V_TWEAK_TYPE = 'ttyp',
+	API_V_TWEAK_ID = 'twid',
+	API_V_TWEAK_NAME = 'twnm',
+	API_V_TWEAK_INDEX = 'twix',
 		// ...
+	API_V_TWEAK_WIN_VER = 'twvw',
 	API_V_TWEAK_IS_SET = 'tset',
+	API_V_TWEAK_IS_APPLIED = 'tapp',
 
 
 	////////////////////////////
@@ -697,6 +704,7 @@ API_V_VALUES : unsigned long
 #define SVC_EVENT_VOL_PROTECT_ERROR	0x0106
 #define SVC_EVENT_PROG_CLEANUP		0x0107
 #define SVC_EVENT_DNS_INIT_FAILED	0x0108
+#define SVC_EVENT_GPO_FAILED		0x0109
 
 
 /////////////////////////////////////////////////////////////////////////////

@@ -9,7 +9,7 @@ void CProgramItem::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) 
 	Data.Write(API_V_PROG_UID, m_UID);
 	Data.Write(API_V_PROG_TYPE, (uint32)GetType());
 
-	Data.WriteVariant(API_V_PROG_ID, m_ID.ToVariant(Opts));
+	Data.WriteVariant(API_V_ID, m_ID.ToVariant(Opts));
 
 	Data.WriteEx(API_V_NAME, TO_STR(m_Name));
 	Data.WriteEx(API_V_ICON, TO_STR(m_IconFile));
@@ -43,7 +43,7 @@ void CProgramItem::ReadIValue(uint32 Index, const XVariant& Data)
 	{
 	case API_V_PROG_UID: break; // dont read UID
 
-	case API_V_PROG_ID:			m_ID.FromVariant(Data); break;
+	case API_V_ID:			m_ID.FromVariant(Data); break;
 
 	case API_V_NAME:			m_Name = AS_STR(Data); break;
 	case API_V_ICON:			m_IconFile = AS_STR(Data); break;
@@ -102,7 +102,7 @@ void CProgramItem::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) 
 	Data.Write(API_S_PROG_UID, m_UID);
 	Data.WriteEx(API_S_PROG_TYPE, CProgramID::TypeToStr(GetType()));
 
-	Data.WriteVariant(API_S_PROG_ID, m_ID.ToVariant(Opts));
+	Data.WriteVariant(API_S_ID, m_ID.ToVariant(Opts));
 
 	Data.WriteEx(API_S_NAME, TO_STR(m_Name));
 	Data.WriteEx(API_S_ICON, TO_STR(m_IconFile));
@@ -150,7 +150,7 @@ ESavePreset StrToSavePreset(const FW::StringA& Str)
 void CProgramItem::ReadMValue(const SVarName& Name, const XVariant& Data)
 {
 	if (VAR_TEST_NAME(Name, API_S_PROG_UID))				; // dont read UID
-	else if (VAR_TEST_NAME(Name, API_S_PROG_ID))			m_ID.FromVariant(Data);
+	else if (VAR_TEST_NAME(Name, API_S_ID))			m_ID.FromVariant(Data);
 
 	else if (VAR_TEST_NAME(Name, API_S_NAME))				m_Name = AS_STR(Data);
 	else if (VAR_TEST_NAME(Name, API_S_ICON))				m_IconFile = AS_STR(Data);
@@ -348,7 +348,7 @@ void CProgramSet::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) c
 		//Items.Write(pItem->ToVariant());
 		XVariant Item;
 		Item[API_V_PROG_UID] = pItem->GetUID();
-		Item[API_V_PROG_ID] = pItem->GetID().ToVariant(Opts);	
+		Item[API_V_ID] = pItem->GetID().ToVariant(Opts);	
 		Items.WriteVariant(Item);
 	}
 	Data.WriteVariant(API_V_PROG_ITEMS, Items.Finish());
@@ -374,7 +374,7 @@ void CProgramSet::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) c
 		//Items.Write(pItem->ToVariant());
 		XVariant Item;
 		Item[API_S_PROG_UID] = pItem->GetUID();
-		Item[API_S_PROG_ID] = pItem->GetID().ToVariant(Opts);	
+		Item[API_S_ID] = pItem->GetID().ToVariant(Opts);	
 		Items.WriteVariant(Item);
 	}
 	Data.WriteVariant(API_S_PROG_ITEMS, Items.Finish());

@@ -114,6 +114,7 @@ void CServiceCore::RegisterUserAPI()
 	m_pUserPipe->RegisterHandler(SVC_API_GET_TWEAKS, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_APPLY_TWEAK, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_UNDO_TWEAK, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_APPROVE_TWEAK, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_SET_WATCHED_PROG, &CServiceCore::OnRequest, this);
 
@@ -400,11 +401,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				m_pNetworkManager->Firewall()->UpdateRules();
 
 			std::map<CFlexGuid, CFirewallRulePtr> FwRules;
-			if (!vReq.Has(API_V_PROG_IDS))
+			if (!vReq.Has(API_V_IDS))
 				FwRules = m_pNetworkManager->Firewall()->GetAllRules();
 			else
 			{
-				StVariant IDs = vReq[API_V_PROG_IDS];
+				StVariant IDs = vReq[API_V_IDS];
 				for (uint32 i = 0; i < IDs.Count(); i++) 
 				{
 					CProgramID ID;
@@ -500,11 +501,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			std::set<CSocketPtr> Sockets;
-			if (!vReq.Has(API_V_PROG_IDS))
+			if (!vReq.Has(API_V_IDS))
 				Sockets = m_pNetworkManager->SocketList()->GetAllSockets();
 			else
 			{
-				StVariant IDs = vReq[API_V_PROG_IDS];
+				StVariant IDs = vReq[API_V_IDS];
 				for (uint32 i = 0; i < IDs.Count(); i++) 
 				{
 					CProgramID ID;
@@ -530,7 +531,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			CProgramID ID;
-			ID.FromVariant(vReq[API_V_PROG_ID]);
+			ID.FromVariant(vReq[API_V_ID]);
 
 			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
@@ -724,7 +725,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			else // add new
 			{
 				CProgramID ID;
-				ID.FromVariant(vReq[API_V_PROG_ID]);
+				ID.FromVariant(vReq[API_V_ID]);
 				auto Ret = theCore->ProgramManager()->CreateProgram(ID);
 				if (Ret.IsError()) {
 					RETURN_STATUS(Ret);
@@ -868,7 +869,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			CProgramID ID;
-			ID.FromVariant(vReq[API_V_PROG_ID]);
+			ID.FromVariant(vReq[API_V_ID]);
 
 			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
@@ -902,7 +903,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			CProgramID ID;
-			ID.FromVariant(vReq[API_V_PROG_ID]);
+			ID.FromVariant(vReq[API_V_ID]);
 
 			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
@@ -923,7 +924,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			CProgramID ID;
-			ID.FromVariant(vReq[API_V_PROG_ID]);
+			ID.FromVariant(vReq[API_V_ID]);
 
 			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
@@ -947,7 +948,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			CProgramID ID;
-			ID.FromVariant(vReq[API_V_PROG_ID]);
+			ID.FromVariant(vReq[API_V_ID]);
 
 			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
@@ -971,7 +972,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			std::set<CHandlePtr> Handles;
-			if (!vReq.Has(API_V_PROG_ID))
+			if (!vReq.Has(API_V_ID))
 			{
 				for (auto pItem : theCore->ProgramManager()->GetItems())
 				{
@@ -982,7 +983,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			else
 			{
 				CProgramID ID;
-				ID.FromVariant(vReq[API_V_PROG_ID]);
+				ID.FromVariant(vReq[API_V_ID]);
 
 				CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 				if (!pItem)
@@ -1001,7 +1002,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			CProgramID ID;
-			ID.FromVariant(vReq[API_V_PROG_ID]);
+			ID.FromVariant(vReq[API_V_ID]);
 
 			CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 			if (!pItem)
@@ -1026,11 +1027,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			std::set<CHandlePtr> Handles;
-			if (!vReq.Has(API_V_PROG_IDS))
+			if (!vReq.Has(API_V_IDS))
 				Handles = m_pAccessManager->HandleList()->GetAllHandles();
 			else
 			{
-				StVariant IDs = vReq[API_V_PROG_IDS];
+				StVariant IDs = vReq[API_V_IDS];
 				for (uint32 i = 0; i < IDs.Count(); i++) 
 				{
 					CProgramID ID;
@@ -1057,7 +1058,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			ETraceLogs Log = (ETraceLogs)vReq[API_V_LOG_TYPE].To<int>();
 
 			std::set<CHandlePtr> Handles;
-			if (!vReq.Has(API_V_PROG_ID))
+			if (!vReq.Has(API_V_ID))
 			{
 				for (auto pItem : theCore->ProgramManager()->GetItems())
 				{
@@ -1070,7 +1071,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			else
 			{
 				CProgramID ID;
-				ID.FromVariant(vReq[API_V_PROG_ID]);
+				ID.FromVariant(vReq[API_V_ID]);
 
 				CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
 				if (!pItem)
@@ -1189,7 +1190,9 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		case SVC_API_GET_TWEAKS:
 		{
 			StVariant vRpl;
-			vRpl[API_V_TWEAKS] = theCore->TweakManager()->GetRoot()->ToVariant(SVarWriteOpt());
+			SVarWriteOpt Opts;
+			Opts.Flags |= SVarWriteOpt::eSaveAll;
+			vRpl[API_V_TWEAKS] = theCore->TweakManager()->GetTweaks(Opts, pClient.PID);
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
@@ -1198,7 +1201,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq;
 			vReq.FromPacket(req);
 
-			STATUS Status = theCore->TweakManager()->ApplyTweak(vReq[API_V_NAME]);
+			STATUS Status = theCore->TweakManager()->ApplyTweak(vReq[API_V_ID], pClient.PID);
 			RETURN_STATUS(Status);
 		}
 		case SVC_API_UNDO_TWEAK:
@@ -1206,7 +1209,15 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq;
 			vReq.FromPacket(req);
 
-			STATUS Status = theCore->TweakManager()->UndoTweak(vReq[API_V_NAME]);
+			STATUS Status = theCore->TweakManager()->UndoTweak(vReq[API_V_ID], pClient.PID);
+			RETURN_STATUS(Status);
+		}
+		case SVC_API_APPROVE_TWEAK:
+		{
+			StVariant vReq;
+			vReq.FromPacket(req);
+
+			STATUS Status = theCore->TweakManager()->ApproveTweak(vReq[API_V_ID], pClient.PID);
 			RETURN_STATUS(Status);
 		}
 

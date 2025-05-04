@@ -55,6 +55,9 @@ public:
 
 	static std::wstring		NormalizePath(std::wstring FilePath, bool bLowerCase = true);
 
+	static void				ImpersonateCaller(uint32 CallerPID);
+	static std::wstring		GetCallerSID(uint32 CallerPID);
+
 	CThreadPool*			ThreadPool()			{ return &m_Pool; }
 
 	static STATUS InstallDriver();
@@ -138,6 +141,7 @@ protected:
 	std::map<uint32, SClientPtr> m_Clients;
 
 	uint64 m_LastStoreTime = 0;
+	uint64 m_LastCheckTime = 0;
 
 
 	CThreadPool				m_Pool;

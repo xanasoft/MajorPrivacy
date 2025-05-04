@@ -24,6 +24,8 @@ public:
 	static EProgramType ReadType(const StVariant& Data, SVarWriteOpt::EFormat& Format);
 	static std::string TypeToStr(EProgramType Type);
 
+	std::wstring ToString() const;
+
 	StVariant ToVariant(const SVarWriteOpt& Opts) const;
 	bool FromVariant(const StVariant& ID);
 

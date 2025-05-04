@@ -14,6 +14,7 @@ public:
 
 	std::wstring GetProgramPath() const				{std::shared_lock Lock(m_Mutex); return m_ProgramPath;}
 
+	void SetType(EExecRuleType Type)				{std::unique_lock Lock(m_Mutex); m_Type = Type;}
 	EExecRuleType GetType() const					{std::shared_lock Lock(m_Mutex); return m_Type;}
 	bool IsBlock() const							{std::shared_lock Lock(m_Mutex); return m_Type == EExecRuleType::eBlock;}
 	bool IsProtect() const							{std::shared_lock Lock(m_Mutex); return m_Type == EExecRuleType::eProtect;}

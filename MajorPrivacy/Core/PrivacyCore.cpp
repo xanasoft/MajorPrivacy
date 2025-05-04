@@ -415,7 +415,7 @@ void CPrivacyCore::ProcessEvents()
 		//QByteArray data = doc.toJson();
 
 		CProgramID ID;
-		ID.FromVariant(Event[API_V_PROG_ID]);
+		ID.FromVariant(Event[API_V_ID]);
 		CProgramFilePtr pProgram = m_pProgramManager->GetProgramFile(ID.GetFilePath());
 		if (!pProgram) continue;
 
@@ -434,7 +434,7 @@ void CPrivacyCore::ProcessEvents()
 	foreach(const QtVariant& Event, ExecEvents)
 	{
 		CProgramID ID;
-		ID.FromVariant(Event[API_V_PROG_ID]);
+		ID.FromVariant(Event[API_V_ID]);
 		CProgramFilePtr pProgram = m_pProgramManager->GetProgramFile(ID.GetFilePath());
 		if (!pProgram) continue;
 
@@ -461,7 +461,7 @@ void CPrivacyCore::ProcessEvents()
 	foreach(const QtVariant& Event, ResEvents)
 	{
 		CProgramID ID;
-		ID.FromVariant(Event[API_V_PROG_ID]);
+		ID.FromVariant(Event[API_V_ID]);
 		CProgramFilePtr pProgram = m_pProgramManager->GetProgramFile(ID.GetFilePath());
 		if (!pProgram) continue;
 
@@ -1159,7 +1159,7 @@ RESULT(QtVariant) CPrivacyCore::GetFwRulesFor(const QList<const class CProgramIt
 {
 	QtVariant Request;
 	if(!Nodes.isEmpty())
-		Request[API_V_PROG_IDS] = MakeIDs(Nodes);
+		Request[API_V_IDS] = MakeIDs(Nodes);
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULES, Request), API_V_FW_RULES);
 }
 
@@ -1228,7 +1228,7 @@ RESULT(QtVariant) CPrivacyCore::GetSocketsFor(const QList<const class CProgramIt
 {
 	QtVariant Request;
 	if(!Nodes.isEmpty())
-		Request[API_V_PROG_IDS] = MakeIDs(Nodes);
+		Request[API_V_IDS] = MakeIDs(Nodes);
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_SOCKETS, Request), API_V_SOCKETS);
 }
 
@@ -1241,7 +1241,7 @@ RESULT(QtVariant) CPrivacyCore::GetAllSockets()
 RESULT(QtVariant) CPrivacyCore::GetTrafficLog(const class CProgramID& ID, quint64 MinLastActivity)
 {
 	QtVariant Request;
-	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
+	Request[API_V_ID] = ID.ToVariant(SVarWriteOpt());
 	if(MinLastActivity) 
 		Request[API_V_SOCK_LAST_NET_ACT] = MinLastActivity;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_TRAFFIC, Request), API_V_TRAFFIC_LOG);
@@ -1296,7 +1296,7 @@ RESULT(QtVariant) CPrivacyCore::GetHandlesFor(const QList<const class CProgramIt
 {
 	QtVariant Request;
 	if(!Nodes.isEmpty())
-		Request[API_V_PROG_IDS] = MakeIDs(Nodes);
+		Request[API_V_IDS] = MakeIDs(Nodes);
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_HANDLES, Request), API_V_HANDLES);
 }
 
@@ -1316,7 +1316,7 @@ STATUS CPrivacyCore::ClearTraceLog(ETraceLogs Log, const CProgramItemPtr& pItem)
 	}
 
 	QtVariant Request;
-	if(pItem) Request[API_V_PROG_ID] = pItem->GetID().ToVariant(SVarWriteOpt());
+	if(pItem) Request[API_V_ID] = pItem->GetID().ToVariant(SVarWriteOpt());
 	Request[API_V_LOG_TYPE] = (int)Log;
 	return m_Service.Call(SVC_API_CLEAR_LOGS, Request);
 }
@@ -1331,7 +1331,7 @@ STATUS CPrivacyCore::CleanUpAccessTree()
 RESULT(QtVariant) CPrivacyCore::GetLibraryStats(const class CProgramID& ID)
 {
 	QtVariant Request;
-	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
+	Request[API_V_ID] = ID.ToVariant(SVarWriteOpt());
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_LIBRARY_STATS, Request), API_V_LIBRARIES);
 }
 
@@ -1349,28 +1349,28 @@ STATUS CPrivacyCore::CleanUpLibraries(const CProgramItemPtr& pItem)
 	}
 
 	QtVariant Request;
-	if(pItem) Request[API_V_PROG_ID] = pItem->GetID().ToVariant(SVarWriteOpt());
+	if(pItem) Request[API_V_ID] = pItem->GetID().ToVariant(SVarWriteOpt());
 	return m_Service.Call(SVC_API_CLEANUP_LIBS, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetExecStats(const class CProgramID& ID)
 {
 	QtVariant Request;
-	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
+	Request[API_V_ID] = ID.ToVariant(SVarWriteOpt());
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_EXEC_STATS, Request));
 }
 
 RESULT(QtVariant) CPrivacyCore::GetIngressStats(const class CProgramID& ID)
 {
 	QtVariant Request;
-	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
+	Request[API_V_ID] = ID.ToVariant(SVarWriteOpt());
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_INGRESS_STATS, Request));
 }
 
 RESULT(QtVariant) CPrivacyCore::GetAccessStats(const class CProgramID& ID, quint64 MinLastActivity)
 {
 	QtVariant Request;
-	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
+	Request[API_V_ID] = ID.ToVariant(SVarWriteOpt());
 	if(MinLastActivity) 
 		Request[API_V_LAST_ACTIVITY] = MinLastActivity;
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_ACCESS_STATS, Request), API_V_PROG_RESOURCE_ACCESS);
@@ -1379,7 +1379,7 @@ RESULT(QtVariant) CPrivacyCore::GetAccessStats(const class CProgramID& ID, quint
 RESULT(QtVariant) CPrivacyCore::GetTraceLog(const class CProgramID& ID, ETraceLogs Log)
 {
 	QtVariant Request;
-	Request[API_V_PROG_ID] = ID.ToVariant(SVarWriteOpt());
+	Request[API_V_ID] = ID.ToVariant(SVarWriteOpt());
 	Request[API_V_LOG_TYPE] = (uint32)Log;
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_TRACE_LOG, Request));	
 }
@@ -1440,18 +1440,25 @@ RESULT(QtVariant) CPrivacyCore::GetTweaks()
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_TWEAKS, Request), API_V_TWEAKS);
 }
 
-STATUS CPrivacyCore::ApplyTweak(const QString& Name)
+STATUS CPrivacyCore::ApplyTweak(const QString& Id)
 {
 	QtVariant Request;
-	Request[API_V_NAME] = Name;
+	Request[API_V_ID] = Id;
 	return m_Service.Call(SVC_API_APPLY_TWEAK, Request);
 }
 
-STATUS CPrivacyCore::UndoTweak(const QString& Name)
+STATUS CPrivacyCore::UndoTweak(const QString& Id)
 {
 	QtVariant Request;
-	Request[API_V_NAME] = Name;
+	Request[API_V_ID] = Id;
 	return m_Service.Call(SVC_API_UNDO_TWEAK, Request);
+}
+
+STATUS CPrivacyCore::ApproveTweak(const QString& Id)
+{
+	QtVariant Request;
+	Request[API_V_ID] = Id;
+	return m_Service.Call(SVC_API_APPROVE_TWEAK, Request);
 }
 
 // Other

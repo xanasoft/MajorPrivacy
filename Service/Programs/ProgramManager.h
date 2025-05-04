@@ -96,7 +96,11 @@ public:
 	CProgramLibraryPtr				GetLibrary(uint64 Id);
 	std::map<uint64, CProgramLibraryPtr>GetLibraries()	{ std::unique_lock lock(m_Mutex); return m_Libraries; }
 
-	std::map<CFlexGuid, CProgramRulePtr> GetProgramRules() { std::unique_lock lock(m_RulesMutex); return m_Rules; }
+	std::map<CFlexGuid, CProgramRulePtr> GetAllRules();
+	CProgramRulePtr GetRule(const CFlexGuid& Guid);
+
+	RESULT(std::wstring) AddRule(const CProgramRulePtr& pRule);
+	STATUS RemoveRule(const CFlexGuid& Guid);
 
 	bool							IsNtOsKrnl(const std::wstring& FilePath) const;
 

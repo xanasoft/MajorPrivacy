@@ -50,7 +50,11 @@ private slots:
 
 	void					OnCleanUpDone();
 
+	void					OnMenuAction();
+
 protected:
+
+	QAction*				m_pCopyPath;
 
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbAccess;

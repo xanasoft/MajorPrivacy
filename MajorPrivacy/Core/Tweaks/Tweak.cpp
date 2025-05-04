@@ -23,13 +23,14 @@ QString CAbstractTweak::GetTypeStr() const
 	switch (m_Type)
 	{
 	case ETweakType::eGroup:	return tr("Tweak Group");
-	case ETweakType::eSet:		return tr("Tweak Set");
-	case ETweakType::eReg:		return tr("Registry");
-	case ETweakType::eGpo:		return tr("Group Policy");
-	case ETweakType::eSvc:		return tr("Service");
-	case ETweakType::eTask:		return tr("Task");
-	case ETweakType::eFS:		return tr("File System");
-	case ETweakType::eFw:		return tr("Firewall");
+	case ETweakType::eSet:		return tr("Tweak Bundle");
+	case ETweakType::eReg:		return tr("Set Registry Option");
+	case ETweakType::eGpo:		return tr("Configure Group Policy");
+	case ETweakType::eSvc:		return tr("Disable System Service");
+	case ETweakType::eTask:		return tr("Disable Scheduled Task");
+	case ETweakType::eRes:		return tr("Resource Access Rule");
+	case ETweakType::eExec:		return tr("Execution Control Rule");
+	case ETweakType::eFw:		return tr("Firewall Rule");
 	default:					return tr("Unknown");
 	}
 	return "";
@@ -43,8 +44,38 @@ QString CAbstractTweak::GetStatusStr() const
 	case ETweakStatus::eApplied:	return tr("Applied");
 	case ETweakStatus::eSet:		return tr("Set");
 	case ETweakStatus::eMissing:	return tr("Missing");
-	//case ETweakStatus::eGroup:		return tr("Group");
+	case ETweakStatus::eIneffective: return tr("Ineffective");
+	case ETweakStatus::eCustom:		return tr("Custom");
+	case ETweakStatus::eGroup:		return tr("Group");
+	case ETweakStatus::eNotAvailable: return tr("Not available");
 	//default:						return tr("Unknown");
+	}
+	return "";
+}
+
+QVariant CAbstractTweak::GetStatusColor() const
+{
+	switch (GetStatus())
+	{
+	case ETweakStatus::eApplied:	return QColor(255, 255, 128);
+	case ETweakStatus::eSet:		return QColor(128, 255, 128);
+	case ETweakStatus::eMissing:	return QColor(255, 128, 128);
+	case ETweakStatus::eIneffective: return QColor(255, 128, 255);
+	case ETweakStatus::eCustom:		return QColor(128, 255, 255);
+	case ETweakStatus::eNotAvailable: return QColor(128, 128, 128);
+		//case ETweakStatus::eNotSet:
+	}
+	return QVariant();
+}
+
+QString CAbstractTweak::GetHintStr() const
+{
+	switch (GetHint())
+	{
+	//case ETweakHint::eNone:			return tr("No hint");
+	case ETweakHint::eRecommended:		return tr("Recommended");
+	case ETweakHint::eNotRecommended:	return tr("Not recommended");
+	case ETweakHint::eBreaking:			return tr("Breaking");
 	}
 	return "";
 }
@@ -52,31 +83,76 @@ QString CAbstractTweak::GetStatusStr() const
 ///////////////////////////////////////////////////////////////////////////////////////
 // CTweakList
 
-void CTweakList::ReadList(const QtVariant& List)
+QString CTweakList::GetStatusStr() const
 {
-	QMap<QString, CTweakPtr> OldMap = m_List;
-
-	QtVariantReader(List).ReadRawList([&](const FW::CVariant& vData) {
-		const QtVariant& Tweak = *(QtVariant*)&vData;
-
-		QtVariantReader Reader(Tweak);
-
-		QString Name = Reader.Find(API_V_NAME).AsQStr();
-
-		CTweakPtr pTweak = OldMap.take(Name);
-		if (pTweak.isNull())
-		{
-			ETweakType Type = (ETweakType)Reader.Find(API_V_TWEAK_TYPE).To<uint32>();
-			if (Type == ETweakType::eGroup)		pTweak = CTweakPtr(new CTweakGroup());
-			else if (Type == ETweakType::eSet)	pTweak = CTweakPtr(new CTweakSet());
-			else								pTweak = CTweakPtr(new CTweak(Type));
-			m_List.insert(Name, pTweak);
-		}
-
-		pTweak->FromVariant(Tweak);
-	});
-
-	foreach(const QString & Name, OldMap.keys())
-		m_List.remove(Name);
+	int ACount = 0;
+	foreach(const CTweakPtr & pTweak, m_List)
+	{
+		if (pTweak->GetStatus() == ETweakStatus::eSet || pTweak->GetStatus() == ETweakStatus::eApplied)
+			ACount++;
+	}
+	if(ACount && ACount != m_List.count())
+		return tr("%1 (%2/%3)").arg(CAbstractTweak::GetStatusStr()).arg(ACount).arg(m_List.count());
+	return tr("%1 (%2)").arg(CAbstractTweak::GetStatusStr()).arg(m_List.count());
 }
 
+///////////////////////////////////////////////////////////////////////////////////////
+// CTweakGroup
+
+QIcon CTweakGroup::GetIcon() const
+{
+	if (m_IconLoaded)
+		return m_Icon;
+
+	if (m_Id == "WindowsTelemetry")
+		m_Icon = QIcon(":/Icons/Telemetry.png");
+	else if (m_Id == "OtherTelemetry")
+		m_Icon = QIcon(":/Icons/Telemetry3.png");
+	else if (m_Id == "WindowsSearch")
+		m_Icon = QIcon(":/Icons/Search2.png");
+	else if (m_Id == "MicrosoftDefender")
+		m_Icon = QIcon(":/Icons/Shield4.png");
+	else if (m_Id == "WindowsUpdate")
+		m_Icon = QIcon(":/Icons/Update.png");
+	else if (m_Id == "WindowsPrivacy")
+		m_Icon = QIcon(":/Icons/Anon.png");
+	else if (m_Id == "MicrosoftAccount")
+		m_Icon = QIcon(":/Icons/Users.png");
+	else if (m_Id == "MicrosoftOffice")
+		m_Icon = QIcon(":/Icons/MsOffice.png");
+	else if (m_Id == "VisualStudio")
+		m_Icon = QIcon(":/Icons/VisualStudio.png");
+	else if (m_Id == "WindowsMisc")
+		m_Icon = QIcon(":/Icons/Windows.png");
+	else if (m_Id == "StoreAndApps")
+		m_Icon = QIcon(":/Icons/MsStore.png");
+	else if (m_Id == "System")
+		m_Icon = QIcon(":/Icons/Advanced.png");
+	else if (m_Id == "WerBrowsers")
+		m_Icon = QIcon(":/Icons/Internet.png");
+	else if (m_Id == "Explorer")
+		m_Icon = QIcon(":/Icons/Directory.png");
+	else if (m_Id == "Network")
+		m_Icon = QIcon(":/Icons/Network.png");
+	else if (m_Id == "TestTweaks")
+		m_Icon = QIcon(":/Icons/Warning.png");
+
+	m_IconLoaded = true;
+	return m_Icon;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+// CTweak
+
+
+ETweakHint CTweak::GetHint() const 
+{ 
+	/*if (auto pSet = m_Parent.lock().objectCast<CTweakSet>())
+	{		
+		if(m_Hint == ETweakHint::eNone)
+			return ETweakHint::eNotRecommended;
+		else if(m_Hint == ETweakHint::eRecommended)
+			return ETweakHint::eNone;
+	}*/
+	return m_Hint; 
+}

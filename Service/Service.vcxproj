@@ -369,7 +369,9 @@
     <ClCompile Include="ServiceCoreAPI.cpp" />
     <ClCompile Include="Tweaks\Tweak.cpp" />
     <ClCompile Include="Tweaks\TweakManager.cpp" />
-    <ClCompile Include="Tweaks\TweakManagerList.cpp" />
+    <ClCompile Include="Tweaks\TweakManagerList.cpp">
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="Volumes\MountManagerHelpers.cpp" />
     <ClCompile Include="Volumes\Volume.cpp" />
     <ClCompile Include="Volumes\VolumeManager.cpp" />

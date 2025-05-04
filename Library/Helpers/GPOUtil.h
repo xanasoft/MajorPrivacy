@@ -9,12 +9,12 @@ public:
 	CGPO();
 	~CGPO();
 
-	bool Open(bool bWritable = false);
+	HRESULT OpenGPO(bool bWritable = false);
 
 	HKEY GetUserRoot();
 	HKEY GetMachineRoot();
 
-	bool Save();
+	HRESULT SaveGPO();
 
 	void Close();
 

@@ -1,0 +1,10 @@
+#ifdef BUILD_UTILITY_PASS2
+
+#if MY_ARM64_FLAG
+LDRCODE64  RCDATA     "../../LdrCode/obj/ARM64/LdrCode.dll"
+#elif  MY_WIN64_FLAG
+LDRCODE64  RCDATA     "../../LdrCode/obj/amd64/LdrCode.dll"
+#endif // MY_WIN64_FLAG
+LDRCODE32  RCDATA     "../../LdrCode/obj/i386/LdrCode.dll"
+
+#endif // BUILD_UTILITY_PASS2

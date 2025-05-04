@@ -4,15 +4,28 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.98.0] - 2025-05-01
+
+
+
+
+
+
+## [0.98.0] - 2025-05-??
 
 ### Added
 - added installer
 - add add token integrity level elevation to enclave processes allowing for better UIPI (User Interface Privilege Isolation)
 - added driver unload protection
 - added secure desktop prompting capability to require trusted user OK to shutdown Core components
-
+- added copy path to accesstree
+- added approve/restore tweaks buttons to tweak view
+- addes resource access restriction tweaks
+- addes execution controll tweaks
+- addes firewall rule tweaks
+ 
 ### Changed
+- improved tweaks view
+- tweak status is now saved to disk
 
 ### Fixed
 - fixed BSOD bug in driver when agent crashed during process start in an enclave

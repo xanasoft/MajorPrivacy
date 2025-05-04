@@ -443,7 +443,7 @@ bool CFirewall::TryRemoveTemplate(const CFlexGuid& Guid)
 		if (F != m_FwRules.end())
 			pFwRule = F->second;
 	}
-	if (!pFwRule | !pFwRule->IsTemplate())
+	if (!pFwRule || !pFwRule->IsTemplate())
 		return false;
 	
 	SWindowsFwRulePtr pData = pFwRule->GetData();
@@ -770,7 +770,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 
 	StVariant Event;
 	//Event[SVC_API_EVENT_TYPE]	= SVC_API_EVENT_FW_EVENT;
-	Event[API_V_PROG_ID]		= pProgram->GetID().ToVariant(SVarWriteOpt());
+	Event[API_V_ID]		= pProgram->GetID().ToVariant(SVarWriteOpt());
 	Event[API_V_EVENT_INDEX]	= LogIndex;
 	Event[API_V_EVENT_DATA]		= pLogEntry->ToVariant();
 

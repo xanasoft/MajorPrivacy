@@ -689,7 +689,7 @@ void CProcessList::OnResourceAccessed(const std::wstring& NtPath, uint64 ActorPi
 
     StVariant Event;
     //Event[SVC_API_EVENT_TYPE]	= SVC_API_EVENT_FW_EVENT;
-    Event[API_V_PROG_ID]		= pActorProgram->GetID().ToVariant(SVarWriteOpt());
+    Event[API_V_ID]		= pActorProgram->GetID().ToVariant(SVarWriteOpt());
     Event[API_V_EVENT_INDEX]	= LogIndex;
     Event[API_V_EVENT_DATA]	    = pLogEntry->ToVariant();
 
@@ -705,7 +705,7 @@ void CProcessList::AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram
 
     StVariant Event;
     //Event[SVC_API_EVENT_TYPE]	= SVC_API_EVENT_FW_EVENT;
-    Event[API_V_PROG_ID]		= pProgram->GetID().ToVariant(SVarWriteOpt());
+    Event[API_V_ID]		= pProgram->GetID().ToVariant(SVarWriteOpt());
     Event[API_V_EVENT_INDEX]	= LogIndex;
     Event[API_V_EVENT_DATA]	    = pLogEntry->ToVariant();
 
@@ -849,7 +849,7 @@ STATUS CProcessList::Load()
         StVariant Item = List[i];
 
         CProgramID ID;
-        if(!ID.FromVariant(StVariantReader(Item).Find(API_V_PROG_ID)))
+        if(!ID.FromVariant(StVariantReader(Item).Find(API_V_ID)))
 			continue;
         CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
         if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
@@ -879,7 +879,7 @@ STATUS CProcessList::Store()
         if (!bSave)
 			continue;
 
-        // StoreAccess saves API_V_PROG_ID
+        // StoreAccess saves API_V_ID
         if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
             List.WriteVariant(pProgram->StoreIngress(Opts));
         else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))

@@ -154,7 +154,7 @@ STATUS CServiceCore::InitDriver()
 		std::wstring AppDir = CServiceCore::NormalizePath(m_AppDir);
 		if (ServicePath.length() < AppDir.length() || ServicePath.compare(0, AppDir.length(), AppDir) != 0)
 		{
-			theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Updated driver, old path: %s", BinaryPath);
+			theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Updated driver, old path: %s", BinaryPath.c_str());
 			RemoveService(API_DRIVER_NAME);
 			DrvState = SVC_NOT_FOUND;
 		}
@@ -457,6 +457,8 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 	//if (This->IsConfigDirty())
 	This->CommitConfig();
 
+	This->m_pTweakManager->Store();
+
 	This->m_LastStoreTime = GetTickCount64();
 	This->StoreRecords();
 	DbgPrint(L"StoreRecords took %llu ms\n", GetTickCount64() - This->m_LastStoreTime);
@@ -647,6 +649,14 @@ void CServiceCore::OnTimer()
 		DbgPrint(L"Async StoreRecords took %llu ms\n", GetTickCount64() - m_LastStoreTime);
 	}
 
+	if (m_LastCheckTime + 5 * 60 * 1000 < GetTickCount64()) // every 5 minutes
+	{
+		m_LastCheckTime = GetTickCount64();
+		m_pTweakManager->CheckTweaks();
+		if(m_pTweakManager->AreTweaksDirty())
+			m_pTweakManager->Store();
+	}
+
 #ifdef _DEBUG
 	static uint64 LastObjectDump = GetTickCount64();
 	if (LastObjectDump + 60 * 1000 < GetTickCount64()) {
@@ -718,4 +728,58 @@ std::wstring CServiceCore::NormalizePath(std::wstring Path, bool bLowerCase)
 	}
 
 	return bLowerCase ? MkLower(Path) : Path;
+}
+
+void CServiceCore::ImpersonateCaller(uint32 CallerPID)
+{
+	if (CallerPID == 0)
+		return;
+	HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE, FALSE, CallerPID);
+	if (hProcess == NULL)
+		return;
+	HANDLE hToken = NULL;
+	if (OpenProcessToken(hProcess, TOKEN_QUERY | TOKEN_DUPLICATE | TOKEN_IMPERSONATE, &hToken))
+	{
+		HANDLE hDupToken = NULL;
+		if (DuplicateTokenEx(hToken, TOKEN_ALL_ACCESS, NULL, SecurityImpersonation, TokenImpersonation, &hDupToken))
+		{
+			SetThreadToken(NULL, hDupToken);
+			CloseHandle(hDupToken);
+		}
+		CloseHandle(hToken);
+	}
+	CloseHandle(hProcess);
+}
+
+#include <sddl.h> // For ConvertSidToStringSid
+
+std::wstring CServiceCore::GetCallerSID(uint32 CallerPID)
+{
+	CScopedHandle hProcess = CScopedHandle(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, CallerPID), CloseHandle);
+	if (!hProcess)
+		return L"";
+
+	CScopedHandle hToken = CScopedHandle((HANDLE)0, CloseHandle);
+	if (!OpenProcessToken(hProcess, TOKEN_QUERY, &hToken))
+		return L"";
+
+	DWORD tokenInfoLength = 0;
+	GetTokenInformation(hToken, TokenUser, NULL, 0, &tokenInfoLength);
+	if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+		return L"";
+
+	CScoped tokenUserData = new BYTE[tokenInfoLength];
+	if (!GetTokenInformation(hToken, TokenUser, tokenUserData, tokenInfoLength, &tokenInfoLength))
+		return L"";
+
+	std::wstring sidStringOut;
+
+	LPWSTR sidString = nullptr;
+	if (ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER*>(tokenUserData.Val())->User.Sid, &sidString)) 
+	{
+		sidStringOut = sidString;
+		LocalFree(sidString);
+	}
+	
+	return sidStringOut;
 }

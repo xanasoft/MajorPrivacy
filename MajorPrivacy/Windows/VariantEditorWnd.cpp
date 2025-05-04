@@ -238,7 +238,7 @@ CAbstractTreeModel::SAbstractTreeNode* CVariantModel::MkNode(const void* data, c
 
 void CVariantModel::ForEachChild(SAbstractTreeNode* parentNode, const std::function<void(const QVariant& key, const void* data)>& func)
 {
-	QtVariant Value = ((SVariantNode*)parentNode)->data;
+	const QtVariant Value = ((SVariantNode*)parentNode)->data;
 
 	switch (Value.GetType())
 	{
@@ -469,9 +469,9 @@ QString VariantIndexToName(uint32 Index)
 
 		////////////////////////////
 		// Program ID
-	case API_V_PROG_ID:
+	case API_V_ID:
 		return "Program ID";
-	case API_V_PROG_IDS:
+	case API_V_IDS:
 		return "Program IDs";
 
 	case API_V_PROG_TYPE:

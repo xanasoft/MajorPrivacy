@@ -227,6 +227,7 @@ public:
 	RESULT(QtVariant)	GetTweaks();
 	STATUS				ApplyTweak(const QString& Name);
 	STATUS				UndoTweak(const QString& Name);
+	STATUS				ApproveTweak(const QString& Id);
 
 	// Other
 	RESULT(QtVariant)	GetServiceStats();

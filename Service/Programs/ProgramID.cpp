@@ -96,3 +96,36 @@ const std::wstring& CProgramID::GetRegKey() const
 	ASSERT(0);
 	return m_empty;
 }
+
+std::wstring CProgramID::ToString() const
+{
+	std::wstring Str;
+	switch (m_Type)
+	{
+	case EProgramType::eProgramFile:
+		Str = L"file:///" + m_FilePath;
+		break;
+	case EProgramType::eFilePattern:
+		Str = L"file:///" + m_FilePath;
+		break;
+	case EProgramType::eAppInstallation:
+		Str = L"key:///" + m_AuxValue;
+		break;
+	case EProgramType::eWindowsService:
+		Str = L"svc://" + m_ServiceTag;
+		break;
+	case EProgramType::eAppPackage:
+		Str = L"app://" + m_AuxValue;
+		break;
+	case EProgramType::eProgramGroup:
+		Str = L"group://" + m_AuxValue;
+		break;
+	case EProgramType::eAllPrograms:
+		Str = L"all";
+		break;
+	default:
+		ASSERT(0);
+		break;
+	}
+	return Str;
+}

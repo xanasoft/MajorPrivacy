@@ -18,6 +18,7 @@ public:
 	bool HasTimeOut() const					{ std::shared_lock Lock(m_Mutex); return m_uTimeOut != -1; }
 	bool IsExpired() const;
 
+	void SetStrGuid(const std::wstring& Guid) { std::unique_lock Lock(m_Mutex); m_Guid = CFlexGuid(Guid); }
 	CFlexGuid GetGuid() const				{ std::shared_lock Lock(m_Mutex); return m_Guid; }
 	
 	void SetName(const std::wstring& Name)	{ std::unique_lock Lock(m_Mutex); m_Name = Name; }
@@ -55,7 +56,7 @@ protected:
 
 	CFlexGuid m_Enclave;
 
-	bool m_bTemporary = true;
+	bool m_bTemporary = false;
 	uint64 m_uTimeOut = -1;
 
 	std::wstring m_Name;
