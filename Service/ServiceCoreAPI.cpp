@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <psapi.h>
+#include <userenv.h>
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Common/FileIO.h"
 #include "../Framework/Common/Buffer.h"
@@ -839,12 +840,18 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hDupToken(NULL, CloseHandle);
 			DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, NULL, SecurityAnonymous, TokenPrimary, &hDupToken);
 
+			CScopedHandle lpEnvironment((LPVOID)0, DestroyEnvironmentBlock);
+			if (!CreateEnvironmentBlock(&lpEnvironment, hDupToken, FALSE)) {
+				Status = ERR(STATUS_UNSUCCESSFUL);
+				RETURN_STATUS(Status);
+			}
+
 			STARTUPINFOW si = { 0 };
 			si.cb = sizeof(si);
 			si.dwFlags = STARTF_FORCEOFFFEEDBACK;
 			si.wShowWindow = SW_SHOWNORMAL;
 			PROCESS_INFORMATION pi = { 0 };
-			if (CreateProcessAsUserW(hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, 0/*CREATE_SUSPENDED*/, NULL, NULL, &si, &pi))
+			if (CreateProcessAsUserW(hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &si, &pi))
 			{
 				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pi.dwProcessId, true);
 				//ResumeThread(pi.hThread);

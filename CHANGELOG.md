@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.98.0] - 2025-05-??
+## [0.98.0] - 2025-05-06
 
 ### Added
 - added installer
