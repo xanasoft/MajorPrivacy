@@ -250,7 +250,7 @@ int WinMain(
             Status = RemoveService(API_SERVICE_NAME);
 
         SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
-        if ((DrvState & SVC_RUNNING) == SVC_INSTALLED) 
+        if ((DrvState & SVC_INSTALLED) == SVC_INSTALLED) 
             Status = CServiceCore::RemoveDriver();
     }
     else if (HasFlag(arguments, L"cleanup"))

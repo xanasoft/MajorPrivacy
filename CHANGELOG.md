@@ -8,6 +8,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [0.98.1] - 2025-05-
+
+### Fixed
+- fixed issue with installer not removing the driver
+- 
 
 
 ## [0.98.0] - 2025-05-06
