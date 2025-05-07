@@ -268,22 +268,28 @@ STATUS CServiceCore::InstallDriver()
 
 STATUS CServiceCore::RemoveDriver()
 {
-	//KillService(API_DRIVER_NAME);
+	STATUS Status = OK;
+	SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
+	if ((SvcState & SVC_RUNNING) == SVC_RUNNING)
+		Status = KillService(API_DRIVER_NAME);
 
-	for (int i=0; i < 10; i++) 
+	if (!Status)
 	{
-		SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
-		if ((SvcState & SVC_RUNNING) != SVC_RUNNING)
-			break;
-		
-		UNICODE_STRING uni;
-		RtlInitUnicodeString(&uni, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\" API_DRIVER_NAME);
-		NtUnloadDriver(&uni);
+		for (int i = 0; i < 10; i++)
+		{
+			SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
+			if ((SvcState & SVC_RUNNING) != SVC_RUNNING)
+				break;
 
-		Sleep((i+1) * 100);
+			UNICODE_STRING uni;
+			RtlInitUnicodeString(&uni, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\" API_DRIVER_NAME);
+			NtUnloadDriver(&uni);
+
+			Sleep((i + 1) * 100);
+		}
 	}
 
-	SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
+	SvcState = GetServiceState(API_DRIVER_NAME);
 	if ((SvcState & SVC_RUNNING) == SVC_RUNNING)
 		return ERR(STATUS_UNSUCCESSFUL);
 
