@@ -5,6 +5,7 @@
 #include "../MiscHelpers/Common/Common.h"
 #include "../MiscHelpers/Common/CustomTheme.h"
 #include "../Library/API/PrivacyDefs.h"
+#include "../MiscHelpers/Archive/ArchiveFS.h"
 
 SCertInfo g_CertInfo = {0};
 QString g_CertName;
@@ -104,18 +105,18 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 
 	{
 		ui.uiLang->addItem(tr("Auto Detection"), "");
-		ui.uiLang->addItem(tr("No Translation"), "native");
+		ui.uiLang->addItem("No Translation", "native"); // do not translate
 
 		QString langDir;
-		/*C7zFileEngineHandler LangFS("lang", this);
+		C7zFileEngineHandler LangFS("lang", this);
 		if (LangFS.Open(QApplication::applicationDirPath() + "/translations.7z"))
 			langDir = LangFS.Prefix() + "/";
-		else*/
+		else
 			langDir = QApplication::applicationDirPath() + "/translations/";
 
 		foreach(const QString & langFile, QDir(langDir).entryList(QStringList("majorprivacy_*.qm"), QDir::Files))
 		{
-			QString Code = langFile.mid(8, langFile.length() - 8 - 3);
+			QString Code = langFile.mid(13, langFile.length() - 13 - 3);
 			QLocale Locale(Code);
 			QString Lang = Locale.nativeLanguageName();
 			ui.uiLang->addItem(Lang, Code);

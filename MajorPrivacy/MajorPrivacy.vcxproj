@@ -461,12 +461,42 @@
     <ResourceCompile Include="Resources\MajorPrivacy.rc" />
   </ItemGroup>
   <ItemGroup>
-    <QtTranslation Include="Translation_de.ts" />
-    <QtTranslation Include="Translation_es.ts" />
-    <QtTranslation Include="Translation_fr.ts" />
-    <QtTranslation Include="Translation_pl.ts" />
-    <QtTranslation Include="Translation_zh_CN.ts" />
-    <QtTranslation Include="Translation_zh_TW.ts" />
+    <QtTranslation Include="MajorPrivacy_de.ts">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_es.ts">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_fr.ts">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_it.ts">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_ja.ts">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_ko.ts">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_pl.ts">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_zh_CN.ts">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_zh_TW.ts">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </QtTranslation>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

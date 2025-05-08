@@ -197,6 +197,41 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Archive\Archive.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveExtractor.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveFS.cpp" />
+    <ClCompile Include="Archive\ArchiveHelper.cpp" />
+    <ClCompile Include="Archive\ArchiveInterface.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveOpener.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveThread.cpp" />
+    <ClCompile Include="Archive\ArchiveUpdater.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Archive\CachedArchive.cpp" />
+    <ClCompile Include="Archive\SplitFile.cpp" />
     <ClCompile Include="Common\AbstractTreeModel.cpp" />
     <ClCompile Include="Common\CheckableMessageBox.cpp" />
     <ClCompile Include="Common\ComboInputDialog.cpp" />
@@ -233,6 +268,17 @@
     <QtMoc Include="Common\ComboInputDialog.h" />
     <QtMoc Include="Common\CheckList.h" />
     <QtMoc Include="Common\AbstractTreeModel.h" />
+    <ClInclude Include="Archive\Archive.h" />
+    <ClInclude Include="Archive\ArchiveExtractor.h" />
+    <ClInclude Include="Archive\ArchiveFS.h" />
+    <ClInclude Include="Archive\ArchiveHelper.h" />
+    <ClInclude Include="Archive\ArchiveInterface.h" />
+    <ClInclude Include="Archive\ArchiveIO.h" />
+    <ClInclude Include="Archive\ArchiveOpener.h" />
+    <QtMoc Include="Archive\ArchiveThread.h" />
+    <ClInclude Include="Archive\ArchiveUpdater.h" />
+    <ClInclude Include="Archive\CachedArchive.h" />
+    <QtMoc Include="Archive\SplitFile.h" />
     <ClInclude Include="Common\Common.h" />
     <ClInclude Include="Common\CustomStyles.h" />
     <ClInclude Include="Common\CustomTheme.h" />

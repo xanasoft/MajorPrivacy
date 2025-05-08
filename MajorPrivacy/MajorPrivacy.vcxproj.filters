@@ -838,22 +838,31 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <QtTranslation Include="Translation_de.ts">
+    <QtTranslation Include="MajorPrivacy_de.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
-    <QtTranslation Include="Translation_pl.ts">
+    <QtTranslation Include="MajorPrivacy_pl.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
-    <QtTranslation Include="Translation_es.ts">
+    <QtTranslation Include="MajorPrivacy_es.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
-    <QtTranslation Include="Translation_fr.ts">
+    <QtTranslation Include="MajorPrivacy_fr.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
-    <QtTranslation Include="Translation_zh_CN.ts">
+    <QtTranslation Include="MajorPrivacy_zh_CN.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
-    <QtTranslation Include="Translation_zh_TW.ts">
+    <QtTranslation Include="MajorPrivacy_zh_TW.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_it.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_ja.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_ko.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
   </ItemGroup>

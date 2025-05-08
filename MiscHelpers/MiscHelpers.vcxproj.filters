@@ -25,6 +25,9 @@
     <Filter Include="Common\MT">
       <UniqueIdentifier>{55ef64ac-4671-4600-8e4a-ca56d181c6ec}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Archive">
+      <UniqueIdentifier>{79640188-f500-4cc6-a130-93514e07ad37}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MiscHelpers.cpp">
@@ -102,6 +105,36 @@
     <ClCompile Include="Common\AbstractTreeModel.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Archive\Archive.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveExtractor.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveFS.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveHelper.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveInterface.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveOpener.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveThread.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\ArchiveUpdater.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\CachedArchive.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
+    <ClCompile Include="Archive\SplitFile.cpp">
+      <Filter>Archive</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MiscHelpers.h">
@@ -139,6 +172,33 @@
     </ClInclude>
     <ClInclude Include="Common\CustomTheme.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\Archive.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveExtractor.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveFS.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveHelper.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveInterface.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveIO.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveOpener.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\ArchiveUpdater.h">
+      <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive\CachedArchive.h">
+      <Filter>Archive</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -215,6 +275,12 @@
     </QtMoc>
     <QtMoc Include="Common\AbstractTreeModel.h">
       <Filter>Common</Filter>
+    </QtMoc>
+    <QtMoc Include="Archive\ArchiveThread.h">
+      <Filter>Archive</Filter>
+    </QtMoc>
+    <QtMoc Include="Archive\SplitFile.h">
+      <Filter>Archive</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>

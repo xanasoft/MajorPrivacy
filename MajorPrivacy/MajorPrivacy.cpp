@@ -39,6 +39,7 @@
 #include "Windows/MountMgrWnd.h"
 #include "Windows/SignatureDbWnd.h"
 #include "../QtSingleApp/src/qtsingleapplication.h"
+#include "../MiscHelpers/Archive/ArchiveFS.h"
 
 #include <Windows.h>
 #include <ShellApi.h>
@@ -2369,10 +2370,10 @@ void CMajorPrivacy::LoadLanguage(const QString& Lang, const QString& Module, int
 	LangAux.truncate(LangAux.lastIndexOf('_'));
 
 	QString LangDir;
-	/*C7zFileEngineHandler LangFS("lang", this);
+	C7zFileEngineHandler LangFS("lang", this);
 	if (LangFS.Open(QApplication::applicationDirPath() + "/translations.7z"))
 		LangDir = LangFS.Prefix() + "/";
-	else*/
+	else
 		LangDir = QApplication::applicationDirPath() + "/translations/";
 
 	QString LangPath = LangDir + Module + "_";
