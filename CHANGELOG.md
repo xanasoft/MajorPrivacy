@@ -10,9 +10,18 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.98.1] - 2025-05-
 
+### Added
+- enabled translation support
+  - let me know in the forum if you want to help with translations or add your own language, already added
+	- added German AI transaltion
+	- added Polish AI transaltion
+- added MS VC Redistributable to the installer (required for ImDisk UI)
+
+
 ### Fixed
 - fixed issue with installer not removing the driver
 - 
+
 
 
 ## [0.98.0] - 2025-05-06
