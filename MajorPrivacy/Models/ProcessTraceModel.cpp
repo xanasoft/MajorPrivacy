@@ -51,7 +51,7 @@ CTraceModel::STraceNode* CProcessTraceModel::MkNode(const SMergedLog::TLogEntry&
 
 	const CExecLogEntry* pEntry = dynamic_cast<const CExecLogEntry*>(pNode->pLogEntry.constData());
 
-	if (pEntry->GetRole() == EExecLogRole::eBooth)	pNode->pActor = pNode->pTarget = Data.first;
+	if (pEntry->GetRole() == EExecLogRole::eBoth)	pNode->pActor = pNode->pTarget = Data.first;
 	else if (pEntry->GetRole() == EExecLogRole::eActor) pNode->pActor = Data.first;
 	else if (pEntry->GetRole() == EExecLogRole::eTarget) pNode->pTarget = Data.first;
 

@@ -165,7 +165,7 @@
          <item row="0" column="0">
           <widget class="QPushButton" name="btnFwPrev">
            <property name="text">
-            <string>Previouse</string>
+            <string>Previous</string>
            </property>
           </widget>
          </item>
@@ -355,7 +355,7 @@
               </column>
               <column>
                <property name="text">
-                <string>Tiem Stamp</string>
+                <string>Time Stamp</string>
                </property>
               </column>
               <column>
@@ -493,7 +493,7 @@
          <item row="0" column="0">
           <widget class="QPushButton" name="btnResPrev">
            <property name="text">
-            <string>Previouse</string>
+            <string>Previous</string>
            </property>
           </widget>
          </item>
@@ -584,7 +584,7 @@
               </column>
               <column>
                <property name="text">
-                <string>Tiem Stamp</string>
+                <string>Time Stamp</string>
                </property>
               </column>
               <column>
@@ -699,7 +699,7 @@
          <item row="0" column="0">
           <widget class="QPushButton" name="btnExecPrev">
            <property name="text">
-            <string>Previouse</string>
+            <string>Previous</string>
            </property>
           </widget>
          </item>

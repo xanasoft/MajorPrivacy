@@ -162,7 +162,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 
 	connect(ui.chkResShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
-	connect(ui.radFwAlowList, SIGNAL(clicked()), this, SLOT(OnFwModeChanged()));
+	connect(ui.radFwAllowList, SIGNAL(clicked()), this, SLOT(OnFwModeChanged()));
 	connect(ui.radFwBlockList, SIGNAL(clicked()), this, SLOT(OnFwModeChanged()));
 	connect(ui.radFwDisable, SIGNAL(clicked()), this, SLOT(OnFwModeChanged()));
 
@@ -513,7 +513,7 @@ void CSettingsWindow::LoadSettings()
 
 	auto FwMode = theCore->GetFwProfile();
 	if (!FwMode.IsError()) {
-		ui.radFwAlowList->setChecked(FwMode.GetValue() == FwFilteringModes::AllowList);
+		ui.radFwAllowList->setChecked(FwMode.GetValue() == FwFilteringModes::AllowList);
 		ui.radFwBlockList->setChecked(FwMode.GetValue() == FwFilteringModes::BlockList);
 		ui.radFwDisable->setChecked(FwMode.GetValue() == FwFilteringModes::NoFiltering);
 	}
@@ -606,7 +606,7 @@ void CSettingsWindow::SaveSettings()
 
 	if (m_bFwModeChanged) {
 		FwFilteringModes Mode = FwFilteringModes::Unknown;
-		if (ui.radFwAlowList->isChecked())		Mode = FwFilteringModes::AllowList;
+		if (ui.radFwAllowList->isChecked())		Mode = FwFilteringModes::AllowList;
 		else if (ui.radFwBlockList->isChecked())Mode = FwFilteringModes::BlockList;
 		else if (ui.radFwDisable->isChecked())	Mode = FwFilteringModes::NoFiltering;
 		if(Mode != FwFilteringModes::Unknown)	theCore->SetFwProfile(Mode);
