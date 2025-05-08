@@ -227,7 +227,7 @@ void CTreeItemModel::Purge(STreeNode* pParent, const QModelIndex &parent, QHash<
 					FreeNode(pNode);
 				}
 
-				// CAUTION: all row indexes must be up to date bevore endRemoveRows
+				// CAUTION: all row indexes must be up to date before endRemoveRows
 
 				//pParent->Aux.clear();
 				for (int i = pParent->Children.count() - 1; i >= 0; i--)

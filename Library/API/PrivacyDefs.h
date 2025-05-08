@@ -162,7 +162,7 @@ enum class EExecLogRole // API_S_... TODO
 	eUndefined = 0,
 	eActor,
 	eTarget,
-	eBooth,
+	eBoth,
 };
 
 enum class EExecLogType // API_S_... TODO

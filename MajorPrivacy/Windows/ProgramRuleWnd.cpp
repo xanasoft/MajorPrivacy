@@ -163,7 +163,7 @@ QColor CProgramRuleWnd::GetRoleColor(EExecLogRole Role)
 	{
 	case EExecLogRole::eActor:	/*light blue */ return QColor(173, 216, 230);
 	case EExecLogRole::eTarget: /*light red*/ return QColor(255, 182, 193);
-	case EExecLogRole::eBooth:  /*light green*/ return QColor(144, 238, 144);
+	case EExecLogRole::eBoth:  /*light green*/ return QColor(144, 238, 144);
 	default: return QColor();
 	}
 }
@@ -239,7 +239,7 @@ void CProgramRuleWnd::OnPickProgram()
 		Index = m_Items.indexOf(pItem);
 		if (Index == -1) {
 			if(!AddProgramItem(pItem))
-				QMessageBox::warning(this, "MajorPrivacy", tr("The sellected program type is not supported for this rule type"));
+				QMessageBox::warning(this, "MajorPrivacy", tr("The selected program type is not supported for this rule type"));
 			else
 				Index = m_Items.indexOf(pItem);
 		}

@@ -306,7 +306,7 @@ void CAccessRuleWnd::OnPickProgram()
 		Index = m_Items.indexOf(pItem);
 		if (Index == -1) {
 			if(!AddProgramItem(pItem))
-				QMessageBox::warning(this, "MajorPrivacy", tr("The sellected program type is not supported for this rule type"));
+				QMessageBox::warning(this, "MajorPrivacy", tr("The selected program type is not supported for this rule type"));
 			else
 				Index = m_Items.indexOf(pItem);
 		}

@@ -185,7 +185,7 @@
       <item row="2" column="0" colspan="2">
        <widget class="QCheckBox" name="chkAllowDebugging">
         <property name="text">
-         <string>Allow Debuging (INSECURE !!!)</string>
+         <string>Allow Debugging (INSECURE !!!)</string>
         </property>
        </widget>
       </item>

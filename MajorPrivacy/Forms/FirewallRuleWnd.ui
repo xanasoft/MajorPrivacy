@@ -244,7 +244,7 @@
       <item row="1" column="1" colspan="3">
        <widget class="QRadioButton" name="radProfileCustom">
         <property name="text">
-         <string>Sellected:</string>
+         <string>Selected:</string>
         </property>
         <attribute name="buttonGroup">
          <string notr="true">radProfiles</string>

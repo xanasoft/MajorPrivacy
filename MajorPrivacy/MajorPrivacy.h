@@ -33,13 +33,13 @@ public:
 
 	struct SCurrentItems
 	{
-		QSet<CProgramItemPtr> Items; // all items including not sellected children
+		QSet<CProgramItemPtr> Items; // all items including not selected children
 
 		//QMap<quint64, CProcessPtr> Processes;
-		QSet<CProgramFilePtr> ProgramsEx; // explicitly sellected program
-		QSet<CProgramFilePtr> ProgramsIm; // implicitly sellected program
-		QSet<CWindowsServicePtr> ServicesEx; // explicitly sellected services
-		QSet<CWindowsServicePtr> ServicesIm; // implicitly sellected services
+		QSet<CProgramFilePtr> ProgramsEx; // explicitly selected program
+		QSet<CProgramFilePtr> ProgramsIm; // implicitly selected program
+		QSet<CWindowsServicePtr> ServicesEx; // explicitly selected services
+		QSet<CWindowsServicePtr> ServicesIm; // implicitly selected services
 
 		bool bAllPrograms = false;
 	};

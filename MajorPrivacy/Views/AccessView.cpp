@@ -361,7 +361,7 @@ void CAccessView::CleanUpTree()
 {
 	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to clean up the Access Tree? This will remove all Files and folders which are no longer present on the System. "
 	  "It will also remove all references to files and folders existing but contained in not currently mounted volumes. "
-	  "The operation will have to atempt to access all logged locations and will take some time, once done the view will refresh."), QMessageBox::Yes, QMessageBox::Cancel) != QMessageBox::Yes)
+	  "The operation will have to attempt to access all logged locations and will take some time, once done the view will refresh."), QMessageBox::Yes, QMessageBox::Cancel) != QMessageBox::Yes)
 		return;
 	
 	QList<STATUS> Results = QList<STATUS>() << theCore->CleanUpAccessTree();
