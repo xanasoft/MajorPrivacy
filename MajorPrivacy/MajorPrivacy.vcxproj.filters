@@ -865,5 +865,8 @@
     <QtTranslation Include="MajorPrivacy_ko.ts">
       <Filter>Translation Files</Filter>
     </QtTranslation>
+    <QtTranslation Include="MajorPrivacy_tr.ts">
+      <Filter>Translation Files</Filter>
+    </QtTranslation>
   </ItemGroup>
 </Project>
