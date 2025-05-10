@@ -556,7 +556,7 @@ void CMajorPrivacy::StoreState()
 
 void CMajorPrivacy::BuildMenu()
 {
-	m_pMain = menuBar()->addMenu("Privacy");
+	m_pMain = menuBar()->addMenu(tr("Privacy"));
 	//m_pMain->addSeparator();
 	m_pMaintenance = m_pMain->addMenu(QIcon(":/Icons/Maintenance.png"), tr("&Maintenance"));
 		m_pImportOptions = m_pMaintenance->addAction(QIcon(":/Icons/Import.png"), tr("Import Options"), this, SLOT(OnMaintenance()));
@@ -577,7 +577,7 @@ void CMajorPrivacy::BuildMenu()
 	m_pExit = m_pMain->addAction(QIcon(":/Icons/Exit.png"), tr("Exit"), this, SLOT(OnExit()));
 
 
-	m_pView = menuBar()->addMenu("View");
+	m_pView = menuBar()->addMenu(tr("View"));
 	m_pProgTree = m_pView->addAction(QIcon(":/Icons/Tree.png"), tr("Toggle Program Tree"), this, SLOT(OnToggleTree()));
 	m_pProgTree->setCheckable(true);
 	m_pProgTree->setChecked(theConf->GetBool("Options/ShowProgramTree", true));
@@ -606,13 +606,13 @@ void CMajorPrivacy::BuildMenu()
 	m_pWndTopMost->setChecked(theConf->GetBool("Options/AlwaysOnTop", false));
 
 
-	m_pVolumes = menuBar()->addMenu("Volumes");
+	m_pVolumes = menuBar()->addMenu(tr("Volumes"));
 	m_pMountVolume = m_pVolumes->addAction(QIcon(":/Icons/AddVolume.png"), tr("Add and Mount Volume Image"), this, SIGNAL(OnMountVolume()));
 	m_pUnmountAllVolumes = m_pVolumes->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount All Volumes"), this, SIGNAL(OnUnmountAllVolumes()));
 	m_pVolumes->addSeparator();
 	m_pCreateVolume = m_pVolumes->addAction(QIcon(":/Icons/MountVolume.png"), tr("Create Volume"), this, SIGNAL(OnCreateVolume()));
 
-	m_pSecurity = menuBar()->addMenu("Security");
+	m_pSecurity = menuBar()->addMenu(tr("Security"));
 	m_pSignFile = m_pSecurity->addAction(QIcon(":/Icons/Cert.png"), tr("Sign File"), this, SLOT(OnSignFile()));
 	m_pSignDb  = m_pSecurity->addAction(QIcon(":/Icons/CertDB.png"), tr("Signature Database"), this, [this]() {
 		CSignatureDbWnd* pWnd = new CSignatureDbWnd();
@@ -630,7 +630,7 @@ void CMajorPrivacy::BuildMenu()
 	
 
 
-	m_pTools = menuBar()->addMenu("Tools");
+	m_pTools = menuBar()->addMenu(tr("Tools"));
 	m_pCleanUpProgs = m_pTools->addAction(QIcon(":/Icons/Clean.png"), tr("CleanUp Program List"), this, SLOT(CleanUpPrograms()));
 	m_pReGroupProgs = m_pTools->addAction(QIcon(":/Icons/ReGroup.png"), tr("Re-Group all Programs"), this, SLOT(ReGroupPrograms()));
 
@@ -660,7 +660,7 @@ void CMajorPrivacy::BuildMenu()
 	m_pTools->addSeparator();
 	m_pClearLogs = m_pTools->addAction(QIcon(":/Icons/Trash.png"), tr("Clear All Trace Logs"), this, SLOT(ClearTraceLogs()));
 
-	m_pOptions = menuBar()->addMenu("Options");
+	m_pOptions = menuBar()->addMenu(tr("Options"));
 	m_pSettings = m_pOptions->addAction(QIcon(":/Icons/Settings.png"), tr("Settings"), this, SLOT(OpenSettings()));
 	m_pOptions->addSeparator();
 	m_pUnlockConfig = m_pOptions->addAction(QIcon(":/Icons/LockOpen.png"), tr("Unlock Config"), this, SLOT(OnUnlockConfig()));
@@ -1663,7 +1663,7 @@ QString CMajorPrivacy::FormatError(const STATUS& Error)
 		case STATUS_ERR_CANT_REMOVE_FROM_PATTERN:	return tr("Can't remove from pattern.");
 		case STATUS_ERR_PROG_PARENT_NOT_VALID:		return tr("Parent program not valid.");
 		case STATUS_ERR_CANT_REMOVE_AUTO_ITEM:		return tr("Removing program items which are auto generated and represent found components can not be removed.");
-		case STATUS_ERR_NO_USER_KEY:				return tr("Before you can sign a Binary you need to create your User Key, use the 'Security->Setup User Key' menu comand to do that.");
+		case STATUS_ERR_NO_USER_KEY:				return tr("Before you can sign a Binary you need to create your User Key, use the 'Security->Setup User Key' menu command to do that.");
 		case STATUS_ERR_WRONG_PASSWORD:				return tr("Wrong Password!");
 		}
 	}
@@ -1942,7 +1942,7 @@ void CMajorPrivacy::CleanUpPrograms()
 
 void CMajorPrivacy::ReGroupPrograms()
 {
-	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to re-group all Program Items? This will remove all program items from all auto assiciated groups and re add it based on the default rules."), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes) {
+	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to re-group all Program Items? This will remove all program items from all auto associated groups and re add it based on the default rules."), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes) {
 		QList<STATUS> Results = QList<STATUS>() << theCore->ReGroupPrograms();
 		theGUI->CheckResults(Results, this);
 	}

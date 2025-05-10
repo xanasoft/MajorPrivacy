@@ -92,7 +92,7 @@
      <item row="0" column="0" colspan="4">
       <widget class="QLabel" name="lblInfo">
        <property name="text">
-        <string>Please sellect which options you want to import/export.</string>
+        <string>Please select which options you want to import/export.</string>
        </property>
       </widget>
      </item>

@@ -185,7 +185,7 @@ std::wstring CWindowsFwLog::GetXmlQuery()
 {
 	// *[System[Provider[ @Name='%2'] and (EventID=%3)]]
 	// Note: 
-	//			Alowed connections LayerRTID == 48 
+	//			Allowed connections LayerRTID == 48 
 	//			Blocked connections LayerRTID == 44
 	//			Opening a TCP port for listening LayerRTID == 38 and 36 // Resource allocation
 	//			Opening a UDP port LayerRTID == 38 and 36 // Resource allocation

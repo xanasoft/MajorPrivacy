@@ -629,10 +629,10 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
     // todo:
 
     //
-    // Note: an image may receive a loaded event folowed by an unloaded event
-    // this means the library was unloaded bevore controll was returned to user space
+    // Note: an image may receive a loaded event followed by an unloaded event
+    // this means the library was unloaded before control was returned to user space
     // in which case we handle it as if it would have been unloaded instantly.
-    // Note: this shoudl no longer be the case, we now issue the event once all is checked and final
+    // Note: this should no longer be the case, we now issue the event once all is checked and final
     //
 
     EEventStatus Status;
@@ -650,9 +650,9 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
     pProgram->AddLibrary(EnclaveGuid, pLibrary, pImageEvent->TimeStamp, &pImageEvent->VerifierInfo, Status);
 
 #ifdef DEF_USE_POOL
-	CExecLogEntryPtr pLogEntry = pProgram->Allocator()->New<CExecLogEntry>(EnclaveGuid, EExecLogRole::eBooth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId);
+	CExecLogEntryPtr pLogEntry = pProgram->Allocator()->New<CExecLogEntry>(EnclaveGuid, EExecLogRole::eBoth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId);
 #else
-    CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EnclaveGuid, EExecLogRole::eBooth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId));
+    CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EnclaveGuid, EExecLogRole::eBoth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId));
 #endif
     AddExecLogEntry(pProgram, pLogEntry);
 }

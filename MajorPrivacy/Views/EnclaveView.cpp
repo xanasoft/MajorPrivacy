@@ -197,7 +197,7 @@ void CEnclaveView::OnEnclaveAction()
 		if (theConf->GetInt("Options/WarnTerminate", -1) == -1)
 		{
 			bool State = false;
-			if(CCheckableMessageBox::question(this, "MajorPrivacy", tr("Do you want to terminate all processes in the sellected enclaves?")
+			if(CCheckableMessageBox::question(this, "MajorPrivacy", tr("Do you want to terminate all processes in the selected enclaves?")
 				, tr("Terminate without asking"), &State, QDialogButtonBox::Yes | QDialogButtonBox::No, QDialogButtonBox::Yes) != QDialogButtonBox::Yes)
 				return;
 
