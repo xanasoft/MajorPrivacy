@@ -153,6 +153,8 @@ STATUS CProgramManager::Init()
 		AddPattern(m_ProgDir + L" (x86)\\Microsoft\\Edge*", L"Microsoft Edge");
 		AddPattern(m_OsDrive + L"ProgramData\\*" + L"\\*", L"ProgramData");
 		AddPattern(m_OsDrive + L"Users\\*" + L"\\*", L"Users");
+
+		AddPattern(L"\\\\*", L"Network");
 	}
 	else
 	{
@@ -194,14 +196,23 @@ STATUS CProgramManager::Init()
 		}
 	}
 
+	uStart = GetTickCount64();
 	m_InstallationList->Init();
+	DbgPrint(L"CProgramManager::Init() took %llu ms\n", GetTickCount64() - uStart);
+
+	uStart = GetTickCount64();
 	m_PackageList->Init();
+	DbgPrint(L"CProgramManager::Init() took %llu ms\n", GetTickCount64() - uStart);
 
 	theCore->Driver()->RegisterConfigEventHandler(EConfigGroup::eProgramRules, &CProgramManager::OnRuleChanged, this);
 	theCore->Driver()->RegisterForConfigEvents(EConfigGroup::eProgramRules);
+	uStart = GetTickCount64();
 	LoadRules();
+	DbgPrint(L"CProgramManager::LoadRules() took %llu ms\n", GetTickCount64() - uStart);
 
+	uStart = GetTickCount64();
 	TestMissing();
+	DbgPrint(L"CProgramManager::TestMissing() took %llu ms\n", GetTickCount64() - uStart);
 
 	return OK;
 }
@@ -1401,7 +1412,7 @@ STATUS CProgramManager::Load()
 			std::wstring Key = MkLower(FileName);
 			CProgramFilePtr& pFile = m_PathMap[Key];
 			if (!pFile) {
-				pFile = CProgramFilePtr(new CProgramFile(FileName));
+				pFile = CProgramFilePtr(new CProgramFile(FileName, false));
 				m_Items.insert(std::make_pair(pFile->GetUID(), pFile));
 			}
 			pItem = pFile;

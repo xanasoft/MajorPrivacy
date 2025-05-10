@@ -14,7 +14,7 @@ class CProgramFile: public CProgramSet
 {
 	TRACK_OBJECT(CProgramFile)
 public:
-	CProgramFile(const std::wstring& FileName);
+	CProgramFile(const std::wstring& FileName, bool bInitInfo = true);
 	~CProgramFile();
 
 #ifdef DEF_USE_POOL

@@ -63,6 +63,10 @@ DWORD CALLBACK CNetworkManager__LoadProc(LPVOID lpThreadParameter)
     CNetworkManager* This = (CNetworkManager*)lpThreadParameter;
 
     uint64 uStart = GetTickCount64();
+    This->Reconfigure();
+	DbgPrint(L"CNetworkManager::Reconfigure() took %llu ms\n", GetTickCount64() - uStart);
+
+    uStart = GetTickCount64();
     STATUS Status = This->Load();
     DbgPrint(L"CNetworkManager::Load() took %llu ms\n", GetTickCount64() - uStart);
 
@@ -73,16 +77,38 @@ DWORD CALLBACK CNetworkManager__LoadProc(LPVOID lpThreadParameter)
 
 STATUS CNetworkManager::Init()
 {
-	UpdateAdapterInfo();
+    //ULONGLONG Start = GetTickCount64();
+
+    UpdateAdapterInfo();
+
+    //ULONGLONG End = GetTickCount64();
+    //theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent UpdateAdapterInfo took %dms", End - Start);
+    //Start = End;
 
     m_pDnsInspector->Init();
+
+    //End = GetTickCount64();
+	//theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent DnsInspector init took %dms", End - Start);
+    //Start = End;
+
 	m_pFirewall->Init();
+
+    //End = GetTickCount64();
+	//theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Firewall init took %dms", End - Start);
+    //Start = End;
+
 	m_pSocketList->Init();
+
+    //End = GetTickCount64();
+	//theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent SocketList init took %dms", End - Start);
+    //Start = End;
+
 	m_pDnsFilter->Init();
 
-    m_hStoreThread = CreateThread(NULL, 0, CNetworkManager__LoadProc, (void*)this, 0, NULL);
+    //End = GetTickCount64();
+	//theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent DnsFilter init took %dms", End - Start);
 
-    Reconfigure();
+    m_hStoreThread = CreateThread(NULL, 0, CNetworkManager__LoadProc, (void*)this, 0, NULL);
 
 	return OK;
 }

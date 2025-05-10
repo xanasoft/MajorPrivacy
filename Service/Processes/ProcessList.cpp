@@ -82,7 +82,9 @@ STATUS CProcessList::Init()
         Status = OK;
     }
 
+    ULONGLONG uStart = GetTickCount64();
     Update();
+    DbgPrint(L"First CProcessList::Update() took %llu ms\n", GetTickCount64() - uStart);
 
     m_hStoreThread = CreateThread(NULL, 0, CProcessList__LoadProc, (void*)this, 0, NULL);
 
@@ -119,9 +121,13 @@ void CProcessList::Update()
     m_bLogInvalid = theCore->Config()->GetBool("Service", "LogInvalid", false);
 	m_bLogPipes = theCore->Config()->GetBool("Service", "LogPipes", false);
 
+    //uint64 uStart = GetTickCount64();
     EnumProcesses();
+	//DbgPrint(L"CProcessList::EnumProcesses() took %llu ms\n", GetTickCount64() - uStart);
 
+	//uStart = GetTickCount64();
     m_Services->EnumServices();
+	//DbgPrint(L"CProcessList::EnumServices() took %llu ms\n", GetTickCount64() - uStart);
 }
 
 void CProcessList::Reconfigure()

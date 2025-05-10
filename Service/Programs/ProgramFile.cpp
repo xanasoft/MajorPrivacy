@@ -12,15 +12,21 @@
 #include "../ServiceCore.h"
 #include "WindowsService.h"
 
-CProgramFile::CProgramFile(const std::wstring& FileName)
+CProgramFile::CProgramFile(const std::wstring& FileName, bool bInitInfo)
 {
 	ASSERT(!FileName.empty());
 
 	m_Path = FileName;
 	m_ID = CProgramID(MkLower(m_Path), EProgramType::eProgramFile);
 
-	SImageVersionInfoPtr pInfo = GetImageVersionInfo(m_Path);
-	m_Name = pInfo ? pInfo->FileDescription : FileName;
+	if (bInitInfo) {
+		SImageVersionInfoPtr pInfo = GetImageVersionInfo(m_Path);
+		m_Name = pInfo ? pInfo->FileDescription : FileName;
+	}
+	else {
+		size_t pos = FileName.rfind(L"\\");
+		m_Name = FileName.substr(pos + 1);
+	}
 
 #ifdef DEF_USE_POOL
 	m_pMem = FW::MemoryPool::Create();
@@ -840,6 +846,8 @@ void CProgramFile::TruncateAccessTree()
 
 void CProgramFile::TestMissing()
 {
+	if (m_Path.substr(0, 2) == L"\\\\")
+		return;
 	std::wstring NtPath = CNtPathMgr::Instance()->TranslateDosToNtPath(m_Path);
 	m_IsMissing = (!NtPath.empty() && NtIo_FileExists(SNtObject(NtPath).Get())) ? ePresent : eMissing;
 }

@@ -48,6 +48,8 @@ void CProgramItem::UpdateIconFile()
 		Path = PathIndex.first;
 		Index = PathIndex.second.toInt();
 	}
+	if (Path.left(2) == "\\\\")
+		return; // dont try network paths
 	QString Ext = Split2(Path, ".", true).second;
 	if (Ext.compare("exe", Qt::CaseInsensitive) == 0 || Ext.compare("dll", Qt::CaseInsensitive) == 0)
 		m_Icon = LoadWindowsIconEx(Path, Index);

@@ -150,7 +150,6 @@ int WinMain(
 
     STATUS Status = OK;
 
-    bool bStartup = false;
     std::wstring MsgBox = GetArgument(arguments, L"MsgBox");
     if (!MsgBox.empty())
     {
@@ -186,28 +185,32 @@ int WinMain(
                 WaitForSingleObject(hThread, INFINITE);
         }
     }
-    else if ((bStartup = HasFlag(arguments, L"startup")) || HasFlag(arguments, L"install"))
+    else if (HasFlag(arguments, L"startup"))
     {
-        /*SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+        SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
         if ((SvcState & SVC_INSTALLED) == SVC_INSTALLED && (SvcState & SVC_RUNNING) != SVC_RUNNING) {
             std::wstring BinaryPath = GetServiceBinaryPath(API_SERVICE_NAME);
             std::wstring ServicePath = CServiceCore::NormalizePath(GetFileFromCommand(BinaryPath));
             std::wstring AppDir = CServiceCore::NormalizePath(GetApplicationDirectory());
             if (ServicePath.length() < AppDir.length() || ServicePath.compare(0, AppDir.length(), AppDir) != 0)
                 RemoveService(API_SERVICE_NAME);
-        }*/
+        }
 
+        SvcState = GetServiceState(API_SERVICE_NAME);
+        if ((SvcState & SVC_INSTALLED) == 0)
+            Status = CServiceAPI::InstallSvc();
+        if ((SvcState & SVC_RUNNING) == 0)
+            Status = RunService(API_SERVICE_NAME);
+    }
+    else if (HasFlag(arguments, L"install"))
+    {
         SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
         if ((DrvState & SVC_INSTALLED) == 0)
             Status = CServiceCore::InstallDriver();
-        if (bStartup && (DrvState & SVC_RUNNING) == 0)
-            Status = RunService(API_DRIVER_NAME);
-
+        
         SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
         if ((SvcState & SVC_INSTALLED) == 0)
             Status = CServiceAPI::InstallSvc();
-        if (bStartup && (SvcState & SVC_RUNNING) == 0)
-            Status = RunService(API_SERVICE_NAME);
     }
     else if (HasFlag(arguments, L"remove"))
     {

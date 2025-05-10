@@ -48,9 +48,9 @@
 #define WinVer_Win23H2      SWinVer(22631)
 
 
-#ifdef _DEBUG
-#define DUMP_TO_INI
-#endif
+//#ifdef _DEBUG
+//#define DUMP_TO_INI
+//#endif
 
 #ifdef DUMP_TO_INI
 CConfigIni* g_TweaksIni = NULL;
@@ -68,7 +68,7 @@ CTweakPtr MakeTweakObject(const CTweakPtr& pParent, std::list<CTweakPtr>* pList,
 		////DbgPrint(L"[%s] %s\n", id.c_str(), pTweak->GetName().c_str());
         //bool bInserted = pList->insert(std::make_pair(id, pTweak)).second;
         //ASSERT(bInserted); // names must be unique
-#ifdef _DEBUG
+#if 0 //#ifdef _DEBUG
 		for (auto& _Tweak : *pList) {
 			ASSERT(_Tweak->GetId() != pTweak->GetId()); // names must be unique
 			if ((_Tweak->GetType() == ETweakType::eReg || _Tweak->GetType() == ETweakType::eGpo) &&
@@ -253,8 +253,8 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\SQMClient\\Windows",
         L"CEIPEnable",
         V(0));
-    // Disable CEIP via Microsoft key
-    MakeTweakObject<CRegTweak>(ceip, pList, L"Disable CEIP via Microsoft key", L"turn_off_ceip_key", WinVer_Win6,
+    // Disable CEIP
+    MakeTweakObject<CRegTweak>(ceip, pList, L"Disable CEIP", L"turn_off_ceip", WinVer_Win6,
         L"HKLM\\Software\\Microsoft\\SQMClient\\Windows",
         L"CEIPEnable",
         V(0));
@@ -389,33 +389,6 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"Microsoft-Windows-DiskDiagnosticResolver",
         ETweakHint::eNotRecommended);
 
-    /*  
-    *  #########################################
-    *       3rd-Party Telemetry
-    *  #########################################
-    */
-
-    CTweakPtr telemetry3Cat = MakeTweakObject<CTweakGroup>(pRoot, pList, L"3rd-Party Telemetry", L"other_telemetry");
-
-    // *** Disable Mozilla Spyware ***
-    CTweakPtr mozilla = MakeTweakObject<CTweakSet>(telemetry3Cat, pList, L"Disable Mozilla (Firefox) Spyware", L"no_mozilla_spyware");
-    MakeTweakObject<CExecTweak>(mozilla, pList, L"Disable PingSender.exe", L"disable_ping_sender", WinVer_Win7,
-        L"**\\PingSender.exe"); // "C:\Program Files\Mozilla Firefox\ or C:\Program Files\Mozilla Firefox\browser\"
-    MakeTweakObject<CExecTweak>(mozilla, pList, L"Disable crashreporter.exe", L"disable_crashreporter", WinVer_Win7,
-        L"**\\crashreporter.exe"); // "C:\Program Files\Mozilla Firefox\ or C:\Program Files\Mozilla Firefox\browser\"
-
-    // *** Disable Google Spyware ***
-    CTweakPtr google = MakeTweakObject<CTweakSet>(telemetry3Cat, pList, L"Disable Google Chrome Spyware", L"no_google_spyware");
-    MakeTweakObject<CExecTweak>(google, pList, L"Disable Software_Reporter_Tool.exe", L"disable_software_reporter_tool", WinVer_Win7,
-        L"**\\Software_Reporter_Tool.exe"); // "C:\Users\<user>\AppData\Local\Google\Chrome\User Data\SwReporter\*\"
-    MakeTweakObject<CExecTweak>(google, pList, L"Disable crashpad_handler.exe", L"disable_crashpad_handler", WinVer_Win7,
-        L"**\\crashpad_handler.exe"); // "C:\Program Files\Google\Chrome\Application\*\"
-
-    // *** NVidia Telemetry ***
-    CTweakPtr nvidia = MakeTweakObject<CTweakSet>(telemetry3Cat, pList, L"Disable NVidia Spyware", L"no_nvidia_spyware");
-    MakeTweakObject<CExecTweak>(nvidia, pList, L"Disable nvtelemetrycontainer.exe", L"disable_nvtelemetrycontainer", WinVer_Win7,
-        L"C:\\Program Files\\NVIDIA Corporation\\NvTelemetry\\nvtelemetrycontainer.exe");
-
 
     /*  
     *  #########################################
@@ -431,18 +404,18 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
         L"DisableAIDataAnalysis",
         V(1));
-    MakeTweakObject<CGpoTweak>(ai, pList, L"Disable AI Data Analysis (User)", L"disable_ai_data_analysis_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
-        L"DisableAIDataAnalysis",
-        V(1));
+    //MakeTweakObject<CGpoTweak>(ai, pList, L"Disable AI Data Analysis (User)", L"disable_ai_data_analysis_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
+    //    L"DisableAIDataAnalysis",
+    //    V(1));
     MakeTweakObject<CGpoTweak>(ai, pList, L"Disable Windows Copilot", L"disable_windows_copilot", WinVer_Win11,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsCopilot",
         L"TurnOffWindowsCopilot",
         V(1));
-    MakeTweakObject<CGpoTweak>(ai, pList, L"Disable Windows Copilot (User)", L"disable_windows_copilot_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsCopilot",
-        L"TurnOffWindowsCopilot",
-        V(1));
+    //MakeTweakObject<CGpoTweak>(ai, pList, L"Disable Windows Copilot (User)", L"disable_windows_copilot_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsCopilot",
+    //    L"TurnOffWindowsCopilot",
+    //    V(1));
     MakeTweakObject<CRegTweak>(ai, pList, L"Disable Copilot Button in File Explorer (User)", L"disable_copilot_button_in_explorer_user", WinVer_Win10,
         L"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
         L"ShowCopilotButton",
@@ -506,10 +479,10 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer", 
         L"DisableSearchBoxSuggestions", 
         V(1));
-    MakeTweakObject<CGpoTweak>(webSearch, pList, L"Disable Explorer Search Box Suggestions (User)", L"disable_explorer_search_suggestions_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
-        L"DisableSearchBoxSuggestions",
-        V(1));
+    //MakeTweakObject<CGpoTweak>(webSearch, pList, L"Disable Explorer Search Box Suggestions (User)", L"disable_explorer_search_suggestions_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+    //    L"DisableSearchBoxSuggestions",
+    //    V(1));
     MakeTweakObject<CGpoTweak>(webSearch, pList, L"Disable Cloud Search", L"disable_cloud_search", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search",
         L"AllowCloudSearch",
@@ -658,11 +631,11 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"SmartScreenEnabled", 
         V(0),
         ETweakHint::eNotRecommended);
-    MakeTweakObject<CGpoTweak>(screen, pList, L"Disable Edge SmartScreen (User)", L"edge_disable_smartscreen_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", 
-        L"SmartScreenEnabled", 
-        V(0),
-        ETweakHint::eNotRecommended);
+    //MakeTweakObject<CGpoTweak>(screen, pList, L"Disable Edge SmartScreen (User)", L"edge_disable_smartscreen_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", 
+    //    L"SmartScreenEnabled", 
+    //    V(0),
+    //    ETweakHint::eNotRecommended);
     // IE
     MakeTweakObject<CGpoTweak>(screen, pList, L"Disable SmartScreen for IE", L"disable_ie_smartscreen", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Internet Explorer\\PhishingFilter",
@@ -840,10 +813,10 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"HKLM\\Software\\Policies\\Microsoft\\Windows\\CloudContent",
         L"DisableTailoredExperiencesWithDiagnosticData",
         V(1));
-    MakeTweakObject<CGpoTweak>(privacy, pList, L"Disable Tailored Experiences (User)", L"disable_tailored_experiences_user", WinVer_Win1703,
-        L"HKCU\\Software\\Policies\\Microsoft\\Windows\\CloudContent",
-        L"DisableTailoredExperiencesWithDiagnosticData",
-        V(1));
+    //MakeTweakObject<CGpoTweak>(privacy, pList, L"Disable Tailored Experiences (User)", L"disable_tailored_experiences_user", WinVer_Win1703,
+    //    L"HKCU\\Software\\Policies\\Microsoft\\Windows\\CloudContent",
+    //    L"DisableTailoredExperiencesWithDiagnosticData",
+    //    V(1));
     MakeTweakObject<CRegTweak>(privacy, pList, L"Limit Tailored Experiences", L"limit_tailored_experiences", WinVer_Win1703,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Privacy",
         L"TailoredExperiencesWithDiagnosticDataEnabled",
@@ -857,10 +830,10 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
         L"DisableWindowsSpotlightFeatures",
         V(1));
-    MakeTweakObject<CGpoTweak>(privacy, pList, L"Turn off Windows Spotlight (User)", L"turn_off_windows_spotlight_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
-        L"DisableWindowsSpotlightFeatures",
-        V(1));
+    //MakeTweakObject<CGpoTweak>(privacy, pList, L"Turn off Windows Spotlight (User)", L"turn_off_windows_spotlight_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
+    //    L"DisableWindowsSpotlightFeatures",
+    //    V(1));
     MakeTweakObject<CGpoTweak>(privacy, pList, L"Disable OnlineTips in Settings", L"disable_online_tips", WinVer_Win1709,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
         L"AllowOnlineTips",
@@ -1031,10 +1004,10 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization",
         L"RestrictImplicitInkCollection",
         V(1));
-    MakeTweakObject<CGpoTweak>(spying, pList, L"Disable Inc Collection (User)", L"disable_inc_collection_user", WinVer_Win6,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization",
-        L"RestrictImplicitInkCollection",
-        V(1));
+    //MakeTweakObject<CGpoTweak>(spying, pList, L"Disable Inc Collection (User)", L"disable_inc_collection_user", WinVer_Win6,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\InputPersonalization",
+    //    L"RestrictImplicitInkCollection",
+    //    V(1));
     MakeTweakObject<CGpoTweak>(spying, pList, L"Disable Linguistic Data Collection", L"disable_linguistic_data_collection", WinVer_Win1803,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\TextInput",
         L"AllowLinguisticDataCollection",
@@ -1076,11 +1049,11 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\LocationAndSensors",
         L"DisableWindowsLocationProvider",
         V(1));
-    MakeTweakObject<CGpoTweak>(location, pList, L"Don't Share Lang List", L"dont_share_language_list_user", WinVer_Win10,
-        L"HKCU\\Control Panel\\International\\User Profile",
-        L"HttpAcceptLanguageOptOut",
-        V(1), 
-        ETweakHint::eNotRecommended);
+    //MakeTweakObject<CGpoTweak>(location, pList, L"Don't Share Lang List", L"dont_share_language_list_user", WinVer_Win10,
+    //    L"HKCU\\Control Panel\\International\\User Profile",
+    //    L"HttpAcceptLanguageOptOut",
+    //    V(1), 
+    //    ETweakHint::eNotRecommended);
     MakeTweakObject<CRegTweak>(location, pList, L"Disable Location Service (User)", L"disable_location_service_user",
         WinVer_Win10,
         L"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\DeviceAccess\\Global\\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}", L"Value",
@@ -1115,15 +1088,15 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"", ETweakHint::eNotRecommended);
 
     // *** No Push Notifications ***
-    CTweakPtr push = MakeTweakObject<CTweakSet>(privacyCat, pList, L"No Push Notifications", L"disable_push_notifications", ETweakHint::eRecommended);
-    MakeTweakObject<CGpoTweak>(push, pList, L"Disable Cloud Notification", L"disable_cloud_notification", WinVer_Win8,
+    //CTweakPtr push = MakeTweakObject<CTweakSet>(privacyCat, pList, L"No Push Notifications", L"disable_push_notifications", ETweakHint::eRecommended);
+    MakeTweakObject<CGpoTweak>(privacyCat, pList, L"Disable Cloud Notification", L"disable_cloud_notification", WinVer_Win8,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
         L"NoCloudApplicationNotification",
         V(1));
-    MakeTweakObject<CGpoTweak>(push, pList, L"Disable Cloud Notification (User)", L"disable_cloud_notification_user", WinVer_Win8,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
-        L"NoCloudApplicationNotification",
-        V(1));
+    //MakeTweakObject<CGpoTweak>(push, pList, L"Disable Cloud Notification (User)", L"disable_cloud_notification_user", WinVer_Win8,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\CurrentVersion\\PushNotifications",
+    //    L"NoCloudApplicationNotification",
+    //    V(1));
 
     // *** OOBE ***
     CTweakPtr oobe = MakeTweakObject<CTweakSet>(privacyCat, pList, L"OOBE Tweaks", L"oobe_tweaks", ETweakHint::eRecommended);
@@ -1284,15 +1257,15 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         V(0));
 
     // *** No Cloud Messages ***
-    CTweakPtr msgbak = MakeTweakObject<CTweakSet>(accountCat, pList, L"No Cloud Messages", L"disable_cloud_messages", ETweakHint::eRecommended);
-    MakeTweakObject<CGpoTweak>(msgbak, pList, L"Don't Sync Messages", L"dont_sync_messages", WinVer_Win1709,
+    //CTweakPtr msgbak = MakeTweakObject<CTweakSet>(accountCat, pList, L"No Cloud Messages", L"disable_cloud_messages", ETweakHint::eRecommended);
+    MakeTweakObject<CGpoTweak>(accountCat, pList, L"Don't Sync Messages", L"dont_sync_messages", WinVer_Win1709,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Messaging",
         L"AllowMessageSync",
         V(0));
-    MakeTweakObject<CGpoTweak>(msgbak, pList, L"Don't Sync Messages (User)", L"dont_sync_messages_user", WinVer_Win1709,
-        L"HKCU\\SOFTWARE\\Microsoft\\Messaging",
-        L"CloudServiceSyncEnabled",
-        V(0));
+    //MakeTweakObject<CGpoTweak>(msgbak, pList, L"Don't Sync Messages (User)", L"dont_sync_messages_user", WinVer_Win1709,
+    //    L"HKCU\\SOFTWARE\\Microsoft\\Messaging",
+    //    L"CloudServiceSyncEnabled",
+    //    V(0));
 
     // *** Disable Activity Feed ***
     CTweakPtr feed = MakeTweakObject<CTweakSet>(accountCat, pList, L"Disable User Tracking", L"disable_activity_feed", ETweakHint::eRecommended);
@@ -1344,15 +1317,15 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         V(1), 
         ETweakHint::eNotRecommended);
 
-    CTweakPtr hideMeet = MakeTweakObject<CTweakSet>(explorer, pList, L"Hide Meet Now Button", L"hide_meet_now_button");
-    MakeTweakObject<CGpoTweak>(hideMeet, pList, L"Hide Meet Now Button (Machine)", L"hide_meet_now_button_machine", WinVer_Win10,
+    //CTweakPtr hideMeet = MakeTweakObject<CTweakSet>(explorer, pList, L"Hide Meet Now Button", L"hide_meet_now_button");
+    MakeTweakObject<CGpoTweak>(explorer, pList, L"Hide Meet Now Button (Machine)", L"hide_meet_now_button_machine", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
         L"HideSCAMeetNow",
         V(1));
-    MakeTweakObject<CGpoTweak>(hideMeet, pList, L"Hide Meet Now Button (User)", L"hide_meet_now_button_user", WinVer_Win10,
-        L"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
-        L"HideSCAMeetNow", 
-        V(1));
+    //MakeTweakObject<CGpoTweak>(hideMeet, pList, L"Hide Meet Now Button (User)", L"hide_meet_now_button_user", WinVer_Win10,
+    //    L"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
+    //    L"HideSCAMeetNow", 
+    //    V(1));
 
     CTweakPtr noRecent = MakeTweakObject<CTweakSet>(explorer, pList, L"Disable collection of recently used items", L"explorer_no_recent", ETweakHint::eNotRecommended);
     MakeTweakObject<CRegTweak>(noRecent, pList, L"Disable Frequent Folders in File Explorer (User)", L"disable_frequent_folders_user", WinVer_Win10,
@@ -2133,7 +2106,8 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
 
     CTweakPtr browserCat = MakeTweakObject<CTweakGroup>(pRoot, pList, L"Web Browsers", L"wer_browsers");
 
-    CTweakPtr edgePolicy = MakeTweakObject<CTweakSet>(browserCat, pList, L"Harden Microsoft Edge (Machine Policies)", L"harden_edge_policies", ETweakHint::eRecommended);
+    //CTweakPtr edgePolicy = MakeTweakObject<CTweakSet>(browserCat, pList, L"Harden Microsoft Edge (Machine Policies)", L"harden_edge_policies", ETweakHint::eRecommended);
+    CTweakPtr edgePolicy = MakeTweakObject<CTweakSet>(browserCat, pList, L"Harden Microsoft Edge", L"harden_edge_policies", ETweakHint::eRecommended);
     MakeTweakObject<CGpoTweak>(edgePolicy, pList, L"Disable Startup Boost", L"edge_disable_startup_boost", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", L"StartupBoostEnabled", V(0));
     MakeTweakObject<CGpoTweak>(edgePolicy, pList, L"Enable Do Not Track", L"edge_enable_dnt", WinVer_Win10,
@@ -2195,67 +2169,67 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
     MakeTweakObject<CGpoTweak>(edgePolicy, pList, L"Disable Microsoft Editor Proofing", L"disable_microsoft_editor_proofing", WinVer_Win10,
         L"HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge", L"MicrosoftEditorProofingEnabled", V(0));
 
-    CTweakPtr edgePolicyUser = MakeTweakObject<CTweakSet>(browserCat, pList, L"Harden Microsoft Edge (User Policies)", L"harden_edge_user_policies", ETweakHint::eRecommended);
-    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Startup Boost", L"edge_disable_startup_boost_user", WinVer_Win10,
-    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"StartupBoostEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Enable Do Not Track", L"edge_enable_dnt_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"ConfigureDoNotTrack", V(1));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Network Prediction", L"edge_disable_net_predict_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"NetworkPredictionOptions", V(2), ETweakHint::eNotRecommended);
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Search Suggestions", L"edge_disable_search_suggest_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"SearchSuggestEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Autofill (Addresses)", L"edge_disable_autofill_addr_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"AutofillAddressEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Navigation Error Web Service", L"edge_disable_nav_error_ws_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"ResolveNavigationErrorsUseWebService", V(0), ETweakHint::eNotRecommended);
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Alternate Error Pages", L"edge_disable_alt_error_pages_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"AlternateErrorPagesEnabled", V(0), ETweakHint::eNotRecommended);
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Site Info Sharing", L"edge_disable_siteinfo_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"SendSiteInfoToImproveServices", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Personalization Reporting", L"edge_disable_personalization_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"PersonalizationReportingEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Metrics Reporting", L"edge_disable_metrics_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"MetricsReportingEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Payment Method Query", L"edge_disable_payment_query_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"PaymentMethodQueryEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Autofill (Credit Cards)", L"edge_disable_autofill_cc_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"AutofillCreditCardEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Bing Suggestions", L"edge_disable_bing_suggest_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"AddressBarMicrosoftSearchInBingProviderEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable User Feedback", L"edge_disable_feedback_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"UserFeedbackAllowed", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Block 3rd-Party Cookies", L"edge_block_3p_cookies_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"BlockThirdPartyCookies", V(1));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Enable Strict Tracking Prevention", L"edge_strict_tracking_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"TrackingPrevention", V(3), ETweakHint::eNotRecommended);
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Edge Shopping Assistant", L"edge_disable_shopping_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"EdgeShoppingAssistantEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Local Providers", L"edge_disable_local_providers_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"LocalProvidersEnabled", V(0));
-    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Hubs Sidebar", L"edge_disable_hubs_sidebar_user", WinVer_Win10,
-    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"HubsSidebarEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Edge Follow", L"edge_disable_follow_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"EdgeFollowEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Hide First Run Experience", L"edge_hide_firstrun_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"HideFirstRunExperience", V(1));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable 3rd-Party Search Telemetry", L"edge_disable_3p_telemetry_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"Edge3PSerpTelemetryEnabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Enable Edge Sync", L"enable_edge_sync_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"SyncDisabled", V(0));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Set Edge Default Geolocation", L"set_edge_geolocation_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"DefaultGeolocationSetting", V(3));
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Site Safety Services", L"disable_site_safety_services_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"SiteSafetyServicesEnabled", V(0), ETweakHint::eNotRecommended);
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Edge Password Manager", L"disable_edge_password_manager_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"PasswordManagerEnabled", V(0), ETweakHint::eNotRecommended); 
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Browser Sign-in", L"disable_browser_signin_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"BrowserSignin", V(0)); 
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Web Widget", L"disable_web_widget_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"WebWidgetAllowed", V(0)); 
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Typosquatting Checker", L"disable_typosquatting_checker_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"TyposquattingCheckerEnabled", V(0), ETweakHint::eNotRecommended); 
-    MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Microsoft Editor Proofing", L"disable_microsoft_editor_proofing_user", WinVer_Win10,
-        L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"MicrosoftEditorProofingEnabled", V(0));
+    //CTweakPtr edgePolicyUser = MakeTweakObject<CTweakSet>(browserCat, pList, L"Harden Microsoft Edge (User Policies)", L"harden_edge_user_policies", ETweakHint::eRecommended);
+    ////MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Startup Boost", L"edge_disable_startup_boost_user", WinVer_Win10,
+    ////    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"StartupBoostEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Enable Do Not Track", L"edge_enable_dnt_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"ConfigureDoNotTrack", V(1));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Network Prediction", L"edge_disable_net_predict_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"NetworkPredictionOptions", V(2), ETweakHint::eNotRecommended);
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Search Suggestions", L"edge_disable_search_suggest_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"SearchSuggestEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Autofill (Addresses)", L"edge_disable_autofill_addr_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"AutofillAddressEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Navigation Error Web Service", L"edge_disable_nav_error_ws_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"ResolveNavigationErrorsUseWebService", V(0), ETweakHint::eNotRecommended);
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Alternate Error Pages", L"edge_disable_alt_error_pages_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"AlternateErrorPagesEnabled", V(0), ETweakHint::eNotRecommended);
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Site Info Sharing", L"edge_disable_siteinfo_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"SendSiteInfoToImproveServices", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Personalization Reporting", L"edge_disable_personalization_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"PersonalizationReportingEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Metrics Reporting", L"edge_disable_metrics_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"MetricsReportingEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Payment Method Query", L"edge_disable_payment_query_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"PaymentMethodQueryEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Autofill (Credit Cards)", L"edge_disable_autofill_cc_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"AutofillCreditCardEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Bing Suggestions", L"edge_disable_bing_suggest_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"AddressBarMicrosoftSearchInBingProviderEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable User Feedback", L"edge_disable_feedback_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"UserFeedbackAllowed", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Block 3rd-Party Cookies", L"edge_block_3p_cookies_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"BlockThirdPartyCookies", V(1));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Enable Strict Tracking Prevention", L"edge_strict_tracking_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"TrackingPrevention", V(3), ETweakHint::eNotRecommended);
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Edge Shopping Assistant", L"edge_disable_shopping_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"EdgeShoppingAssistantEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Local Providers", L"edge_disable_local_providers_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"LocalProvidersEnabled", V(0));
+    ////MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Hubs Sidebar", L"edge_disable_hubs_sidebar_user", WinVer_Win10,
+    ////    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"HubsSidebarEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Edge Follow", L"edge_disable_follow_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"EdgeFollowEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Hide First Run Experience", L"edge_hide_firstrun_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"HideFirstRunExperience", V(1));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable 3rd-Party Search Telemetry", L"edge_disable_3p_telemetry_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"Edge3PSerpTelemetryEnabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Enable Edge Sync", L"enable_edge_sync_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"SyncDisabled", V(0));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Set Edge Default Geolocation", L"set_edge_geolocation_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"DefaultGeolocationSetting", V(3));
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Site Safety Services", L"disable_site_safety_services_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"SiteSafetyServicesEnabled", V(0), ETweakHint::eNotRecommended);
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Edge Password Manager", L"disable_edge_password_manager_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"PasswordManagerEnabled", V(0), ETweakHint::eNotRecommended); 
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Browser Sign-in", L"disable_browser_signin_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"BrowserSignin", V(0)); 
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Web Widget", L"disable_web_widget_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"WebWidgetAllowed", V(0)); 
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Typosquatting Checker", L"disable_typosquatting_checker_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"TyposquattingCheckerEnabled", V(0), ETweakHint::eNotRecommended); 
+    //MakeTweakObject<CGpoTweak>(edgePolicyUser, pList, L"Disable Microsoft Editor Proofing", L"disable_microsoft_editor_proofing_user", WinVer_Win10,
+    //    L"HKCU\\SOFTWARE\\Policies\\Microsoft\\Edge", L"MicrosoftEditorProofingEnabled", V(0));
 
     // *** Lockdown MS Edge ***
     CTweakPtr edge = MakeTweakObject<CTweakSet>(browserCat, pList, L"Lockdown MS Edge (old, non Chromium)", L"lockdown_edge");
@@ -2380,6 +2354,32 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         V(0));
 
 
+    /*  
+    *  #########################################
+    *       3rd-Party Telemetry
+    *  #########################################
+    */
+
+    //CTweakPtr telemetry3Cat = MakeTweakObject<CTweakGroup>(pRoot, pList, L"3rd-Party Telemetry", L"other_telemetry");
+
+    // *** Disable Mozilla Spyware ***
+    CTweakPtr mozilla = MakeTweakObject<CTweakSet>(browserCat, pList, L"Disable Mozilla (Firefox) Telemetry", L"no_mozilla_spyware");
+    MakeTweakObject<CExecTweak>(mozilla, pList, L"Disable PingSender.exe", L"disable_ping_sender", WinVer_Win7,
+        L"**\\PingSender.exe"); // "C:\Program Files\Mozilla Firefox\ or C:\Program Files\Mozilla Firefox\browser\"
+    MakeTweakObject<CExecTweak>(mozilla, pList, L"Disable crashreporter.exe", L"disable_crashreporter", WinVer_Win7,
+        L"**\\crashreporter.exe"); // "C:\Program Files\Mozilla Firefox\ or C:\Program Files\Mozilla Firefox\browser\"
+
+    // *** Disable Google Spyware ***
+    CTweakPtr google = MakeTweakObject<CTweakSet>(browserCat, pList, L"Disable Google Chrome Telemetry", L"no_google_spyware");
+    MakeTweakObject<CExecTweak>(google, pList, L"Disable Software_Reporter_Tool.exe", L"disable_software_reporter_tool", WinVer_Win7,
+        L"**\\Software_Reporter_Tool.exe"); // "C:\Users\<user>\AppData\Local\Google\Chrome\User Data\SwReporter\*\"
+    MakeTweakObject<CExecTweak>(google, pList, L"Disable crashpad_handler.exe", L"disable_crashpad_handler", WinVer_Win7,
+        L"**\\crashpad_handler.exe"); // "C:\Program Files\Google\Chrome\Application\*\"
+
+    // *** NVidia Telemetry ***
+    //CTweakPtr nvidia = MakeTweakObject<CTweakSet>(telemetry3Cat, pList, L"Disable NVidia Telemetry", L"no_nvidia_spyware");
+    //MakeTweakObject<CExecTweak>(nvidia, pList, L"Disable nvtelemetrycontainer.exe", L"disable_nvtelemetrycontainer", WinVer_Win7,
+    //    L"C:\\Program Files\\NVIDIA Corporation\\NvTelemetry\\nvtelemetrycontainer.exe");
 
 
     /*  

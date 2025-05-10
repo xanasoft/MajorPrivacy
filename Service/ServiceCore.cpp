@@ -123,11 +123,15 @@ STATUS CServiceCore::Startup(bool bEngineMode)
 	theCore->m_bEngineMode = bEngineMode;
 
 	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Starting PrivacyAgent v%S", VERSION_STR);
+	ULONGLONG Start = GetTickCount64();
 
 	STATUS Status = theCore->Init();
 	if (Status.IsError())
 		Shutdown();
-	
+
+	ULONGLONG End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Startup took %llu ms", End - Start);
+
 	return Status;
 }
 
@@ -333,6 +337,7 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 	NTSTATUS status;
 	uint32 uDrvABI;
+	ULONGLONG End, Start;
 
 	//
 	// Setup required privileges
@@ -376,6 +381,8 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 	// Initialize the driver
 	//
 
+	Start = GetTickCount64();
+
 	This->m_InitStatus = This->InitDriver();
 	if (This->m_InitStatus.IsError()) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to connect to driver, error: 0x%08X", This->m_InitStatus.GetStatus());
@@ -388,9 +395,14 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 		goto cleanup;
 	}
 
+	End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Driver init took %llu ms", End - Start);
+
 	//
 	// Initialize the rest of the components
 	//
+
+	Start = End;
 
 	This->m_InitStatus = This->m_pEnclaveManager->Init();
 	if (This->m_InitStatus.IsError()) {
@@ -398,11 +410,19 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 		goto cleanup;
 	}
 
+	End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Enclave Manager init took %llu ms", End - Start);
+	Start = End;
+
 	This->m_InitStatus = This->m_pProgramManager->Init();
 	if (This->m_InitStatus.IsError()) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Program Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
 		goto cleanup;
 	}
+
+	End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Program Manager init took %llu ms", End - Start);
+	Start = End;
 	
 	This->m_InitStatus = This->m_pProcessList->Init();
 	if (This->m_InitStatus.IsError()) {
@@ -410,11 +430,19 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 		goto cleanup;
 	}
 	
+	End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Process List init took %llu ms", End - Start);
+	Start = End;
+
 	This->m_InitStatus = This->m_pAccessManager->Init();
 	if (This->m_InitStatus.IsError()) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Access Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
 		goto cleanup;
 	}
+
+	End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Enclave Access init took %llu ms", End - Start);
+	Start = End;
 
 	This->m_InitStatus = This->m_pNetworkManager->Init();
 	if (This->m_InitStatus.IsError()) {
@@ -422,11 +450,19 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 		goto cleanup;
 	}
 
+	End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Network Manager init took %llu ms", End - Start);
+	Start = End;
+
 	This->m_InitStatus = This->m_pVolumeManager->Init();
 	if (This->m_InitStatus.IsError()) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Volume Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
 		goto cleanup;
 	}
+
+	End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Volume Manager init took %llu ms", End - Start);
+	Start = End;
 	
 	This->m_InitStatus = This->m_pTweakManager->Init();
 	if (This->m_InitStatus.IsError()) {
@@ -434,10 +470,17 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 		goto cleanup;
 	}
 
+	End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Tweak Manager init took %llu ms", End - Start);
+	Start = End;
+
 	if (This->Config()->GetBool("Service", "UseETW", true)) {
 		if (!This->m_pEtwEventMonitor->Init())
 			theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to initialize ETW Monitoring");
 	}
+
+	End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent ETW Monitoring init took %llu ms", End - Start);
 
 	//
 	// timer being created indicates to CServiceCore::Init() that it can continue
@@ -467,10 +510,14 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 	This->m_LastStoreTime = GetTickCount64();
 	This->StoreRecords();
-	DbgPrint(L"StoreRecords took %llu ms\n", GetTickCount64() - This->m_LastStoreTime);
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent StoreRecords took %llu ms", GetTickCount64() - This->m_LastStoreTime);
+	//DbgPrint(L"StoreRecords took %llu ms\n", GetTickCount64() - This->m_LastStoreTime);
 	
 
+	Start = GetTickCount64();
 	This->m_pVolumeManager->DismountAll();
+	End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent DismountAll took %llu ms", End - Start);
 
 cleanup:
 
@@ -509,6 +556,10 @@ STATUS CServiceCore::Init()
 
 	m_pConfig = new CConfigIni(m_DataFolder + L"\\" + API_SERVICE_NAME + L".ini");
 
+	//
+	// Update config
+	//
+
 	if (m_pConfig->GetInt("Service", "ConfigLevel", 0) < 1)
 	{
 		m_pConfig->SetInt("Service", "ConfigLevel", 1);
@@ -524,6 +575,8 @@ STATUS CServiceCore::Init()
 
 		m_pConfig->SetValue("Service", "DnsBlockLists", JoinStr(DnsBlockLists, L";"));
 	}
+
+	//
 
 	m_LastStoreTime = GetTickCount64();
 

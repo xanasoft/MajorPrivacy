@@ -30,7 +30,10 @@ void CAccessTree::Add(const std::wstring& Path, uint32 AccessMask, uint64 Access
 #endif
 	}
 
-	Add(SAccessStats(AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked), m_Root, Path);
+	if (Path.substr(0, 2) == L"\\\\")
+		Add(SAccessStats(AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked), m_Root, L"\\device\\mup\\" + Path.substr(2));
+	else
+		Add(SAccessStats(AccessMask, AccessTime, NtStatus, IsDirectory, bBlocked), m_Root, Path);
 }
 
 bool CAccessTree::Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std::wstring& Path, size_t uOffset)

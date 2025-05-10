@@ -94,10 +94,10 @@ std::wstring CNtPathMgr::TranslateDosToNtPath(std::wstring DosPath)
     // Network path L"\\..."
     //
 
-    //if (DosPath.length() >= 2 && DosPath[0] == L'\\' && DosPath[1] == L'\\')
-    //{
-    //    return CNtPathMgr__Mup + DosPath.substr(2);
-    //}
+    if (DosPath.length() >= 2 && DosPath[0] == L'\\' && DosPath[1] == L'\\')
+    {
+        return CNtPathMgr__Mup + DosPath.substr(2);
+    }
 
     //
 	// Dos Path L"X:\..."
@@ -154,10 +154,10 @@ std::wstring CNtPathMgr::TranslateNtToDosPath(std::wstring NtPath)
     // Network path L"\device\mup\..."
     //
 
-    //if (_wcsnicmp(NtPath.c_str(), CNtPathMgr__Mup, CNtPathMgr__MupLen) == 0)
-    //{
-    //    return L"\\\\" + NtPath.substr(CNtPathMgr__MupLen);
-    //}
+    if (_wcsnicmp(NtPath.c_str(), CNtPathMgr__Mup, CNtPathMgr__MupLen) == 0)
+    {
+        return L"\\\\" + NtPath.substr(CNtPathMgr__MupLen);
+    }
 
     //
     // Find Drive Letter

@@ -20,7 +20,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - fixed issue with installer not removing the driver
-- 
+- cleaned up tweaks
+- fixed issue with network shares [#47](https://github.com/xanasoft/MajorPrivacy/issues/47)
+  - Note: network locations are not checked for process existence anymore
 
 
 
