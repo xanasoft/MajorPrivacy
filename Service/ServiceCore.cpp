@@ -505,6 +505,7 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 	//if (This->IsConfigDirty())
 	This->CommitConfig();
+	This->Driver()->CommitConfigChanges();
 
 	This->m_pTweakManager->Store();
 

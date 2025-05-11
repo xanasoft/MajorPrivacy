@@ -18,7 +18,8 @@ void CGenericRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 #ifdef KERNEL_MODE
 	Rule.Write(API_V_ENCLAVE, TO_STR(m_Enclave));
 #else
-	Rule.WriteVariant(API_V_ENCLAVE, m_Enclave.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+	if(!m_Enclave.IsNull())
+		Rule.WriteVariant(API_V_ENCLAVE, m_Enclave.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
 #endif
 
 	Rule.Write(API_V_TEMP, m_bTemporary);
@@ -77,7 +78,8 @@ void CGenericRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 #ifdef KERNEL_MODE
 	Rule.Write(API_S_ENCLAVE, TO_STR(m_Enclave));
 #else
-	Rule.WriteVariant(API_S_ENCLAVE, m_Enclave.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+	if(!m_Enclave.IsNull())
+		Rule.WriteVariant(API_S_ENCLAVE, m_Enclave.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
 #endif
 
 	Rule.Write(API_S_TEMP, m_bTemporary);
