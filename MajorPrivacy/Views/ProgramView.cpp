@@ -665,7 +665,7 @@ void CProgramView::OnProgramAction()
 		else if (bMultiGroup)
 		{
 			int Res = QMessageBox::question(this, "MajorPrivacy", tr("Do you want to delete selected Program Items?\n"
-				"The selected Item belongs to more than one Group, to delete it from all groups press 'Yes to All', pressing 'Yes' will only remove it from the group its sellected in.")
+				"The selected Item belongs to more than one Group, to delete it from all groups press 'Yes to All', pressing 'Yes' will only remove it from the group its selected in.")
 				, QMessageBox::Yes, QMessageBox::YesToAll, QMessageBox::No);
 			if (Res == QMessageBox::No)
 				return;

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="it">
+<TS version="2.1" language="it_IT">
 <context>
     <name>AccessRuleWnd</name>
     <message>
@@ -415,7 +415,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The sellected program type is not supported for this rule type</source>
+        <source>The selected program type is not supported for this rule type</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -544,7 +544,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Do you want to clean up the Access Tree? This will remove all Files and folders which are no longer present on the System. It will also remove all references to files and folders existing but contained in not currently mounted volumes. The operation will have to atempt to access all logged locations and will take some time, once done the view will refresh.</source>
+        <source>Do you want to clean up the Access Tree? This will remove all Files and folders which are no longer present on the System. It will also remove all references to files and folders existing but contained in not currently mounted volumes. The operation will have to attempt to access all logged locations and will take some time, once done the view will refresh.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -917,7 +917,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Do you want to terminate all processes in the sellected enclaves?</source>
+        <source>Do you want to terminate all processes in the selected enclaves?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1121,7 +1121,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The sellected program type is not supported for this rule type</source>
+        <source>The selected program type is not supported for this rule type</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2173,7 +2173,7 @@ If the driver is set to auto-start, it will automatically re-lock the key on reb
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Before you can sign a Binary you need to create your User Key, use the &apos;Security-&gt;Setup User Key&apos; menu comand to do that.</source>
+        <source>Before you can sign a Binary you need to create your User Key, use the &apos;Security-&gt;Setup User Key&apos; menu command to do that.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2209,7 +2209,7 @@ If the driver is set to auto-start, it will automatically re-lock the key on reb
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Do you want to re-group all Program Items? This will remove all program items from all auto assiciated groups and re add it based on the default rules.</source>
+        <source>Do you want to re-group all Program Items? This will remove all program items from all auto associated groups and re add it based on the default rules.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2833,7 +2833,7 @@ CAUTION: This will disable protection.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source> (CI: Code Gene.)</source>
+        <source> (CI: Code Gen.)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3222,7 +3222,7 @@ CAUTION: This will disable protection.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The sellected program type is not supported for this rule type</source>
+        <source>The selected program type is not supported for this rule type</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3383,7 +3383,7 @@ The selected Item has children, do you want to delete them as well (Yes to All)?
     </message>
     <message>
         <source>Do you want to delete selected Program Items?
-The selected Item belongs to more than one Group, to delete it from all groups press &apos;Yes to All&apos;, pressing &apos;Yes&apos; will only remove it from the group its sellected in.</source>
+The selected Item belongs to more than one Group, to delete it from all groups press &apos;Yes to All&apos;, pressing &apos;Yes&apos; will only remove it from the group its selected in.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4221,7 +4221,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Allow Debuging (INSECURE !!!)</source>
+        <source>Allow Debugging (INSECURE !!!)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4272,7 +4272,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Sellected:</source>
+        <source>Selected:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4383,7 +4383,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Please sellect which options you want to import/export.</source>
+        <source>Please select which options you want to import/export.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4446,7 +4446,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Previouse</source>
+        <source>Previous</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4495,10 +4495,6 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     </message>
     <message>
         <source>Action</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Tiem Stamp</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4722,7 +4718,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Booth</source>
+        <source>Both</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4901,7 +4897,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Trace also access atempts to non existing resources</source>
+        <source>Trace also access attempts to non existing resources</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4941,7 +4937,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Alow List Mode (recommended)</source>
+        <source>Allow List Mode (recommended)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5041,7 +5037,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Trace Log Retention Tme:</source>
+        <source>Trace Log Retention Time:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

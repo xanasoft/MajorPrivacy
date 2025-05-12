@@ -817,7 +817,7 @@ STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& 
     std::wstring DevicePath = IMDISK_DEVICE + std::to_wstring(Number);
 
     //
-    // Set up protection for the selected device number bevore actually mounting it
+    // Set up protection for the selected device number before actually mounting it
     //
 
     std::wstring ruleGuid;

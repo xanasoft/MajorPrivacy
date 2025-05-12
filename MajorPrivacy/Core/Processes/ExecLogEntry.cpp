@@ -16,7 +16,7 @@ QString CExecLogEntry::GetRoleStr(EExecLogRole Role)
 {
 	switch (Role)
 	{
-	case EExecLogRole::eBooth:				return QObject::tr("Booth");
+	case EExecLogRole::eBoth:				return QObject::tr("Both");
 	case EExecLogRole::eActor:				return QObject::tr("Actor");
 	case EExecLogRole::eTarget:				return QObject::tr("Target");
 	default: return QObject::tr("Unknown");

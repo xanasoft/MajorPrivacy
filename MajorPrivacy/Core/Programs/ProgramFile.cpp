@@ -450,7 +450,7 @@ QString CProgramFile::GetSignatureInfoStr(UCISignInfo SignInfo)
 	case SE_SIGNING_LEVEL_MICROSOFT:		Str += tr(" (CI: Microsoft)"); break;
 	case SE_SIGNING_LEVEL_CUSTOM_4:			Str += tr(" (CI: Level 4)"); break;
 	case SE_SIGNING_LEVEL_CUSTOM_5:			Str += tr(" (CI: Level 5)"); break;
-	case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:	Str += tr(" (CI: Code Gene.)"); break;
+	case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:	Str += tr(" (CI: Code Gen.)"); break;
 	case SE_SIGNING_LEVEL_WINDOWS:			Str += tr(" (CI: Windows)"); break;
 	case SE_SIGNING_LEVEL_CUSTOM_7:			Str += tr(" (CI: Level 7)"); break;
 	case SE_SIGNING_LEVEL_WINDOWS_TCB:		Str += tr(" (CI: Windows TCB)"); break;
