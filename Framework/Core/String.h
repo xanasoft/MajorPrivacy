@@ -50,7 +50,7 @@ public:
 	String& operator=(const String& Other)			{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Assign(Other); return *this; }
 	String& operator=(String&& Other)				{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Move(Other); return *this; }
 	String& operator=(const C* pStr)				{ Assign(pStr); return *this; }
-	String& operator+=(const String& Other)			{ if (!m_pMem) m_pMem = Other.m_pMem; Append(Other.ConstData(), Other.Length()); return *this; }
+	String& operator+=(const String& Other)			{ Append(Other); return *this; }
 	String& operator+=(const C* pStr)				{ Append(pStr); return *this; }
 	String& operator+=(const C Char)				{ Append(Char); return *this; }
 	String operator+(const String& Other) const		{ String str(*this); str.Append(Other.ConstData(), Other.Length()); return str; }
@@ -71,6 +71,7 @@ public:
 	bool operator> (const C* pStr) const			{ return Compare(pStr) > 0; }
 	bool operator< (const C* pStr) const			{ return Compare(pStr) < 0; }
 
+	// todo check bounds!!!!!!
 	const C& operator[](size_t Index) const			{ return m_ptr->Data[Index]; }
 	C& operator[](size_t Index)						{ MakeExclusive(); return m_ptr->Data[Index]; }
 
@@ -98,9 +99,12 @@ public:
 
 	bool SetSize(size_t Length)
 	{
+		if(Length == NPos)
+			Length = 0;
 		if(!Reserve(Length))
 			return false;
 		m_ptr->Length = Length;
+		m_ptr->Data[m_ptr->Length] = 0;
 		return true;
 	}
 
@@ -140,6 +144,13 @@ public:
 		m_ptr = Other.m_ptr; 
 		Other.m_ptr = nullptr;
 		return true;
+	}
+
+	bool Append(const String& Other)
+	{
+		if (!m_pMem) 
+			m_pMem = Other.m_pMem; 
+		return Append(Other.ConstData(), Other.Length()); 
 	}
 
 	template <typename T>
@@ -456,6 +467,20 @@ public:
 		if (uStart >= Length())
 			return NPos;
 		for (size_t i = uStart; i < Length(); i++)
+			if (m_ptr->Data[i] == Char)
+				return i;
+		return NPos;
+	}
+
+	size_t RFind(const C Char, size_t uStart = NPos) const
+	{
+		if (Length() == 0)
+			return NPos;
+
+		if (uStart >= Length())
+			uStart = Length() - 1;
+
+		for (size_t i = uStart + 1; i-- > 0;)
 			if (m_ptr->Data[i] == Char)
 				return i;
 		return NPos;

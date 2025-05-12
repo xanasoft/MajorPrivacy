@@ -1,5 +1,6 @@
 #pragma once
 #include "Volume.h"
+#include "../Library/Status.h"
 
 class CVolumeManager : public QObject
 {
@@ -12,8 +13,8 @@ public:
 
 	QList<CVolumePtr> List() { return m_List.values(); }
 	
-	void AddVolume(const QString& Path);
-	void RemoveVolume(const QString& Path);
+	STATUS AddVolume(const QString& Path);
+	STATUS RemoveVolume(const QString& Path);
 
 	bool LoadVolumes();
 	bool SaveVolumes();

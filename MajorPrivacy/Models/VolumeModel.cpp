@@ -58,7 +58,13 @@ QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 		int Changed = 0;
 		if (pNode->Icon.isNull())
 		{
-			pNode->Icon = pNode->pVolume->IsFolder() ? pNode->Icon = QIcon(":/Icons/Folder.png") :QIcon(":/Icons/SecureDisk.png");
+			//switch (pNode->pVolume->GetStatus())
+			//{
+			//case CVolume::eFolder: pNode->Icon = QIcon(":/Icons/Folder.png"); break;
+			//case CVolume::eSecFolder: pNode->Icon = QIcon(":/Icons/SecFolder.png"); break;
+			//default: pNode->Icon = QIcon(":/Icons/SecureDisk.png");
+			//}
+			pNode->Icon = pNode->pVolume->IsFolder() ? QIcon(":/Icons/SecFolder.png") :QIcon(":/Icons/SecureDisk.png");
 			Changed = 1;
 		}
 		if (pNode->IsGray != (pNode->pVolume->GetStatus() == CVolume::eFolder)) {

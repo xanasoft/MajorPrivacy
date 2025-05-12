@@ -51,16 +51,49 @@ void CVolumeManager::Update()
 	}
 }
 
-void CVolumeManager::AddVolume(const QString& Path)
+STATUS CVolumeManager::AddVolume(const QString& Path)
 {
+	if (Path.endsWith("\\")) 
+	{
+		CAccessRulePtr pRule = CAccessRulePtr(new CAccessRule(theCore->ProgramManager()->GetAll()->GetID()));
+		pRule->SetType(EAccessRuleType::eProtect);
+		pRule->SetEnabled(true);
+		pRule->SetName(tr("%1 - Protection").arg(Path));
+		pRule->SetPath(Path + "*");
+		STATUS Status = theCore->AccessManager()->SetAccessRule(pRule);
+		if(!Status)
+			return Status;
+	}
+
 	CVolumePtr pVolume = CVolumePtr(new CVolume());
 	pVolume->SetImagePath(Path);
 	m_List.insert(Path.toLower(), pVolume);
+
+	return OK;
 }
 
-void CVolumeManager::RemoveVolume(const QString& Path)
+STATUS CVolumeManager::RemoveVolume(const QString& Path)
 {
+	for (auto pRule : theCore->AccessManager()->GetAccessRules())
+	{
+		if (pRule->GetType() != EAccessRuleType::eProtect || pRule->IsVolumeRule())
+			continue;
+
+		QString CurPath = pRule->GetPath();
+		if (CurPath.startsWith("\\") || !CurPath.endsWith("*") || CurPath.contains("/"))
+			continue;
+		CurPath.truncate(CurPath.length() - 1);
+
+		if (Path.compare(CurPath, Qt::CaseInsensitive) == 0)
+		{
+			STATUS Status = theCore->AccessManager()->DelAccessRule(pRule);
+			if(!Status)
+				return Status;
+		}
+	}
+
 	m_List.remove(Path.toLower());
+	return OK;
 }
 
 bool CVolumeManager::LoadVolumes()

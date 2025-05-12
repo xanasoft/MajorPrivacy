@@ -95,16 +95,16 @@ public:
 		return &ptr->Data;
 	}
 
-	bool Prepand(const V& Value)
+	V* Prepand(const V& Value)
 	{ 
 		if (!MakeExclusive(nullptr))
 			return false;
 
 		SListEntry* ptr = (SListEntry*)MemAlloc(sizeof(SListEntry));
-		if (!ptr) return false;
+		if (!ptr) return nullptr;
 		new (ptr) SListEntry(Value);
 		InsertBefore(m_ptr, nullptr, ptr);
-		return true;
+		return &ptr->Data;
 	}
 
 	bool Append(const List& Other)

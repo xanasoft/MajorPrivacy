@@ -37,6 +37,7 @@ public:
 	Array operator+(const Array& Other) const		{ Array str(*this); str.Append(Other.Data(), Other.Count()); return str; }
 	Array operator+(const V& Value) const			{ Array str(*this); str.Append(&Value, 1); return str; }
 
+	// todo check bounds!!!
 	const V& operator[](size_t Index) const			{ return m_ptr->Data[Index]; }
 	V& operator[](size_t Index)						{ MakeExclusive(); return m_ptr->Data[Index]; }
 

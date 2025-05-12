@@ -28,8 +28,8 @@ CVolumeView::CVolumeView(QWidget *parent)
 	m_pMountVolume = m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Mount Volume"), this, SLOT(OnMountVolume()));
 	m_pUnmountVolume = m_pMenu->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount Volume"), this, SLOT(OnUnmountVolume()));
 	m_pChangeVolumePassword = m_pMenu->addAction(QIcon(":/Icons/VolumePW.png"), tr("Change Volume Password"), this, SLOT(OnChangeVolumePassword()));
-	m_pRenameVolume = m_pMenu->addAction(QIcon(":/Icons/Rename.png"), tr("Rename Volume"), this, SLOT(OnRenameVolume()));
-	m_pRemoveVolume = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Remove Volume"), this, SLOT(OnRemoveVolume()));
+	m_pRenameVolume = m_pMenu->addAction(QIcon(":/Icons/Rename.png"), tr("Rename Volume/Folder"), this, SLOT(OnRenameVolume()));
+	m_pRemoveVolume = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Remove Volume/Folder"), this, SLOT(OnRemoveVolume()));
 	m_pRemoveVolume->setShortcut(QKeySequence::Delete);
 	m_pRemoveVolume->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	this->addAction(m_pRemoveVolume);
@@ -127,18 +127,23 @@ void CVolumeView::OnMenu(const QPoint& Point)
 	QList<CVolumePtr> Volumes = GetSelectedItems();
 
 	int iMountedCount = 0;
-	int iSelectedCount = 0;
+	int iVolumeCount = 0;
+	int iFolderCount = 0;
 	foreach(CVolumePtr pVolume, Volumes) {
-		if (pVolume->GetStatus() == CVolume::eMounted)
-			iMountedCount++;
-		iSelectedCount++;
+		if (pVolume->IsFolder())
+			iFolderCount++;
+		else {
+			if (pVolume->IsMounted())
+				iMountedCount++;
+			iVolumeCount++;
+		}
 	}
 
-	m_pMountVolume->setEnabled(iMountedCount == 0 && iSelectedCount == 1);
+	m_pMountVolume->setEnabled(iMountedCount == 0 && iVolumeCount == 1);
 	m_pUnmountVolume->setEnabled(iMountedCount > 0);
-	m_pChangeVolumePassword->setEnabled(iMountedCount == 0 && iSelectedCount == 1);
-	m_pRenameVolume->setEnabled(iSelectedCount == 1);
-	m_pRemoveVolume->setEnabled(iMountedCount == 0 && iSelectedCount > 0);
+	m_pChangeVolumePassword->setEnabled(iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
+	m_pRenameVolume->setEnabled(iVolumeCount + iFolderCount == 1);
+	m_pRemoveVolume->setEnabled(iMountedCount == 0 && iVolumeCount + iFolderCount > 0);
 
 	CPanelView::OnMenu(Point);
 }
@@ -225,8 +230,12 @@ void CVolumeView::OnCreateVolume()
 
 void CVolumeView::OnChangeVolumePassword()
 {
-	QString Path = QFileDialog::getOpenFileName(this, tr("Select Private Volume"), QString(), tr("Private Volume Files (*.pv)"));
-	if (Path.isEmpty()) return;
+	QList<CVolumePtr> Volumes = GetSelectedItems();
+	if (Volumes.count() != 1) return;
+
+	QString Path = Volumes[0]->GetImagePath();
+	//QString Path = QFileDialog::getOpenFileName(this, tr("Select Private Volume"), QString(), tr("Private Volume Files (*.pv)"));
+	//if (Path.isEmpty()) return;
 
 	CVolumeWindow window(tr("Change Volume Password."), CVolumeWindow::eChange, this);
 	if (theGUI->SafeExec(&window) != 1)
@@ -252,18 +261,16 @@ void CVolumeView::OnRenameVolume()
 
 void CVolumeView::OnRemoveVolume()
 {
-	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to remove selected Volumes from list?\nNote: The volume image files will remain intact and must be manually deleted."), QMessageBox::Yes, QMessageBox::No) != QMessageBox::Yes)
+	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to remove selected Entries from list?\nNote: The volume image files will remain intact and must be manually deleted."), QMessageBox::Yes, QMessageBox::No) != QMessageBox::Yes)
 		return;
 
-	//QList<STATUS> Results;
+	QList<STATUS> Results;
 
 	QList<CVolumePtr> Volumes = GetSelectedItems();
 	foreach(CVolumePtr pVolume, Volumes)
-	{
-		theCore->VolumeManager()->RemoveVolume(pVolume->GetImagePath());
-	}
+		Results.append(theCore->VolumeManager()->RemoveVolume(pVolume->GetImagePath()));
 
-	//theGUI->CheckResults(Results, this);
+	theGUI->CheckResults(Results, this);
 }
 
 void CVolumeView::OnAddFolder()
@@ -287,13 +294,6 @@ void CVolumeView::OnAddFolder()
 	if (!Value.endsWith("\\"))
 		Value.append("\\");
 
-	CAccessRulePtr pRule = CAccessRulePtr(new CAccessRule(theCore->ProgramManager()->GetAll()->GetID()));
-	pRule->SetType(EAccessRuleType::eProtect);
-	pRule->SetEnabled(true);
-	pRule->SetName(tr("%1 - Protection").arg(Value));
-	pRule->SetPath(Value + "*");
-	STATUS Status = theCore->AccessManager()->SetAccessRule(pRule);
-	if(Status)
-		theCore->VolumeManager()->AddVolume(Value);
+	STATUS Status = theCore->VolumeManager()->AddVolume(Value);
 	theGUI->CheckResults(QList<STATUS>() << Status, this);
 }

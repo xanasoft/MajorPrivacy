@@ -62,6 +62,10 @@ public:
 		return m_ptr;
 	}
 
+	bool IsValid() const {
+		return m_ptr != nullptr;
+	}
+
 private:
 	T* m_ptr = nullptr;
 };

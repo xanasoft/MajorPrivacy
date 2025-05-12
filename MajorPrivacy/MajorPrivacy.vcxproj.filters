@@ -113,6 +113,9 @@
     <Filter Include="Translation Files">
       <UniqueIdentifier>{cc8e245a-64c7-4aaf-a429-0c286649e022}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Views\Home">
+      <UniqueIdentifier>{05417d2f-c2b1-4de6-baae-13a2a87e4cd2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

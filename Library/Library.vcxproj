@@ -497,7 +497,6 @@
     <ClInclude Include="Helpers\NtPathMgr.h" />
     <ClInclude Include="Helpers\NtUtil.h" />
     <ClInclude Include="Helpers\RegUtil.h" />
-    <ClInclude Include="Helpers\Reparse.h" />
     <ClInclude Include="Helpers\SchdUtil.h" />
     <ClInclude Include="Helpers\Scoped.h" />
     <ClInclude Include="Helpers\ScopedHandle.h" />
@@ -678,7 +677,6 @@
     <ClCompile Include="Helpers\NtPathMgr.cpp" />
     <ClCompile Include="Helpers\NtUtil.cpp" />
     <ClCompile Include="Helpers\RegUtil.cpp" />
-    <ClCompile Include="Helpers\Reparse.cpp" />
     <ClCompile Include="Helpers\SchdUtil.cpp" />
     <ClCompile Include="Helpers\Service.cpp" />
     <ClCompile Include="Helpers\SID.cpp" />

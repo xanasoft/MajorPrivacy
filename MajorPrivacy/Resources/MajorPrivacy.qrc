@@ -277,5 +277,6 @@
         <file>Icons/MsStore.png</file>
         <file>Icons/Telemetry2.png</file>
         <file>Icons/Telemetry3.png</file>
+        <file>Icons/SecFolder.png</file>
     </qresource>
 </RCC>

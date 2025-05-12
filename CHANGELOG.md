@@ -24,6 +24,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - fixed issue with network shares [#47](https://github.com/xanasoft/MajorPrivacy/issues/47)
   - Note: network locations are not checked for process existence anymore
 - fixed driver config not being saved on system shutdown
+- fixed issues with protected folder display [#39](https://github.com/xanasoft/MajorPrivacy/issues/39)
+- fixed issue with rules for network shared
+  - Note: do not use mahhed drive letters for rules but ful UNC paths!!!
 
 
 

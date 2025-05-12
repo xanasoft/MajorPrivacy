@@ -264,9 +264,6 @@
     <ClInclude Include="API\PrivacyAPIs.h">
       <Filter>API</Filter>
     </ClInclude>
-    <ClInclude Include="Helpers\Reparse.h">
-      <Filter>Helpers</Filter>
-    </ClInclude>
     <ClInclude Include="Common\ObjectTracker.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -478,9 +475,6 @@
     </ClCompile>
     <ClCompile Include="API\API_Programs.cpp">
       <Filter>API</Filter>
-    </ClCompile>
-    <ClCompile Include="Helpers\Reparse.cpp">
-      <Filter>Helpers</Filter>
     </ClCompile>
     <ClCompile Include="Common\ObjectTracker.cpp">
       <Filter>Common</Filter>
