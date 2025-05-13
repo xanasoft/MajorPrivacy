@@ -14,6 +14,7 @@ public:
 
 	virtual QString GetId() const { return m_Id; }
 	virtual QString GetParentId() const { return m_ParentId; }
+	void SetName(const QString& Name) { m_Name = Name; }
 	virtual QString GetName() const { return m_Name; }
 	virtual int GetIndex() const { return m_Index; }
 	virtual ETweakType GetType() const { return m_Type; }

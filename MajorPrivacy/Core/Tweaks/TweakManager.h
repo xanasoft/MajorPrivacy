@@ -18,4 +18,8 @@ public:
 protected:
 	QSharedPointer<CTweakList> m_pRoot;
 	QMap<QString, CTweakPtr> m_Map;
+
+	void LoadTranslations(QString Lang);
+	QHash<QString, QString> m_Translations;
+	QString m_Language;
 };

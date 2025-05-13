@@ -15,8 +15,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   - let me know in the forum if you want to help with translations or add your own language, already added
 	- added German AI translation
 	- added Polish AI translation
+	- added Turkish translation (Thanks offhub)
 - added MS VC Redistributable to the installer (required for ImDisk UI)
-
+- added translation support for tweaks
 
 ### Fixed
 - fixed issue with installer not removing the driver
@@ -28,6 +29,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - fixed issue with rules for network shared
   - Note: do not use mahhed drive letters for rules but ful UNC paths!!!
 
+### Changed
+- refactored driver code
 
 
 

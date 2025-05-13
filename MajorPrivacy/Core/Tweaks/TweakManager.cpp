@@ -2,6 +2,7 @@
 #include "TweakManager.h"
 #include "../PrivacyCore.h"
 #include "../../Library/API/PrivacyAPI.h"
+#include "../MajorPrivacy.h"
 
 CTweakManager::CTweakManager(QObject* parent)
 	: QObject(parent)
@@ -20,6 +21,15 @@ CTweakPtr CTweakManager::GetRoot()
 
 void CTweakManager::Update()
 {
+	QString Lang = theGUI->GetLanguage();
+	if (Lang != m_Language)
+	{
+		m_Language = Lang;
+		m_Translations.clear();
+		LoadTranslations(Lang);
+	}
+
+
 	auto Ret = theCore->GetTweaks();
 	if (Ret.IsError())
 		return;
@@ -43,6 +53,9 @@ void CTweakManager::Update()
 		else								pTweak = CTweakPtr(new CTweak(Type));
 
 		pTweak->FromVariant(Tweak);
+
+		QString Name = m_Translations.value(Id + "/Name");
+		if (!Name.isEmpty()) pTweak->SetName(Name);
 
 		pTweak->SetStatus((ETweakStatus)Reader.Find(API_V_TWEAK_STATUS).To<uint32>()); 
 
@@ -74,4 +87,30 @@ STATUS CTweakManager::ApplyTweak(const CTweakPtr& pTweak)
 STATUS CTweakManager::UndoTweak(const CTweakPtr& pTweak)
 {
 	return theCore->UndoTweak(pTweak->GetId());
+}
+
+void CTweakManager::LoadTranslations(QString Lang)
+{
+	QSettings TweaksIni(QApplication::applicationDirPath() + "/Tweaks.ini", QSettings::IniFormat);
+
+	QStringList Sections = TweaksIni.childGroups();
+	if (Sections.isEmpty()) 
+		return;
+	
+	QString FirstSection = Sections.first();
+	QString Test = TweaksIni.value(FirstSection + "/Name_" + Lang).toString();
+	if (Test.isEmpty()) {
+		Lang.truncate(Lang.lastIndexOf('_')); // Short version as fallback
+		Test = TweaksIni.value(FirstSection + "/Name_" + Lang).toString();
+	}
+	if (Test.isEmpty())
+		return;
+
+	foreach(QString Section, Sections)
+	{
+		QString Name = TweaksIni.value(Section + "/Name_" + Lang).toString();
+		if (!Name.isEmpty()) m_Translations[Section + "/Name"] = Name;
+		//QString Description = TweaksIni.value(Section + "/Description_" + Lang).toString();
+		//if (!Description.isEmpty()) m_Translations[Section + "/Description"] = Name;
+	}
 }

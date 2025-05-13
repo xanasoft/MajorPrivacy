@@ -76,6 +76,8 @@ public:
 
 	quint64				GetRecentLimit() const { return m_pBtnTime->isChecked() ? m_pCmbRecent->currentData().toULongLong() : 0; }
 
+	QString				GetLanguage() const { return m_Language; }
+
 signals:
 	void				Closed();
 
