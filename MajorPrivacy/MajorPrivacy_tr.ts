@@ -985,7 +985,7 @@
     </message>
     <message>
         <source>Eject from Secure Enclave</source>
-        <translation>Güvenli Kapanımndan Çıkar</translation>
+        <translation>Güvenli Kapanımdan Çıkar</translation>
     </message>
     <message>
         <source>Prevent Execution</source>
