@@ -18,11 +18,11 @@ If you want to publicly distribute self-compiled binaries, please review the LIC
 * Registry Protection - like File/Folder Protection just for registry keys. (not enabled in beta build)
 * Network Firewall - Advanced network firewall to manage outbound and inbound communication.
 * DNS Inspection - Monitor DNS cache and trace events to determine which domains are being accessed by running processes.
-* DNS Fitlering - Filter all DNS requests with a set of pre-defined block lists (pi home compatible) and own custom rules. (not yet implemented)
+* DNS Fitlering - Filter all DNS requests with a set of pre-defined block lists (pi home compatible) and own custom rules.
 * Proxy Injection - Force arbitrary processes to use pre-defined network proxies. (not yet implemented)
-* Secure Drives - Create encrypted volumes stored in disk images fully guarded by File/Folder Protection to prevent unauthorized access to confidential data.
+* Secure Drives - Create encrypted volumes stored in disk images fully guarded by File/Folder Protection to prevent unauthorized access to confidential data.(even from kernelmode,but not yet implemented)
 * Tweak Engine - Hardens Windows configuration by disabling undesired telemetry and cloud features.
-* Integrity level control - set the integrity level of processes in a secure enclave to "Protected" to isolate user objects, including their windows, from other processes.（not yet implemented)
+* Integrity level control - set the integrity level of processes in a secure enclave to "Protected" to isolate user objects, including their windows, from other processes.
 
 
 ## 📌 Project support / sponsorship
