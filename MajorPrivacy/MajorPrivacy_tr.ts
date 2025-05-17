@@ -840,7 +840,7 @@
     <name>CEnclaveManager</name>
     <message>
         <source>Major Privacy&apos;s Private Enclave</source>
-        <translation>Major Privacy&apos;in Özel Kapanım</translation>
+        <translation>Major Privacy&apos;nin Özel Kapanımı</translation>
     </message>
 </context>
 <context>
@@ -1725,7 +1725,7 @@
     </message>
     <message>
         <source>The Privacy Agent is not currently installed as a service. Would you like to install it now (Yes), run it without installation (No), or abort the connection attempt (Cancel)?</source>
-        <translation>Gizlilik Aracısı şu anda bir hizmet olarak yüklü değil. Şimdi yüklemek ister misiniz (Evet), yüklemeden çalıştırmak ister misiniz (Hayır) veya bağlantı girişimini iptal etmek ister misiniz (İptal)?</translation>
+        <translation>Privacy Agent şu anda bir hizmet olarak yüklü değil. Şimdi yüklemek ister misiniz (Evet), yüklemeden çalıştırmak ister misiniz (Hayır) veya bağlantı girişimini iptal etmek ister misiniz (İptal)?</translation>
     </message>
     <message>
         <source>Remember this choice.</source>
@@ -1733,19 +1733,19 @@
     </message>
     <message>
         <source>Major Privacy will now attempt to start the Privacy Agent, please confirm the UAC prompt.</source>
-        <translation>Major Privacy şimdi Gizlilik Aracısını başlatmayı deneyecek, lütfen UAC istemini onaylayın.</translation>
+        <translation>Major Privacy şimdi Privacy Agent hizmetini başlatmayı deneyecek, lütfen UAC istemini onaylayın.</translation>
     </message>
     <message>
         <source>Privacy Agent Ready %1/%2</source>
-        <translation>Gizlilik Aracısı Hazır %1/ %2</translation>
+        <translation>Privacy Agent Hazır %1/ %2</translation>
     </message>
     <message>
         <source>Privacy Agent Failed: %1</source>
-        <translation>Gizlilik Aracısı Başarısız: %1</translation>
+        <translation>Privacy Agent Başarısız: %1</translation>
     </message>
     <message>
         <source>Do you want to close Major Privacy?</source>
-        <translation>Major Privacy&apos;i kapatmak ister misiniz?</translation>
+        <translation>Major Privacy uygulamasını kapatmak ister misiniz?</translation>
     </message>
     <message>
         <source>Lost connection to Service, do you want to reconnect?</source>
@@ -1757,7 +1757,7 @@
     </message>
     <message>
         <source>Disconnected from privacy agent</source>
-        <translation>Gizlilik aracısından bağlantı kesildi</translation>
+        <translation>Privacy Agent hizmeti bağlantısı kesildi</translation>
     </message>
     <message>
         <source>&amp;Maintenance</source>
@@ -1933,7 +1933,7 @@
     </message>
     <message>
         <source>About MajorPrivacy</source>
-        <translation>MajorPrivacy Hakkında</translation>
+        <translation>Major Privacy Hakkında</translation>
     </message>
     <message>
         <source>System Overview</source>
@@ -2191,7 +2191,7 @@ Sürücü otomatik başlatmaya ayarlanmışsa, sistem yeniden başlatıldığın
     </message>
     <message>
         <source>MajorPrivacy - Error</source>
-        <translation>MajorPrivacy - Hata</translation>
+        <translation>Major Privacy - Hata</translation>
     </message>
     <message>
         <source>Operation failed for %1 item(s).</source>
@@ -2236,7 +2236,7 @@ Sürücü otomatik başlatmaya ayarlanmışsa, sistem yeniden başlatıldığın
     <message>
         <source>Do you want to stop the Privacy Agent and unload the Kernel Isolator?
 CAUTION: This will disable protection.</source>
-        <translation>Gizlilik Aracısını durdurmak ve Kernel Isolator&apos;ı kaldırmak ister misiniz?
+        <translation>Privacy Agent hizmetini durdurmak ve Kernel Isolator sürücüsünü kaldırmak ister misiniz?
 DİKKAT: Bu, korumayı devre dışı bırakacaktır.</translation>
     </message>
     <message>
@@ -2253,11 +2253,11 @@ DİKKAT: Bu, korumayı devre dışı bırakacaktır.</translation>
     </message>
     <message>
         <source>%1 - MajorPrivacy Rule</source>
-        <translation>%1 - MajorPrivacy Kuralı</translation>
+        <translation>%1 - Major Privacy Kuralı</translation>
     </message>
     <message>
         <source>%1 - MajorPrivacy Rule Template</source>
-        <translation>%1 - MajorPrivacy Kural Şablonu</translation>
+        <translation>%1 - Major Privacy Kural Şablonu</translation>
     </message>
     <message>
         <source>Reset Columns</source>
@@ -2309,7 +2309,7 @@ DİKKAT: Bu, korumayı devre dışı bırakacaktır.</translation>
     </message>
     <message>
         <source>&lt;h3&gt;About MajorPrivacy&lt;/h3&gt;&lt;p&gt;Version %1&lt;/p&gt;&lt;p&gt;</source>
-        <translation>&lt;h3&gt;MajorPrivacy Hakkında&lt;/h3&gt;&lt;p&gt;Sürüm %1&lt;/p&gt;&lt;p&gt;</translation>
+        <translation>&lt;h3&gt;Major Privacy Hakkında&lt;/h3&gt;&lt;p&gt;Sürüm %1&lt;/p&gt;&lt;p&gt;</translation>
     </message>
     <message>
         <source>This version is licensed to %1.</source>
@@ -2321,7 +2321,7 @@ DİKKAT: Bu, korumayı devre dışı bırakacaktır.</translation>
     </message>
     <message>
         <source>&lt;p&gt;MajorPrivacy is a program that helps you to protect your privacy and security.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Visit &lt;a href=&quot;https://xanasoft.com&quot;&gt;xanasoft.com&lt;/a&gt; for more information.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;%1&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;UI Config Dir: &lt;br /&gt;%2&lt;br /&gt;Core Config Dir: &lt;br /&gt;%3&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;MajorPrivacy, gizliliğinizi ve güvenliğinizi korumanıza yardımcı olan bir programdır.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Daha fazla bilgi için &lt;a href=&quot;https://xanasoft.com&quot;&gt;xanasoft.com&lt;/a&gt; adresini ziyaret edin.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;%1&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Arayüz Yapılandırması Dizini: &lt;br /&gt;%2&lt;br /&gt;Çekirdek Yapılandırması Dizini: &lt;br /&gt;%3&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Simgeler için &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;Major Privacy, gizliliğinizi ve güvenliğinizi korumanıza yardımcı olan bir programdır.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Daha fazla bilgi için &lt;a href=&quot;https://xanasoft.com&quot;&gt;xanasoft.com&lt;/a&gt; adresini ziyaret edin.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;%1&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Arayüz Yapılandırması Dizini: &lt;br /&gt;%2&lt;br /&gt;Çekirdek Yapılandırması Dizini: &lt;br /&gt;%3&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Simgeler için &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Enter the path of a program that will be created in a sandbox.</source>
@@ -2515,7 +2515,7 @@ DİKKAT: Bu, korumayı devre dışı bırakacaktır.</translation>
     <name>CPopUpWindow</name>
     <message>
         <source>MajorPrivacy Notifications</source>
-        <translation>MajorPrivacy Bildirimleri</translation>
+        <translation>Major Privacy Bildirimleri</translation>
     </message>
     <message>
         <source>Permanent</source>
@@ -3037,7 +3037,7 @@ DİKKAT: Bu, korumayı devre dışı bırakacaktır.</translation>
     <name>CProgramPicker</name>
     <message>
         <source>MajorPrivacy - Select Program</source>
-        <translation>MajorPrivacy - Program Seçin</translation>
+        <translation>Major Privacy - Program Seçin</translation>
     </message>
     <message>
         <source>Please select a program</source>
@@ -3368,7 +3368,7 @@ DİKKAT: Bu, korumayı devre dışı bırakacaktır.</translation>
     </message>
     <message>
         <source>Cache only in RAM</source>
-        <translation>Yalnızca RAM Önbelleği</translation>
+        <translation>Yalnızca RAM Önbelleğine</translation>
     </message>
     <message>
         <source>Add to Group</source>
@@ -3564,7 +3564,7 @@ Seçilen Öğe birden fazla Gruba aittir, onu tüm gruplardan silmek için &apos
     </message>
     <message>
         <source>MajorPrivacy</source>
-        <translation>MajorPrivacy</translation>
+        <translation>Major Privacy</translation>
     </message>
     <message>
         <source>Are you sure you want to delete the signature?</source>
@@ -3886,7 +3886,7 @@ Seçilen Öğe birden fazla Gruba aittir, onu tüm gruplardan silmek için &apos
     </message>
     <message>
         <source>MajorPrivacy</source>
-        <translation>MajorPrivacy</translation>
+        <translation>Major Privacy</translation>
     </message>
     <message>
         <source>Are you sure you want to approve the current state of all tweaks?</source>
@@ -4411,7 +4411,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Privacy Agent Options</source>
-        <translation>Gizlilik Aracısı Seçenekleri</translation>
+        <translation>Privacy Agent Seçenekleri</translation>
     </message>
     <message>
         <source>User Key (Remains Encrypted with User PW)</source>
@@ -4438,7 +4438,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     <name>PopUpWindow</name>
     <message>
         <source>MajorPrivacy Notifications</source>
-        <translation>MajorPrivacy Bildirimleri</translation>
+        <translation>Major Privacy Bildirimleri</translation>
     </message>
     <message>
         <source>Firewall</source>
@@ -4698,7 +4698,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     <name>QObject</name>
     <message>
         <source>Change Permissions</source>
-        <translation>İzinleri Değiştir</translation>
+        <translation>İzinleri Değiştirme</translation>
     </message>
     <message>
         <source>Write Data</source>
@@ -4929,7 +4929,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>This feature enables the creation of firewall rule templates with path wildcards. When the Privacy Agent detects network activity matching a template without an existing rule, it automatically generates a new firewall rule.</source>
-        <translation>Bu özellik, yollarda joker karakter kullanarak güvenlik duvarı kuralı şablonlarının oluşturulmasını sağlar. Gizlilik Aracısı, mevcut bir kural olmadan bir şablonla eşleşen ağ etkinliğini algıladığında, otomatik olarak yeni bir güvenlik duvarı kuralı oluşturur.</translation>
+        <translation>Bu özellik, yollarda joker karakter kullanarak güvenlik duvarı kuralı şablonlarının oluşturulmasını sağlar. Privacy Agent, mevcut bir kural olmadan bir şablonla eşleşen ağ etkinliğini algıladığında, otomatik olarak yeni bir güvenlik duvarı kuralı oluşturur.</translation>
     </message>
     <message>
         <source>Enhance Windows Firewall with Dynamic Rule Templates</source>
