@@ -62,7 +62,10 @@ STATUS CServiceAPI::InstallSvc()
 	std::wstring FileName = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
 	std::wstring DisplayName = L"MajorPrivacy System Service";
 
-	return InstallService(API_SERVICE_NAME, FileName.c_str(), DisplayName.c_str(), NULL, OPT_OWN_TYPE | OPT_DEMAND_START);
+	// The Windows Firewall must be started first
+	const wchar_t* Dependencies = L"MpsSvc\0\0";
+
+	return InstallService(API_SERVICE_NAME, FileName.c_str(), DisplayName.c_str(), NULL, Dependencies, OPT_OWN_TYPE | OPT_DEMAND_START);
 }
 
 STATUS CServiceAPI::ConnectSvc()

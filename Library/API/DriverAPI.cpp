@@ -279,7 +279,7 @@ STATUS CDriverAPI::InstallDrv(uint32 TraceLogLevel)
     Params["PortName"] = API_DRIVER_PORT;
     Params["TraceLevel"] = TraceLogLevel;
 
-    return InstallService(API_DRIVER_NAME, FileName.c_str(), DisplayName.c_str(), NULL, OPT_KERNEL_TYPE | OPT_DEMAND_START, Params);
+    return InstallService(API_DRIVER_NAME, FileName.c_str(), DisplayName.c_str(), NULL, NULL, OPT_KERNEL_TYPE | OPT_DEMAND_START, Params);
 }
 
 STATUS CDriverAPI::ConnectDrv()

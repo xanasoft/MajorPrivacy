@@ -9,7 +9,7 @@
 #include <fltuser.h>
 
 
-STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group, uint32 Options, const StVariant& Params)
+STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group, PCWSTR Dependencies, uint32 Options, const StVariant& Params)
 {
     CScopedHandle scmHandle(OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE), CloseServiceHandle);
     if (!scmHandle)
@@ -48,7 +48,7 @@ STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group
         FilePath,
         Group,
         NULL,                       // no tag identifier
-        NULL,                       // no dependencies
+        Dependencies,
         NULL,                       // LocalSystem account
         NULL
     ), CloseServiceHandle);

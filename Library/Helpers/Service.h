@@ -13,7 +13,7 @@ enum SVC_OPTIONS {
     OPT_START_NOW       = 0x20
 };
 
-LIBRARY_EXPORT STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group, uint32 Options, const StVariant& Params = StVariant());
+LIBRARY_EXPORT STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group, PCWSTR Dependencies, uint32 Options, const StVariant& Params = StVariant());
 
 enum SVC_STATE {
     SVC_NOT_FOUND = 0x00,

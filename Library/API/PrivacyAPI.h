@@ -85,6 +85,11 @@ enum {
 	API_RELEASE_NO_UNLOAD = 'RNUL',
 
 	API_GET_SUPPORT_INFO = 'SUPP',
+
+	API_GET_SECURE_PARAM = 'GSPM',
+	API_SET_SECURE_PARAM = 'SSPM',
+
+	API_VERIFY_SIGNATURE = 'VRSN',
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -187,6 +192,9 @@ enum {
 	SVC_API_APPROVE_TWEAK = 'CTWK',
 
 	SVC_API_SET_WATCHED_PROG = 'SWAT',
+
+	SVC_API_SET_DAT_FILE = 'SDAT',
+	SVC_API_GET_DAT_FILE = 'GDAT',
 
 	// events
 	SVC_API_EVENT_PROG_ITEM_CHANGED = 'EPRG',
@@ -339,9 +347,10 @@ API_V_VALUES : unsigned long
 	API_V_ENUM_ALL = 'eall',
 	API_V_URL = 'url',
 	API_V_COUNT = 'cnt',
+	API_V_REFRESH = 'refr',
 	API_V_RELOAD = 'rld',
 	API_V_GET_DATA = 'gdat',
-
+	API_V_VERIFY = 'vfy',
 
 	////////////////////////////
 	// Program ID
@@ -659,6 +668,7 @@ API_V_VALUES : unsigned long
 	////////////////////////////
 	// Support
 	API_V_SUPPORT_NAME = 'snme',
+	API_V_SUPPORT_STATE = 'sstt',
 	API_V_SUPPORT_STATUS = 'ssts',
 	API_V_SUPPORT_HWID = 'shwi',
 
