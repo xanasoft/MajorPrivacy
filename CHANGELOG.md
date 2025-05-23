@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 	- added German AI translation
 	- added Polish AI translation
 	- added Turkish translation (Thanks offhub)
+	- added Simplified Chinese translation
 - added MS VC Redistributable to the installer (required for ImDisk UI)
 - added translation support for tweaks
 
