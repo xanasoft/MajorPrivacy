@@ -43,8 +43,8 @@ MajorPrivacy 具有自由（freedom）的开放性，但不等同于免费。这
 2. 通过 [PayPal 或信用卡](https://sandboxie-plus.com/go.php?to=donate) 捐助  
 3. 使用加密货币捐助  
 
-BTC: bc1qwnnacet3x3569w8hcns2dwh42jxa73sar4cwe5  
-ETH: 0xBf08c3c47C5175015cEF4E32fB2315c9111F5305  
-BNB (BCS): 0xBf08c3c47C5175015cEF4E32fB2315c9111F5305  
-LTC: LTqXK1UEri1FCv7fNn9bcFhsrh78SaNdSM  
-BCH: qpkjwn82pz3uj2jdzhv43tmaej2ftzyp8qe0er6ld4  
+BTC: bc1qwnnacet3x3569w8hcns2dwh42jxa73sar4cwe5
+ETH: 0xBf08c3c47C5175015cEF4E32fB2315c9111F5305
+BNB on BCS: 0xBf08c3c47C5175015cEF4E32fB2315c9111F5305
+LTC: LTqXK1UEri1FCv7fNn9bcFhsrh78SaNdSM
+BCH: qpkjwn82pz3uj2jdzhv43tmaej2ftzyp8qe0er6ld4
