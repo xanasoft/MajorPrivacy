@@ -15,6 +15,10 @@ If you want to publicly distribute self-compiled binaries, please review the LIC
 
 [Latest Release](https://github.com/xanasoft/MajorPrivacy/releases/latest)
 
+## ✨ Changelog
+
+<a href='./CHANGELOG.md'>EN</a>
+
 ## 🚀 Features
 
 * Process Protection - Protect user processes in secure enclaves from other processes including elevated and system processes.

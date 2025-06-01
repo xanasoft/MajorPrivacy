@@ -16,6 +16,10 @@ MajorPrivacy 具有自由（freedom）的开放性，但不等同于免费。这
 
 [最新发布版本](https://github.com/xanasoft/MajorPrivacy/releases/latest)
 
+## ✨ Changelog
+
+<a href='./CHANGELOG_zh-CN.md'>中文</a>
+
 ## 🚀 功能特性
 
 - 进程保护 —— 在安全隔离环境中保护用户进程，防止被其他进程（包括提权和系统级进程）干扰  
