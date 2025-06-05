@@ -6,6 +6,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [0.98.1a] - 2025-05-23
+
+### Fixed
+- fixed [Driver/Service] KernelIsolator registry keys reset when launched by PrivacyAgent, losing custom settings [#71](github.com/xanasoft/MajorPrivacy/issues/71)
+
 
 
 ## [0.98.1] - 2025-05-23

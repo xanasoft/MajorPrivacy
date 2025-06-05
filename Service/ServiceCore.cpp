@@ -154,11 +154,11 @@ STATUS CServiceCore::InitDriver()
 	{
 		std::wstring BinaryPath = GetServiceBinaryPath(API_DRIVER_NAME);
 
-		std::wstring ServicePath = CServiceCore::NormalizePath(GetFileFromCommand(BinaryPath));
+		std::wstring ServicePath = CServiceCore::NormalizePath(BinaryPath);
 		std::wstring AppDir = CServiceCore::NormalizePath(m_AppDir);
-		if (ServicePath.length() < AppDir.length() || ServicePath.compare(0, AppDir.length(), AppDir) != 0)
+		if (ServicePath.length() < AppDir.length() || _wcsnicmp(ServicePath.c_str(), AppDir.c_str(), AppDir.length()) != 0)
 		{
-			theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Updated driver, old path: %s", BinaryPath.c_str());
+			theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Updated driver, old path: %s; new path: %s", ServicePath.c_str(), AppDir.c_str());
 			RemoveService(API_DRIVER_NAME);
 			DrvState = SVC_NOT_FOUND;
 		}
