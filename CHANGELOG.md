@@ -19,7 +19,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 	- added Simplified Chinese translation
 - added MS VC Redistributable to the installer (required for ImDisk UI)
 - added translation support for tweaks
-- added mechanism for resource access to await a user verdict on a protected access attempt
 
 ### Fixed
 - fixed issue with installer not removing the driver
