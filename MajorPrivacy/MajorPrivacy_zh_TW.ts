@@ -547,6 +547,58 @@
         <source>Do you want to clean up the Access Tree? This will remove all Files and folders which are no longer present on the System. It will also remove all references to files and folders existing but contained in not currently mounted volumes. The operation will have to attempt to access all logged locations and will take some time, once done the view will refresh.</source>
         <translation>您想要清除權限樹嗎？這將會移除所有在系統中不再出現的檔案和目錄。它也會移除所有包含在未掛載磁碟區上所存在的檔案和目錄參考。這個操作將不得不嘗試存取所有被記錄的位置，將花費一些時間。一旦完成，視圖將被重新整理。</translation>
     </message>
+    <message>
+        <source>Hold updates</source>
+        <translation type="unfinished">載入更新</translation>
+    </message>
+</context>
+<context>
+    <name>CCertificatePage</name>
+    <message>
+        <source>Install your &lt;b&gt;MajorPrivacy&lt;/b&gt; support certificate</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>If you have a supporter certificate, please fill it into the field below.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Retrieve certificate using Serial Number:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start evaluation without a certificate for a limited period of time.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;Get a free evaluation certificate&lt;/font&gt;&lt;/a&gt; and enjoy all premium features for %1 days.&lt;/b&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You can request a free %1-day evaluation certificate up to %2 times per hardware ID.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>To use &lt;b&gt;MajorPrivacy&lt;/b&gt; in a business setting, an appropriate &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;support certificate&lt;/a&gt; for business use is required. If you do not yet have the required certificate(s), you can get those from the &lt;a href=&quot;https://xanasoft.com/shop/&quot;&gt;xanasoft.com web shop&lt;/a&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;MajorPrivacy&lt;/b&gt; provides additional features and box types exclusively to &lt;u&gt;project supporters&lt;/u&gt;. Boxes like the Privacy Enhanced boxes &lt;b&gt;&lt;font color=&apos;red&apos;&gt;protect user data from illicit access&lt;/font&gt;&lt;/b&gt; by the sandboxed programs. If you are not yet a supporter, then please consider &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;supporting the project&lt;/a&gt; to ensure further development of Sandboxie and to receive a &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to retrieve the certificate.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>
+Error: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Retrieving certificate...</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>CDnsCacheEntry</name>
@@ -1079,6 +1131,17 @@
     </message>
 </context>
 <context>
+    <name>CFinishPage</name>
+    <message>
+        <source>Complete your configuration</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Almost complete, click Finish to apply all selected options and conclude the wizard.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>CFirewallRuleWnd</name>
     <message>
         <source>Create Firewall Rule</source>
@@ -1406,6 +1469,20 @@
     </message>
 </context>
 <context>
+    <name>CGetFileJob</name>
+    <message>
+        <source>Failed to download file from: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>CGetUpdatesJob</name>
+    <message>
+        <source>%1</source>
+        <translation type="unfinished">%1</translation>
+    </message>
+</context>
+<context>
     <name>CHandleModel</name>
     <message>
         <source>PROCESS MISSING</source>
@@ -1578,6 +1655,33 @@
     <message>
         <source>Auto Expand</source>
         <translation>自動展開</translation>
+    </message>
+</context>
+<context>
+    <name>CIntroPage</name>
+    <message>
+        <source>Introduction</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Welcome to the Setup Wizard. This wizard will help you to configure your copy of &lt;b&gt;MajorPrivacy&lt;/b&gt;. You can start this wizard at any time from the Sandbox-&gt;Maintenance menu if you do not wish to complete it now.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select how you would like to use MajorPrivacy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Personally, for private non-commercial use</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Commercially, for business or enterprise use</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Note: this option is persistent</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2176,7 +2280,7 @@ If the driver is set to auto-start, it will automatically re-lock the key on reb
     </message>
     <message>
         <source>Before you can sign a Binary you need to create your User Key, use the &apos;Security-&gt;Setup User Key&apos; menu command to do that.</source>
-        <translation>在為二進位檔案簽名之前，您需要建立使用者金鑰。請使用「安全性->安裝使用者金鑰」功能表命令來完成此操作。</translation>
+        <translation>在為二進位檔案簽名之前，您需要建立使用者金鑰。請使用「安全性-&gt;安裝使用者金鑰」功能表命令來完成此操作。</translation>
     </message>
     <message>
         <source>Wrong Password!</source>
@@ -2322,7 +2426,92 @@ CAUTION: This will disable protection.</source>
     </message>
     <message>
         <source>Enter the path of a program that will be created in a sandbox.</source>
-        <translation>輸入將在飛地中建立的程式路徑。</translation>
+        <translation type="vanished">輸入將在飛地中建立的程式路徑。</translation>
+    </message>
+    <message>
+        <source>The certificate you are attempting to use has been blocked, meaning it has been invalidated for cause. Any attempt to use it constitutes a breach of its terms of use!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The Certificate Signature is invalid!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The Certificate is not suitable for this product.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The Certificate is node locked.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The support certificate is not valid.
+Error: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Privacy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Setup Wizard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>View</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Volumes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Security</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tools</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Options</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;a href=&quot;sbie://update/installer&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy release %1 ready&lt;/a&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click to run installer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;a href=&quot;sbie://update/apply&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy update %1 ready&lt;/a&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click to apply update</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;a href=&quot;sbie://update/check&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy update v%1 available&lt;/a&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click to download update</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;Support MajorPrivacy on Patreon&lt;/a&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click to open web browser</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enter the path of a program that will be run.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2495,6 +2684,133 @@ CAUTION: This will disable protection.</source>
     <message>
         <source>Connection Log</source>
         <translation>連線日誌</translation>
+    </message>
+</context>
+<context>
+    <name>COnlineUpdater</name>
+    <message>
+        <source>Your MajorPrivacy supporter certificate is expired, however for the current build you are using it remains active, when you update to a newer build exclusive supporter features will be disabled.
+
+Do you still want to update?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Do you want to check if there is a new version of MajorPrivacy?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Don&apos;t show this message again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>To ensure optimal compatibility with your software, Sandboxie needs to update its compatibility templates. Do you want to proceed?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable auto template updates</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Checking for updates...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>server not reachable</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to check for updates, error: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No new updates found, your MajorPrivacy is up-to-date.
+
+Note: The update check is often behind the latest GitHub release to ensure that only tested updates are offered.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;There is a new version of MajorPrivacy available.&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;&lt;b&gt;New version:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Do you want to download the installer?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Do you want to download the updates?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Do you want to go to the &lt;a href=&quot;%1&quot;&gt;download page&lt;/a&gt;?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Don&apos;t show this update anymore.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Downloading updates...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>invalid parameter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>failed to download updated information</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>failed to load updated json file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>failed to download a particular file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>failed to scan existing installation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>updated signature is invalid !!!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>downloaded file is corrupted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>internal error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>unknown error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to download updates from server, error %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Downloading installer...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;A new MajorPrivacy installer has been downloaded to the following location:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Do you want to begin the installation? If any programs are running sandboxed, they will be terminated.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>There is a new Templates.ini available, do you want to download it?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Do you want to go to the &lt;a href=&quot;%1&quot;&gt;info page&lt;/a&gt;?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Don&apos;t show this announcement in the future.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3488,6 +3804,98 @@ The selected Item belongs to more than one Group, to delete it from all groups p
     </message>
 </context>
 <context>
+    <name>CSBUpdate</name>
+    <message>
+        <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; updater</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Like with any other security product, it&apos;s important to keep your MajorPrivacy up to date.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Regularly check for all updates to MajorPrivacy and optional components</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Let Sandboxie regularly check for latest updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Check for new MajorPrivacy versions:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Check for new MajorPrivacy builds.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select in which update channel to look for new MajorPrivacy builds:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>In the Stable Channel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The stable channel contains the latest stable GitHub releases.</source>
+        <translation type="unfinished">穩定頻道包含最新的穩定GitHub版本。</translation>
+    </message>
+    <message>
+        <source>In the Preview Channel - with newest experimental changes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The preview channel contains the latest GitHub pre-releases.</source>
+        <translation type="unfinished">預覽頻道包含最新的GitHub預發布版本。</translation>
+    </message>
+    <message>
+        <source>In the Insider Channel - exclusive features</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The Insider channel offers early access to new features and bugfixes that will eventually be released to the public, as well as all relevant improvements from the stable channel. 
+Unlike the preview channel, it does not include untested, potentially breaking, or experimental changes that may not be ready for wider use.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>More about the &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-insider&quot;&gt;Insider Channel&lt;/a&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keep Compatibility Templates up to date and apply hotfixes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Check for latest compatibility templates and hotfixes.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Get the latest Scripts for the Troubleshooting Wizard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Check for latest troubleshooting scripts for the troubleshooting wizard.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keep the list of optional Add-on components up to date</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Check for latest available add-ons.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MajorPrivacy applies strict application restrictions, which can lead to compatibility issues. Stay updated with MajorPrivacy, including compatibility templates and troubleshooting, to ensure smooth operation amid Windows updates and application changes.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Access to the latest compatibility templates and the online troubleshooting database requires a valid &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>CSettingsWindow</name>
     <message>
         <source>Major Privacy - Settings</source>
@@ -3499,7 +3907,7 @@ The selected Item belongs to more than one Group, to delete it from all groups p
     </message>
     <message>
         <source>No Translation</source>
-        <translation>無翻譯</translation>
+        <translation type="vanished">無翻譯</translation>
     </message>
     <message>
         <source>All</source>
@@ -3536,6 +3944,227 @@ The selected Item belongs to more than one Group, to delete it from all groups p
     <message>
         <source>Network Access</source>
         <translation>網路存取</translation>
+    </message>
+    <message>
+        <source>Click to reveal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click to hide</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>HwId: &lt;a href=&quot;show&quot;&gt;[%1]&lt;/a&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>HwId: &lt;a href=&quot;hide&quot; style=&quot;text-decoration:none; color:inherit;&quot;&gt;%1&lt;/a&gt; &lt;a href=&quot;copy&quot;&gt;(copy)&lt;/a&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MajorPrivacy Version: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This supporter certificate has expired, please &lt;a href=&quot;%1&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;Plus features will be disabled in %1 days.&lt;/font&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;For the current build Plus features remain enabled&lt;/font&gt;, but you no longer have access updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;br /&gt;Plus features are no longer enabled.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This supporter certificate will &lt;font color=&apos;red&apos;&gt;expire in %1 days&lt;/font&gt;, please &lt;a href=&quot;%2&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expires in: %1 days</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expired: %1 days ago</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>; eligible Patreons can always &lt;a href=&quot;https://xanasoft.com/get-supporter-certificate/&quot;&gt;obtain an updated certificate&lt;/a&gt; from xanasoft.com</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;You have used %1/%2 evaluation certificates. No more free certificates can be generated.&lt;/b&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;Get a free evaluation certificate&lt;/a&gt; and enjoy all premium features for %1 days.&lt;/b&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You can request a free %1-day evaluation certificate up to %2 times per hardware ID.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This does not look like a MajorPrivacy Serial Number.&lt;br /&gt;If you have attempted to enter the UpdateKey or the Signature from a certificate, that is not correct, please enter the entire certificate into the text area above instead.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You are attempting to use a feature Upgrade-Key without having entered a pre-existing supporter certificate. Please note that this type of key (&lt;b&gt;as it is clearly stated in bold on the website&lt;/b) requires you to have a pre-existing valid supporter certificate; it is useless without one.&lt;br /&gt;If you want to use the advanced features, you need to obtain both a standard certificate and the feature upgrade key to unlock advanced functionality.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>You are attempting to use a Renew-Key without having entered a pre-existing supporter certificate. Please note that this type of key (&lt;b&gt;as it is clearly stated in bold on the website&lt;/b) requires you to have a pre-existing valid supporter certificate; it is useless without one.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;br /&gt;&lt;br /&gt;&lt;u&gt;If you have not read the product description and obtained this key by mistake, please contact us via email (provided on our website) to resolve this issue.&lt;/u&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Retrieving certificate...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>MajorPrivacy - Get EVALUATION Certificate</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please enter your email address to receive a free %1-day evaluation certificate, which will be issued to %2 and locked to the current hardware.
+You can request up to %3 evaluation certificates for each unique hardware ID.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Error retrieving certificate: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unknown Error (probably a network issue)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Contributor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Eternal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Developer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Business</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Personal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Great Patreon</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patreon</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Family</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Home</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Evaluation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Type %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Advanced</source>
+        <translation type="unfinished">進階</translation>
+    </message>
+    <message>
+        <source>Advanced (L)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Max Level</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Level %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This does not look like a certificate. Please enter the entire certificate, not just a portion of it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This certificate is unfortunately not valid for the current build, you need to get a new certificate or downgrade to an earlier build.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Although this certificate has expired, for the currently installed version plus features remain enabled. However, you will no longer have access to updates.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This certificate has unfortunately expired, you need to get a new certificate.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The evaluation certificate has been successfully applied. Enjoy your free trial!</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Thank you for supporting the development of MajorPrivacy.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>
+This is a temporary Patreon certificate, valid for 3 months. Once it nears expiration, you can obtain a new certificate online that will be valid for the full term.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A mandatory security update for your MajorPrivacy Supporter Certificate is required. Would you like to download the updated certificate now?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Auto update in future</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>CSetupWizard</name>
+    <message>
+        <source>Setup Wizard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The decision you make here will affect which page you get to see next.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This help is likely not to be of any help.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sorry, I already gave all the help I could.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Setup Wizard Help</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -4001,6 +4630,13 @@ The following operations will be performed:
     </message>
 </context>
 <context>
+    <name>CVolumeManager</name>
+    <message>
+        <source>%1 - Protection</source>
+        <translation type="unfinished">%1 - 保護</translation>
+    </message>
+</context>
+<context>
     <name>CVolumeModel</name>
     <message>
         <source>Name</source>
@@ -4039,11 +4675,11 @@ The following operations will be performed:
     </message>
     <message>
         <source>Rename Volume</source>
-        <translation>重新命名磁碟區</translation>
+        <translation type="vanished">重新命名磁碟區</translation>
     </message>
     <message>
         <source>Remove Volume</source>
-        <translation>移除磁碟區</translation>
+        <translation type="vanished">移除磁碟區</translation>
     </message>
     <message>
         <source>Create Volume</source>
@@ -4100,7 +4736,7 @@ The following operations will be performed:
     <message>
         <source>Do you want to remove selected Volumes from list?
 Note: The volume image files will remain intact and must be manually deleted.</source>
-        <translation>是否要從列表中移除所選磁碟區？
+        <translation type="vanished">是否要從列表中移除所選磁碟區？
 注意：磁碟區映像檔案將保持不變，必須手動刪除。</translation>
     </message>
     <message>
@@ -4115,7 +4751,20 @@ For non-critical data, folder protection may still provide a basic level of secu
     </message>
     <message>
         <source>%1 - Protection</source>
-        <translation>%1 - 保護</translation>
+        <translation type="vanished">%1 - 保護</translation>
+    </message>
+    <message>
+        <source>Rename Volume/Folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Volume/Folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Do you want to remove selected Entries from list?
+Note: The volume image files will remain intact and must be manually deleted.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -4140,7 +4789,7 @@ It is recommended to choose a password consisting of 20 or more characters. Are 
         <source>The password is constrained to a maximum length of 128 characters.
 This length permits approximately 384 bits of entropy with a passphrase composed of actual English words,
 increases to 512 bits with the application of Leet (L337) speak modifications, and exceeds 768 bits when composed of entirely random printable ASCII characters.</source>
-        <translation>密碼的最大長度限制為128個字元。
+        <translation type="vanished">密碼的最大長度限制為128個字元。
 該長度允許由實際英文單字組成的密碼片語具有大約384位元的熵，
 透過應用Leet（L337）語音修改增加到512位，並且當由完全隨機的可列印ASCII字元組成時超過768位。</translation>
     </message>
@@ -4179,6 +4828,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <source>%1 minutes</source>
         <translation>%1 分鐘</translation>
+    </message>
+    <message>
+        <source>The password is constrained to a maximum length of 128 characters. 
+This length permits approximately 384 bits of entropy with a passphrase composed of actual English words, 
+increases to 512 bits with the application of Leet (L337) speak modifications, and exceeds 768 bits when composed of entirely random printable ASCII characters.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -5121,15 +5776,15 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     </message>
     <message>
         <source>Check periodically for new versions</source>
-        <translation>定期檢查新版本</translation>
+        <translation type="vanished">定期檢查新版本</translation>
     </message>
     <message>
         <source>&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-use-cert&quot;&gt;Certificate usage guide&lt;/a&gt;</source>
-        <translation>&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-use-cert&quot;&gt;憑證使用指南&lt;/a&gt;</translation>
+        <translation type="vanished">&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-use-cert&quot;&gt;憑證使用指南&lt;/a&gt;</translation>
     </message>
     <message>
         <source>This supporter certificate has expired, please &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-renew-cert&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
-        <translation>這個支援者憑證已過期，請 &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-renew-cert&quot;&gt;獲得更新的憑證&lt;/a&gt;。</translation>
+        <translation type="vanished">這個支援者憑證已過期，請 &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-renew-cert&quot;&gt;獲得更新的憑證&lt;/a&gt;。</translation>
     </message>
     <message>
         <source>Enter the support certificate here</source>
@@ -5138,6 +5793,73 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <source>Retrieve/Upgrade/Renew certificate using Serial Number</source>
         <translation>使用序號檢索/升級/續訂憑證</translation>
+    </message>
+    <message>
+        <source>License</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cert Info</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Major Privacy Version: 0.0.0</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This supporter certificate has expired, please &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-renew-cert&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-use-cert&quot;&gt;Certificate usage guide&lt;/a&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cert Options</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Eval Cert</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>HwId: 00000000-0000-0000-0000-000000000000</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Maintaining and improving MajorPrivacy is an ongoing process focused on enhancing functionality, user experience, and privacy protection. Your support is essential to ensure continued development, long-term sustainability, and the addition of new features. You can support MajorPrivacy by &lt;a href=&quot;https://xanasoft.com/go.php?to=mp-contribute&quot;&gt;contributing directly to the project&lt;/a&gt;, showing your appreciation by &lt;a href=&quot;https://xanasoft.com/go.php?to=mp-obtain-cert&quot;&gt;purchasing a supporter certificate&lt;/a&gt;, becoming a patron by &lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;subscribing on Patreon&lt;/a&gt;, or through a &lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal donation&lt;/a&gt;. Your support helps drive innovation and ensures the continued availability of this privacy-focused tool.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Online Updater</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keep add-on list up to date</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>
+														  The Insider channel offers early access to new features and bugfixes that will eventually be released to the public, as well as all relevant improvements from the stable channel.
+														  Unlike the preview channel, it does not include untested, potentially breaking, or experimental changes that may not be ready for wider use.
+													  </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search in the Insider channel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Check periodically for new Sandboxie-Plus versions</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>More about the &lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-insider&quot;&gt;Insider Channel&lt;/a&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keep Troubleshooting scripts up to date</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
