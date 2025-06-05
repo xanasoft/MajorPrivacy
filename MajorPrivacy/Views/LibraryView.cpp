@@ -176,7 +176,7 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, const QFlexGuid& 
 		if (Info.LastLoadTime > pSubItem->Info.LastLoadTime) {
 			pSubItem->Info.LastLoadTime = Info.LastLoadTime;
 			pSubItem->Info.SignInfo = Info.SignInfo;
-			if(m_CurEnclaveGuid.IsNull() && Info.EnclaveGuid.IsNull()) // when no nenclave take teh status for no enclave only
+			if(m_CurEnclaveGuid == Info.EnclaveGuid)
 				pSubItem->Info.LastStatus = Info.LastStatus;
 		}
 	};

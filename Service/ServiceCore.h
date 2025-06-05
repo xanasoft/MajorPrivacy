@@ -49,7 +49,7 @@ public:
 
 	class CEtwEventMonitor*	EtwEventMonitor()		{ return m_pEtwEventMonitor; }
 
-	void					BroadcastMessage(uint32 MessageID, const StVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram = NULL);
+	int						BroadcastMessage(uint32 MessageID, const StVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram = NULL);
 
 	HANDLE					GetThreadHandle() const { return m_hThread; }
 

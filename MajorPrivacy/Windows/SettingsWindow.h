@@ -75,10 +75,47 @@ protected:
 	bool	m_bFwModeChanged = false;
 	bool	m_bFwAuditPolicyChanged = false;
 
+// Support
+public:
+	static bool ApplyCertificate(const QByteArray &Certificate, QWidget* widget);
+	static bool	SetCertificate(const QByteArray& Certificate);
+	static void LoadCertificate(QString CertPath = QString());
+	static bool	TryRefreshCert(QWidget* parent, QObject* receiver, const char* member);
+	static bool	CertRefreshRequired();
+
+	static QString GetCertType();
+	static QColor GetCertColor();
+	static QString GetCertLevel();
+
+	static void StartEval(QWidget* parent, QObject* receiver, const char* member);
+
+
+public slots:
+	void CertChanged();
+	void KeyChanged();
+	void UpdateCert();
+	void OnGetCert();
+	void OnCertData(const QByteArray& Certificate, const QVariantMap& Params);
+	void ApplyCert();
+	void OnStartEval();
+
+protected:
+	void	InitSupport();
+
+	bool	m_CertChanged = false;
+
 private:
 
 	Ui::SettingsWindow ui;
 };
 
+extern QByteArray g_Certificate;
+
+//#include "..\Driver\Isolator\Support.h"
+
 extern SCertInfo g_CertInfo;
 extern QString g_CertName;
+extern QString g_SystemHwid;
+
+#define EVAL_MAX 3		// for UI only actual limits enforced on server
+#define EVAL_DAYS 10	

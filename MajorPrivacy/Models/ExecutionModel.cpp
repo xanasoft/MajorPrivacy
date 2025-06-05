@@ -79,7 +79,7 @@ QList<QModelIndex> CExecutionModel::Sync(const QMap<SExecutionKey, SExecutionIte
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pNode->pItem->pProg2 ? pNode->pItem->pProg2->GetNameEx() : pNode->pItem->pProg1->GetNameEx(); break;
+			case eName:				Value = QString(""); break; // no name update
 			case eRole:				Value = pNode->pItem->pProg2 ? (CExecLogEntry::GetRoleStr(pNode->pItem->Info.Role)) : ""; break;
 			case eTimeStamp:		Value = pNode->pItem->Info.LastExecTime; break;
 			case eStatus:			Value = pNode->pItem->Info.bBlocked; break;
@@ -96,6 +96,7 @@ QList<QModelIndex> CExecutionModel::Sync(const QMap<SExecutionKey, SExecutionIte
 
 				switch (section)
 				{
+				case eName:			ColValue.Formatted = pNode->pItem->pProg2 ? pNode->pItem->pProg2->GetNameEx() : pNode->pItem->pProg1->GetNameEx(); break;
 				case eRole:			if (pNode->pItem->pProg2) { QColor Color = CProgramRuleWnd::GetRoleColor(pNode->pItem->Info.Role); if (Color.isValid()) ColValue.Color = Color; } break;
 				case eTimeStamp:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(FILETIME2ms(Value.toULongLong())).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
 				case eStatus:		ColValue.Formatted = Value.toBool() ? tr("Blocked") : "";//tr("Allowed"); 

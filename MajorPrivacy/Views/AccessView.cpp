@@ -40,6 +40,13 @@ CAccessView::CAccessView(QWidget *parent)
 
 	m_pToolBar->addSeparator();
 
+	m_pBtnHold = new QToolButton();
+	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
+	m_pBtnHold->setCheckable(true);
+	m_pBtnHold->setToolTip(tr("Hold updates"));
+	m_pBtnHold->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnHold);
+
 	m_pBtnRefresh = new QToolButton();
 	m_pBtnRefresh->setIcon(QIcon(":/Icons/Refresh.png"));
 	m_pBtnRefresh->setToolTip(tr("Reload Access Tree"));
@@ -80,6 +87,9 @@ CAccessView::~CAccessView()
 
 void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, QString RootPath)
 {
+	if(m_pBtnHold->isChecked())
+		return;
+
 	if (m_CurPrograms != Programs || m_CurServices != Services || m_iAccessFilter != m_pCmbAccess->currentData().toInt() || m_RecentLimit != theGUI->GetRecentLimit() || m_RootPath != RootPath) 
 	{
 		m_CurPrograms = Programs;
@@ -89,6 +99,7 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		m_iAccessFilter = m_pCmbAccess->currentData().toInt();
 		m_RecentLimit = theGUI->GetRecentLimit();
 		m_RootPath = RootPath;
+		m_pItemModel->Clean();
 	}
 
 	RootPath = theCore->NormalizePath(RootPath);
@@ -288,7 +299,10 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			continue;
 		Item.LastAccess = LastAccess;
 
-		if(!ShowProgress(pProgram->GetName())) break;
+		if (!ShowProgress(pProgram->GetName())) {
+			m_pBtnHold->setChecked(true);
+			break;
+		}
 		QMap<quint64, SAccessStatsPtr> Log = pProgram->GetAccessStats();
 		for (auto I = Log.constBegin(); I != Log.constEnd(); I++) {
 			auto &Value = Item.Items[(quint64)I.value().data()];
@@ -306,7 +320,10 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			continue;
 		Item.LastAccess = LastAccess;
 
-		if(!ShowProgress(pService->GetName())) break;
+		if (!ShowProgress(pService->GetName())) {
+			m_pBtnHold->setChecked(true);
+			break;
+		}
 		QMap<quint64, SAccessStatsPtr> Log = pService->GetAccessStats();
 		for (auto I = Log.constBegin(); I != Log.constEnd(); I++) {
 			auto &Value = Item.Items[(quint64)I.value().data()];

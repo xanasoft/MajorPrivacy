@@ -40,6 +40,8 @@
 #include "Windows/SignatureDbWnd.h"
 #include "../QtSingleApp/src/qtsingleapplication.h"
 #include "../MiscHelpers/Archive/ArchiveFS.h"
+#include "OnlineUpdater.h"
+#include "Wizards/SetupWizard.h"
 
 #include <Windows.h>
 #include <ShellApi.h>
@@ -101,10 +103,14 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 	QApplication::instance()->installNativeEventFilter(new CNativeEventFilter);
 #endif
 
+	QDesktopServices::setUrlHandler("http", this, "OpenUrl");
+	QDesktopServices::setUrlHandler("https", this, "OpenUrl");
+	QDesktopServices::setUrlHandler("app", this, "OpenUrl");
+
 	connect(theCore, SIGNAL(ProgramsAdded()), this, SLOT(OnProgramsAdded()));
 	connect(theCore, SIGNAL(UnruledFwEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnUnruledFwEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
 	connect(theCore, SIGNAL(ExecutionEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnExecutionEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
-	connect(theCore, SIGNAL(AccessEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnAccessEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
+	connect(theCore, SIGNAL(AccessEvent(const CProgramFilePtr&, const CLogEntryPtr&, uint32)), this, SLOT(OnAccessEvent(const CProgramFilePtr&, const CLogEntryPtr&, uint32)));
 	connect(theCore, SIGNAL(CleanUpDone()), this, SLOT(OnCleanUpDone()));
 	connect(theCore, SIGNAL(CleanUpProgress(quint64, quint64)), this, SLOT(OnCleanUpProgress(quint64, quint64)));
 
@@ -114,6 +120,8 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 	g_IconCachePath = theConf->GetConfigDir() + "/IconCache/";
 
 	LoadLanguage();
+
+	m_pUpdater = new COnlineUpdater(this);
 
 	statusBar()->showMessage(tr("Starting ..."), 10000);
 
@@ -166,7 +174,7 @@ CMajorPrivacy::~CMajorPrivacy()
 	theGUI = NULL;
 }
 
-void CMajorPrivacy::SetTitle()
+void CMajorPrivacy::UpdateTitle()
 {
 	QString Title = "Major Privacy";
 	QString Version = GetVersion();
@@ -177,13 +185,6 @@ void CMajorPrivacy::SetTitle()
 	
 	if (theCore->Driver()->IsConnected())
 	{
-		auto Res = theCore->GetSupportInfo();
-		if (Res) {
-			QtVariant Info = Res.GetValue();
-			g_CertName = Info[API_V_SUPPORT_NAME].AsQStr();
-			g_CertInfo.State = Info[API_V_SUPPORT_STATUS].To<uint64>();
-		}
-
 		if (!g_CertInfo.active)
 			Title += "   -   !!! NOT ACTIVATED !!!";
 		else
@@ -240,6 +241,141 @@ void CMajorPrivacy::SetTitle()
 	}
 
 	setWindowTitle(Title);
+}
+
+STATUS CMajorPrivacy::ReloadCert(QWidget* pWidget)
+{
+	auto Res = theCore->GetSupportInfo(true);
+	if (!Res)
+		return Res.GetStatus();
+
+	QtVariant Info = Res.GetValue();
+	g_CertName = Info[API_V_SUPPORT_NAME].AsQStr();
+	g_SystemHwid = Info[API_V_SUPPORT_HWID].AsQStr();
+	g_CertInfo.State = Info[API_V_SUPPORT_STATE].To<uint64>();
+	NTSTATUS status = Info[API_V_SUPPORT_STATUS].To<sint32>();
+	if(NT_SUCCESS(status))
+		CSettingsWindow::LoadCertificate();
+	else if(status != 0xc0000225 /*STATUS_NOT_FOUND*/)
+		CSettingsWindow::SetCertificate(""); // always delete invalid certificates
+
+	if (NT_SUCCESS(status))
+	{
+		BYTE CertBlocked = 0;
+		theCore->GetSecureParam("CertBlocked", &CertBlocked, sizeof(CertBlocked));
+		if (CertBlocked) {
+			if (g_CertInfo.type == eCertEvaluation)
+				g_CertInfo.active = 0; // no eval when cert blocked
+			else {
+				CertBlocked = 0;
+				theCore->SetSecureParam("CertBlocked", &CertBlocked, sizeof(CertBlocked));
+			}
+		}
+	}
+	else if (status == 0xC0000804L /*STATUS_CONTENT_BLOCKED*/)
+	{
+		QMessageBox::critical(pWidget ? pWidget : this, "MajorPrivacy",
+			tr("The certificate you are attempting to use has been blocked, meaning it has been invalidated for cause. Any attempt to use it constitutes a breach of its terms of use!"));
+
+		BYTE CertBlocked = 1;
+		theCore->SetSecureParam("CertBlocked", &CertBlocked, sizeof(CertBlocked));
+	}
+	else if (status != 0xC0000225L /*STATUS_NOT_FOUND*/)
+	{
+		QString Info;
+		switch (status)
+		{
+		case 0xC000000DL: /*STATUS_INVALID_PARAMETER*/
+		case 0xC0000079L: /*STATUS_INVALID_SECURITY_DESCR:*/
+		case 0xC000A000L: /*STATUS_INVALID_SIGNATURE:*/			Info = tr("The Certificate Signature is invalid!"); break;
+		case 0xC0000024L: /*STATUS_OBJECT_TYPE_MISMATCH:*/		Info = tr("The Certificate is not suitable for this product."); break;
+		case 0xC0000485L: /*STATUS_FIRMWARE_IMAGE_INVALID:*/	Info = tr("The Certificate is node locked."); break;
+		default:												Info = QString("0x%1").arg((qint32)status, 8, 16, QChar('0'));
+		}
+
+		QMessageBox::critical(pWidget ? pWidget : this, "MajorPrivacy", tr("The support certificate is not valid.\nError: %1").arg(Info));
+	}
+
+#ifdef _DEBUG
+	qDebug() << "g_CertInfo" << g_CertInfo.State;
+	qDebug() << "g_CertInfo.active" << g_CertInfo.active;
+	qDebug() << "g_CertInfo.expired" << g_CertInfo.expired;
+	qDebug() << "g_CertInfo.outdated" << g_CertInfo.outdated;
+	qDebug() << "g_CertInfo.grace_period" << g_CertInfo.grace_period;
+	qDebug() << "g_CertInfo.type" << CSettingsWindow::GetCertType();
+	qDebug() << "g_CertInfo.level" << CSettingsWindow::GetCertLevel();
+#endif
+
+	if (g_CertInfo.active)
+	{
+		// behave as if there would be no certificate at all
+		if (theConf->GetBool("Debug/IgnoreCertificate", false))
+			g_CertInfo.State = 0;
+		else
+		{
+			// simulate certificate being about to expire in 3 days from now
+			if (theConf->GetBool("Debug/CertFakeAboutToExpire", false))
+				g_CertInfo.expirers_in_sec = 3 * 24 * 3600;
+
+			// simulate certificate having expired but being in the grace period
+			if (theConf->GetBool("Debug/CertFakeGracePeriode", false))
+				g_CertInfo.grace_period = 1;
+
+			// simulate a subscription type certificate having expired
+			if (theConf->GetBool("Debug/CertFakeOld", false)) {
+				g_CertInfo.active = 0;
+				g_CertInfo.expired = 1;
+			}
+
+			// simulate a perpetual use certificate being outside the update window
+			if (theConf->GetBool("Debug/CertFakeExpired", false)) {
+				// still valid
+				g_CertInfo.expired = 1;
+			}
+
+			// simulate a perpetual use certificate being outside the update window
+			// and having been applied to a version built after the update window has ended
+			if (theConf->GetBool("Debug/CertFakeOutdated", false)) {
+				g_CertInfo.active = 0;
+				g_CertInfo.expired = 1;
+				g_CertInfo.outdated = 1;
+			}
+
+			int Type = theConf->GetInt("Debug/CertFakeType", -1);
+			if (Type != -1)
+				g_CertInfo.type = Type << 2;
+
+			int Level = theConf->GetInt("Debug/CertFakeLevel", -1);
+			if (Level != -1)
+				g_CertInfo.level = Level;
+		}
+	}
+
+	/*if (CERT_IS_TYPE(g_CertInfo, eCertBusiness))
+		InitCertSlot();
+
+	if (CERT_IS_TYPE(g_CertInfo, eCertEvaluation))
+	{
+		if (g_CertInfo.expired)
+			OnLogMessage(tr("The evaluation period has expired!!!"));
+	}
+	else
+	{
+		if (g_CertInfo.outdated)
+			OnLogMessage(tr("The supporter certificate is not valid for this build, please get an updated certificate"));
+		// outdated always implicates it is no longer valid
+		else if (g_CertInfo.expired) // may be still valid for the current and older builds
+			OnLogMessage(tr("The supporter certificate has expired%1, please get an updated certificate")
+				.arg(!g_CertInfo.outdated ? tr(", but it remains valid for the current build") : ""));
+		else if (g_CertInfo.expirers_in_sec > 0 && g_CertInfo.expirers_in_sec < (60 * 60 * 24 * 30))
+			OnLogMessage(tr("The supporter certificate will expire in %1 days, please get an updated certificate").arg(g_CertInfo.expirers_in_sec / (60 * 60 * 24)));
+	}*/
+
+	emit CertUpdated();
+
+	if(!NT_SUCCESS(status))
+		return ERR(status);
+	return OK;
 }
 
 void CMajorPrivacy::UpdateLockStatus(bool bOnConnect)
@@ -313,10 +449,11 @@ STATUS CMajorPrivacy::Connect()
 	m_iReConnected = 1;
 	Status = theCore->Connect(bEngineMode);
 
-	SetTitle();
-
 	if (Status) 
 	{
+		ReloadCert();
+		UpdateLabel();
+
 		statusBar()->showMessage(tr("Privacy Agent Ready %1/%2")
 			.arg(CProcess::GetSecStateStr(theCore->GetSvcSecState()))
 			.arg(CProcess::GetSecStateStr(theCore->GetGuiSecState())), 10000);
@@ -334,6 +471,15 @@ STATUS CMajorPrivacy::Connect()
 
 		// Log all user config dirs in the global config file for cleanup during uninstall
 		theCore->SetConfig("Users/" + QString::fromLocal8Bit(qgetenv("USERNAME")), theConf->GetConfigDir());
+		
+		// todo uncomment
+		/*int WizardLevel = abs(theConf->GetInt("Options/WizardLevel", 0));
+		if (WizardLevel < (!g_CertInfo.active ? SETUP_LVL_3 : (theConf->GetInt("Options/CheckForUpdates", 2) != 1 ? SETUP_LVL_2 : SETUP_LVL_1))) {
+			if (!CSetupWizard::ShowWizard(WizardLevel)) { // if user canceled, mark that and do not show again, until there is something new
+				if(QMessageBox::question(NULL, "Sandboxie-Plus", tr("Do you want the setup wizard to be omitted?"), QMessageBox::Yes, QMessageBox::No | QMessageBox::Default) == QMessageBox::Yes)
+					theConf->SetValue("Options/WizardLevel", -SETUP_LVL_CURRENT);
+			}
+		}*/
 
 		UpdateLockStatus(true);
 
@@ -344,6 +490,9 @@ STATUS CMajorPrivacy::Connect()
 		statusBar()->showMessage(tr("Privacy Agent Failed: %1").arg(FormatError(Status)));
 	}
 
+	UpdateTitle();
+	UpdateLabel();
+
 	return Status;
 }
 
@@ -352,7 +501,7 @@ void CMajorPrivacy::Disconnect()
 	m_iReConnected = 0;
 	theCore->Disconnect(true);
 
-	SetTitle();
+	UpdateTitle();
 
 	UpdateLockStatus();
 }
@@ -439,7 +588,7 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 	if (m_bWasConnected != bConnected) {
 		m_bWasConnected = bConnected;
 
-		SetTitle();
+		UpdateTitle();
 
 		m_pConnect->setEnabled(!bConnected);
 		m_pDisconnect->setEnabled(bConnected);
@@ -525,6 +674,42 @@ void CMajorPrivacy::OnMessage(const QString& MsgData)
 {
 }
 
+void CMajorPrivacy::ShowMessageBox(QWidget* Widget, QMessageBox::Icon Icon, const QString& Message)
+{
+	QMessageBox msgBox(Widget);
+	msgBox.setTextFormat(Qt::RichText);
+	msgBox.setIcon(Icon);
+	msgBox.setWindowTitle("MajorPrivacy");
+	msgBox.setText(Message);
+	msgBox.setStandardButtons(QMessageBox::Ok);
+	msgBox.exec();
+}
+
+void CMajorPrivacy::OpenUrl(QUrl url)
+{
+	QString scheme = url.scheme();
+	QString host = url.host();
+	QString path = url.path();
+	QString query = url.query();
+
+	if (host == "xanasoft.com" && path == "/go.php") {
+		query += "&language=" + QLocale::system().name();
+		url.setQuery(query);
+	}
+
+	if (scheme == "app") {
+		if (path == "/check")
+			m_pUpdater->CheckForUpdates(true);
+		else if (path == "/installer")
+			m_pUpdater->RunInstaller(false);
+		else if (path == "/apply")
+			m_pUpdater->ApplyUpdate(COnlineUpdater::eFull, false);
+		return;
+	}
+
+	ShellExecuteW(MainWndHandle, NULL, url.toString().toStdWString().c_str(), NULL, NULL, SW_SHOWNORMAL);
+}
+
 void CMajorPrivacy::LoadState(bool bFull)
 {
 	if (bFull) {
@@ -573,6 +758,8 @@ void CMajorPrivacy::BuildMenu()
 		m_pOpenUserFolder = m_pMaintenance->addAction(QIcon(":/Icons/Folder.png"), tr("Open User Data Folder"), this, SLOT(OnMaintenance()));
 		m_pOpenSystemFolder = m_pMaintenance->addAction(QIcon(":/Icons/Folder.png"), tr("Open System Data Folder"), this, SLOT(OnMaintenance()));
 		m_pVariantEditor = m_pMaintenance->addAction(QIcon(":/Icons/EditIni.png"), tr("Open *.dat Editor"), this, SLOT(OnMaintenance()));
+		m_pMaintenance->addSeparator();
+		m_pSetupWizard = m_pMaintenance->addAction(QIcon(":/Icons/Wizard.png"), tr("Setup Wizard"), this, SLOT(OnMaintenance()));
 	m_pMain->addSeparator();
 	m_pExit = m_pMain->addAction(QIcon(":/Icons/Exit.png"), tr("Exit"), this, SLOT(OnExit()));
 
@@ -788,6 +975,12 @@ void CMajorPrivacy::BuildGUI()
 	pSpacer2->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	m_pToolBar->addWidget(pSpacer2);
 
+	CreateLabel();
+	m_pToolBar->addWidget(m_pSupportLabel);
+
+	QWidget* pSpacer3 = new QWidget();
+	pSpacer3->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer3);
 
 	m_pBtnTime = new QToolButton();
 	m_pBtnTime->setIcon(QIcon(":/Icons/Time.png"));
@@ -820,10 +1013,10 @@ void CMajorPrivacy::BuildGUI()
 	font.setPointSizeF(font.pointSizeF() * 1.5);
 	m_pCmbRecent->setFont(font);
 
-	QWidget* pSpacer3 = new QWidget();
-	pSpacer3->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	pSpacer3->setMaximumWidth(50);
-	m_pToolBar->addWidget(pSpacer3);
+	QWidget* pSpacer4 = new QWidget();
+	pSpacer4->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	pSpacer4->setMaximumWidth(50);
+	m_pToolBar->addWidget(pSpacer4);
 
 	m_pToolBar->addAction(m_pProgTree);
 	m_pToolBar->addAction(m_pStackPanels);
@@ -878,6 +1071,122 @@ void CMajorPrivacy::BuildGUI()
 	CreateTrayIcon();
 
 	LoadState(bFull);
+}
+
+void CMajorPrivacy::CreateLabel()
+{
+	m_pSupportLabel = new QLabel(m_pMainWidget);
+	m_pSupportLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
+	connect(m_pSupportLabel, SIGNAL(linkActivated(const QString&)), this, SLOT(OpenUrl(const QString&)));
+
+	m_pSupportLabel->setAlignment(Qt::AlignCenter);
+	m_pSupportLabel->setContentsMargins(24, 0, 24, 0);
+
+	QFont fnt = m_pSupportLabel->font();
+	fnt.setBold(true);
+	//fnt.setWeight(QFont::DemiBold);
+	m_pSupportLabel->setFont(fnt);
+}
+
+void CMajorPrivacy::UpdateLabel()
+{
+	QString LabelText;
+	QString LabelTip;
+
+	if (!theConf->GetString("Updater/PendingUpdate").isEmpty())
+	{
+		QString FilePath = theConf->GetString("Updater/InstallerPath");
+		if (!FilePath.isEmpty() && QFile::exists(FilePath)) {
+			LabelText = tr("<a href=\"sbie://update/installer\" style=\"color: red;\">There is a new MajorPrivacy release %1 ready</a>").arg(theConf->GetString("Updater/InstallerVersion"));
+			LabelTip = tr("Click to run installer");
+		}
+		else if (!theConf->GetString("Updater/UpdateVersion").isEmpty()){
+			LabelText = tr("<a href=\"sbie://update/apply\" style=\"color: red;\">There is a new MajorPrivacy update %1 ready</a>").arg(theConf->GetString("Updater/UpdateVersion"));
+			LabelTip = tr("Click to apply update");
+		}
+		else {
+			LabelText = tr("<a href=\"sbie://update/check\" style=\"color: red;\">There is a new MajorPrivacy update v%1 available</a>").arg(theConf->GetString("Updater/PendingUpdate"));
+			LabelTip = tr("Click to download update");
+		}
+
+		//auto neon = new CNeonEffect(10, 4, 180); // 140
+		//m_pSupportLabel->setGraphicsEffect(NULL);
+	}
+	else if (g_Certificate.isEmpty())
+	{
+		LabelText = theConf->GetString("Updater/LabelMessage");
+		if(LabelText.isEmpty())
+			LabelText = tr("<a href=\"https://xanasoft.com/go.php?to=patreon\">Support MajorPrivacy on Patreon</a>");
+		LabelTip = tr("Click to open web browser");
+
+		/*
+		//auto neon = new CNeonEffect(10, 4, 240);
+		auto neon = new CNeonEffect(10, 4);
+		//neon->setGlowColor(Qt::green);
+		neon->setHue(240);
+		/if(m_DarkTheme)
+		neon->setColor(QColor(218, 130, 42));
+		else
+		neon->setColor(Qt::blue);/
+		m_pSupportLabel->setGraphicsEffect(neon);
+		*/
+
+		/*auto glowAni = new QVariantAnimation(neon);
+		glowAni->setDuration(10000);
+		glowAni->setLoopCount(-1);
+		glowAni->setStartValue(0);
+		glowAni->setEndValue(360);
+		glowAni->setEasingCurve(QEasingCurve::InQuad);
+		connect(glowAni, &QVariantAnimation::valueChanged, [neon](const QVariant &value) {
+		neon->setHue(value.toInt());
+		qDebug() << value.toInt();
+		});
+		glowAni->start();*/
+
+		/*auto glowAni = new QVariantAnimation(neon);
+		glowAni->setDuration(3000);
+		glowAni->setLoopCount(-1);
+		glowAni->setStartValue(5);
+		glowAni->setEndValue(20);
+		glowAni->setEasingCurve(QEasingCurve::InQuad);
+		connect(glowAni, &QVariantAnimation::valueChanged, [neon](const QVariant &value) {
+		neon->setBlurRadius(value.toInt());
+		qDebug() << value.toInt();
+		});
+		glowAni->start();*/
+
+		/*auto glowAni = new QVariantAnimation(neon);
+		glowAni->setDuration(3000);
+		glowAni->setLoopCount(-1);
+		glowAni->setStartValue(1);
+		glowAni->setEndValue(20);
+		glowAni->setEasingCurve(QEasingCurve::InQuad);
+		connect(glowAni, &QVariantAnimation::valueChanged, [neon](const QVariant &value) {
+		neon->setGlow(value.toInt());
+		qDebug() << value.toInt();
+		});
+		glowAni->start();*/
+
+		/*auto glowAni = new QVariantAnimation(neon);
+		glowAni->setDuration(3000);
+		glowAni->setLoopCount(-1);
+		glowAni->setStartValue(5);
+		glowAni->setEndValue(25);
+		glowAni->setEasingCurve(QEasingCurve::InQuad);
+		connect(glowAni, &QVariantAnimation::valueChanged, [neon](const QVariant &value) {
+		int iValue = value.toInt();
+		if (iValue >= 15)
+		iValue = 30 - iValue;
+		neon->setGlow(iValue);
+		neon->setBlurRadius(iValue);
+		});
+		glowAni->start();*/
+
+	}
+
+	m_pSupportLabel->setVisible(!LabelText.isEmpty());
+	m_pSupportLabel->setText(LabelText);
+	m_pSupportLabel->setToolTip(LabelTip);
 }
 
 void CMajorPrivacy::CreateTrayIcon()
@@ -1337,7 +1646,7 @@ void CMajorPrivacy::OnMakeKeyPair()
 	} while(0);
 	CheckResults(QList<STATUS>() << Status, this);
 
-	SetTitle();
+	UpdateTitle();
 }
 
 void CMajorPrivacy::OnClearKeys()
@@ -1363,7 +1672,7 @@ void CMajorPrivacy::OnClearKeys()
 	}
 	CheckResults(QList<STATUS>() << Status, this);
 
-	SetTitle();
+	UpdateTitle();
 }
 
 void CMajorPrivacy::OnPopUpPreset()
@@ -1643,6 +1952,71 @@ QMap<quint64, CProcessPtr> CMajorPrivacy::GetCurrentProcesses() const
 	}
 
 	return Processes;
+}
+
+STATUS CMajorPrivacy::AddAsyncOp(const CAsyncProgressPtr& pProgress, bool bWait, const QString& InitialMsg, QWidget* pParent)
+{
+	m_pAsyncProgress.insert(pProgress.data(), qMakePair(pProgress, pParent));
+	connect(pProgress.data(), SIGNAL(Message(const QString&)), this, SLOT(OnAsyncMessage(const QString&)));
+	connect(pProgress.data(), SIGNAL(Progress(int)), this, SLOT(OnAsyncProgress(int)));
+	connect(pProgress.data(), SIGNAL(Finished()), this, SLOT(OnAsyncFinished()));
+
+	m_pProgressDialog->ShowStatus(InitialMsg);
+	if (bWait) {
+		m_pProgressModal = true;
+		m_pProgressDialog->exec(); // safe exec breaks the closing
+		m_pProgressModal = false;
+	}
+	else
+		SafeShow(m_pProgressDialog);
+
+	if (pProgress->IsFinished()) // Note: since the operation runs asynchronously, it may have already finished, so we need to test for that
+		OnAsyncFinished(pProgress.data());
+
+	if (pProgress->IsCanceled())
+		return CStatus(STATUS_CANCELLED);
+	return OK;
+}
+
+void CMajorPrivacy::OnAsyncFinished()
+{
+	OnAsyncFinished(qobject_cast<CAsyncProgress*>(sender()));
+}
+
+void CMajorPrivacy::OnAsyncFinished(CAsyncProgress* pSender)
+{
+	auto Pair = m_pAsyncProgress.take(pSender);
+	CAsyncProgressPtr pProgress = Pair.first;
+	if (pProgress.isNull())
+		return;
+	disconnect(pProgress.data() , SIGNAL(Finished()), this, SLOT(OnAsyncFinished()));
+
+	STATUS Status = pProgress->GetStatus();
+	if(Status.IsError())
+		CheckResults(QList<STATUS>() << Status, Pair.second.data());
+
+	if (m_pAsyncProgress.isEmpty()) {
+		if(m_pProgressModal)
+			m_pProgressDialog->close();
+		else
+			m_pProgressDialog->hide();
+	}
+}
+
+void CMajorPrivacy::OnAsyncMessage(const QString& Text)
+{
+	m_pProgressDialog->ShowStatus(Text);
+}
+
+void CMajorPrivacy::OnAsyncProgress(int Progress)
+{
+	m_pProgressDialog->ShowProgress("", Progress);
+}
+
+void CMajorPrivacy::OnCancelAsync()
+{
+	foreach(auto Pair, m_pAsyncProgress)
+		Pair.first->Cancel();
 }
 
 QString CMajorPrivacy::FormatError(const STATUS& Error)
@@ -2221,6 +2595,10 @@ void CMajorPrivacy::OnMaintenance()
 		Status = theCore->Install();
 	else if (sender() == m_pRemoveService)
 		theCore->Uninstall();
+	else if (sender() == m_pSetupWizard) {
+		CSetupWizard::ShowWizard();
+		return;
+	}
 
 	CheckResults(QList<STATUS>() << Status, this);
 }
@@ -2338,9 +2716,9 @@ void CMajorPrivacy::LoadLanguage()
 		m_Language.clear();
 #endif
 
-	/*m_LanguageId = LocaleNameToLCID(m_Language.toStdWString().c_str(), 0);
+	m_LanguageId = LocaleNameToLCID(m_Language.toStdWString().c_str(), 0);
 	if (!m_LanguageId)
-		m_LanguageId = 1033; // default to English*/
+		m_LanguageId = 1033; // default to English
 
 	LoadLanguage(m_Language, "majorprivacy", 0);
 	LoadLanguage(m_Language, "qt", 1);
@@ -2540,6 +2918,6 @@ QString ShowRunDialog(const QString& EnclaveName)
 {
 	g_RunDialogCommand.clear();
 	std::wstring enclaveName = EnclaveName.toStdWString();
-	ShowRunFileDialog((HWND)theGUI->winId(), NULL, NULL, enclaveName.c_str(), (wchar_t*)CMajorPrivacy::tr("Enter the path of a program that will be created in a sandbox.").utf16(), 0); // RFF_OPTRUNAS);
+	ShowRunFileDialog((HWND)theGUI->winId(), NULL, NULL, enclaveName.c_str(), (wchar_t*)CMajorPrivacy::tr("Enter the path of a program that will be run.").utf16(), 0); // RFF_OPTRUNAS);
 	return g_RunDialogCommand;
 }

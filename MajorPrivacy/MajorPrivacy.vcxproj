@@ -249,6 +249,7 @@
     <ClCompile Include="Core\Volumes\VolumeManager.cpp" />
     <ClCompile Include="Helpers\IconCache.cpp" />
     <ClCompile Include="Helpers\SidResolver.cpp" />
+    <ClCompile Include="Helpers\WinAdmin.cpp" />
     <ClCompile Include="Helpers\WinHelper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MajorPrivacy.cpp" />
@@ -274,6 +275,7 @@
     <ClCompile Include="Models\TrafficModel.cpp" />
     <ClCompile Include="Models\TweakModel.cpp" />
     <ClCompile Include="Models\VolumeModel.cpp" />
+    <ClCompile Include="OnlineUpdater.cpp" />
     <ClCompile Include="Pages\DnsPage.cpp" />
     <ClCompile Include="Pages\EnclavePage.cpp" />
     <ClCompile Include="Pages\NetworkPage.cpp" />
@@ -326,8 +328,10 @@
     <ClCompile Include="Windows\SignatureDbWnd.cpp" />
     <ClCompile Include="Windows\VariantEditorWnd.cpp" />
     <ClCompile Include="Windows\VolumeWindow.cpp" />
+    <ClCompile Include="Wizards\SetupWizard.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Wizards\SetupWizard.h" />
     <QtMoc Include="Views\DnsRuleView.h" />
     <QtMoc Include="Windows\SignatureDbWnd.h" />
     <QtMoc Include="Windows\EnclaveWnd.h" />
@@ -353,6 +357,7 @@
     <QtMoc Include="Core\Access\AccessRule.h" />
     <ClInclude Include="Common\QtFlexGuid.h" />
     <ClInclude Include="Common\QtVariant.h" />
+    <QtMoc Include="Common\StatusEx.h" />
     <ClInclude Include="Core\Access\AccessEntry.h" />
     <QtMoc Include="Core\Access\Handle.h" />
     <ClInclude Include="Core\Access\ResLogEntry.h" />
@@ -428,6 +433,7 @@
     <QtMoc Include="Models\NetTraceModel.h" />
     <QtMoc Include="Helpers\SidResolver.h" />
     <ClInclude Include="Helpers\IconCache.h" />
+    <ClInclude Include="Helpers\WinAdmin.h" />
     <ClInclude Include="Helpers\WinHelper.h" />
     <QtMoc Include="Models\ProgramRuleModel.h" />
     <QtMoc Include="Models\ProcessTraceModel.h" />
@@ -437,6 +443,7 @@
     <QtMoc Include="Models\EnclaveModel.h" />
     <QtMoc Include="Models\AccessListModel.h" />
     <QtMoc Include="Models\DnsRuleModel.h" />
+    <QtMoc Include="OnlineUpdater.h" />
     <ClInclude Include="version.h" />
     <QtMoc Include="MajorPrivacy.h" />
     <ClInclude Include="Resources\resource.h" />

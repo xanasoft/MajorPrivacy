@@ -236,6 +236,9 @@ STATUS CPrivacyCore::Connect(bool bEngineMode)
 		m_SvcSecState = Data->SecState;
 	}
 
+	std::wstring BinaryPath = GetServiceBinaryPath(API_DRIVER_NAME);
+	m_AppDir = NormalizePath(QString::fromStdWString(Split2(GetFileFromCommand(BinaryPath), L"\\", true).first));
+
 	return Status;
 }
 
@@ -1482,8 +1485,55 @@ STATUS CPrivacyCore::SetWatchedPrograms(const QSet<CProgramItemPtr>& Programs)
 }
 
 // Support
-RESULT(QtVariant) CPrivacyCore::GetSupportInfo()
+RESULT(QtVariant) CPrivacyCore::GetSupportInfo(bool bRefresh)
 {
 	QtVariant Request;
+	Request[API_V_REFRESH] = bRefresh;
 	RET_AS_XVARIANT(m_Driver.Call(API_GET_SUPPORT_INFO, Request));
 }
+
+STATUS CPrivacyCore::SetSecureParam(const QString& Name, const void* data, size_t size)
+{
+	QtVariant Request;
+	Request[API_V_NAME] = Name;
+	Request[API_V_DATA] = QtVariant((BYTE*)data, size);
+	return m_Driver.Call(API_SET_SECURE_PARAM, Request);
+}
+
+STATUS CPrivacyCore::GetSecureParam(const QString& Name, void* data, size_t size, quint32* size_out, bool bVerify)
+{
+	QtVariant Request;
+	Request[API_V_NAME] = Name;
+	Request[API_V_VERIFY] = bVerify;
+	auto Ret = m_Driver.Call(API_GET_SECURE_PARAM, Request);
+	if (Ret.IsError())
+		return Ret.GetStatus();
+	const FW::CVariant& Response = Ret.GetValue();
+	auto Data = Response.Get(API_V_DATA);
+	size_t ToCopy = min(size, Data.GetSize());
+
+	if (size_out) *size_out = ToCopy;
+	memcpy(data, Response.Get(API_V_DATA).GetData(), ToCopy);
+	return OK;
+}
+
+bool CPrivacyCore::TestSignature(const QByteArray& Data, const QByteArray& Signature)
+{
+	QtVariant Request;
+	Request[API_V_DATA] = QtVariant(Data);
+	Request[API_V_SIGNATURE] = QtVariant(Signature);
+	auto Ret = m_Driver.Call(API_VERIFY_SIGNATURE, Request);
+	return !Ret.IsError();
+}
+
+STATUS CPrivacyCore::SetDatFile(const QString& FileName, const QByteArray& Data)
+{
+	QtVariant Request;
+	Request[API_V_NAME] = FileName;
+	Request[API_V_DATA] = QtVariant(Data);
+	return m_Service.Call(SVC_API_SET_DAT_FILE, Request);
+}
+
+//RESULT(QByteArray) CPrivacyCore::GetDatFile(const QString& FileName)
+//{
+//}

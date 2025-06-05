@@ -22,8 +22,8 @@ struct SAccessItem
 		eHost,
 		eRegistry,
 	} Type = eDevice;
-	QMap<CProgramItemPtr, SAccessStatsPtr> Stats;
-	QMap<QString, QSharedPointer<SAccessItem>> Branches;
+	QHash<CProgramItemPtr, SAccessStatsPtr> Stats;
+	QHash<QString, QSharedPointer<SAccessItem>> Branches;
 };
 
 typedef QSharedPointer<SAccessItem> SAccessItemPtr;

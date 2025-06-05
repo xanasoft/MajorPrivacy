@@ -105,6 +105,7 @@ void CProgramPicker::LoadList()
 		pTreeItem->setIcon(0, pItem->GetIcon());
 		pTreeItem->setToolTip(0, pItem->GetPath());
 		pTreeItem->setData(0, Qt::UserRole, pItem->GetUID());
+		//pTreeItem->setText(1, pItem->GetPath());
 
 		if (pItem == m_pProgram)
 			ui.treePrograms->setCurrentItem(pTreeItem);

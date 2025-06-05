@@ -59,6 +59,7 @@ protected:
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbAccess;
 
+	QToolButton*			m_pBtnHold;
 	QToolButton*			m_pBtnRefresh;
 	QToolButton*			m_pBtnCleanUp;
 

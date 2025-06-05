@@ -63,6 +63,7 @@ public:
 	STATUS 				RemoveCertSignature(const QMap<QByteArray, QString>& Certs);
 
 	QString				GetConfigDir() { return m_ConfigDir; }
+	QString				GetAppDir() { return m_AppDir; }
 
 	RESULT(QtVariant)	GetConfig(const QString& Name);
 
@@ -236,7 +237,15 @@ public:
 	STATUS				SetWatchedPrograms(const QSet<CProgramItemPtr>& Programs);
 
 	// Support
-	RESULT(QtVariant)	GetSupportInfo();
+	RESULT(QtVariant)	GetSupportInfo(bool bRefresh = false);
+
+	STATUS				SetSecureParam(const QString& Name, const void* data, size_t size);
+	STATUS				GetSecureParam(const QString& Name, void* data, size_t size, quint32* size_out = NULL, bool bVerify = false);
+
+	bool				TestSignature(const QByteArray& Data, const QByteArray& Signature);
+
+	STATUS				SetDatFile(const QString& FileName, const QByteArray& Data);
+	//RESULT(QByteArray) GetDatFile(const QString& FileName);
 
 	// 
 
@@ -294,6 +303,7 @@ protected:
 	CServiceAPI m_Service;
 	bool m_bEngineMode = false;
 	QString m_ConfigDir;
+	QString m_AppDir;
 
 	uint32 m_GuiSecState = 0;
 	uint32 m_SvcSecState = 0;

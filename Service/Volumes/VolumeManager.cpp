@@ -1132,7 +1132,7 @@ STATUS CVolumeManager::LoadVolumeRules(const std::shared_ptr<CVolume>& pMount)
     {
         StVariant Rule = RuleList[i];
 
-        std::wstring Guid = Rule[API_V_GUID].AsStr();
+        //std::wstring Guid = Rule[API_V_GUID].AsStr();
 
         std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
         CProgramID ID(ProgramPath);

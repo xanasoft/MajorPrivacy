@@ -85,7 +85,7 @@ QList<QModelIndex>	CAccessListModel::Sync(const QMap<CProgramItemPtr, QPair<quin
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pNode->pProgram->GetNameEx(); break;
+			case eName:				Value = QString(""); break; // no name update
 			case eLastAccess:		Value = X.value().first; break;
 			case eAccess:			Value = X.value().second.count(); break;
 			}
@@ -100,6 +100,7 @@ QList<QModelIndex>	CAccessListModel::Sync(const QMap<CProgramItemPtr, QPair<quin
 
 				switch (section)
 				{
+				case eName:				ColValue.Formatted = pNode->pProgram->GetNameEx(); break;
 				case eLastAccess:		if(X.value().first) ColValue.Formatted = QDateTime::fromMSecsSinceEpoch(FILETIME2ms(X.value().first)).toString("dd.MM.yyyy hh:mm:ss.zzz"); break;
 				}
 			}

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include <psapi.h>
 #include <userenv.h>
+#include "../Library/Helpers/NtObj.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Common/FileIO.h"
 #include "../Framework/Common/Buffer.h"
@@ -118,6 +119,9 @@ void CServiceCore::RegisterUserAPI()
 	m_pUserPipe->RegisterHandler(SVC_API_APPROVE_TWEAK, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_SET_WATCHED_PROG, &CServiceCore::OnRequest, this);
+	
+	m_pUserPipe->RegisterHandler(SVC_API_SET_DAT_FILE, &CServiceCore::OnRequest, this);
+	//m_pUserPipe->RegisterHandler(SVC_API_GET_DAT_FILE, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_GET_SVC_STATS, &CServiceCore::OnRequest, this);
 
@@ -1250,6 +1254,39 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			return STATUS_SUCCESS;
 		}
 
+		case SVC_API_SET_DAT_FILE:
+		{
+			StVariant vReq;
+			vReq.FromPacket(req);
+
+			std::wstring FileName = vReq[API_V_NAME].AsStr();
+
+			const wchar_t* ext = wcsrchr(FileName.c_str(), L'.');
+			if (!ext || (_wcsicmp(ext, L".dat") != 0) || wcsstr(FileName.c_str(), L"..") != NULL)
+				return STATUS_INVALID_FILE_FOR_SECTION;
+
+			SNtObject Obj(L"\\??\\" + theCore->GetAppDir() + L"\\" + FileName);
+
+			CBuffer Data = vReq[API_V_DATA];
+
+			if (Data.GetSize() == 0) {
+				NtDeleteFile(Obj.Get());
+				return STATUS_SUCCESS;
+			}
+
+			IO_STATUS_BLOCK IoStatusBlock;
+			CScopedHandle<HANDLE, NTSTATUS(*)(HANDLE)> handle(NULL, NtClose);
+			NTSTATUS status = NtCreateFile(&handle, FILE_GENERIC_WRITE, Obj.Get(), &IoStatusBlock, NULL, 0, 0x00000007/*FILE_SHARE_VALID_FLAGS*/, FILE_OVERWRITE_IF, FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE, NULL, 0);
+			if (NT_SUCCESS(status)) 
+				status = NtWriteFile(handle, NULL, NULL, NULL, &IoStatusBlock, Data.GetBuffer(), Data.GetSize(), NULL, NULL);
+	
+			return status;
+		}
+		case SVC_API_GET_DAT_FILE:
+		{
+			return STATUS_NOT_IMPLEMENTED;
+		}
+
 		case SVC_API_GET_SVC_STATS:
 		{
 			StVariant vRpl;
@@ -1318,7 +1355,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 						PROCESS_INFORMATION pi = { 0 };
 						if (CreateProcessAsUserW(hNewToken, NULL, (wchar_t*)CmdLine.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
 						{
-							if (WaitForSingleObject(pi.hProcess, 100 * 1000) == 0)
+							if (WaitForSingleObject(pi.hProcess, INFINITE) == 0)
 							{
 								DWORD Code = 0;
 								if (GetExitCodeProcess(pi.hProcess, &Code))
@@ -1356,25 +1393,26 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 	}
 }
 
-void CServiceCore::BroadcastMessage(uint32 MessageID, const StVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram)
+int CServiceCore::BroadcastMessage(uint32 MessageID, const StVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram)
 {
 	CBuffer MessageBuffer;
 	MessageData.ToPacket(&MessageBuffer);
 
-	if (!pProgram) {
-		theCore->UserPipe()->BroadcastMessage(MessageID, &MessageBuffer);
-		return;
-	}
+	if (!pProgram)
+		return theCore->UserPipe()->BroadcastMessage(MessageID, &MessageBuffer);
 
 	std::unique_lock Lock(m_ClientsMutex);
 	auto Clients = m_Clients;
 	Lock.unlock();
 
+	int Success = 0;
 	for(auto& I : Clients) {
 		SClientPtr pClientData = I.second;
 		std::unique_lock Lock(pClientData->Mutex);
 		if(!pClientData->bWatchAllPrograms && pClientData->WatchedPrograms.find(pProgram->GetUID()) == pClientData->WatchedPrograms.end())
 			continue;
-		theCore->UserPipe()->BroadcastMessage(MessageID, &MessageBuffer, I.first);
+		if(theCore->UserPipe()->BroadcastMessage(MessageID, &MessageBuffer, I.first))
+			Success++;
 	}
+	return Success != 0;
 }

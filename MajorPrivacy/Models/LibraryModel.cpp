@@ -99,7 +99,7 @@ QList<QModelIndex> CLibraryModel::Sync(const QMap<SLibraryKey, SLibraryItemPtr>&
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pNode->pItem->pLibrary ? pNode->pItem->pLibrary->GetName() : pNode->pItem->pProg->GetNameEx(); break;
+			case eName:				Value = QString(""); break; // no name update
 			case eTrustLevel:		Value = SignAuth.Data; break;
 			case eStatus:			Value = pNode->pItem->pLibrary ? (uint32)pNode->pItem->Info.LastStatus : -1; break;
 			case eLastLoadTime:		Value = pNode->pItem->pLibrary ? pNode->pItem->Info.LastLoadTime : 0; break;
@@ -119,6 +119,7 @@ QList<QModelIndex> CLibraryModel::Sync(const QMap<SLibraryKey, SLibraryItemPtr>&
 
 				switch (section)
 				{
+				case eName:				ColValue.Formatted = pNode->pItem->pLibrary ? pNode->pItem->pLibrary->GetName() : pNode->pItem->pProg->GetNameEx(); break;
 				case eTrustLevel:		ColValue.Formatted = CProgramFile::GetSignatureInfoStr(UCISignInfo{Value.toULongLong()}); 
 					{
 						UCISignInfo SignAuth;

@@ -116,6 +116,9 @@
     <Filter Include="Views\Home">
       <UniqueIdentifier>{05417d2f-c2b1-4de6-baae-13a2a87e4cd2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Wizards">
+      <UniqueIdentifier>{78dba3c0-d30c-423c-872d-410796d7f2e6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -454,6 +457,15 @@
     <ClCompile Include="Common\QtVariant.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="OnlineUpdater.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\WinAdmin.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Wizards\SetupWizard.cpp">
+      <Filter>Wizards</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -497,6 +509,9 @@
     </ClInclude>
     <ClInclude Include="Common\QtFlexGuid.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\WinAdmin.h">
+      <Filter>Helpers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -828,6 +843,15 @@
     </QtMoc>
     <QtMoc Include="Core\Network\DnsRule.h">
       <Filter>Core\Network</Filter>
+    </QtMoc>
+    <QtMoc Include="OnlineUpdater.h">
+      <Filter>GUI</Filter>
+    </QtMoc>
+    <QtMoc Include="Common\StatusEx.h">
+      <Filter>Common</Filter>
+    </QtMoc>
+    <QtMoc Include="Wizards\SetupWizard.h">
+      <Filter>Wizards</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

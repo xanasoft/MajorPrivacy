@@ -162,12 +162,16 @@ public:
 
 	Iterator insert(Iterator I, const V& Value)
 	{
-		if (!I.pEntry || !MakeExclusive(&I))
+		if (!MakeExclusive(&I))
 			return end();
 		SListEntry* ptr = (SListEntry*)MemAlloc(sizeof(SListEntry));
 		if (!ptr) return end();
 		new (ptr) SListEntry(Value);
-		InsertBefore(m_ptr, I.pEntry, ptr);
+		if (!I.pEntry) {
+			InsertAfter(m_ptr, nullptr, ptr);
+			I.pEntry = ptr;
+		} else
+			InsertBefore(m_ptr, I.pEntry, ptr);
 		return I;
 	}
 

@@ -4,7 +4,7 @@
 //#include "ui_MajorPrivacy.h"
 #include "Core/Programs/WindowsService.h"
 #include "Core/TraceLogEntry.h"
-#include "../Library/Status.h"
+#include "../Common/StatusEx.h"
 #include "../MiscHelpers/Common/CustomTheme.h"
 #include "../MiscHelpers/Common/ProgressDialog.h"
 #include <QTranslator>
@@ -31,6 +31,8 @@ public:
 
 	static QString		GetVersion();
 
+	static void			ShowMessageBox(QWidget* Widget, QMessageBox::Icon Icon, const QString& Message);
+
 	struct SCurrentItems
 	{
 		QSet<CProgramItemPtr> Items; // all items including not selected children
@@ -54,12 +56,15 @@ public:
 
 	int					SafeExec(QDialog* pDialog);
 
+	STATUS				AddAsyncOp(const CAsyncProgressPtr& pProgress, bool bWait = false, const QString& InitialMsg = QString(), QWidget* pParent = NULL);
 	QString				FormatError(const STATUS& Error);
 	int 				CheckResults(QList<STATUS> Results, QWidget* pParent, bool bAsync = false);
 
 	void				UpdateTheme();
 
 	bool				IsAlwaysOnTop() const;
+
+	void				UpdateTitle();
 
 	STATUS				SignFiles(const QStringList& Paths);
 	STATUS				SignCerts(const QMap<QByteArray, QString>& Certs);
@@ -78,6 +83,8 @@ public:
 
 	QString				GetLanguage() const { return m_Language; }
 
+	STATUS				ReloadCert(QWidget* pWidget = NULL);
+
 signals:
 	void				Closed();
 
@@ -86,6 +93,8 @@ signals:
 	void				OnMountVolume();
 	void				OnUnmountAllVolumes();
 	void				OnCreateVolume();
+
+	void				CertUpdated();
 
 public slots:
 	void				OnProgramsAdded();
@@ -103,9 +112,20 @@ public slots:
 	void				ClearIgnoreLists();
 	void				ResetPrompts();
 
+	void				OnAsyncFinished();
+	void				OnAsyncFinished(CAsyncProgress* pProgress);
+	void				OnAsyncMessage(const QString& Text);
+	void				OnAsyncProgress(int Progress);
+	void				OnCancelAsync();
+
 	void				ClearTraceLogs();
 
 	void				OnMessage(const QString& MsgData);
+
+	void				OpenUrl(const QString& url) { OpenUrl(QUrl(url)); }
+	void				OpenUrl(QUrl url);
+
+	void				UpdateLabel();
 
 private slots:
 	void				OnMaintenance();
@@ -158,7 +178,6 @@ protected:
 	void				timerEvent(QTimerEvent* pEvent);
 	int					m_uTimerID;
 
-	void				SetTitle();
 	void				UpdateLockStatus(bool bOnConnect = false);
 
 	STATUS				Connect();
@@ -179,6 +198,7 @@ protected:
 
 	void				CreateTrayIcon();
 	void				CreateTrayMenu();
+	void				CreateLabel();
 
 	SCurrentItems		MakeCurrentItems() const;
 	SCurrentItems		MakeCurrentItems(const QList<CProgramItemPtr>& Progs, std::function<bool(const CProgramItemPtr&)> Filter = nullptr) const;
@@ -201,6 +221,8 @@ protected:
 	};
 
 	QMap<QString, SIgnoreEvent> m_IgnoreEvents[(int)ERuleType::eMax - 1];
+
+	QMap<CAsyncProgress*, QPair<CAsyncProgressPtr, QPointer<QWidget>>> m_pAsyncProgress;
 
 private:
 	void				LoadState(bool bFull = true);
@@ -228,6 +250,8 @@ private:
 	QTabBar*			m_pTabBar = nullptr;
 	QStackedLayout*		m_pPageStack = nullptr;
 
+	QLabel*				m_pSupportLabel = nullptr;
+
 	QLabel*				m_pStatusLabel = nullptr;
 	
 	QWidget*			m_pProgramWidget = nullptr;
@@ -254,6 +278,7 @@ private:
 	QAction*			m_pDisconnect = nullptr;
 	QAction*			m_pInstallService = nullptr;
 	QAction*			m_pRemoveService = nullptr;
+	QAction*			m_pSetupWizard = nullptr;
 	QAction*			m_pExit = nullptr;
 
 	QMenu*				m_pView = nullptr;
@@ -348,8 +373,13 @@ private:
 	void				LoadLanguage(const QString& Lang, const QString& Module, int Index);
 	QTranslator			m_Translator[2];
 
+public:
+	class COnlineUpdater*m_pUpdater = nullptr;
+
 	QString				m_Language;
-	//quint32				m_LanguageId;
+	quint32				m_LanguageId = 0;
+
+	
 };
 
 #define IGNORE_LIST_GROUP "IgnoreList"

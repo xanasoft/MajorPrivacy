@@ -93,7 +93,7 @@ QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& Lis
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pNode->pItem->pProg ? pNode->pItem->pProg->GetNameEx() : pNode->pItem->pEntry->GetHostName(); break;
+			case eName:				Value = QString(""); break; // no name update
 			case eLastActive:		Value = pNode->pItem->pEntry->GetLastActivity(); break;
 			case eUploaded:			Value = pNode->pItem->pEntry->GetUploadTotal(); break;
 			case eDownloaded:		Value = pNode->pItem->pEntry->GetDownloadTotal(); break;
@@ -109,6 +109,7 @@ QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& Lis
 
 				switch (section)
 				{
+				case eName:			ColValue.Formatted = pNode->pItem->pProg ? pNode->pItem->pProg->GetNameEx() : pNode->pItem->pEntry->GetHostName(); break;
 				case eLastActive:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
 				case eUploaded:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 				case eDownloaded:	ColValue.Formatted = FormatSize(Value.toULongLong()); break;

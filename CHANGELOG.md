@@ -8,7 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.98.1] - 2025-05-
+## [0.98.1] - 2025-05-23
 
 ### Added
 - enabled translation support
@@ -19,6 +19,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 	- added Simplified Chinese translation
 - added MS VC Redistributable to the installer (required for ImDisk UI)
 - added translation support for tweaks
+- added mechanism for resource access to await a user verdict on a protected access attempt
 
 ### Fixed
 - fixed issue with installer not removing the driver
@@ -29,6 +30,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - fixed issues with protected folder display [#39](https://github.com/xanasoft/MajorPrivacy/issues/39)
 - fixed issue with rules for network shared
   - Note: do not use mahhed drive letters for rules but ful UNC paths!!!
+- fixed issue with rule order application [#40](https://github.com/xanasoft/MajorPrivacy/issues/40)
+- fixed issue with enclave rule precedence
 
 ### Changed
 - refactored driver code
