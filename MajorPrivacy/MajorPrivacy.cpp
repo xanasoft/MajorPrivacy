@@ -2720,7 +2720,7 @@ void CMajorPrivacy::LoadLanguage()
 	if (!m_LanguageId)
 		m_LanguageId = 1033; // default to English
 
-	LoadLanguage(m_Language, "majorprivacy", 0);
+	LoadLanguage(m_Language, "MajorPrivacy", 0);
 	LoadLanguage(m_Language, "qt", 1);
 
 	QTreeViewEx::m_ResetColumns = tr("Reset Columns");

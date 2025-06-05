@@ -2472,28 +2472,29 @@ Error: %1</source>
     </message>
     <message>
         <source>The certificate you are attempting to use has been blocked, meaning it has been invalidated for cause. Any attempt to use it constitutes a breach of its terms of use!</source>
-        <translation type="unfinished"></translation>
+        <translation>Das Zertifikat, das Sie zu verwenden versuchen, wurde blockiert, was bedeutet, dass es aus triftigem Grund für ungültig erklärt wurde. Jeder Versuch, es zu verwenden, stellt einen Verstoß gegen seine Nutzungsbedingungen dar!</translation>
     </message>
     <message>
         <source>The Certificate Signature is invalid!</source>
-        <translation type="unfinished"></translation>
+        <translation>Die Signatur des Zertifikats ist ungültig!</translation>
     </message>
     <message>
         <source>The Certificate is not suitable for this product.</source>
-        <translation type="unfinished"></translation>
+        <translation>Das Zertifikat ist für dieses Produkt nicht geeignet.</translation>
     </message>
     <message>
         <source>The Certificate is node locked.</source>
-        <translation type="unfinished"></translation>
+        <translation>Das Zertifikat ist an einen bestimmtes Gerät gebunden.</translation>
     </message>
     <message>
         <source>The support certificate is not valid.
 Error: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Das Support-Zertifikat ist ungültig.
+Fehler: %1</translation>
     </message>
     <message>
         <source>Privacy</source>
-        <translation type="unfinished"></translation>
+        <translation>Privacy</translation>
     </message>
     <message>
         <source>Setup Wizard</source>
@@ -2501,23 +2502,23 @@ Error: %1</source>
     </message>
     <message>
         <source>View</source>
-        <translation type="unfinished"></translation>
+        <translation>Ansicht</translation>
     </message>
     <message>
         <source>Volumes</source>
-        <translation type="unfinished"></translation>
+        <translation>Volumes</translation>
     </message>
     <message>
         <source>Security</source>
-        <translation type="unfinished"></translation>
+        <translation>Sicherheit</translation>
     </message>
     <message>
         <source>Tools</source>
-        <translation type="unfinished"></translation>
+        <translation>Werkzeuge</translation>
     </message>
     <message>
         <source>Options</source>
-        <translation type="unfinished"></translation>
+        <translation>Optionen</translation>
     </message>
     <message>
         <source>&lt;a href=&quot;sbie://update/installer&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy release %1 ready&lt;/a&gt;</source>
