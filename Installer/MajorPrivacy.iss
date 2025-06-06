@@ -251,6 +251,14 @@ begin
 
   try
 
+    // Backup status text (uninstall). Prepare progress page (install).
+    if IsUninstaller() then
+      StatusText := UninstallProgressForm.StatusLabel.Caption
+    else begin
+      OutputProgressPage := CreateOutputProgressPage(SetupMessage(msgWizardPreparing), SetupMessage(msgPreparingDesc));
+      OutputProgressPage.Show();
+    end;
+
     // Remove
     UpdateStatus(OutputProgressPage, 'PrivacyAgent.exe -remove', 50);
     Exec(ExpandConstant('{app}\PrivacyAgent.exe'), '-remove', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ExecRet);
