@@ -1416,7 +1416,7 @@ void CMajorPrivacy::OnUnloadProtection()
 	if (theConf->GetBool("Options/WarnProtection", true)) {
 		bool State = false;
 		CCheckableMessageBox::question(this, "MajorPrivacy",
-			tr("This setting required the service to be restarted to tak effect")
+			tr("This setting required the service to be restarted to take effect")
 			, tr("Don't show this message again."), &State, QDialogButtonBox::Ok, QDialogButtonBox::Ok, QMessageBox::Information);
 		if (State)
 			theConf->SetValue("Options/WarnProtection", false);
