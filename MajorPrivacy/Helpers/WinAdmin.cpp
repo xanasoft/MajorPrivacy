@@ -107,7 +107,7 @@ bool IsAdminUser(bool OnlyFull)
 //////////////////////////////////////////////////////////////////////////////////
 // AutoRun
 
-#define APP_NAME L"SandboxiePlus"
+#define APP_NAME L"MajorPrivacy"
 
 #define AUTO_RUN_KEY_NAME APP_NAME L"_AutoRun"
 
