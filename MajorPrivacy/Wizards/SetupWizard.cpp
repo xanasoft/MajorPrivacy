@@ -306,10 +306,9 @@ void CCertificatePage::initializePage()
         theCore->SetSecureParam("UsageFlags", &UsageFlags, sizeof(UsageFlags));
 
         m_pTopLabel->setText(
-            tr("<b>MajorPrivacy</b> provides additional features and box types exclusively to <u>project supporters</u>. "
-                "Boxes like the Privacy Enhanced boxes <b><font color='red'>protect user data from illicit access</font></b> by the sandboxed programs. "
+            tr("<b>MajorPrivacy</b> provides strong features to prevent your data from being stolean exclusively to <u>project supporters</u>. "
                 "If you are not yet a supporter, then please consider <a href=\"https://xanasoft.com/go.php?to=sbie-get-cert\">supporting the project</a> "
-                "to ensure further development of Sandboxie and to receive a <a href=\"https://xanasoft.com/go.php?to=sbie-cert\">supporter certificate</a>.")
+                "to ensure further development of MajorPrivacy and to receive a <a href=\"https://xanasoft.com/go.php?to=sbie-cert\">supporter certificate</a>.")
         );
 
         m_pEvaluate->setVisible(false);
@@ -607,7 +606,7 @@ CSBUpdate::CSBUpdate(QWidget *parent)
     int rows = 4;
 
     m_pUpdate = new QCheckBox(tr("Regularly check for all updates to MajorPrivacy and optional components"));
-    m_pUpdate->setToolTip(tr("Let Sandboxie regularly check for latest updates."));
+    m_pUpdate->setToolTip(tr("Let MajorPrivacy regularly check for latest updates."));
     layout->addWidget(m_pUpdate, row++, 0, 1, rows);
     connect(m_pUpdate, &QCheckBox::toggled, this, &CSBUpdate::UpdateOptions);
     registerField("updateAll", m_pUpdate);
