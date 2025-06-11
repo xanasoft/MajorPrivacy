@@ -476,7 +476,7 @@ STATUS CMajorPrivacy::Connect()
 		/*int WizardLevel = abs(theConf->GetInt("Options/WizardLevel", 0));
 		if (WizardLevel < (!g_CertInfo.active ? SETUP_LVL_3 : (theConf->GetInt("Options/CheckForUpdates", 2) != 1 ? SETUP_LVL_2 : SETUP_LVL_1))) {
 			if (!CSetupWizard::ShowWizard(WizardLevel)) { // if user canceled, mark that and do not show again, until there is something new
-				if(QMessageBox::question(NULL, "Sandboxie-Plus", tr("Do you want the setup wizard to be omitted?"), QMessageBox::Yes, QMessageBox::No | QMessageBox::Default) == QMessageBox::Yes)
+				if(QMessageBox::question(NULL, "MajorPrivacy", tr("Do you want the setup wizard to be omitted?"), QMessageBox::Yes, QMessageBox::No | QMessageBox::Default) == QMessageBox::Yes)
 					theConf->SetValue("Options/WizardLevel", -SETUP_LVL_CURRENT);
 			}
 		}*/
@@ -1416,7 +1416,7 @@ void CMajorPrivacy::OnUnloadProtection()
 	if (theConf->GetBool("Options/WarnProtection", true)) {
 		bool State = false;
 		CCheckableMessageBox::question(this, "MajorPrivacy",
-			tr("This setting required the service to be restarted to tak effect")
+			tr("This setting required the service to be restarted to take effect")
 			, tr("Don't show this message again."), &State, QDialogButtonBox::Ok, QDialogButtonBox::Ok, QMessageBox::Information);
 		if (State)
 			theConf->SetValue("Options/WarnProtection", false);

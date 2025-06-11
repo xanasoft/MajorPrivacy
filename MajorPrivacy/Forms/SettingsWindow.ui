@@ -1276,7 +1276,7 @@
                <item row="2" column="1" colspan="3">
                 <widget class="QCheckBox" name="chkAutoUpdate">
                  <property name="text">
-                  <string>Check periodically for new Sandboxie-Plus versions</string>
+                  <string>Check periodically for new MajorPrivacy versions</string>
                  </property>
                 </widget>
                </item>
