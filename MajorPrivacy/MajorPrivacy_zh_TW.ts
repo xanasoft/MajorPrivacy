@@ -556,31 +556,31 @@
     <name>CCertificatePage</name>
     <message>
         <source>Install your &lt;b&gt;MajorPrivacy&lt;/b&gt; support certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>安裝您的 &lt;b&gt;Sandboxie-Plus&lt;/b&gt; 贊助者憑證</translation>
     </message>
     <message>
         <source>If you have a supporter certificate, please fill it into the field below.</source>
-        <translation type="unfinished"></translation>
+        <translation>如果您有贊助者憑證，請填入以下欄位。</translation>
     </message>
     <message>
         <source>Retrieve certificate using Serial Number:</source>
-        <translation type="unfinished"></translation>
+        <translation>使用序號取得憑證:</translation>
     </message>
     <message>
         <source>Start evaluation without a certificate for a limited period of time.</source>
-        <translation type="unfinished"></translation>
+        <translation>在沒有贊助者憑證的情況下開始進行有限時間的試用。</translation>
     </message>
     <message>
         <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;Get a free evaluation certificate&lt;/font&gt;&lt;/a&gt; and enjoy all premium features for %1 days.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;取得一個免費試用憑證&lt;/font&gt;&lt;/a&gt;以體驗高級功能 %1 天。&lt;/b&gt;</translation>
     </message>
     <message>
         <source>You can request a free %1-day evaluation certificate up to %2 times per hardware ID.</source>
-        <translation type="unfinished"></translation>
+        <translation>對於每一個硬體ID，您最多可以請求%2次免費的%1天評估憑證。</translation>
     </message>
     <message>
         <source>To use &lt;b&gt;MajorPrivacy&lt;/b&gt; in a business setting, an appropriate &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;support certificate&lt;/a&gt; for business use is required. If you do not yet have the required certificate(s), you can get those from the &lt;a href=&quot;https://xanasoft.com/shop/&quot;&gt;xanasoft.com web shop&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>要在商業設定環境使用 &lt;b&gt;MajorPrivacy&lt;/b&gt;，需要適用於商業用途的&lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;贊助者憑證&lt;/a&gt;。如果您還沒有所需的憑證，可以透過&lt;a href=&quot;https://xanasoft.com/shop/&quot;&gt;xanasoft.com 網路商店&lt;/a&gt;取得憑證。</translation>
     </message>
     <message>
         <source>&lt;b&gt;MajorPrivacy&lt;/b&gt; provides additional features and box types exclusively to &lt;u&gt;project supporters&lt;/u&gt;. Boxes like the Privacy Enhanced boxes &lt;b&gt;&lt;font color=&apos;red&apos;&gt;protect user data from illicit access&lt;/font&gt;&lt;/b&gt; by the sandboxed programs. If you are not yet a supporter, then please consider &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;supporting the project&lt;/a&gt; to ensure further development of Sandboxie and to receive a &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</source>
@@ -588,16 +588,17 @@
     </message>
     <message>
         <source>Failed to retrieve the certificate.</source>
-        <translation type="unfinished"></translation>
+        <translation>取得憑證失敗。</translation>
     </message>
     <message>
         <source>
 Error: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>
+錯誤: %1</translation>
     </message>
     <message>
         <source>Retrieving certificate...</source>
-        <translation type="unfinished"></translation>
+        <translation>取得憑證中...</translation>
     </message>
 </context>
 <context>
@@ -1134,11 +1135,11 @@ Error: %1</source>
     <name>CFinishPage</name>
     <message>
         <source>Complete your configuration</source>
-        <translation type="unfinished"></translation>
+        <translation>完成您的組態</translation>
     </message>
     <message>
         <source>Almost complete, click Finish to apply all selected options and conclude the wizard.</source>
-        <translation type="unfinished"></translation>
+        <translation>即將就緒，按下「完成」按鈕以套用所有選取的選項，並結束此精靈。</translation>
     </message>
 </context>
 <context>
@@ -1472,14 +1473,14 @@ Error: %1</source>
     <name>CGetFileJob</name>
     <message>
         <source>Failed to download file from: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>下載檔案失敗，來源: %1</translation>
     </message>
 </context>
 <context>
     <name>CGetUpdatesJob</name>
     <message>
         <source>%1</source>
-        <translation type="unfinished">%1</translation>
+        <translation>%1</translation>
     </message>
 </context>
 <context>
@@ -1661,27 +1662,27 @@ Error: %1</source>
     <name>CIntroPage</name>
     <message>
         <source>Introduction</source>
-        <translation type="unfinished"></translation>
+        <translation>介紹</translation>
     </message>
     <message>
         <source>Welcome to the Setup Wizard. This wizard will help you to configure your copy of &lt;b&gt;MajorPrivacy&lt;/b&gt;. You can start this wizard at any time from the Sandbox-&gt;Maintenance menu if you do not wish to complete it now.</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">歡迎使用安裝精靈。此精靈將協助您設定&lt;b&gt;MajorPrivacy&lt;/b&gt;的副本。如果您不想現在完成此嚮導，您可以隨時從「沙盒」-&gt;「維護」功能表啟動此精靈。</translation>
     </message>
     <message>
         <source>Select how you would like to use MajorPrivacy</source>
-        <translation type="unfinished"></translation>
+        <translation>選擇 MajorPrivacy 的使用方式</translation>
     </message>
     <message>
         <source>&amp;Personally, for private non-commercial use</source>
-        <translation type="unfinished"></translation>
+        <translation>個人，用於私人非商業用途(&amp;P)</translation>
     </message>
     <message>
         <source>&amp;Commercially, for business or enterprise use</source>
-        <translation type="unfinished"></translation>
+        <translation>商業，用於企業或商業用途(&amp;C)</translation>
     </message>
     <message>
         <source>Note: this option is persistent</source>
-        <translation type="unfinished"></translation>
+        <translation>注意: 此選項無法在後續的設定中重新修改</translation>
     </message>
 </context>
 <context>
@@ -2430,32 +2431,33 @@ CAUTION: This will disable protection.</source>
     </message>
     <message>
         <source>The certificate you are attempting to use has been blocked, meaning it has been invalidated for cause. Any attempt to use it constitutes a breach of its terms of use!</source>
-        <translation type="unfinished"></translation>
+        <translation>您正在嘗試使用的憑證已被封鎖，這意味著其已因某些原因而失效。任何試圖使用它的行為都違反了使用條款！</translation>
     </message>
     <message>
         <source>The Certificate Signature is invalid!</source>
-        <translation type="unfinished"></translation>
+        <translation>憑證數位簽章無效！</translation>
     </message>
     <message>
         <source>The Certificate is not suitable for this product.</source>
-        <translation type="unfinished"></translation>
+        <translation>憑證不適用於此產品。</translation>
     </message>
     <message>
         <source>The Certificate is node locked.</source>
-        <translation type="unfinished"></translation>
+        <translation>憑證已被節點鎖定。</translation>
     </message>
     <message>
         <source>The support certificate is not valid.
 Error: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>贊助憑證無效。
+錯誤: %1</translation>
     </message>
     <message>
         <source>Privacy</source>
-        <translation type="unfinished"></translation>
+        <translation>隱私</translation>
     </message>
     <message>
         <source>Setup Wizard</source>
-        <translation type="unfinished"></translation>
+        <translation>設定精靈</translation>
     </message>
     <message>
         <source>View</source>
@@ -2463,11 +2465,11 @@ Error: %1</source>
     </message>
     <message>
         <source>Volumes</source>
-        <translation type="unfinished"></translation>
+        <translation>磁碟區</translation>
     </message>
     <message>
         <source>Security</source>
-        <translation type="unfinished"></translation>
+        <translation>安全</translation>
     </message>
     <message>
         <source>Tools</source>
@@ -2692,15 +2694,17 @@ Error: %1</source>
         <source>Your MajorPrivacy supporter certificate is expired, however for the current build you are using it remains active, when you update to a newer build exclusive supporter features will be disabled.
 
 Do you still want to update?</source>
-        <translation type="unfinished"></translation>
+        <translation>您的 MajorPrivacy 贊助者憑證已逾期，但是對於您正在使用的目前版本仍然有效，當您更新到較新的版本時，贊助者獨有功能將被停用。
+
+您仍要更新吗？</translation>
     </message>
     <message>
         <source>Do you want to check if there is a new version of MajorPrivacy?</source>
-        <translation type="unfinished"></translation>
+        <translation>您想要檢查 MajorPrivacy 是否存在新版本嗎？</translation>
     </message>
     <message>
         <source>Don&apos;t show this message again.</source>
-        <translation type="unfinished"></translation>
+        <translation>不再顯示此訊息。</translation>
     </message>
     <message>
         <source>To ensure optimal compatibility with your software, Sandboxie needs to update its compatibility templates. Do you want to proceed?</source>
@@ -2708,109 +2712,111 @@ Do you still want to update?</source>
     </message>
     <message>
         <source>Enable auto template updates</source>
-        <translation type="unfinished"></translation>
+        <translation>啟用自動模板更新</translation>
     </message>
     <message>
         <source>Checking for updates...</source>
-        <translation type="unfinished"></translation>
+        <translation>檢查更新中...</translation>
     </message>
     <message>
         <source>server not reachable</source>
-        <translation type="unfinished"></translation>
+        <translation>伺服器無法存取</translation>
     </message>
     <message>
         <source>Failed to check for updates, error: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>檢查更新失敗，錯誤: %1</translation>
     </message>
     <message>
         <source>No new updates found, your MajorPrivacy is up-to-date.
 
 Note: The update check is often behind the latest GitHub release to ensure that only tested updates are offered.</source>
-        <translation type="unfinished"></translation>
+        <translation>沒有發現更新，您的 MajorPrivacy 已為最新版本。
+
+注意: 更新檢查通常落後於最新的 GitHub 版本，以確保僅提供經過測試的更新。</translation>
     </message>
     <message>
         <source>&lt;p&gt;There is a new version of MajorPrivacy available.&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;&lt;b&gt;New version:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;有新版本 MajorPrivacy 可用。&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;&lt;b&gt;新版本:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Do you want to download the installer?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;是否下載此安裝程式？&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Do you want to download the updates?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;是否下載此更新？&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Do you want to go to the &lt;a href=&quot;%1&quot;&gt;download page&lt;/a&gt;?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;是否前往&lt;a href=&quot;%1&quot;&gt;下載頁面&lt;/a&gt;？&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Don&apos;t show this update anymore.</source>
-        <translation type="unfinished"></translation>
+        <translation>不再顯示此次更新。</translation>
     </message>
     <message>
         <source>Downloading updates...</source>
-        <translation type="unfinished"></translation>
+        <translation>正在下載更新...</translation>
     </message>
     <message>
         <source>invalid parameter</source>
-        <translation type="unfinished"></translation>
+        <translation>無效參數</translation>
     </message>
     <message>
         <source>failed to download updated information</source>
-        <translation type="unfinished"></translation>
+        <translation>下載更新資訊失敗</translation>
     </message>
     <message>
         <source>failed to load updated json file</source>
-        <translation type="unfinished"></translation>
+        <translation>載入已更新的 Json 檔案失敗</translation>
     </message>
     <message>
         <source>failed to download a particular file</source>
-        <translation type="unfinished"></translation>
+        <translation>下載特定檔案失敗</translation>
     </message>
     <message>
         <source>failed to scan existing installation</source>
-        <translation type="unfinished"></translation>
+        <translation>掃描現有的安裝失敗</translation>
     </message>
     <message>
         <source>updated signature is invalid !!!</source>
-        <translation type="unfinished"></translation>
+        <translation>無效的更新檔簽章！！！</translation>
     </message>
     <message>
         <source>downloaded file is corrupted</source>
-        <translation type="unfinished"></translation>
+        <translation>下載的檔案已損毀</translation>
     </message>
     <message>
         <source>internal error</source>
-        <translation type="unfinished"></translation>
+        <translation>內部錯誤</translation>
     </message>
     <message>
         <source>unknown error</source>
-        <translation type="unfinished"></translation>
+        <translation>未知錯誤</translation>
     </message>
     <message>
         <source>Failed to download updates from server, error %1</source>
-        <translation type="unfinished"></translation>
+        <translation>從伺服器下載更新失敗，錯誤 %1</translation>
     </message>
     <message>
         <source>Downloading installer...</source>
-        <translation type="unfinished"></translation>
+        <translation>正在下載安裝程式...</translation>
     </message>
     <message>
         <source>&lt;p&gt;A new MajorPrivacy installer has been downloaded to the following location:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Do you want to begin the installation? If any programs are running sandboxed, they will be terminated.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;一個新的 MajorPrivacy 安裝程式已被下載到以下位置:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;是否要開始安裝？如果任何程式正在沙箱化執行，都將被終止。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>There is a new Templates.ini available, do you want to download it?</source>
-        <translation type="unfinished"></translation>
+        <translation>有一個新的 Templates.ini 可用，是否下載？</translation>
     </message>
     <message>
         <source>&lt;p&gt;Do you want to go to the &lt;a href=&quot;%1&quot;&gt;info page&lt;/a&gt;?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;您是否想要前往 &lt;a href=&quot;%1&quot;&gt;資訊頁面&lt;/a&gt;？&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Don&apos;t show this announcement in the future.</source>
-        <translation type="unfinished"></translation>
+        <translation>此後不再顯示此公告。</translation>
     </message>
 </context>
 <context>
@@ -3807,92 +3813,93 @@ The selected Item belongs to more than one Group, to delete it from all groups p
     <name>CSBUpdate</name>
     <message>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; updater</source>
-        <translation type="unfinished"></translation>
+        <translation>設定 MajorPrivacy 更新器</translation>
     </message>
     <message>
         <source>Like with any other security product, it&apos;s important to keep your MajorPrivacy up to date.</source>
-        <translation type="unfinished"></translation>
+        <translation>如同其它任何安全性產品，保持 MajorPrivacy 為最新非常重要。</translation>
     </message>
     <message>
         <source>Regularly check for all updates to MajorPrivacy and optional components</source>
-        <translation type="unfinished"></translation>
+        <translation>經常檢查全部 MajorPrivacy 和可選組件的更新</translation>
     </message>
     <message>
         <source>Let Sandboxie regularly check for latest updates.</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">讓 Sandboxie 經常檢查最新更新。</translation>
     </message>
     <message>
         <source>Check for new MajorPrivacy versions:</source>
-        <translation type="unfinished"></translation>
+        <translation>檢查 MajorPrivacy 新版本：</translation>
     </message>
     <message>
         <source>Check for new MajorPrivacy builds.</source>
-        <translation type="unfinished"></translation>
+        <translation>檢查 MajorPrivacy 新版本。</translation>
     </message>
     <message>
         <source>Select in which update channel to look for new MajorPrivacy builds:</source>
-        <translation type="unfinished"></translation>
+        <translation>選擇將在哪個更新通道中尋找新的 MajorPrivacy 組建:</translation>
     </message>
     <message>
         <source>In the Stable Channel</source>
-        <translation type="unfinished"></translation>
+        <translation>在穩定通道</translation>
     </message>
     <message>
         <source>The stable channel contains the latest stable GitHub releases.</source>
-        <translation type="unfinished">穩定頻道包含最新的穩定GitHub版本。</translation>
+        <translation>穩定通道包含最新的穩定 GitHub 發行版本。</translation>
     </message>
     <message>
         <source>In the Preview Channel - with newest experimental changes</source>
-        <translation type="unfinished"></translation>
+        <translation>在預覽通道 - 包含最新的實驗性變更</translation>
     </message>
     <message>
         <source>The preview channel contains the latest GitHub pre-releases.</source>
-        <translation type="unfinished">預覽頻道包含最新的GitHub預發布版本。</translation>
+        <translation>預覽通道包含最新的 GitHub 預先發行版本。</translation>
     </message>
     <message>
         <source>In the Insider Channel - exclusive features</source>
-        <translation type="unfinished"></translation>
+        <translation>在測試人員通道 - 包含專屬功能</translation>
     </message>
     <message>
         <source>The Insider channel offers early access to new features and bugfixes that will eventually be released to the public, as well as all relevant improvements from the stable channel. 
 Unlike the preview channel, it does not include untested, potentially breaking, or experimental changes that may not be ready for wider use.</source>
-        <translation type="unfinished"></translation>
+        <translation>測試人員通道提供對「最終將公開發表的新功能和錯誤修復」的早期存取，同時包含穩定通道的所有相關改進。
+與預覽通道不同，它不包含未經測試、可能會破壞或可能尚未準備好供更廣泛使用的實驗性變更。</translation>
     </message>
     <message>
         <source>More about the &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-insider&quot;&gt;Insider Channel&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>瞭解更多 &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-insider&quot;&gt;測試人員通道&lt;/a&gt;</translation>
     </message>
     <message>
         <source>Keep Compatibility Templates up to date and apply hotfixes</source>
-        <translation type="unfinished"></translation>
+        <translation>保持相容性範本為最新並套用緊急修補</translation>
     </message>
     <message>
         <source>Check for latest compatibility templates and hotfixes.</source>
-        <translation type="unfinished"></translation>
+        <translation>檢查最新的相容性範本和緊急修補。</translation>
     </message>
     <message>
         <source>Get the latest Scripts for the Troubleshooting Wizard</source>
-        <translation type="unfinished"></translation>
+        <translation>取得疑難排解精靈的最新腳本</translation>
     </message>
     <message>
         <source>Check for latest troubleshooting scripts for the troubleshooting wizard.</source>
-        <translation type="unfinished"></translation>
+        <translation>為疑難排解精靈檢查最新的疑難排解腳本。</translation>
     </message>
     <message>
         <source>Keep the list of optional Add-on components up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>保持可選附加組件為最新</translation>
     </message>
     <message>
         <source>Check for latest available add-ons.</source>
-        <translation type="unfinished"></translation>
+        <translation>檢查最新的可用附加组件。</translation>
     </message>
     <message>
         <source>MajorPrivacy applies strict application restrictions, which can lead to compatibility issues. Stay updated with MajorPrivacy, including compatibility templates and troubleshooting, to ensure smooth operation amid Windows updates and application changes.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy 採用嚴格的應用程式限制，這可能會導致相容性問題。隨時關注 MajorPrivacy 的更新，包括相容性範本和故障排除，以確保在 Windows 更新和應用程式變更期間順利運行。</translation>
     </message>
     <message>
         <source>Access to the latest compatibility templates and the online troubleshooting database requires a valid &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>存取最新的相容性範本和線上故障排除資料庫需要有效的&lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;支持者憑證&lt;/a&gt;。</translation>
     </message>
 </context>
 <context>
@@ -3947,224 +3954,227 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     </message>
     <message>
         <source>Click to reveal</source>
-        <translation type="unfinished"></translation>
+        <translation>點選以揭示</translation>
     </message>
     <message>
         <source>Click to hide</source>
-        <translation type="unfinished"></translation>
+        <translation>點選以隱藏</translation>
     </message>
     <message>
         <source>HwId: &lt;a href=&quot;show&quot;&gt;[%1]&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>硬體ID: &lt;a href=&quot;show&quot;&gt;[%1]&lt;/a&gt;</translation>
     </message>
     <message>
         <source>HwId: &lt;a href=&quot;hide&quot; style=&quot;text-decoration:none; color:inherit;&quot;&gt;%1&lt;/a&gt; &lt;a href=&quot;copy&quot;&gt;(copy)&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>硬體ID: &lt;a href=&quot;hide&quot; style=&quot;text-decoration:none; color:inherit;&quot;&gt;%1&lt;/a&gt; &lt;a href=&quot;copy&quot;&gt;(複製)&lt;/a&gt;</translation>
     </message>
     <message>
         <source>MajorPrivacy Version: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy 版本: %1</translation>
     </message>
     <message>
         <source>This supporter certificate has expired, please &lt;a href=&quot;%1&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>此贊助者憑證已逾期，請&lt;a href=&quot;%1&quot;&gt;取得新憑證&lt;/a&gt;。</translation>
     </message>
     <message>
         <source>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;Plus features will be disabled in %1 days.&lt;/font&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;Plus 功能將在 %1 天後被停用。&lt;/font&gt;</translation>
     </message>
     <message>
         <source>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;For the current build Plus features remain enabled&lt;/font&gt;, but you no longer have access updates.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;對於目前版本，Plus 功能仍然啟用&lt;/font&gt;，但您無法再獲得更新。</translation>
     </message>
     <message>
         <source>&lt;br /&gt;Plus features are no longer enabled.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br /&gt;Plus 功能已不再啟用。</translation>
     </message>
     <message>
         <source>This supporter certificate will &lt;font color=&apos;red&apos;&gt;expire in %1 days&lt;/font&gt;, please &lt;a href=&quot;%2&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>此贊助者憑證將&lt;font color=&apos;red&apos;&gt;在 %1 天後逾期&lt;/font&gt;，請&lt;a href=&quot;%2&quot;&gt;取得新憑證&lt;/a&gt;。</translation>
     </message>
     <message>
         <source>Expires in: %1 days</source>
-        <translation type="unfinished"></translation>
+        <translation>逾期於: %1天後</translation>
     </message>
     <message>
         <source>Expired: %1 days ago</source>
-        <translation type="unfinished"></translation>
+        <translation>已逾期: %1天前</translation>
     </message>
     <message>
         <source>; eligible Patreons can always &lt;a href=&quot;https://xanasoft.com/get-supporter-certificate/&quot;&gt;obtain an updated certificate&lt;/a&gt; from xanasoft.com</source>
-        <translation type="unfinished"></translation>
+        <translation>; 符合資格的 Patreon 贊助者總是可以從 xanasoft.com &lt;a href=&quot;https://xanasoft.com/get-supporter-certificate/&quot;&gt;取得一個更新的憑證&lt;/a&gt;</translation>
     </message>
     <message>
         <source>&lt;b&gt;You have used %1/%2 evaluation certificates. No more free certificates can be generated.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;您已經使用了%1/%2個評估憑證。無法生成更多免費憑證了。&lt;/b&gt;</translation>
     </message>
     <message>
         <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;Get a free evaluation certificate&lt;/a&gt; and enjoy all premium features for %1 days.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;取得一個免費評估憑證&lt;/a&gt;並享受所有高級功能 %1 天。&lt;/b&gt;</translation>
     </message>
     <message>
         <source>You can request a free %1-day evaluation certificate up to %2 times per hardware ID.</source>
-        <translation type="unfinished"></translation>
+        <translation>對於每個硬體ID，您最多可以請求%2次免費的%1天評估憑證。</translation>
     </message>
     <message>
         <source>This does not look like a MajorPrivacy Serial Number.&lt;br /&gt;If you have attempted to enter the UpdateKey or the Signature from a certificate, that is not correct, please enter the entire certificate into the text area above instead.</source>
-        <translation type="unfinished"></translation>
+        <translation>這看起來不像是一個 MajorPrivacy 序號。&lt;br /&gt;如果您嘗試的是輸入憑證的更新金鑰或簽章，這不是正確的操作，請在上方文字區域中輸入完整憑證。</translation>
     </message>
     <message>
         <source>You are attempting to use a feature Upgrade-Key without having entered a pre-existing supporter certificate. Please note that this type of key (&lt;b&gt;as it is clearly stated in bold on the website&lt;/b) requires you to have a pre-existing valid supporter certificate; it is useless without one.&lt;br /&gt;If you want to use the advanced features, you need to obtain both a standard certificate and the feature upgrade key to unlock advanced functionality.</source>
-        <translation type="unfinished"></translation>
+        <translation>您正嘗試在未輸入作為前置條件的贊助者憑證的情況下使用功能升級金鑰。請注意，這種類型的金鑰 (&lt;b&gt;正如網站上以粗體明確說明的那樣&lt;/b&gt;) 要求您預先擁有一個有效的贊助者憑證；&lt;br /&gt;如果您想使用進階功能，您需要同時取得標準憑證和功能升級金鑰來解鎖進階功能。</translation>
     </message>
     <message>
         <source>You are attempting to use a Renew-Key without having entered a pre-existing supporter certificate. Please note that this type of key (&lt;b&gt;as it is clearly stated in bold on the website&lt;/b) requires you to have a pre-existing valid supporter certificate; it is useless without one.</source>
-        <translation type="unfinished"></translation>
+        <translation>您正嘗試在未輸入作為前置條件的贊助者憑證的情況下使用續期金鑰。請注意，這種類型的金鑰 (&lt;b&gt;正如網站上以粗體明確說明的那樣&lt;/b&gt;) 要求您預先擁有一個有效的贊助者憑證；沒有前者的情況下此金鑰完全無效。</translation>
     </message>
     <message>
         <source>&lt;br /&gt;&lt;br /&gt;&lt;u&gt;If you have not read the product description and obtained this key by mistake, please contact us via email (provided on our website) to resolve this issue.&lt;/u&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br /&gt;&lt;br /&gt;&lt;u&gt;如果您沒有閱讀產品說明並錯誤地取得了此金鑰，請透過電子郵件 (在我們的網站上提供) 聯絡我們以解決此問題。&lt;/u&gt;</translation>
     </message>
     <message>
         <source>Retrieving certificate...</source>
-        <translation type="unfinished"></translation>
+        <translation>取得憑證中...</translation>
     </message>
     <message>
         <source>MajorPrivacy - Get EVALUATION Certificate</source>
-        <translation type="unfinished"></translation>
+        <translatorcomment>MajorPrivacy - 獲得評估憑證</translatorcomment>
+        <translation>MajorPrivacy - Get EVALUATION Certificate</translation>
     </message>
     <message>
         <source>Please enter your email address to receive a free %1-day evaluation certificate, which will be issued to %2 and locked to the current hardware.
 You can request up to %3 evaluation certificates for each unique hardware ID.</source>
-        <translation type="unfinished"></translation>
+        <translation>請輸入您的電郵地址以接收免費的%1天評估憑證，此憑證將頒發給 %2 並鎖定至目前硬體。
+您最多可以為每個唯一硬體ID請求%3個評估憑證。</translation>
     </message>
     <message>
         <source>Error retrieving certificate: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>取得憑證錯誤: %1</translation>
     </message>
     <message>
         <source>Unknown Error (probably a network issue)</source>
-        <translation type="unfinished"></translation>
+        <translation>未知錯誤 (可能是網際網路問題)</translation>
     </message>
     <message>
         <source>Contributor</source>
-        <translation type="unfinished"></translation>
+        <translation>貢獻者</translation>
     </message>
     <message>
         <source>Eternal</source>
-        <translation type="unfinished"></translation>
+        <translation>永恆</translation>
     </message>
     <message>
         <source>Developer</source>
-        <translation type="unfinished"></translation>
+        <translation>開發人員</translation>
     </message>
     <message>
         <source>Business</source>
-        <translation type="unfinished"></translation>
+        <translation>商業</translation>
     </message>
     <message>
         <source>Personal</source>
-        <translation type="unfinished"></translation>
+        <translation>個人</translation>
     </message>
     <message>
         <source>Great Patreon</source>
-        <translation type="unfinished"></translation>
+        <translation>大型 Patreon</translation>
     </message>
     <message>
         <source>Patreon</source>
-        <translation type="unfinished"></translation>
+        <translation>Patreon</translation>
     </message>
     <message>
         <source>Family</source>
-        <translation type="unfinished"></translation>
+        <translation>家庭</translation>
     </message>
     <message>
         <source>Home</source>
-        <translation type="unfinished"></translation>
+        <translation>家用</translation>
     </message>
     <message>
         <source>Evaluation</source>
-        <translation type="unfinished"></translation>
+        <translation>評估</translation>
     </message>
     <message>
         <source>Type %1</source>
-        <translation type="unfinished"></translation>
+        <translation>類型 %1</translation>
     </message>
     <message>
         <source>Advanced</source>
-        <translation type="unfinished">進階</translation>
+        <translation>進階</translation>
     </message>
     <message>
         <source>Advanced (L)</source>
-        <translation type="unfinished"></translation>
+        <translation>進階 (L)</translation>
     </message>
     <message>
         <source>Max Level</source>
-        <translation type="unfinished"></translation>
+        <translation>最高等級</translation>
     </message>
     <message>
         <source>Level %1</source>
-        <translation type="unfinished"></translation>
+        <translation>等級 %1</translation>
     </message>
     <message>
         <source>This does not look like a certificate. Please enter the entire certificate, not just a portion of it.</source>
-        <translation type="unfinished"></translation>
+        <translation>這看起來不像是一份憑證。請輸入完整的憑證，而不僅僅是其中的一部分。</translation>
     </message>
     <message>
         <source>This certificate is unfortunately not valid for the current build, you need to get a new certificate or downgrade to an earlier build.</source>
-        <translation type="unfinished"></translation>
+        <translation>不幸的是，此憑證對於目前版本無效，您需要取得新憑證或降級至早期版本。</translation>
     </message>
     <message>
         <source>Although this certificate has expired, for the currently installed version plus features remain enabled. However, you will no longer have access to updates.</source>
-        <translation type="unfinished"></translation>
+        <translation>儘管此憑證已逾期，但對於目前安裝的版本 Plus 功能仍保持啟用狀態。但是，您將無法再獲取更新。</translation>
     </message>
     <message>
         <source>This certificate has unfortunately expired, you need to get a new certificate.</source>
-        <translation type="unfinished"></translation>
+        <translation>不幸的是，此憑證已逾期，您需要取得新憑證。</translation>
     </message>
     <message>
         <source>The evaluation certificate has been successfully applied. Enjoy your free trial!</source>
-        <translation type="unfinished"></translation>
+        <translation>評估憑證套用成功。 請享受你的免費試用！</translation>
     </message>
     <message>
         <source>Thank you for supporting the development of MajorPrivacy.</source>
-        <translation type="unfinished"></translation>
+        <translation>感謝您對 MajorPrivacy 開發工作的支持。</translation>
     </message>
     <message>
         <source>
 This is a temporary Patreon certificate, valid for 3 months. Once it nears expiration, you can obtain a new certificate online that will be valid for the full term.</source>
-        <translation type="unfinished"></translation>
+        <translation>
+這是一個臨時的 Patreon 憑證，有效期為3個月。憑證鄰近逾期時，您可以從線上取得一份具有完整有效期限的新憑證。</translation>
     </message>
     <message>
         <source>A mandatory security update for your MajorPrivacy Supporter Certificate is required. Would you like to download the updated certificate now?</source>
-        <translation type="unfinished"></translation>
+        <translation>您的 MajorPrivacy 贊助者憑證需要進行一次強制安全性更新。是否現在下載已更新的憑證？</translation>
     </message>
     <message>
         <source>Auto update in future</source>
-        <translation type="unfinished"></translation>
+        <translation>在未來自動更新</translation>
     </message>
 </context>
 <context>
     <name>CSetupWizard</name>
     <message>
         <source>Setup Wizard</source>
-        <translation type="unfinished"></translation>
+        <translation>設定精靈</translation>
     </message>
     <message>
         <source>The decision you make here will affect which page you get to see next.</source>
-        <translation type="unfinished"></translation>
+        <translation>您在這裡做出的決定將影響您接下來看到的頁面內容。</translation>
     </message>
     <message>
         <source>This help is likely not to be of any help.</source>
-        <translation type="unfinished"></translation>
+        <translation>此類幫助很可能沒用提供任何實質性幫助。</translation>
     </message>
     <message>
         <source>Sorry, I already gave all the help I could.</source>
-        <translation type="unfinished"></translation>
+        <translation>對不起，我已經提供了所有能給的協助。</translation>
     </message>
     <message>
         <source>Setup Wizard Help</source>
-        <translation type="unfinished"></translation>
+        <translation>設定精靈幫助</translation>
     </message>
 </context>
 <context>
@@ -4633,7 +4643,7 @@ The following operations will be performed:
     <name>CVolumeManager</name>
     <message>
         <source>%1 - Protection</source>
-        <translation type="unfinished">%1 - 保護</translation>
+        <translation>%1 - 保護</translation>
     </message>
 </context>
 <context>
@@ -4755,16 +4765,17 @@ For non-critical data, folder protection may still provide a basic level of secu
     </message>
     <message>
         <source>Rename Volume/Folder</source>
-        <translation type="unfinished"></translation>
+        <translation>重新命名磁碟區/資料夾</translation>
     </message>
     <message>
         <source>Remove Volume/Folder</source>
-        <translation type="unfinished"></translation>
+        <translation>移除磁碟區/資料夾</translation>
     </message>
     <message>
         <source>Do you want to remove selected Entries from list?
 Note: The volume image files will remain intact and must be manually deleted.</source>
-        <translation type="unfinished"></translation>
+        <translation>您想從清單中刪除選定的條目嗎？
+注意：磁碟區映像檔將保持不變，必須手動刪除。</translation>
     </message>
 </context>
 <context>
@@ -4833,7 +4844,9 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <source>The password is constrained to a maximum length of 128 characters. 
 This length permits approximately 384 bits of entropy with a passphrase composed of actual English words, 
 increases to 512 bits with the application of Leet (L337) speak modifications, and exceeds 768 bits when composed of entirely random printable ASCII characters.</source>
-        <translation type="unfinished"></translation>
+        <translation>密碼最大長度限制為 128 個字元。
+密碼由實際的英文單字組成時，這個長度允許大約 384 位元熵，
+使用 Leet (L337) 語言修改後，長度增加到 512 位，而由完全隨機的可列印 ASCII 字元組成時，長度則超過 768 位。</translation>
     </message>
 </context>
 <context>
@@ -5800,7 +5813,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     </message>
     <message>
         <source>Cert Info</source>
-        <translation type="unfinished"></translation>
+        <translation>憑證資訊</translation>
     </message>
     <message>
         <source>Major Privacy Version: 0.0.0</source>
@@ -5816,38 +5829,39 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     </message>
     <message>
         <source>Cert Options</source>
-        <translation type="unfinished"></translation>
+        <translation>憑證選項</translation>
     </message>
     <message>
         <source>Eval Cert</source>
-        <translation type="unfinished"></translation>
+        <translation>評估憑證</translation>
     </message>
     <message>
         <source>HwId: 00000000-0000-0000-0000-000000000000</source>
-        <translation type="unfinished"></translation>
+        <translation>HwId: 00000000-0000-0000-0000-000000000000</translation>
     </message>
     <message>
         <source>Maintaining and improving MajorPrivacy is an ongoing process focused on enhancing functionality, user experience, and privacy protection. Your support is essential to ensure continued development, long-term sustainability, and the addition of new features. You can support MajorPrivacy by &lt;a href=&quot;https://xanasoft.com/go.php?to=mp-contribute&quot;&gt;contributing directly to the project&lt;/a&gt;, showing your appreciation by &lt;a href=&quot;https://xanasoft.com/go.php?to=mp-obtain-cert&quot;&gt;purchasing a supporter certificate&lt;/a&gt;, becoming a patron by &lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;subscribing on Patreon&lt;/a&gt;, or through a &lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal donation&lt;/a&gt;. Your support helps drive innovation and ensures the continued availability of this privacy-focused tool.</source>
-        <translation type="unfinished"></translation>
+        <translation>維護和改進 MajorPrivacy 是一個持續專注於增強功能、使用者體驗和隱私保護的過程。您的支持對於確保持續發展、長期可持續性和新功能的添加至關重要。您可以透過&lt;a href=&quot;https://xanasoft.com/go.php?to=mp-contribute&quot;&gt;直接為專案貢獻&lt;/a&gt;來支持MajorPrivacy，透過&lt;a href=&quot;https://xanasoft.com/go.php?to=mp-obtain-cert&quot;&gt;購買支持者證書&lt;/a&gt;來表達您的感激之情，透過&lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;在Patreon上訂閱&lt;/a&gt;成為贊助人，或透過&lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal捐款&lt;/a&gt;來表達您的感激之情。您的支持有助於推動創新並確保此以隱私為中心的工具的持續可用性。</translation>
     </message>
     <message>
         <source>Online Updater</source>
-        <translation type="unfinished"></translation>
+        <translation>在綫更新器</translation>
     </message>
     <message>
         <source>Keep add-on list up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>保持附加元件清單為最新</translation>
     </message>
     <message>
         <source>
 														  The Insider channel offers early access to new features and bugfixes that will eventually be released to the public, as well as all relevant improvements from the stable channel.
 														  Unlike the preview channel, it does not include untested, potentially breaking, or experimental changes that may not be ready for wider use.
 													  </source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Insider 通道提供對「最終將公開發表的新功能和錯誤修復」的早期存取，以及包含穩定通道的所有相關改進。
+與預覽通道不同，它不包含未經測試、可能會破壞或可能尚未準備好供更廣泛使用的實驗性變更。</translation>
     </message>
     <message>
         <source>Search in the Insider channel</source>
-        <translation type="unfinished"></translation>
+        <translation>在測試人員通道中搜尋</translation>
     </message>
     <message>
         <source>Check periodically for new Sandboxie-Plus versions</source>
@@ -5859,7 +5873,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     </message>
     <message>
         <source>Keep Troubleshooting scripts up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>保持疑難排解腳本為最新</translation>
     </message>
 </context>
 <context>

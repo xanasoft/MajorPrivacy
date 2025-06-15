@@ -584,7 +584,7 @@
     </message>
     <message>
         <source>&lt;b&gt;MajorPrivacy&lt;/b&gt; provides additional features and box types exclusively to &lt;u&gt;project supporters&lt;/u&gt;. Boxes like the Privacy Enhanced boxes &lt;b&gt;&lt;font color=&apos;red&apos;&gt;protect user data from illicit access&lt;/font&gt;&lt;/b&gt; by the sandboxed programs. If you are not yet a supporter, then please consider &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;supporting the project&lt;/a&gt; to ensure further development of Sandboxie and to receive a &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">&lt;b&gt;MajorPrivacy&lt;/b&gt; provides additional features and box types exclusively to &lt;u&gt;project supporters&lt;/u&gt;. Boxes like the Privacy Enhanced boxes &lt;b&gt;&lt;font color=&apos;red&apos;&gt;protect user data from illicit access&lt;/font&gt;&lt;/b&gt; by the sandboxed programs. If you are not yet a supporter, then please consider &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;supporting the project&lt;/a&gt; to ensure further development of Sandboxie and to receive a &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</translation>
     </message>
     <message>
         <source>Failed to retrieve the certificate.</source>
@@ -1666,7 +1666,7 @@ Error: %1</source>
     </message>
     <message>
         <source>Welcome to the Setup Wizard. This wizard will help you to configure your copy of &lt;b&gt;MajorPrivacy&lt;/b&gt;. You can start this wizard at any time from the Sandbox-&gt;Maintenance menu if you do not wish to complete it now.</source>
-        <translation>欢迎使用安装向导。此向导将帮助您配置&lt;b&gt;MajorPrivacy&lt;/b&gt;的副本。如果您不想立即完成此向导，可以随时从“沙盒”->“维护”菜单启动它。</translation>
+        <translation>欢迎使用安装向导。此向导将帮助您配置&lt;b&gt;MajorPrivacy&lt;/b&gt;的副本。如果您不想立即完成此向导，可以随时从“沙盒”-&gt;“维护”菜单启动它。</translation>
     </message>
     <message>
         <source>Select how you would like to use MajorPrivacy</source>
@@ -2489,7 +2489,7 @@ Error: %1</source>
     </message>
     <message>
         <source>&lt;a href=&quot;sbie://update/apply&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy update %1 ready&lt;/a&gt;</source>
-        <translatio>&lt;a href=&quot;sbie://update/apply&quot; style=&quot;color: red;&quot;&gt;有一个新的 MajorPrivacy 更新 %1 已准备就绪&lt;/a&gt;</translation>
+        <translation>&lt;a href=&quot;sbie://update/apply&quot; style=&quot;color: red;&quot;&gt;有一个新的 MajorPrivacy 更新 %1 已准备就绪&lt;/a&gt;</translation>
     </message>
     <message>
         <source>Click to apply update</source>
@@ -2694,7 +2694,7 @@ Error: %1</source>
         <source>Your MajorPrivacy supporter certificate is expired, however for the current build you are using it remains active, when you update to a newer build exclusive supporter features will be disabled.
 
 Do you still want to update?</source>
-        <translation>您的 MajorPrivacy 支持者证书已过期，但对于您当前使用的版本，该证书仍然有效。当您更新到较新的版本时，独有的支持者功能将被禁用。
+        <translation type="unfinished">您的 MajorPrivacy 支持者证书已过期，但对于您当前使用的版本，该证书仍然有效。当您更新到较新的版本时，独有的支持者功能将被禁用。
 
 您仍要更新吗？</translation>
     </message>
@@ -2712,7 +2712,7 @@ Do you still want to update?</source>
     </message>
     <message>
         <source>Enable auto template updates</source>
-        <translation type="unfinished"></translation>
+        <translation>启用自动模板更新</translation>
     </message>
     <message>
         <source>Checking for updates...</source>
@@ -2732,11 +2732,11 @@ Do you still want to update?</source>
 Note: The update check is often behind the latest GitHub release to ensure that only tested updates are offered.</source>
         <translation>未发现任何新更新，您的 MajorPrivacy 已更新。
 
-注意：更新检查通常会在最新的 GitHub 版本之后进行，以确保仅提供经过测试的更新。></translation>
+注意：更新检查通常会在最新的 GitHub 版本之后进行，以确保仅提供经过测试的更新。&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;There is a new version of MajorPrivacy available.&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;&lt;b&gt;New version:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;MajorPrivacy 有新版本可用。&lt;br /&gt;&lt;font color='red'&gt;&lt;b&gt;新版本:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;MajorPrivacy 有新版本可用。&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;&lt;b&gt;新版本:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Do you want to download the installer?&lt;/p&gt;</source>
@@ -2808,7 +2808,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     </message>
     <message>
         <source>There is a new Templates.ini available, do you want to download it?</source>
-        <translation type="unfinished"></translation>
+        <translation>有一个新的Templates.ini可用，您想下载吗？</translation>
     </message>
     <message>
         <source>&lt;p&gt;Do you want to go to the &lt;a href=&quot;%1&quot;&gt;info page&lt;/a&gt;?&lt;/p&gt;</source>
@@ -3871,35 +3871,35 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     </message>
     <message>
         <source>Keep Compatibility Templates up to date and apply hotfixes</source>
-        <translation type="unfinished"></translation>
+        <translation>保持兼容性模板的最新状态并应用修补程序</translation>
     </message>
     <message>
         <source>Check for latest compatibility templates and hotfixes.</source>
-        <translation type="unfinished"></translation>
+        <translation>检查最新的兼容性模板和修补程序。</translation>
     </message>
     <message>
         <source>Get the latest Scripts for the Troubleshooting Wizard</source>
-        <translation type="unfinished"></translation>
+        <translation>获取故障排除向导的最新脚本</translation>
     </message>
     <message>
         <source>Check for latest troubleshooting scripts for the troubleshooting wizard.</source>
-        <translation type="unfinished"></translation>
+        <translation>检查故障排除向导的最新故障排除脚本。</translation>
     </message>
     <message>
         <source>Keep the list of optional Add-on components up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>使可选加载项组件的列表保持最新</translation>
     </message>
     <message>
         <source>Check for latest available add-ons.</source>
-        <translation type="unfinished"></translation>
+        <translation>查看最新可用的插件。</translation>
     </message>
     <message>
         <source>MajorPrivacy applies strict application restrictions, which can lead to compatibility issues. Stay updated with MajorPrivacy, including compatibility templates and troubleshooting, to ensure smooth operation amid Windows updates and application changes.</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">MajorPrivacy采用严格的应用限制，这可能会导致兼容性问题。建议保持更新，包括兼容性模板和故障排除数据库，以确保在 Windows 更新和应用程序变更期间顺畅运行。</translation>
     </message>
     <message>
         <source>Access to the latest compatibility templates and the online troubleshooting database requires a valid &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>访问最新的兼容性模板和在线故障排除数据库需要有效的&lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;支持者证书&lt;/a&gt;。</translation>
     </message>
 </context>
 <context>
@@ -4100,7 +4100,7 @@ You can request up to %3 evaluation certificates for each unique hardware ID.</s
     </message>
     <message>
         <source>Advanced</source>
-        <translation type="unfinished">高级</translation>
+        <translation>高级</translation>
     </message>
     <message>
         <source>Advanced (L)</source>
@@ -4141,7 +4141,8 @@ You can request up to %3 evaluation certificates for each unique hardware ID.</s
     <message>
         <source>
 This is a temporary Patreon certificate, valid for 3 months. Once it nears expiration, you can obtain a new certificate online that will be valid for the full term.</source>
-        <translation>这是临时的 Patreon 证书，有效期为 3 个月。到期前，您可以在线获取有效期至全期的新证书。</translation>
+        <translation>
+这是临时的 Patreon 证书，有效期为 3 个月。到期前，您可以在线获取有效期至全期的新证书。</translation>
     </message>
     <message>
         <source>A mandatory security update for your MajorPrivacy Supporter Certificate is required. Would you like to download the updated certificate now?</source>
@@ -4767,7 +4768,7 @@ For non-critical data, folder protection may still provide a basic level of secu
     </message>
     <message>
         <source>Remove Volume/Folder</source>
-        <translation移除卷/目录></translation>
+        <translation>移除卷/目录</translation>
     </message>
     <message>
         <source>Do you want to remove selected Entries from list?
@@ -5839,7 +5840,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     </message>
     <message>
         <source>Keep add-on list up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>使加载项列表保持最新</translation>
     </message>
     <message>
         <source>
@@ -5865,7 +5866,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     </message>
     <message>
         <source>Keep Troubleshooting scripts up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>使故障排除脚本保持最新</translation>
     </message>
 </context>
 <context>
