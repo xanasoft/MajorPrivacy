@@ -30,7 +30,9 @@ public:
 protected:
 	virtual int InitCrypto();
 	virtual int WriteHeader(struct _dc_header* header);
-
+#ifdef ENCLAVE_ENABLED
+	PVOID Enclave;
+#endif
 	struct SCryptoIO* m;
 
 public:

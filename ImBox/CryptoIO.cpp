@@ -75,13 +75,22 @@ CCryptoIO::CCryptoIO(CAbstractIO* pIO, const WCHAR* pKey, const std::wstring& Ci
 	m->Cipher = Cipher;
 	m->AllowFormat = false;
 
+#ifdef ENCLAVE_ENABLED
+	if (!IsEnclaveTypeSupported(ENCLAVE_TYPE_VBS))
+	{
+		OutputDebugString(L"Enclave not supported!\n");
+		ExitProcess(STATUS_NOT_SUPPORTED);
+	}
+
+
+#else
 	if (m->password) {
 		m->password->size = wcslen(pKey) * sizeof(wchar_t);
 		if (m->password->size > MAX_PASSWORD * sizeof(wchar_t))
 			m->password->size = MAX_PASSWORD * sizeof(wchar_t);
 		memcpy(m->password->pass, pKey, m->password->size);
 	}
-
+#endif //  ENCLAVE_ENABLED
 	m->section = NULL;
 
 	m_pIO = pIO;
@@ -177,6 +186,48 @@ int CCryptoIO::InitCrypto()
 
 	int ret = dc_decrypt_header(header.ptr, m->password.ptr) ? ERR_OK : (m->AllowFormat ? ERR_INTERNAL : ERR_WRONG_PASSWORD);
 
+#ifdef ENCLAVE_ENABLED
+	// Create the enclave
+	if (ret == ERR_OK) {
+		constexpr ENCLAVE_CREATE_INFO_VBS CreateInfo
+		{
+			//ENCLAVE_VBS_FLAG_DEBUG, // Flags
+			0,
+			{ 0x10, 0x22, 0x30, 0x45, 0x41, 0x37, 0x21, 0x13 }, // OwnerID
+		};
+		Enclave = CreateEnclave(GetCurrentProcess(),
+			nullptr, // Preferred base address
+			0x10000000, // size
+			0,
+			ENCLAVE_TYPE_VBS,
+			&CreateInfo,
+			sizeof(ENCLAVE_CREATE_INFO_VBS),
+			nullptr);
+	}
+		if (Enclave == NULL) {
+			DbgPrint(L"CreateEnclave failed\n");
+			ret = ERR_INTERNAL;
+		}
+		if (ret == ERR_OK)
+			if (LoadEnclaveImageW(Enclave, L"ImBoxEnclave.dll") == FALSE)
+				ret = ERR_INTERNAL;
+		if (ret == ERR_OK) {
+			ENCLAVE_INIT_INFO_VBS InitInfo{};
+
+			InitInfo.Length = sizeof(ENCLAVE_INIT_INFO_VBS);
+			InitInfo.ThreadCount = 1;
+			if (InitializeEnclave(GetCurrentProcess(),
+				Enclave,
+				&InitInfo,
+				InitInfo.Length,
+				nullptr) == 0) {
+				ret= ERR_INTERNAL;
+			}
+		}
+
+
+#endif // ENCLAVE_ENABLED
+
 	if (ret == ERR_OK) {
 		xts_set_key(header->key_1, header->alg_1, &m->benc_k);
 
@@ -202,6 +253,12 @@ int CCryptoIO::Init()
 		ret = InitCrypto();
 	
 	m->password.free();
+#ifdef ENCLAVE_ENABLED
+	delete& m->benc_k;
+	delete& m->Cipher;
+	//Clear key in the enternal thread
+#endif
+
 
 	return ret;
 }
