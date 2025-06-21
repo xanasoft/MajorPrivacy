@@ -9,6 +9,7 @@
  * Tom St Denis, tomstdenis@gmail.com, http://libtomcrypt.com
  * modified by ntldr, http://diskcryptor.net/
  */
+#include "..\pch.h"
 #include <memory.h>
 #include <intrin.h>
 #include "sha512.h"

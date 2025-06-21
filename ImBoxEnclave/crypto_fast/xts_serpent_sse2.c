@@ -16,6 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include "..\pch.h"
 #if defined(USE_AVX) && !defined(__INTEL_COMPILER)
  #error Please use Intel C++ Compoler
 #endif

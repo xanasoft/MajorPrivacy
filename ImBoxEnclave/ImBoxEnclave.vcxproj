@@ -110,7 +110,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;IMBOXENCLAVE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CryptoIO.h" />
     <ClInclude Include="crypto_fast\aes_asm.h" />
     <ClInclude Include="crypto_fast\aes_key.h" />
     <ClInclude Include="crypto_fast\aes_padlock.h" />
@@ -158,6 +159,7 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CryptoIO.cpp" />
     <ClCompile Include="crypto_fast\aes_key.c" />
     <ClCompile Include="crypto_fast\crc32.c" />
     <ClCompile Include="crypto_fast\serpent.c" />

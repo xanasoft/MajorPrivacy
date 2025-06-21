@@ -15,6 +15,7 @@
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  */
+#include "..\pch.h"
 #include <memory.h>
 #include <intrin.h>
 #include "serpent.h"

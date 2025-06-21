@@ -35,6 +35,7 @@
  * Abstract Algebra_ by Joseph A. Gallian, especially chapter 22 in the
  * Third Edition.
  */
+#include "..\pch.h"
 #include <intrin.h>
 #include "twofish.h"
 

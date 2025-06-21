@@ -1,13 +1,14 @@
+#include "pch.h"
 #include "framework.h"
 #include <bcrypt.h>
 #include "CryptoIO.h"
-#include "ImBox.h"
-#include "Common\helpers.h"
+#include "..\ImBox\ImBox.h"
+#include "..\ImBox\Common\helpers.h"
 
 extern "C" {
-#include ".\dc\include\boot\dc_header.h"
-#include ".\dc\crypto_fast\crc32.h"
-#include ".\dc\crypto_fast\sha512_pkcs5_2.h"
+#include "..\ImBox\dc\include\boot\dc_header.h"
+#include ".\crypto_fast\crc32.h"
+#include ".\crypto_fast\sha512_pkcs5_2.h"
 }
 
 void make_rand(void* ptr, size_t size)

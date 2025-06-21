@@ -85,11 +85,16 @@ EnclaveSetKey(
     _In_ void* Context
 )
 {
+    assert(&Context);
+    KeySetArgs * args = static_cast<KeySetArgs*>(Context);
+    assert((VOID**)args->key);
+    assert((VOID**)args->skey);
     WCHAR String[32];
-    swprintf_s(String, ARRAYSIZE(String), L"%s\n", L"CallEnclaveTest started");
+    swprintf_s(String, ARRAYSIZE(String), L"%s\n", L"Enclave key set");
     OutputDebugStringW(String);
 
-    return (void*)((ULONG_PTR)(Context) ^ InitialCookie);
+    xts_set_key(args->key, args->alg, args->skey);
+    return NULL;
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,

@@ -1,5 +1,6 @@
 #pragma once
-#include "AbstractIO.h"
+#include "..\ImBox\AbstractIO.h"
+#include<xstring>
 
 class CCryptoIO : public CAbstractIO
 {

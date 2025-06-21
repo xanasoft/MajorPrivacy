@@ -16,7 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#define ENCLAVE_ENABLED
+#include "..\pch.h"
 #include <intrin.h>
 #include <emmintrin.h>
 //#include <excpt.h>

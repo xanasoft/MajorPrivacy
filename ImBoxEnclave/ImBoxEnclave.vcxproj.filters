@@ -13,15 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="crypto_fast">
-      <UniqueIdentifier>{4ce92d95-faa8-4f3a-861e-f7f0c9d49d18}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="crypto_fast\amd64">
-      <UniqueIdentifier>{479c6f66-f1af-4c42-88fd-b6de07ed71b1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="crypto_fast\i386">
-      <UniqueIdentifier>{332d4ec4-6fb7-426e-9f7d-ede4c0a906bd}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -30,47 +21,53 @@
     <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\aes_asm.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="EnclaveEntry.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\aes_key.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\aes_asm.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\aes_padlock.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\aes_key.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\crc32.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\aes_padlock.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\serpent.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\crc32.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\sha512.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\serpent.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\sha512_hmac.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\sha512.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\sha512_hmac_drbg.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\sha512_hmac.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\sha512_pkcs5_2.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\sha512_hmac_drbg.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\twofish.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\sha512_pkcs5_2.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\xts_aes_ni.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\twofish.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\xts_fast.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\xts_aes_ni.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\xts_serpent_avx.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\xts_fast.h">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\ImBox\dc\crypto_fast\xts_serpent_sse2.h">
-      <Filter>crypto_fast</Filter>
+    <ClInclude Include="crypto_fast\xts_serpent_avx.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\xts_serpent_sse2.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CryptoIO.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -80,58 +77,76 @@
     <ClCompile Include="pch.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImBox\dc\crypto_fast\aes_key.c">
-      <Filter>crypto_fast</Filter>
+    <ClCompile Include="crypto_fast\aes_key.c">
+      <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImBox\dc\crypto_fast\crc32.c">
-      <Filter>crypto_fast</Filter>
+    <ClCompile Include="crypto_fast\crc32.c">
+      <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImBox\dc\crypto_fast\serpent.c">
-      <Filter>crypto_fast</Filter>
+    <ClCompile Include="crypto_fast\serpent.c">
+      <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImBox\dc\crypto_fast\sha512.c">
-      <Filter>crypto_fast</Filter>
+    <ClCompile Include="crypto_fast\sha512.c">
+      <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImBox\dc\crypto_fast\sha512_hmac.c">
-      <Filter>crypto_fast</Filter>
+    <ClCompile Include="crypto_fast\sha512_hmac.c">
+      <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImBox\dc\crypto_fast\sha512_hmac_drbg.c">
-      <Filter>crypto_fast</Filter>
+    <ClCompile Include="crypto_fast\sha512_hmac_drbg.c">
+      <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImBox\dc\crypto_fast\sha512_pkcs5_2.c">
-      <Filter>crypto_fast</Filter>
+    <ClCompile Include="crypto_fast\sha512_pkcs5_2.c">
+      <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImBox\dc\crypto_fast\twofish.c">
-      <Filter>crypto_fast</Filter>
+    <ClCompile Include="crypto_fast\twofish.c">
+      <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImBox\dc\crypto_fast\xts_fast.c">
-      <Filter>crypto_fast</Filter>
+    <ClCompile Include="crypto_fast\xts_fast.c">
+      <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\ImBox\dc\crypto_fast\xts_serpent_sse2.c">
-      <Filter>crypto_fast</Filter>
+    <ClCompile Include="crypto_fast\xts_serpent_sse2.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CryptoIO.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\ImBox\dc\crypto_fast\amd64\aes_amd64.asm">
-      <Filter>crypto_fast\amd64</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\ImBox\dc\crypto_fast\amd64\aes_padlock_amd64.asm">
-      <Filter>crypto_fast\amd64</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\ImBox\dc\crypto_fast\amd64\twofish_amd64.asm">
-      <Filter>crypto_fast\amd64</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\ImBox\dc\crypto_fast\amd64\xts_aes_ni_amd64.asm">
-      <Filter>crypto_fast\amd64</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\ImBox\dc\crypto_fast\amd64\xts_serpent_avx_amd64.asm">
-      <Filter>crypto_fast\amd64</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\ImBox\dc\crypto_fast\amd64\xts_serpent_sse2_amd64.asm">
-      <Filter>crypto_fast\amd64</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\ImBox\dc\crypto_fast\i386\aes_i386.asm">
-      <Filter>crypto_fast\i386</Filter>
-    </CustomBuild>
+    <None Include="crypto_fast\amd64\aes_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\amd64\aes_padlock_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\amd64\twofish_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\amd64\xts_aes_ni_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\amd64\xts_serpent_avx_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\amd64\xts_serpent_sse2_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\aes_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\aes_padlock_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\twofish_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\xts_aes_ni_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\xts_serpent_avx_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\xts_serpent_sse2_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
