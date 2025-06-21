@@ -16,13 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-//!!IMPORTANT!! Please adjust it when you are going to publish non-enclave version
-#ifndef ENCLAVE_ENABLED
-#define ENCLAVE_ENABLED
-#endif // !
-
-
+#include "..\pch.h"
 #include <intrin.h>
 #include <emmintrin.h>
 //#include <excpt.h>

@@ -142,6 +142,55 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	}
 
     if (!key.empty() || !section.empty()) {
+#ifdef ENCLAVE_ENABLED
+        if (!IsEnclaveTypeSupported(ENCLAVE_TYPE_VBS))
+        {
+            OutputDebugString(L"Enclave not supported!\n");
+            ExitProcess(STATUS_NOT_SUPPORTED);
+        }
+#endif //  ENCLAVE_ENABLED
+#ifdef ENCLAVE_ENABLED
+        // Create the enclave
+        DWORD ret = 0;
+        if (ret == ERR_OK) {
+            constexpr ENCLAVE_CREATE_INFO_VBS CreateInfo
+            {
+                //ENCLAVE_VBS_FLAG_DEBUG, // Flags
+                0,
+                { 0x10, 0x22, 0x30, 0x45, 0x41, 0x37, 0x21, 0x13 }, // OwnerID
+            };
+            Enclave = CreateEnclave(GetCurrentProcess(),
+                nullptr, // Preferred base address
+                0x10000000, // size
+                0,
+                ENCLAVE_TYPE_VBS,
+                &CreateInfo,
+                sizeof(ENCLAVE_CREATE_INFO_VBS),
+                nullptr);
+        }
+        if (Enclave == NULL) {
+            DbgPrint(L"CreateEnclave failed\n");
+            ret = ERR_INTERNAL;
+        }
+        if (ret == ERR_OK)
+            if (LoadEnclaveImageW(Enclave, L"ImBoxEnclave.dll") == FALSE)
+                ret = ERR_INTERNAL;
+        if (ret == ERR_OK) {
+            ENCLAVE_INIT_INFO_VBS InitInfo{};
+
+            InitInfo.Length = sizeof(ENCLAVE_INIT_INFO_VBS);
+            InitInfo.ThreadCount = 1;
+            if (InitializeEnclave(GetCurrentProcess(),
+                Enclave,
+                &InitInfo,
+                InitInfo.Length,
+                nullptr) == 0) {
+                ret = ERR_INTERNAL;
+            }
+        }
+
+
+#endif
         CCryptoIO* pCrypto;
         if (key.empty()) {
             if (!pSection)
