@@ -92,15 +92,15 @@
     </message>
     <message>
         <source>Not set</source>
-        <translation>Ayarlanmamış</translation>
+        <translation>Ayarlanmadı</translation>
     </message>
     <message>
         <source>Applied</source>
-        <translation>Uygulanmış</translation>
+        <translation>Uygulandı</translation>
     </message>
     <message>
         <source>Set</source>
-        <translation>Ayarlı</translation>
+        <translation>Ayarlandı</translation>
     </message>
     <message>
         <source>Missing</source>
@@ -132,18 +132,18 @@
     </message>
     <message>
         <source>Breaking</source>
-        <translation>Kırıcı</translation>
+        <translation>KIRICI</translation>
     </message>
 </context>
 <context>
     <name>CAccessListModel</name>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellendi</translation>
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verildi</translation>
     </message>
     <message>
         <source>Name</source>
@@ -166,7 +166,7 @@
     <name>CAccessListView</name>
     <message>
         <source>Auto Expand</source>
-        <translation>Oto Genişlet</translation>
+        <translation>Otomatik Genişlet</translation>
     </message>
 </context>
 <context>
@@ -207,11 +207,11 @@
     </message>
     <message>
         <source>Allow Read-Only</source>
-        <translation>Salt Okumaya İzin Ver</translation>
+        <translation>Salt Okuma İzni</translation>
     </message>
     <message>
         <source>Allow Listing</source>
-        <translation>Listelemeye İzin Ver</translation>
+        <translation>Listeleme İzni</translation>
     </message>
     <message>
         <source>Block</source>
@@ -223,7 +223,7 @@
     </message>
     <message>
         <source>Don&apos;t Log</source>
-        <translation>Günlüğe Kaydetme</translation>
+        <translation>Günlüğe Kaydedilmesin</translation>
     </message>
 </context>
 <context>
@@ -388,7 +388,7 @@
     </message>
     <message>
         <source>Directory Listing</source>
-        <translation>Dizin Listele</translation>
+        <translation>Dizin Listelemesi</translation>
     </message>
     <message>
         <source>Protect</source>
@@ -400,7 +400,7 @@
     </message>
     <message>
         <source>Don&apos;t Log</source>
-        <translation>Günlüğe Kaydetme</translation>
+        <translation>Günlüğe Kaydedilmesin</translation>
     </message>
     <message>
         <source>Select Directory</source>
@@ -478,11 +478,11 @@
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verilen</translation>
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellenen</translation>
     </message>
     <message>
         <source>Auto Scroll</source>
@@ -545,59 +545,60 @@
     </message>
     <message>
         <source>Do you want to clean up the Access Tree? This will remove all Files and folders which are no longer present on the System. It will also remove all references to files and folders existing but contained in not currently mounted volumes. The operation will have to attempt to access all logged locations and will take some time, once done the view will refresh.</source>
-        <translation>Erişim Ağacını temizlemek ister misiniz? Bu, Sistemde artık bulunmayan tüm Dosyaları ve klasörleri kaldıracaktır. Ayrıca, mevcut ancak şu anda bağlanmamış birimlerde bulunan tüm dosya ve klasörlere yapılan tüm başvuruları da kaldıracaktır. İşlem, tüm kayıtlı konumlara erişmeyi deneyecektir ve biraz zaman alacaktır, tamamlandıktan sonra görünüm yenilenecektir.</translation>
+        <translation>Erişim Ağacını temizlemek istiyor musunuz? Bu işlem, sistemde artık bulunmayan tüm dosya ve klasörleri kaldıracak. Ayrıca, bağlı olmayan disk birimlerindeki dosya ve klasör referansları da kaldırılacak. İşlem sırasında tüm kayıtlı konumlar kontrol edileceği için biraz zaman alabilir. Tamamlandığında görünüm otomatik olarak yenilenecek.</translation>
     </message>
     <message>
         <source>Hold updates</source>
-        <translation type="unfinished">Güncellemeleri Tut</translation>
+        <translation>Güncellemeleri Tut</translation>
     </message>
 </context>
 <context>
     <name>CCertificatePage</name>
     <message>
         <source>Install your &lt;b&gt;MajorPrivacy&lt;/b&gt; support certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt; destek sertifikanızı yükleyin</translation>
     </message>
     <message>
         <source>If you have a supporter certificate, please fill it into the field below.</source>
-        <translation type="unfinished"></translation>
+        <translation>Destekçi sertifikanız varsa lütfen aşağıdaki alana doldurunuz.</translation>
     </message>
     <message>
         <source>Retrieve certificate using Serial Number:</source>
-        <translation type="unfinished"></translation>
+        <translation>Sertifikayı Seri Numarasını kullanarak alın:</translation>
     </message>
     <message>
         <source>Start evaluation without a certificate for a limited period of time.</source>
-        <translation type="unfinished"></translation>
+        <translation>Sınırlı bir süre için sertifika olmadan denemeye başlayın.</translation>
     </message>
     <message>
         <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;Get a free evaluation certificate&lt;/font&gt;&lt;/a&gt; and enjoy all premium features for %1 days.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;Ücretsiz deneme sertifikanızı alın&lt;/font&gt;&lt;/a&gt; ve tüm premium özelliklerin %1 gün boyunca keyfini çıkarın.&lt;/b&gt;</translation>
     </message>
     <message>
         <source>You can request a free %1-day evaluation certificate up to %2 times per hardware ID.</source>
-        <translation type="unfinished"></translation>
+        <translation>Donanım Kimliği başına %2 kereye kadar ücretsiz %1 günlük deneme sertifikası talep edebilirsiniz.</translation>
     </message>
     <message>
         <source>To use &lt;b&gt;MajorPrivacy&lt;/b&gt; in a business setting, an appropriate &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;support certificate&lt;/a&gt; for business use is required. If you do not yet have the required certificate(s), you can get those from the &lt;a href=&quot;https://xanasoft.com/shop/&quot;&gt;xanasoft.com web shop&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt;&apos;ı bir iş ortamında kullanmak için uygun bir &lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-get-cert&quot;&gt;destek sertifikası&lt;/a&gt; iş kullanımı için gereklidir. Henüz gerekli sertifika(lara) sahip değilseniz, bunları &lt;a href=&quot;https://xanasoft.com/shop/&quot;&gt;xanasoft.com web mağazasından&lt;/a&gt; alabilirsiniz.</translation>
     </message>
     <message>
         <source>&lt;b&gt;MajorPrivacy&lt;/b&gt; provides additional features and box types exclusively to &lt;u&gt;project supporters&lt;/u&gt;. Boxes like the Privacy Enhanced boxes &lt;b&gt;&lt;font color=&apos;red&apos;&gt;protect user data from illicit access&lt;/font&gt;&lt;/b&gt; by the sandboxed programs. If you are not yet a supporter, then please consider &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;supporting the project&lt;/a&gt; to ensure further development of Sandboxie and to receive a &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt;, yalnızca &lt;u&gt;proje destekçilerine&lt;/u&gt; ek özellikler ve alan türleri sunar. Gizliliği geliştirilmiş alanlarda, &lt;b&gt;&lt;font color=&apos;red&apos;&gt;kullanıcı verileriniz korumalı alanda çalışan programların yetkisiz erişimlerine karşı daha iyi korunur.&lt;/font&gt;&lt;/b&gt; Henüz bir destekçimiz değilseniz, Sandboxie&apos;nin daha iyi geliştirilmesine katkıda bulunmak için bir &lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-cert&quot;&gt;destekçi sertifikası&lt;/a&gt; alarak lütfen &lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-get-cert&quot;&gt;projeyi desteklemeyi&lt;/a&gt; düşünün.</translation>
     </message>
     <message>
         <source>Failed to retrieve the certificate.</source>
-        <translation type="unfinished"></translation>
+        <translation>Sertifika alınamadı.</translation>
     </message>
     <message>
         <source>
 Error: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>
+Hata: %1</translation>
     </message>
     <message>
         <source>Retrieving certificate...</source>
-        <translation type="unfinished"></translation>
+        <translation>Sertifika alınıyor...</translation>
     </message>
 </context>
 <context>
@@ -608,15 +609,15 @@ Error: %1</source>
     </message>
     <message>
         <source>Cached</source>
-        <translation>Önbelleğe Alınmış</translation>
+        <translation>Önbellekte</translation>
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verildi</translation>
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellendi</translation>
     </message>
     <message>
         <source>Unknown</source>
@@ -662,15 +663,15 @@ Error: %1</source>
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verilen</translation>
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellenen</translation>
     </message>
     <message>
         <source>Cached</source>
-        <translation>Önbelleğe Alınmış</translation>
+        <translation>Önbelleklenen</translation>
     </message>
     <message>
         <source>Any Type</source>
@@ -834,7 +835,7 @@ Error: %1</source>
     </message>
     <message>
         <source>Enter Host Name</source>
-        <translation>Sunucu Adını Girin</translation>
+        <translation>Sunucu Adı Girin</translation>
     </message>
     <message>
         <source>Do you want to delete selected Rules Items?</source>
@@ -911,7 +912,7 @@ Error: %1</source>
     </message>
     <message>
         <source>Trusted Spawn/UnTrusted</source>
-        <translation>Güvenilen/Güvenilmez Oluşturmada</translation>
+        <translation>Güvenilir/Güvenilmez Oluşturmada</translation>
     </message>
     <message>
         <source>Program</source>
@@ -1013,7 +1014,7 @@ Error: %1</source>
     </message>
     <message>
         <source>User Signature ONLY (not recommended)</source>
-        <translation>Yalnızca Kullanıcı İmzalı (önerilmez)</translation>
+        <translation>Yalnızca Kullanıcı İmzalı (Önerilmez)</translation>
     </message>
     <message>
         <source>User + Microsoft/AV Signature</source>
@@ -1021,7 +1022,7 @@ Error: %1</source>
     </message>
     <message>
         <source>User + Trusted by Microsoft (Code Root)</source>
-        <translation>Kullanıcı + Microsoft tarafından Güvenilen (Kod Kökü)</translation>
+        <translation>Kullanıcı + Microsoft tar. Güvenilen (Kod Kökü)</translation>
     </message>
     <message>
         <source>Any Signature (Unknown Root)</source>
@@ -1072,7 +1073,7 @@ Error: %1</source>
     <name>CExecutionModel</name>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellendi</translation>
     </message>
     <message>
         <source>Name</source>
@@ -1115,11 +1116,11 @@ Error: %1</source>
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verilen</translation>
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellenen</translation>
     </message>
     <message>
         <source>Show entries per UPID</source>
@@ -1127,18 +1128,18 @@ Error: %1</source>
     </message>
     <message>
         <source>Auto Expand</source>
-        <translation>Oto Genişlet</translation>
+        <translation>Otomatik Genişlet</translation>
     </message>
 </context>
 <context>
     <name>CFinishPage</name>
     <message>
         <source>Complete your configuration</source>
-        <translation type="unfinished"></translation>
+        <translation>Yapılandırmanızı tamamlayın</translation>
     </message>
     <message>
         <source>Almost complete, click Finish to apply all selected options and conclude the wizard.</source>
-        <translation type="unfinished"></translation>
+        <translation>Neredeyse tamamlandı, tüm seçimleri uygulamak ve sihirbazı tamamlamak için Bitir&apos;e tıklayın.</translation>
     </message>
 </context>
 <context>
@@ -1252,11 +1253,11 @@ Error: %1</source>
     </message>
     <message>
         <source>Rule Allowed</source>
-        <translation>Kurala İzin Verilmiş</translation>
+        <translation>Kurala İzin Verildi</translation>
     </message>
     <message>
         <source>Rule Blocked</source>
-        <translation>Kural engellenmiş</translation>
+        <translation>Kural Engellendi</translation>
     </message>
     <message>
         <source>Rule Error</source>
@@ -1272,11 +1273,11 @@ Error: %1</source>
     </message>
     <message>
         <source>Allow</source>
-        <translation>İzin Ver</translation>
+        <translation>İzin Verildi</translation>
     </message>
     <message>
         <source>Block</source>
-        <translation>Engelle</translation>
+        <translation>Engellendi</translation>
     </message>
     <message>
         <source>Inbound</source>
@@ -1465,21 +1466,21 @@ Error: %1</source>
     <name>CGenericRule</name>
     <message>
         <source> (duplicate)</source>
-        <translation> (çoğalt)</translation>
+        <translation> (çoğaltıldı)</translation>
     </message>
 </context>
 <context>
     <name>CGetFileJob</name>
     <message>
         <source>Failed to download file from: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Şu kaynaktan dosya indirilemedi: %1</translation>
     </message>
 </context>
 <context>
     <name>CGetUpdatesJob</name>
     <message>
         <source>%1</source>
-        <translation type="unfinished">%1</translation>
+        <translation>%1</translation>
     </message>
 </context>
 <context>
@@ -1559,7 +1560,7 @@ Error: %1</source>
     <name>CIngressModel</name>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellendi</translation>
     </message>
     <message>
         <source>Name</source>
@@ -1606,11 +1607,11 @@ Error: %1</source>
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verilen</translation>
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellenen</translation>
     </message>
     <message>
         <source>All Operations</source>
@@ -1654,34 +1655,34 @@ Error: %1</source>
     </message>
     <message>
         <source>Auto Expand</source>
-        <translation>Oto Genişlet</translation>
+        <translation>Otomatik Genişlet</translation>
     </message>
 </context>
 <context>
     <name>CIntroPage</name>
     <message>
         <source>Introduction</source>
-        <translation type="unfinished"></translation>
+        <translation>Giriş</translation>
     </message>
     <message>
         <source>Welcome to the Setup Wizard. This wizard will help you to configure your copy of &lt;b&gt;MajorPrivacy&lt;/b&gt;. You can start this wizard at any time from the Sandbox-&gt;Maintenance menu if you do not wish to complete it now.</source>
-        <translation type="unfinished"></translation>
+        <translation>Kurulum Sihirbazına hoş geldiniz. Bu sihirbaz, &lt;b&gt;MajorPrivacy&lt;/b&gt; kopyanızı yapılandırmanıza yardımcı olacaktır. Bu sihirbazı, şimdi tamamlamak istemiyorsanız, Gizlilik-&gt;Bakım menüsünden istediğiniz zaman başlatabilirsiniz.</translation>
     </message>
     <message>
         <source>Select how you would like to use MajorPrivacy</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy&apos;yi nasıl kullanmak istediğinizi seçin</translation>
     </message>
     <message>
         <source>&amp;Personally, for private non-commercial use</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Kişisel olarak, ticari olmayan özel kullanım için</translation>
     </message>
     <message>
         <source>&amp;Commercially, for business or enterprise use</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Ticari olarak, ticari veya kurumsal kullanım için</translation>
     </message>
     <message>
         <source>Note: this option is persistent</source>
-        <translation type="unfinished"></translation>
+        <translation>Not: Bu seçenek kalıcıdır</translation>
     </message>
 </context>
 <context>
@@ -1782,7 +1783,7 @@ Error: %1</source>
     </message>
     <message>
         <source>Trusted by MSFT</source>
-        <translation>MSFT tarafından Güvenilen</translation>
+        <translation>MSFT tar. Güvenilen</translation>
     </message>
     <message>
         <source>Untrusted/None</source>
@@ -1794,15 +1795,15 @@ Error: %1</source>
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verilen</translation>
     </message>
     <message>
         <source>Untrusted</source>
-        <translation>Güvenilmez</translation>
+        <translation>Güvenilmeyen</translation>
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellenen</translation>
     </message>
     <message>
         <source>CleanUp Libraries</source>
@@ -1810,7 +1811,7 @@ Error: %1</source>
     </message>
     <message>
         <source>Auto Expand</source>
-        <translation>Oto Genişlet</translation>
+        <translation>Otomatik Genişlet</translation>
     </message>
 </context>
 <context>
@@ -2065,7 +2066,7 @@ Error: %1</source>
     </message>
     <message>
         <source>DNS Filtering</source>
-        <translation>DNS Filtreleme</translation>
+        <translation>DNS Filtrelemesi</translation>
     </message>
     <message>
         <source>Privacy Tweaks</source>
@@ -2077,7 +2078,7 @@ Error: %1</source>
     </message>
     <message>
         <source>Any time</source>
-        <translation>Herhangi bir zaman</translation>
+        <translation>Herhangi bir Zaman</translation>
     </message>
     <message>
         <source>Last 5 Seconds</source>
@@ -2149,11 +2150,11 @@ Error: %1</source>
     </message>
     <message>
         <source>Process Protection Popups</source>
-        <translation>İşlem Koruma Açılır Pencereleri</translation>
+        <translation>İşlem Koruması Açılır Pencereleri</translation>
     </message>
     <message>
         <source>Resource Access Popups</source>
-        <translation>Kaynak Erişim Açılır Pencereleri</translation>
+        <translation>Kaynak Erişimi Açılır Pencereleri</translation>
     </message>
     <message>
         <source>Network Firewall Popups</source>
@@ -2165,15 +2166,15 @@ Error: %1</source>
     </message>
     <message>
         <source>Use Allow List</source>
-        <translation>İzin Listesi Kullan</translation>
+        <translation>İzin Listesi Moduna Geç</translation>
     </message>
     <message>
         <source>Use Block List</source>
-        <translation>Engel Listesi Kullan</translation>
+        <translation>Engel Listesi Moduna Geç</translation>
     </message>
     <message>
         <source>Disabled Firewall</source>
-        <translation>Güvenlik Duvarı Devre Dışı</translation>
+        <translation>Güvenlik Duvarını Kapat</translation>
     </message>
     <message>
         <source>Enter Secure Configuration Password, to sign a file</source>
@@ -2187,7 +2188,7 @@ Error: %1</source>
         <source>Enter Secure Configuration Password, to enable rule protection.
 Once that is done you can not change rules (except windows firewall) without using the user key.</source>
         <translation>Kural korumasını etkinleştirmek için Güvenli Yapılandırma Parolasını girin.
-Bu yapıldıktan sonra kullanıcı anahtarını kullanmadan kuralları (Windows güvenlik duvarı hariç) değiştiremezsiniz.</translation>
+Bu yapıldıktan sonra kullanıcı anahtarını kullanmadan kuralları (Windows Güvenlik Duvarı hariç) değiştiremezsiniz.</translation>
     </message>
     <message>
         <source>Enter Secure Configuration Password, to disable rule protection.</source>
@@ -2319,7 +2320,7 @@ Sürücü otomatik başlatmaya ayarlanmışsa, sistem yeniden başlatıldığın
     </message>
     <message>
         <source>Do you want to re-group all Program Items? This will remove all program items from all auto associated groups and re add it based on the default rules.</source>
-        <translation>Tüm Program Öğelerini yeniden gruplamak ister misiniz? Bu, tüm otomatik ilişkilendirilmiş gruplardan tüm program öğelerini kaldıracak ve varsayılan kurallara göre yeniden ekleyecektir.</translation>
+        <translation>Tüm Program Öğelerinin yeniden gruplandırılmasını mı istiyorsunuz? Bu gruplandırma, tüm program öğelerini otomatik ilişkilendirilmiş tüm gruplardan kaldırıp varsayılan kurallara göre bunları yeniden ekleyecektir.</translation>
     </message>
     <message>
         <source>Do you really want to clear the ignore list?</source>
@@ -2428,93 +2429,90 @@ DİKKAT: Bu, korumayı devre dışı bırakacaktır.</translation>
         <translation>&lt;p&gt;Major Privacy, gizliliğinizi ve güvenliğinizi korumanıza yardımcı olan bir programdır.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Daha fazla bilgi için &lt;a href=&quot;https://xanasoft.com&quot;&gt;xanasoft.com&lt;/a&gt; adresini ziyaret edin.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;%1&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Arayüz Yapılandırması Dizini: &lt;br /&gt;%2&lt;br /&gt;Çekirdek Yapılandırması Dizini: &lt;br /&gt;%3&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Simgeler için &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <source>Enter the path of a program that will be created in a sandbox.</source>
-        <translation type="vanished">Korumalı alan ortamında oluşturulacak programın yolunu girin.</translation>
-    </message>
-    <message>
         <source>The certificate you are attempting to use has been blocked, meaning it has been invalidated for cause. Any attempt to use it constitutes a breach of its terms of use!</source>
-        <translation type="unfinished"></translation>
+        <translation>Kullanmaya çalıştığınız sertifika engellendi, yani geçersiz kılındı. Bunu kullanmaya yönelik herhangi bir girişim, kullanım şartlarının ihlali anlamına gelir!</translation>
     </message>
     <message>
         <source>The Certificate Signature is invalid!</source>
-        <translation type="unfinished"></translation>
+        <translation>Sertifika İmzası geçersiz!</translation>
     </message>
     <message>
         <source>The Certificate is not suitable for this product.</source>
-        <translation type="unfinished"></translation>
+        <translation>Sertifika bu ürün için uygun değildir.</translation>
     </message>
     <message>
         <source>The Certificate is node locked.</source>
-        <translation type="unfinished"></translation>
+        <translation>Sertifika düğüm kilitli.</translation>
     </message>
     <message>
         <source>The support certificate is not valid.
 Error: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Destek sertifikası geçerli değil. 
+Hata: %1</translation>
     </message>
     <message>
         <source>Privacy</source>
-        <translation type="unfinished"></translation>
+        <translation>Gizlilik</translation>
     </message>
     <message>
         <source>Setup Wizard</source>
-        <translation type="unfinished"></translation>
+        <translation>Kurulum Sihirbazı</translation>
     </message>
     <message>
         <source>View</source>
-        <translation type="unfinished"></translation>
+        <translation>Görünüm</translation>
     </message>
     <message>
         <source>Volumes</source>
-        <translation type="unfinished"></translation>
+        <translation>Birimler</translation>
     </message>
     <message>
         <source>Security</source>
-        <translation type="unfinished"></translation>
+        <translation>Güvenlik</translation>
     </message>
     <message>
         <source>Tools</source>
-        <translation type="unfinished"></translation>
+        <translation>Araçlar</translation>
     </message>
     <message>
         <source>Options</source>
-        <translation type="unfinished"></translation>
+        <translation>Seçenekler</translation>
     </message>
     <message>
         <source>&lt;a href=&quot;sbie://update/installer&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy release %1 ready&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;sbie://update/installer&quot; style=&quot;color: red;&quot;&gt;Yeni bir MajorPrivacy sürümü %1 hazır&lt;/a&gt;</translation>
     </message>
     <message>
         <source>Click to run installer</source>
-        <translation type="unfinished"></translation>
+        <translation>Yükleyiciyi çalıştırmak için tıklayın</translation>
     </message>
     <message>
         <source>&lt;a href=&quot;sbie://update/apply&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy update %1 ready&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;sbie://update/apply&quot; style=&quot;color: red;&quot;&gt;Yeni bir MajorPrivacy güncellemesi %1 hazır&lt;/a&gt;</translation>
     </message>
     <message>
         <source>Click to apply update</source>
-        <translation type="unfinished"></translation>
+        <translation>Güncellemeyi uygulamak için tıklayın</translation>
     </message>
     <message>
         <source>&lt;a href=&quot;sbie://update/check&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy update v%1 available&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;sbie://update/check&quot; style=&quot;color: red;&quot;&gt;Yeni bir MajorPrivacy güncellemesi v%1 mevcut&lt;/a&gt;</translation>
     </message>
     <message>
         <source>Click to download update</source>
-        <translation type="unfinished"></translation>
+        <translation>Güncellemeyi indirmek için tıklayın</translation>
     </message>
     <message>
         <source>&lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;Support MajorPrivacy on Patreon&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;MajorPrivacy&apos;yi Patreon&apos;da Destekleyin&lt;/a&gt;</translation>
     </message>
     <message>
         <source>Click to open web browser</source>
-        <translation type="unfinished"></translation>
+        <translation>Web tarayıcısını açmak için tıklayın</translation>
     </message>
     <message>
         <source>Enter the path of a program that will be run.</source>
-        <translation type="unfinished"></translation>
+        <translation>Çalıştırılacak programın yolunu girin.</translation>
     </message>
 </context>
 <context>
@@ -2576,11 +2574,11 @@ Error: %1</source>
     </message>
     <message>
         <source>Uploaded</source>
-        <translation>Yüklendi</translation>
+        <translation>Yüklenen</translation>
     </message>
     <message>
         <source>Downloaded</source>
-        <translation>İndirildi</translation>
+        <translation>İndirilen</translation>
     </message>
     <message>
         <source>Time Stamp</source>
@@ -2611,11 +2609,11 @@ Error: %1</source>
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verilen</translation>
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellenen</translation>
     </message>
     <message>
         <source>All Protocols</source>
@@ -2695,125 +2693,128 @@ Error: %1</source>
         <source>Your MajorPrivacy supporter certificate is expired, however for the current build you are using it remains active, when you update to a newer build exclusive supporter features will be disabled.
 
 Do you still want to update?</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy destekçi sertifikanızın süresi doldu ancak kullandığınız mevcut derleme için destekçi sertifikanızın sunduğu bu özellikler etkin olmaya devam edecektir. Daha yeni bir derlemeye geçiş yaparsanız bu özellikler devre dışı bırakılacaktır.
+Yine de güncellemek istiyor musunuz?</translation>
     </message>
     <message>
         <source>Do you want to check if there is a new version of MajorPrivacy?</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy&apos;nin yeni sürümünü denetlemek istiyor musunuz?</translation>
     </message>
     <message>
         <source>Don&apos;t show this message again.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu mesajı bir daha gösterme.</translation>
     </message>
     <message>
         <source>To ensure optimal compatibility with your software, Sandboxie needs to update its compatibility templates. Do you want to proceed?</source>
-        <translation type="unfinished"></translation>
+        <translation>Yazılımlarınızla en iyi uyumluluğu sağlamak için MajorPrivacy&apos;nin uyumluluk şablonlarını güncellemesi gerekiyor. Devam etmek istiyor musunuz?</translation>
     </message>
     <message>
         <source>Enable auto template updates</source>
-        <translation type="unfinished"></translation>
+        <translation>Otomatik şablon güncellemelerini etkinleştir</translation>
     </message>
     <message>
         <source>Checking for updates...</source>
-        <translation type="unfinished"></translation>
+        <translation>Güncellemeler denetleniyor...</translation>
     </message>
     <message>
         <source>server not reachable</source>
-        <translation type="unfinished"></translation>
+        <translation>sunucuya ulaşılamıyor</translation>
     </message>
     <message>
         <source>Failed to check for updates, error: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Güncellemeler denetlenemedi, hata: %1</translation>
     </message>
     <message>
         <source>No new updates found, your MajorPrivacy is up-to-date.
 
 Note: The update check is often behind the latest GitHub release to ensure that only tested updates are offered.</source>
-        <translation type="unfinished"></translation>
+        <translation>Yeni güncelleme bulunamadı, MajorPrivacy&apos;niz güncel.
+
+Not: Güncellemeler, yalnızca test edilen güncellemelerin sunulmasını sağlamak için, genellikle en son GitHub sürümünün gerisindedir.</translation>
     </message>
     <message>
         <source>&lt;p&gt;There is a new version of MajorPrivacy available.&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;&lt;b&gt;New version:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;MajorPrivacy&apos;nin yeni bir sürümü mevcut.&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;&lt;b&gt;Yeni sürüm:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Do you want to download the installer?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;Yükleyiciyi indirmek istiyor musunuz?&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Do you want to download the updates?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;Güncellemeleri indirmek istiyor musunuz?&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Do you want to go to the &lt;a href=&quot;%1&quot;&gt;download page&lt;/a&gt;?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;&lt;a href=&quot;%1&quot;&gt; İndirme sayfasına&lt;/a&gt; gitmek istiyor musunuz?&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Don&apos;t show this update anymore.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu güncellemeyi artık gösterme.</translation>
     </message>
     <message>
         <source>Downloading updates...</source>
-        <translation type="unfinished"></translation>
+        <translation>Güncellemeler indiriliyor...</translation>
     </message>
     <message>
         <source>invalid parameter</source>
-        <translation type="unfinished"></translation>
+        <translation>geçersiz parametre</translation>
     </message>
     <message>
         <source>failed to download updated information</source>
-        <translation type="unfinished"></translation>
+        <translation>güncelleme bilgisi indirilemedi</translation>
     </message>
     <message>
         <source>failed to load updated json file</source>
-        <translation type="unfinished"></translation>
+        <translation>güncel json dosyası yüklenemedi</translation>
     </message>
     <message>
         <source>failed to download a particular file</source>
-        <translation type="unfinished"></translation>
+        <translation>belirli bir dosya indirilemedi</translation>
     </message>
     <message>
         <source>failed to scan existing installation</source>
-        <translation type="unfinished"></translation>
+        <translation>mevcut kurulum taranamadı</translation>
     </message>
     <message>
         <source>updated signature is invalid !!!</source>
-        <translation type="unfinished"></translation>
+        <translation>güncelleme imzası geçersiz!</translation>
     </message>
     <message>
         <source>downloaded file is corrupted</source>
-        <translation type="unfinished"></translation>
+        <translation>indirilen dosya bozuk</translation>
     </message>
     <message>
         <source>internal error</source>
-        <translation type="unfinished"></translation>
+        <translation>iç hata</translation>
     </message>
     <message>
         <source>unknown error</source>
-        <translation type="unfinished"></translation>
+        <translation>bilinmeyen hata</translation>
     </message>
     <message>
         <source>Failed to download updates from server, error %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Güncellemeler sunucudan indirilemedi, hata %1</translation>
     </message>
     <message>
         <source>Downloading installer...</source>
-        <translation type="unfinished"></translation>
+        <translation>Yükleyici indiriliyor...</translation>
     </message>
     <message>
         <source>&lt;p&gt;A new MajorPrivacy installer has been downloaded to the following location:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Do you want to begin the installation? If any programs are running sandboxed, they will be terminated.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;Yeni bir MajorPrivacy yükleyicisi şu konuma indirildi:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Kuruluma başlamak istiyor musunuz? Herhangi bir program korumalı alanda çalışıyorsa sonlandırılacaktır.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>There is a new Templates.ini available, do you want to download it?</source>
-        <translation type="unfinished"></translation>
+        <translation>Yeni bir Tweaks.ini dosyası mevcut, indirmek ister misiniz?</translation>
     </message>
     <message>
         <source>&lt;p&gt;Do you want to go to the &lt;a href=&quot;%1&quot;&gt;info page&lt;/a&gt;?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;Bilgi sayfasına &lt;a href=&quot;%1&quot;&gt;gitmek istiyor musunuz&lt;/a&gt;?&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Don&apos;t show this announcement in the future.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu duyuruyu gelecekte gösterme.</translation>
     </message>
 </context>
 <context>
@@ -3074,11 +3075,11 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verilen</translation>
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellenen</translation>
     </message>
     <message>
         <source>Auto Scroll</source>
@@ -3334,11 +3335,11 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     </message>
     <message>
         <source>Uploaded</source>
-        <translation>Yüklenmiş</translation>
+        <translation>Yüklendi</translation>
     </message>
     <message>
         <source>Downloaded</source>
-        <translation>İndirilmiş</translation>
+        <translation>İndirildi</translation>
     </message>
     <message>
         <source>Log Size</source>
@@ -3517,7 +3518,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     </message>
     <message>
         <source>User Signature ONLY (not recommended)</source>
-        <translation>Yalnızca Kullanıcı İmzalı (önerilmez)</translation>
+        <translation>Yalnızca Kullanıcı İmzalı (Önerilmez)</translation>
     </message>
     <message>
         <source>User + Microsoft/AV Signature</source>
@@ -3525,7 +3526,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     </message>
     <message>
         <source>User + Trusted by Microsoft (Code Root)</source>
-        <translation>Kullanıcı + Microsoft tarafından Güvenilen (Kod Kökü)</translation>
+        <translation>Kullanıcı + Microsoft tar. Güvenilen (Kod Kökü)</translation>
     </message>
     <message>
         <source>Any Signature (Unknown Root)</source>
@@ -3541,7 +3542,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     </message>
     <message>
         <source>Please select an enclave for a protection rule.</source>
-        <translation>Lütfen bir koruma kuralı için bir kapanım seçin.</translation>
+        <translation>Koruma kuralı için lütfen bir kapanım seçin.</translation>
     </message>
     <message>
         <source>The selected program type is not supported for this rule type</source>
@@ -3608,11 +3609,11 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     </message>
     <message>
         <source>Blocked Traffic</source>
-        <translation>Engellenmiş Trafik</translation>
+        <translation>Engellenen Trafik</translation>
     </message>
     <message>
         <source>Allowed Traffic</source>
-        <translation>İzin Verilmiş Trafik</translation>
+        <translation>İzin Verilen Trafik</translation>
     </message>
     <message>
         <source>Socket Filters</source>
@@ -3632,7 +3633,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     </message>
     <message>
         <source>Auto Expand</source>
-        <translation>Oto Genişlet</translation>
+        <translation>Otomatik Genişlet</translation>
     </message>
     <message>
         <source>Edit Program</source>
@@ -3676,7 +3677,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     </message>
     <message>
         <source>Store Trace</source>
-        <translation>Mağaza İzleme</translation>
+        <translation>İzleme Kaydı</translation>
     </message>
     <message>
         <source>Save to Disk</source>
@@ -3701,18 +3702,18 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <source>Do you want to delete selected Program Items (Yes)?
 The selected Item has children, do you want to delete them as well (Yes to All)?</source>
-        <translation>Seçili Program Öğelerini silmek istiyor musunuz (Evet)?
-Seçilen Öğenin alt öğeleri var, onları da silmek istiyor musunuz (Hepsine Evet)?</translation>
+        <translation>Seçili program öğelerini silmek istiyor musunuz (Evet)?
+Seçilen öğenin alt öğeleri var, onları da silmek istiyor musunuz (Hepsine Evet)?</translation>
     </message>
     <message>
         <source>Do you want to delete selected Program Items?
 The selected Item belongs to more than one Group, to delete it from all groups press &apos;Yes to All&apos;, pressing &apos;Yes&apos; will only remove it from the group its selected in.</source>
-        <translation>Seçili Program Öğelerini silmek ister misiniz?
-Seçilen Öğe birden fazla Gruba aittir, onu tüm gruplardan silmek için &apos;Hepsine Evet&apos;e basın, &apos;Evet&apos;e basmak onu yalnızca seçildiği gruptan kaldıracaktır.</translation>
+        <translation>Seçili program öğelerini silmek istiyor musunuz?
+Seçilen öğe birden fazla gruba aittir. Bu öğeyi tüm gruplardan silmek için &apos;Hepsine Evet&apos; ya da yalnızca seçildiği gruptan kaldırmak için &apos;Evet&apos; düğmesine tıklayın.</translation>
     </message>
     <message>
         <source>Do you want to delete selected Program Items?</source>
-        <translation>Seçilen program öğelerini silmek istiyor musunuz?</translation>
+        <translation>Seçili program öğelerini silmek istiyor musunuz?</translation>
     </message>
     <message>
         <source>The selected Program Item has rules, do you want to delete them as well?</source>
@@ -3810,92 +3811,93 @@ Seçilen Öğe birden fazla Gruba aittir, onu tüm gruplardan silmek için &apos
     <name>CSBUpdate</name>
     <message>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; updater</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt; güncelleyiciyi yapılandırın</translation>
     </message>
     <message>
         <source>Like with any other security product, it&apos;s important to keep your MajorPrivacy up to date.</source>
-        <translation type="unfinished"></translation>
+        <translation>Diğer tüm güvenlik ürünlerinde olduğu gibi, MajorPrivacy&apos;nizi güncel tutmanız önemlidir.</translation>
     </message>
     <message>
         <source>Regularly check for all updates to MajorPrivacy and optional components</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy ve isteğe bağlı bileşenlere yönelik tüm güncellemeleri düzenli olarak denetle</translation>
     </message>
     <message>
         <source>Let Sandboxie regularly check for latest updates.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy&apos;nin en son güncellemeleri düzenli olarak denetlemesine izin verir.</translation>
     </message>
     <message>
         <source>Check for new MajorPrivacy versions:</source>
-        <translation type="unfinished"></translation>
+        <translation>Yeni MajorPrivacy sürümlerini denetle:</translation>
     </message>
     <message>
         <source>Check for new MajorPrivacy builds.</source>
-        <translation type="unfinished"></translation>
+        <translation>Yeni MajorPrivacy derlemelerini denetler.</translation>
     </message>
     <message>
         <source>Select in which update channel to look for new MajorPrivacy builds:</source>
-        <translation type="unfinished"></translation>
+        <translation>Yeni MajorPrivacy derlemeleri için arama yapılacak kanalı seçin:</translation>
     </message>
     <message>
         <source>In the Stable Channel</source>
-        <translation type="unfinished"></translation>
+        <translation>Kararlı Kanalda</translation>
     </message>
     <message>
         <source>The stable channel contains the latest stable GitHub releases.</source>
-        <translation type="unfinished">Kararlı kanal, en son kararlı GitHub sürümlerini içerir.</translation>
+        <translation>Kararlı kanal, en son kararlı GitHub sürümlerini içerir.</translation>
     </message>
     <message>
         <source>In the Preview Channel - with newest experimental changes</source>
-        <translation type="unfinished"></translation>
+        <translation>Ön İzleme Kanalında - en yeni deneysel değişikliklerle</translation>
     </message>
     <message>
         <source>The preview channel contains the latest GitHub pre-releases.</source>
-        <translation type="unfinished">Önizleme kanalı en son GitHub ön yayınlarını içerir.</translation>
+        <translation>Ön izleme kanalı en son GitHub ön yayınlarını içerir.</translation>
     </message>
     <message>
         <source>In the Insider Channel - exclusive features</source>
-        <translation type="unfinished"></translation>
+        <translation>Insider Kanalında - ayrıcalıklı özellikler</translation>
     </message>
     <message>
         <source>The Insider channel offers early access to new features and bugfixes that will eventually be released to the public, as well as all relevant improvements from the stable channel. 
 Unlike the preview channel, it does not include untested, potentially breaking, or experimental changes that may not be ready for wider use.</source>
-        <translation type="unfinished"></translation>
+        <translation>Insider kanalı, herkese açılacak yeni özelliklere ve hata düzeltmelerine erken erişim sağlar ve ayrıca kararlı kanaldaki ilgili tüm iyileştirmeleri de bulundurur.
+Ön izleme kanalından farklı olarak, genel kullanıma hazır olmayan denenmemiş, potansiyel olarak bozuk veya deneysel değişiklikleri içermez.</translation>
     </message>
     <message>
         <source>More about the &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-insider&quot;&gt;Insider Channel&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-insider&quot;&gt;Insider Kanalı&lt;/a&gt; hakkında daha fazla bilgi</translation>
     </message>
     <message>
         <source>Keep Compatibility Templates up to date and apply hotfixes</source>
-        <translation type="unfinished"></translation>
+        <translation>İnce Ayar şablonlarını güncel tut ve düzeltmeleri uygula</translation>
     </message>
     <message>
         <source>Check for latest compatibility templates and hotfixes.</source>
-        <translation type="unfinished"></translation>
+        <translation>En son ince ayar şablonlarını ve düzeltmelerini denetler.</translation>
     </message>
     <message>
         <source>Get the latest Scripts for the Troubleshooting Wizard</source>
-        <translation type="unfinished"></translation>
+        <translation>Sorun Giderme Sihirbazı için en son Betik Dosyalarını indir</translation>
     </message>
     <message>
         <source>Check for latest troubleshooting scripts for the troubleshooting wizard.</source>
-        <translation type="unfinished"></translation>
+        <translation>Sorun giderme sihirbazı için en son sorun giderme betik dosyalarını denetler.</translation>
     </message>
     <message>
         <source>Keep the list of optional Add-on components up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>İsteğe bağlı Eklenti bileşenlerinin listesini güncel tut</translation>
     </message>
     <message>
         <source>Check for latest available add-ons.</source>
-        <translation type="unfinished"></translation>
+        <translation>Mevcut en son eklentileri denetler.</translation>
     </message>
     <message>
         <source>MajorPrivacy applies strict application restrictions, which can lead to compatibility issues. Stay updated with MajorPrivacy, including compatibility templates and troubleshooting, to ensure smooth operation amid Windows updates and application changes.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy, uyumluluk sorunlarına yol açabilecek katı uygulama kısıtlamaları uygular. Windows güncellemeleri ve uygulama değişiklikleri sırasında sorunsuz çalışmayı sağlamak için uyumluluk şablonları ve sorun giderme de dahil olmak üzere MajorPrivacy ile güncel kalın.</translation>
     </message>
     <message>
         <source>Access to the latest compatibility templates and the online troubleshooting database requires a valid &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>En son ince ayar şablonlarına ve çevrimiçi sorun giderme veritabanına erişim geçerli bir &lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-cert&quot;&gt;destekçi sertifikası&lt;/a&gt; gerektirir.</translation>
     </message>
 </context>
 <context>
@@ -3906,7 +3908,7 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     </message>
     <message>
         <source>Auto Detection</source>
-        <translation>Oto Algılama</translation>
+        <translation>Otomatik Algıla</translation>
     </message>
     <message>
         <source>All</source>
@@ -3914,11 +3916,11 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellenen</translation>
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verilen</translation>
     </message>
     <message>
         <source>Off</source>
@@ -3946,224 +3948,226 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     </message>
     <message>
         <source>Click to reveal</source>
-        <translation type="unfinished"></translation>
+        <translation>Görüntülemek için tıklayın</translation>
     </message>
     <message>
         <source>Click to hide</source>
-        <translation type="unfinished"></translation>
+        <translation>Gizlemek için tıklayın</translation>
     </message>
     <message>
         <source>HwId: &lt;a href=&quot;show&quot;&gt;[%1]&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>HwId: &lt;a href=&quot;show&quot;&gt;[%1]&lt;/a&gt;</translation>
     </message>
     <message>
         <source>HwId: &lt;a href=&quot;hide&quot; style=&quot;text-decoration:none; color:inherit;&quot;&gt;%1&lt;/a&gt; &lt;a href=&quot;copy&quot;&gt;(copy)&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>HwId: &lt;a href=&quot;hide&quot; style=&quot;text-decoration:none; color:inherit;&quot;&gt;%1&lt;/a&gt; &lt;a href=&quot;copy&quot;&gt;(kopyala)&lt;/a&gt;</translation>
     </message>
     <message>
         <source>MajorPrivacy Version: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy Sürüm: %1</translation>
     </message>
     <message>
         <source>This supporter certificate has expired, please &lt;a href=&quot;%1&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu destekçi sertifikasının süresi doldu, lütfen &lt;a href=&quot;%1&quot;&gt;güncel bir sertifika edinin&lt;/a&gt;.</translation>
     </message>
     <message>
         <source>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;Plus features will be disabled in %1 days.&lt;/font&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;Plus özellikleri %1 gün içinde devre dışı bırakılacak.&lt;/font&gt;</translation>
     </message>
     <message>
         <source>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;For the current build Plus features remain enabled&lt;/font&gt;, but you no longer have access updates.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;Şu anda yüklü olan sürüm için Plus özellikleri etkin durumdadır&lt;/font&gt;, ancak artık güncellemelere erişiminiz yok.</translation>
     </message>
     <message>
         <source>&lt;br /&gt;Plus features are no longer enabled.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br /&gt;Plus özellikleri artık etkin değil.</translation>
     </message>
     <message>
         <source>This supporter certificate will &lt;font color=&apos;red&apos;&gt;expire in %1 days&lt;/font&gt;, please &lt;a href=&quot;%2&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu destekçi sertifikası &lt;font color=&apos;red&apos;&gt;%1 gün içinde sona erecek&lt;/font&gt;, lütfen &lt;a href=&quot;%2&quot;&gt;güncel bir sertifika edinin&lt;/a&gt;.</translation>
     </message>
     <message>
         <source>Expires in: %1 days</source>
-        <translation type="unfinished"></translation>
+        <translation>Kalan kullanım süresi: %1 gün</translation>
     </message>
     <message>
         <source>Expired: %1 days ago</source>
-        <translation type="unfinished"></translation>
+        <translation>Süresi doldu: %1 gün önce</translation>
     </message>
     <message>
         <source>; eligible Patreons can always &lt;a href=&quot;https://xanasoft.com/get-supporter-certificate/&quot;&gt;obtain an updated certificate&lt;/a&gt; from xanasoft.com</source>
-        <translation type="unfinished"></translation>
+        <translation>; Patreon aboneliği sürenler her zaman xanasoft.com üzerinden &lt;a href=&quot;https://xanasoft.com/get-supporter-certificate/&quot;&gt;güncel bir sertifika alabilirler&lt;/a&gt;</translation>
     </message>
     <message>
         <source>&lt;b&gt;You have used %1/%2 evaluation certificates. No more free certificates can be generated.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;%1/%2 deneme sertifikası kullandınız. Daha fazla ücretsiz sertifika oluşturulamaz.&lt;/b&gt;</translation>
     </message>
     <message>
         <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;Get a free evaluation certificate&lt;/a&gt; and enjoy all premium features for %1 days.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;Ücretsiz deneme sertifikası alın&lt;/a&gt; ve tüm premium özelliklerin %1 gün boyunca keyfini çıkarın.&lt;/b&gt;</translation>
     </message>
     <message>
         <source>You can request a free %1-day evaluation certificate up to %2 times per hardware ID.</source>
-        <translation type="unfinished"></translation>
+        <translation>Donanım Kimliği başına %2 kereye kadar ücretsiz %1 günlük deneme sertifikası talep edebilirsiniz.</translation>
     </message>
     <message>
         <source>This does not look like a MajorPrivacy Serial Number.&lt;br /&gt;If you have attempted to enter the UpdateKey or the Signature from a certificate, that is not correct, please enter the entire certificate into the text area above instead.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu numara MajorPrivacy Seri Numarasına benzemiyor.&lt;br /&gt;Bir sertifikanın yalnızca UPDATEKEY veya SIGNATURE değerini girmeyi denediyseniz, bu doğru değildir Lütfen bunun yerine yukarıdaki metin alanına sertifikanın tamamını giriniz.</translation>
     </message>
     <message>
         <source>You are attempting to use a feature Upgrade-Key without having entered a pre-existing supporter certificate. Please note that this type of key (&lt;b&gt;as it is clearly stated in bold on the website&lt;/b) requires you to have a pre-existing valid supporter certificate; it is useless without one.&lt;br /&gt;If you want to use the advanced features, you need to obtain both a standard certificate and the feature upgrade key to unlock advanced functionality.</source>
-        <translation type="unfinished"></translation>
+        <translation>Özellik yükseltme anahtarını mevcut bir destekçi sertifikası girmeden önce kullanmaya çalışıyorsunuz. Lütfen bu tür anahtarların (&lt;b&gt;web sitesinde kalın harflerle açıkça belirtildiği gibi&lt;/b&gt;) mevcut geçerli bir destekçi sertifikasına sahip olmanızı gerektirdiğini, sertifika olmadan hiçbir işe yaramadığını unutmayın.&lt;br /&gt;Gelişmiş özellikleri kullanmak için, hem standart bir sertifika hem de gelişmiş özelliklerin kilidini açacak bir özellik yükseltme anahtarı edinmeniz gerekir.</translation>
     </message>
     <message>
         <source>You are attempting to use a Renew-Key without having entered a pre-existing supporter certificate. Please note that this type of key (&lt;b&gt;as it is clearly stated in bold on the website&lt;/b) requires you to have a pre-existing valid supporter certificate; it is useless without one.</source>
-        <translation type="unfinished"></translation>
+        <translation>Yenileme anahtarını mevcut bir destekçi sertifikası girmeden önce kullanmaya çalışıyorsunuz. Lütfen bu tür anahtarların (&lt;b&gt;web sitesinde kalın harflerle açıkça belirtildiği gibi&lt;/b&gt;) mevcut geçerli bir destekçi sertifikasına sahip olmanızı gerektirdiğini, sertifika olmadan hiçbir işe yaramadığını unutmayın.</translation>
     </message>
     <message>
         <source>&lt;br /&gt;&lt;br /&gt;&lt;u&gt;If you have not read the product description and obtained this key by mistake, please contact us via email (provided on our website) to resolve this issue.&lt;/u&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br /&gt;&lt;br /&gt;&lt;u&gt;Ürün açıklamasını okumadan yanlışlıkla bu anahtarı aldıysanız, sorunu çözmek için lütfen e-posta (web sitemizde belirtilen) yoluyla bizimle iletişime geçin.&lt;/u&gt;</translation>
     </message>
     <message>
         <source>Retrieving certificate...</source>
-        <translation type="unfinished"></translation>
+        <translation>Sertifika alınıyor...</translation>
     </message>
     <message>
         <source>MajorPrivacy - Get EVALUATION Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy - DENEME Sertifikası Al</translation>
     </message>
     <message>
         <source>Please enter your email address to receive a free %1-day evaluation certificate, which will be issued to %2 and locked to the current hardware.
 You can request up to %3 evaluation certificates for each unique hardware ID.</source>
-        <translation type="unfinished"></translation>
+        <translation>Lütfen %2 için verilecek ve geçerli donanıma kilitlenecek ücretsiz %1 günlük deneme sertifikası almak için e-posta adresinizi girin.
+Her benzersiz donanım kimliği için %3 kereye kadar deneme sertifikası talep edebilirsiniz.</translation>
     </message>
     <message>
         <source>Error retrieving certificate: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Sertifika alınırken hata oluştu: %1</translation>
     </message>
     <message>
         <source>Unknown Error (probably a network issue)</source>
-        <translation type="unfinished"></translation>
+        <translation>Bilinmeyen Hata (muhtemelen bir ağ sorunu)</translation>
     </message>
     <message>
         <source>Contributor</source>
-        <translation type="unfinished"></translation>
+        <translation>Katılımcı</translation>
     </message>
     <message>
         <source>Eternal</source>
-        <translation type="unfinished"></translation>
+        <translation>Sürekli</translation>
     </message>
     <message>
         <source>Developer</source>
-        <translation type="unfinished"></translation>
+        <translation>Geliştirici</translation>
     </message>
     <message>
         <source>Business</source>
-        <translation type="unfinished"></translation>
+        <translation>İş</translation>
     </message>
     <message>
         <source>Personal</source>
-        <translation type="unfinished"></translation>
+        <translation>Kişisel</translation>
     </message>
     <message>
         <source>Great Patreon</source>
-        <translation type="unfinished"></translation>
+        <translation>Büyük Patreon</translation>
     </message>
     <message>
         <source>Patreon</source>
-        <translation type="unfinished"></translation>
+        <translation>Patreon</translation>
     </message>
     <message>
         <source>Family</source>
-        <translation type="unfinished"></translation>
+        <translation>Aile</translation>
     </message>
     <message>
         <source>Home</source>
-        <translation type="unfinished"></translation>
+        <translation>Ev</translation>
     </message>
     <message>
         <source>Evaluation</source>
-        <translation type="unfinished"></translation>
+        <translation>Deneme</translation>
     </message>
     <message>
         <source>Type %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Tür %1</translation>
     </message>
     <message>
         <source>Advanced</source>
-        <translation type="unfinished">Gelişmiş</translation>
+        <translation>Gelişmiş</translation>
     </message>
     <message>
         <source>Advanced (L)</source>
-        <translation type="unfinished"></translation>
+        <translation>Gelişmiş (L)</translation>
     </message>
     <message>
         <source>Max Level</source>
-        <translation type="unfinished"></translation>
+        <translation>En Üst Düzey</translation>
     </message>
     <message>
         <source>Level %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Düzey %1</translation>
     </message>
     <message>
         <source>This does not look like a certificate. Please enter the entire certificate, not just a portion of it.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu bir sertifikaya benzemiyor. Lütfen sertifikanın sadece bir kısmını değil tamamını girin.</translation>
     </message>
     <message>
         <source>This certificate is unfortunately not valid for the current build, you need to get a new certificate or downgrade to an earlier build.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu sertifika ne yazık ki mevcut derleme için geçerli değil, yeni bir sertifika almanız veya önceki bir derlemeye geçmeniz gerekiyor.</translation>
     </message>
     <message>
         <source>Although this certificate has expired, for the currently installed version plus features remain enabled. However, you will no longer have access to updates.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu sertifikanın süresi dolmuş olsa da, şu anda yüklü olan sürüm için Plus özellikleri etkin durumda kalır. Ancak, bundan sonraki güncellemelere erişiminiz olmayacak.</translation>
     </message>
     <message>
         <source>This certificate has unfortunately expired, you need to get a new certificate.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu sertifikanın süresi ne yazık ki dolmuş, yeni bir sertifika almanız gerekiyor.</translation>
     </message>
     <message>
         <source>The evaluation certificate has been successfully applied. Enjoy your free trial!</source>
-        <translation type="unfinished"></translation>
+        <translation>Deneme sertifikası başarıyla uygulandı. Ücretsiz denemenizin tadını çıkarın!</translation>
     </message>
     <message>
         <source>Thank you for supporting the development of MajorPrivacy.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy&apos;nin gelişimini desteklediğiniz için teşekkür ederiz.</translation>
     </message>
     <message>
         <source>
 This is a temporary Patreon certificate, valid for 3 months. Once it nears expiration, you can obtain a new certificate online that will be valid for the full term.</source>
-        <translation type="unfinished"></translation>
+        <translation>
+Bu, 3 ay geçerli geçici bir Patreon sertifikasıdır. Son kullanma tarihine yaklaştığında, tüm süre boyunca geçerli olacak yeni bir sertifikayı çevrimiçi olarak alabilirsiniz.</translation>
     </message>
     <message>
         <source>A mandatory security update for your MajorPrivacy Supporter Certificate is required. Would you like to download the updated certificate now?</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy Destekçi Sertifikanız için zorunlu bir güvenlik güncelleştirmesi gerekiyor. Güncel sertifikayı şimdi indirmek ister misiniz?</translation>
     </message>
     <message>
         <source>Auto update in future</source>
-        <translation type="unfinished"></translation>
+        <translation>Gelecekte otomatik güncelle</translation>
     </message>
 </context>
 <context>
     <name>CSetupWizard</name>
     <message>
         <source>Setup Wizard</source>
-        <translation type="unfinished"></translation>
+        <translation>Kurulum Sihirbazı</translation>
     </message>
     <message>
         <source>The decision you make here will affect which page you get to see next.</source>
-        <translation type="unfinished"></translation>
+        <translation>Burada vereceğiniz karar, bir sonraki adımda hangi sayfayı göreceğinizi etkileyecektir.</translation>
     </message>
     <message>
         <source>This help is likely not to be of any help.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu yardım muhtemelen herhangi bir yardım sağlamayacaktır.</translation>
     </message>
     <message>
         <source>Sorry, I already gave all the help I could.</source>
-        <translation type="unfinished"></translation>
+        <translation>Üzgünüm, elimden gelen tüm yardımı zaten yaptım.</translation>
     </message>
     <message>
         <source>Setup Wizard Help</source>
-        <translation type="unfinished"></translation>
+        <translation>Kurulum Sihirbazı Yardımı</translation>
     </message>
 </context>
 <context>
@@ -4228,15 +4232,15 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     </message>
     <message>
         <source>FIN wait 1</source>
-        <translation>FIN bekle 1</translation>
+        <translation>FIN beklemede 1</translation>
     </message>
     <message>
         <source>FIN wait 2</source>
-        <translation>FIN bekle 2</translation>
+        <translation>FIN beklemede 2</translation>
     </message>
     <message>
         <source>Close wait</source>
-        <translation>Close bekle</translation>
+        <translation>Kapanmayı bekliyor</translation>
     </message>
     <message>
         <source>Closing</source>
@@ -4244,11 +4248,11 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     </message>
     <message>
         <source>Last ACK</source>
-        <translation>Son ACK</translation>
+        <translation>Son ONAY (ACK)</translation>
     </message>
     <message>
         <source>Time wait</source>
-        <translation>Time bekle</translation>
+        <translation>Zaman aşımı beklemede</translation>
     </message>
     <message>
         <source>Delete TCB</source>
@@ -4256,7 +4260,7 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellendi</translation>
     </message>
     <message>
         <source>Unknown %1</source>
@@ -4323,11 +4327,11 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     </message>
     <message>
         <source>Uploaded</source>
-        <translation>Yüklenmiş</translation>
+        <translation>Yüklendi</translation>
     </message>
     <message>
         <source>Downloaded</source>
-        <translation>İndirilmiş</translation>
+        <translation>İndirildi</translation>
     </message>
     <message>
         <source>Time Stamp</source>
@@ -4423,7 +4427,7 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     </message>
     <message>
         <source>Auto Expand</source>
-        <translation>Oto Genişlet</translation>
+        <translation>Otomatik Genişlet</translation>
     </message>
 </context>
 <context>
@@ -4487,15 +4491,15 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <name>CTweakView</name>
     <message>
         <source>Refresh tweak states</source>
-        <translation>İnce ayar durumlarını yenile</translation>
+        <translation>İnce Ayar Durumlarını Yenile</translation>
     </message>
     <message>
         <source>Show not available tweaks</source>
-        <translation>Mevcut olmayan ince ayarları göster</translation>
+        <translation>Mevcut Olmayan İnce Ayarları Göster</translation>
     </message>
     <message>
         <source>Approve Current State</source>
-        <translation>Mevcut durumu onayla</translation>
+        <translation>Mevcut Durumu Onayla</translation>
     </message>
     <message>
         <source>Restore Approved State</source>
@@ -4503,7 +4507,7 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     </message>
     <message>
         <source>Auto Expand</source>
-        <translation>Oto Genişlet</translation>
+        <translation>Otomatik Genişlet</translation>
     </message>
     <message>
         <source>This tweak is marked as breaking, hence it may break something. Are you sure you want to apply it?</source>
@@ -4610,19 +4614,19 @@ Aşağıdaki işlemler gerçekleştirilecektir:
     <name>CVolume</name>
     <message>
         <source>Unmounted Volume</source>
-        <translation>Çıkarılmış Birim</translation>
+        <translation>Birim Bağlanmamış</translation>
     </message>
     <message>
         <source>Mounted Volume</source>
-        <translation>Bağlanmış Birim</translation>
+        <translation>Birim Bağlı</translation>
     </message>
     <message>
         <source>Unprotected Folder</source>
-        <translation>Korumasız Klasör</translation>
+        <translation>Klasör Korunmuyor</translation>
     </message>
     <message>
         <source>Protected Folder</source>
-        <translation>Korumalı Klasör</translation>
+        <translation>Klasör Korunuyor</translation>
     </message>
     <message>
         <source>Unknown</source>
@@ -4633,7 +4637,7 @@ Aşağıdaki işlemler gerçekleştirilecektir:
     <name>CVolumeManager</name>
     <message>
         <source>%1 - Protection</source>
-        <translation type="unfinished">%1 - Koruma</translation>
+        <translation>%1 - Koruma</translation>
     </message>
 </context>
 <context>
@@ -4672,14 +4676,6 @@ Aşağıdaki işlemler gerçekleştirilecektir:
     <message>
         <source>Change Volume Password</source>
         <translation>Birim Parolasını Değiştir</translation>
-    </message>
-    <message>
-        <source>Rename Volume</source>
-        <translation type="vanished">Birimi Yeniden Adlandır</translation>
-    </message>
-    <message>
-        <source>Remove Volume</source>
-        <translation type="vanished">Birimi Kaldır</translation>
     </message>
     <message>
         <source>Create Volume</source>
@@ -4734,12 +4730,6 @@ Aşağıdaki işlemler gerçekleştirilecektir:
         <translation>Lütfen öğe için bir ad girin</translation>
     </message>
     <message>
-        <source>Do you want to remove selected Volumes from list?
-Note: The volume image files will remain intact and must be manually deleted.</source>
-        <translation type="vanished">Seçili Birimleri listeden kaldırmak istiyor musunuz?
-Not: Birim görüntü dosyaları olduğu gibi kalacak ve elle silinmesi gerekecektir.</translation>
-    </message>
-    <message>
         <source>The security of files and folders on unencrypted volumes cannot be guaranteed if Major Privacy is not running or if the Kernel Isolator driver is not loaded. In this state, folder access control will not be enforced.
 For non-critical data, folder protection may still provide a basic level of security. However, for highly confidential or sensitive information, it is strongly recommended to use a secure, encrypted volume to ensure robust protection against unauthorized access.</source>
         <translation>Şifrelenmemiş birimlerdeki dosya ve klasörlerin güvenliği, Major Privacy çalışmıyorsa veya Kernel Isolator sürücüsü yüklenmemişse garanti edilemez. Bu durumda, klasör erişim denetimi uygulanmaz.
@@ -4750,21 +4740,18 @@ Kritik olmayan veriler için, klasör koruması yine de temel düzeyde güvenlik
         <translation>Dizin Seç</translation>
     </message>
     <message>
-        <source>%1 - Protection</source>
-        <translation type="vanished">%1 - Koruma</translation>
-    </message>
-    <message>
         <source>Rename Volume/Folder</source>
-        <translation type="unfinished"></translation>
+        <translation>Birimi/Klasörü Yeniden Adlandır</translation>
     </message>
     <message>
         <source>Remove Volume/Folder</source>
-        <translation type="unfinished"></translation>
+        <translation>Birimi/Klasörü Kaldır</translation>
     </message>
     <message>
         <source>Do you want to remove selected Entries from list?
 Note: The volume image files will remain intact and must be manually deleted.</source>
-        <translation type="unfinished"></translation>
+        <translation>Seçili Girişleri listeden kaldırmak istiyor musunuz?
+Not: Birim görüntü dosyaları olduğu gibi kalacak ve elle silinmesi gerekecektir.</translation>
     </message>
 </context>
 <context>
@@ -4854,7 +4841,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Image Load Protection</source>
-        <translation>Görüntü Yükleme Koruması</translation>
+        <translation>Görüntü yükleme koruması</translation>
     </message>
     <message>
         <source>Process Spawn Handling</source>
@@ -4882,11 +4869,11 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Prevent termination</source>
-        <translation>Sonlandırmayı Önle</translation>
+        <translation>Sonlandırmayı önle</translation>
     </message>
     <message>
         <source>Allow Debugging (INSECURE !!!)</source>
-        <translation>Hata Ayıklamaya İzin Ver (Güvensiz!)</translation>
+        <translation>Hata ayıklamaya izin ver (Güvensiz!)</translation>
     </message>
 </context>
 <context>
@@ -5226,11 +5213,11 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>All Programs</source>
-        <translation>Tüm Programlar</translation>
+        <translation>Tüm programlar</translation>
     </message>
     <message>
         <source>Select a program from the list</source>
-        <translation>Listeden bir program seçin</translation>
+        <translation>Listeden bir Program Seçin</translation>
     </message>
     <message>
         <source>Program</source>
@@ -5281,7 +5268,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Image Load Protection</source>
-        <translation>Görüntü Yükleme Koruması</translation>
+        <translation>Görüntü yükleme koruması</translation>
     </message>
 </context>
 <context>
@@ -5371,11 +5358,11 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Allowed</source>
-        <translation>İzin Verilmiş</translation>
+        <translation>İzin Verildi</translation>
     </message>
     <message>
         <source>Blocked</source>
-        <translation>Engellenmiş</translation>
+        <translation>Engellendi</translation>
     </message>
     <message>
         <source> (0x%1)</source>
@@ -5399,7 +5386,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Process Started</source>
-        <translation>İşlem Başladı</translation>
+        <translation>İşlem Başlatma</translation>
     </message>
     <message>
         <source>Image Loaded</source>
@@ -5439,15 +5426,15 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Allowed (Untrusted)</source>
-        <translation>İzin Verilmiş (Güvenilmez)</translation>
+        <translation>İzin Verildi (Güvenilmez)</translation>
     </message>
     <message>
         <source>Allowed (Ejected)</source>
-        <translation>İzin Verilmiş (Çıkarıldı)</translation>
+        <translation>İzin Verildi (Çıkarıldı)</translation>
     </message>
     <message>
         <source>Blocked (Protected)</source>
-        <translation>Engellenmiş (Korumalı)</translation>
+        <translation>Engellendi (Korumalı)</translation>
     </message>
 </context>
 <context>
@@ -5470,7 +5457,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Auto list installed applications in the program tree</source>
-        <translation>Kurulu uygulamaları program ağacında  oto listele</translation>
+        <translation>Program ağacında yüklü uygulamaları otomatik listele</translation>
     </message>
     <message>
         <source>Interface Config</source>
@@ -5478,7 +5465,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Use Dark Theme</source>
-        <translation>Koyu Temayı Kullan</translation>
+        <translation>Koyu temayı kullan</translation>
     </message>
     <message>
         <source>Interface Options</source>
@@ -5486,7 +5473,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Use Fusion Theme</source>
-        <translation>Füzyon Temasını Kullan</translation>
+        <translation>Füzyon temasını kullan</translation>
     </message>
     <message>
         <source>Notifications</source>
@@ -5522,15 +5509,15 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Show Process Protection Notification Popups</source>
-        <translation>İşlem Koruma Bildirimi Açılır Pencerelerini Göster</translation>
+        <translation>İşlem koruma bildirimi açılır pencerelerini göster</translation>
     </message>
     <message>
         <source>Record Process Execution and Ingress to Disk (IngressRecord.dat)</source>
-        <translation>İşlem Yürütme ve Disk Girişlerini Kaydet (IngressRecord.dat)</translation>
+        <translation>İşlem yürütme ve disk girişlerini kaydet (IngressRecord.dat)</translation>
     </message>
     <message>
         <source>Log Process Execution and Ingress (to RAM)</source>
-        <translation>İşlem Yürütme ve Girişleri (RAM&apos;e) Günlükle</translation>
+        <translation>İşlem yürütme ve girişleri günlükle (Belleğe)</translation>
     </message>
     <message>
         <source>Process Execution and Ingress Tracing</source>
@@ -5542,7 +5529,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Save File/Folder Accesses Record to Disk (AccessRecord.dat)</source>
-        <translation>Dosya/Klasör Erişim Kayıtlarını Diske Kaydet (AccessRecord.dat)</translation>
+        <translation>Dosya/klasör erişim kayıtlarını diske kaydet (AccessRecord.dat)</translation>
     </message>
     <message>
         <source>Resource Access Logging</source>
@@ -5550,27 +5537,27 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Show Resource Access Notification Popups</source>
-        <translation>Kaynak Erişim Bildirimi Açılır Pencerelerini Göster</translation>
+        <translation>Kaynak erişim bildirimi açılır pencerelerini göster</translation>
     </message>
     <message>
         <source>List All Open Files</source>
-        <translation>Tüm Açık Dosyaları Listele</translation>
+        <translation>Tüm açık dosyaları listele</translation>
     </message>
     <message>
         <source>File/Folder Accesses Tracing</source>
-        <translation>Dosya/Klasör Erişim İzleme</translation>
+        <translation>Dosya/klasör erişimlerini izle</translation>
     </message>
     <message>
         <source>Trace also access attempts to non existing resources</source>
-        <translation>Mevcut Olmayan Kaynaklara Erişim Girişimlerini de İzle</translation>
+        <translation>Mevcut olmayan kaynaklara erişim girişimlerini de izle</translation>
     </message>
     <message>
         <source>Registry Access Tracing (not recommended, adds some CPU load)</source>
-        <translation>Kayıt Defteri Erişim İzleme (önerilmez, CPU yükü ekler)</translation>
+        <translation>Kayıt defteri erişimini izle (Önerilmez, CPU yükü ekler)</translation>
     </message>
     <message>
         <source>Log all File/Folder Accesses (to RAM)</source>
-        <translation>Tüm Dosya/Klasör Erişimlerini Günlüğe kaydet (RAM&apos;e)</translation>
+        <translation>Tüm dosya/klasör erişimlerini günlükle (Belleğe)</translation>
     </message>
     <message>
         <source>Firewall Config</source>
@@ -5578,31 +5565,31 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>This feature enables the creation of firewall rule templates with path wildcards. When the Privacy Agent detects network activity matching a template without an existing rule, it automatically generates a new firewall rule.</source>
-        <translation>Bu özellik, yollarda joker karakter kullanarak güvenlik duvarı kuralı şablonlarının oluşturulmasını sağlar. Privacy Agent, mevcut bir kural olmadan bir şablonla eşleşen ağ etkinliğini algıladığında, otomatik olarak yeni bir güvenlik duvarı kuralı oluşturur.</translation>
+        <translation>Bu özellik, yol joker karakterleri içeren güvenlik duvarı kural şablonlarının oluşturulmasını sağlar. Privacy Agent, şablonla eşleşen ancak mevcut bir kuralı olmayan ağ etkinliği tespit ettiğinde otomatik olarak yeni bir güvenlik duvarı kuralı oluşturur.</translation>
     </message>
     <message>
         <source>Enhance Windows Firewall with Dynamic Rule Templates</source>
-        <translation>Dinamik Kural Şablonlarıyla Windows Güvenlik Duvarını Geliştir</translation>
+        <translation>Dinamik kural şablonlarıyla Windows Güvenlik Duvarını geliştir</translation>
     </message>
     <message>
         <source>Save Traffic Record to Disk (TrafficRecord.dat)</source>
-        <translation>Trafik Kaydını Diske Kaydet (TrafficRecord.dat)</translation>
+        <translation>Trafik kaydını diske kaydet (TrafficRecord.dat)</translation>
     </message>
     <message>
         <source>Disable Windows Firewall (not recomended)</source>
-        <translation>Windows Güvenlik Duvarını Devre Dışı Bırak (önerilmez)</translation>
+        <translation>Windows Güvenlik Duvarını devre dışı bırak (Önerilmez)</translation>
     </message>
     <message>
         <source>When creating a new (outbound) rule also create an inbound rule</source>
-        <translation>Yeni bir (giden) kural oluştururken aynı zamanda bir gelen kural da oluştur</translation>
+        <translation>Yeni bir giden kuralı oluştururken aynı zamanda bir gelen kuralı da oluştur</translation>
     </message>
     <message>
         <source>Block List Mode (Windows default)</source>
-        <translation>Engel Listesi Modu (Windows Varsayılan)</translation>
+        <translation>Engel Listesi Modu (Windows Varsayılanı)</translation>
     </message>
     <message>
         <source>Allow List Mode (recommended)</source>
-        <translation>İzin Liste Modu (Önerilen)</translation>
+        <translation>İzin Listesi Modu (Önerilen)</translation>
     </message>
     <message>
         <source>Windows Firewall Logging</source>
@@ -5614,19 +5601,19 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Use Simple Domain Resolution</source>
-        <translation>Basit Etki Alanı Çözünürlüğü Kullan</translation>
+        <translation>Basit Etki Alanı çözünürlüğü kullan</translation>
     </message>
     <message>
         <source>Use Reverse DNS</source>
-        <translation>Ters DNS Kullan</translation>
+        <translation>Ters DNS kullan</translation>
     </message>
     <message>
         <source>Show Connection Notification Popups</source>
-        <translation>Bağlantı Bildirimi Açılır Pencerelerini Göster</translation>
+        <translation>Bağlantı bildirimi açılır pencerelerini göster</translation>
     </message>
     <message>
         <source>Log all Network Access (to RAM)</source>
-        <translation>Tüm Ağ Erişimini kaydet (RAM&apos;e)</translation>
+        <translation>Tüm ağ erişimini günlükle (Belleğe)</translation>
     </message>
     <message>
         <source>Firewall Audit Policy</source>
@@ -5634,7 +5621,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Load Windows Firewall Log on start (can be very slow)</source>
-        <translation>Windows Güvenlik Duvarı Günlüğünü başlangıçta yükle (çok yavaş olabilir)</translation>
+        <translation>Windows Güvenlik Duvarı günlüğünü başlangıçta yükle (Çok yavaş olabilir)</translation>
     </message>
     <message>
         <source>(Should be set to All)</source>
@@ -5642,7 +5629,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Record Network Traffic</source>
-        <translation>Ağ Trafiğini Kaydet</translation>
+        <translation>Ağ trafiğini kaydet</translation>
     </message>
     <message>
         <source>Dns Filter</source>
@@ -5650,7 +5637,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Setup DNS Proxy as default DNS in Windows</source>
-        <translation>DNS Ara Sunucusu Windows&apos;ta varsayılan DNS olarak ayarlansın</translation>
+        <translation>DNS ara sunucusunu Windows&apos;ta varsayılan DNS olarak ayarla</translation>
     </message>
     <message>
         <source>Remove</source>
@@ -5658,11 +5645,11 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Load DNS Blocklists</source>
-        <translation>DNS Engel Listeleri yükle</translation>
+        <translation>DNS engel listelerini yükle</translation>
     </message>
     <message>
         <source>Upstream DNS Resolvers</source>
-        <translation>Yukarı Akış DNS Çözücüleri</translation>
+        <translation>Yukarı Akış DNS Çözümleyicileri</translation>
     </message>
     <message>
         <source>DNS Filter</source>
@@ -5670,7 +5657,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Enable Filtering DNS Proxy</source>
-        <translation>DNS Ara Sunucu Filtrelemesini etkinleştir</translation>
+        <translation>DNS ara sunucu filtrelemesini etkinleştir</translation>
     </message>
     <message>
         <source>8.8.8.8;1.1.1.1</source>
@@ -5726,7 +5713,7 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Please enter your Supporter Certificate or License Serial Number:</source>
-        <translation>Lütfen destekçi sertifikanızı veya lisans seri numaranızı girin:</translation>
+        <translation>Lütfen Destekçi Sertifikanızı veya Lisans Seri Numaranızı Girin:</translation>
     </message>
     <message>
         <source>Hotpatches for the installed version, updates to the Templates.ini and translations.</source>
@@ -5742,11 +5729,11 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>Search in the Preview channel</source>
-        <translation>Önizleme kanalında arama</translation>
+        <translation>Ön izleme kanalında ara</translation>
     </message>
     <message>
         <source>Update Settings</source>
-        <translation>Ayarları Güncelle</translation>
+        <translation>Güncelleme Ayarları</translation>
     </message>
     <message>
         <source>The stable channel contains the latest stable GitHub releases.</source>
@@ -5769,18 +5756,6 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
         <translation>Güncelleme Denetim Aralığı</translation>
     </message>
     <message>
-        <source>Check periodically for new versions</source>
-        <translation type="vanished">Yeni sürümleri düzenli aralıklarla denetle</translation>
-    </message>
-    <message>
-        <source>&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-use-cert&quot;&gt;Certificate usage guide&lt;/a&gt;</source>
-        <translation type="vanished">&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-use-cert&quot;&gt;Sertifika kullanım kılavuzu&lt;/a&gt;</translation>
-    </message>
-    <message>
-        <source>This supporter certificate has expired, please &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-renew-cert&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
-        <translation type="vanished">Bu destekçi sertifikasının süresi doldu, lütfen &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-renew-cert&quot;&gt;güncel bir sertifika edinin&lt;/a&gt;.</translation>
-    </message>
-    <message>
         <source>Enter the support certificate here</source>
         <translation>Destek sertifikasını buraya girin</translation>
     </message>
@@ -5790,70 +5765,71 @@ Leet (L337) konuşma değişikliklerinin uygulanmasıyla 512 bite çıkar ve tam
     </message>
     <message>
         <source>License</source>
-        <translation type="unfinished"></translation>
+        <translation>Lisans</translation>
     </message>
     <message>
         <source>Cert Info</source>
-        <translation type="unfinished"></translation>
+        <translation>Sertifika Bilgisi</translation>
     </message>
     <message>
         <source>Major Privacy Version: 0.0.0</source>
-        <translation type="unfinished"></translation>
+        <translation>Major Privacy Sürüm: 0.0.0</translation>
     </message>
     <message>
         <source>This supporter certificate has expired, please &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-renew-cert&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu destekçi sertifikasının süresi doldu, lütfen &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-renew-cert&quot;&gt;güncel bir sertifika edinin&lt;/a&gt;.</translation>
     </message>
     <message>
         <source>&lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-use-cert&quot;&gt;Certificate usage guide&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-use-cert&quot;&gt;Sertifika kullanım kılavuzu&lt;/a&gt;</translation>
     </message>
     <message>
         <source>Cert Options</source>
-        <translation type="unfinished"></translation>
+        <translation>Sertifika Seçenekleri</translation>
     </message>
     <message>
         <source>Eval Cert</source>
-        <translation type="unfinished"></translation>
+        <translation>Deneme Sertifikası</translation>
     </message>
     <message>
         <source>HwId: 00000000-0000-0000-0000-000000000000</source>
-        <translation type="unfinished"></translation>
+        <translation>HwId: 00000000-0000-0000-0000-000000000000</translation>
     </message>
     <message>
         <source>Maintaining and improving MajorPrivacy is an ongoing process focused on enhancing functionality, user experience, and privacy protection. Your support is essential to ensure continued development, long-term sustainability, and the addition of new features. You can support MajorPrivacy by &lt;a href=&quot;https://xanasoft.com/go.php?to=mp-contribute&quot;&gt;contributing directly to the project&lt;/a&gt;, showing your appreciation by &lt;a href=&quot;https://xanasoft.com/go.php?to=mp-obtain-cert&quot;&gt;purchasing a supporter certificate&lt;/a&gt;, becoming a patron by &lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;subscribing on Patreon&lt;/a&gt;, or through a &lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal donation&lt;/a&gt;. Your support helps drive innovation and ensures the continued availability of this privacy-focused tool.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy&apos;yi sürdürmek ve iyileştirmek, işlevselliği, kullanıcı deneyimini ve gizlilik korumasını geliştirmeye odaklanan devam eden bir süreçtir. Sürekli geliştirme, uzun vadeli sürdürülebilirlik ve yeni özelliklerin eklenmesini sağlamak için desteğiniz önemlidir. MajorPrivacy&apos;yi &lt;a href=&quot;https://xanasoft.com/go.php?to=mp-contribute&quot;&gt;projeye doğrudan katkıda bulunarak&lt;/a&gt;, &lt;a href=&quot;https://xanasoft.com/go.php?to=mp-obtain-cert&quot;&gt;destekçi sertifikası satın alarak&lt;/a&gt;, &lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;Patreon&apos;a abone olarak&lt;/a&gt; veya &lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal bağışı&lt;/a&gt; yoluyla destekleyebilirsiniz. Desteğiniz yeniliği teşvik etmeye yardımcı olur ve bu gizlilik odaklı aracın sürekli kullanılabilirliğini sağlar.</translation>
     </message>
     <message>
         <source>Online Updater</source>
-        <translation type="unfinished"></translation>
+        <translation>Çevrimiçi Güncelleyici</translation>
     </message>
     <message>
         <source>Keep add-on list up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>Eklenti listesini güncel tut</translation>
     </message>
     <message>
         <source>
 														  The Insider channel offers early access to new features and bugfixes that will eventually be released to the public, as well as all relevant improvements from the stable channel.
 														  Unlike the preview channel, it does not include untested, potentially breaking, or experimental changes that may not be ready for wider use.
 													  </source>
-        <translation type="unfinished"></translation>
+        <translation>Insider kanalı, herkese açılacak yeni özelliklere ve hata düzeltmelerine erken erişim sağlar ve ayrıca kararlı kanaldaki ilgili tüm iyileştirmeleri de bulundurur.
+Ön izleme kanalından farklı olarak, genel kullanıma hazır olmayan denenmemiş, potansiyel olarak bozuk veya deneysel değişiklikleri içermez.</translation>
     </message>
     <message>
         <source>Search in the Insider channel</source>
-        <translation type="unfinished"></translation>
+        <translation>Insider kanalında ara</translation>
     </message>
     <message>
         <source>Check periodically for new Sandboxie-Plus versions</source>
-        <translation type="unfinished"></translation>
+        <translation>Major Privacy güncellemelerini düzenli aralıklarla denetle</translation>
     </message>
     <message>
         <source>More about the &lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-insider&quot;&gt;Insider Channel&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-insider&quot;&gt;Insider Kanalı&lt;/a&gt; hakkında daha fazla bilgi</translation>
     </message>
     <message>
         <source>Keep Troubleshooting scripts up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>Sorun giderme betik dosyalarını güncel tut</translation>
     </message>
 </context>
 <context>
