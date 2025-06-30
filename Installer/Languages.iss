@@ -15,6 +15,7 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "hungarian"; MessagesFile: "compiler:Languages\Hungarian.isl"
 Name: "Italian"; MessagesFile: "compiler:Languages\Italian.isl"
+Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 Name: "Korean"; MessagesFile: "isl\Korean.isl"
 Name: "polish"; MessagesFile: "compiler:Languages\Polish.isl"
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
@@ -34,7 +35,6 @@ Name: "vietnamese"; MessagesFile: "isl\Vietnamese.isl"
 ;Name: "finnish"; MessagesFile: "compiler:Languages\Finnish.isl"
 ;Name: "hebrew"; MessagesFile: "compiler:Languages\Hebrew.isl"
 ;Name: "icelandic"; MessagesFile: "compiler:Languages\Icelandic.isl"
-;Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 ;Name: "norwegian"; MessagesFile: "compiler:Languages\Norwegian.isl"
 ;Name: "slovak"; MessagesFile: "compiler:Languages\Slovak.isl"
 ;Name: "slovenian"; MessagesFile: "compiler:Languages\Slovenian.isl"
@@ -118,6 +118,16 @@ Italian.CustomPageInstallMode=Installa {#MyAppName} su questo computer
 Italian.CustomPageUpgradeMode=Aggiorna l'installazione esistente di {#MyAppName}
 Italian.CustomPagePortableMode=Estrai tutti i file in una directory per uso portabile
 Italian.RequiresWin7OrLater={#MyAppName} richiede Windows 7 o superiore.
+
+; Japanese
+japanese.CustomPageLabel1=インストールの種類を選択
+japanese.CustomPageLabel2=どのようにインストールしますか
+japanese.CustomPageLabel3=インストールモードを選択してください
+japanese.CustomPageInstallMode=このコンピューターに{#MyAppName}をインストールする
+japanese.CustomPageUpgradeMode=既存の{#MyAppName}インストールを更新する
+japanese.CustomPagePortableMode=ポータブル使用のためにすべてのファイルをディレクトリに展開する
+japanese.RequiresWin7OrLater={#MyAppName}には、Windows 7以降が必要です。
+japanese.InstallImDisk=ImDisk 3.0ドライバーをインストール（または更新）する（RamDiskおよび暗号化サンドボックス用）
 
 ; Korean
 Korean.CustomPageLabel1=설치 유형 선택
