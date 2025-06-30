@@ -4767,7 +4767,7 @@ For non-critical data, folder protection may still provide a basic level of secu
     </message>
     <message>
         <source>Remove Volume/Folder</source>
-        <translation移除卷/目录></translation>
+        <translation>移除卷/目录></translation>
     </message>
     <message>
         <source>Do you want to remove selected Entries from list?
