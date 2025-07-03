@@ -44,3 +44,6 @@ extern "C" {
 #include <locale>
 #include <codecvt>
 #include <algorithm>
+
+//Please adjust it when you are going to publish non-enclave version
+#define ENCLAVE_ENABLED

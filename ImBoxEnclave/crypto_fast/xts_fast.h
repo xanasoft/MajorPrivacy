@@ -2,8 +2,6 @@
 #define _XTS_FAST_H_
 
 
-
-
 #include <memory.h>
 #include "aes_key.h"
 #include "twofish.h"
@@ -54,5 +52,15 @@ int  _stdcall xts_aes_ni_available();
 	extern long save_fpu_state(unsigned char state[32]);
 	extern void load_fpu_state(unsigned char state[32]);
 #endif
+
+	static void _stdcall xts_aes_twofish_encrypt(const unsigned char* in, unsigned char* out, size_t len, unsigned __int64 offset, xts_key* key);
+	static void _stdcall xts_aes_twofish_decrypt(const unsigned char* in, unsigned char* out, size_t len, unsigned __int64 offset, xts_key* key);
+	static void _stdcall xts_twofish_serpent_decrypt(const unsigned char* in, unsigned char* out, size_t len, unsigned __int64 offset, xts_key* key);
+	static void _stdcall xts_twofish_serpent_encrypt(const unsigned char* in, unsigned char* out, size_t len, unsigned __int64 offset, xts_key* key);
+	static void _stdcall xts_twofish_serpent_decrypt(const unsigned char* in, unsigned char* out, size_t len, unsigned __int64 offset, xts_key* key);
+	static void _stdcall xts_serpent_aes_encrypt(const unsigned char* in, unsigned char* out, size_t len, unsigned __int64 offset, xts_key* key);
+	static void _stdcall xts_serpent_aes_decrypt(const unsigned char* in, unsigned char* out, size_t len, unsigned __int64 offset, xts_key* key);
+	static void _stdcall xts_aes_twofish_serpent_encrypt(const unsigned char* in, unsigned char* out, size_t len, unsigned __int64 offset, xts_key* key);
+	static void _stdcall xts_aes_twofish_serpent_decrypt(const unsigned char* in, unsigned char* out, size_t len, unsigned __int64 offset, xts_key* key);
 
 #endif
