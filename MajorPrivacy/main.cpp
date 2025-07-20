@@ -122,6 +122,11 @@ int main(int argc, char *argv[])
 	QString AppDir = QString::fromStdWString(GetApplicationDirectory());
 	theConf = new CSettings(AppDir, "MajorPrivacy", "Xanasoft");
 
+	//
+	// Qt 6 uses the windows font cache which wants to access our process but our driver blocks it
+	// that causes a lot of log entries, hence we disable the use of windows fonr cache.
+	//
+	qputenv("QT_QPA_PLATFORM", QByteArrayLiteral("windows:nodirectwrite"));
 
 	QtSingleApplication App(argc, argv);
 	App.setQuitOnLastWindowClosed(false);

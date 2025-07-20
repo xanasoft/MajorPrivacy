@@ -11,9 +11,46 @@ CFwRule::CFwRule(const CProgramID& ID, QObject* parent)
     m_AppContainerSid = ID.GetAppContainerSid();
 }
 
+QString CFwRule::GetSourceStr() const
+{
+    switch (GetSource()) {
+    case EFwRuleSource::eWindowsDefault: return tr("Windows Default");
+	case EFwRuleSource::eWindowsStore:   return tr("Windows Store");
+    case EFwRuleSource::eMajorPrivacy:   return tr("Major Privacy");
+    case EFwRuleSource::eAutoTemplate:   return tr("Privacy Template");
+    default:                             return "";
+	}
+}
+
+QString CFwRule::GetStateStr() const
+{
+    switch (GetState()) {
+    case EFwRuleState::eUnapprovedDisabled:
+    case EFwRuleState::eUnapproved: return tr("Unapproved");
+    case EFwRuleState::eApproved:   return tr("Approved");
+    case EFwRuleState::eBackup:     return tr("Backup");
+	case EFwRuleState::eDiverged:   return tr("Diverged");
+	//case EFwRuleState::eDeleted:    return tr("Deleted");
+    }
+    return tr("Unknown");
+}
+
+QColor CFwRule::GetStateColor() const
+{
+    switch (GetState()) {
+    case EFwRuleState::eUnapprovedDisabled:
+    case EFwRuleState::eUnapproved: return QColor(255, 255, 128); // Yellow
+    case EFwRuleState::eApproved:   return QColor(128, 255, 128); // Green
+    case EFwRuleState::eBackup:     return QColor(255, 128, 128); // Red
+	case EFwRuleState::eDiverged:   return QColor(255, 192, 128);   // Orange
+	//case EFwRuleState::eDeleted:    return QColor(128, 128, 128); // Gray
+    }
+	return QColor(0, 0, 0); // Black for unknown state
+}
+
 void CFwRule::SetTemporary(bool bTemporary)
 {
-    m_Grouping = bTemporary ? "&Temporary" : "";
+    m_Grouping = bTemporary ? "#Temporary" : "";
     CGenericRule::SetTemporary(bTemporary);
 }
 
@@ -29,6 +66,8 @@ QString CFwRule::GetProgram() const
 CFwRule* CFwRule::Clone() const
 {
 	CFwRule* pRule = new CFwRule(m_ProgramID);
+    pRule->SetApproved();
+    pRule->SetSource(EFwRuleSource::eMajorPrivacy);
     CopyTo(pRule);
 
 	pRule->m_BinaryPath = m_BinaryPath;

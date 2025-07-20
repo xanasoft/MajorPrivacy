@@ -825,7 +825,7 @@ STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& 
     {
         CProgramID ID(EProgramType::eAllPrograms);
         CAccessRulePtr pRule = std::make_shared<CAccessRule>(ID);
-        pRule->SetName(L"&Protect," + Path);
+        pRule->SetName(L"#Protect," + Path);
         pRule->SetAccessPath(DevicePath + L"\\*");
         pRule->SetType(EAccessRuleType::eProtect);
         pRule->SetTemporary(true);
@@ -900,7 +900,7 @@ STATUS CVolumeManager::DismountVolume(const std::shared_ptr<CVolume>& pMount)
 
     CProgramID ID(theCore->NormalizePath( L"\\SystemRoot\\System32\\imdisk.exe"));
     CAccessRulePtr pRule = std::make_shared<CAccessRule>(ID);
-    pRule->SetName(L"&Unmount," + pMount->ImageDosPath());
+    pRule->SetName(L"#Unmount," + pMount->ImageDosPath());
     pRule->SetAccessPath(pMount->DevicePath());
     pRule->SetType(EAccessRuleType::eAllow);
     pRule->SetTemporary(true);
@@ -1045,7 +1045,7 @@ STATUS CVolumeManager::TryAddRule(const CAccessRulePtr& pRule, const std::wstrin
 
         auto pClone = pRule->Clone();
         pClone->SetTemporary(true);
-        pClone->SetData(API_V_RULE_REF_GUID, pRule->GetGuid().ToVariant(true));
+        pClone->SetData(API_S_RULE_REF_GUID, pRule->GetGuid().ToVariant(true));
         pClone->SetAccessPath(AccessPath);
         return theCore->AccessManager()->AddRule(pClone);
     }
@@ -1086,7 +1086,7 @@ void CVolumeManager::UpdateRule(const CAccessRulePtr& pRule, enum class EConfigE
         std::wstring RulePath = pRule->GetAccessPath();
         if (pRule->IsTemporary()) {
             CFlexGuid Guid;
-            Guid.FromVariant(pRule->GetData(API_V_RULE_REF_GUID));
+            Guid.FromVariant(pRule->GetData(API_S_RULE_REF_GUID));
             if(Guid == pRule->GetGuid())
                 theCore->AccessManager()->RemoveRule(pRule->GetGuid());
         }
@@ -1132,9 +1132,9 @@ STATUS CVolumeManager::LoadVolumeRules(const std::shared_ptr<CVolume>& pMount)
     {
         StVariant Rule = RuleList[i];
 
-        //std::wstring Guid = Rule[API_V_GUID].AsStr();
+        //std::wstring Guid = Rule[API_S_GUID].AsStr();
 
-        std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
+        std::wstring ProgramPath = theCore->NormalizePath(Rule[API_S_FILE_PATH].AsStr());
         CProgramID ID(ProgramPath);
 
         CAccessRulePtr pRule = std::make_shared<CAccessRule>(ID);

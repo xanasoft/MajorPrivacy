@@ -23,6 +23,8 @@
 #include "Access/HandleList.h"
 #include "Access/AccessManager.h"
 #include "../Library/Helpers/ScopedHandle.h"
+#include "../Library/Helpers/NtIO.h"
+#include "Common/EventLog.h"
 
 void CServiceCore::RegisterUserAPI()
 {
@@ -98,6 +100,7 @@ void CServiceCore::RegisterUserAPI()
 	m_pUserPipe->RegisterHandler(SVC_API_GET_HANDLES, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_CLEAR_LOGS, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_CLEANUP_ACCESS_TREE, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_SET_ACCESS_EVENT_ACTION, &CServiceCore::OnRequest, this);
 	
 	// Volume Manager
 	m_pUserPipe->RegisterHandler(SVC_API_VOL_CREATE_IMAGE, &CServiceCore::OnRequest, this);
@@ -122,6 +125,9 @@ void CServiceCore::RegisterUserAPI()
 	
 	m_pUserPipe->RegisterHandler(SVC_API_SET_DAT_FILE, &CServiceCore::OnRequest, this);
 	//m_pUserPipe->RegisterHandler(SVC_API_GET_DAT_FILE, &CServiceCore::OnRequest, this);
+
+	m_pUserPipe->RegisterHandler(SVC_API_GET_EVENT_LOG, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_CLEAR_EVENT_LOG, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_GET_SVC_STATS, &CServiceCore::OnRequest, this);
 
@@ -345,6 +351,12 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (Path.front() != L'\\')
 				Path = L"\\" + Path;
 			std::wstring FilePath = theCore->GetDataFolder() + Path;
+
+			if (FilePath.at(FilePath.length() - 1) == L'\\')
+			{
+				SNtObject ntOld(L"\\??\\" + FilePath);
+				return NtIo_DeleteFolderRecursively(&ntOld.attr, NULL, NULL);
+			}
 
 			return RemoveFile(FilePath) ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 		}
@@ -1103,6 +1115,16 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			RETURN_STATUS(Status);
 		}
 
+		case SVC_API_SET_ACCESS_EVENT_ACTION:
+		{
+			StVariant vReq;
+			vReq.FromPacket(req);
+			uint64 EventId = vReq[API_V_EVENT_REF].To<uint64>(0);
+			EAccessRuleType Action = (EAccessRuleType)vReq[API_V_EVENT_ACTION].To<int>();
+			STATUS Status = theCore->ProcessList()->SetAccessEventAction(EventId, Action);
+			RETURN_STATUS(Status);
+		}
+
 		// Volume Manager
 		case SVC_API_VOL_CREATE_IMAGE:
 		{
@@ -1285,6 +1307,22 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		case SVC_API_GET_DAT_FILE:
 		{
 			return STATUS_NOT_IMPLEMENTED;
+		}
+
+		case SVC_API_GET_EVENT_LOG:
+		{
+			StVariant vRpl;
+
+			SVarWriteOpt Opts;
+			vRpl[API_V_EVENT_LOG] = m_pEventLog->SaveEntries(Opts);
+
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
+		}
+		case SVC_API_CLEAR_EVENT_LOG:
+		{
+			m_pEventLog->ClearEvents();
+			RETURN_STATUS(OK);
 		}
 
 		case SVC_API_GET_SVC_STATS:

@@ -14,10 +14,20 @@ public:
 	STATUS UndoTweak(const CTweakPtr& pTweak);
 
 	CTweakPtr GetRoot();
+	QMap<QString, CTweakPtr> GetTweaks() const { return m_Map; }
+
+	int GetAppliedCount() const { return m_AppliedCount; }
+	int GetFailedCount() const { return m_FailedCount; }
+
+signals:
+	void TweaksChanged();
 
 protected:
 	QSharedPointer<CTweakList> m_pRoot;
 	QMap<QString, CTweakPtr> m_Map;
+
+	int m_AppliedCount = 0;
+	int m_FailedCount = 0;
 
 	void LoadTranslations(QString Lang);
 	QHash<QString, QString> m_Translations;

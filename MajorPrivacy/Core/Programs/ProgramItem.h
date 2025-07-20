@@ -52,6 +52,7 @@ public:
 	virtual void SetName(const QString& Name)		{ m_Name = Name; }
 	virtual QString GetName() const					{ return m_Name; }
 	virtual QString GetNameEx() const				{ return m_Name; }
+	virtual QString GetPublisher() const			{ return ""; }
 	//virtual QStringList GetCategories() const		{ return m_Categories; }
 	virtual QIcon DefaultIcon() const;
 	virtual void SetIconFile(const QString& IconFile) { m_IconFile = IconFile; UpdateIconFile(); }

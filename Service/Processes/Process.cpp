@@ -87,6 +87,7 @@ SProcessUID::SProcessUID(uint64 uPid, uint64 msTime)
 }
 
 const wchar_t* CProcess::NtOsKernel_exe = L"\\SystemRoot\\System32\\ntoskrnl.exe";
+//const wchar_t* CProcess::NtOsKernel_exe = L"%SystemRoot%\\System32\\ntoskrnl.exe";
 
 CProcess::CProcess(uint64 Pid)
 {

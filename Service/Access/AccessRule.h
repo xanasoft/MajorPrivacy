@@ -2,6 +2,7 @@
 #include "../Library/Common/StVariant.h"
 #include "Programs/ProgramID.h"
 #include "../GenericRule.h"
+#include "JSEngine/JSEngine.h"
 
 #include "../../Library/API/PrivacyDefs.h"
 
@@ -27,6 +28,18 @@ public:
 
 	void Update(const std::shared_ptr<CAccessRule>& Rule);
 
+	NTSTATUS FromVariant(const StVariant& Rule) override;
+
+	void UpdateScript();
+	bool HasScript() const;
+	EAccessRuleType RunScript(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask) const;
+
+	bool IsInteractive() const
+	{
+		std::shared_lock Lock(m_Mutex);
+		return m_bInteractive;
+	}
+
 protected:
 	void WriteIVariant(StVariantWriter& Rule, const SVarWriteOpt& Opts) const override;
 	void WriteMVariant(StVariantWriter& Rule, const SVarWriteOpt& Opts) const override;
@@ -34,9 +47,13 @@ protected:
 	void ReadMValue(const SVarName& Name, const StVariant& Data) override;
 
 	EAccessRuleType m_Type = EAccessRuleType::eNone;
+	bool m_bUseScript = false;
+	std::string m_Script;
+	bool m_bInteractive = false;
 	std::wstring m_AccessPath; // can be pattern
 	std::wstring m_ProgramPath; // can be pattern
 	bool m_bVolumeRule = false;
+	CJSEnginePtr m_pScript;
 };
 
 typedef std::shared_ptr<CAccessRule> CAccessRulePtr;

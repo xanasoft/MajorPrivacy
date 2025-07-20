@@ -28,6 +28,9 @@ CFwRuleView::CFwRuleView(QWidget *parent)
 	m_pEnableRule = m_pMenu->addAction(QIcon(":/Icons/Enable.png"), tr("Enable Rule"), this, SLOT(OnRuleAction()));
 	m_pDisableRule = m_pMenu->addAction(QIcon(":/Icons/Disable.png"), tr("Disable Rule"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
+	m_pApproveRule = m_pMenu->addAction(QIcon(":/Icons/Approve.png"), tr("Approve Rule"), this, SLOT(OnRuleAction()));
+	m_pRestoreRule = m_pMenu->addAction(QIcon(":/Icons/Recover.png"), tr("Restore Rule"), this, SLOT(OnRuleAction()));
+	m_pMenu->addSeparator();
 	m_pRuleBlock = m_pMenu->addAction(QIcon(":/Icons/Stop.png"), tr("Set Blocking"), this, SLOT(OnRuleAction()));
 	m_pRuleAllow = m_pMenu->addAction(QIcon(":/Icons/Go.png"), tr("Set Allowing"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
@@ -153,28 +156,42 @@ void CFwRuleView::OnMenu(const QPoint& Point)
 {
 	int iEnabledCount = 0;
 	int iDisabledCount = 0;
+	int iUnaproved = 0;
+	int iBackups = 0;
 	int iBlockCount = 0;
 	int iAllowCount = 0;
 	int iSelectedCount = 0;
-	foreach(auto pItem, m_SelectedItems) {
+	foreach(auto pItem, m_SelectedItems) 
+	{
+		if (pItem->GetState() == EFwRuleState::eUnapproved || pItem->GetState() == EFwRuleState::eUnapprovedDisabled)
+			iUnaproved++;
+		else if (pItem->GetState() == EFwRuleState::eBackup) {
+			iBackups++;
+			continue;
+		}
+
 		if (pItem->IsEnabled())
 			iEnabledCount++;
 		else
 			iDisabledCount++;
+
 		if (pItem->GetAction() == EFwActions::Block)
 			iBlockCount++;
 		else if (pItem->GetAction() == EFwActions::Allow)
 			iAllowCount++;
+
 		iSelectedCount++;
 	}
 
 	m_pEnableRule->setEnabled(iDisabledCount > 0);
 	m_pDisableRule->setEnabled(iEnabledCount > 0);
+	m_pApproveRule->setEnabled(iUnaproved > 0);
+	m_pRestoreRule->setEnabled(iBackups > 0);
 	m_pRuleBlock->setEnabled(iAllowCount > 0);
 	m_pRuleAllow->setEnabled(iBlockCount > 0);
-	m_pRemoveRule->setEnabled(iSelectedCount > 0);
+	m_pRemoveRule->setEnabled(iSelectedCount > 0 || iBackups > 0);
 	m_pEditRule->setEnabled(iSelectedCount == 1);
-	m_pCloneRule->setEnabled(iSelectedCount > 0);
+	m_pCloneRule->setEnabled(iSelectedCount > 0 || iBackups > 0);
 
 	CPanelView::OnMenu(Point);
 }
@@ -182,6 +199,8 @@ void CFwRuleView::OnMenu(const QPoint& Point)
 void CFwRuleView::OnAddRule()
 {
 	CFwRulePtr pRule = CFwRulePtr(new CFwRule(CProgramID()));
+	pRule->SetApproved();
+	pRule->SetSource(EFwRuleSource::eMajorPrivacy);
 	OpenRullDialog(pRule);
 }
 
@@ -213,6 +232,30 @@ void CFwRuleView::OnRuleAction()
 				STATUS Status = theCore->NetworkManager()->SetFwRule(pRule);
 				if(Status.IsError())
 					pRule->SetEnabled(true);
+				Results << Status;
+			}
+		}
+	}
+	else if (pAction == m_pApproveRule)
+	{
+		foreach(const CFwRulePtr & pRule, m_SelectedItems) {
+			if (pRule->IsUnapproved())
+			{
+				if(pRule->GetState() == EFwRuleState::eUnapprovedDisabled)
+					pRule->SetEnabled(true);
+				pRule->SetApproved();
+				STATUS Status = theCore->NetworkManager()->SetFwRule(pRule);
+				Results << Status;
+			}
+		}
+	}
+	else if (pAction == m_pRestoreRule)
+	{
+		foreach(const CFwRulePtr & pRule, m_SelectedItems) {
+			if (pRule->IsBackup())
+			{
+				pRule->SetApproved();
+				STATUS Status = theCore->NetworkManager()->SetFwRule(pRule);
 				Results << Status;
 			}
 		}

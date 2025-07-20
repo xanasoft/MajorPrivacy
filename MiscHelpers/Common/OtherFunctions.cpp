@@ -210,3 +210,17 @@ QIcon IconAddOverlay(const QIcon& Icon, const QString& Name, int Size)
 	painter.drawPixmap(32 - Size, 32 - Size, overlay);
 	return QIcon(result);
 }
+
+QImage ImageAddOverlay(const QImage& Icon, const QString& Name, int Size)
+{
+	QPixmap overlay = QPixmap(Name).scaled(Size, Size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+
+	QPixmap base = QPixmap::fromImage(Icon);
+	QPixmap result(base.width(), base.height());
+	result.fill(Qt::transparent); // force alpha channel
+	QPainter painter(&result);
+	painter.drawPixmap(0, 0, base);
+
+	painter.drawPixmap(Icon.width() - Size, Icon.height() - Size, overlay);
+	return result.toImage();
+}

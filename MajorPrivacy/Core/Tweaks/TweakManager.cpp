@@ -11,10 +11,8 @@ CTweakManager::CTweakManager(QObject* parent)
 
 CTweakPtr CTweakManager::GetRoot() 
 {
-	if (!m_pRoot) {
-		m_pRoot = QSharedPointer<CTweakList>(new CTweakList());
+	if (!m_pRoot)
 		Update();
-	}
 
 	return m_pRoot; 
 }
@@ -39,6 +37,9 @@ void CTweakManager::Update()
 	m_pRoot = QSharedPointer<CTweakList>(new CTweakList());
 	m_Map.clear();
 
+	m_AppliedCount = 0;
+	m_FailedCount = 0;
+
 	QtVariantReader(Tweaks).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Tweak = *(QtVariant*)&vData;
 
@@ -57,6 +58,9 @@ void CTweakManager::Update()
 		QString Name = m_Translations.value(Id + "/Name");
 		if (!Name.isEmpty()) pTweak->SetName(Name);
 
+		QString Info = m_Translations.value(Id + "/Description");
+		if (!Info.isEmpty()) pTweak->SetDescription(Info);
+
 		pTweak->SetStatus((ETweakStatus)Reader.Find(API_V_TWEAK_STATUS).To<uint32>()); 
 
 		m_Map[pTweak->GetId()] = pTweak;
@@ -71,6 +75,15 @@ void CTweakManager::Update()
 				pParent->AddTweak(pTweak);
 				if(QSharedPointer<CTweak> TweakPtr = pTweak.objectCast<CTweak>())
 					TweakPtr->SetParent(pParent);
+
+				if(pTweak->GetType() != ETweakType::eGroup && pTweak->GetType() != ETweakType::eSet)
+				{
+					if (pTweak->GetStatus() == ETweakStatus::eApplied || pTweak->GetStatus() == ETweakStatus::eSet)
+						m_AppliedCount++;
+					else if (pTweak->GetStatus() == ETweakStatus::eMissing || pTweak->GetStatus() == ETweakStatus::eIneffective)
+						m_FailedCount++;
+				}
+
 				return;
 			}
 		}
@@ -81,12 +94,16 @@ void CTweakManager::Update()
 
 STATUS CTweakManager::ApplyTweak(const CTweakPtr& pTweak)
 {
-	return theCore->ApplyTweak(pTweak->GetId());
+	STATUS Status = theCore->ApplyTweak(pTweak->GetId());
+	emit TweaksChanged();
+	return Status;
 }
 
 STATUS CTweakManager::UndoTweak(const CTweakPtr& pTweak)
 {
-	return theCore->UndoTweak(pTweak->GetId());
+	STATUS Status = theCore->UndoTweak(pTweak->GetId());
+	emit TweaksChanged();
+	return Status;
 }
 
 void CTweakManager::LoadTranslations(QString Lang)
@@ -97,20 +114,26 @@ void CTweakManager::LoadTranslations(QString Lang)
 	if (Sections.isEmpty()) 
 		return;
 	
+	QString Suffix;
+	if(Lang != "en")
+		Suffix = "_" + Lang;
+
 	QString FirstSection = Sections.first();
-	QString Test = TweaksIni.value(FirstSection + "/Name_" + Lang).toString();
-	if (Test.isEmpty()) {
+	QString Test = TweaksIni.value(FirstSection + "/Name" + Suffix).toString();
+	if (Test.isEmpty() && !Suffix.isEmpty()) {
 		Lang.truncate(Lang.lastIndexOf('_')); // Short version as fallback
-		Test = TweaksIni.value(FirstSection + "/Name_" + Lang).toString();
+		Suffix = "_" + Lang;
+		Test = TweaksIni.value(FirstSection + "/Name" + Suffix).toString();
 	}
 	if (Test.isEmpty())
 		return;
 
 	foreach(QString Section, Sections)
 	{
-		QString Name = TweaksIni.value(Section + "/Name_" + Lang).toString();
+		QString Name = TweaksIni.value(Section + "/Name" + Suffix).toString();
 		if (!Name.isEmpty()) m_Translations[Section + "/Name"] = Name;
-		//QString Description = TweaksIni.value(Section + "/Description_" + Lang).toString();
-		//if (!Description.isEmpty()) m_Translations[Section + "/Description"] = Name;
+
+		QString Description = TweaksIni.value(Section + "/Description" + Suffix).toString();
+		if (!Description.isEmpty()) m_Translations[Section + "/Description"] = Description;
 	}
 }

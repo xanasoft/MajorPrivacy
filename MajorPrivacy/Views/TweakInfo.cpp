@@ -57,8 +57,13 @@ void CTweakInfo::ShowTweak(const CTweakPtr& pTweak)
 	if (auto pSet = pTweak.objectCast<CTweakSet>())
 	{
 		QString sText;
-		foreach(const CTweakPtr & pTweak, pSet->GetList())
-			sText += pTweak->GetName() + ", " + pTweak->GetInfo() + "\n\n";
+		foreach(const CTweakPtr & pTweak, pSet->GetList()) {
+			sText += pTweak->GetName() + ", " + pTweak->GetInfo() + "\n";
+			QString sDesc = pTweak->GetDescription();
+			if(!sDesc.isEmpty())
+				sText += tr("Description: %1 \n").arg(sDesc);
+			sText += "\n";
+		}
 		m_pDescription->setPlainText(sText);
 	}
 	else

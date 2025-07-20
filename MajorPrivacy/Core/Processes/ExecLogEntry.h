@@ -41,7 +41,7 @@ public:
 	static QString GetRoleStr(EExecLogRole Role);
 	static QString GetTypeStr(EExecLogType Type);
 	static QColor GetAccessColor(quint32 uProcessAccessMask, quint32 uThreadAccessMask);
-	static QColor CExecLogEntry::GetAccessColor(EProcAccessClass eAccess);
+	static QColor GetAccessColor(EProcAccessClass eAccess);
 	static QString GetAccessStr(quint32 uProcessAccessMask, quint32 uThreadAccessMask);
 	static QString GetAccessStrEx(quint32 uProcessAccessMask, quint32 uThreadAccessMask);
 

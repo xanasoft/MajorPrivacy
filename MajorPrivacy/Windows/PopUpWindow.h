@@ -4,6 +4,8 @@
 #include "../MajorPrivacy.h"
 #include "../Core/Programs/ProgramItem.h"
 #include "../MiscHelpers/Common/PanelView.h"
+#include "../MiscHelpers/Common/Common.h"
+#include "../Core/Network/NetworkManager.h"
 
 
 
@@ -15,10 +17,11 @@ public:
 	~CPopUpWindow();
 
 	void				PushFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
+	void				PushFwRuleEvent(EConfigEvent EventType, const CFwRulePtr& pFwRule);
 
 	void				PushExecEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
 
-	void				PushResEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
+	void				PushResEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry, uint32 TimeOut);
 
 	//static void			SetDarkMode(bool bDark) { extern bool CPopUpWindow__DarkMode;  CPopUpWindow__DarkMode = bDark; }
 
@@ -32,6 +35,8 @@ private slots:
 	void				OnFwNext();
 	void				OnFwPrev();
 	void				OnFwAction();
+	void				OnFwRule();
+	void				OnFwRuleDblClick(QTreeWidgetItem* pItem);
 
 	// Resources
 	void				OnResNext();
@@ -48,39 +53,28 @@ protected:
 	void				timerEvent(QTimerEvent* pEvent);
 	int					m_uTimerID;
 
-	// Firewall
-	void				PopFwEvent();
-	void				UpdateFwCount();
-	void				LoadFwEntry(bool bUpdate = false);
+	struct SLogEntry
+	{
+		SLogEntry(CLogEntryPtr pEntry) : pPtr(pEntry) {}
 
-	int					m_iFwIndex = -1;
-	QList<CProgramFilePtr> m_FwPrograms;
-	QMap<CProgramFilePtr, QList<CLogEntryPtr>> m_FwEvents;
+		void AddWaiting(CLogEntryPtr pEntry, uint32 TimeOut)
+		{
+			SWaitingEvent Event;
+			Event.EventId = pEntry->GetUID();
+			Event.TimeOut = GetCurTick() + TimeOut;
+			Waiting.append(Event);
+		}
 
-	// Resources
-	void				PopResEvent(const QString& Path);
-	void				UpdateResCount();
-	void				LoadResEntry(bool bUpdate = false);
+		CLogEntryPtr pPtr;
 
-	int					m_iResIndex = -1;
-	QList<CProgramFilePtr> m_ResPrograms;
-	QMap<CProgramFilePtr, QList<CLogEntryPtr>> m_ResEvents;
+		struct SWaitingEvent
+		{
+			uint64 EventId = 0;
+			uint64 TimeOut = 0; 
+		};
+		QList<SWaitingEvent> Waiting;
+	};
 
-
-	// Execution
-	void				PopExecEvent(const QStringList& Paths);
-	void				UpdateExecCount();
-	void				LoadExecEntry(bool bUpdate = false);
-
-	int					m_iExecIndex = -1;
-	QList<CProgramFilePtr> m_ExecPrograms;
-	QMap<CProgramFilePtr, QList<CLogEntryPtr>> m_ExecEvents;
-
-
-
-	void				TryHide();
-
-private:
 
 	enum ETabs
 	{
@@ -90,6 +84,65 @@ private:
 		eTabCfg,
 		eTabMax
 	};
+
+	void UpdateTimeOut(ETabs Tab);
+
+	// Firewall
+	struct SFwProgram
+	{
+		enum EType
+		{
+			eNetworkEvent = 0,
+			eRuleEvent
+		}				Type = eNetworkEvent;
+		CProgramItemPtr pItem;
+
+		bool operator==(const SFwProgram& other) const {return pItem == other.pItem && Type == other.Type;}
+	};
+	void				PushFwEvent(const SFwProgram& Prog);
+	void				PopFwEvent();
+	void				UpdateFwCount();
+	void				LoadFwEntry(bool bUpdate = false);
+	void				LoadFwEvent(const CProgramFilePtr& pProgram, bool bUpdate = false);
+	void				LoadFwRule(const CProgramItemPtr& pProgram, bool bUpdate = false);
+	struct SFwRuleEvent
+	{
+		EConfigEvent EventType = EConfigEvent::eUnknown;
+		CFwRulePtr pFwRule;
+
+		bool operator==(const SFwRuleEvent& other) const {return EventType == other.EventType && pFwRule == other.pFwRule;}
+	};
+	void				UpdateFwRule(const SFwRuleEvent& Event, QTreeWidgetItem* pItem);
+
+	int					m_iFwIndex = -1;
+	QList<SFwProgram> m_FwPrograms;
+	QMap<CProgramFilePtr, QList<SLogEntry>> m_FwEvents;
+	QMap<CProgramItemPtr, QList<SFwRuleEvent>> m_FwRuleEvents;
+
+	// Resources
+	void				PopResEvent(const QString& Path, EAccessRuleType Action);
+	void				UpdateResCount();
+	void				LoadResEntry(bool bUpdate = false);
+
+	int					m_iResIndex = -1;
+	QList<CProgramFilePtr> m_ResPrograms;
+	QMap<CProgramFilePtr, QList<SLogEntry>> m_ResEvents;
+
+
+	// Execution
+	void				PopExecEvent(const QStringList& Paths);
+	void				UpdateExecCount();
+	void				LoadExecEntry(bool bUpdate = false);
+
+	int					m_iExecIndex = -1;
+	QList<CProgramFilePtr> m_ExecPrograms;
+	QMap<CProgramFilePtr, QList<SLogEntry>> m_ExecEvents;
+
+
+
+	void				TryHide();
+
+private:
 
 	bool				m_ResetPosition;
 	int					m_iTopMost;
@@ -105,6 +158,13 @@ private:
 		eFwProcessId,
 		eFwCmdLine,
 		eFwColMax
+	};
+
+	enum EFwRuleColumns
+	{
+		eFwEvent,
+		eFwAction,
+		eFwRuleName,
 	};
 
 	QAction*			m_pFwAlwaysIgnoreApp;

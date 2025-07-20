@@ -31,9 +31,9 @@ public:
 	void SetData(const StVariant& Data)		{ std::unique_lock Lock(m_Mutex); m_Data = Data; }
 	StVariant GetData() const				{ std::shared_lock Lock(m_Mutex); return m_Data; }
 	void SetData(const char* Name, const StVariant& Value)	{ std::unique_lock Lock(m_Mutex); m_Data[Name] = Value; }
-	StVariant GetData(const char* Name) const				{ std::shared_lock Lock(m_Mutex); return m_Data[Name]; }
-	void SetData(uint32 Index, const StVariant& Value)	{ std::unique_lock Lock(m_Mutex); m_Data[Index] = Value; }
-	StVariant GetData(uint32 Index) const				{ std::shared_lock Lock(m_Mutex); return m_Data[Index]; }
+	StVariant GetData(const char* Name) const				{ std::shared_lock Lock(m_Mutex); return m_Data.Get(Name); }
+	//void SetData(uint32 Index, const StVariant& Value)	{ std::unique_lock Lock(m_Mutex); m_Data[Index] = Value; }
+	//StVariant GetData(uint32 Index) const				{ std::shared_lock Lock(m_Mutex); return m_Data.Get(Index); }
 
 
 	void Update(const std::shared_ptr<CGenericRule>& Rule);

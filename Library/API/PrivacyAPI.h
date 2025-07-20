@@ -172,6 +172,7 @@ enum {
 	SVC_API_GET_HANDLES = 'GHND',
 	SVC_API_CLEAR_LOGS = 'CLOG',
 	SVC_API_CLEANUP_ACCESS_TREE = 'CTRE',
+	SVC_API_SET_ACCESS_EVENT_ACTION = 'SAEA',
 
 	// Volume Manager
 	SVC_API_VOL_CREATE_IMAGE = 'CVOL',
@@ -199,6 +200,8 @@ enum {
 	// events
 	SVC_API_EVENT_PROG_ITEM_CHANGED = 'EPRG',
 
+	SVC_API_EVENT_LOG_ENTRY = 'ELOG',
+
 	SVC_API_EVENT_ENCLAVE_CHANGED = 'EENC',
 	SVC_API_EVENT_FW_RULE_CHANGED = 'EFRU',
 	SVC_API_EVENT_DNS_RULE_CHANGED = 'EDFR',
@@ -212,6 +215,8 @@ enum {
 	SVC_API_EVENT_CLEANUP_PROGRESS = 'ECLN',
 
 	// other
+	SVC_API_GET_EVENT_LOG = 'GELG',
+	SVC_API_CLEAR_EVENT_LOG = 'CELG',
 	SVC_API_GET_SVC_STATS = 'GSST',
 
 	SVC_API_SHOW_SECURE_PROMPT = 'SSPT',
@@ -260,6 +265,8 @@ enum {
 #define STATUS_ERR_PROG_ALREADY_IN_GROUP	0xE000000A
 
 #define STATUS_ERR_PROC_EJECTED				0xE000000B
+
+#define STATUS_ERR_RULE_DIVERGENT			0xE000000C
 
 #define STATUS_OK							0x00000000 // same as STATUS_SUCCESS
 
@@ -341,6 +348,10 @@ API_V_VALUES : unsigned long
 	API_V_RULE_DESCR = 'desc',
 	API_V_CMD_LINE = 'cmdl',
 
+	API_V_RULE_STATE = 'rste',
+	API_V_ORIGINAL_GUID = 'ogid',
+	API_V_SOURCE = 'src',
+
 
 	////////////////////////////
 	// Generic Fields
@@ -351,6 +362,7 @@ API_V_VALUES : unsigned long
 	API_V_RELOAD = 'rld',
 	API_V_GET_DATA = 'gdat',
 	API_V_VERIFY = 'vfy',
+	API_V_BLOCKING = 'blk',
 
 	////////////////////////////
 	// Program ID
@@ -362,6 +374,9 @@ API_V_VALUES : unsigned long
 		// ...
 
 	API_V_FILE_PATH = 'fpth',
+	API_V_USE_SCRIPT = 'uscr', // use script instead of file path
+	API_V_SCRIPT = 'scpt',
+	API_V_INTERACTIVE = 'intr', // used by access rules
 	API_V_FILE_NT_PATH = 'fnt',
 	API_V_SERVICE_TAG = 'svc',
 	API_V_APP_SID = 'asid', // App Container SI
@@ -502,6 +517,7 @@ API_V_VALUES : unsigned long
 
 	////////////////////////////
 	// Event Logging
+	API_V_EVENT_LOG = 'elog',
 
 	// Program Access Log
 	API_V_ACCESS_LOG = 'alog',
@@ -543,8 +559,12 @@ API_V_VALUES : unsigned long
 	////////////////////////////
 	// Event Info
 	API_V_EVENT_REF = 'eref',
+	API_V_EVENT_LEVEL = 'elev',
 	API_V_EVENT_TYPE = 'etyp',
+	API_V_EVENT_SUB_TYPE = 'estp',
+	API_V_EVENT_EXPECTED = 'eexp',
 	API_V_EVENT_INDEX = 'eidx',
+	API_V_EVENT_TIMEOUT = 'etmo',
 	API_V_EVENT_DATA = 'edat',
 
 	API_V_EVENT_ACTOR_PID = 'apid',
@@ -563,6 +583,7 @@ API_V_VALUES : unsigned long
 	API_V_STATUS = 'stat', // NTSTATUS
 	API_V_NT_STATUS = 'ntst', // NTSTATUS
 	API_V_EVENT_STATUS = 'ests', // EEventStatus
+	API_V_EVENT_ACTION = 'eact', // EEventAction
 	API_V_IS_DIRECTORY = 'isdr',
 	API_V_WAS_BLOCKED = 'wblk', // <- API_V_EVENT_STATUS
 
@@ -715,6 +736,8 @@ API_V_VALUES : unsigned long
 #define SVC_EVENT_PROG_CLEANUP		0x0107
 #define SVC_EVENT_DNS_INIT_FAILED	0x0108
 #define SVC_EVENT_GPO_FAILED		0x0109
+#define SVC_EVENT_RULE_NOT_FOUND	0x010A
+#define SVC_EVENT_JSLOG_MSG			0x010B
 
 
 /////////////////////////////////////////////////////////////////////////////

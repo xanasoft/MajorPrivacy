@@ -2,23 +2,9 @@
 #include "TweakView.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Tweaks/TweakManager.h"
-#include "../MiscHelpers/Common/CustomStyles.h"
 #include "MajorPrivacy.h"
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 
-class CTreeItemDelegate2 : public CTreeItemDelegate
-{
-	QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override
-	{
-		QSize size = QStyledItemDelegate::sizeHint(option, index);
-		if (!index.parent().isValid()) { // root item
-			size.setHeight(32);
-		} else {
-			size.setHeight(24);
-		}
-		return size;
-	}
-};
 
 CTweakView::CTweakView(QWidget *parent)
 	:CPanelViewEx<CTweakModel>(parent)
@@ -101,6 +87,8 @@ CTweakView::CTweakView(QWidget *parent)
 	m_pToolBar->addWidget(pBtnSearch);
 
 	AddPanelItemsToMenu();
+
+	connect(theCore->TweakManager(), SIGNAL(TweaksChanged()), this, SLOT(OnTweaksChanged()));
 }
 
 CTweakView::~CTweakView()
@@ -155,15 +143,6 @@ void CTweakView::OnCheckChanged(const QModelIndex& Index, bool State)
 	if (Status) 
 		pTweak->SetStatus(State ? ETweakStatus::eSet : ETweakStatus::eNotSet);
 	theGUI->CheckResults(QList<STATUS>() << Status, this);
-
-	if (!m_uRefreshPending)
-	{
-		m_uRefreshPending = GetCurTick();
-		QTimer::singleShot(1000, this, [this]() {
-			m_uRefreshPending = 0;
-			theCore->TweakManager()->Update();
-		});
-	}
 }
 
 void CTweakView::OnMenu(const QPoint& Point)
@@ -206,6 +185,18 @@ void CTweakView::OnRefresh()
 	theCore->TweakManager()->Update();
 }
 
+void CTweakView::OnTweaksChanged()
+{
+	if (!m_uRefreshPending)
+	{
+		m_uRefreshPending = GetCurTick();
+		QTimer::singleShot(100, this, [this]() {
+			m_uRefreshPending = 0;
+			theCore->TweakManager()->Update();
+		});
+	}
+}
+
 void CTweakView::OnApprove()
 {
 	if (QMessageBox::question(this, tr("MajorPrivacy"), tr("Are you sure you want to approve the current state of all tweaks?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
@@ -215,8 +206,6 @@ void CTweakView::OnApprove()
 
 	foreach(const auto& pTweak, List)
 		theCore->ApproveTweak(pTweak->GetId());
-
-	theCore->TweakManager()->Update();
 }
 
 void CTweakView::OnRestore()
@@ -256,6 +245,4 @@ void CTweakView::OnRestore()
 		theCore->UndoTweak(pTweak->GetId());
 	for (const auto& pTweak : TweaksToApply)
 		theCore->ApplyTweak(pTweak->GetId());
-
-	theCore->TweakManager()->Update();
 }

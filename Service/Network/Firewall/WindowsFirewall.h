@@ -13,6 +13,11 @@ struct SWindowsFwRule
     {
         BYTE Type;
         USHORT Code; // 0-255; 256 = any
+
+        bool operator==(const IcmpTypeCode& Other) const
+        {
+            return Type == Other.Type && Code == Other.Code;
+		}
     };
 
     // supported port keywords:

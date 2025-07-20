@@ -23,7 +23,11 @@
 FW_NAMESPACE_BEGIN
 
 const size_t VAR_SIZE = sizeof(CVariant);
+#ifdef _WIN64
 static_assert(VAR_SIZE == 24, "CVariant size mismatch");
+#else
+static_assert(VAR_SIZE == 20, "CVariant size mismatch");
+#endif
 //#define VAR_EMBEDDED_SIZE sizeof(CVariant) - FIELD_OFFSET(CVariant, m_Embedded)
 const size_t VAR_EMBEDDED_SIZE = sizeof(CVariant) - FIELD_OFFSET(CVariant, m_Embedded);
 
@@ -980,7 +984,7 @@ CVariant::EResult CVariant::GetStringA(FW::StringA& StrA, bool bShared) const
 	}
 	else if (m_Type == VAR_TYPE_UNICODE)
 	{
-		FW::StringW StrW;
+		FW::StringW StrW(Allocator());
 		GetStringW(StrW, bShared);
 		StrA = ToUtf8(StrW.Allocator(), StrW.ConstData(), StrW.Length());
 	}

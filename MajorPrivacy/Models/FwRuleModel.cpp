@@ -68,6 +68,11 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 			pNode->Icon = pNode->pProg->GetIcon();
 			Changed = 1;
 		}
+		if (pNode->IsBackup != (pRule->GetState() == EFwRuleState::eBackup)) {
+			pNode->IsBackup = (pRule->GetState() == EFwRuleState::eBackup);
+			pNode->TextColor = pNode->IsBackup ? QBrush(Qt::darkRed) : QVariant();
+			Changed = 2; // set change for all columns
+		}
 		if (pNode->IsGray != !pRule->IsEnabled()) {
 			pNode->IsGray = !pRule->IsEnabled();
 			Changed = 2; // set change for all columns
@@ -88,6 +93,8 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 			case eName:				Value = tr("%1 - %2").arg(pRule->GetName()).arg(pRule->GetGuid().ToQS()); break;
 			case eGrouping:			Value = pRule->GetGrouping(); break;
 			case eIndex:			Value = pRule->GetIndex(); break;
+			case eState:			Value = (int)pRule->GetState(); break;
+			case eSource:			Value = (int)pRule->GetSource(); break;
 			case eEnabled:			Value = pRule->IsEnabled(); break;
 			case eHitCount:			Value = pRule->GetHitCount(); break;
 			case eProfiles:			Value = pRule->GetProfile(); break;
@@ -116,6 +123,9 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 				{
 					case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(pRule->GetName()); break;
 					case eGrouping:			ColValue.Formatted = pRule->GetGrouping().isEmpty() ? "" : CMajorPrivacy::GetResourceStr(pRule->GetGrouping()); break;
+					case eIndex:			ColValue.Formatted = pRule->GetIndex() == -1 ? "" : QString::number(pRule->GetIndex()); break;
+					case eState: 			ColValue.Formatted = pRule->GetStateStr(); ColValue.Color = pRule->GetStateColor(); break;
+					case eSource:			ColValue.Formatted = pRule->GetSourceStr(); break;
 					case eEnabled:			ColValue.Formatted = (pRule->IsEnabled() ? tr("Yes") : tr("No")) + (pRule->IsTemporary() ? tr(" (Temporary)") : ""); break;
 					case eProfiles:			ColValue.Formatted = pRule->GetProfileStr(); break;
 					case eAction:			ColValue.Formatted = pRule->GetActionStr(); { QColor Color = CFirewallRuleWnd::GetActionColor(pRule->GetAction()); if(Color.isValid()) ColValue.Color = Color; } break;
@@ -187,6 +197,8 @@ QVariant CFwRuleModel::headerData(int section, Qt::Orientation orientation, int 
 		case eName:					return tr("Name");
 		case eGrouping:				return tr("Grouping");
 		case eIndex:				return tr("Index");
+		case eState:				return tr("State");
+		case eSource:				return tr("Source");
 		case eEnabled:				return tr("Enabled");
 		case eHitCount:				return tr("Hit Count");
 		case eProfiles:				return tr("Profiles");

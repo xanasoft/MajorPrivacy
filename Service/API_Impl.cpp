@@ -28,6 +28,7 @@
 #include "Programs/ProgramPattern.h"
 #include "Programs/AppInstallation.h"
 #include "Programs/ImageSignInfo.h"
+#include "Common/EventLog.h"
 
 #define XVariant StVariant
 #define VariantWriter StVariantWriter
@@ -35,9 +36,9 @@
 #define TO_STR(x) (x)
 #define AS_STR(x) (x).AsStr()
 #define TO_STR_A(x) (x)
-#define AS_STR_A(s, x) ((x).GetStringA(s))
+#define AS_STR_A(s, x) (s = (x))
 #define TO_STR_W(x) (x)
-#define AS_STR_W(s, x) ((x).GetStringW(s))
+#define AS_STR_W(s, x) (s = (x))
 #define AS_ASTR(x) (x).To<std::string>()
 #define TO_BYTES(x) (x).AsBytes()
 #define AS_LIST(x) (x).AsList<std::wstring>()
@@ -57,6 +58,8 @@
 #include "../../Library/API/API_AccessRule.cpp"
 
 #include "../../Library/API/API_DnsRule.cpp"
+
+#include "../../Library/API/API_EventLog.cpp"
 
 #include "Network/Firewall/WindowsFirewall.h"
 #include "../Library/Common/Strings.h"

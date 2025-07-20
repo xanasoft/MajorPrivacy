@@ -104,5 +104,21 @@
 #include <QDesktopWidget>
 #endif
 
+// Defines
+#define _T(x)      L ## x
+
+#define STR2(X) #X
+#define STR(X) STR2(X)
+
+#define ARRSIZE(x)	(sizeof(x)/sizeof(x[0]))
+
+#ifndef Max
+#define Max(a,b)            (((a) > (b)) ? (a) : (b))
+#endif
+
+#ifndef Min
+#define Min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
+
 
 #define USE_QEXTWIDGETS

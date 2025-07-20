@@ -16,6 +16,7 @@ public:
 	virtual EProgramType GetType() const { return EProgramType::eProgramFile; }
 
 	virtual QString GetNameEx() const;
+	virtual QString GetPublisher() const;
 	virtual void SetPath(const QString& Path)		{ m_Path = Path; }
 	virtual QString GetPath() const					{ return m_Path; }
 	virtual QString GetIconFile() const				{ return m_IconFile.isEmpty() ? m_Path : m_IconFile; }

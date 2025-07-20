@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "SVariant.h"
 
 #pragma warning(disable : 4100)

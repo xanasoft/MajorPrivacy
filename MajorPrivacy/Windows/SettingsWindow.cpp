@@ -94,6 +94,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	AddIconToLabel(ui.lblExecInfo, QPixmap(":/Icons/Process.png").scaled(size, size));
 	AddIconToLabel(ui.lblResInfo, QPixmap(":/Icons/Ampel.png").scaled(size, size));
 	AddIconToLabel(ui.lblFw, QPixmap(":/Icons/Options.png").scaled(size, size));
+	AddIconToLabel(ui.lblFwGuard, QPixmap(":/Icons/Wall2.png").scaled(size, size));
 	AddIconToLabel(ui.lblFwInfo, QPixmap(":/Icons/Wall3.png").scaled(size, size));
 	AddIconToLabel(ui.lblLogging, QPixmap(":/Icons/List.png").scaled(size, size));
 	AddIconToLabel(ui.lblDns, QPixmap(":/Icons/DNS.png").scaled(size, size));
@@ -166,6 +167,9 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.cmbFwAuditPolicy, SIGNAL(currentIndexChanged(int)), this, SLOT(OnFwAuditPolicyChanged()));
 	connect(ui.chkFwShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnFwShowPopUpChanged()));
 	connect(ui.chkFwInOutRules, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkFwShowAlerts, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkGuardFwRules, SIGNAL(stateChanged(int)), this, SLOT(OnFwGuardChanged()));
+	connect(ui.chkFwDelRogue, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLoadFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
 	connect(ui.chkDnsFilter, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged()));
@@ -409,6 +413,13 @@ void CSettingsWindow::OnFwModeChanged()
 	OnOptChanged();
 }
 
+void CSettingsWindow::OnFwGuardChanged()
+{
+	ui.chkFwDelRogue->setEnabled(ui.chkGuardFwRules->isChecked());
+
+	OnOptChanged();
+}
+
 void CSettingsWindow::OnFwAuditPolicyChanged()
 {
 	ui.chkFwShowPopUp->setEnabled(ui.cmbFwAuditPolicy->currentData().toUInt() != (uint32)FwAuditPolicy::Off);
@@ -556,6 +567,9 @@ void CSettingsWindow::LoadSettings()
 
 	ui.chkFwShowPopUp->setChecked(theConf->GetBool("NetworkFirewall/ShowNotifications", false));
 	ui.chkFwInOutRules->setChecked(theConf->GetBool("NetworkFirewall/MakeInOutRules", false));
+	ui.chkFwShowAlerts->setChecked(theConf->GetBool("NetworkFirewall/ShowChangeAlerts", false));
+	ui.chkGuardFwRules->setChecked(theCore->GetConfigBool("Service/GuardFwRules", false));
+	ui.chkFwDelRogue->setChecked(theCore->GetConfigBool("Service/DeleteRogueFwRules", false));
 
 	ui.chkLoadFwLog->setChecked(theCore->GetConfigBool("Service/LoadWindowsFirewallLog", false));
 
@@ -654,6 +668,9 @@ void CSettingsWindow::SaveSettings()
 
 	theConf->SetValue("NetworkFirewall/ShowNotifications", ui.chkFwShowPopUp->isChecked());
 	theConf->SetValue("NetworkFirewall/MakeInOutRules", ui.chkFwInOutRules->isChecked());
+	theConf->SetValue("NetworkFirewall/ShowChangeAlerts", ui.chkFwShowAlerts->isChecked());
+	theCore->SetConfig("Service/GuardFwRules", ui.chkGuardFwRules->isChecked());
+	theCore->SetConfig("Service/DeleteRogueFwRules", ui.chkFwDelRogue->isChecked());
 
 	theCore->SetConfig("Service/LoadWindowsFirewallLog", ui.chkLoadFwLog->isChecked());
 

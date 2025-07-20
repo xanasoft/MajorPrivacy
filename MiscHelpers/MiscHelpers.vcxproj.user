@@ -4,17 +4,21 @@
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <QtTouchProperty>
     </QtTouchProperty>
+    <QtLastBackgroundBuild>2025-07-05T07:29:26.8498405Z</QtLastBackgroundBuild>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <QtTouchProperty>
     </QtTouchProperty>
+    <QtLastBackgroundBuild>2025-07-05T09:17:35.4639346Z</QtLastBackgroundBuild>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <QtTouchProperty>
     </QtTouchProperty>
+    <QtLastBackgroundBuild>2025-07-05T07:29:26.7579873Z</QtLastBackgroundBuild>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <QtTouchProperty>
     </QtTouchProperty>
+    <QtLastBackgroundBuild>2025-07-08T17:46:35.4326025Z</QtLastBackgroundBuild>
   </PropertyGroup>
 </Project>

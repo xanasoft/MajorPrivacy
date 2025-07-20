@@ -459,6 +459,8 @@ QVariant CTreeItemModel::NodeData(STreeNode* pNode, int role, int section) const
 		}
 		case Qt::ForegroundRole:
 		{
+			if (pNode->TextColor.isValid())
+				return pNode->TextColor;
 			if (pNode->IsGray) {
 				QColor Color = Qt::darkGray;
 				return QBrush(Color);

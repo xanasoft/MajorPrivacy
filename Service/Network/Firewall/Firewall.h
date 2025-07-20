@@ -44,6 +44,8 @@ public:
 
 	void PurgeExpired(bool All);
 
+	void RevertChanges();
+
 	std::map<CFlexGuid, CFirewallRulePtr> FindRules(const CProgramID& ID);
 
 	std::map<CFlexGuid, CFirewallRulePtr> GetAllRules();
@@ -65,12 +67,19 @@ public:
 	static std::vector<std::wstring> GetSpecialNet(std::wstring SubNet, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
 
 protected:
-	bool MatchRuleID(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule);
+	bool MatchProgramID(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule);
 
-	CFirewallRulePtr UpdateFWRule(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFlexGuid& Guid);
+	CFirewallRulePtr UpdateFWRuleUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFlexGuid& Guid);
+
+	bool FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule);
 
 	void AddRuleUnsafe(const CFirewallRulePtr& pFwRule);
+	void AddRuleUnsafeImpl(const CFirewallRulePtr& pFwRule);
+	STATUS UpdateRuleAndTest(const std::shared_ptr<struct SWindowsFwRule>& pData);
 	void RemoveRuleUnsafe(const CFirewallRulePtr& pFwRule);
+	void RemoveRuleUnsafeImpl(const CFirewallRulePtr& pFwRule);
+
+	STATUS RestoreRule(const CFirewallRulePtr& pFwRuleBackup);
 
 	void SetTempalte(const CFirewallRulePtr& pFwRule);
 	bool TryRemoveTemplate(const CFlexGuid& Guid);
@@ -78,9 +87,12 @@ protected:
 	uint32 OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent);
 	uint32 OnFwLogEvent(const struct SWinFwLogEvent* pEvent);
 
-	void EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event);
+	void EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event, bool bExpected);
 
 	void ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocket* pSocket);
+
+	bool IsDefaultWindowsRule(const CFirewallRulePtr& pFwRule) const;
+	bool IsWindowsStoreRule(const CFirewallRulePtr& pFwRule) const;
 
 	struct SRuleMatch
 	{
@@ -114,10 +126,11 @@ protected:
 	std::unordered_multimap<std::wstring, CFirewallRulePtr>	m_AppRules;
 	//std::map<std::wstring, CFirewallRulePtr> m_AllProgramsRules;
 
-	bool					m_UpdateDefaultProfiles = true;
+	int						m_UpdateDefaultProfiles = 2;
 	bool					m_BlockAllInbound[3] = { false, false, false };
 	EFwActions				m_DefaultInboundAction[3] = { EFwActions::Undefined, EFwActions::Undefined, EFwActions::Undefined };
 	EFwActions				m_DefaultoutboundAction[3] = { EFwActions::Undefined, EFwActions::Undefined, EFwActions::Undefined };
 
 	uint64					m_LastRulePurge = 0;
+	bool					m_RevertChanges = false;
 };

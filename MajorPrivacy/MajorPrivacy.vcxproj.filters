@@ -466,6 +466,24 @@
     <ClCompile Include="Wizards\SetupWizard.cpp">
       <Filter>Wizards</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\ScriptWindow.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\EventView.cpp">
+      <Filter>Views\Home</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\IssueView.cpp">
+      <Filter>Views\Home</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\StatusView.cpp">
+      <Filter>Views\Home</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\IssueManager.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\EventLog.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -543,6 +561,9 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="Forms\EnclaveWnd.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\ScriptWindow.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>
@@ -852,6 +873,24 @@
     </QtMoc>
     <QtMoc Include="Wizards\SetupWizard.h">
       <Filter>Wizards</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\ScriptWindow.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\EventView.h">
+      <Filter>Views\Home</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\IssueView.h">
+      <Filter>Views\Home</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\StatusView.h">
+      <Filter>Views\Home</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\IssueManager.h">
+      <Filter>Core</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\EventLog.h">
+      <Filter>Core</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

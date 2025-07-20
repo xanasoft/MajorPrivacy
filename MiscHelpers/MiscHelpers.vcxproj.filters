@@ -152,9 +152,6 @@
     <ClInclude Include="Common\FlexError.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="Common\FlowLayout.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Common\HistoryGraph.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -166,9 +163,6 @@
     </ClInclude>
     <ClInclude Include="Common\MT\ThreadLock.h">
       <Filter>Common\MT</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\CustomStyles.h">
-      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Common\CustomTheme.h">
       <Filter>Common</Filter>
@@ -199,6 +193,9 @@
     </ClInclude>
     <ClInclude Include="Archive\CachedArchive.h">
       <Filter>Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\CustomStyles.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -281,6 +278,9 @@
     </QtMoc>
     <QtMoc Include="Archive\SplitFile.h">
       <Filter>Archive</Filter>
+    </QtMoc>
+    <QtMoc Include="Common\FlowLayout.h">
+      <Filter>Common</Filter>
     </QtMoc>
   </ItemGroup>
 </Project>

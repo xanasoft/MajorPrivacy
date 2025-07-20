@@ -42,6 +42,7 @@
 #include "../MiscHelpers/Archive/ArchiveFS.h"
 #include "OnlineUpdater.h"
 #include "Wizards/SetupWizard.h"
+#include "../Core/IssueManager.h"
 
 #include <Windows.h>
 #include <ShellApi.h>
@@ -109,6 +110,7 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 
 	connect(theCore, SIGNAL(ProgramsAdded()), this, SLOT(OnProgramsAdded()));
 	connect(theCore, SIGNAL(UnruledFwEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnUnruledFwEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
+	connect(theCore, SIGNAL(FwChangeEvent(const QString&, qint32)), this, SLOT(OnFwChangeEvent(const QString&, qint32)));
 	connect(theCore, SIGNAL(ExecutionEvent(const CProgramFilePtr&, const CLogEntryPtr&)), this, SLOT(OnExecutionEvent(const CProgramFilePtr&, const CLogEntryPtr&)));
 	connect(theCore, SIGNAL(AccessEvent(const CProgramFilePtr&, const CLogEntryPtr&, uint32)), this, SLOT(OnAccessEvent(const CProgramFilePtr&, const CLogEntryPtr&, uint32)));
 	connect(theCore, SIGNAL(CleanUpDone()), this, SLOT(OnCleanUpDone()));
@@ -659,6 +661,7 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 	{
 		UpdateLockStatus();
 
+		m_HomePage->Update();
 		m_EnclavePage->Update();
 		m_pProgramView->Update();
 		m_ProcessPage->Update();
@@ -1053,6 +1056,8 @@ void CMajorPrivacy::BuildGUI()
 
 	if (!m_pTabLabels->isChecked())
 	{
+		m_pTabBar->setExpanding(true);
+		m_pTabBar->setUsesScrollButtons(false);
 		m_pTabBar->setProperty("imgSize", 32);
 		m_pTabBar->setProperty("noLabels", true);
 		for (int i = 0; i < m_pTabBar->count(); i++)
@@ -1071,6 +1076,8 @@ void CMajorPrivacy::BuildGUI()
 	CreateTrayIcon();
 
 	LoadState(bFull);
+
+	m_HomePage->Refresh(); 
 }
 
 void CMajorPrivacy::CreateLabel()
@@ -1601,14 +1608,14 @@ void CMajorPrivacy::OnDiscardConfig()
 	CheckResults(Results, this);
 }
 
-void CMajorPrivacy::OnMakeKeyPair()
+STATUS CMajorPrivacy::MakeKeyPair()
 {
 	CVolumeWindow window(tr("Set new Secure Configuration Password"), CVolumeWindow::eSetPW, this);
 	if (theGUI->SafeExec(&window) != 1)
-		return;
+		return ERR(STATUS_OK_CNCELED);
 	QString Password = window.GetPassword();
 	if(Password.isEmpty())
-		return;
+		return ERR(STATUS_OK_CNCELED);
 
 	STATUS Status;
 	do {
@@ -1644,9 +1651,16 @@ void CMajorPrivacy::OnMakeKeyPair()
 		Status = theCore->Driver()->SetUserKey(PubKey, EncryptedBlob);
 
 	} while(0);
-	CheckResults(QList<STATUS>() << Status, this);
 
 	UpdateTitle();
+
+	return Status;
+}
+
+void CMajorPrivacy::OnMakeKeyPair()
+{
+	STATUS Status = MakeKeyPair();
+	CheckResults(QList<STATUS>() << Status, this);
 }
 
 void CMajorPrivacy::OnClearKeys()
@@ -1776,7 +1790,10 @@ void CMajorPrivacy::OnPageChanged(int index)
 {
 	switch (index)
 	{
-	case eHome: m_pPageStack->setCurrentWidget(m_HomePage); break;
+	case eHome: 
+		m_pPageStack->setCurrentWidget(m_HomePage); 
+		m_HomePage->Refresh(); 
+		break;
 	case eProcesses: 
 	case eResource:
 	case eFirewall:
@@ -2039,6 +2056,10 @@ QString CMajorPrivacy::FormatError(const STATUS& Error)
 		case STATUS_ERR_CANT_REMOVE_AUTO_ITEM:		return tr("Removing program items which are auto generated and represent found components can not be removed.");
 		case STATUS_ERR_NO_USER_KEY:				return tr("Before you can sign a Binary you need to create your User Key, use the 'Security->Setup User Key' menu command to do that.");
 		case STATUS_ERR_WRONG_PASSWORD:				return tr("Wrong Password!");
+		case STATUS_ERR_PROG_ALREADY_IN_GROUP:		return tr("Program is already in the group.");
+		case STATUS_ERR_PROC_EJECTED:				return tr("The process was ejected form the enclave, and is running unprotected, probably due to insuficient signature level!");
+		case STATUS_ERR_RULE_DIVERGENT:				return tr("Firewall rule was only partially applied some fields diverge from the preset");
+
 		}
 	}
 	else
@@ -2284,12 +2305,17 @@ void CMajorPrivacy::OnExecutionEvent(const CProgramFilePtr& pProgram, const CLog
 	}
 }
 
-void CMajorPrivacy::OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry)
+void CMajorPrivacy::OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry, uint32 TimeOut)
 {
 	if (theConf->GetBool("ResourceAccess/ShowNotifications", true)) {
-		if (!IsEventIgnored(ERuleType::eAccess, pProgram, pLogEntry))
-			m_pPopUpWindow->PushResEvent(pProgram, pLogEntry);
+		if (!IsEventIgnored(ERuleType::eAccess, pProgram, pLogEntry)) {
+			m_pPopUpWindow->PushResEvent(pProgram, pLogEntry, TimeOut);
+			return;
+		}
 	}
+
+	if (TimeOut) // automatically decide block if neded
+		theCore->SetAccessEventAction(pLogEntry->GetUID(), EAccessRuleType::eBlock);
 }
 
 void CMajorPrivacy::OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry)
@@ -2302,6 +2328,37 @@ void CMajorPrivacy::OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLog
 		if (!IsEventIgnored(ERuleType::eFirewall, pProgram, pLogEntry))
 			m_pPopUpWindow->PushFwEvent(pProgram, pLogEntry);
 	}
+}
+
+void CMajorPrivacy::OnFwChangeEvent(const QString& RuleId, qint32 iEventType)
+{
+	if(!theConf->GetBool("NetworkFirewall/ShowChangeAlerts", false))
+		return;
+
+	CFwRulePtr pFwRule;
+	EConfigEvent EventType = (EConfigEvent)iEventType;
+	if (EventType != EConfigEvent::eRemoved)
+		pFwRule = theCore->NetworkManager()->GetFwRules().value(RuleId);	
+
+	CFwRulePtr pFwRuleBackup;
+	foreach(CFwRulePtr pRule, theCore->NetworkManager()->GetFwRules()) {
+		if (pRule->IsBackup() && pRule->GetOriginalGuid() == RuleId) {
+			pFwRuleBackup = pRule;
+			break;
+		}
+	}
+
+	if (pFwRule) {
+		if (pFwRuleBackup) {
+			if (pFwRule->GetProgramID() != pFwRuleBackup->GetProgramID()) {
+				m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eRemoved, pFwRuleBackup);
+				m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eAdded, pFwRule);
+			} else
+				m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eModified, pFwRuleBackup);
+		} else
+			m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eAdded, pFwRule);
+	} else if(pFwRuleBackup)
+		m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eRemoved, pFwRuleBackup);
 }
 
 void CMajorPrivacy::CleanUpPrograms()
@@ -2377,6 +2434,7 @@ void CMajorPrivacy::ResetPrompts()
 	theConf->DelValue("Options/WarnTerminate");
 	theConf->DelValue("Options/WarnProtection");
 	theConf->DelValue("Options/WarnBreakingTweaks");
+	theConf->DelValue("Options/DblClickFixQuick");
 }
 
 void CMajorPrivacy::OnMaintenance()
@@ -2682,15 +2740,15 @@ QString CMajorPrivacy::GetResourceStr(const QString& Name)
 	//
 
 	auto StrAux = Split2(Name,",");
-	if(StrAux.first == "&Protect")
+	if(StrAux.first == "#Protect")
 		return tr("Volume Protection Rule for: %1").arg(StrAux.second);
-	else if(StrAux.first == "&Unmount")
+	else if(StrAux.first == "#Unmount")
 		return tr("Volume Unmount Rule for: %1").arg(StrAux.second);
-	else if(StrAux.first == "&Temporary")
+	else if(StrAux.first == "#Temporary")
 		return tr("Temporary rule");
-	else if(StrAux.first == "&MP-Rule")
+	else if(StrAux.first == "MajorPrivacy-Rule")
 		return tr("%1 - MajorPrivacy Rule").arg(StrAux.second);
-	else if(StrAux.first == "&MP-Template")
+	else if(StrAux.first == "MajorPrivacy-Template")
 		return tr("%1 - MajorPrivacy Rule Template").arg(StrAux.second);
 
 	//
@@ -2720,7 +2778,7 @@ void CMajorPrivacy::LoadLanguage()
 	if (!m_LanguageId)
 		m_LanguageId = 1033; // default to English
 
-	LoadLanguage(m_Language, "MajorPrivacy", 0);
+	LoadLanguage(m_Language, "majorprivacy", 0);
 	LoadLanguage(m_Language, "qt", 1);
 
 	QTreeViewEx::m_ResetColumns = tr("Reset Columns");

@@ -46,6 +46,8 @@ private:
 	QAction*				m_pCreateRule;
 	QAction*				m_pEnableRule;
 	QAction*				m_pDisableRule;
+	QAction*				m_pApproveRule;
+	QAction*				m_pRestoreRule;
 	QAction*				m_pRuleBlock;
 	QAction*				m_pRuleAllow;
 	QAction*				m_pRemoveRule;

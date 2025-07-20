@@ -7,6 +7,11 @@
 #include "../../Library/Helpers/Scoped.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
 #include "../MajorPrivacy.h"
+#include "../Views/EventView.h"
+#include "../Views/IssueView.h"
+#include "../Views/StatusView.h"
+#include "../Core/PrivacyCore.h"
+#include "../Core/Tweaks/TweakManager.h"
 
 
 CHomePage::CHomePage(QWidget* parent)
@@ -14,6 +19,60 @@ CHomePage::CHomePage(QWidget* parent)
 {
 	m_pMainLayout = new QVBoxLayout(this);
 	m_pMainLayout->setContentsMargins(0, 0, 0, 0);
+
+	m_pVSplitter = new QSplitter(Qt::Vertical, this);
+	m_pMainLayout->addWidget(m_pVSplitter);
+
+	m_pHSplitter = new QSplitter(Qt::Horizontal, this);
+
+	m_pStatusWidget = new QWidget();
+	m_pStatusLayout = new QVBoxLayout(m_pStatusWidget);
+	m_pStatusLayout->setContentsMargins(0,0,0,0);
+
+	m_pStatusView = new CStatusView();
+
+	/*auto* pScrollArea = new QScrollArea(this);
+	pScrollArea->setWidget(m_pStatusView);
+	pScrollArea->setWidgetResizable(true);
+	pScrollArea->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+	pScrollArea->setFrameShape(QFrame::NoFrame);
+	pScrollArea->setFrameShadow(QFrame::Plain);
+	pScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+	pScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+	pScrollArea->setSizePolicy(
+		QSizePolicy::Preferred,   // in width, still expand to fill
+		QSizePolicy::Maximum      // in height, only as tall as contents
+	);
+
+	m_pStatusLayout->addWidget(pScrollArea);*/
+
+	m_pStatusLayout->addWidget(m_pStatusView);
+
+	m_pIssueView = new CIssueView();
+	m_pStatusLayout->addWidget(m_pIssueView);
+
+	m_pHSplitter->addWidget(m_pStatusWidget);
+
+	m_pEventView = new CEventView();
+
+	m_pHSplitter->addWidget(m_pEventView);
+
+	m_pVSplitter->addWidget(m_pHSplitter);
+
+	m_pEventWidget = new QWidget();
+	m_pEventLayout = new QVBoxLayout(m_pEventWidget);
+	m_pEventLayout->setContentsMargins(0, 0, 0, 0);
+	m_pVSplitter->addWidget(m_pEventWidget);
+
+	m_pEventToolBar = new QToolBar();
+	m_pEventLayout->addWidget(m_pEventToolBar);	
+
+	m_pBtnClear = new QToolButton();
+	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
+	m_pBtnClear->setToolTip(tr("Clear System Event Log"));
+	m_pBtnClear->setFixedHeight(22);
+	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearEventLog()));
+	m_pEventToolBar->addWidget(m_pBtnClear);
 
 	// Event Log
 	m_pEventLog = new QTreeWidgetEx();
@@ -29,11 +88,17 @@ CHomePage::CHomePage(QWidget* parent)
 
 	m_pEventLog->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(m_pEventLog, SIGNAL(customContextMenuRequested( const QPoint& )), this, SLOT(OnMenu(const QPoint &)));
-
-	m_pMainLayout->addWidget(CFinder::AddFinder(m_pEventLog, this, true, &m_pFinder));
 	// 
 
-	m_pMainLayout->addWidget(m_pEventLog);
+	m_pEventPanel = new CPanelWidgetX(m_pEventLog, this);
+	m_pEventLayout->addWidget(m_pEventPanel);
+
+	connect(theCore, SIGNAL(EnclavesChanged()), this, SLOT(OnChange()));
+	connect(theCore, SIGNAL(ExecRulesChanged()), this, SLOT(OnChange()));
+	connect(theCore, SIGNAL(ResRulesChanged()), this, SLOT(OnChange()));
+	connect(theCore, SIGNAL(FwRulesChanged()), this, SLOT(OnChange()));
+	connect(theCore, SIGNAL(DnsRulesChanged()), this, SLOT(OnChange()));
+	connect(theCore->TweakManager(), SIGNAL(TweaksChanged()), this, SLOT(OnChange()));
 
 
 	ReadServiceLog();
@@ -55,12 +120,57 @@ CHomePage::CHomePage(QWidget* parent)
 		L"</QueryList>";
 
 	m_pEventListener->Start(XmlQuery);
+
+	m_pVSplitter->restoreState(theConf->GetBlob("HomePage/VSplitter"));
+	m_pHSplitter->restoreState(theConf->GetBlob("HomePage/HSplitter"));
 }
 
 CHomePage::~CHomePage()
 {
+	theConf->SetBlob("HomePage/VSplitter", m_pVSplitter->saveState());
+	theConf->SetBlob("HomePage/HSplitter", m_pHSplitter->saveState());
+
 	m_pEventListener->Stop();
 	delete m_pEventListener;
+}
+
+void CHomePage::OnChange()
+{
+	if (!m_RefreshPending) {
+		m_RefreshPending = true;
+		QTimer::singleShot(500, this, [&]() {
+			m_RefreshPending = false;
+			Refresh();
+		});
+	}
+}
+
+void CHomePage::Refresh()
+{
+	theCore->TweakManager()->GetRoot();
+	m_pIssueView->Refresh();
+	Update();
+}
+
+void CHomePage::Update()
+{
+	if (!isVisible())
+		return;
+
+	m_pStatusView->Update();
+	m_pIssueView->Update();
+	m_pEventView->Update();
+}
+
+void CHomePage::OnClearEventLog()
+{
+	if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the event log?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+		return;
+
+	CEventLogger::ClearLog(APP_NAME);
+	m_pEventLog->clear();
+
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Log Cleared");
 }
 
 void CHomePage::AddLogEventFunc(CHomePage* This, HANDLE hEvent)
@@ -140,9 +250,14 @@ QTreeWidgetItem* CHomePage::MakeLogItem(const QString& Source, const QDateTime& 
 	pItem->setText(eEvent, QString::number(Event));
 	pItem->setText(eMessage, Message);
 
-	if (Source == API_DRIVER_NAME) {
+
+	if (Source.toStdWString() == API_DRIVER_NAME) {
 		for(int i = 0; i < pItem->columnCount(); i++)
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 			pItem->setBackgroundColor(i, QColor(255, 0, 0, 128));
+#else
+			pItem->setBackground(i, QBrush(QColor(255, 0, 0, 128)));
+#endif
 	}
 
 	return pItem;
@@ -259,8 +374,8 @@ CHomePage::SLogData CHomePage::ReadLogData(HANDLE hEvent)
 		L"Event/System/Provider/@Name",			// 0
 
 		L"Event/System/Level",					// 1	// wType
-		L"Event/System/Task",					// 3	// wCategory
-		L"Event/System/EventID",				// 2	// dwEventID
+		L"Event/System/Task",					// 2	// wCategory
+		L"Event/System/EventID",				// 3	// dwEventID
 
 		L"Event/EventData/Data",				// 4	// lpStrings
 		L"Event/EventData/Binary",				// 5	// lpRawData
@@ -296,7 +411,7 @@ CHomePage::SLogData CHomePage::ReadLogData(HANDLE hEvent)
 	} else
 		Data.Message.append(QString::fromStdWString(values[4].StringVal));
 
-	if(Data.Source == API_DRIVER_NAME)
+	if(Data.Source.toStdWString() == API_DRIVER_NAME)
 		Data.Message.removeAll(QString());
 
 	Data.TimeStamp = QDateTime::fromMSecsSinceEpoch(FILETIME2ms(CEventLogListener::GetWinVariantNumber<quint64>(*uTime, 0)));

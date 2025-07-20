@@ -64,6 +64,12 @@
     <Filter Include="Helpers">
       <UniqueIdentifier>{18a4d058-8eac-4e18-9ef7-6f1aec767dc8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="JSEngine">
+      <UniqueIdentifier>{7a71b0e3-427c-407b-9d3c-fb7885bfcd53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JSEngine\quickjs">
+      <UniqueIdentifier>{e553256d-aaef-4ca4-9b9a-f3f7094e9021}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -251,6 +257,30 @@
     </ClCompile>
     <ClCompile Include="Helpers\SecDeskHelper.cpp">
       <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\quickjspp\quickjs\cutils.c">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\quickjspp\quickjs\libbf.c">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\quickjspp\quickjs\libregexp.c">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\quickjspp\quickjs\libunicode.c">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\quickjspp\quickjs\quickjs.c">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\quickjspp\quickjs\quickjs-libc.c">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="JsEngine\JSEngine.cpp">
+      <Filter>JSEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\EventLog.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -520,6 +550,48 @@
     </ClInclude>
     <ClInclude Include="Helpers\SecDeskHelper.h">
       <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjspp.hpp">
+      <Filter>JSEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\quickjs-opcode.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\cutils.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\libbf.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\libregexp.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\libregexp-opcode.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\libunicode.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\libunicode-table.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\list.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\quickjs.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\quickjs-atom.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\quickjspp\quickjs\quickjs-libc.h">
+      <Filter>JSEngine\quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="JsEngine\JSEngine.h">
+      <Filter>JSEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\EventLog.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

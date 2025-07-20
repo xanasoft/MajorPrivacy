@@ -185,7 +185,6 @@ void CEnclaveView::OnEnclaveAction()
 			{
 				switch (Status.GetStatus())
 				{
-				case STATUS_ERR_PROC_EJECTED:	Status.SetMessageText(tr("The process was ejected form the enclave, and is running unprotected, probably due to insuficient signature level!").toStdWString()); break;
 				case STATUS_UNSUCCESSFUL:		Status.SetMessageText(tr("Failed to start process!").toStdWString()); break;
 				}
 			}

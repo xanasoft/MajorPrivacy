@@ -17,6 +17,7 @@
 #include "../Library/Common/Strings.h"
 #include "../Library/IPC/PipeServer.h"
 #include "../Access/ResLogEntry.h"
+#include "../Access/AccessManager.h"
 #include "../Library/Hooking/HookUtils.h"
 #include "../Library/Common/FileIO.h"
 
@@ -141,7 +142,7 @@ void CProcessList::Reconfigure()
 STATUS CProcessList::EnumProcesses()
 {
 #ifdef _DEBUG
-    uint64 start = GetUSTickCount();
+    uint64 start = GetTickCount64();
 #endif
 
     std::unique_lock Lock(m_Mutex);
@@ -235,7 +236,7 @@ STATUS CProcessList::EnumProcesses()
     }
 
 #ifdef _DEBUG
-    //DbgPrint("EnumProcesses took %.2f ms cycles\r\n", (GetUSTickCount() - start) / 1000.0);
+    //DbgPrint("EnumProcesses took %dms\r\n", GetTickCount64() - start);
 #endif
 
 	return OK;
@@ -657,7 +658,78 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
     AddExecLogEntry(pProgram, pLogEntry);
 }
 
-void CProcessList::OnResourceAccessed(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory)
+EAccessRuleType CProcessList::GetResourceAccess(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, uint32 TimeOut)
+{
+    CProcessPtr pActorProcess = GetProcess(ActorPid, true);
+    CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
+
+    if (!pActorProgram)
+        return EAccessRuleType::eBlock;
+
+    std::wstring DosPath = theCore->NormalizePath(NtPath);
+
+    if (!RuleGuid.IsNull())
+    {
+        CAccessRulePtr pRule = theCore->AccessManager()->GetRule(RuleGuid);
+        if (!pRule)
+            theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_RULE_NOT_FOUND, L"Access rule not found: %s", RuleGuid.ToString().c_str());
+        else if(pRule->HasScript())
+        {
+            EAccessRuleType Action = pRule->RunScript(NtPath, ActorPid, ActorServiceTag, AccessMask);
+            if(Action != EAccessRuleType::eNone)
+                return Action;
+        }
+
+        if(!pRule->IsInteractive())
+			return EAccessRuleType::eProtect;
+    }
+
+#ifdef DEF_USE_POOL
+    CResLogEntryPtr pLogEntry = pActorProgram->Allocator()->New<CResLogEntry>(pActorProcess->GetEnclave(), NtPath, ActorServiceTag, AccessMask, EEventStatus::eProtected, AccessTime, ActorPid);
+#else
+    CResLogEntryPtr pLogEntry = CResLogEntryPtr(new CResLogEntry(pActorProcess->GetEnclave(), NtPath, ActorServiceTag, AccessMask, EEventStatus::eProtected, AccessTime, ActorPid));
+#endif
+
+    uint64 LogIndex = pActorProgram->AddTraceLogEntry(pLogEntry, ETraceLogs::eResLog);
+
+    StVariant Event;
+    //Event[SVC_API_EVENT_TYPE]	= SVC_API_EVENT_FW_EVENT;
+    Event[API_V_ID]		        = pActorProgram->GetID().ToVariant(SVarWriteOpt());
+	Event[API_V_EVENT_TIMEOUT]  = TimeOut;
+    Event[API_V_EVENT_INDEX]	= LogIndex;
+    Event[API_V_EVENT_DATA]	    = pLogEntry->ToVariant();
+
+    if (theCore->BroadcastMessage(SVC_API_EVENT_RES_ACTIVITY, Event) == 0)
+        return EAccessRuleType::eBlock; // no cleints to make a decision
+
+    std::unique_lock WaitLock(m_WaitingEventsMutex);
+
+    SWaitingEvent WaitingEvent;
+    uint64 EventId = (uint64)pLogEntry.Get();
+    m_WaitingEvents.insert(std::make_pair(EventId, &WaitingEvent));
+    
+    WaitingEvent.cv.wait_for(WaitLock, std::chrono::milliseconds(TimeOut), [&WaitingEvent] { return WaitingEvent.Action != EAccessRuleType::eNone; });
+
+    m_WaitingEvents.erase(EventId);
+    if(WaitingEvent.Action == EAccessRuleType::eNone) // timeout
+        return EAccessRuleType::eBlock;
+
+    return WaitingEvent.Action;
+}
+
+STATUS CProcessList::SetAccessEventAction(uint64 EventId, EAccessRuleType Action)
+{
+    std::unique_lock WaitLock(m_WaitingEventsMutex);
+    auto F = m_WaitingEvents.find(EventId);
+    if (F != m_WaitingEvents.end()) {
+        F->second->Action = Action;
+        F->second->cv.notify_one();
+        return STATUS_SUCCESS;
+    }
+	return STATUS_NOT_FOUND;
+}
+
+void CProcessList::OnResourceAccessed(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory)
 {
 	if (!m_bLogNotFound && (NtStatus == STATUS_UNRECOGNIZED_VOLUME 
         || NtStatus == STATUS_OBJECT_NAME_NOT_FOUND || NtStatus == STATUS_OBJECT_PATH_NOT_FOUND
@@ -786,8 +858,11 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
 		}
         case SProcessEvent::EType::ResourceAccess:
         {
-            const SResourceAccessEvent* pAccessEvent = (SResourceAccessEvent*)(pEvent);
-			OnResourceAccessed(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status, pAccessEvent->NtStatus, pAccessEvent->IsDirectory);
+            SResourceAccessEvent* pAccessEvent = (SResourceAccessEvent*)(pEvent);
+            if (pAccessEvent->TimeOut != 0)
+                pAccessEvent->Action = GetResourceAccess(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->RuleGuid, pAccessEvent->TimeOut);
+            else
+			    OnResourceAccessed(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->RuleGuid, pAccessEvent->Status, pAccessEvent->NtStatus, pAccessEvent->IsDirectory);
 			break;
         }
 		case SProcessEvent::EType::InjectionRequest:

@@ -83,6 +83,8 @@ protected:
 		bool				IsBold;
 		bool				IsGray;
 		bool				IsItalic;
+		QVariant			TextColor;
+
 		struct SValue
 		{
 			QVariant Raw;

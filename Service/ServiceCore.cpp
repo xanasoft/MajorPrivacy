@@ -28,6 +28,8 @@
 #include "../Library/Common/Exception.h"
 #include "../MajorPrivacy/version.h"
 #include "../Library/Helpers/NtPathMgr.h"
+#include "JSEngine/JSEngine.h"
+#include "Common/EventLog.h"
 
 CServiceCore* theCore = NULL;
 
@@ -40,7 +42,8 @@ extern SERVICE_STATUS_HANDLE g_ServiceStatusHandle;
 CServiceCore::CServiceCore()
 	: m_Pool(4)
 {
-	m_pLog = new CEventLogger(API_SERVICE_NAME);
+	m_pSysLog = new CEventLogger(API_SERVICE_NAME);
+	m_pEventLog = new CEventLog();
 
 	m_pUserPipe = new CPipeServer();
 	m_pUserPort = new CAlpcPortServer();
@@ -94,7 +97,8 @@ CServiceCore::~CServiceCore()
 	delete m_pUserPipe;
 	delete m_pUserPort;
 
-	delete m_pLog;
+	delete m_pSysLog;
+	delete m_pEventLog;
 
 	delete m_pConfig; // could be NULL
 
@@ -378,6 +382,12 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
 	//
+	// LoadEventLog
+	// 
+
+	This->m_pEventLog->Load();
+
+	//
 	// Initialize the driver
 	//
 
@@ -522,6 +532,8 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 cleanup:
 
+	This->m_pEventLog->Store();
+
 	if (theCore->m_pDriver->IsConnected())
 		This->CloseDriver();
 
@@ -537,6 +549,29 @@ cleanup:
 
 STATUS CServiceCore::Init()
 {
+	/*{
+		CJSEngine JSEngine(R"xxx(
+
+        function func(arg) {
+            return "test: " + arg.x;
+        }
+
+        //1 + 2;
+
+        logLine("test");
+
+        )xxx");
+
+		JSEngine.RunScript();
+
+		StVariant Var;
+		Var["x"] = "test";
+
+		auto Ret = JSEngine.CallFunc("func", 1, Var);
+		auto sRet = Ret.GetValue().AsStr();
+		sRet.clear();
+	}*/
+
 	m_AppDir = GetApplicationDirectory();
 
 	// Initialize this variable here befor any threads are started and later access it without synchronisation for reading only
@@ -702,6 +737,11 @@ void CServiceCore::OnTimer()
 
 	m_pAccessManager->Update();
 
+	if (m_NextLogTime && m_NextLogTime < GetTickCount64()) {
+		m_NextLogTime = 0;
+		m_pEventLog->Store();
+	}
+
 	if (m_LastStoreTime + 60 * 60 * 1000 < GetTickCount64()) // once per hours
 	{
 		m_LastStoreTime = GetTickCount64();
@@ -842,4 +882,11 @@ std::wstring CServiceCore::GetCallerSID(uint32 CallerPID)
 	}
 	
 	return sidStringOut;
+}
+
+void CServiceCore::EmitEvent(ELogLevels Level, int Type, const StVariant& Data)
+{
+	if(!m_NextLogTime)
+		m_NextLogTime = GetTickCount64() + 1000;
+	m_pEventLog->AddEvent(Level, Type, Data);
 }

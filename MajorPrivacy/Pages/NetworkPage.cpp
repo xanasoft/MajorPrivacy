@@ -115,7 +115,7 @@ void CNetworkPage::Update()
 	if (m_pRuleView->isVisible())
 	{
 		if(Current.bAllPrograms)
-			m_pRuleView->Sync(theCore->NetworkManager()->GetFwRules());
+			m_pRuleView->Sync(theCore->NetworkManager()->GetFwRules().values());
 		else {
 			QSet<QFlexGuid> RuleIDs;
 			foreach(CProgramItemPtr pItem, Current.Items)

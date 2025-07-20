@@ -29,6 +29,7 @@
 #include "Programs/AppPackage.h"
 #include "Programs/ProgramPattern.h"
 #include "Programs/AppInstallation.h"
+#include "EventLog.h"
 
 #define XVariant QtVariant
 #define VariantWriter QtVariantWriter
@@ -63,6 +64,9 @@
 #include "../../Library/API/API_FwRule.cpp"
 
 #include "../../Library/API/API_DnsRule.cpp"
+
+#define LOG_GUI
+#include "../../Library/API/API_EventLog.cpp"
 
 #include "../../Library/API/API_ProgramID.cpp"
 

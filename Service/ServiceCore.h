@@ -6,6 +6,7 @@
 #include "../Library/Helpers/EvtUtil.h"
 #include "../Library/Common/ThreadPool.h"
 #include "../Framework/Core/Memory.h"
+#include "../Library/API/PrivacyDefs.h"
 
 #define DEF_CORE_TIMER_INTERVAL		250
 
@@ -26,7 +27,8 @@ public:
 	STATUS					CommitConfig();
 	STATUS					DiscardConfig();
 
-	class CEventLogger*		Log()					{ return m_pLog; }
+	class CEventLogger*		Log()					{ return m_pSysLog; }
+	void EmitEvent(ELogLevels Level, int Type, const StVariant& Data);
 
 	class CPipeServer*		UserPipe()				{ return m_pUserPipe; }
 	class CAlpcPortServer*	UserPort()				{ return m_pUserPort; }
@@ -97,7 +99,8 @@ protected:
 	STATUS					m_InitStatus;
 	bool					m_bConfigDirty = false;	
 	
-	class CEventLogger*		m_pLog = NULL;
+	class CEventLogger*		m_pSysLog = NULL;
+	class CEventLog*		m_pEventLog = NULL;
 
 	class CPipeServer*		m_pUserPipe = NULL;
 	class CAlpcPortServer*	m_pUserPort = NULL;
@@ -142,6 +145,7 @@ protected:
 
 	uint64 m_LastStoreTime = 0;
 	uint64 m_LastCheckTime = 0;
+	uint64 m_NextLogTime = 0;
 
 
 	CThreadPool				m_Pool;

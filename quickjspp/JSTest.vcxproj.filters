@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="quickjs">
+      <UniqueIdentifier>{20602fca-a07b-410d-9e82-527e5997b761}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="qjs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\cutils.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\libbf.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\libregexp.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\libunicode.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\quickjs.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="quickjs\quickjs-libc.c">
+      <Filter>quickjs</Filter>
+    </ClCompile>
+    <ClCompile Include="test\class.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\conversions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\enum.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\example.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\exception.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\function_call.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\inheritance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\jobs.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\module_loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\multicontext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\point.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\unhandled_rejection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\value.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="test\variant.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="quickjspp.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\cutils.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\libbf.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\libregexp.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\libregexp-opcode.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\libunicode.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\libunicode-table.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\list.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\quickjs.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\quickjs-atom.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\quickjs-libc.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+    <ClInclude Include="quickjs\quickjs-opcode.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

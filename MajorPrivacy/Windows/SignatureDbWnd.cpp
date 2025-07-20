@@ -90,7 +90,7 @@ void CSignatureDbWnd::Load()
 		QTreeWidgetItem* pItem = Old.take(Path);
 		if (!pItem) {
 			pItem = new QTreeWidgetItem();
-			pItem->setData(eName, Qt::UserRole, Path);
+			pItem->setData(ePath, Qt::UserRole, Path);
 			if (Name.endsWith("\\")) {
 				pItem->setText(eName, Name.left(Name.length() - 1));
 				pItem->setIcon(eName, QIcon(":/Icons/Directory.png"));
@@ -124,7 +124,7 @@ void CSignatureDbWnd::Load()
 			if (res != QtVariant::eErrNone) 
 				return;
 
-			if (SigData[API_S_TYPE].AsQStr() == L"File") {
+			if (SigData.Get(API_S_TYPE).AsQStr() == "File") {
 				pItem->setText(ePath, SigData[API_S_FILE_PATH].AsQStr());
 			}
 		}
@@ -140,7 +140,7 @@ void CSignatureDbWnd::Load()
 		QMap<QString, QTreeWidgetItem*> Old;
 		for (int i = 0; i < pParent->childCount(); i++) {
 			QTreeWidgetItem* pItem = pParent->child(i);
-			Old.insert(pItem->data(eName, Qt::UserRole).toString(), pItem);
+			Old.insert(pItem->data(ePath, Qt::UserRole).toString(), pItem);
 		}
 
 		foreach(const QString & FileName, SubFiles)
@@ -161,7 +161,7 @@ void CSignatureDbWnd::Load()
 	QMap<QString, QTreeWidgetItem*> Old;
 	for(int i = 0; i < m_pTree->topLevelItemCount(); i++) {
 		QTreeWidgetItem* pItem = m_pTree->topLevelItem(i);
-		Old.insert(pItem->data(eName, Qt::UserRole).toString(), pItem);
+		Old.insert(pItem->data(ePath, Qt::UserRole).toString(), pItem);
 	}	
 
 	foreach(const QString & FileName, Files)
@@ -178,16 +178,22 @@ void CSignatureDbWnd::OnAction()
 	QTreeWidgetItem* pItem = m_pTree->currentItem();
 	if (!pItem) return;
 
-	QString Path = pItem->data(eName, Qt::UserRole).toString();
-	if (Path.isEmpty()) return;
-	/*if (Path.endsWith("\\")) {
-		QMessageBox::information(this, tr("MajorPrivacy"), tr("You can only delete files, not directories."));
-		return;
-	}*/
-	if (QMessageBox::question(this, tr("MajorPrivacy"), tr("Are you sure you want to delete the signature?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
-		return;
+	STATUS Status;
 
-	STATUS Status = theCore->RemoveConfigFile(Path);
+	if (sender() == m_pDelete)
+	{
+		QString Path = pItem->data(ePath, Qt::UserRole).toString();
+		if (Path.isEmpty()) return;
+		/*if (Path.endsWith("\\")) {
+			QMessageBox::information(this, tr("MajorPrivacy"), tr("You can only delete files, not directories."));
+			return;
+		}*/
+		if (QMessageBox::question(this, tr("MajorPrivacy"), tr("Are you sure you want to delete the signature?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+			return;
+
+		Status = theCore->RemoveConfigFile(Path);
+	}
+
 	if (!Status.IsError())
 		Load();
 	theGUI->CheckResults(QList<STATUS>() << Status, this);

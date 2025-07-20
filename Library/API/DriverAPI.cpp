@@ -209,10 +209,34 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
             Event.Path = vEvent[API_V_FILE_NT_PATH].AsStr();
             Event.AccessMask = vEvent[API_V_ACCESS_MASK].To<uint32>();
             Event.Status = (EEventStatus)vEvent[API_V_EVENT_STATUS].To<uint32>();
-            Event.NtStatus = vEvent[API_V_NT_STATUS].To<uint32>();            
-            Event.IsDirectory = vEvent[API_V_IS_DIRECTORY].To<bool>();            
+            Event.RuleGuid = vEvent.Get(API_V_RULE_REF_GUID).AsStr();
+            Event.NtStatus = vEvent.Get(API_V_NT_STATUS).To<uint32>();            
+            Event.IsDirectory = vEvent.Get(API_V_IS_DIRECTORY).To<bool>();            
+
+            Event.TimeOut = vEvent.Get(API_V_TIMEOUT).To<uint32>(0);
 
             CDriverAPI__EmitProcess(This, &Event);
+
+            if (Event.TimeOut != 0)
+            {
+				if (Event.Action == EAccessRuleType::eNone) // we have no verdict / timeout
+					Event.Action = EAccessRuleType::eProtect;
+
+                StVariant vReply;
+                vReply[API_V_EVENT_ACTION] = (sint32)Event.Action;
+
+                CBuffer OutBuff;
+                OutBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
+                PMSG_HEADER repHeader = (PMSG_HEADER)OutBuff.GetBuffer();
+                repHeader->MessageId = Message->Header.MessageId;
+                repHeader->Size = sizeof(MSG_HEADER);
+                vReply.ToPacket(&OutBuff);
+                PKPH_MESSAGE msg = (PKPH_MESSAGE)OutBuff.GetBuffer();
+                msg->Header.Size = (ULONG)OutBuff.GetSize();
+
+                ReplyFunc(Context, msg);
+            }
+
             break;
         }
 

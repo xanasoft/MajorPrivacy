@@ -47,9 +47,9 @@ void CSocket::FromVariant(const class QtVariant& Socket)
 		case API_V_SOCK_REF:		m_SocketRef = Data; break;
 
 		case API_V_SOCK_TYPE:		m_ProtocolType = Data; break;
-		case API_V_SOCK_LADDR:		m_LocalAddress = Data.AsQStr(); break;
+		case API_V_SOCK_LADDR:		m_LocalAddress = QHostAddress(Data.AsQStr()); break;
 		case API_V_SOCK_LPORT:		m_LocalPort = Data; break;
-		case API_V_SOCK_RADDR:		m_RemoteAddress = Data.AsQStr(); break;
+		case API_V_SOCK_RADDR:		m_RemoteAddress = QHostAddress(Data.AsQStr()); break;
 		case API_V_SOCK_RPORT:		m_RemotePort = Data; break;
 		case API_V_SOCK_STATE:		m_State = Data; break;
 		case API_V_SOCK_LSCOPE:		m_LocalScopeId = Data; break; // Ipv6

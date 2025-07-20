@@ -46,6 +46,8 @@ public:
 		bool bAllPrograms = false;
 	};
 
+	STATUS				MakeKeyPair();
+
 	bool				IsDrvConfigLocked() const { return m_DrvConfigLocked; }
 	STATUS				UnlockDrvConfig();
 	STATUS				CommitDrvConfig();
@@ -99,8 +101,9 @@ signals:
 public slots:
 	void				OnProgramsAdded();
 	void				OnExecutionEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
-	void				OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
+	void				OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry, uint32 TimeOut);
 	void				OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry);
+	void				OnFwChangeEvent(const QString& RuleId, qint32 iEventType);
 
 	void				CleanUpPrograms();
 	void				ReGroupPrograms();
@@ -385,5 +388,8 @@ public:
 #define IGNORE_LIST_GROUP "IgnoreList"
 QString GetIgnoreTypeName(ERuleType Type);
 ERuleType GetIgnoreType(const QString& Key);
+
+
+#define HIDDEN_ISSUES_GROUP "HiddenIssues"
 
 extern CMajorPrivacy* theGUI;

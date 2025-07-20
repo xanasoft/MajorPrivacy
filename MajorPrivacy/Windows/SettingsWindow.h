@@ -32,6 +32,7 @@ private slots:
 
 	void OnDelIgnore();
 	void OnFwModeChanged();
+	void OnFwGuardChanged();
 	void OnFwAuditPolicyChanged();
 	void OnFwShowPopUpChanged();
 

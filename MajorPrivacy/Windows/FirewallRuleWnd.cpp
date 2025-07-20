@@ -37,7 +37,7 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 		AddProgramItem(pItem);
 
 	if (bNew && m_pRule->m_Name.isEmpty()) {
-		m_pRule->m_Name = tr("&MP-Rule, New Firewall Rule");
+		m_pRule->m_Name = tr("MajorPrivacy-Rule, New Firewall Rule");
 	} else
 		m_NameChanged = true;
 
@@ -188,6 +188,11 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 
 CFirewallRuleWnd::~CFirewallRuleWnd()
 {
+}
+
+void CFirewallRuleWnd::SetReadOnly(bool bReadOnly)
+{
+	ui.buttonBox->setEnabled(!bReadOnly);
 }
 
 bool CFirewallRuleWnd::AddProgramItem(const CProgramItemPtr& pItem)
@@ -669,6 +674,6 @@ void CFirewallRuleWnd::TryMakeName()
 		return;
 
 	m_NameHold = true;
-	ui.txtName->setText(tr("%4, %1 %2 %3").arg(Action).arg(Program).arg(Protocol).arg(Path.contains(QRegExp("[*?<>|]")) ? "&MP-Template" : "&MP-Rule"));
+	ui.txtName->setText(tr("%4, %1 %2 %3").arg(Action).arg(Program).arg(Protocol).arg(Path.contains(QRegularExpression("[*?<>|]")) ? "MajorPrivacy-Template" : "MajorPrivacy-Rule"));
 	m_NameHold = false;
 }

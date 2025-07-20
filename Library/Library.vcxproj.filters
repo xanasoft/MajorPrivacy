@@ -551,6 +551,9 @@
     <ClCompile Include="Common\StVariant.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="API\API_EventLog.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\Service.rc">

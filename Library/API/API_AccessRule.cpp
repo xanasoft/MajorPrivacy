@@ -9,6 +9,9 @@ void CAccessRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) c
 	CGenericRule::WriteIVariant(Rule, Opts);
 
 	Rule.Write(API_V_ACCESS_RULE_ACTION, (uint32)m_Type);
+	Rule.Write(API_V_USE_SCRIPT, m_bUseScript);
+	Rule.WriteEx(API_V_SCRIPT, TO_STR_A(m_Script));
+	Rule.Write(API_V_INTERACTIVE, m_bInteractive);
 	Rule.WriteEx(API_V_ACCESS_PATH, TO_STR(m_AccessPath));
 	Rule.WriteEx(API_V_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
@@ -25,6 +28,9 @@ void CAccessRule::ReadIValue(uint32 Index, const XVariant& Data)
 	switch (Index)
 	{
 	case API_V_ACCESS_RULE_ACTION: m_Type = (EAccessRuleType)Data.To<uint32>(); break;
+	case API_V_USE_SCRIPT: m_bUseScript = Data.To<bool>(); break;
+	case API_V_SCRIPT: AS_STR_A(m_Script, Data); break;
+	case API_V_INTERACTIVE: m_bInteractive = Data.To<bool>(); break;
 	case API_V_ACCESS_PATH: m_AccessPath = AS_STR(Data); break;
 	case API_V_FILE_PATH: m_ProgramPath = AS_STR(Data); break;
 #ifdef LOAD_NT_PATHS
@@ -51,6 +57,10 @@ void CAccessRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) c
 	case EAccessRuleType::eProtect:		Rule.Write(API_S_ACCESS_RULE_ACTION, API_S_ACCESS_RULE_ACTION_PROTECT); break;
 	case EAccessRuleType::eIgnore:		Rule.Write(API_S_ACCESS_RULE_ACTION, API_S_ACCESS_RULE_ACTION_IGNORE); break;
 	}
+
+	Rule.Write(API_S_USE_SCRIPT, m_bUseScript);
+	Rule.WriteEx(API_S_SCRIPT, TO_STR(m_Script));
+	Rule.Write(API_S_INTERACTIVE, m_bInteractive);
 
 	Rule.WriteEx(API_S_ACCESS_PATH, TO_STR(m_AccessPath));
 	Rule.WriteEx(API_S_FILE_PATH, TO_STR(m_ProgramPath));
@@ -83,6 +93,11 @@ void CAccessRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 		//else // todo other
 		//	return STATUS_INVALID_PARAMETER;
 	}
+
+	else if (VAR_TEST_NAME(Name, API_S_USE_SCRIPT))		m_bUseScript = Data.To<bool>();
+	else if (VAR_TEST_NAME(Name, API_S_SCRIPT))			AS_STR_A(m_Script, Data);
+	
+	else if (VAR_TEST_NAME(Name, API_S_INTERACTIVE))	m_bInteractive = Data.To<bool>();
 
 	else if (VAR_TEST_NAME(Name, API_S_ACCESS_PATH))	m_AccessPath = AS_STR(Data);
 

@@ -26,6 +26,11 @@ QString CProgramFile::GetNameEx() const
 	return QString("%1 (%2)").arg(FileName).arg(m_Name); // todo make switchable
 }
 
+QString CProgramFile::GetPublisher() const
+{
+	return GetSignInfo().GetSignerName();
+}
+
 QMultiMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
 {
 	if (m_LibrariesChanged)

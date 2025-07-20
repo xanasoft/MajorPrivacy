@@ -47,10 +47,13 @@ public:
 	class CVolumeManager* VolumeManager()		{ return m_pVolumeManager; }
 	class CTweakManager* TweakManager()			{ return m_pTweakManager; }
 
+	class CIssueManager* IssueManager()			{ return m_pIssueManager; }
+
 	CDriverAPI*		Driver() { return &m_Driver; }
 	CServiceAPI*	Service() { return &m_Service; }
 
-	class CEventLogger*	Log()					{ return m_pLog; }
+	class CEventLogger*	Log()					{ return m_pSysLog; }
+	class CEventLog*	EventLog()				{ return m_pEventLog; }
 
 
 	static QString		NormalizePath(QString sFilePath, bool bForID = false);
@@ -169,6 +172,7 @@ public:
 	STATUS				SetAccessRule(const QtVariant& Rule);
 	RESULT(QtVariant)	GetAccessRule(const QFlexGuid& Guid);
 	STATUS				DelAccessRule(const QFlexGuid& Guid);
+	STATUS				SetAccessEventAction(uint64 EventId, EAccessRuleType Action);
 
 	// Network Manager
 	RESULT(QtVariant)	GetFwRulesFor(const QList<const class CProgramItem*>& Nodes);
@@ -231,6 +235,8 @@ public:
 	STATUS				ApproveTweak(const QString& Id);
 
 	// Other
+	void				ClearPrivacyLog();
+
 	RESULT(QtVariant)	GetServiceStats();
 
 	//
@@ -261,6 +267,7 @@ public:
 signals:
 	void				ProgramsAdded();
 	void				UnruledFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
+	void				FwChangeEvent(const QString& RuleId, qint32 iEventType);
 	
 	void				EnclavesChanged();
 	void				ExecRulesChanged();
@@ -269,7 +276,7 @@ signals:
 	void				DnsRulesChanged();
 	
 	void				ExecutionEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
-	void				AccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
+	void				AccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry, uint32 TimeOut);
 
 	void				CleanUpDone();
 	void				CleanUpProgress(quint64 Done, quint64 Total);
@@ -297,7 +304,8 @@ protected:
 
 	static QtVariant		MakeIDs(const QList<const class CProgramItem*>& Nodes);
 
-	class CEventLogger*		m_pLog = NULL;
+	class CEventLogger*		m_pSysLog = NULL;
+	class CEventLog*		m_pEventLog = NULL;
 
 	CDriverAPI	m_Driver;
 	CServiceAPI m_Service;
@@ -315,6 +323,8 @@ protected:
 	class CNetworkManager* m_pNetworkManager = NULL;
 	class CVolumeManager* m_pVolumeManager = NULL;
 	class CTweakManager* m_pTweakManager = NULL;
+
+	class CIssueManager* m_pIssueManager = NULL;
 
 	bool m_EnclavesUpToDate = false;
 	bool m_ProgramRulesUpToDate = false;

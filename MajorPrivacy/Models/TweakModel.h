@@ -29,7 +29,7 @@ public:
 		eStatus,
 		eType,
 		eHint,
-		eInfo,
+		eDescription,
 		eCount
 	};
 

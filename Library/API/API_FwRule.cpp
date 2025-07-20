@@ -1,5 +1,5 @@
 #ifdef CFwRule
-#define M(x) m_Data->##x
+#define M(x) m_FwRule->##x
 
 #else
 #define M(x) m_##x
@@ -21,8 +21,13 @@ void CFwRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 #endif
     Rule.Write(API_V_INDEX, M(Index));
 
+	Rule.Write(API_V_RULE_STATE, (uint32)m_State);
+    Rule.WriteEx(API_V_ORIGINAL_GUID, m_OriginalGuid);
+
+    Rule.Write(API_V_SOURCE, (uint32)m_Source);
+
 #ifdef CFwRule
-    Rule.Write(API_V_ENABLED, m_Data->Enabled);
+    Rule.Write(API_V_ENABLED, m_FwRule->Enabled);
     //Rule.Write(API_V_TEMP, ...
 #endif
 
@@ -57,7 +62,7 @@ void CFwRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 
 #ifdef CFwRule
     ASTR_VECTOR IcmpTypesAndCodes;
-    for (auto I : m_Data->IcmpTypesAndCodes)
+    for (auto I : m_FwRule->IcmpTypesAndCodes)
         IcmpTypesAndCodes.push_back(std::to_string(I.Type) + ":" + (I.Code == 256 ? "*" : std::to_string(I.Code)));
     Rule.WriteVariant(API_V_FW_RULE_ICMP, XVariant(IcmpTypesAndCodes));
 #else
@@ -85,6 +90,11 @@ void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
     case API_V_GUID: M(Guid) = AS_STR(Data); break;
 #endif
     case API_V_INDEX: M(Index) = Data.To<int>(); break;
+
+	case API_V_RULE_STATE: m_State = (EFwRuleState)Data.To<uint32>(); break;
+	case API_V_ORIGINAL_GUID: m_OriginalGuid = AS_STR(Data); break;
+
+	case API_V_SOURCE: m_Source = (EFwRuleSource)Data.To<uint32>(); break;
 
 #ifdef CFwRule
     case API_V_ENABLED: M(Enabled) = Data.To<bool>(); break;
@@ -129,7 +139,7 @@ void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
             SWindowsFwRule::IcmpTypeCode IcmpTypeCode;
             IcmpTypeCode.Type = std::atoi(TypeCode.first.c_str());
             IcmpTypeCode.Code = TypeCode.second == "*" ? 256 : std::atoi(TypeCode.second.c_str());
-            m_Data->IcmpTypesAndCodes.push_back(IcmpTypeCode);
+            m_FwRule->IcmpTypesAndCodes.push_back(IcmpTypeCode);
         }
         break;
     }
@@ -167,6 +177,25 @@ void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 #endif
     Rule.Write(API_S_INDEX, M(Index));
 
+	switch (m_State) {
+	case EFwRuleState::eUnapproved: Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_UNAPPROVED); break;
+	case EFwRuleState::eApproved:   Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_APPROVED); break;
+    case EFwRuleState::eBackup:     Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_BACKUP); break;
+	case EFwRuleState::eUnapprovedDisabled: Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_UNAPPROVED_DISABLED); break;
+	case EFwRuleState::eDiverged:   Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_DIVERGED); break;
+	//case EFwRuleState::eDeleted:	Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_DELETED); break;
+    }
+	Rule.WriteEx(API_S_ORIGINAL_GUID, m_OriginalGuid);
+
+    switch (m_Source) {
+    case EFwRuleSource::eUnknown: Rule.Write(API_S_SOURCE, API_S_SOURCE_UNKNOWN); break;
+    case EFwRuleSource::eWindowsDefault: Rule.Write(API_S_SOURCE, API_S_SOURCE_DEFAULT); break;
+	case EFwRuleSource::eWindowsStore: Rule.Write(API_S_SOURCE, API_S_SOURCE_STORE); break;
+    case EFwRuleSource::eMajorPrivacy: Rule.Write(API_S_SOURCE, API_S_SOURCE_MP); break;
+	case EFwRuleSource::eAutoTemplate: Rule.Write(API_S_SOURCE, API_S_SOURCE_TEMPLATE); break;
+    }
+
+
 #ifdef CFwRule
     Rule.Write(API_S_ENABLED, M(Enabled));
     //Rule.Write(API_S_TEMP, ...
@@ -201,7 +230,7 @@ void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 
     ASTR_VECTOR Profiles;
     if (M(Profile) == (uint32)EFwProfiles::All)
-        Profiles.push_back(API_S_FW_RULE_PROFILE);
+        Profiles.push_back(API_S_FW_RULE_PROFILE_ALL);
     else
     {
         if(M(Profile) & (int)EFwProfiles::Domain)	Profiles.push_back(API_S_FW_RULE_PROFILE_DOMAIN);
@@ -226,11 +255,11 @@ void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteVariant(API_S_FW_RULE_LOCAL_ADDR, XVariant(M(LocalAddresses)));
     Rule.WriteVariant(API_S_FW_RULE_LOCAL_PORT, XVariant(M(LocalPorts)));
     Rule.WriteVariant(API_S_FW_RULE_REMOTE_ADDR, XVariant(M(RemoteAddresses)));
-    Rule.WriteVariant(API_S_FW_RULE_LOCAL_PORT, XVariant(M(RemotePorts)));
+    Rule.WriteVariant(API_S_FW_RULE_REMOTE_PORT, XVariant(M(RemotePorts)));
 
 #ifdef CFwRule
     ASTR_VECTOR IcmpTypesAndCodes;
-    for (auto I : m_Data->IcmpTypesAndCodes)
+    for (auto I : m_FwRule->IcmpTypesAndCodes)
         IcmpTypesAndCodes.push_back(std::to_string(I.Type) + ":" + (I.Code == 256 ? "*" : std::to_string(I.Code)));
     Rule.WriteVariant(API_S_FW_RULE_ICMP, XVariant(IcmpTypesAndCodes));
 #else
@@ -258,6 +287,43 @@ void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 #endif
     if (VAR_TEST_NAME(Name, API_S_INDEX))
         M(Index) = Data.To<int>();
+
+	else if (VAR_TEST_NAME(Name, API_S_RULE_STATE))
+    {
+        ASTR State = TO_STR_A(Data);
+        if (State == API_S_RULE_STATE_UNAPPROVED)
+            m_State = EFwRuleState::eUnapproved;
+        else if (State == API_S_RULE_STATE_APPROVED)
+            m_State = EFwRuleState::eApproved;
+        else if (State == API_S_RULE_STATE_BACKUP)
+            m_State = EFwRuleState::eBackup;
+		else if (State == API_S_RULE_STATE_UNAPPROVED_DISABLED)
+			m_State = EFwRuleState::eUnapprovedDisabled;
+        else if (State == API_S_RULE_STATE_DIVERGED)
+			m_State = EFwRuleState::eDiverged;
+		//else if (State == API_S_RULE_STATE_DELETED)
+        //    m_State = EFwRuleState::eDeleted;
+    }
+    else if (VAR_TEST_NAME(Name, API_S_ORIGINAL_GUID))
+		m_OriginalGuid = AS_STR(Data);
+
+    else if (VAR_TEST_NAME(Name, API_S_SOURCE))
+    {
+        ASTR Source = TO_STR_A(Data);
+        if (Source == API_S_SOURCE_UNKNOWN)
+            m_Source = EFwRuleSource::eUnknown;
+        else if (Source == API_S_SOURCE_DEFAULT)
+            m_Source = EFwRuleSource::eWindowsDefault;
+		else if (Source == API_S_SOURCE_STORE)
+			m_Source = EFwRuleSource::eWindowsStore;
+        else if (Source == API_S_SOURCE_MP)
+            m_Source = EFwRuleSource::eMajorPrivacy;
+		else if (Source == API_S_SOURCE_TEMPLATE)
+            m_Source = EFwRuleSource::eAutoTemplate;
+        else
+			m_Source = EFwRuleSource::eUnknown; // unknown source
+    }
+		
 
 #ifdef CFwRule
     else if (VAR_TEST_NAME(Name, API_S_ENABLED))
@@ -356,7 +422,7 @@ void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
         M(LocalPorts) = AS_LIST(Data);
 	else if (VAR_TEST_NAME(Name, API_S_FW_RULE_REMOTE_ADDR))
         M(RemoteAddresses) = AS_LIST(Data);
-	else if (VAR_TEST_NAME(Name, API_S_FW_RULE_LOCAL_PORT))
+	else if (VAR_TEST_NAME(Name, API_S_FW_RULE_REMOTE_PORT))
 		M(RemotePorts) = AS_LIST(Data);
 
 #ifdef CFwRule
@@ -369,7 +435,7 @@ void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
             SWindowsFwRule::IcmpTypeCode IcmpTypeCode;
             IcmpTypeCode.Type = std::atoi(TypeCode.first.c_str());
             IcmpTypeCode.Code = TypeCode.second == "*" ? 256 : std::atoi(TypeCode.second.c_str());
-            m_Data->IcmpTypesAndCodes.push_back(IcmpTypeCode);
+            m_FwRule->IcmpTypesAndCodes.push_back(IcmpTypeCode);
         }
     }
 #else

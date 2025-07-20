@@ -20,9 +20,10 @@ public:
 	static QString				m_CopyRow;
 	static QString				m_CopyPanel;
 
-protected slots:
+public slots:
 	virtual void				OnMenu(const QPoint& Point);
 
+protected slots:
 	virtual void				OnCopyCell();
 	virtual void				OnCopyRow();
 	virtual void				OnCopyPanel();
@@ -76,16 +77,16 @@ public:
 
 		m_pTreeList = pTree ? pTree : new T();
 		m_pTreeList->setContextMenuPolicy(Qt::CustomContextMenu);
-		connect(m_pTreeList, SIGNAL(customContextMenuRequested( const QPoint& )), this, SLOT(OnMenu(const QPoint &)));
+		B::connect(m_pTreeList, SIGNAL(customContextMenuRequested( const QPoint& )), this, SLOT(OnMenu(const QPoint &)));
 		m_pMainLayout->addWidget(m_pTreeList);
 		m_pTreeList->setMinimumHeight(50);
-		AddPanelItemsToMenu();
+		B::AddPanelItemsToMenu();
 
-		m_pLastAction = m_pMenu->actions()[0];
+		m_pLastAction = B::m_pMenu->actions()[0];
 	}
 
-	virtual QMenu*				GetMenu()	{ return m_pMenu; }
-	virtual void				AddAction(QAction* pAction) { m_pMenu->insertAction(m_pLastAction, pAction); }
+	virtual QMenu*				GetMenu()	{ return B::m_pMenu; }
+	virtual void				AddAction(QAction* pAction) { B::m_pMenu->insertAction(m_pLastAction, pAction); }
 
 	virtual T*					GetTree()	{ return m_pTreeList; }
 	virtual QTreeView*			GetView()	{ return m_pTreeList; }
@@ -119,8 +120,10 @@ public:
 	static void ApplyFilter(QTreeWidget* pTree, QTreeWidgetItem* pItem, const QRegularExpression* Exp/*, bool bHighLight = false, int Col = -1*/)
 	{
 		for (int j = 0; j < pTree->columnCount(); j++) {
-			pItem->setForeground(j, (m_DarkMode && Exp->isValid() && pItem->text(j).contains(*Exp)) ? Qt::yellow : pTree->palette().color(QPalette::WindowText));
-			pItem->setBackground(j, (!m_DarkMode && Exp->isValid() && pItem->text(j).contains(*Exp)) ? Qt::yellow : pTree->palette().color(QPalette::Base));
+			bool bValid = Exp && !Exp->pattern().isEmpty();
+			bool bMatch = bValid && pItem->text(j).contains(*Exp);
+			pItem->setForeground(j, (m_DarkMode && bMatch) ? Qt::yellow : pTree->palette().color(QPalette::WindowText));
+			pItem->setBackground(j, (!m_DarkMode && bMatch) ? Qt::yellow : pTree->palette().color(QPalette::Base));
 		}
 
 		for (int i = 0; i < pItem->childCount(); i++)

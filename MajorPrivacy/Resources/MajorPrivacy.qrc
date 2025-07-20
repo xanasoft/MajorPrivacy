@@ -280,5 +280,17 @@
         <file>Icons/SecFolder.png</file>
         <file>PrivLogo.png</file>
         <file>PrivLogoDM.png</file>
+        <file>Icons/Script-Security.png</file>
+        <file>Icons/Script-Config.png</file>
+        <file>Icons/Script-Edit.png</file>
+        <file>Icons/Script-Del.png</file>
+        <file>Icons/Script-Add.png</file>
+        <file>Icons/Script.png</file>
+        <file>Icons/Critical.png</file>
+        <file>Icons/Info.png</file>
+        <file>Icons/Error.png</file>
+        <file>Icons/Info2.png</file>
+        <file>Icons/Error2.png</file>
+        <file>Icons/Warning2.png</file>
     </qresource>
 </RCC>

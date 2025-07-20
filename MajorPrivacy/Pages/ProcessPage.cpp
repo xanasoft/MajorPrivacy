@@ -121,6 +121,14 @@ void CProcessPage::Update()
 
 	auto Current = theGUI->GetCurrentItems();
 
+	QSet<CProgramFilePtr> Programs = Current.ProgramsEx;
+	if ( m_pTraceView->isVisible()) {
+		for (auto& pProgram : Current.ProgramsIm) {
+			if(pProgram->GetResTrace() != ETracePreset::ePrivate)
+				Programs.insert(pProgram);
+		}
+	}
+
 	if (m_pRuleView->isVisible())
 	{
 		if(Current.bAllPrograms)
@@ -155,7 +163,7 @@ void CProcessPage::Update()
 
 	if (m_pTraceView->isVisible())
 	{
-		m_pTraceView->Sync(ETraceLogs::eExecLog, Current.ProgramsEx, Current.ServicesEx);
+		m_pTraceView->Sync(ETraceLogs::eExecLog, Programs, Current.ServicesEx);
 	}
 }
 

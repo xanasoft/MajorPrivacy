@@ -3,12 +3,23 @@
 #include "../../MiscHelpers/Common/PanelView.h"
 #include "../../MiscHelpers/Common/TreeviewEx.h"
 
+class CStatusView;
+class CIssueView;
+class CEventView;
+
 class CHomePage : public QWidget
 {
 	Q_OBJECT
 public:
 	CHomePage(QWidget* parent);
 	~CHomePage();
+
+	void 				Refresh();
+	void 				Update();
+
+private slots:
+
+	void				OnChange();
 
 protected:
 
@@ -34,7 +45,12 @@ protected:
 	class CEventLogCallback*m_pEventListener;
 
 private slots:
+	void					OnClearEventLog();	
+
 	void					AddLogEvent(const QString& Source, const QDateTime& TimeStamp, int Type, int Class, int Event, const QString& Message);
+
+protected:
+	bool					m_RefreshPending = false;
 
 private:
 
@@ -52,7 +68,23 @@ private:
 
 	QVBoxLayout*			m_pMainLayout;
 
-	CFinder*				m_pFinder;
+	QSplitter*				m_pVSplitter;
+
+	QSplitter*				m_pHSplitter;
+
+	QWidget*				m_pStatusWidget;
+	QVBoxLayout*			m_pStatusLayout;
+
+	CStatusView*			m_pStatusView;
+	CIssueView*				m_pIssueView;
+	CEventView*				m_pEventView;
+
+	QWidget*				m_pEventWidget;
+	QVBoxLayout*			m_pEventLayout;
+	QToolBar*				m_pEventToolBar;
+	QToolButton*			m_pBtnClear;
+
 	QTreeWidgetEx*			m_pEventLog;
+	CPanelWidgetX*			m_pEventPanel;
 };
 

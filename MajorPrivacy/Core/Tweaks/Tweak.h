@@ -16,6 +16,8 @@ public:
 	virtual QString GetParentId() const { return m_ParentId; }
 	void SetName(const QString& Name) { m_Name = Name; }
 	virtual QString GetName() const { return m_Name; }
+	void SetDescription(const QString& Description) { m_Description = Description; }
+	virtual QString GetDescription() const { return m_Description; }
 	virtual int GetIndex() const { return m_Index; }
 	virtual ETweakType GetType() const { return m_Type; }
 	virtual void SetStatus(ETweakStatus Status) { m_Status = Status; }
@@ -37,6 +39,7 @@ protected:
 	QString m_Id;
 	QString m_ParentId;
 	QString m_Name;
+	QString m_Description;
 	int m_Index = 0;
 	ETweakType m_Type = ETweakType::eUnknown;
 	ETweakHint m_Hint = ETweakHint::eNone;

@@ -14,6 +14,8 @@ public:
 	CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget *parent = Q_NULLPTR);
 	~CFirewallRuleWnd();
 
+	void SetReadOnly(bool bReadOnly);
+
 	static QColor GetActionColor(EFwActions Action);
 	static QColor GetDirectionColor(EFwDirections Direction);
 

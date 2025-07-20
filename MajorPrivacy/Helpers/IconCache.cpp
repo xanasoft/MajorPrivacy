@@ -218,10 +218,12 @@ QIcon getFolderIcon()
 
 QString sanitizeFileName(const QString& fileName) 
 {
-	QRegExp validPattern("[^<>:\"/\\|?*]+");
-	if (validPattern.indexIn(fileName) != -1)
-		return validPattern.cap(0);
-	return fileName;
+    static const QRegularExpression validPattern("[^<>:\"/\\|?*]+");
+
+    QRegularExpressionMatch match = validPattern.match(fileName);
+    if (match.hasMatch())
+        return match.captured(0);
+    return {};
 }
 
 bool IsSameIcon(const QIcon& Icon1, const QIcon& Icon2, int size = 16)

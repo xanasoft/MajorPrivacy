@@ -51,8 +51,8 @@ public:
 	void RemoveProcess(CProcessPtr Process)			{ m_Processes.remove(Process->GetProcessId()); }
 	QMap<quint64, CProcessPtr> GetProcesses()		{ return m_Processes; }
 
-	static QString CEnclave::GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority);
-	static QString CEnclave::GetOnSpawnStr(EProgramOnSpawn OnSpawn);
+	static QString GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority);
+	static QString GetOnSpawnStr(EProgramOnSpawn OnSpawn);
 
 	void SetData(const char* pKey, const QtVariant& Value) { if (Value.IsValid()) m_Data[pKey] = Value; else m_Data.Remove(pKey); }
 	QtVariant GetData(const char* pKey) const { return m_Data.Has(pKey) ? QtVariant(m_Data[pKey]) : QtVariant(); }

@@ -134,8 +134,10 @@ QIcon LoadWindowsIconEx(const QString &Path, quint32 Index)
         icon.addPixmap(QtWin::fromHICON(hIconL));
         icon.addPixmap(QtWin::fromHICON(hIconS));
 #else
-        icon.addPixmap(QPixmap::fromWinHICON(hIconL));
-        icon.addPixmap(QPixmap::fromWinHICON(hIconS));
+        QImage imgL = QImage::fromHICON(hIconL);
+        icon.addPixmap(QPixmap::fromImage(imgL));
+        QImage imgS = QImage::fromHICON(hIconS);
+        icon.addPixmap(QPixmap::fromImage(imgS));
 #endif
         DestroyIcon(hIconL);
         DestroyIcon(hIconS);

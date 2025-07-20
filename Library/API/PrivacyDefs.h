@@ -153,6 +153,13 @@ enum class EAccessRuleType // API_S_ACCESS_RULE_ACTION
 	eIgnore, // same as eNone but dont log 
 };
 
+enum class EAccessProtectType
+{
+	eNone = 0,
+	eProtect,
+	eSupress,
+};
+
 /////////////////////////////////////////////////////////////////////////////
 // ExecLog
 //
@@ -303,6 +310,26 @@ enum class ERuleType // API_S_... TODO
 	eMax,
 };
 
+enum class EFwRuleState
+{
+	eUnapproved = 0,
+	eUnapprovedDisabled,
+	eBackup, // was approved but somethign happened
+	eDiverged,
+	eApproved,
+	eMax,
+};
+
+enum class EFwRuleSource
+{
+	eUnknown = 0,
+	eWindowsDefault,
+	eWindowsStore,
+	eMajorPrivacy,
+	eAutoTemplate,
+	eMax,
+};
+
 enum class EConfigEvent // API_S_... TODO
 {
 	eUnknown = 0,
@@ -310,6 +337,18 @@ enum class EConfigEvent // API_S_... TODO
 	eModified,
 	eRemoved,
 	eAllChanged,
+};
+
+enum class EPrivacyEvent
+{
+	eUnknown = 0,
+	eFwRuleAltered, // created changed or removed
+	eFwTemplateApplied,
+	eTweakBroken,
+	eExecBlocked,
+	eAccessBlocked, // when auditing for said resource is enabled
+
+	eMax
 };
 
 enum class ETraceLogs // API_S_... TODO
@@ -320,6 +359,46 @@ enum class ETraceLogs // API_S_... TODO
 	eLogMax
 };
 
+enum class ELogLevels // API_S_... TODO
+{
+	eNone = 0,
+	eInfo,
+	eWarning,
+	eError,
+	eCritical,
+	eMax
+};
+
+enum ELogEventType
+{
+	eLogUnknown = 0,
+
+	eLogFwModeChanged,
+	eLogFwRuleAdded,
+	eLogFwRuleModified,
+	eLogFwRuleRemoved,
+	eLogFwRuleGenerated,
+	eLogFwRuleApproved,
+	eLogFwRuleRestored,
+	eLogFwRuleRejected,
+
+	eLogResRuleAdded,
+	eLogResRuleModified,
+	eLogResRuleRemoved,
+
+	eLogExecRuleAdded,
+	eLogExecRuleModified,
+	eLogExecRuleRemoved,
+	eLogExecStartBlocked,
+};
+
+enum ELogEventSubType
+{
+	eLogSubUnknown = 0,
+	eLogFirewall,
+	eLogAccess,
+	eLogProcess,
+};
 
 /////////////////////////////////////////////////////////////////////////////
 // Serializer Options

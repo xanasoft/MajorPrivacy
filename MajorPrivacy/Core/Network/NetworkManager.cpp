@@ -150,6 +150,14 @@ QList<CFwRulePtr> CNetworkManager::GetFwRules(const QSet<QFlexGuid>& FwRuleIDs)
 	return List;
 }
 
+CFwRulePtr CNetworkManager::GetFwRule(const QFlexGuid& Guid)
+{
+	CFwRulePtr pFwRule = m_FwRules.value(Guid);
+	if (!pFwRule && UpdateFwRule(Guid))
+		pFwRule = m_FwRules.value(Guid);
+	return pFwRule;
+}
+
 STATUS CNetworkManager::SetFwRule(const CFwRulePtr& pRule)
 {
 	SVarWriteOpt Opts;

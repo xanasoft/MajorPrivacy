@@ -27,19 +27,19 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
@@ -84,19 +84,19 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <QtInstall>msvc2019_64</QtInstall>
-    <QtModules>core;network;gui;widgets;winextras;concurrent</QtModules>
+    <QtInstall>6.9.1_msvc2022_64</QtInstall>
+    <QtModules>core;network;gui;widgets;concurrent;core-private</QtModules>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="QtSettings">
-    <QtInstall>msvc2019</QtInstall>
+    <QtInstall>5.15.16_msvc2022</QtInstall>
     <QtModules>concurrent;core;gui;network;widgets</QtModules>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <QtInstall>msvc2019_64</QtInstall>
-    <QtModules>core;network;gui;widgets;winextras;concurrent</QtModules>
+    <QtInstall>6.9.1_msvc2022_64</QtInstall>
+    <QtModules>core;network;gui;widgets;concurrent;core-private</QtModules>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="QtSettings">
-    <QtInstall>msvc2019</QtInstall>
+    <QtInstall>5.15.16_msvc2022</QtInstall>
     <QtModules>concurrent;core;gui;network;widgets</QtModules>
   </PropertyGroup>
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.props')">
@@ -218,7 +218,9 @@
     <ClCompile Include="Core\API_Impl.cpp" />
     <ClCompile Include="Core\Enclaves\Enclave.cpp" />
     <ClCompile Include="Core\Enclaves\EnclaveManager.cpp" />
+    <ClCompile Include="Core\EventLog.cpp" />
     <ClCompile Include="Core\GenericRule.cpp" />
+    <ClCompile Include="Core\IssueManager.cpp" />
     <ClCompile Include="Core\Network\DnsCacheEntry.cpp" />
     <ClCompile Include="Core\Network\DnsRule.cpp" />
     <ClCompile Include="Core\Network\FwRule.cpp" />
@@ -295,10 +297,12 @@
     <ClCompile Include="Views\DnsCacheView.cpp" />
     <ClCompile Include="Views\DnsRuleView.cpp" />
     <ClCompile Include="Views\EnclaveView.cpp" />
+    <ClCompile Include="Views\EventView.cpp" />
     <ClCompile Include="Views\ExecutionView.cpp" />
     <ClCompile Include="Views\HandleView.cpp" />
     <ClCompile Include="Views\InfoView.cpp" />
     <ClCompile Include="Views\IngressView.cpp" />
+    <ClCompile Include="Views\IssueView.cpp" />
     <ClCompile Include="Views\LibraryInfoView.cpp" />
     <ClCompile Include="Views\LibraryView.cpp" />
     <ClCompile Include="Views\ProgramRuleView.cpp" />
@@ -310,6 +314,7 @@
     <ClCompile Include="Views\ProcessView.cpp" />
     <ClCompile Include="Views\ProgramView.cpp" />
     <ClCompile Include="Views\SocketView.cpp" />
+    <ClCompile Include="Views\StatusView.cpp" />
     <ClCompile Include="Views\TraceView.cpp" />
     <ClCompile Include="Views\TrafficView.cpp" />
     <ClCompile Include="Views\TweakInfo.cpp" />
@@ -324,6 +329,7 @@
     <ClCompile Include="Windows\ProgramPicker.cpp" />
     <ClCompile Include="Windows\ProgramRuleWnd.cpp" />
     <ClCompile Include="Windows\ProgramWnd.cpp" />
+    <ClCompile Include="Windows\ScriptWindow.cpp" />
     <ClCompile Include="Windows\SettingsWindow.cpp" />
     <ClCompile Include="Windows\SignatureDbWnd.cpp" />
     <ClCompile Include="Windows\VariantEditorWnd.cpp" />
@@ -331,6 +337,10 @@
     <ClCompile Include="Wizards\SetupWizard.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Views\StatusView.h" />
+    <QtMoc Include="Views\IssueView.h" />
+    <QtMoc Include="Views\EventView.h" />
+    <QtMoc Include="Windows\ScriptWindow.h" />
     <QtMoc Include="Wizards\SetupWizard.h" />
     <QtMoc Include="Views\DnsRuleView.h" />
     <QtMoc Include="Windows\SignatureDbWnd.h" />
@@ -365,6 +375,8 @@
     <QtMoc Include="Core\Enclaves\Enclave.h" />
     <QtMoc Include="Core\Enclaves\EnclaveManager.h" />
     <QtMoc Include="Core\Network\DnsRule.h" />
+    <QtMoc Include="Core\IssueManager.h" />
+    <QtMoc Include="Core\EventLog.h" />
     <ClInclude Include="Core\Network\NetLogEntry.h" />
     <QtMoc Include="Windows\SettingsWindow.h" />
     <QtMoc Include="Core\Network\TrafficEntry.h" />
@@ -458,6 +470,7 @@
     <QtUic Include="Forms\ProgramPicker.ui" />
     <QtUic Include="Forms\ProgramRuleWnd.ui" />
     <QtUic Include="Forms\ProgramWnd.ui" />
+    <QtUic Include="Forms\ScriptWindow.ui" />
     <QtUic Include="Forms\SettingsWindow.ui" />
     <QtUic Include="Forms\VolumeWindow.ui" />
   </ItemGroup>

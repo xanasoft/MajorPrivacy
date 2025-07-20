@@ -32,6 +32,7 @@ private slots:
 
 	void BrowseFolder();
 	void BrowseFile();
+	void EditScript();
 
 	void OnSaveAndClose();
 

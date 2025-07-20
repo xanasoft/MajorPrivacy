@@ -32,6 +32,8 @@ public:
 
 	class CServiceList* Services() { return m_Services; }
 
+	STATUS SetAccessEventAction(uint64 EventId, EAccessRuleType Action);
+
 protected:
 
 	void AddProcessImpl(const CProcessPtr& pProcess);
@@ -51,7 +53,8 @@ protected:
 	void OnProcessAccessed(uint64 Pid, uint64 ActorPid, const std::wstring& ActorServiceTag, bool bThread, uint32 AccessMask, uint64 AccessTime, EEventStatus Status);
 	void OnImageEvent(const struct SProcessImageEvent* pImageEvent);
 	
-	void OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory);
+	EAccessRuleType GetResourceAccess(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, uint32 TimeOut);
+	void OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory);
 
 	void AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram, const CExecLogEntryPtr& pLogEntry);
 
@@ -72,4 +75,12 @@ protected:
 	friend DWORD CALLBACK CProcessList__LoadProc(LPVOID lpThreadParameter);
 	friend DWORD CALLBACK CProcessList__StoreProc(LPVOID lpThreadParameter);
 	HANDLE					m_hStoreThread = NULL;
+
+	std::mutex m_WaitingEventsMutex;
+	struct SWaitingEvent
+	{
+		std::condition_variable cv;
+		EAccessRuleType Action = EAccessRuleType::eNone;
+	};
+	std::map<uint64, SWaitingEvent*> m_WaitingEvents;
 };

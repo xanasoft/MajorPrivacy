@@ -6,6 +6,39 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
+
+
+
+
+## [0.98.2] - 2025-07-??
+
+### Added
+- added mechanism for blocking driver events
+- added JsEngine allowing to create scripted rules
+  - currently most of teh script PI is not yet implemented more api's will come in the next builds
+- added a summary page
+  - displays the current status of the system
+  - identified privacy issues
+  - relevant events
+  - full trace log
+- adde windows firewall rule change detection mechanism
+  - allows to detect rule changes and restore them to the original state
+
+### Changed
+- Switched to VS2022 toolset
+- Switched to Qt 6
+- improved notification window
+
+### Fixed
+- bsod issue with driver
+- fixed Files signed with Security > Sign File are added to the database with a forward slash [#73](https://github.com/xanasoft/MajorPrivacy/issues/73)
+- fixed Error when deleting folder with signatures in Signature Database [#74](https://github.com/xanasoft/MajorPrivacy/issues/74)
+- fixed [UI] Tweak descriptions are not showing up [#69](https://github.com/xanasoft/MajorPrivacy/issues/69)
+- fixed issue with volume rules loading
+
+
+
 ## [0.98.1a] - 2025-05-23
 
 ### Fixed

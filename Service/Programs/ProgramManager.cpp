@@ -1340,7 +1340,7 @@ STATUS CProgramManager::RemoveRule(const CFlexGuid& Guid)
 {
 	StVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
-	auto Res = theCore->Driver()->Call(API_DEL_ACCESS_RULE, Request);
+	auto Res = theCore->Driver()->Call(API_DEL_PROGRAM_RULE, Request);
 	//if (Res.IsSuccess()) // will be done by the notification event
 	//	UpdateRule(nullptr, Guid);
 	return Res;

@@ -3,6 +3,21 @@
 #include "../../MiscHelpers/Common/PanelView.h"
 #include "../../MiscHelpers/Common/TreeviewEx.h"
 #include "../Models/TweakModel.h"
+#include "../MiscHelpers/Common/CustomStyles.h"
+
+class CTreeItemDelegate2 : public CTreeItemDelegate
+{
+	QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override
+	{
+		QSize size = QStyledItemDelegate::sizeHint(option, index);
+		if (!index.parent().isValid()) { // root item
+			size.setHeight(32);
+		} else {
+			size.setHeight(24);
+		}
+		return size;
+	}
+};
 
 class CTweakView : public CPanelViewEx<CTweakModel>
 {
@@ -23,6 +38,7 @@ private slots:
 	//void					OnColumnsChanged();
 
 	void					OnRefresh();
+	void					OnTweaksChanged();
 
 	void					OnApprove();
 	void					OnRestore();

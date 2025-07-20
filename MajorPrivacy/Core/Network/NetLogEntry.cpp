@@ -32,9 +32,9 @@ void CNetLogEntry::ReadValue(uint32 Index, const QtVariant& Data)
 	case API_V_FW_RULE_DIRECTION:		m_Direction = (EFwDirections)Data.To<uint32>(); break;
 	case API_V_FW_RULE_PROTOCOL:		m_ProtocolType = Data; break;
 
-	case API_V_FW_RULE_LOCAL_ADDR:		m_LocalAddress = Data.AsQStr(); break;
+	case API_V_FW_RULE_LOCAL_ADDR:		m_LocalAddress = QHostAddress(Data.AsQStr()); break;
 	case API_V_FW_RULE_LOCAL_PORT:		m_LocalPort = Data; break;
-	case API_V_FW_RULE_REMOTE_ADDR:		m_RemoteAddress = Data.AsQStr(); break;
+	case API_V_FW_RULE_REMOTE_ADDR:		m_RemoteAddress = QHostAddress(Data.AsQStr()); break;
 	case API_V_FW_RULE_REMOTE_PORT:		m_RemotePort = Data; break;
 	case API_V_FW_RULE_REMOTE_HOST:		m_RemoteHostName = Data.AsQStr(); break;
 

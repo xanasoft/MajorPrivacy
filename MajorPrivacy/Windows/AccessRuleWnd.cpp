@@ -13,6 +13,7 @@
 #include "../Core/Volumes/VolumeManager.h"
 #include "../Library/Helpers/NtPathMgr.h"
 #include "../Windows/ProgramPicker.h"
+#include "../Windows/ScriptWindow.h"
 
 CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, const QString& VolumeRoot, const QString& VolumeImage, QWidget* parent)
 	: QDialog(parent)
@@ -66,8 +67,9 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 	connect(ui.btnProg, SIGNAL(clicked()), this, SLOT(OnPickProgram()));
 	connect(ui.cmbProgram, SIGNAL(currentIndexChanged(int)), this, SLOT(OnProgramChanged()));
 	connect(ui.txtProgPath, SIGNAL(textChanged(const QString&)), this, SLOT(OnProgramPathChanged()));
-	//connect(ui.cmbEnclave, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
-
+	connect(ui.cmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
+	connect(ui.chkScript, SIGNAL(stateChanged(int)), this, SLOT(OnActionChanged()));
+	connect(ui.btnScript, SIGNAL(clicked()), this, SLOT(EditScript()));
 
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
@@ -79,6 +81,7 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Block"), GetActionColor(EAccessRuleType::eBlock), (int)EAccessRuleType::eBlock);
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Don't Log"), GetActionColor(EAccessRuleType::eIgnore), (int)EAccessRuleType::eIgnore);
 	ColorComboBox(ui.cmbAction);
+
 
 
 	//FixComboBoxEditing(ui.cmbGroup);
@@ -131,6 +134,11 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 		ui.cmbPath->setEditText("");
 
 	SetComboBoxValue(ui.cmbAction, (int)m_pRule->m_Type);
+
+	//ui.txtScript->setPlainText(m_pRule->m_Script);
+
+	ui.chkScript->setChecked(m_pRule->m_bUseScript);
+	ui.chkInteractive->setChecked(m_pRule->m_bInteractive);
 
 	m_NameHold = false;
 }
@@ -282,6 +290,11 @@ bool CAccessRuleWnd::Save()
 
 	m_pRule->m_Type = (EAccessRuleType)GetComboBoxValue(ui.cmbAction).toInt();
 
+	//m_pRule->m_Script = ui.txtScript->toPlainText();
+
+	m_pRule->m_bUseScript = ui.chkScript->isChecked();
+	m_pRule->m_bInteractive = ui.chkInteractive->isChecked();
+
 	return true;
 }
 
@@ -341,6 +354,16 @@ void CAccessRuleWnd::OnProgramPathChanged()
 void CAccessRuleWnd::OnActionChanged()
 {
 	TryMakeName();
+
+	ui.chkScript->setEnabled(ui.cmbAction->currentData() == (int)EAccessRuleType::eProtect);
+	//ui.btnScript->setEnabled(ui.chkScript->isChecked());
+
+	if(m_pRule->m_Script.isEmpty())
+		ui.btnScript->setIcon(QIcon(":/Icons/Script-Add.png"));
+	else
+		ui.btnScript->setIcon(QIcon(":/Icons/Script-Edit.png"));
+
+	ui.chkInteractive->setEnabled(ui.cmbAction->currentData() == (int)EAccessRuleType::eProtect);
 }
 
 void CAccessRuleWnd::TryMakeName()
@@ -359,4 +382,15 @@ void CAccessRuleWnd::TryMakeName()
 	m_NameHold = true;
 	ui.txtName->setText(tr("%1 %2 %3").arg(Action).arg(Path).arg(Program.isEmpty() ? "" : tr(" (%1)").arg(Program)));
 	m_NameHold = false;
+}
+
+void CAccessRuleWnd::EditScript()
+{
+	CScriptWindow ScriptWnd(this);
+	ScriptWnd.SetScript(m_pRule->m_Script);
+	//if (theGUI->SafeExec(&ScriptWnd)) {
+	if (ScriptWnd.exec()) {
+		m_pRule->m_Script = ScriptWnd.GetScript();
+		//ui.txtScript->setPlainText(m_pRule->m_Script);
+	}
 }

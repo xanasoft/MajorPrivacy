@@ -95,7 +95,7 @@ void CTweakModel::Sync(const CTweakPtr& pTweak, bool bShowNotAvailable, const QL
 		case eStatus: Value = (int)pTweak->GetStatus(); break;
 		case eType: Value = (int)pTweak->GetType(); break;
 		case eHint: Value = (int)pTweak->GetHint(); break;
-		//case eInfo: Value = pTweak->GetInfo(); break;
+		case eDescription: Value = pTweak->GetDescription(); break;
 		}
 
 		STweakNode::SValue& ColValue = pNode->Values[section];
@@ -209,7 +209,7 @@ QVariant CTweakModel::headerData(int section, Qt::Orientation orientation, int r
 		case eStatus:				return tr("Status");
 		case eType:					return tr("Type");
 		case eHint:					return tr("Hint");
-		case eInfo:					return tr("Info");
+		case eDescription:			return tr("Description");
 		}
 	}
 	return QVariant();

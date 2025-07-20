@@ -8,7 +8,19 @@ class CFwRule : public CGenericRule
 public:
 	CFwRule(const CProgramID& ID, QObject* parent = NULL);
 
-    int GetIndex() const                    { return m_Index; }
+    int GetIndex() const                    { if(IsBackup() || IsTemplate()) return -1; return m_Index; }
+
+	EFwRuleSource GetSource() const         { return m_Source; }
+	QString GetSourceStr() const;
+    void SetSource(EFwRuleSource Source)    { m_Source = Source; }
+
+	EFwRuleState GetState() const           { if(IsTemplate()) return EFwRuleState::eApproved; return m_State; }
+    QString GetStateStr() const;
+	QColor GetStateColor() const;
+    void SetApproved()                      { m_State = EFwRuleState::eApproved; }
+	bool IsBackup() const                   { return m_State == EFwRuleState::eBackup; }
+	bool IsUnapproved() const               { if(IsTemplate()) return false; return m_State == EFwRuleState::eUnapproved || m_State == EFwRuleState::eUnapprovedDisabled; }
+	QString GetOriginalGuid() const         { return m_OriginalGuid; }
 
 	int GetHitCount() const                 { return m_HitCount; }
 	void IncrHitCount()                     { m_HitCount++; }
@@ -68,6 +80,11 @@ protected:
 
     // Note: m_Guid usually this is a guid but some default windows rules use a string name instead
     int m_Index = 0; // this is only used for sorting by newest rules
+
+    EFwRuleState m_State = EFwRuleState::eUnapproved;
+    QString m_OriginalGuid;
+
+	EFwRuleSource m_Source = EFwRuleSource::eUnknown;
 
     QString m_BinaryPath;
     QString m_ServiceTag;

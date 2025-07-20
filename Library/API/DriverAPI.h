@@ -142,8 +142,12 @@ struct SResourceAccessEvent : public SProcessEventEx
 	std::wstring Path;
 	uint32 AccessMask = 0;
 	EEventStatus Status = EEventStatus::eUndefined;
+	std::wstring RuleGuid;
 	NTSTATUS NtStatus = 0;
 	bool IsDirectory = false;
+
+	uint32 TimeOut = 0;
+	EAccessRuleType Action = EAccessRuleType::eNone;
 };
 
 typedef std::shared_ptr<SProcessEvent> SProcessEventPtr;

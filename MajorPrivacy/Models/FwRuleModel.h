@@ -27,6 +27,8 @@ public:
 		eName = 0,
 		eGrouping,
 		eIndex,
+		eState,
+		eSource,
 		eEnabled,
 		eHitCount,
 		eProfiles,
@@ -51,6 +53,8 @@ protected:
 
 		CFwRulePtr pRule;
 		CProgramItemPtr pProg;
+
+		bool IsBackup = false;
 	};
 
 	virtual STreeNode*	MkNode(const QVariant& Id) { return new SRuleNode(/*this,*/ Id); }

@@ -216,7 +216,7 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, const QFlexGuid& 
 	};
 
 	foreach(const CProgramFilePtr& pProgram, Programs) {
-		QMap<quint64, SLibraryInfo> Log = pProgram->GetLibraries();
+		QMultiMap<quint64, SLibraryInfo> Log = pProgram->GetLibraries();
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibraryByUID(I.key());
 			if(!pLibrary) continue; // todo 

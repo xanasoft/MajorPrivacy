@@ -18,6 +18,7 @@
 #include "../Library/Common/Strings.h"
 #include "../Library/API/DriverAPI.h"
 #include "../../../Library/Common/FileIO.h"
+#include "../../Library/Helpers/AppUtil.h"
 
 
 #define API_FIREWALL_FILE_NAME L"Firewall.dat"
@@ -46,7 +47,7 @@ CFirewall::CFirewall()
 		//if(Key == FwRuleKey)
 		//	m_UpdateAllRules = false;
 		//else
-			m_UpdateDefaultProfiles = true;
+			m_UpdateDefaultProfiles = 1;
 	});
 
 	m_RegWatcher.Start();
@@ -77,6 +78,9 @@ STATUS CFirewall::Init()
 	UpdateDefaults();
 
 	PurgeExpired(true);
+
+	if (theCore->Config()->GetBool("Service", "GuardFwRules", false))
+		RevertChanges();
 
 	if(theCore->Config()->GetBool("Service", "LoadWindowsFirewallLog", false))
 		LoadFwLog();
@@ -116,7 +120,7 @@ STATUS CFirewall::Load()
 STATUS CFirewall::Store()
 {
 	SVarWriteOpt Opts;
-	Opts.Format = SVarWriteOpt::eIndex;
+	Opts.Format = SVarWriteOpt::eMap;
 	Opts.Flags = SVarWriteOpt::eSaveToFile;
 
 	StVariant Data;
@@ -168,7 +172,18 @@ StVariant CFirewall::SaveRules(const SVarWriteOpt& Opts)
 void CFirewall::Update()
 {
 	if (m_UpdateDefaultProfiles)
+	{
+		bool bEmit = (m_UpdateDefaultProfiles == 1);
+
 		UpdateDefaults();
+
+		if (bEmit) 
+		{
+			StVariant Data;
+			Data[API_V_FW_RULE_FILTER_MODE] = (uint32)GetFilteringMode();
+			theCore->EmitEvent(ELogLevels::eWarning, eLogFwModeChanged, Data);
+		}
+	}
 
 	if (m_UpdateAllRules)
 		UpdateRules();
@@ -176,6 +191,11 @@ void CFirewall::Update()
 	// purge rules once per minute
 	if(m_LastRulePurge + 60*1000 < GetTickCount64())
 		PurgeExpired(false);
+
+	if (m_RevertChanges) {
+		m_RevertChanges = false;
+		RevertChanges();
+	}
 }
 
 STATUS CFirewall::UpdateRules()
@@ -198,28 +218,53 @@ STATUS CFirewall::UpdateRules()
 		{
 			pFwRule = I->second;
 			OldFwRules.erase(I);
-			if (!MatchRuleID(pRule, pFwRule))
-			{
-				RemoveRuleUnsafe(pFwRule);
-				pFwRule.reset();
-			}
 		}
 
-		if (!pFwRule) 
-		{
-			pFwRule = std::make_shared<CFirewallRule>(pRule);
-			AddRuleUnsafe(pFwRule);
-		}
-		else
-			pFwRule->Update(pRule);
+		FWRuleChangedUnsafe(pRule, pFwRule);
+
+		//CFirewallRulePtr pFwRule;
+		//auto I = OldFwRules.find(pRule->Guid);
+		//if (I != OldFwRules.end())
+		//{
+		//	pFwRule = I->second;
+		//	OldFwRules.erase(I);
+		//	if (!MatchProgramID(pRule, pFwRule))
+		//	{
+		//		RemoveRuleUnsafe(pFwRule);
+		//		pFwRule.reset();
+		//	}
+		//}
+		//
+		//if (!pFwRule) 
+		//{
+		//	pFwRule = std::make_shared<CFirewallRule>(pRule);
+		//	AddRuleUnsafe(pFwRule);
+		//}
+		//else
+		//	pFwRule->Update(pRule);
 	}
 
 	for (auto I : OldFwRules)
 	{
-		if(I.second->IsTemplate())
+		if(I.second->IsTemplate() || I.second->IsBackup())
 			continue;
-		RemoveRuleUnsafe(I.second);
+		FWRuleChangedUnsafe(NULL, I.second);
+		//RemoveRuleUnsafe(I.second);
 	}
+
+	//
+	// Check if rules are default Windows rules
+	//
+
+	for (auto I : m_FwRules) {
+		if (I.second->GetSource() != EFwRuleSource::eUnknown)
+			continue;
+		if (IsDefaultWindowsRule(I.second))
+			I.second->SetSource(EFwRuleSource::eWindowsDefault);
+		else if (IsWindowsStoreRule(I.second))
+			I.second->SetSource(EFwRuleSource::eWindowsStore);
+	}
+
 
 	// todo add an other watcher not reliable on security events by monitoring the registry key
 
@@ -236,7 +281,7 @@ void CFirewall::UpdateDefaults()
 		m_DefaultoutboundAction[i] = CWindowsFirewall::Instance()->GetDefaultOutboundAction(CFirewall__Profiles[i]);
 	}
 
-	m_UpdateDefaultProfiles = false;
+	m_UpdateDefaultProfiles = 0;
 }
 
 void CFirewall::PurgeExpired(bool All)
@@ -245,7 +290,7 @@ void CFirewall::PurgeExpired(bool All)
 	for (auto I = m_FwRules.begin(); I != m_FwRules.end(); ) {
 		auto J = I++;
 		if (All ? J->second->IsTemporary() : J->second->IsExpired()) {
-			theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, 1, StrLine(L"Removed expired Firewall Rule: %s", J->second->GetData()->Name.c_str()).c_str());
+			theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, 1, StrLine(L"Removed expired Firewall Rule: %s", J->second->GetFwRule()->Name.c_str()).c_str());
 			DelRule(J->first);
 		}
 	}
@@ -253,12 +298,151 @@ void CFirewall::PurgeExpired(bool All)
 	m_LastRulePurge = GetTickCount64();
 }
 
+void CFirewall::RevertChanges()
+{
+	bool bDelRuled = theCore->Config()->GetBool("Service", "DeleteRogueFwRules", false);
+
+	std::unique_lock Lock(m_RulesMutex);
+	std::list<CFirewallRulePtr> RulesToRemove;
+	std::list<CFirewallRulePtr> RulesToRevert;
+	for (auto I = m_FwRules.begin(); I != m_FwRules.end(); ++I)
+	{
+		if (I->second->IsTemplate()) continue;
+		if (I->second->IsBackup())
+			RulesToRevert.push_back(I->second);
+		else if (!I->second->IsApproved() && !I->second->IsDiverged()) {
+			if(!bDelRuled && !I->second->IsEnabled())
+				continue;
+			RulesToRemove.push_back(I->second);
+		}
+	}
+
+	for (auto& pFwRule : RulesToRemove)
+	{
+		STATUS Status;
+		if (bDelRuled)
+		{
+			Status = CWindowsFirewall::Instance()->RemoveRule(pFwRule->GetGuidStr());
+			if (Status)
+				UpdateFWRuleUnsafe(NULL, pFwRule->GetGuidStr());
+		}
+		else 
+		{
+			std::unique_lock Lock(pFwRule->m_Mutex);
+			pFwRule->m_FwRule->Enabled = false;
+			pFwRule->m_State = EFwRuleState::eUnapprovedDisabled;
+			Status = UpdateRuleAndTest(pFwRule->m_FwRule);
+		}
+		if (Status.IsError())
+			theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed to %s Firewall Rule %s: %s", bDelRuled ? L"Delete" : L"Disable", pFwRule->GetFwRule()->Name.c_str(), Status.GetMessageText());
+		else
+			theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, 1, L"%s Firewall Rule: %s", bDelRuled ? L"Deleted" : L"Disabled", pFwRule->GetFwRule()->Name.c_str());
+
+		StVariant Data;
+		Data[API_V_GUID] = pFwRule->GetGuidStr();
+		Data[API_V_NAME] = pFwRule->GetName(); 
+		Data[API_V_ID] = pFwRule->GetProgramID().ToVariant(SVarWriteOpt());
+		Data[API_V_STATUS] = Status.GetStatus();
+		theCore->EmitEvent(Status.IsError() ? ELogLevels::eInfo : ELogLevels::eError, eLogFwRuleRejected, Data);
+	}
+
+	for (auto& pFwRuleBackup : RulesToRevert)
+	{
+		if(pFwRuleBackup->GetSetErrorCount() > 0)
+			continue;
+
+		STATUS Status = RestoreRule(pFwRuleBackup);
+
+		StVariant Data;
+		Data[API_V_GUID] = pFwRuleBackup->GetOriginalGuid();
+		Data[API_V_NAME] = pFwRuleBackup->GetName(); 
+		Data[API_V_ID] = pFwRuleBackup->GetProgramID().ToVariant(SVarWriteOpt());
+		Data[API_V_STATUS] = Status.GetStatus();
+		theCore->EmitEvent(Status.IsError() ? ELogLevels::eInfo : ELogLevels::eError, eLogFwRuleRestored, Data);
+	}
+}
+
+STATUS CFirewall::RestoreRule(const CFirewallRulePtr& pFwRuleBackup)
+{
+	SWindowsFwRulePtr pData = std::make_shared<SWindowsFwRule>(*pFwRuleBackup->GetFwRule());
+	auto pFwRule = std::make_shared<CFirewallRule>(pData);
+	pFwRule->Update(pFwRuleBackup);
+
+	pFwRule->m_State = EFwRuleState::eApproved;
+	pFwRule->m_FwRule->Guid = pFwRuleBackup->m_OriginalGuid; // pData->Guid = ...
+	pFwRule->m_OriginalGuid.clear();
+
+	// remove the changed active rule, if it exists
+	auto F = m_FwRules.find(pFwRuleBackup->m_OriginalGuid);
+	if (F != m_FwRules.end()) {
+		auto pOldRule = F->second;
+		RemoveRuleUnsafe(pOldRule);
+	}
+
+	STATUS Status = CWindowsFirewall::Instance()->UpdateRule(pData);
+
+	SWindowsFwRulePtr pCurData;
+	if (Status) {
+		std::vector<std::wstring> RuleIds;
+		RuleIds.push_back(pData->Guid);
+		auto ret = CWindowsFirewall::Instance()->LoadRules(RuleIds);
+		if(ret.GetValue()) 
+			pCurData = (*ret.GetValue())[pData->Guid];	
+		else
+			Status = ERR(STATUS_UNSUCCESSFUL);
+	}
+
+	if (pCurData)
+	{
+		if (CFirewallRule::Match(pCurData, pData))
+		{
+			CFirewallRulePtr pNewRule = std::make_shared<CFirewallRule>(pCurData);
+			AddRuleUnsafe(pNewRule);
+			pNewRule->Update(pFwRule);
+
+			RemoveRuleUnsafe(pFwRuleBackup);
+
+			theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, 1, L"Reverted Firewall Rule: %s", pFwRule->GetFwRule()->Name.c_str());
+		}
+		else // set rule is not what we expect
+		{
+			pFwRuleBackup->IncrSetErrorCount();
+
+			EmitChangeEvent(pFwRuleBackup->GetGuidStr(), pFwRuleBackup->GetFwRule()->Name, EConfigEvent::eModified, true); // reset backup rule in ui
+
+			if (!MatchProgramID(pCurData, pFwRule) || pCurData->Action != pFwRule->GetFwRule()->Action)
+			{
+				// fatal missmatch, remove the new rule
+				CWindowsFirewall::Instance()->RemoveRule(pCurData->Guid);
+
+				Status = ERR(STATUS_UNSUCCESSFUL);
+			}
+			else
+			{
+				CFirewallRulePtr pNewRule = std::make_shared<CFirewallRule>(pCurData);
+				AddRuleUnsafe(pNewRule);
+				pNewRule->Update(pFwRule);
+				pNewRule->SetDiverged(true); // kinda approved but nor really
+
+				theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, 1, L"Missmatch reverting Firewall Rule %s: %s", pFwRule->GetFwRule()->Name.c_str(), Status.GetMessageText());
+				return ERR(STATUS_ERR_RULE_DIVERGENT);
+			}
+		}
+	}
+	
+	if(Status.IsError()) {
+		pFwRuleBackup->IncrSetErrorCount();
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed to revert Firewall Rule %s: %s", pFwRule->GetFwRule()->Name.c_str(), Status.GetMessageText());
+	}
+	return Status;
+}
+
 void CFirewall::AddRuleUnsafe(const CFirewallRulePtr& pFwRule)
 {
-	m_FwRules.insert(std::make_pair(pFwRule->GetGuidStr(), pFwRule));
-
 	if (pFwRule->IsTemplate())
 	{
+		m_FwRules.insert(std::make_pair(pFwRule->GetGuidStr(), pFwRule));
+
 		FW::SharedPtr<CFwRuleTemplate> pTemplate = g_DefaultMemPool.New<CFwRuleTemplate>(pFwRule);
 		CFlexGuid Guid = pFwRule->GetGuidStr();
 		if (m_FwRuleTemplates.Insert(Guid, pTemplate, FW::EInsertMode::eNoReplace) == FW::EInsertResult::eOK)
@@ -268,29 +452,34 @@ void CFirewall::AddRuleUnsafe(const CFirewallRulePtr& pFwRule)
 		}
 	}
 	else
-	{
-		const CProgramID& ProgID = pFwRule->GetProgramID();
-
-		if (!ProgID.GetFilePath().empty())
-			m_FileRules.insert(std::make_pair(ProgID.GetFilePath(), pFwRule));
-		if (!ProgID.GetServiceTag().empty())
-			m_SvcRules.insert(std::make_pair(ProgID.GetServiceTag(), pFwRule));
-		if (ProgID.GetType() == EProgramType::eAppPackage)
-			m_AppRules.insert(std::make_pair(ProgID.GetAppContainerSid(), pFwRule));
-
-		//if (ProgID.GetFilePath().empty() && ProgID.GetServiceTag().empty() && ProgID.GetAppContainerSid().empty())
-		//	m_AllProgramsRules.insert(std::make_pair(pFwRule->GetGuid(), pFwRule));
-	}
+		AddRuleUnsafeImpl(pFwRule);
 
 	theCore->ProgramManager()->AddFwRule(pFwRule);
 }
 
+void CFirewall::AddRuleUnsafeImpl(const CFirewallRulePtr& pFwRule)
+{
+	m_FwRules.insert(std::make_pair(pFwRule->GetGuidStr(), pFwRule));
+
+	const CProgramID& ProgID = pFwRule->GetProgramID();
+
+	if (!ProgID.GetFilePath().empty())
+		m_FileRules.insert(std::make_pair(ProgID.GetFilePath(), pFwRule));
+	if (!ProgID.GetServiceTag().empty())
+		m_SvcRules.insert(std::make_pair(ProgID.GetServiceTag(), pFwRule));
+	if (ProgID.GetType() == EProgramType::eAppPackage)
+		m_AppRules.insert(std::make_pair(ProgID.GetAppContainerSid(), pFwRule));
+
+	//if (ProgID.GetFilePath().empty() && ProgID.GetServiceTag().empty() && ProgID.GetAppContainerSid().empty())
+	//	m_AllProgramsRules.insert(std::make_pair(pFwRule->GetGuid(), pFwRule));
+}
+
 void CFirewall::RemoveRuleUnsafe(const CFirewallRulePtr& pFwRule)
 {
-	m_FwRules.erase(pFwRule->GetGuidStr());
-
 	if (pFwRule->IsTemplate())
 	{
+		m_FwRules.erase(pFwRule->GetGuidStr());
+
 		CFlexGuid Guid(pFwRule->GetGuidStr());
 		auto pEntry = m_FwRuleTemplates.Take(Guid);
 		if (pEntry)
@@ -301,21 +490,26 @@ void CFirewall::RemoveRuleUnsafe(const CFirewallRulePtr& pFwRule)
 		}
 	}
 	else
-	{
-		const CProgramID& ProgID = pFwRule->GetProgramID();
-
-		if (!ProgID.GetFilePath().empty())
-			mmap_erase(m_FileRules, ProgID.GetFilePath(), pFwRule);
-		if (!ProgID.GetServiceTag().empty())
-			mmap_erase(m_SvcRules, ProgID.GetServiceTag(), pFwRule);
-		if (ProgID.GetType() == EProgramType::eAppPackage)
-			mmap_erase(m_AppRules, ProgID.GetAppContainerSid(), pFwRule);
-
-		//if (ProgID.GetFilePath().empty() && ProgID.GetServiceTag().empty() && ProgID.GetAppContainerSid().empty())
-		//	m_AllProgramsRules.erase(pFwRule->GetGuid())
-	}
+		RemoveRuleUnsafeImpl(pFwRule);
 
 	theCore->ProgramManager()->RemoveFwRule(pFwRule);
+}
+
+void CFirewall::RemoveRuleUnsafeImpl(const CFirewallRulePtr& pFwRule)
+{
+	m_FwRules.erase(pFwRule->GetGuidStr());
+
+	const CProgramID& ProgID = pFwRule->GetProgramID();
+
+	if (!ProgID.GetFilePath().empty())
+		mmap_erase(m_FileRules, ProgID.GetFilePath(), pFwRule);
+	if (!ProgID.GetServiceTag().empty())
+		mmap_erase(m_SvcRules, ProgID.GetServiceTag(), pFwRule);
+	if (ProgID.GetType() == EProgramType::eAppPackage)
+		mmap_erase(m_AppRules, ProgID.GetAppContainerSid(), pFwRule);
+
+	//if (ProgID.GetFilePath().empty() && ProgID.GetServiceTag().empty() && ProgID.GetAppContainerSid().empty())
+	//	m_AllProgramsRules.erase(pFwRule->GetGuid())
 }
 
 std::map<CFlexGuid, CFirewallRulePtr> CFirewall::FindRules(const CProgramID& ID)
@@ -364,7 +558,40 @@ STATUS CFirewall::SetRule(const CFirewallRulePtr& pFwRule)
 		return OK;
 	}
 
-	SWindowsFwRulePtr pData = pFwRule->GetData();
+	CFirewallRulePtr pCurRule = GetRule(pFwRule->GetGuidStr());
+	//bool bRemoveBackup = false;
+	if(pCurRule)
+	{
+		if (pCurRule->IsBackup())
+		{
+			std::unique_lock Lock(m_RulesMutex);
+			return RestoreRule(pCurRule);
+
+			//if (!pFwRule->IsApproved()) // to Resotre a rule se must set the backup as approved
+			//	return ERR(STATUS_INVALID_PARAMETER);
+			//
+			//// remove the changed active rule, if it exists
+			//std::unique_lock Lock(m_RulesMutex);
+			//UpdateFWRuleUnsafe(NULL, pFwRule->m_OriginalGuid);
+			//
+			//{
+			//	std::unique_lock Lock(pFwRule->m_Mutex);
+			//	pFwRule->m_FwRule->Guid = pFwRule->m_OriginalGuid;
+			//	pFwRule->m_OriginalGuid.clear();
+			//}
+			//
+			//bRemoveBackup = true;
+			//
+			//// continue with normal set operation
+		}
+		else if(pCurRule->Match(pFwRule->GetFwRule())) // compare with windows firewall rule, is same
+		{
+			pCurRule->Update(pFwRule); // changing private paremeter only
+			return OK; 
+		}
+	}
+
+	SWindowsFwRulePtr pData = pFwRule->GetFwRule();
 
 	if (pData->Direction == EFwDirections::Bidirectional)
 	{
@@ -376,26 +603,50 @@ STATUS CFirewall::SetRule(const CFirewallRulePtr& pFwRule)
 		pData2->Direction = EFwDirections::Inbound;
 		pData->Direction = EFwDirections::Outbound;
 	
-		STATUS Status = CWindowsFirewall::Instance()->UpdateRule(pData2); // this may set the GUID member
+		std::unique_lock Lock(m_RulesMutex);
+		STATUS Status = UpdateRuleAndTest(pData2); // this may set the GUID member
 		if (!Status)
 			return Status;
 	
-		CFirewallRulePtr pRule = UpdateFWRule(pData2, pData2->Guid);
+		CFirewallRulePtr pRule = UpdateFWRuleUnsafe(pData2, pData2->Guid);
 		pRule->Update(pFwRule);
 	}
 
+	std::unique_lock Lock(m_RulesMutex);
+	STATUS Status = UpdateRuleAndTest(pData); // this may set the GUID member
+	if (!Status)
+		return Status;
+
+	CFirewallRulePtr pRule = UpdateFWRuleUnsafe(pData, pData->Guid);
+	pRule->Update(pFwRule);
+
+	//if (bRemoveBackup)
+	//	RemoveRuleUnsafe(pCurRule);
+
+	return OK;
+}
+
+STATUS CFirewall::UpdateRuleAndTest(const std::shared_ptr<struct SWindowsFwRule>& pData)
+{
 	STATUS Status = CWindowsFirewall::Instance()->UpdateRule(pData); // this may set the GUID member
 	if (!Status)
 		return Status;
 
-	CFirewallRulePtr pRule = UpdateFWRule(pData, pData->Guid);
-	pRule->Update(pFwRule);
+	SWindowsFwRulePtr pCurData;
+	std::vector<std::wstring> RuleIds;
+	RuleIds.push_back(pData->Guid);
+	auto ret = CWindowsFirewall::Instance()->LoadRules(RuleIds);
+	if(ret.GetValue()) pCurData = (*ret.GetValue())[pData->Guid];
 
+	if(!pCurData || !CFirewallRule::Match(pData, pCurData))
+		return ERR(STATUS_ERR_RULE_DIVERGENT);
 	return OK;
 }
 
 CFirewallRulePtr CFirewall::GetRule(const CFlexGuid& Guid)
 {
+	std::unique_lock Lock(m_RulesMutex);
+
 	CFirewallRulePtr pFwRule;
 	auto F = m_FwRules.find(Guid);
 	if (F != m_FwRules.end())
@@ -408,18 +659,19 @@ STATUS CFirewall::DelRule(const CFlexGuid& Guid)
 	if (TryRemoveTemplate(Guid))
 		return OK;
 
+	std::unique_lock Lock(m_RulesMutex);
 	STATUS Status = CWindowsFirewall::Instance()->RemoveRule(Guid.ToWString());
 	if (!Status)
 		return Status;
 
-	UpdateFWRule(NULL, Guid);
+	UpdateFWRuleUnsafe(NULL, Guid);
 
 	return OK;
 }
 
 void CFirewall::SetTempalte(const CFirewallRulePtr& pFwRule)
 {
-	SWindowsFwRulePtr pData = pFwRule->GetData();
+	SWindowsFwRulePtr pData = pFwRule->GetFwRule();
 
 	bool bAdded = false;
 	if (pData->Guid.empty()) {
@@ -427,10 +679,12 @@ void CFirewall::SetTempalte(const CFirewallRulePtr& pFwRule)
 		bAdded = true;
 	}
 
-	CFirewallRulePtr pRule = UpdateFWRule(pData, pData->Guid);
+	std::unique_lock Lock(m_RulesMutex);
+	CFirewallRulePtr pRule = UpdateFWRuleUnsafe(pData, pData->Guid);
 	pRule->Update(pFwRule);
+	Lock.unlock();
 
-	EmitChangeEvent(pData->Guid, pData->Name, bAdded ? EConfigEvent::eAdded : EConfigEvent::eModified);
+	EmitChangeEvent(pData->Guid, pData->Name, bAdded ? EConfigEvent::eAdded : EConfigEvent::eModified, true);
 }
 
 bool CFirewall::TryRemoveTemplate(const CFlexGuid& Guid)
@@ -446,37 +700,46 @@ bool CFirewall::TryRemoveTemplate(const CFlexGuid& Guid)
 	if (!pFwRule || !pFwRule->IsTemplate())
 		return false;
 	
-	SWindowsFwRulePtr pData = pFwRule->GetData();
+	SWindowsFwRulePtr pData = pFwRule->GetFwRule();
 
 	RemoveRuleUnsafe(pFwRule);
 
-	EmitChangeEvent(pData->Guid, pData->Name, EConfigEvent::eRemoved);
+	EmitChangeEvent(pData->Guid, pData->Name, EConfigEvent::eRemoved, true);
 
 	return true;
 }
 
-bool CFirewall::MatchRuleID(const SWindowsFwRulePtr& pRule, const CFirewallRulePtr& pFwRule)
+bool CFirewall::MatchProgramID(const SWindowsFwRulePtr& pRule, const CFirewallRulePtr& pFwRule)
 {
-	if (!pRule || !pFwRule)
-		return false;
+	std::wstring BinaryPath = pRule->BinaryPath;
+	if (_wcsicmp(BinaryPath.c_str(), L"system") == 0)
+		BinaryPath = CProcess::NtOsKernel_exe;
 
 	const CProgramID& ProgID = pFwRule->GetProgramID();
 
 	// match fails when anythign changes
-	if (theCore->NormalizePath(pRule->BinaryPath) != ProgID.GetFilePath())
+	if (theCore->NormalizePath(BinaryPath) != ProgID.GetFilePath())
 		return false;
+
 	if (MkLower(pRule->ServiceTag) != ProgID.GetServiceTag())
 		return false;
-	if (ProgID.GetType() == EProgramType::eAppPackage ? MkLower(pRule->AppContainerSid) != ProgID.GetAppContainerSid() : !pRule->AppContainerSid.empty())
+
+	std::wstring AppContainerSid = pRule->AppContainerSid;
+	if(AppContainerSid.empty() && !pRule->PackageFamilyName.empty())
+		AppContainerSid = GetAppContainerSidFromName(pRule->PackageFamilyName);
+	if (ProgID.GetType() == EProgramType::eAppPackage)
+	{
+		if (_wcsicmp(AppContainerSid.c_str(), ProgID.GetAppContainerSid().c_str()) != 0)
+			return false;
+	}
+	else if (!AppContainerSid.empty())
 		return false;
 
 	return true;
 }
 
-CFirewallRulePtr CFirewall::UpdateFWRule(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFlexGuid& Guid)
+CFirewallRulePtr CFirewall::UpdateFWRuleUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFlexGuid& Guid)
 {
-	std::unique_lock Lock(m_RulesMutex);
-
 	CFirewallRulePtr pFwRule;
 	if (!Guid.IsNull()) {
 		auto F = m_FwRules.find(Guid);
@@ -484,7 +747,7 @@ CFirewallRulePtr CFirewall::UpdateFWRule(const std::shared_ptr<struct SWindowsFw
 			pFwRule = F->second;
 	}
 
-	if (MatchRuleID(pRule, pFwRule)) // always false on remove, when pRule == NULL
+	if (pRule && pFwRule && MatchProgramID(pRule, pFwRule)) // false on remove as then pRule == NULL
 	{
 		if (pFwRule->IsTemplate() && pRule->Enabled != pFwRule->IsEnabled())
 		{
@@ -517,6 +780,42 @@ CFirewallRulePtr CFirewall::UpdateFWRule(const std::shared_ptr<struct SWindowsFw
 	return pFwRule;
 }
 
+bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule)
+{
+	bool bProgramChanged = false;
+	if (pRule && pFwRule && !(bProgramChanged = !MatchProgramID(pRule, pFwRule))) // false on remove as then pRule == NULL
+	{
+		if(pFwRule->Match(pRule))
+			return false; // nothing changed
+	}
+
+	if (pFwRule)  // modified or removed
+	{
+		ASSERT(!pFwRule->IsTemplate()); // should not happen
+
+		if (pFwRule->IsApproved())
+		{
+			RemoveRuleUnsafeImpl(pFwRule);
+
+			pFwRule->SetAsBackup(!pRule, bProgramChanged);
+
+			m_FwRules.insert(std::make_pair(pFwRule->GetGuidStr(), pFwRule));
+
+			EmitChangeEvent(pFwRule->GetGuidStr(), pFwRule->GetFwRule()->Name, EConfigEvent::eAdded, true); // event for the backup rule
+		}
+		else
+			RemoveRuleUnsafe(pFwRule);
+	}
+
+	if (pRule) // added or modified
+	{
+		CFirewallRulePtr pNewRule = std::make_shared<CFirewallRule>(pRule);
+		AddRuleUnsafe(pNewRule);
+	}
+
+	return true;
+}
+
 uint32 CFirewall::OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent)
 {
 	SWindowsFwRulePtr pRule;
@@ -527,9 +826,41 @@ uint32 CFirewall::OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent)
 		if(ret.GetValue()) pRule = (*ret.GetValue())[pEvent->RuleId]; // CWindowsFirewall::Instance()->GetRule(pEvent->RuleId);
 	}
 
-	UpdateFWRule(pRule, pEvent->RuleId);
+	std::unique_lock Lock(m_RulesMutex);
 
-	EmitChangeEvent(pEvent->RuleId, pEvent->RuleName, pEvent->Type);
+	CFirewallRulePtr pFwRule;
+	if (!pEvent->RuleId.empty()) {
+		auto F = m_FwRules.find(pEvent->RuleId);
+		if (F != m_FwRules.end())
+			pFwRule = F->second;
+	}
+
+	bool bChanged = FWRuleChangedUnsafe(pRule, pFwRule);
+
+	Lock.unlock();
+
+	if (bChanged) {
+
+		StVariant Data;
+		Data[API_V_GUID] = pEvent->RuleId;
+		Data[API_V_NAME] = pEvent->RuleName; 
+		if(pFwRule) 
+			Data[API_V_ID] = pFwRule->GetProgramID().ToVariant(SVarWriteOpt());
+		switch (pEvent->Type)
+		{
+		case EConfigEvent::eAdded:		theCore->EmitEvent(ELogLevels::eWarning, eLogFwRuleAdded, Data); break;
+		case EConfigEvent::eModified:	theCore->EmitEvent(ELogLevels::eWarning, eLogFwRuleModified, Data); break;
+		case EConfigEvent::eRemoved:	theCore->EmitEvent(ELogLevels::eWarning, eLogFwRuleRemoved, Data); break;
+		}
+
+		if (theCore->Config()->GetBool("Service", "GuardFwRules", false)) {
+			m_RevertChanges = true;
+			bChanged = false;
+		}
+	}
+
+	EmitChangeEvent(pEvent->RuleId, pEvent->RuleName, pEvent->Type, !bChanged);
+
 
 	return 0;
 }
@@ -543,12 +874,13 @@ uint32 CFirewall::OnFwLogEvent(const SWinFwLogEvent* pEvent)
 	return 0;
 }
 
-void CFirewall::EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event)
+void CFirewall::EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event, bool bExpected)
 {
 	StVariant vEvent;
 	vEvent[API_V_GUID] = Guid.ToVariant(false);
 	vEvent[API_V_NAME] = Name;
 	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
+	vEvent[API_V_EVENT_EXPECTED] = bExpected;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_FW_RULE_CHANGED, vEvent);
 }
@@ -734,7 +1066,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 		{
 			auto pFwRule = Entry.Cast<CFwRuleTemplate>()->GetRule();
 			
-			SWindowsFwRulePtr pTemplate = pFwRule->GetData();
+			SWindowsFwRulePtr pTemplate = pFwRule->GetFwRule();
 
 			if (pTemplate->Direction == EFwDirections::Bidirectional || pTemplate->Direction == pEvent->Direction)
 			{
@@ -742,19 +1074,26 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 
 				pData->Guid.clear(); // clear the guid
 				pData->BinaryPath = DosPath; // set exact pact
-				pData->Name = StrReplaceAll(pData->Name, L"&MP-Template", L"&MP-Rule");
+				pData->Name = StrReplaceAll(pData->Name, L"MajorPrivacy-Template", L"MajorPrivacy-Rule");
 				if(pData->Direction == EFwDirections::Bidirectional)
 					pData->Direction = pEvent->Direction;
 
-				STATUS Status = CWindowsFirewall::Instance()->UpdateRule(pData); // this may set the GUID member
+				std::unique_lock Lock(m_RulesMutex);
+				STATUS Status = UpdateRuleAndTest(pData); // this may set the GUID member
 				if (Status.IsError())
-					theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Failed to create Firewall rule form template: %s", pFwRule->GetData()->Name.c_str());
+					theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Failed to create Firewall rule form template: %s", pFwRule->GetFwRule()->Name.c_str());
 				else
 				{
-					CFirewallRulePtr pRule = UpdateFWRule(pData, pData->Guid);
+					CFirewallRulePtr pRule = UpdateFWRuleUnsafe(pData, pData->Guid);
 					pRule->Update(pFwRule);
+					pRule->SetApproved(true);
+					pRule->SetSource(EFwRuleSource::eAutoTemplate);
 
 					EventState = EFwEventStates::RuleGenerated;
+
+					StVariant Data;
+					Data[API_V_GUID] = pRule->GetGuidStr();
+					theCore->EmitEvent(ELogLevels::eInfo, eLogFwRuleGenerated, Data);
 				}
 			}
 		}
@@ -824,7 +1163,11 @@ CFirewall::SRuleMatch CFirewall::MatchRulesWithEvent(const std::set<CFirewallRul
 
 	for(auto pRule: Rules)
     {
-		SWindowsFwRulePtr pData = pRule->GetData();
+		if(pRule->IsBackup())
+			continue; // Backup rules are not active
+		ASSERT(!pRule->IsTemplate());
+
+		SWindowsFwRulePtr pData = pRule->GetFwRule();
 
         if (!pData->Enabled)
             continue;
@@ -1216,4 +1559,489 @@ FwAuditPolicy CFirewall::GetAuditPolicy(bool bCurrent)
 	if (AuditPolicy == L"Blocked")	return FwAuditPolicy::Blocked;
 	if (AuditPolicy == L"Allowed")	return FwAuditPolicy::Allowed;
 	return FwAuditPolicy::Off;
+}
+
+
+bool CFirewall::IsDefaultWindowsRule(const CFirewallRulePtr& pFwRule) const
+{
+	const wchar_t* DefaultRules[] = {
+		L"FPS-ICMP6-ERQ-In-V2",
+		L"FPS-LLMNR-Out-UDP",
+		L"FPS-LLMNR-In-UDP",
+		L"FPS-ICMP4-ERQ-In-NoScope",
+		L"FPS-NB_Datagram-In-UDP",
+		L"FPS-NB_Name-Out-UDP",
+		L"FPS-ICMP6-ERQ-In-NoScope",
+		L"FPS-RPCSS-In-TCP-V2",
+		L"FPS-ICMP4-ERQ-Out-V2",
+		L"FPS-ICMP6-ERQ-In",
+		L"FPS-NB_Session-Out-TCP-NoScope",
+		L"FPS-NB_Datagram-Out-UDP",
+		L"FPS-ICMP4-ERQ-In-V2",
+		L"FPS-SpoolWorker-In-TCP-NoScope",
+		L"FPS-ICMP6-ERQ-Out-NoScope",
+		L"FPS-SMB-In-TCP-NoScope",
+		L"FPS-SMB-Out-TCP-V2",
+		L"FPS-SMB-In-TCP",
+		L"FPS-SpoolWorker-In-TCP-V2",
+		L"FPS-ICMP4-ERQ-In",
+		L"FPS-NB_Session-In-TCP",
+		L"FPS-SpoolSvc-In-TCP-V2",
+		L"FPS-NB_Name-In-UDP-NoScope",
+		L"FPS-ICMP6-ERQ-Out",
+		L"FPS-RPCSS-In-TCP",
+		L"FPS-LLMNR-Out-UDP-V2",
+		L"FPS-LLMNR-In-UDP-V2",
+		L"FPS-NB_Session-Out-TCP",
+		L"FPS-NB_Name-In-UDP",
+		L"FPS-NB_Datagram-In-UDP-NoScope",
+		L"FPS-SpoolWorker-In-TCP",
+		L"FPS-SMB-In-TCP-V2",
+		L"FPS-SMB-Out-TCP-NoScope",
+		L"FPS-ICMP4-ERQ-Out-NoScope",
+		L"FPS-SMB-Out-TCP",
+		L"FPS-NB_Name-Out-UDP-NoScope",
+		L"FPS-ICMP4-ERQ-Out",
+		L"FPS-SpoolSvc-In-TCP",
+		L"FPS-NB_Datagram-Out-UDP-NoScope",
+		L"FPS-NB_Session-In-TCP-NoScope",
+		L"FPS-ICMP6-ERQ-Out-V2",
+		L"FPS-SpoolSvc-In-TCP-NoScope",
+		L"FPS-RPCSS-In-TCP-NoScope",
+		L"WiFiDirect-KM-Driver-In-UDP",
+		L"Microsoft-Windows-WLANSvc-ASP-CP-Out",
+		L"Wininit-Shutdown-In-Rule-TCP-RPC-EPMapper",
+		L"WiFiDirect-KM-Driver-Out-TCP",
+		L"WiFiDirect-KM-Driver-In-TCP",
+		L"Microsoft-Windows-WLANSvc-ASP-CP-In",
+		L"Wininit-Shutdown-In-Rule-TCP-RPC",
+		L"WiFiDirect-KM-Driver-Out-UDP",
+		L"MCX-QWave-In-TCP",
+		L"WMPNSS-Out-TCP-NoScope",
+		L"WMPNSS-QWave-In-UDP-NoScope",
+		L"Microsoft-Windows-PeerDist-WSD-Out",
+		L"WMP-Out-TCP",
+		L"WMP-Out-UDP",
+		L"Microsoft-Windows-PeerDist-HttpTrans-In",
+		L"WMPNSS-HTTPSTR-In-TCP-NoScope",
+		L"WMPNSS-WMP-Out-UDP",
+		L"PlayTo-In-RTSP-PlayToScope",
+		L"PlayTo-HTTPSTR-In-TCP-PlayToScope",
+		L"PlayTo-HTTPSTR-In-TCP-NoScope",
+		L"WMP-Out-TCP-x86",
+		L"WMP-Out-UDP-x86",
+		L"MCX-PlayTo-Out-TCP",
+		L"MCX-SSDPSrv-Out-UDP",
+		L"Microsoft-Windows-PeerDist-HttpTrans-Out",
+		L"RemoteDesktop-UserMode-In-UDP",
+		L"RemoteDesktop-UserMode-In-TCP",
+		L"MCX-PlayTo-In-TCP",
+		L"SPPSVC-In-TCP-NoScope",
+		L"PlayTo-In-UDP-PlayToScope",
+		L"WMPNSS-Out-UDP-NoScope",
+		L"PlayTo-In-RTSP-LocalSubnetScope",
+		L"MCX-PlayTo-Out-UDP",
+		L"MCX-Out-UDP",
+		L"MCX-Out-TCP",
+		L"PlayTo-UPnP-Events-PlayToScope",
+		L"WPDMTP-UPnP-Out-TCP",
+		L"WPDMTP-SSDPSrv-Out-UDP",
+		L"PlayTo-Out-UDP-NoScope",
+		L"WPDMTP-SSDPSrv-In-UDP",
+		L"MCX-McrMgr-Out-TCP",
+		L"PlayTo-SSDP-Discovery-PlayToScope",
+		L"Microsoft-Windows-PeerDist-HostedClient-Out",
+		L"WMPNSS-Out-TCP",
+		L"MCX-MCX2SVC-Out-TCP",
+		L"MCX-FDPHost-Out-TCP",
+		L"WMPNSS-QWave-Out-TCP-NoScope",
+		L"WMPNSS-QWave-Out-UDP-NoScope",
+		L"RemoteDesktop-Shadow-In-TCP",
+		L"MCX-SSDPSrv-In-UDP",
+		L"PlayTo-QWave-In-TCP-PlayToScope",
+		L"PlayTo-HTTPSTR-In-TCP-LocalSubnetScope",
+		L"WMPNSS-QWave-Out-UDP",
+		L"WMPNSS-HTTPSTR-In-TCP",
+		L"WMPNSS-Out-UDP",
+		L"WPDMTP-UPnPHost-Out-TCP",
+		L"WMPNSS-HTTPSTR-Out-TCP",
+		L"WPDMTP-UPnPHost-In-TCP",
+		L"WMPNSS-SSDPSrv-In-UDP",
+		L"FPSSMBD-iWARP-In-TCP",
+		L"WMPNSS-UPnPHost-Out-TCP",
+		L"WMPNSS-WMP-Out-TCP-NoScope",
+		L"WMPNSS-QWave-Out-TCP",
+		L"SPPSVC-In-TCP",
+		L"WMPNSS-SSDPSrv-Out-UDP",
+		L"MCX-TERMSRV-In-TCP",
+		L"RemoteDesktop-In-TCP-WSS",
+		L"PlayTo-QWave-Out-UDP-PlayToScope",
+		L"MCX-QWave-Out-TCP",
+		L"MCX-QWave-Out-UDP",
+		L"MCX-In-TCP",
+		L"WMPNSS-WMP-In-UDP",
+		L"CloudIdSvc-Allow-HTTPS-Out-TCP",
+		L"WMPNSS-HTTPSTR-Out-TCP-NoScope",
+		L"PlayTo-QWave-In-UDP-PlayToScope",
+		L"WMPNSS-WMP-In-UDP-NoScope",
+		L"WPDMTP-Out-TCP-NoScope",
+		L"WMPNSS-In-TCP",
+		L"WMPNSS-In-UDP",
+		L"WMP-In-UDP-x86",
+		L"MCX-In-UDP",
+		L"PlayTo-In-RTSP-NoScope",
+		L"WMPNSS-QWave-In-TCP-NoScope",
+		L"WMPNSS-In-TCP-NoScope",
+		L"WMPNSS-In-UDP-NoScope",
+		L"WMPNSS-UPnP-Out-TCP",
+		L"Microsoft-Windows-PeerDist-HostedServer-In",
+		L"WMPNSS-WMP-Out-UDP-NoScope",
+		L"WMPNSS-UPnPHost-In-TCP",
+		L"PlayTo-In-UDP-NoScope",
+		L"WMPNSS-QWave-In-UDP",
+		L"WMPNSS-QWave-In-TCP",
+		L"MCX-Prov-Out-TCP",
+		L"PlayTo-Out-UDP-LocalSubnetScope",
+		L"PlayTo-Out-UDP-PlayToScope",
+		L"MCX-QWave-In-UDP",
+		L"WPDMTP-Out-TCP",
+		L"MCX-HTTPSTR-In-TCP",
+		L"PlayTo-In-UDP-LocalSubnetScope",
+		L"Microsoft-Windows-PeerDist-WSD-In",
+		L"RemoteDesktop-In-TCP-WS",
+		L"PlayTo-QWave-Out-TCP-PlayToScope",
+		L"Microsoft-Windows-PeerDist-HostedServer-Out",
+		L"WMP-In-UDP",
+		L"WMPNSS-WMP-Out-TCP",
+		L"MDNS-In-UDP-Public-Active",
+		L"CoreNet-Diag-ICMP6-EchoRequest-In-NoScope",
+		L"CoreNet-GP-Out-TCP",
+		L"NETDIS-NB_Name-Out-UDP-NoScope",
+		L"MSDTC-In-TCP-NoScope",
+		L"RRAS-GRE-Out",
+		L"NETDIS-NB_Name-Out-UDP-Active",
+		L"WINRM-HTTP-Compat-In-TCP-NoScope",
+		L"CoreNet-Diag-ICMP4-EchoRequest-In",
+		L"NETDIS-UPnP-Out-TCP-Active",
+		L"RemoteAssistance-In-TCP-EdgeScope-Active",
+		L"Collab-P2PHost-In-TCP",
+		L"MDNS-In-UDP-Domain-Active",
+		L"CoreNet-ICMP6-TE-In",
+		L"Netlogon-TCP-RPC-In",
+		L"WMI-WINMGMT-Out-TCP-NoScope",
+		L"RVM-VDS-In-TCP-NoScope",
+		L"CoreNet-DHCPV6-Out",
+		L"MSDTC-In-TCP",
+		L"DIAL-Protocol-Server-HTTPSTR-In-TCP-LocalSubnetScope",
+		L"SSTP-IN-TCP",
+		L"CoreNet-Diag-ICMP4-EchoRequest-In-NoScope",
+		L"CoreNet-ICMP6-LR-In",
+		L"Microsoft-Windows-DeviceManagement-OmaDmClient-TCP-Out",
+		L"Collab-PNRP-SSDPSrv-In-UDP",
+		L"CoreNet-ICMP6-LQ-In",
+		L"RemoteEventLogSvc-In-TCP-NoScope",
+		L"NETDIS-FDPHOST-In-UDP",
+		L"NETDIS-FDPHOST-Out-UDP-Active",
+		L"RVM-VDSLDR-In-TCP-NoScope",
+		L"CoreNet-ICMP6-LR2-In",
+		L"WMI-WINMGMT-In-TCP-NoScope",
+		L"CoreNet-GP-NP-Out-TCP",
+		L"CoreNet-IGMP-In",
+		L"NETDIS-FDRESPUB-WSD-In-UDP",
+		L"MsiScsi-Out-TCP-NoScope",
+		L"ProximityUxHost-Sharing-In-TCP-NoScope",
+		L"MSDTC-KTMRM-In-TCP-NoScope",
+		L"RemoteAssistance-SSDPSrv-In-TCP-Active",
+		L"WMI-RPCSS-In-TCP-NoScope",
+		L"CoreNet-Diag-ICMP6-EchoRequest-Out-NoScope",
+		L"RemoteEventLogSvc-RPCSS-In-TCP",
+		L"NETDIS-WSDEVNTS-Out-TCP-Active",
+		L"CoreNet-IPv6-Out",
+		L"PerfLogsAlerts-DCOM-In-TCP",
+		L"NETDIS-UPnPHost-In-TCP-NoScope",
+		L"PNRPMNRS-SSDPSrv-In-UDP",
+		L"WirelessDisplay-In-TCP",
+		L"Collab-PNRP-Out-UDP",
+		L"WFDPRINT-DAFWSD-In-Active",
+		L"CoreNet-ICMP6-NDS-Out",
+		L"NETDIS-WSDEVNT-In-TCP",
+		L"NETDIS-FDPHOST-Out-UDP",
+		L"WINRM-HTTP-In-TCP-NoScope",
+		L"PerfLogsAlerts-PLASrv-In-TCP-NoScope",
+		L"RRAS-PPTP-Out-TCP",
+		L"PerfLogsAlerts-DCOM-In-TCP-NoScope",
+		L"NETDIS-NB_Datagram-Out-UDP-NoScope",
+		L"MDNS-Out-UDP-Private-Active",
+		L"CoreNet-Diag-ICMP4-EchoRequest-Out",
+		L"NETDIS-SSDPSrv-Out-UDP",
+		L"RemoteTask-In-TCP",
+		L"CDPSvc-WFD-In-TCP",
+		L"NETDIS-NB_Datagram-In-UDP-Active",
+		L"WFDPRINT-SCAN-Out-Active",
+		L"CoreNet-ICMP6-DU-In",
+		L"NETDIS-WSDEVNTS-In-TCP",
+		L"Microsoft-Windows-Unified-Telemetry-Client",
+		L"CoreNet-ICMP6-LD-In",
+		L"RemoteAssistance-PnrpSvc-UDP-OUT-Active",
+		L"AllJoyn-Router-In-UDP",
+		L"AllJoyn-Router-In-TCP",
+		L"RemoteFwAdmin-In-TCP",
+		L"NETDIS-WSDEVNT-Out-TCP",
+		L"CoreNet-IPHTTPS-In",
+		L"CoreNet-DHCP-Out",
+		L"CoreNet-ICMP6-PTB-In",
+		L"RRAS-L2TP-In-UDP",
+		L"WFDPRINT-DAFWSD-Out-Active",
+		L"TPMVSCMGR-Server-Out-TCP-NoScope",
+		L"CoreNet-ICMP6-LR-Out",
+		L"vm-monitoring-icmpv6",
+		L"NETDIS-LLMNR-In-UDP-Active",
+		L"ProximityUxHost-Sharing-Out-TCP-NoScope",
+		L"RemoteAssistance-In-TCP-EdgeScope",
+		L"AllJoyn-Router-Out-TCP",
+		L"MDNS-In-UDP-Private-Active",
+		L"RemoteTask-RPCSS-In-TCP",
+		L"CDPSvc-In-TCP",
+		L"CDPSvc-In-UDP",
+		L"vm-monitoring-icmpv4",
+		L"NETDIS-SSDPSrv-In-UDP-Active",
+		L"Netlogon-NamedPipe-In",
+		L"CoreNet-ICMP6-TE-Out",
+		L"NETDIS-FDRESPUB-WSD-Out-UDP",
+		L"NETDIS-UPnPHost-In-TCP-Teredo",
+		L"NETDIS-LLMNR-Out-UDP-Active",
+		L"NETDIS-WSDEVNTS-Out-TCP-NoScope",
+		L"RemoteAssistance-SSDPSrv-In-UDP-Active",
+		L"TPMVSCMGR-Server-Out-TCP",
+		L"TPMVSCMGR-Server-In-TCP",
+		L"TPMVSCMGR-RPCSS-In-TCP",
+		L"RVM-VDSLDR-In-TCP",
+		L"RVM-RPCSS-In-TCP-NoScope",
+		L"CoreNet-Diag-ICMP6-EchoRequest-In",
+		L"NETDIS-NB_Name-In-UDP-NoScope",
+		L"Collab-PNRP-SSDPSrv-Out-UDP",
+		L"CoreNet-ICMP6-LQ-Out",
+		L"Microsoft-Windows-DeviceManagement-deviceenroller-TCP-Out",
+		L"RemoteSvcAdmin-NP-In-TCP",
+		L"RemoteFwAdmin-RPCSS-In-TCP-NoScope",
+		L"AllJoyn-Router-Out-UDP",
+		L"CoreNet-ICMP6-NDA-Out",
+		L"NETDIS-UPnPHost-In-TCP",
+		L"MSDTC-RPCSS-In-TCP",
+		L"PNRPMNRS-PNRP-Out-UDP",
+		L"NVS-FrameServer-Out-TCP-NoScope",
+		L"RemoteSvcAdmin-In-TCP-NoScope",
+		L"CoreNet-Teredo-In",
+		L"RemoteSvcAdmin-NP-In-TCP-NoScope",
+		L"NETDIS-NB_Datagram-In-UDP",
+		L"NETDIS-NB_Datagram-Out-UDP-Active",
+		L"CoreNet-DNS-Out-UDP",
+		L"CoreNet-ICMP6-PP-In",
+		L"NETDIS-NB_Name-In-UDP-Active",
+		L"MsiScsi-In-TCP-NoScope",
+		L"Collab-P2PHost-WSD-Out-UDP",
+		L"NETDIS-DAS-In-UDP",
+		L"WINRM-HTTP-Compat-In-TCP",
+		L"CoreNet-IGMP-Out",
+		L"RemoteSvcAdmin-RPCSS-In-TCP",
+		L"RemoteSvcAdmin-In-TCP",
+		L"NETDIS-SSDPSrv-In-UDP",
+		L"NVS-FrameServer-In-TCP-NoScope",
+		L"CoreNet-IPHTTPS-Out",
+		L"CoreNet-ICMP6-NDA-In",
+		L"NETDIS-WSDEVNTS-In-TCP-NoScope",
+		L"Collab-P2PHost-Out-TCP",
+		L"CoreNet-ICMP6-RA-Out",
+		L"RemoteAssistance-RAServer-Out-TCP-NoScope-Active",
+		L"WirelessDisplay-Out-UDP",
+		L"WirelessDisplay-Out-TCP",
+		L"RemoteFwAdmin-In-TCP-NoScope",
+		L"vm-monitoring-nb-session",
+		L"NETDIS-LLMNR-Out-UDP",
+		L"NETDIS-FDRESPUB-WSD-Out-UDP-Active",
+		L"NETDIS-WSDEVNT-Out-TCP-NoScope",
+		L"WMI-ASYNC-In-TCP-NoScope",
+		L"RemoteSvcAdmin-RPCSS-In-TCP-NoScope",
+		L"NETDIS-WSDEVNT-In-TCP-NoScope",
+		L"DIAL-Protocol-Server-In-TCP-NoScope",
+		L"Collab-PNRP-In-UDP",
+		L"NETDIS-UPnPHost-Out-TCP-NoScope",
+		L"RemoteAssistance-PnrpSvc-UDP-In-EdgeScope-Active",
+		L"RemoteTask-RPCSS-In-TCP-NoScope",
+		L"Microsoft-Windows-Troubleshooting-HTTP-HTTPS-Out",
+		L"CoreNet-GP-LSASS-Out-TCP",
+		L"NETDIS-WSDEVNTS-Out-TCP",
+		L"NETDIS-FDRESPUB-WSD-In-UDP-Active",
+		L"PNRPMNRS-SSDPSrv-Out-UDP",
+		L"WirelessDisplay-Infra-In-TCP",
+		L"WMI-RPCSS-In-TCP",
+		L"CoreNet-ICMP6-RS-In",
+		L"vm-monitoring-dcom",
+		L"NETDIS-NB_Datagram-In-UDP-NoScope",
+		L"WMI-WINMGMT-Out-TCP",
+		L"TPMVSCMGR-Server-In-TCP-NoScope",
+		L"RVM-VDS-In-TCP",
+		L"CoreNet-Teredo-Out",
+		L"RRAS-PPTP-In-TCP",
+		L"RemoteAssistance-PnrpSvc-UDP-In-EdgeScope",
+		L"MsiScsi-In-TCP",
+		L"Microsoft-Windows-DeviceManagement-CertificateInstall-TCP-Out",
+		L"CoreNet-ICMP6-LD-Out",
+		L"vm-monitoring-rpc",
+		L"NETDIS-NB_Name-In-UDP",
+		L"MSDTC-Out-TCP-NoScope",
+		L"DeliveryOptimization-TCP-In",
+		L"WINRM-HTTP-In-TCP",
+		L"PerfLogsAlerts-PLASrv-In-TCP",
+		L"RemoteFwAdmin-RPCSS-In-TCP",
+		L"WMI-WINMGMT-In-TCP",
+		L"MDNS-Out-UDP-Public-Active",
+		L"CoreNet-Diag-ICMP4-EchoRequest-Out-NoScope",
+		L"WMI-ASYNC-In-TCP",
+		L"SNMPTRAP-In-UDP-NoScope",
+		L"Microsoft-Windows-Enrollment-WinRT-TCP-Out",
+		L"NVS-FrameServer-In-UDP-NoScope",
+		L"EventForwarder-In-TCP",
+		L"CoreNet-Diag-ICMP6-EchoRequest-Out",
+		L"CoreNet-ICMP6-LR2-Out",
+		L"RemoteEventLogSvc-RPCSS-In-TCP-NoScope",
+		L"NETDIS-UPnPHost-In-TCP-Active",
+		L"RemoteAssistance-RAServer-In-TCP-NoScope-Active",
+		L"RVM-RPCSS-In-TCP",
+		L"NETDIS-WSDEVNTS-In-TCP-Active",
+		L"NETDIS-UPnPHost-Out-TCP-Active",
+		L"RemoteAssistance-DCOM-In-TCP-NoScope-Active",
+		L"EventForwarder-RPCSS-In-TCP",
+		L"CoreNet-ICMP6-NDS-In",
+		L"NETDIS-WSDEVNT-In-TCP-Active",
+		L"RemoteAssistance-SSDPSrv-Out-TCP-Active",
+		L"RemoteAssistance-SSDPSrv-Out-UDP-Active",
+		L"CoreNet-ICMP6-RS-Out",
+		L"NETDIS-FDPHOST-In-UDP-Active",
+		L"RemoteAssistance-PnrpSvc-UDP-OUT",
+		L"WFDPRINT-SCAN-In-Active",
+		L"MSDTC-RPCSS-In-TCP-NoScope",
+		L"CDPSvc-Out-TCP",
+		L"NETDIS-UPnP-Out-TCP",
+		L"MsiScsi-Out-TCP",
+		L"NETDIS-SSDPSrv-In-UDP-Teredo",
+		L"MSDTC-KTMRM-In-TCP",
+		L"CoreNet-DHCPV6-In",
+		L"TPMVSCMGR-RPCSS-In-TCP-NoScope",
+		L"RRAS-GRE-In",
+		L"NETDIS-DAS-In-UDP-Active",
+		L"CoreNet-DHCP-In",
+		L"CoreNet-ICMP4-DUFRAG-In",
+		L"CoreNet-ICMP6-RA-In",
+		L"CoreNet-ICMP6-PP-Out",
+		L"DeliveryOptimization-UDP-In",
+		L"MDNS-Out-UDP-Domain-Active",
+		L"SNMPTRAP-In-UDP",
+		L"RemoteEventLogSvc-NP-In-TCP",
+		L"NETDIS-LLMNR-In-UDP",
+		L"CDPSvc-WFD-Out-TCP",
+		L"CoreNet-IPv6-In",
+		L"RemoteEventLogSvc-In-TCP",
+		L"Collab-P2PHost-WSD-In-UDP",
+		L"NETDIS-NB_Datagram-Out-UDP",
+		L"NETDIS-NB_Name-Out-UDP",
+		L"PNRPMNRS-PNRP-In-UDP",
+		L"CDPSvc-Out-UDP",
+		L"CoreNet-ICMP6-PTB-Out",
+		L"RRAS-L2TP-Out-UDP",
+		L"MSDTC-Out-TCP",
+		L"RemoteAssistance-Out-TCP-Active",
+		L"WFDPRINT-SPOOL-In-Active",
+		L"RemoteTask-In-TCP-NoScope",
+		L"RemoteEventLogSvc-NP-In-TCP-NoScope",
+		L"NETDIS-WSDEVNT-Out-TCP-Active",
+		L"NETDIS-SSDPSrv-Out-UDP-Active",
+		L"RemoteAssistance-Out-TCP",
+		L"WFDPRINT-SPOOL-Out-Active",
+		L"NETDIS-UPnPHost-Out-TCP",
+		NULL
+	};
+
+	const wchar_t* ValidPaths[] = {
+		L"\\SystemRoot\\System32\\ntoskrnl.exe",
+		L"%SystemRoot%\\system32\\msdtc.exe",
+		L"%SystemRoot%\\system32\\svchost.exe",
+		L"%SystemRoot%\\system32\\sppextcomobj.exe",
+		L"%SystemRoot%\\system32\\vds.exe",
+		L"%SystemRoot%\\system32\\wudfhost.exe",
+		L"%SystemRoot%\\system32\\snmptrap.exe",
+		L"%systemroot%\\system32\\wbem\\unsecapp.exe",
+		L"%SystemRoot%\\system32\\dashost.exe",
+		L"%SystemRoot%\\system32\\vdsldr.exe",
+		L"%SystemRoot%\\system32\\spoolsv.exe",
+		L"%SystemRoot%\\System32\\lsass.exe",
+		L"%SystemRoot%\\system32\\NetEvtFwdr.exe",
+		L"%SystemRoot%\\system32\\mdeserver.exe",
+		L"%SystemRoot%\\system32\\services.exe",
+		L"%SystemRoot%\\system32\\spoolsvworker.exe",
+		L"%SystemRoot%\\system32\\RmtTpmVscMgrSvr.exe",
+		L"%SystemRoot%\\system32\\msra.exe",
+		L"%SystemRoot%\\system32\\RdpSa.exe",
+		L"%systemroot%\\system32\\plasrv.exe",
+		L"%systemroot%\\system32\\CastSrv.exe",
+		L"%systemroot%\\system32\\wininit.exe",
+		L"%SystemRoot%\\system32\\proximityuxhost.exe",
+		L"%SystemRoot%\\system32\\raserver.exe",
+		L"%SystemRoot%\\system32\\omadmclient.exe",
+		L"%SystemRoot%\\system32\\deviceenroller.exe",
+		L"%SystemRoot%\\system32\\dmcertinst.exe",
+		L"%ProgramFiles%\\Windows Media Player\\wmplayer.exe",
+		L"%ProgramFiles(x86)%\\Windows Media Player\\wmplayer.exe",
+		L"%PROGRAMFILES%\\Windows Media Player\\wmpnetwk.exe",
+		NULL
+	};
+
+	std::wstring Guid = pFwRule->GetGuidStr();
+
+	if(Guid.empty() || Guid[0] == L'{')
+		return false;
+
+	for (const wchar_t** pDefaultRule = DefaultRules; *pDefaultRule; pDefaultRule++)
+	{
+		if (_wcsnicmp(Guid.c_str(), *pDefaultRule, wcslen(*pDefaultRule)) == 0) 
+		{
+			//DbgPrint(L"CFirewall::IsDefaultWindowsRule: %s %s is a default Windows rule\n", Guid.c_str(), pFwRule->GetBinaryPath().c_str());
+			for (const wchar_t** pValidPath = ValidPaths; *pValidPath; pValidPath++)
+			{
+				if (_wcsicmp(pFwRule->GetBinaryPath().c_str(), *pValidPath) == 0)
+					return true;
+			}
+			return false;
+		}
+	}
+	return false;
+}
+
+bool ends_with(const std::wstring& str, const std::wstring& suffix) {
+	if (str.size() < suffix.size()) return false;
+	return std::equal(suffix.rbegin(), suffix.rend(), str.rbegin());
+}
+
+bool CFirewall::IsWindowsStoreRule(const CFirewallRulePtr& pFwRule) const
+{
+	std::vector<std::wstring> suffixes = {
+		L"-In-Allow-ServerCapability",
+		L"-Out-Allow-ServerCapability",
+		L"-In-Allow-ClientCapability",
+		L"-Out-Allow-ClientCapability",
+		L"-In-Allow-AllCapabilities",
+		L"-Out-Allow-AllCapabilities"
+	};
+
+	std::wstring Guid = pFwRule->GetGuidStr();
+
+	if(Guid.empty() || Guid[0] == L'{')
+		return false;
+
+	for (auto& suffix : suffixes) {
+		if (ends_with(Guid, suffix))
+			return true;
+	}
+
+	return false;
 }

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "AbstractTreeModel.h"
+#include "Common.h"
 
 
 CAbstractTreeModel::CAbstractTreeModel(QObject* parent)
@@ -192,8 +193,8 @@ void CAbstractTreeModel::updateNode(SAbstractTreeNode* node, const void* data, c
 
 
 	// Nodes to be added, removed, updated
-	QSet<QVariant> oldKeys = QSet<QVariant>::fromList(oldKeyPositions.keys());
-	QSet<QVariant> newKeysSet = QSet<QVariant>::fromList(newKeyPositions.keys());
+	QSet<QVariant> oldKeys = ListToSet(oldKeyPositions.keys());
+	QSet<QVariant> newKeysSet = ListToSet(newKeyPositions.keys());
 
 	QSet<QVariant> keysToAdd = newKeysSet - oldKeys;
 	QSet<QVariant> keysToRemove = oldKeys - newKeysSet;
@@ -245,7 +246,7 @@ void CAbstractTreeModel::updateNode(SAbstractTreeNode* node, const void* data, c
 	}
 
 	// Finally, move and update existing nodes
-	QList<QVariant> keysToProcess = keysToUpdate.toList();
+	QList<QVariant> keysToProcess = SetToList(keysToUpdate);
 	// Sort keys based on new positions
 	std::sort(keysToProcess.begin(), keysToProcess.end(), [&](const QVariant& a, const QVariant& b) {
 		return newKeyPositions[a] < newKeyPositions[b];

@@ -80,7 +80,11 @@ void AddColoredComboBoxEntry(QComboBox* pBox, const QString& Text, const QColor&
 	if(Color.isValid())
 		qobject_cast<QStandardItemModel *>(pBox->model())->item(pBox->count() - 1)->setBackground(QBrush(Color));
 	else
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		qobject_cast<QStandardItemModel *>(pBox->model())->item(pBox->count() - 1)->setBackground(pBox->palette().background());
+#else
+		qobject_cast<QStandardItemModel *>(pBox->model())->item(pBox->count() - 1)->setBackground(pBox->palette().window());
+#endif
 }
 
 void ColorComboBox(QComboBox* pBox)
@@ -174,7 +178,7 @@ QWidget* CConfigDialog::ConvertToTree(QTabWidget* pTabWidget)
 	pLayout->addLayout(m_pStack, 0, 1, 2, 1);
 
 	for (int i = 0, k = 0; i < pTabWidget->count(); i++, k++) {
-		QTreeWidgetItem* pItem = new QTreeWidgetItem(QStringList() << pTabWidget->tabText(i));
+		QTreeWidgetItem* pItem = new QTreeWidgetItem(QStringList() << pTabWidget->tabText(i).replace("&&", "&"));
 		m_pTree->addTopLevelItem(pItem);
 		//pItem->setData(1, Qt::UserRole, k);
 		pItem->setData(1, Qt::UserRole, m_pStack->count());
@@ -190,7 +194,7 @@ QWidget* CConfigDialog::ConvertToTree(QTabWidget* pTabWidget)
 			//pItem->setFlags(pItem->flags() & ~Qt::ItemIsSelectable);
 			pItem->setData(0, Qt::UserRole, m_pStack->count()); // take the first tab for the parent entry
 			for (int j = 0; j < pSubTabs->count(); j++) {
-				QTreeWidgetItem* pSubItem = new QTreeWidgetItem(QStringList() << pSubTabs->tabText(j));
+				QTreeWidgetItem* pSubItem = new QTreeWidgetItem(QStringList() << pSubTabs->tabText(j).replace("&&", "&"));
 				pItem->addChild(pSubItem);
 				pSubItem->setData(0, Qt::UserRole, m_pStack->count());
 				pSubItem->setIcon(0, pSubTabs->tabIcon(j));

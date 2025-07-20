@@ -92,8 +92,11 @@
 	#define API_S_PROG_TYPE_ROOT				"Root"
 
 #define API_S_FILE_PATH						"FilePath"
+#define API_S_USE_SCRIPT					"UseScript"
+#define API_S_SCRIPT						"Script"
+#define API_S_INTERACTIVE					"Interactive"
 #define API_S_FILE_NT_PATH					"FileNtPath"
-#define API_S_SERVICE_TAG						"ServiceTag"
+#define API_S_SERVICE_TAG					"ServiceTag"
 #define API_S_APP_SID						"AppSID"	
 #define API_S_APP_NAME						"AppName"
 #define API_S_PACK_NAME						"Package"
@@ -148,6 +151,23 @@
 // Rules
 #define API_S_RULE_REF_GUID					"RefGuid"
 #define API_S_RULE_HIT_COUNT				"HitCount"
+
+#define API_S_RULE_STATE					"RuleState"
+	#define API_S_RULE_STATE_UNAPPROVED			"Unapproved"
+	#define API_S_RULE_STATE_APPROVED			"Approved"
+	#define API_S_RULE_STATE_BACKUP				"Backup"
+	#define API_S_RULE_STATE_UNAPPROVED_DISABLED "Disabled"
+	#define API_S_RULE_STATE_DIVERGED 			"Diverged"
+	#define API_S_RULE_STATE_DELETED			"Deleted"
+
+#define API_S_ORIGINAL_GUID					"OriginalGuid"
+
+#define API_S_SOURCE						"Source"
+	#define API_S_SOURCE_UNKNOWN				"Unknown"
+	#define API_S_SOURCE_DEFAULT 				"WindowsDefault"
+	#define API_S_SOURCE_STORE					"MicrosoftStore"
+	#define API_S_SOURCE_MP 					"MajorPrivacy"
+	#define API_S_SOURCE_TEMPLATE				"AutoTemplate"
 
 ////////////////////////////
 // Access Rules
@@ -242,7 +262,7 @@
 #define API_S_INGRESS_LOG					"IngressLog"
 #define API_S_TRAFFIC_LOG					"TrafficLog"
 #define API_S_PROG_SOCKETS					"Sockets"
-
+#define API_S_EVENT_LOG						"EventLog"
 
 ////////////////////////////
 // Sockets Stats

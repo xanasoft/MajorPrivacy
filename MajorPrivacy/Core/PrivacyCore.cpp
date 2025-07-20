@@ -15,6 +15,8 @@
 #include "../Library/Crypto/HashFunction.h"
 #include "Helpers/WinHelper.h"
 #include "../Driver/KSI/include/kphapi.h"
+#include "IssueManager.h"
+#include "EventLog.h"
 
 #include <phnt_windows.h>
 #include <phnt.h>
@@ -59,7 +61,8 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 
 #endif
 
-	m_pLog = new CEventLogger(APP_NAME);
+	m_pSysLog = new CEventLogger(APP_NAME);
+	m_pEventLog = new CEventLog(this);
 	
 	m_pSidResolver = new CSidResolver(this);
 	m_pSidResolver->Init();
@@ -74,6 +77,10 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 	m_pVolumeManager = new CVolumeManager(this);
 
 	m_pTweakManager = new CTweakManager(this);
+
+
+	m_pIssueManager = new CIssueManager(this);
+
 
 	connect(m_pProgramManager, SIGNAL(ProgramsAdded()), this, SIGNAL(ProgramsAdded()));
 
@@ -90,6 +97,8 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 	//m_Driver.RegisterRuleEventHandler(ERuleType::eProgram, &CPrivacyCore::OnDrvEvent, this);
 
 	//m_Service.RegisterEventHandler(SVC_API_EVENT_PROG_ITEM_CHANGED, &CPrivacyCore::OnProgEvent, this);
+
+	m_Service.RegisterEventHandler(SVC_API_EVENT_LOG_ENTRY, &CPrivacyCore::OnSvcEvent, this);
 
 	m_Service.RegisterEventHandler(SVC_API_EVENT_ENCLAVE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_FW_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
@@ -239,6 +248,11 @@ STATUS CPrivacyCore::Connect(bool bEngineMode)
 	std::wstring BinaryPath = GetServiceBinaryPath(API_DRIVER_NAME);
 	m_AppDir = NormalizePath(QString::fromStdWString(Split2(GetFileFromCommand(BinaryPath), L"\\", true).first));
 
+	QtVariant Request;
+	auto ret = m_Service.Call(SVC_API_GET_EVENT_LOG, Request);
+	if (!ret.IsError())
+		m_pEventLog->LoadEntries(ret.GetValue().Get(API_V_EVENT_LOG));
+
 	return Status;
 }
 
@@ -302,6 +316,8 @@ void CPrivacyCore::ProcessEvents()
 	//auto ProcRuleEvents = m_DrvEventQueue.take(ERuleType::eProgram);
 	//auto ResRuleEvents = m_DrvEventQueue.take(ERuleType::eAccess);
 	
+	auto LogEvents = m_SvcEventQueue.take(SVC_API_EVENT_LOG_ENTRY);
+
 	auto EnclaveEvents = m_SvcEventQueue.take(SVC_API_EVENT_ENCLAVE_CHANGED);
 	auto FwRuleEvents = m_SvcEventQueue.take(SVC_API_EVENT_FW_RULE_CHANGED);
 	auto DnsRuleEvents = m_SvcEventQueue.take(SVC_API_EVENT_DNS_RULE_CHANGED);
@@ -312,6 +328,13 @@ void CPrivacyCore::ProcessEvents()
 	auto ExecEvents = m_SvcEventQueue.take(SVC_API_EVENT_EXEC_ACTIVITY);
 	auto ResEvents = m_SvcEventQueue.take(SVC_API_EVENT_RES_ACTIVITY);
 	Lock.unlock();
+
+
+	if (!LogEvents.isEmpty()) {
+		foreach(const QtVariant & vEvent, LogEvents)
+			m_pEventLog->AddEntry(vEvent);
+	}
+
 
 	//////////////////
 	// Enclaved
@@ -383,10 +406,14 @@ void CPrivacyCore::ProcessEvents()
 		foreach(const QtVariant& vEvent, FwRuleEvents) {
 			QFlexGuid Guid;
 			Guid.FromVariant(vEvent[API_V_GUID]);
-			if (vEvent[API_V_EVENT_TYPE].To<uint32>() == (uint32)EConfigEvent::eRemoved)
+			qint32 iEventType = vEvent[API_V_EVENT_TYPE].To<uint32>();
+			if (iEventType == (qint32)EConfigEvent::eRemoved)
 				m_pNetworkManager->RemoveFwRule(Guid);
 			else
 				m_pNetworkManager->UpdateFwRule(Guid);
+
+			if (!vEvent[API_V_EVENT_EXPECTED].To<bool>())
+				emit FwChangeEvent(Guid.ToQS(), iEventType);
 		}
 		emit FwRulesChanged();
 	}
@@ -473,8 +500,10 @@ void CPrivacyCore::ProcessEvents()
 		pEntry->FromVariant(Event[API_V_EVENT_DATA]);
 		pProgram->TraceLogAdd(ETraceLogs::eResLog, pEntry, Event[API_V_EVENT_INDEX]);
 
-		if(pResEnrty->GetStatus() == EEventStatus::eProtected)
-			emit AccessEvent(pProgram, pEntry);
+		if (pResEnrty->GetStatus() == EEventStatus::eProtected) {
+			uint32 TimeOut = Event[API_V_EVENT_TIMEOUT].To<uint32>(0);
+			emit AccessEvent(pProgram, pEntry, TimeOut);
+		}
 	}
 }
 
@@ -660,8 +689,10 @@ QByteArray CPrivacyCore__MakeCertSig(const CBuffer& Signature, const QString& Su
 STATUS CPrivacyCore::SignFiles(const QStringList& Paths, const CPrivateKey* pPrivateKey)
 {
 	STATUS Status;
-	foreach(const QString & Path, Paths)
+	foreach(QString Path, Paths)
 	{
+		Path.replace("/", "\\");
+
 		CBuffer Hash;
 		Status = HashFile(Path, Hash);
 
@@ -1157,6 +1188,14 @@ STATUS CPrivacyCore::DelAccessRule(const QFlexGuid& Guid)
 	return m_Driver.Call(API_DEL_ACCESS_RULE, Request);
 }
 
+STATUS CPrivacyCore::SetAccessEventAction(uint64 EventId, EAccessRuleType Action)
+{
+	QtVariant Request;
+	Request[API_V_EVENT_REF] = EventId;
+	Request[API_V_EVENT_ACTION] = (uint32)Action;
+	return m_Service.Call(SVC_API_SET_ACCESS_EVENT_ACTION, Request);
+}
+
 // Network Manager
 RESULT(QtVariant) CPrivacyCore::GetFwRulesFor(const QList<const class CProgramItem*>& Nodes)
 {
@@ -1465,6 +1504,14 @@ STATUS CPrivacyCore::ApproveTweak(const QString& Id)
 }
 
 // Other
+
+void CPrivacyCore::ClearPrivacyLog()
+{
+	QtVariant Request;
+	if(m_Service.Call(SVC_API_CLEAR_EVENT_LOG, Request))
+		m_pEventLog->ClearLog();
+}
+
 RESULT(QtVariant) CPrivacyCore::GetServiceStats()
 {
 	QtVariant Request;
@@ -1510,7 +1557,7 @@ STATUS CPrivacyCore::GetSecureParam(const QString& Name, void* data, size_t size
 		return Ret.GetStatus();
 	const FW::CVariant& Response = Ret.GetValue();
 	auto Data = Response.Get(API_V_DATA);
-	size_t ToCopy = min(size, Data.GetSize());
+	size_t ToCopy = Min(size, Data.GetSize());
 
 	if (size_out) *size_out = ToCopy;
 	memcpy(data, Response.Get(API_V_DATA).GetData(), ToCopy);

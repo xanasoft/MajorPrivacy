@@ -37,6 +37,9 @@ protected:
 	void ReadMValue(const SVarName& Name, const QtVariant& Data) override;
 
 	EAccessRuleType m_Type = EAccessRuleType::eNone;
+	bool m_bUseScript = false;
+	QString m_Script;
+	bool m_bInteractive = false;
 
 	QString m_AccessPath;
 	QString m_ProgramPath;
