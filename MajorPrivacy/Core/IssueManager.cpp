@@ -87,7 +87,7 @@ void CIssueManager::DetectIssues()
 		QString Id = "unapproved_fw_rules";
 		if (!Old.take(Id))
 		{
-			CIssuePtr pIssue(new CCustomIssue(CCustomIssue::eNoUserKey));
+			CIssuePtr pIssue(new CCustomIssue(CCustomIssue::eFwNotApproved));
 			AddIssueImpl(Id, pIssue);
 		}
 	}

@@ -373,23 +373,25 @@ enum ELogEventType
 {
 	eLogUnknown = 0,
 
-	eLogFwModeChanged,
-	eLogFwRuleAdded,
-	eLogFwRuleModified,
-	eLogFwRuleRemoved,
-	eLogFwRuleGenerated,
-	eLogFwRuleApproved,
-	eLogFwRuleRestored,
-	eLogFwRuleRejected,
+	eLogFwModeChanged = 'fwmc',		// FireWall Mode Changed
+	eLogFwRuleAdded = 'fwra',		// FireWall Rule Added
+	eLogFwRuleModified = 'fwrm',	// FireWall Rule Modified
+	eLogFwRuleRemoved = 'fwrd',		// FireWall Rule Deleted
+	eLogFwRuleGenerated = 'fwrg',	// FireWall Rule Generated
+	eLogFwRuleApproved = 'fwrc',	// FireWall Rule Confirmed
+	eLogFwRuleRestored = 'fwrf',	// FireWall Rule Fixed
+	eLogFwRuleRejected = 'fwrr',	// FireWall Rule Rejected
 
-	eLogResRuleAdded,
-	eLogResRuleModified,
-	eLogResRuleRemoved,
+	eLogResRuleAdded = 'rara',		// Resource Access Rule Added
+	eLogResRuleModified = 'rarm',	// Resource Access Rule Modified
+	eLogResRuleRemoved = 'rard',	// Resource Access Rule Deleted
 
-	eLogExecRuleAdded,
-	eLogExecRuleModified,
-	eLogExecRuleRemoved,
-	eLogExecStartBlocked,
+	eLogExecRuleAdded = 'exra',		// EXecution Rule Added
+	eLogExecRuleModified = 'exrm',	// EXecution Rule Modified
+	eLogExecRuleRemoved = 'exrd',	// EXecution Rule Deleted
+	eLogExecStartBlocked = 'exbl',	// EXecution Start Blocked
+
+	eLogProgramCleanedUp = 'plpc',	// Program List Program Cleared
 };
 
 enum ELogEventSubType

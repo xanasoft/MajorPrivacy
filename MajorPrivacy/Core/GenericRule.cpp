@@ -21,7 +21,9 @@ void CGenericRule::CopyTo(CGenericRule* pRule, bool CloneGuid) const
 	else
 		pRule->m_Guid = QUuid::createUuid().toString();
 		
-	pRule->m_Name = m_Name + tr(" (duplicate)");
+	pRule->m_Name = m_Name;
+	if(!CloneGuid)
+		pRule->m_Name += tr(" (duplicate)");
 	//pRule->m_Grouping = m_Grouping;
 	pRule->m_Description = m_Description;
 

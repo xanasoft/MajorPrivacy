@@ -280,6 +280,11 @@ STATUS CProgramManager::CleanUp(bool bPurgeRules)
 					continue;
 			}
 
+			StVariant Data;
+			Data[API_V_ID] = I->second->GetID().ToVariant(SVarWriteOpt());
+			Data[API_V_NAME] = I->second->GetNameEx();
+			theCore->EmitEvent(ELogLevels::eInfo, eLogProgramCleanedUp, Data);
+
 			theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PROG_CLEANUP, StrLine(L"Removed no longer existing program: %s", I->second->GetNameEx().c_str()));
 			RemoveProgramFrom(I->first, 0, bPurgeRules);
 		}

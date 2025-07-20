@@ -177,6 +177,12 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	SetAddresses(m_pRule->m_LocalAddresses, ui.lstLocalIP, ui.radLocalIPAny, ui.radLocalIPCustom);
 	SetAddresses(m_pRule->m_RemoteAddresses, ui.lstRemoteIP, ui.radRemoteIPAny, ui.radRemoteIPCustom);
 
+	ui.cmbEdgeTraversal->addItem(tr("No"), 0);
+	ui.cmbEdgeTraversal->addItem(tr("Allow"), 1);
+	ui.cmbEdgeTraversal->addItem(tr("Defer to App"), 2);
+	ui.cmbEdgeTraversal->addItem(tr("Defer to User"), 3);
+	SetComboBoxValue(ui.cmbEdgeTraversal, (uint32)m_pRule->m_EdgeTraversal);
+
 	OnProfilesChanged();
 	OnInterfacesChanged();
 	OnProtocolChanged();
@@ -347,6 +353,8 @@ bool CFirewallRuleWnd::Save()
 
 	m_pRule->m_LocalAddresses = GetAddresses(ui.lstLocalIP, ui.radLocalIPAny, ui.radLocalIPCustom);
 	m_pRule->m_RemoteAddresses = GetAddresses(ui.lstRemoteIP, ui.radRemoteIPAny, ui.radRemoteIPCustom);
+
+	m_pRule->m_EdgeTraversal = ui.cmbEdgeTraversal->currentData().toInt();
 
 	return true;
 }

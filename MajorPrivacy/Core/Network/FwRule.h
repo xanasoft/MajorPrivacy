@@ -63,7 +63,7 @@ public:
 
     int GetEdgeTraversal() const            { return m_EdgeTraversal; }
 
-    CFwRule* Clone() const;
+    CFwRule* Clone(bool CloneGuid = false) const;
 
     static QString StateToStr(EFwEventStates State);
     static QString ActionToStr(EFwActions Action);

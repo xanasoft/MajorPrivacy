@@ -117,7 +117,15 @@ QString CEventLog::GetEventInfoStr(const CEventLogEntryPtr& pEntry)
     //case eLogExecRuleAdded:
     //case eLogExecRuleModified:
     //case eLogExecRuleRemoved:
-    case eLogExecStartBlocked:
+    case eLogExecStartBlocked:{
+        QString Name = Data[API_V_NAME].To<QString>();
+        return tr("Startup was blocked, Program '%1'").arg(Name);
+    }
+
+    case eLogProgramCleanedUp: {
+        QString Name = Data[API_V_NAME].To<QString>();
+        return tr("Removed no longer existign Program '%1'").arg(Name);
+    }
 
     default: {
         QJsonDocument doc(QJsonValue::fromVariant(Data.ToQVariant()).toObject());			

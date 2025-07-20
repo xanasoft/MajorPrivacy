@@ -148,7 +148,8 @@ void CFwRuleView::OnDoubleClicked(const QModelIndex& Index)
 void CFwRuleView::OpenRullDialog(const CFwRulePtr& pRule)
 {
 	auto Current = theGUI->GetCurrentItems();
-	CFirewallRuleWnd* pFirewallRuleWnd = new CFirewallRuleWnd(pRule, Current.Items);
+	CFwRulePtr pClone = CFwRulePtr(pRule->Clone(true)); // clone the rule as not to edit the once storred in case the set fails
+	CFirewallRuleWnd* pFirewallRuleWnd = new CFirewallRuleWnd(pClone, Current.Items);
 	pFirewallRuleWnd->show();
 }
 

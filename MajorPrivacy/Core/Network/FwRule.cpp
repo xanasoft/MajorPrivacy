@@ -63,12 +63,19 @@ QString CFwRule::GetProgram() const
     return m_BinaryPath;
 }
 
-CFwRule* CFwRule::Clone() const
+CFwRule* CFwRule::Clone(bool CloneGuid) const
 {
 	CFwRule* pRule = new CFwRule(m_ProgramID);
-    pRule->SetApproved();
-    pRule->SetSource(EFwRuleSource::eMajorPrivacy);
-    CopyTo(pRule);
+    CopyTo(pRule, CloneGuid);
+    if (CloneGuid) {
+        pRule->m_Index = m_Index;
+        pRule->m_State = m_State;
+        pRule->m_Source = m_Source;
+    }
+    else {
+        pRule->m_State = EFwRuleState::eApproved;
+        pRule->m_Source = EFwRuleSource::eMajorPrivacy;
+    }
 
 	pRule->m_BinaryPath = m_BinaryPath;
 	pRule->m_ServiceTag = m_ServiceTag;
