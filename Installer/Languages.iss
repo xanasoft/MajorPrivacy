@@ -51,7 +51,7 @@ english.CustomPageInstallMode=Install {#MyAppName} on this computer
 english.CustomPageUpgradeMode=Update existing {#MyAppName} installation
 english.CustomPagePortableMode=Extract all files to a directory for portable use
 english.RequiresWin7OrLater={#MyAppName} requires Windows 7 or later.
-english.InstallImDisk=Install (or Update) ImDisk 3.0 driver (for RamDisk and Encrypted Sandboxes)
+english.InstallImDisk=Install (or Update) ImDisk 3.0 driver (Required for Secure Encrypted Volumes)
 
 ; Chinese Simplified
 ChineseSimplified.CustomPageLabel1=选择安装方式
@@ -99,7 +99,7 @@ german.CustomPageInstallMode=Installiere {#MyAppName} auf diesem Computer
 german.CustomPageUpgradeMode=Update der bestehenden {#MyAppName} Installation
 german.CustomPagePortableMode=Extrahiere alle Dateien in einen Ordner zur tragbaren Verwendung
 german.RequiresWin7OrLater={#MyAppName} benötigt Windows 7 oder neuer.
-german.InstallImDisk=Installiere (oder Aktualisiere) ImDisk 3.0 Treiber (für Ramdisk und verschlüsselte Sandboxen)
+german.InstallImDisk=Installiere (oder Aktualisiere) ImDisk 3.0 Treiber (erforderlich für sichere verschlüsselte Volumes)
 
 ; Hungarian
 hungarian.CustomPageLabel1=Válassza ki a telepítés típusát
@@ -146,7 +146,7 @@ polish.CustomPageInstallMode=Zainstaluj {#MyAppName} na tym komputerze
 polish.CustomPageUpgradeMode=Aktualizacja istniejącej instalacji {#MyAppName}
 polish.CustomPagePortableMode=Wypakuj wszystkie pliki do katalogu, aby użyć trybu przenośnego
 polish.RequiresWin7OrLater={#MyAppName} wymaga systemu Windows 7 lub nowszego.
-polish.InstallImDisk=Zainstaluj (lub Uaktualnij) sterownik ImDisk 3.0 (dla RamDisk i zaszyfrowanych sandboxów)
+polish.InstallImDisk=Zainstaluj (lub Uaktualnij) sterownik ImDisk 3.0 (wymagany dla bezpiecznych zaszyfrowanych dysków)
 
 ; Brazilian Portuguese
 brazilianportuguese.CustomPageLabel1=Selecione Tipo de Instalação

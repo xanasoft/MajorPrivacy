@@ -11,7 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.98.2] - 2025-07-??
+## [0.98.2] - 2025-07-22
 
 ### Added
 - added mechanism for blocking driver events
