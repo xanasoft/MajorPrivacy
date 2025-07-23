@@ -60,7 +60,7 @@ Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; MinVersion: 0.0,5.0;
 ;Name: "AutoStartEntry"; Description: "{cm:AutoStartProgram,{#MyAppName}}"; MinVersion: 0.0,5.0; Check: not IsPortable
 ; todo make ARM64 ImDisk Package
 #if MyAppArch == "x64"
-Name: "InstallImDisk"; Description: "{cm:InstallImDisk}"; MinVersion: 0.0,5.0; Flags: unchecked; Check: IsWin64
+Name: "InstallImDisk"; Description: "{cm:InstallImDisk}"; MinVersion: 0.0,5.0; Check: IsWin64
 #endif
 
 
@@ -78,6 +78,7 @@ Source: ".\MajorPrivacy.ini"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesn
 #if MyAppArch == "x64"
 Source: ".\imdisk_files.cab"; DestDir: "{app}"; Flags: ignoreversion
 Source: ".\imdisk_install.bat"; DestDir: "{app}"; Flags: ignoreversion
+Source: ".\Redist\VC_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 #endif
 
 [Icons]
@@ -107,9 +108,14 @@ Type: filesandordirs; Name: "{app}\translations"
 ; startup.
 Filename: "{app}\PrivacyAgent.exe"; Parameters: "-startup"; StatusMsg: "PrivacyAgent.exe -startup"; Check: not IsPortable
 
+; install vc redist for imdisk
+#if MyAppArch == "x64"
+Filename: "{tmp}\VC_redist.x64.exe"; Parameters: "/q /norestart"; StatusMsg: "Installing MS VC Runtime..."
+#endif
+
 ; Install ImDisk 3.0 driver
 #if MyAppArch == "x64"
-Filename: "{app}\imdisk_install.bat"; StatusMsg: "Installing ImDisk 3.0 Driver..."; Check: IsInstallImDisk
+Filename: "{app}\imdisk_install.bat"; Parameters: "7 /fullsilent /discutils:0 /shortcuts_desktop:0"; StatusMsg: "Installing ImDisk 3.0 Driver..."; Check: IsInstallImDisk
 #endif
 
 ; Start MajorPrivacy.
