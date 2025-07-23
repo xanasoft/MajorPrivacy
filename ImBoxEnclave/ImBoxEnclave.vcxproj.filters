@@ -1,0 +1,152 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="EnclaveEntry.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\aes_asm.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\aes_key.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\aes_padlock.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\crc32.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\serpent.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\sha512.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\sha512_hmac.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\sha512_hmac_drbg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\sha512_pkcs5_2.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\twofish.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\xts_aes_ni.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\xts_fast.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\xts_serpent_avx.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto_fast\xts_serpent_sse2.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CryptoIO.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="EnclaveEntry.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto_fast\aes_key.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto_fast\crc32.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto_fast\serpent.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto_fast\sha512.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto_fast\sha512_hmac.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto_fast\sha512_hmac_drbg.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto_fast\sha512_pkcs5_2.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto_fast\twofish.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto_fast\xts_fast.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto_fast\xts_serpent_sse2.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CryptoIO.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="crypto_fast\amd64\aes_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\amd64\aes_padlock_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\amd64\twofish_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\amd64\xts_aes_ni_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\amd64\xts_serpent_avx_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\amd64\xts_serpent_sse2_amd64.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\aes_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\aes_padlock_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\twofish_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\xts_aes_ni_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\xts_serpent_avx_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="crypto_fast\i386\xts_serpent_sse2_i386.asm">
+      <Filter>源文件</Filter>
+    </None>
+  </ItemGroup>
+</Project>
