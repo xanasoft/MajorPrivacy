@@ -28,7 +28,7 @@ public:
 	static EProgramType ReadType(const QtVariant& Data, SVarWriteOpt::EFormat& Format);
 	static QString TypeToStr(EProgramType Type);
 
-	QtVariant ToVariant(const SVarWriteOpt& Opts) const;
+	QtVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	bool FromVariant(const QtVariant& ID);
 
 protected:

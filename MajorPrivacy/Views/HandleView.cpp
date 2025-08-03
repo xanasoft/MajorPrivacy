@@ -42,7 +42,7 @@ CHandleView::~CHandleView()
 	theConf->SetBlob("MainWindow/HandleView_Columns", m_pTreeView->saveState());
 }
 
-void CHandleView::Sync(const QMap<quint64, CProcessPtr>& Processes, const QString& RootPath)
+void CHandleView::Sync(const QHash<quint64, CProcessPtr>& Processes, const QString& RootPath)
 {
 	bool bLogPipes = theCore->GetConfigBool("Service/LogPipes", false);
 

@@ -16,7 +16,7 @@ public:
 
 	void Update(const struct SVerifierInfo* pVerifyInfo);
 
-	StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	StVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	NTSTATUS FromVariant(const StVariant& Data);
 
 protected:

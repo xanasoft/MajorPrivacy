@@ -134,6 +134,10 @@ CStatusView::~CStatusView()
 
 }
 
+void CStatusView::Refresh()
+{
+}
+
 void CStatusView::Update()
 {
 	static QImage Major;
@@ -159,13 +163,16 @@ void CStatusView::Update()
 		m_pSecKey->setText(tr("User Key NOT available"));
 		m_pSecConfig->setText(tr("Config Protection NOT available"));
 		m_pSecCore->setText(tr("Unload Protection NOT available"));
+		m_bHasKey = false;
 	} 
 	else 
 	{
 		auto Ret = theCore->Driver()->GetUserKey();
-		if (Ret.IsError())
+		if (Ret.IsError()) {
 			m_pSecKey->setText(tr("User Key is NOT configured"));
-		else 
+			m_bHasKey = false;
+		}
+		else if(!m_bHasKey)
 		{
 			auto pInfo = Ret.GetValue();
 
@@ -176,6 +183,8 @@ void CStatusView::Update()
 			CBuffer Hash(64);
 			CHashFunction::Hash(pInfo->PubKey, Hash);
 			m_pSecKey->setToolTip(tr("SHA256-FP: %1").arg(QByteArray((char*)Hash.GetBuffer(), (int)Hash.GetSize()).toHex().toUpper()));
+
+			m_bHasKey = true;
 		}
 
 		uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
@@ -246,7 +255,7 @@ void CStatusView::Update()
 	switch (FwState)
 	{
 	case FwFilteringModes::AllowList:	FwIcon = ImageAddOverlay(FwIcon, ":/Icons/Shield11.png", 25); break;
-	case FwFilteringModes::BlockList:	FwIcon = ImageAddOverlay(FwIcon, ":/Icons/Shield8.png", 25); break;
+	case FwFilteringModes::BlockList:	FwIcon = ImageAddOverlay(FwIcon, ":/Icons/Shield7.png", 25); break;
 	case FwFilteringModes::NoFiltering: FwIcon = ImageAddOverlay(FwIcon, ":/Icons/Shield10.png", 25); break;
 	}
 	m_pFirewallIcon->setPixmap(QPixmap::fromImage(FwIcon));

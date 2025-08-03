@@ -7,6 +7,7 @@
 #include "../Library/Common/ThreadPool.h"
 #include "../Framework/Core/Memory.h"
 #include "../Library/API/PrivacyDefs.h"
+#include "../../Framework/Core/MemoryPool.h"
 
 #define DEF_CORE_TIMER_INTERVAL		250
 
@@ -16,6 +17,8 @@ class CServiceCore
 public:
 	static STATUS Startup(bool bEngineMode = false);
 	static void Shutdown(bool bWait = true);
+
+	FW::AbstractMemPool*	Allocator() const		{ return m_pMemPool; }
 
 	std::wstring			GetAppDir() const		{ return m_AppDir; }
 	std::wstring			GetDataFolder() const	{ return m_DataFolder; }
@@ -63,6 +66,7 @@ public:
 	CThreadPool*			ThreadPool()			{ return &m_Pool; }
 
 	static STATUS InstallDriver();
+	static STATUS StopDriver();
 	static STATUS RemoveDriver();
 
 protected:
@@ -99,6 +103,8 @@ protected:
 	STATUS					m_InitStatus;
 	bool					m_bConfigDirty = false;	
 	
+	FW::MemoryPool*			m_pMemPool = NULL;
+
 	class CEventLogger*		m_pSysLog = NULL;
 	class CEventLog*		m_pEventLog = NULL;
 

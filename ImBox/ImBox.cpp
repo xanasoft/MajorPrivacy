@@ -141,11 +141,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		pSection = (SSection*)wcstoull(mem.c_str()+2, NULL, 16);
 	}
 
-    if (!key.empty() || !section.empty()) {
+    if (!key.empty() || pSection) {
         CCryptoIO* pCrypto;
-        if (key.empty()) {
-            if (!pSection)
-                return ERR_KEY_REQUIRED;
+        if (pSection) {
             pCrypto = new CCryptoIO(pIO, pSection->in.pass, cipher);
             memset(pSection, 0, sizeof(pSection->buffer)); // clear
         }

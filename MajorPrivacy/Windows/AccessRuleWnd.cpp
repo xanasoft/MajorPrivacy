@@ -14,6 +14,42 @@
 #include "../Library/Helpers/NtPathMgr.h"
 #include "../Windows/ProgramPicker.h"
 #include "../Windows/ScriptWindow.h"
+#include <Lm.h>
+#include <sddl.h>
+
+
+void AddAccountsToComboBox(QComboBox* pComboBox)
+{
+	pComboBox->addItem(CAccessRuleWnd::tr("Unspecified (Any)"), "");
+
+	{
+		LPUSER_INFO_0 pBuf = nullptr;
+		DWORD entriesRead = 0, totalEntries = 0, resumeHandle = 0;
+		if (NERR_Success == NetUserEnum(nullptr, 0, FILTER_NORMAL_ACCOUNT, (LPBYTE*)&pBuf, MAX_PREFERRED_LENGTH, &entriesRead, &totalEntries, &resumeHandle))
+		{
+			for (DWORD i = 0; i < entriesRead; ++i) {
+				QString Name = QString::fromWCharArray(pBuf[i].usri0_name);
+				pComboBox->addItem(CAccessRuleWnd::tr("%1").arg(Name), Name);
+			}
+		}
+		if (pBuf) NetApiBufferFree(pBuf);
+	}
+
+	{
+		LPLOCALGROUP_INFO_0 pBuf = nullptr;
+		DWORD entriesRead = 0, totalEntries = 0;
+		DWORD_PTR resumeHandle = NULL;
+		if (NERR_Success == NetLocalGroupEnum(nullptr, 0, (LPBYTE*)&pBuf, MAX_PREFERRED_LENGTH, &entriesRead, &totalEntries, &resumeHandle))
+		{
+			for (DWORD i = 0; i < entriesRead; ++i) {
+				QString Name = QString::fromWCharArray(pBuf[i].lgrpi0_name);
+				pComboBox->addItem(CAccessRuleWnd::tr("[%1]").arg(Name), Name);
+			}
+		}
+		if (pBuf) NetApiBufferFree(pBuf);
+	}
+}
+
 
 CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, const QString& VolumeRoot, const QString& VolumeImage, QWidget* parent)
 	: QDialog(parent)
@@ -64,6 +100,7 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 	ui.btnBrowse->setPopupMode(QToolButton::MenuButtonPopup);
 	ui.btnBrowse->setMenu(pBrowseMenu);
 
+	connect(ui.cmbUser, SIGNAL(currentIndexChanged(int)), this, SLOT(OnUserChanged()));
 	connect(ui.btnProg, SIGNAL(clicked()), this, SLOT(OnPickProgram()));
 	connect(ui.cmbProgram, SIGNAL(currentIndexChanged(int)), this, SLOT(OnProgramChanged()));
 	connect(ui.txtProgPath, SIGNAL(textChanged(const QString&)), this, SLOT(OnProgramPathChanged()));
@@ -82,6 +119,7 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Don't Log"), GetActionColor(EAccessRuleType::eIgnore), (int)EAccessRuleType::eIgnore);
 	ColorComboBox(ui.cmbAction);
 
+	AddAccountsToComboBox(ui.cmbUser);
 
 
 	//FixComboBoxEditing(ui.cmbGroup);
@@ -110,6 +148,19 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 	}
 
 	SetComboBoxValue(ui.cmbEnclave, QFlexGuid(m_pRule->m_Enclave).ToQV());
+
+	SetComboBoxValue(ui.cmbUser, m_pRule->m_User);
+	if (m_pRule->m_UserSid.IsValid())
+	{
+		BYTE sidBuffer[SECURITY_MAX_SID_SIZE];
+		memcpy(sidBuffer, m_pRule->m_UserSid.GetData(), Min(m_pRule->m_UserSid.GetSize(), sizeof(sidBuffer)));
+		LPWSTR sidStr = nullptr;
+		if (ConvertSidToStringSidW((PSID)sidBuffer, &sidStr))
+		{
+			ui.cmbUser->setToolTip(QString::fromWCharArray(sidStr));
+			LocalFree(sidStr);
+		}
+	}
 
 	foreach(const CVolumePtr& pVolume, theCore->VolumeManager()->List())
 	{
@@ -280,6 +331,9 @@ bool CAccessRuleWnd::Save()
 
 	m_pRule->m_Enclave = QFlexGuid(GetComboBoxValue(ui.cmbEnclave));
 
+	m_pRule->m_User = ui.cmbUser->currentData().toString();
+	m_pRule->m_SidValid = false;
+
 	QString Path = ui.cmbPath->currentText();
 	if (!m_VolumeImage.isEmpty() && !PathStartsWith(Path, m_VolumeImage) && !PathStartsWith(Path, m_VolumeRoot)) {
 		QMessageBox::information(this, "MajorPrivacy", tr("The path must be contained within the volume."));
@@ -307,6 +361,32 @@ void CAccessRuleWnd::OnNameChanged(const QString& Text)
 void CAccessRuleWnd::OnPathChanged()
 {
 	TryMakeName();
+}
+
+void CAccessRuleWnd::OnUserChanged()
+{
+	QString User = ui.cmbUser->currentData().toString();
+	if (User.isEmpty()) {
+		ui.cmbUser->setToolTip("");
+		return;
+	}
+
+	BYTE sidBuffer[SECURITY_MAX_SID_SIZE];
+	DWORD sidSize = sizeof(sidBuffer);
+	SID_NAME_USE sidType;
+	WCHAR domain[256];
+	DWORD domainSize = _countof(domain);
+
+	QtVariant SID;
+	if (LookupAccountNameW(nullptr, (wchar_t*)User.utf16(), sidBuffer, &sidSize, domain, &domainSize, &sidType))
+	{
+		LPWSTR sidStr = nullptr;
+		if (ConvertSidToStringSidW((PSID)sidBuffer, &sidStr))
+		{
+			ui.cmbUser->setToolTip(QString::fromWCharArray(sidStr));
+			LocalFree(sidStr);
+		}
+	}
 }
 
 void CAccessRuleWnd::OnPickProgram()

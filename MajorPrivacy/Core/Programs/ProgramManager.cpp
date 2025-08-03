@@ -62,9 +62,9 @@ STATUS CProgramManager::Update()
 
 	const QtVariant& Items = Ret.GetValue();
 
-	QMap<quint64, QSet<quint64>> Tree;
+	QHash<quint64, QSet<quint64>> Tree;
 
-	QMap<quint64, CProgramItemPtr> OldMap = m_Items;
+	QHash<quint64, CProgramItemPtr> OldMap = m_Items;
 
 	QtVariantReader(Items).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Item = *(QtVariant*)&vData;
@@ -162,12 +162,14 @@ STATUS  CProgramManager::UpdateLibs()
 
 	const QtVariant& Libraries = Ret.GetValue().Get(API_V_LIBRARIES);
 
-	QMap<quint64, CProgramLibraryPtr> OldLibraries = m_Libraries;
+	QHash<quint64, CProgramLibraryPtr> OldLibraries = m_Libraries;
 
 	QtVariantReader(Libraries).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Library = *(QtVariant*)&vData;
 
-		quint64 UID = QtVariantReader(Library).Find(API_V_PROG_UID);
+		QtVariant vUID(Library.Allocator());
+		FW::CVariantReader::Find(Library, API_V_PROG_UID, vUID);
+		quint64 UID = vUID;
 
 		CProgramLibraryPtr pLibrary = OldLibraries.take(UID);
 		bool bUpdate = false; // we dont have live library  data currently hence we dont update it once its enlisted
@@ -229,7 +231,7 @@ void CProgramManager::AddProgram(const CProgramItemPtr& pItem)
 	case EProgramType::eWindowsService:			m_ServiceMap.insert(ID.GetServiceTag(), pItem.objectCast<CWindowsService>()); break;
 	case EProgramType::eAppPackage:				m_PackageMap.insert(ID.GetAppContainerSid(), pItem.objectCast<CAppPackage>()); break;
 	case EProgramType::eAppInstallation:		break;
-	case EProgramType::eProgramGroup:			m_Groups.insert(ID.GetAppContainerSid(), pItem.objectCast<CProgramGroup>()); break;
+	case EProgramType::eProgramGroup:			m_Groups.insert(ID.GetGuid(), pItem.objectCast<CProgramGroup>()); break;
 	case EProgramType::eAllPrograms:			m_pAll = pItem.objectCast<CProgramSet>(); break;
 	default: Q_ASSERT(0);
 	}
@@ -244,7 +246,7 @@ void CProgramManager::RemoveProgram(const CProgramItemPtr& pItem)
 	case EProgramType::eFilePattern:			m_PatternMap.remove(ID.GetFilePath()); break;
 	case EProgramType::eWindowsService:			m_ServiceMap.remove(ID.GetServiceTag()); break;
 	case EProgramType::eAppPackage:				m_PackageMap.remove(ID.GetAppContainerSid()); break;
-	case EProgramType::eProgramGroup:			m_Groups.remove(ID.GetAppContainerSid()); break;
+	case EProgramType::eProgramGroup:			m_Groups.remove(ID.GetGuid()); break;
 	//default: Q_ASSERT(0); // ignore
 	}
 }
@@ -360,7 +362,7 @@ bool CProgramManager::UpdateAllProgramRules()
 
 	QtVariant& Rules = Ret.GetValue();
 
-	QMap<QFlexGuid, CProgramRulePtr> OldRules = m_ProgramRules;
+	QHash<QFlexGuid, CProgramRulePtr> OldRules = m_ProgramRules;
 
 	for (int i = 0; i < Rules.Count(); i++)
 	{

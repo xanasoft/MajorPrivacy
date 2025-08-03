@@ -46,9 +46,9 @@ ASTR CProgramID::TypeToStr(EProgramType Type)
 	}
 }
 
-XVariant CProgramID::ToVariant(const SVarWriteOpt& Opts) const
+XVariant CProgramID::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
-	VariantWriter ID;
+	VariantWriter ID(pMemPool);
 	if (Opts.Format == SVarWriteOpt::eIndex) 
 	{
 		ID.BeginIndex();

@@ -180,24 +180,24 @@ void CProgramFile::AddLibrary(const CFlexGuid& EnclaveGuid, const CProgramLibrar
 	}
 }
 
-StVariant CProgramFile::DumpLibraries() const
+StVariant CProgramFile::DumpLibraries(FW::AbstractMemPool* pMemPool) const
 {
 	std::unique_lock lock(m_Mutex);
 
 	auto DumpLibrary = [](StVariantWriter& List, uint64 Ref, const SLibraryInfo& Info, const CFlexGuid& EnclaveGuid) {
-		StVariantWriter vLib;
+		StVariantWriter vLib(List.Allocator());
 		vLib.BeginIndex();
 		vLib.Write(API_V_LIB_REF, Ref);
 		if (!EnclaveGuid.IsNull())
-			vLib.WriteVariant(API_V_ENCLAVE, EnclaveGuid.ToVariant(false));
+			vLib.WriteVariant(API_V_ENCLAVE, EnclaveGuid.ToVariant(false, List.Allocator()));
 		vLib.Write(API_V_LIB_LOAD_TIME, Info.LastLoadTime);
 		vLib.Write(API_V_LIB_LOAD_COUNT, Info.TotalLoadCount);
 		vLib.Write(API_V_LIB_STATUS, (uint32)Info.LastStatus);
-		vLib.WriteVariant(API_V_SIGN_INFO, Info.SignInfo.ToVariant(SVarWriteOpt()));
+		vLib.WriteVariant(API_V_SIGN_INFO, Info.SignInfo.ToVariant(SVarWriteOpt(), List.Allocator()));
 		List.WriteVariant(vLib.Finish());
 	};
 
-	StVariantWriter List;
+	StVariantWriter List(pMemPool);
 	List.BeginList();
 
 	for (auto& Lib : m_Libraries)
@@ -211,7 +211,7 @@ StVariant CProgramFile::DumpLibraries() const
 	return List.Finish();
 }
 
-StVariant CProgramFile::StoreLibraries(const SVarWriteOpt& Opts) const
+StVariant CProgramFile::StoreLibraries(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	std::unique_lock lock(m_Mutex);
 
@@ -230,29 +230,29 @@ StVariant CProgramFile::StoreLibraries(const SVarWriteOpt& Opts) const
 
 	lock.unlock();
 
-	StVariantWriter List;
+	StVariantWriter List(pMemPool);
 	List.BeginList();
 	for (auto& Lib : Libraries) 
 	{
-		StVariantWriter vLib;
+		StVariantWriter vLib(pMemPool);
 		vLib.BeginMap();
 		CProgramLibraryPtr pLib = theCore->ProgramManager()->GetLibrary(Lib.first);
 		if(!pLib) continue;
 		vLib.WriteEx(API_S_FILE_PATH, pLib->GetPath());
 		
-		StVariantWriter vLog;
+		StVariantWriter vLog(pMemPool);
 		vLog.BeginList();
 
 		for (auto& Entry : Lib.second)
 		{
-			StVariantWriter vEntry;
+			StVariantWriter vEntry(pMemPool);
 			vEntry.BeginMap();
 			if (!Entry.first.IsNull())
-				vEntry.WriteVariant(API_S_ENCLAVE, Entry.first.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+				vEntry.WriteVariant(API_S_ENCLAVE, Entry.first.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, vEntry.Allocator()));
 			vEntry.Write(API_S_LIB_LOAD_TIME, Entry.second.LastLoadTime);
 			vEntry.Write(API_S_LIB_LOAD_COUNT, Entry.second.TotalLoadCount);
 			vEntry.Write(API_S_LIB_STATUS, (uint32)Entry.second.LastStatus);
-			vEntry.WriteVariant(API_S_SIGN_INFO, Entry.second.SignInfo.ToVariant(Opts));
+			vEntry.WriteVariant(API_S_SIGN_INFO, Entry.second.SignInfo.ToVariant(Opts, vEntry.Allocator()));
 			vLog.WriteVariant(vEntry.Finish());
 		}
 
@@ -357,16 +357,15 @@ void CProgramFile::AddExecChild(const CFlexGuid& ActorEnclave, const std::wstrin
 	}
 }
 
-StVariant CProgramFile::DumpExecStats() const
+StVariant CProgramFile::DumpExecStats(FW::AbstractMemPool* pMemPool) const
 {
 	SVarWriteOpt Opts;
 
-	StVariantWriter ExecParents;
+	StVariantWriter ExecParents(pMemPool);
 	ExecParents.BeginList();
 	StoreExecParents(ExecParents, Opts);
-	;
 
-	StVariantWriter ExecChildren;
+	StVariantWriter ExecChildren(pMemPool);
 	ExecChildren.BeginList();
 	StoreExecChildren(ExecChildren, Opts);
 
@@ -376,9 +375,8 @@ StVariant CProgramFile::DumpExecStats() const
 		if(!pSvc) continue;
 		pSvc->StoreExecChildren(ExecChildren, Opts, pSvc->GetServiceTag());
 	}
-	;
 
-	StVariantWriter Data;
+	StVariantWriter Data(pMemPool);
 	Data.BeginIndex();
 	Data.WriteVariant(API_V_PROG_EXEC_PARENTS, ExecParents.Finish());
 	Data.WriteVariant(API_V_PROG_EXEC_CHILDREN, ExecChildren.Finish());
@@ -417,15 +415,15 @@ void CProgramFile::AddIngressTarget(const CFlexGuid& ActorEnclave, const std::ws
 	}
 }
 
-StVariant CProgramFile::DumpIngress() const
+StVariant CProgramFile::DumpIngress(FW::AbstractMemPool* pMemPool) const
 {
 	SVarWriteOpt Opts;
 
-	StVariantWriter IngressActors;
+	StVariantWriter IngressActors(pMemPool);
 	IngressActors.BeginList();
 	StoreIngressActors(IngressActors, Opts);
 
-	StVariantWriter IngressTargets;
+	StVariantWriter IngressTargets(pMemPool);
 	IngressTargets.BeginList();
 	StoreIngressTargets(IngressTargets, Opts);
 
@@ -573,27 +571,27 @@ bool CProgramFile::LoadIngressTargets(const StVariant& IngressTargets)
 	return true;
 }
 
-StVariant CProgramFile::StoreIngress(const SVarWriteOpt& Opts) const
+StVariant CProgramFile::StoreIngress(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
-	StVariantWriter ExecParents;
+	StVariantWriter ExecParents(pMemPool);
 	ExecParents.BeginList();
 	StoreExecParents(ExecParents, Opts);
 
-	StVariantWriter ExecChildren;
+	StVariantWriter ExecChildren(pMemPool);
 	ExecChildren.BeginList();
 	StoreExecChildren(ExecChildren, Opts);
 
-	StVariantWriter IngressActors;
+	StVariantWriter IngressActors(pMemPool);
 	IngressActors.BeginList();
 	StoreIngressActors(IngressActors, Opts);
 
-	StVariantWriter IngressTargets;
+	StVariantWriter IngressTargets(pMemPool);
 	IngressTargets.BeginList();
 	StoreIngressTargets(IngressTargets, Opts);
 
-	StVariantWriter Data;
+	StVariantWriter Data(pMemPool);
 	Data.BeginIndex();
-	Data.WriteVariant(API_V_ID, m_ID.ToVariant(Opts));
+	Data.WriteVariant(API_V_ID, m_ID.ToVariant(Opts, pMemPool));
 	Data.WriteVariant(API_V_PROG_EXEC_PARENTS, ExecParents.Finish());
 	Data.WriteVariant(API_V_PROG_EXEC_CHILDREN, ExecChildren.Finish());
 	Data.WriteVariant(API_V_PROG_INGRESS_ACTORS, IngressActors.Finish());
@@ -609,11 +607,11 @@ void CProgramFile::LoadIngress(const StVariant& Data)
 	LoadIngressTargets(Data[API_V_PROG_INGRESS_TARGETS]);
 }
 
-StVariant CProgramFile::StoreAccess(const SVarWriteOpt& Opts) const
+StVariant CProgramFile::StoreAccess(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	StVariant Data;
-	Data[API_V_ID] = m_ID.ToVariant(Opts);
-	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts);
+	Data[API_V_ID] = m_ID.ToVariant(Opts, pMemPool);
+	Data[API_V_PROG_RESOURCE_ACCESS] = m_AccessTree.StoreTree(Opts, pMemPool);
 	return Data;
 }
 
@@ -622,18 +620,18 @@ void CProgramFile::LoadAccess(const StVariant& Data)
 	m_AccessTree.LoadTree(Data[API_V_PROG_RESOURCE_ACCESS]);
 }
 
-StVariant CProgramFile::DumpResAccess(uint64 LastActivity) const
+StVariant CProgramFile::DumpResAccess(uint64 LastActivity, FW::AbstractMemPool* pMemPool) const
 {
-	return m_AccessTree.DumpTree(LastActivity);
+	return m_AccessTree.DumpTree(LastActivity, pMemPool);
 }
 
-StVariant CProgramFile::StoreTraffic(const SVarWriteOpt& Opts) const
+StVariant CProgramFile::StoreTraffic(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	std::unique_lock lock(m_Mutex);
 
-	StVariant Data;
-	Data[API_V_ID] = m_ID.ToVariant(Opts);
-	Data[API_V_TRAFFIC_LOG] = m_TrafficLog.StoreTraffic(Opts);
+	StVariant Data(pMemPool);
+	Data[API_V_ID] = m_ID.ToVariant(Opts, pMemPool);
+	Data[API_V_TRAFFIC_LOG] = m_TrafficLog.StoreTraffic(Opts, pMemPool);
 	return Data;
 }
 

@@ -37,7 +37,7 @@ void CExecLogEntry::WriteVariant(StVariantWriter& Entry) const
 	Entry.Write(API_V_EVENT_STATUS, (uint32)m_Status);
 
 	Entry.Write(API_V_PROC_MISC_ID, m_MiscID);
-	Entry.WriteVariant(API_V_PROC_MISC_ENCLAVE, m_OtherEnclave.ToVariant(false));
+	Entry.WriteVariant(API_V_PROC_MISC_ENCLAVE, m_OtherEnclave.ToVariant(false, Entry.Allocator()));
 
 	Entry.Write(API_V_ACCESS_MASK, m_AccessMask);
 }

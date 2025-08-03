@@ -99,27 +99,27 @@ void CAccessTree::Clear()
 	m_Root.reset();
 }
 
-StVariant CAccessTree::StoreTree(const SVarWriteOpt& Opts) const
+StVariant CAccessTree::StoreTree(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	if(!m_Root)
-		return StVariant();
+		return StVariant(pMemPool);
 
-	return StoreTree(m_Root);
+	return StoreTree(m_Root, pMemPool);
 }
 
-StVariant CAccessTree::StoreTree(const SPathNodePtr& pParent) const
+StVariant CAccessTree::StoreTree(const SPathNodePtr& pParent, FW::AbstractMemPool* pMemPool) const
 {
 	std::unique_lock lock(m_Mutex);
 	auto Branches = pParent->Branches;
 	lock.unlock();
 
-	StVariantWriter Children;
+	StVariantWriter Children(pMemPool);
 	Children.BeginList();
 	for (auto &Branch : Branches)
 #ifdef DEF_USE_POOL
-		Children.WriteVariant(StoreTree(Branch));
+		Children.WriteVariant(StoreTree(Branch, pMemPool));
 #else
-		Children.WriteVariant(StoreTree(Branch.second));
+		Children.WriteVariant(StoreTree(Branch.second, pMemPool));
 #endif
 
 	return StoreNode(pParent, Children.Finish());
@@ -183,26 +183,26 @@ uint32 CAccessTree::LoadTree(const StVariant& Data, SPathNodePtr& pParent)
 	return Count;
 }
 
-StVariant CAccessTree::DumpTree(uint64 LastActivity) const
+StVariant CAccessTree::DumpTree(uint64 LastActivity, FW::AbstractMemPool* pMemPool) const
 {
 	std::unique_lock lock(m_Mutex); 
 
 	if (!m_Root)
-		return StVariant();
+		return StVariant(pMemPool);
 
-	return DumpTree(m_Root, LastActivity);
+	return DumpTree(m_Root, LastActivity, pMemPool);
 }
 
-StVariant CAccessTree::DumpTree(const SPathNodePtr& pParent, uint64 LastActivity) const
+StVariant CAccessTree::DumpTree(const SPathNodePtr& pParent, uint64 LastActivity, FW::AbstractMemPool* pMemPool) const
 {
 	int Count = 0;
-	StVariantWriter Children;
+	StVariantWriter Children(pMemPool);
 	Children.BeginList();
 	for (auto& Branch : pParent->Branches) {
 #ifdef DEF_USE_POOL
-		StVariant Child = DumpTree(Branch, LastActivity);
+		StVariant Child = DumpTree(Branch, LastActivity, pMemPool);
 #else
-		StVariant Child = DumpTree(Branch.second, LastActivity);
+		StVariant Child = DumpTree(Branch.second, LastActivity, pMemPool);
 #endif
 		if (Child.IsValid()) {
 			Count++;
@@ -213,14 +213,14 @@ StVariant CAccessTree::DumpTree(const SPathNodePtr& pParent, uint64 LastActivity
 	if (Count == 0) {
 		if(pParent->Stats.LastAccessTime && pParent->Stats.LastAccessTime <= LastActivity)
 			return StVariant();
-		return StoreNode(pParent, StVariant());
+		return StoreNode(pParent, StVariant(pMemPool), pMemPool);
 	}
-	return StoreNode(pParent, Children.Finish());
+	return StoreNode(pParent, Children.Finish(), pMemPool);
 }
 
-StVariant CAccessTree::StoreNode(const SPathNodePtr& pParent, const StVariant& Children) const
+StVariant CAccessTree::StoreNode(const SPathNodePtr& pParent, const StVariant& Children, FW::AbstractMemPool* pMemPool) const
 {
-	StVariantWriter Node;
+	StVariantWriter Node(pMemPool);
 	Node.BeginIndex();
 
 #ifdef DEF_USE_POOL

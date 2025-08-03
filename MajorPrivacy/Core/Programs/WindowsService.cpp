@@ -74,7 +74,7 @@ QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 				Info.SubjectEnclave.FromVariant(Data.Get(API_V_EVENT_TARGET_EID));
 				Info.ActorSvcTag = Data.Get(API_V_SERVICE_TAG).AsQStr();
 
-				Info.LastExecTime = Data.Get(API_V_PROG_LAST_EXEC).To<uint64>(0);
+				Info.LastExecTime = Data.Get(API_V_LAST_ACTIVITY).To<uint64>(0);
 				Info.bBlocked = Data.Get(API_V_WAS_BLOCKED).To<bool>(false);
 				Info.CommandLine = Data.Get(API_V_CMD_LINE).AsQStr();
 

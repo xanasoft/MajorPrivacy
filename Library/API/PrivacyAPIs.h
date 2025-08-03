@@ -72,6 +72,9 @@
 
 #define API_S_ENCLAVE						"Enclave"
 
+#define API_S_USER							"User"
+#define API_S_USER_SID						"UserSID"
+
 // Unique ID
 #define API_S_PROG_UID						"UID"
 #define API_S_PROG_UIDS						"UIDs"

@@ -26,7 +26,7 @@ public:
 
 	CProgramSetPtr			GetRoot() const { return m_Root; }
 	CProgramSetPtr			GetAll() const { return m_pAll; }
-	QMap<QString, CProgramGroupPtr>	GetGroups() const { return m_Groups; }
+	QHash<QString, CProgramGroupPtr>	GetGroups() const { return m_Groups; }
 	CProgramItemPtr			GetProgramByID(const CProgramID& ID);
 	CProgramItemPtr			GetProgramByUID(quint64 UID, bool bCanUpdate = false);
 	CProgramLibraryPtr		GetLibraryByUID(quint64 UID, bool bCanUpdate = false);
@@ -73,17 +73,17 @@ protected:
 
 	CProgramSetPtr							m_Root;
 	CProgramSetPtr							m_pAll;
-	QMap<quint64, CProgramItemPtr>			m_Items;
+	QHash<quint64, CProgramItemPtr>			m_Items;
 
-	QMap<QString, CProgramGroupPtr>			m_Groups;
-	QMap<QString, CProgramFilePtr>			m_PathMap;
-	QMap<QString, CProgramPatternPtr>		m_PatternMap;
-	QMap<QString, CWindowsServicePtr>		m_ServiceMap;
-	QMap<QString, CAppPackagePtr>			m_PackageMap;
+	QHash<QString, CProgramGroupPtr>		m_Groups;
+	QHash<QString, CProgramFilePtr>			m_PathMap;
+	QHash<QString, CProgramPatternPtr>		m_PatternMap;
+	QHash<QString, CWindowsServicePtr>		m_ServiceMap;
+	QHash<QString, CAppPackagePtr>			m_PackageMap;
 
 	uint64									m_LibrariesCacheToken = 0;
-	QMap<quint64, CProgramLibraryPtr>		m_Libraries;
+	QHash<quint64, CProgramLibraryPtr>		m_Libraries;
 
-	QMap<QFlexGuid, CProgramRulePtr>		m_ProgramRules;
+	QHash<QFlexGuid, CProgramRulePtr>		m_ProgramRules;
 };
 

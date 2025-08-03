@@ -7,7 +7,7 @@
 void CDnsRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 {
 	if(!m_Guid.IsNull())
-		Rule.WriteVariant(API_V_GUID, m_Guid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+		Rule.WriteVariant(API_V_GUID, m_Guid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Rule.Allocator()));
 	Rule.Write(API_V_ENABLED, m_bEnabled);
 	Rule.Write(API_V_TEMP, m_bTemporary);
 
@@ -38,7 +38,7 @@ void CDnsRule::ReadIValue(uint32 Index, const XVariant& Data)
 void CDnsRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 {
 	if (!m_Guid.IsNull())
-		Rule.WriteVariant(API_S_GUID, m_Guid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+		Rule.WriteVariant(API_S_GUID, m_Guid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Rule.Allocator()));
 	Rule.Write(API_S_ENABLED, m_bEnabled);
 	Rule.Write(API_S_TEMP, m_bTemporary);
 

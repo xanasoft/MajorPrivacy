@@ -22,7 +22,7 @@ public:
 
 	uint64 GetTimeStamp() const { return m_TimeStamp; }
 
-	virtual StVariant ToVariant() const;
+	virtual StVariant ToVariant(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 protected:
 

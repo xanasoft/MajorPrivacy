@@ -30,9 +30,9 @@ static FW::StringW ReversePath(FW::AbstractMemPool* pMem, const char* pPath)
 // CDnsRule
 //
 
-StVariant CDnsRule::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CDnsRule::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
-	StVariantWriter Rule(Allocator());
+	StVariantWriter Rule(pMemPool);
 	if (Opts.Format == SVarWriteOpt::eIndex) {
 		Rule.BeginIndex();
 		WriteIVariant(Rule, Opts);
@@ -432,12 +432,12 @@ bool CDnsFilter::AddEntry_unlocked(const FW::SharedPtr<CDnsRule>& pEntry)
 	return true;
 }
 
-StVariant CDnsFilter::SaveEntries(const SVarWriteOpt& Opts)
+StVariant CDnsFilter::SaveEntries(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool)
 {
 	std::unique_lock lock(m_Mutex);
 
-	StVariant Entries(&m_MemPool);
-
+	StVariantWriter Entries(pMemPool);
+	Entries.BeginList();
 	for (auto& pEntry : m_EntryMap) {
 
 		if (pEntry->GetGuid().IsNull())
@@ -445,10 +445,10 @@ StVariant CDnsFilter::SaveEntries(const SVarWriteOpt& Opts)
 		if(!(Opts.Flags & SVarWriteOpt::eSaveAll) && pEntry->IsTemporary())
 			continue;
 
-		Entries.Append(pEntry->ToVariant(Opts));
+		Entries.WriteVariant(pEntry->ToVariant(Opts, pMemPool));
 	}
 	
-	return Entries;
+	return Entries.Finish();
 }
 
 RESULT(StVariant) CDnsFilter::SetEntry(const StVariant& Entry)
@@ -487,10 +487,10 @@ RESULT(StVariant) CDnsFilter::SetEntry(const StVariant& Entry)
 	}
 
 	EmitChangeEvent(Guid, bAdded ? EConfigEvent::eAdded : EConfigEvent::eModified);
-	RETURN(Guid.ToVariant(false));
+	RETURN(Guid.ToVariant(false, Entry.Allocator()));
 }
 
-RESULT(StVariant) CDnsFilter::GetEntry(const std::wstring& EntryId, const SVarWriteOpt& Opts)
+RESULT(StVariant) CDnsFilter::GetEntry(const std::wstring& EntryId, const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool)
 {
 	std::unique_lock lock(m_Mutex);
 
@@ -498,7 +498,7 @@ RESULT(StVariant) CDnsFilter::GetEntry(const std::wstring& EntryId, const SVarWr
 	FW::SharedPtr<CDnsRule> pEntry = m_EntryMap.FindValue(Guid);
 	if (!pEntry)
 		return ERR(STATUS_NOT_FOUND);
-	RETURN(pEntry->ToVariant(Opts));
+	RETURN(pEntry->ToVariant(Opts, pMemPool));
 }
 
 STATUS CDnsFilter::DelEntry(const std::wstring& EntryId)
@@ -591,16 +591,16 @@ void CDnsFilter::LoadBlockLists_unlocked()
 	}
 }
 
-StVariant CDnsFilter::GetBlockListInfo() const
+StVariant CDnsFilter::GetBlockListInfo(FW::AbstractMemPool* pMemPool) const
 {
 	std::unique_lock lock(m_Mutex);
 
-	StVariantWriter BlockListInfo;
+	StVariantWriter BlockListInfo(pMemPool);
 	BlockListInfo.BeginList();
 
 	for (auto& I : m_BlockLists)
 	{
-		StVariant BlockList;
+		StVariant BlockList(pMemPool);
 		BlockList[API_V_URL] = I.second.Url;
 		BlockList[API_V_FILE_PATH] = I.first;
 		BlockList[API_V_COUNT] = I.second.Count;

@@ -11,11 +11,11 @@ CProgramLibrary::CProgramLibrary(const std::wstring& Path)
 	m_Path = Path;	
 }
 
-StVariant CProgramLibrary::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CProgramLibrary::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
     std::unique_lock Lock(m_Mutex);
 
-    StVariantWriter Data;
+    StVariantWriter Data(pMemPool);
     if (Opts.Format == SVarWriteOpt::eIndex) {
         Data.BeginIndex();
         WriteIVariant(Data, Opts);

@@ -20,7 +20,7 @@ public:
 
 	bool ResolveHost(const CAddress& Address, const CHostNamePtr& pHostName);
 
-	StVariant DumpDnsCache();
+	StVariant DumpDnsCache(FW::AbstractMemPool* pMemPool = nullptr);
 
 	void FlushDnsCache();
 

@@ -10,8 +10,8 @@ public:
 
 	STATUS Update();
 
-	QMap<quint64, CProcessPtr> List() { return m_List; }
-	QMap<quint64, CProcessPtr> GetProcesses(const QSet<quint64>& Pids);
+	QHash<quint64, CProcessPtr> List() { return m_List; }
+	QHash<quint64, CProcessPtr> GetProcesses(const QSet<quint64>& Pids);
 	CProcessPtr GetProcess(quint64 Pid, bool CanUpdate = false);
 
 	STATUS TerminateProcess(const CProcessPtr& pProcess);
@@ -20,6 +20,6 @@ public:
 	int GetSocketCount() const { return m_SocketCount; }
 
 protected:
-	QMap<quint64, CProcessPtr> m_List;
+	QHash<quint64, CProcessPtr> m_List;
 	int m_SocketCount = 0;
 };

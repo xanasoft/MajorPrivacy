@@ -27,11 +27,11 @@ void CHandle::LinkProcess(const CProcessPtr& pProcess)
 	//ProcessSetNetworkFlag();
 }
 
-StVariant CHandle::ToVariant() const
+StVariant CHandle::ToVariant(FW::AbstractMemPool* pMemPool) const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	StVariantWriter Handle;
+	StVariantWriter Handle(pMemPool);
 	Handle.BeginIndex();
 
 	Handle.Write(API_V_ACCESS_REF, (uint64)this);

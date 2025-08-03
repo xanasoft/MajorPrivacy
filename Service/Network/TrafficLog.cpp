@@ -97,22 +97,22 @@ void CTrafficLog::Clear()
 	m_Downloaded = 0;
 }
 
-StVariant CTrafficLog::StoreTraffic(const SVarWriteOpt& Opts) const
+StVariant CTrafficLog::StoreTraffic(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	std::shared_lock Lock(m_Mutex);
 
 	if (!m_Data)
 		return StVariant();
 
-	StVariantWriter TrafficLog;
+	StVariantWriter TrafficLog(pMemPool);
 	TrafficLog.BeginList();
 
 #ifdef DEF_USE_POOL
 	for (auto I = m_Data->TrafficLog.begin(); I != m_Data->TrafficLog.end(); ++I)
-		TrafficLog.WriteVariant(DumpEntry(I.Key(), I.Value()));
+		TrafficLog.WriteVariant(DumpEntry(I.Key(), I.Value(), pMemPool));
 #else
 	for (auto I : m_Data->TrafficLog)
-		TrafficLog.WriteVariant(DumpEntry(I.first, I.second));
+		TrafficLog.WriteVariant(DumpEntry(I.first, I.second, pMemPool));
 #endif
 
 	return TrafficLog.Finish();
@@ -153,12 +153,12 @@ void CTrafficLog::LoadTraffic(const StVariant& Data)
 }
 
 #ifdef DEF_USE_POOL
-StVariant CTrafficLog::DumpEntry(const FW::StringW& Host, const STrafficLogEntry& Data) const
+StVariant CTrafficLog::DumpEntry(const FW::StringW& Host, const STrafficLogEntry& Data, FW::AbstractMemPool* pMemPool) const
 #else
-StVariant CTrafficLog::DumpEntry(const std::wstring& Host, const STrafficLogEntry& Data) const
+StVariant CTrafficLog::DumpEntry(const std::wstring& Host, const STrafficLogEntry& Data, FW::AbstractMemPool* pMemPool) const
 #endif
 {
-	StVariantWriter Entry;
+	StVariantWriter Entry(pMemPool);
 	Entry.BeginIndex();
 
 	Entry.WriteEx(API_V_SOCK_RHOST, Host);
@@ -170,14 +170,14 @@ StVariant CTrafficLog::DumpEntry(const std::wstring& Host, const STrafficLogEntr
 	return Entry.Finish();
 }
 
-StVariant CTrafficLog::ToVariant(uint64 MinLastActivity) const
+StVariant CTrafficLog::ToVariant(uint64 MinLastActivity, FW::AbstractMemPool* pMemPool) const
 {
 	std::shared_lock Lock(m_Mutex);
 
 	if (!m_Data)
 		return StVariant();
 
-	StVariantWriter TrafficLog;
+	StVariantWriter TrafficLog(pMemPool);
 	TrafficLog.BeginList();
 
 #ifdef DEF_USE_POOL
@@ -209,12 +209,12 @@ StVariant CTrafficLog::ToVariant(uint64 MinLastActivity) const
 			if (MinLastActivity > F->LastActivity)
 				continue;
 			F->Merge(*I);
-			TrafficLog.WriteVariant(DumpEntry(I.Key(), F.Value()));
+			TrafficLog.WriteVariant(DumpEntry(I.Key(), F.Value(), pMemPool));
 #else
 			if(MinLastActivity > F->second.LastActivity)
 				continue;
 			F->second.Merge(I.second);
-			TrafficLog.WriteVariant(DumpEntry(I.first, F->second));
+			TrafficLog.WriteVariant(DumpEntry(I.first, F->second, pMemPool));
 #endif
 			Current.erase(F);
 		}
@@ -223,11 +223,11 @@ StVariant CTrafficLog::ToVariant(uint64 MinLastActivity) const
 #ifdef DEF_USE_POOL
 			if (MinLastActivity > I.Value().LastActivity)
 				continue;
-			TrafficLog.WriteVariant(DumpEntry(I.Key(), I.Value()));
+			TrafficLog.WriteVariant(DumpEntry(I.Key(), I.Value(), pMemPool));
 #else
 			if(MinLastActivity > I.second.LastActivity)
 				continue;
-			TrafficLog.WriteVariant(DumpEntry(I.first, I.second));
+			TrafficLog.WriteVariant(DumpEntry(I.first, I.second, pMemPool));
 #endif
 		}
 	}
@@ -241,11 +241,11 @@ StVariant CTrafficLog::ToVariant(uint64 MinLastActivity) const
 #ifdef DEF_USE_POOL
 		if (MinLastActivity > I.Value().LastActivity)
 			continue;
-		TrafficLog.WriteVariant(DumpEntry(I.Key(), I.Value()));
+		TrafficLog.WriteVariant(DumpEntry(I.Key(), I.Value(), pMemPool));
 #else
 		if(MinLastActivity > I.second.LastActivity)
 			continue;
-		TrafficLog.WriteVariant(DumpEntry(I.first, I.second));
+		TrafficLog.WriteVariant(DumpEntry(I.first, I.second, pMemPool));
 #endif
 	}
 

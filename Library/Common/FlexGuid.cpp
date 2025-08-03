@@ -428,22 +428,22 @@ bool CFlexGuid::FromVariant(const FW::CVariant& Variant)
     return true;
 }
 
-FW::CVariant CFlexGuid::ToVariant(bool bTextOnly) const
+FW::CVariant CFlexGuid::ToVariant(bool bTextOnly, FW::AbstractMemPool* pMemPool) const
 {
 	if (IsNull())
-		return FW::CVariant();
+		return FW::CVariant(pMemPool);
     if (m_Type == Unicode)
-        return FW::CVariant((wchar_t*)m_String, m_Length);
+        return FW::CVariant(pMemPool, (wchar_t*)m_String, m_Length);
     if (m_Type == Ascii)
-        return FW::CVariant((char*)m_String, m_Length);
+        return FW::CVariant(pMemPool, (char*)m_String, m_Length);
 	// Ok, it's a regular guid
     if (bTextOnly) {
         char GuidStr[39];
         CFlexGuid__ToString(m_Data, GuidStr, m_LowerCaseMask);
-        return FW::CVariant(GuidStr, 38);
+        return FW::CVariant(pMemPool, GuidStr, 38);
     }
     //
     // WARNING: This is a HACK which relays on the order of the fields in the header!!!
     //
-    return FW::CVariant((byte*)m_Data, m_LowerCaseMask ? 20 : 16, VAR_TYPE_BYTES);
+    return FW::CVariant(pMemPool, (byte*)m_Data, m_LowerCaseMask ? 20 : 16, VAR_TYPE_BYTES);
 }

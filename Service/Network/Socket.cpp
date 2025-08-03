@@ -243,11 +243,11 @@ void CSocket::AddNetworkIO(int Type, uint32 TransferSize)
 	}
 }
 
-StVariant CSocket::ToVariant() const
+StVariant CSocket::ToVariant(FW::AbstractMemPool* pMemPool) const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	StVariantWriter Socket;
+	StVariantWriter Socket(pMemPool);
 	Socket.BeginIndex();
 
 	Socket.Write(API_V_SOCK_REF, (uint64)this);

@@ -16,7 +16,7 @@ public:
 	void			SetTree(bool bTree)				{ m_bTree = bTree; }
 	bool			IsTree() const					{ return m_bTree; }
 
-	QSet<quint64>	Sync(QMap<quint64, CProcessPtr> ProcessList);
+	QSet<quint64>	Sync(QHash<quint64, CProcessPtr> ProcessList);
 
 	CProcessPtr		GetItem(const QModelIndex &index) const;
 
@@ -57,8 +57,8 @@ protected:
 
 	virtual STreeNode*		MkNode(const QVariant& Id) { return new SProcessNode(/*this,*/ Id); }
 		
-	void					MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, QList<QVariant>& Path);
-	bool					TestProcPath(const QList<QVariant>& Path, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, int Index = 0);
+	void					MakeProcPath(const CProcessPtr& pProcess, const QHash<quint64, CProcessPtr>& ProcessList, QList<QVariant>& Path);
+	bool					TestProcPath(const QList<QVariant>& Path, const CProcessPtr& pProcess, const QHash<quint64, CProcessPtr>& ProcessList, int Index = 0);
 	
 	bool					m_bTree;
 };

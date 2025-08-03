@@ -497,6 +497,7 @@ API_V_VALUES : unsigned long
 	API_V_HANDLES = 'hnds',
 	API_V_SOCKETS = 'skts',
 
+	API_V_USER = 'user',
 	API_V_USER_SID = 'usid',
 
 	API_V_NUM_IMG = 'nimg',

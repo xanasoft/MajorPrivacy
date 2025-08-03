@@ -54,7 +54,7 @@ public:
 	void ClearSetErrorCount() { std::unique_lock Lock(m_Mutex); m_SetErrorCount = 0; }
 	int GetSetErrorCount() const { std::shared_lock Lock(m_Mutex);  return m_SetErrorCount; }
 
-	StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	StVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	bool FromVariant(const StVariant& Rule);
 
 protected:

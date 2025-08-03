@@ -10,7 +10,7 @@ public:
 	CEventLogEntry(ELogLevels Level, int Type, const StVariant& Data);
 	virtual ~CEventLogEntry() {}
 
-	virtual StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual StVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual NTSTATUS FromVariant(const StVariant& Rule);
 
 protected:
@@ -44,7 +44,7 @@ public:
 	STATUS Store();
 
 	STATUS LoadEntries(const StVariant& Entries);
-	StVariant SaveEntries(const SVarWriteOpt& Opts);
+	StVariant SaveEntries(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr);
 
 protected:
 

@@ -77,7 +77,7 @@ public:
 
 	void	AddNetworkIO(int Type, uint32 TransferSize);
 
-	StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	StVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 
 	static const wchar_t* NtOsKernel_exe; 
 

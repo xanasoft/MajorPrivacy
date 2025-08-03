@@ -91,9 +91,9 @@ protected:
 	QString m_UserSid;
 	QString m_UserName;
 
-	QMap<quint64, CHandlePtr> m_Handles;
+	QHash<quint64, CHandlePtr> m_Handles;
 
-	QMap<quint64, CSocketPtr> m_Sockets;
+	QHash<quint64, CSocketPtr> m_Sockets;
 };
 
 typedef QSharedPointer<CProcess> CProcessPtr;

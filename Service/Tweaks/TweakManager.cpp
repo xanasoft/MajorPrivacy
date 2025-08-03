@@ -181,7 +181,7 @@ STATUS CTweakManager::Store()
 
 	StVariant Data;
 	Data[API_S_VERSION] = API_TWEAK_LIST_FILE_VERSION;
-	Data[API_S_TWEAKS] = GetTweaks(Opts, 0);
+	Data[API_S_TWEAKS] = GetTweaks(0, Opts);
 
 	CBuffer Buffer;
 	Data.ToPacket(&Buffer);
@@ -196,7 +196,7 @@ void CTweakManager::CheckTweaks()
 	// todo: check and notify on undone tweaks
 }
 
-StVariant CTweakManager::GetTweaks(const SVarWriteOpt& Opts, uint32 CallerPID) const
+StVariant CTweakManager::GetTweaks(uint32 CallerPID, const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	std::unique_lock Lock(m_Mutex);
 
@@ -204,7 +204,7 @@ StVariant CTweakManager::GetTweaks(const SVarWriteOpt& Opts, uint32 CallerPID) c
 	// Store Tweaks in a flat list but in order such that the parent tweaks are first
 	//
 
-	StVariantWriter Tweaks;
+	StVariantWriter Tweaks(pMemPool);
 	Tweaks.BeginList();
 
 	std::list<CTweakPtr> List;
@@ -218,7 +218,7 @@ StVariant CTweakManager::GetTweaks(const SVarWriteOpt& Opts, uint32 CallerPID) c
 
 		std::unique_lock Lock(pTweak->m_Mutex);
 
-		StVariantWriter Tweak;
+		StVariantWriter Tweak(pMemPool);
 		if (Opts.Format == SVarWriteOpt::eIndex) 
 		{
 			Tweak.BeginIndex();

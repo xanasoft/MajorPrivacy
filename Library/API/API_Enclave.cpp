@@ -11,7 +11,7 @@ void CEnclave::WriteIVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 		Enclave.Write(API_V_GUID, TO_STR(m_Guid));
 #else
 	if(!m_Guid.IsNull())
-		Enclave.WriteVariant(API_V_GUID, m_Guid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+		Enclave.WriteVariant(API_V_GUID, m_Guid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Enclave.Allocator()));
 #endif
 	Enclave.Write(API_V_ENABLED, m_bEnabled);
 
@@ -70,7 +70,7 @@ void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 		Enclave.Write(API_S_GUID, TO_STR(m_Guid));
 #else
 	if(!m_Guid.IsNull())
-		Enclave.WriteVariant(API_S_GUID, m_Guid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+		Enclave.WriteVariant(API_S_GUID, m_Guid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Enclave.Allocator()));
 #endif
 	Enclave.Write(API_S_ENABLED, m_bEnabled);
 

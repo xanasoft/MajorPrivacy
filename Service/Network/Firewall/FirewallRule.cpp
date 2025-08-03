@@ -187,11 +187,11 @@ bool CFirewallRule::IsExpired() const
 	return false;
 }
 
-StVariant CFirewallRule::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CFirewallRule::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	StVariantWriter Rule;
+	StVariantWriter Rule(pMemPool);
 	if (Opts.Format == SVarWriteOpt::eIndex) {
 		Rule.BeginIndex();
 		WriteIVariant(Rule, Opts);

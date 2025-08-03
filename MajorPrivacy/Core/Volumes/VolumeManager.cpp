@@ -31,7 +31,9 @@ void CVolumeManager::Update()
 	QtVariantReader(Volumes).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Volume = *(QtVariant*)&vData;
 
-		QString ImagePath = QtVariantReader(Volume).Find(API_V_VOL_PATH).AsQStr().toLower();
+		QtVariant vImagePath(Volume.Allocator());
+		FW::CVariantReader::Find(Volume, API_V_VOL_PATH, vImagePath);
+		QString ImagePath = vImagePath.AsQStr().toLower();
 
 		CVolumePtr pVolume = OldMap.take(ImagePath);
 		if (pVolume.isNull())

@@ -44,14 +44,14 @@ public:
 	bool operator != (const CFlexGuid& other) const { return Compare(other) != 0; }
 
 	bool			FromVariant(const FW::CVariant& Variant);
-	FW::CVariant		ToVariant(bool bTextOnly/* = false*/) const;
+	FW::CVariant		ToVariant(bool bTextOnly/* = false*/, FW::AbstractMemPool* pMemPool = nullptr) const;
 
-	static FW::CVariant WriteList(const std::vector<CFlexGuid>& List, bool bTextOnly/* = false*/)
+	static FW::CVariant WriteList(const std::vector<CFlexGuid>& List, bool bTextOnly/* = false*/, FW::AbstractMemPool* pMemPool = nullptr)
 	{
-		FW::CVariantWriter Writer;
+		FW::CVariantWriter Writer(pMemPool);
 		Writer.BeginList();
 		for (const CFlexGuid& Guid : List)
-			Writer.WriteVariant(Guid.ToVariant(bTextOnly));
+			Writer.WriteVariant(Guid.ToVariant(bTextOnly, pMemPool));
 		return Writer.Finish();
 	}
 

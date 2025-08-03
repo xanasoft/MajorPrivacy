@@ -17,11 +17,11 @@ CProgramItem::CProgramItem()
 	m_UID = InterlockedIncrement64(&VolatileIdCounter);
 }
 
-StVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	std::unique_lock Lock(m_Mutex);
 
-	StVariantWriter Data;
+	StVariantWriter Data(pMemPool);
 	if (Opts.Format == SVarWriteOpt::eIndex) {
 		Data.BeginIndex();
 		WriteIVariant(Data, Opts);
@@ -29,7 +29,7 @@ StVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const
 		Data.BeginMap();
 		WriteMVariant(Data, Opts);
 	}
-	return Data.Finish();;
+	return Data.Finish();
 }
 
 NTSTATUS CProgramItem::FromVariant(const class StVariant& Data)
@@ -43,29 +43,29 @@ NTSTATUS CProgramItem::FromVariant(const class StVariant& Data)
 	return STATUS_SUCCESS;
 }
 
-StVariant CProgramItem::CollectFwRules() const
+StVariant CProgramItem::CollectFwRules(FW::AbstractMemPool* pMemPool) const
 {
-	StVariantWriter FwRules;
+	StVariantWriter FwRules(pMemPool);
 	FwRules.BeginList();
 	for (auto FwRule : m_FwRules)
 		FwRules.WriteEx(FwRule->GetGuidStr());
 	return FwRules.Finish();
 }
 
-StVariant CProgramItem::CollectProgRules() const
+StVariant CProgramItem::CollectProgRules(FW::AbstractMemPool* pMemPool) const
 {
-	StVariantWriter ProgRules;
+	StVariantWriter ProgRules(pMemPool);
 	ProgRules.BeginList();
 	for (auto ProgRule : m_ProgRules)
-		ProgRules.WriteVariant(ProgRule->GetGuid().ToVariant(false));
+		ProgRules.WriteVariant(ProgRule->GetGuid().ToVariant(false, pMemPool));
 	return ProgRules.Finish();
 }
 
-StVariant CProgramItem::CollectResRules() const
+StVariant CProgramItem::CollectResRules(FW::AbstractMemPool* pMemPool) const
 {
-	StVariantWriter ResRules;
+	StVariantWriter ResRules(pMemPool);
 	ResRules.BeginList();
 	for (auto ResRule : m_ResRules)
-		ResRules.WriteVariant(ResRule->GetGuid().ToVariant(false));
+		ResRules.WriteVariant(ResRule->GetGuid().ToVariant(false, pMemPool));
 	return ResRules.Finish();
 }

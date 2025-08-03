@@ -50,7 +50,7 @@ CSocketView::~CSocketView()
 	theConf->SetBlob("MainWindow/SocketView_Columns", m_pTreeView->saveState());
 }
 
-void CSocketView::Sync(const QMap<quint64, CProcessPtr>& Processes, const QSet<CWindowsServicePtr>& ServicesEx)
+void CSocketView::Sync(const QHash<quint64, CProcessPtr>& Processes, const QSet<CWindowsServicePtr>& ServicesEx)
 {
 	ENetProtocols Protocol = (ENetProtocols)m_pCmbType->currentData().toInt();
 

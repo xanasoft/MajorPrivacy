@@ -681,14 +681,14 @@ void CDnsInspector::ProcessJobList()
 	}
 }
 
-StVariant CDnsInspector::DumpDnsCache()
+StVariant CDnsInspector::DumpDnsCache(FW::AbstractMemPool* pMemPool)
 {
 	std::shared_lock Lock(m_Mutex);
 
-	StVariantWriter DnsCache;
+	StVariantWriter DnsCache(pMemPool);
 	DnsCache.BeginList();
 	for (auto I = m_DnsCache.begin(); I != m_DnsCache.end(); ++I)
-		DnsCache.WriteVariant(I->second->ToVariant());
+		DnsCache.WriteVariant(I->second->ToVariant(pMemPool));
 	return DnsCache.Finish();
 }
 

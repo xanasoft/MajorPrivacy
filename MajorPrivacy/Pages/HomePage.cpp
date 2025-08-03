@@ -147,6 +147,7 @@ void CHomePage::OnChange()
 
 void CHomePage::Refresh()
 {
+	m_pStatusView->Refresh();
 	theCore->TweakManager()->GetRoot();
 	m_pIssueView->Refresh();
 	Update();

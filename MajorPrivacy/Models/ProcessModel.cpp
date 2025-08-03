@@ -18,7 +18,7 @@ CProcessModel::~CProcessModel()
 {
 }
 
-void CProcessModel::MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, QList<QVariant>& Path)
+void CProcessModel::MakeProcPath(const CProcessPtr& pProcess, const QHash<quint64, CProcessPtr>& ProcessList, QList<QVariant>& Path)
 {
 	quint64 ParentID = pProcess->GetParentId();
 	CProcessPtr pParent = ProcessList.value(ParentID);
@@ -30,7 +30,7 @@ void CProcessModel::MakeProcPath(const CProcessPtr& pProcess, const QMap<quint64
 	}
 }
 
-bool CProcessModel::TestProcPath(const QList<QVariant>& Path, const CProcessPtr& pProcess, const QMap<quint64, CProcessPtr>& ProcessList, int Index)
+bool CProcessModel::TestProcPath(const QList<QVariant>& Path, const CProcessPtr& pProcess, const QHash<quint64, CProcessPtr>& ProcessList, int Index)
 {
 	quint64 ParentID = pProcess->GetParentId();
 	CProcessPtr pParent = ProcessList.value(ParentID);
@@ -46,7 +46,7 @@ bool CProcessModel::TestProcPath(const QList<QVariant>& Path, const CProcessPtr&
 	return Path.size() == Index;
 }
 
-QSet<quint64> CProcessModel::Sync(QMap<quint64, CProcessPtr> ProcessList)
+QSet<quint64> CProcessModel::Sync(QHash<quint64, CProcessPtr> ProcessList)
 {
 	QSet<quint64> Added;
 #pragma warning(push)

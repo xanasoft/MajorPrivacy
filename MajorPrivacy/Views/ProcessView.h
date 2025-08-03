@@ -12,7 +12,7 @@ public:
 	CProcessView(QWidget *parent = 0);
 	virtual ~CProcessView();
 
-	void					Sync(QMap<quint64, CProcessPtr> ProcessMap);
+	void					Sync(QHash<quint64, CProcessPtr> ProcessMap);
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

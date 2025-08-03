@@ -6,9 +6,9 @@ CImageSignInfo::CImageSignInfo()
 {
 }
 
-QtVariant CImageSignInfo::ToVariant(const SVarWriteOpt& Opts) const
+QtVariant CImageSignInfo::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
-	QtVariantWriter Data;
+	QtVariantWriter Data(pMemPool);
 	if (Opts.Format == SVarWriteOpt::eIndex) {
 		Data.BeginIndex();
 		WriteIVariant(Data, Opts);

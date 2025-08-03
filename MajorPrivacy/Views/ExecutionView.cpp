@@ -140,7 +140,7 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 			pSubItem->Info = Info;
 		}
 		else {
-			if (pSubItem->Info.LastExecTime < Info.LastExecTime) {
+			if (Info.LastExecTime != 0 && pSubItem->Info.LastExecTime < Info.LastExecTime) {
 				pSubItem->Info.LastExecTime = Info.LastExecTime;
 				pSubItem->Info.CommandLine = Info.CommandLine;
 			}

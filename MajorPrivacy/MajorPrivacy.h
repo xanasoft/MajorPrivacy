@@ -54,7 +54,7 @@ public:
 	STATUS				DiscardDrvConfig();
 
 	const SCurrentItems& GetCurrentItems() const;
-	QMap<quint64, CProcessPtr> GetCurrentProcesses() const;
+	QHash<quint64, CProcessPtr> GetCurrentProcesses() const;
 
 	int					SafeExec(QDialog* pDialog);
 

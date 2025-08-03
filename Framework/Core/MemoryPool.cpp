@@ -83,7 +83,20 @@
 // based on 32-bit addressable limits.
 //#define LARGE_CHUNK_MAXIMUM     (0xFFFFFFFFu - (BLOCK_SIZE + LARGE_CHUNK_SIZE + POOL_PAGE_SIZE))
 
+#ifndef KERNEL_MODE
+// The size limit for a large chunk to be kept for later use.
+#define LARGE_CHUNK_RETENTION_LIMIT (10*1024*1024) // 10 MB
+#define LARGE_CHUNK_RETENTION_TIMEOUT (10*1000) // 10 seconds
+#endif
+
 #define USE_FULL_LIST
+
+#ifdef LARGE_CHUNK_RETENTION_LIMIT
+extern "C" 
+WINBASEAPI
+DWORD
+WINAPI GetTickCount();
+#endif
 
 FW_NAMESPACE_BEGIN
 
@@ -130,12 +143,19 @@ struct POOL
     LIST_ENTRY FullPages;
 #endif
     LIST_ENTRY LargeChunks;
+#ifdef LARGE_CHUNK_RETENTION_LIMIT
+	LIST_ENTRY FreeLargeChunks;
+#endif
 
     ULONG EyeCatcher;
     ULONG SmallCount;
 	ULONG EmptyCount;
     ULONG FullCount;
     ULONG LargeCount;
+#ifdef LARGE_CHUNK_RETENTION_LIMIT
+	ULONG FreeLargeCount;
+	ULONG CleanUpTick;
+#endif
 
     //UCHAR InitialBitmap[RAW_BITMAP_SIZE];
 };
@@ -146,6 +166,10 @@ struct LARGE_CHUNK // FOOTER
     POOL *Pool;
     ULONG EyeCatcher;
     ULONG Count;
+#ifdef LARGE_CHUNK_RETENTION_LIMIT
+	ULONG FreeTick;
+	//ULONG 
+#endif
     void *Ptr;
 };
 
@@ -203,7 +227,47 @@ void* MemoryPool::Alloc(size_t Size, uint32 Flags)
 	SIZE_T BlockSize = (sizeof(BLOCK) + Size);
 
 	if (Size > LARGE_CHUNK_MINIMUM)
-		Block = (BLOCK*)GetLargeChunk(m_Pool, BlockSize);
+	{
+#ifdef LARGE_CHUNK_RETENTION_LIMIT
+		if (BlockSize <= LARGE_CHUNK_RETENTION_LIMIT)
+		{
+			SIZE_T LargeChunkSize = (BlockSize + LARGE_CHUNK_SIZE + POOL_PAGE_SIZE - 1) & ~(POOL_PAGE_SIZE - 1);
+			ULONG NeededPages = (ULONG)(LargeChunkSize / POOL_PAGE_SIZE);
+
+			Locker Lock(m_Pool->Lock);
+			for (PLIST_ENTRY entry = m_Pool->FreeLargeChunks.Flink; entry != &m_Pool->FreeLargeChunks; entry = entry->Flink)
+			{
+				LARGE_CHUNK* LargeChunk = CONTAINING_RECORD(entry, LARGE_CHUNK, ListEntry);
+				if (LargeChunk->Count == NeededPages)
+				{
+					RemoveEntryList(&LargeChunk->ListEntry);
+					m_Pool->FreeLargeCount -= LargeChunk->Count;
+
+					ASSERT(LargeChunk->FreeTick != 0);
+					LargeChunk->FreeTick = 0;
+
+					InsertHeadList(&m_Pool->LargeChunks, &LargeChunk->ListEntry);
+					m_Pool->LargeCount += LargeChunk->Count;
+
+					// Recover a valid block size if (LargeChunk->Count >= NeededPages)
+					//BlockSize = (LargeChunk->Count * POOL_PAGE_SIZE) - LARGE_CHUNK_SIZE;
+					//Size = BlockSize - sizeof(BLOCK);
+
+					Block = (BLOCK*)LargeChunk->Ptr;
+
+					SIZE_T TestSize = (BlockSize + LARGE_CHUNK_SIZE + POOL_PAGE_SIZE - 1) & ~(POOL_PAGE_SIZE - 1);
+					LARGE_CHUNK* Test = (LARGE_CHUNK*)((UCHAR*)Block + TestSize - LARGE_CHUNK_SIZE);
+					ASSERT(Test == LargeChunk);
+
+					break;
+				}
+			}
+		}
+
+		if(!Block)
+#endif
+			Block = (BLOCK*)GetLargeChunk(m_Pool, BlockSize);
+	}
 	else
 		Block = (BLOCK*)GetCells(m_Pool, NUM_CELLS(BlockSize));
 
@@ -224,9 +288,66 @@ void MemoryPool::Free(void* Ptr, uint32 Flags)
 	SIZE_T BlockSize = (sizeof(BLOCK) + Block->Size);
 
 	if (((ULONG_PTR)Block & (POOL_PAGE_SIZE - 1)) == 0)
-		FreeLargeChunk(Block, BlockSize);
+	{
+#ifdef LARGE_CHUNK_RETENTION_LIMIT
+		if (BlockSize <= LARGE_CHUNK_RETENTION_LIMIT)
+		{
+			SIZE_T LargeChunkSize = (BlockSize + LARGE_CHUNK_SIZE + POOL_PAGE_SIZE - 1) & ~(POOL_PAGE_SIZE - 1);
+
+			LARGE_CHUNK* LargeChunk = (LARGE_CHUNK*)((UCHAR*)Block + LargeChunkSize - LARGE_CHUNK_SIZE);
+
+			POOL* Pool = LargeChunk->Pool;
+			ASSERT(m_Pool == Pool);
+			ASSERT(LargeChunk->EyeCatcher == Pool->EyeCatcher);
+
+			Locker Lock(Pool->Lock);
+
+			RemoveEntryList(&LargeChunk->ListEntry);
+
+			ASSERT(LargeChunk->FreeTick == 0);
+			LargeChunk->FreeTick = GetTickCount();
+		
+			InsertHeadList(&Pool->FreeLargeChunks, &LargeChunk->ListEntry);
+			//InsertTailList(&Pool->FreeLargeChunks, &LargeChunk->ListEntry);
+			Pool->FreeLargeCount += LargeChunk->Count;
+			
+
+			FreeLargeEmptyPages(Pool);
+		}
+		else
+#endif
+			FreeLargeChunk(Block, BlockSize);
+	}
 	else
 		FreeCells(Block, NUM_CELLS(BlockSize));
+}
+
+void MemoryPool::FreeLargeEmptyPages(struct POOL* Pool)
+{
+#ifdef LARGE_CHUNK_RETENTION_LIMIT
+	ULONG maxAge = LARGE_CHUNK_RETENTION_TIMEOUT;
+	ULONG now = GetTickCount();
+	
+	if(now - Pool->CleanUpTick < maxAge)
+		return;
+	Pool->CleanUpTick = now;
+
+	for (PLIST_ENTRY entry = Pool->FreeLargeChunks.Flink; entry != &Pool->FreeLargeChunks; )
+	{
+		LARGE_CHUNK* chunk = CONTAINING_RECORD(entry, LARGE_CHUNK, ListEntry);
+		PLIST_ENTRY next  = entry->Flink;
+
+		if (now - chunk->FreeTick >= maxAge)
+		{
+			RemoveEntryList(&chunk->ListEntry);
+			Pool->FreeLargeCount -= chunk->Count;
+			
+			FreeMem(chunk->Ptr, Pool->EyeCatcher);
+		}
+
+		entry = next;
+	}
+#endif
 }
 
 void MemoryPool::CleanUp()
@@ -234,6 +355,14 @@ void MemoryPool::CleanUp()
 	Locker Lock(m_Pool->Lock);
 
 	FreeEmptyPages(m_Pool, (ULONG)-1);
+
+#ifdef LARGE_CHUNK_RETENTION_LIMIT
+	while (!IsListEmpty(&m_Pool->FreeLargeChunks)) {
+		PLIST_ENTRY Entry = RemoveHeadList(&m_Pool->FreeLargeChunks);
+		LARGE_CHUNK* chunk = CONTAINING_RECORD(Entry, LARGE_CHUNK, ListEntry);
+		FreeMem(chunk->Ptr, chunk->EyeCatcher);
+	}
+#endif
 }
 
 POOL* MemoryPool::CreatePool(ULONG Tag)
@@ -259,6 +388,12 @@ POOL* MemoryPool::CreatePool(ULONG Tag)
 	InitializeListHead(&Pool->FullPages);
 #endif
 	InitializeListHead(&Pool->LargeChunks);
+#ifdef LARGE_CHUNK_RETENTION_LIMIT
+	InitializeListHead(&Pool->FreeLargeChunks);
+	Pool->FreeLargeCount = 0;
+	Pool->CleanUpTick = GetTickCount();
+#endif
+
 	InsertHeadList(&Pool->Pages, &Page->Header.ListEntry);
 	Pool->SmallCount++;
 
@@ -278,6 +413,14 @@ void MemoryPool::DeletePool(POOL* Pool)
 		LARGE_CHUNK* LargeChunk = CONTAINING_RECORD(Entry, LARGE_CHUNK, ListEntry);
 		FreeMem(LargeChunk->Ptr, Tag);
 	}
+
+#ifdef LARGE_CHUNK_RETENTION_LIMIT
+	while (!IsListEmpty(&Pool->FreeLargeChunks)) {
+		PLIST_ENTRY Entry = RemoveHeadList(&Pool->FreeLargeChunks);
+		LARGE_CHUNK* chunk = CONTAINING_RECORD(Entry, LARGE_CHUNK, ListEntry);
+		FreeMem(chunk->Ptr, Tag);
+	}
+#endif
 
 	while (!IsListEmpty(&Pool->Pages)) {
 		PLIST_ENTRY Entry = RemoveHeadList(&Pool->Pages);

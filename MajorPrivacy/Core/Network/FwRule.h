@@ -29,7 +29,8 @@ public:
 
     QString GetBinaryPath() const           { return m_BinaryPath; }
     QString GetServiceTag() const           { return m_ServiceTag; }
-    QString GetAppContainerSid() const      { return m_AppContainerSid; }
+    QString GetAppPkgId() const             { return m_AppContainerSid; }
+    QString GetAppPFN() const               { return m_PackageFamilyName; }
 
     bool IsTemplate() const					{ return m_ProgramID.GetType() == EProgramType::eFilePattern; }
 

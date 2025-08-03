@@ -26,6 +26,7 @@ private slots:
 	void OnNameChanged(const QString& Text);
 	void OnPickProgram();
 	void OnPathChanged();
+	void OnUserChanged();
 	void OnProgramChanged();
 	void OnProgramPathChanged();
 	void OnActionChanged();

@@ -17,7 +17,7 @@ public:
 	QByteArray GetSignerHash() const { return m_SignerHash; }
 	QString GetSignerName() const { return m_SignerName; }
 
-	QtVariant ToVariant(const SVarWriteOpt& Opts) const;
+	QtVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	NTSTATUS FromVariant(const QtVariant& Data);
 
 protected:

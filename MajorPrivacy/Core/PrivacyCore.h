@@ -9,6 +9,7 @@
 #include "../Helpers/SidResolver.h"
 #include "./Common/QtFlexGuid.h"
 #include "../../Library/Helpers/EvtUtil.h"
+#include "../../Framework/Core/MemoryPool.h"
 
 class CPrivacyCore : public QObject
 {
@@ -309,6 +310,7 @@ protected:
 
 	CDriverAPI	m_Driver;
 	CServiceAPI m_Service;
+	FW::MemoryPool* m_pMemPool = NULL;
 	bool m_bEngineMode = false;
 	QString m_ConfigDir;
 	QString m_AppDir;

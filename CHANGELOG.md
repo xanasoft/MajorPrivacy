@@ -11,6 +11,26 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
+## [0.98.3] - 2025-07-??
+
+### Added
+- added the user as aditional parameter to resource access rules [#44](https://github.com/xanasoft/MajorPrivacy/issues/44)
+
+### Changed
+- Reduced CPU usage of UI and Service
+- ImBox no longer updates container file timestamps when accessing an secure encrypted volume
+
+### Fixed
+- fixed issue in ImBox.exe old volumes wont be mountable anymore! Use previouse build to save data then re create volumes with turent or later build.
+- fixed Dat Editor: Tree view expansion fails in subsequent .dat files after opening the first [#61](https://github.com/xanasoft/MajorPrivacy/issues/61)
+- fixed Execution Monitor shows no entries when Time filter is selected [#60](https://github.com/xanasoft/MajorPrivacy/issues/60)
+- fixed Only the last added group is available in the "Add to Group" menu [#48](https://github.com/xanasoft/MajorPrivacy/issues/48)
+- fixed Directory Listing and Read actions permits folder creation [#68](https://github.com/xanasoft/MajorPrivacy/issues/68)
+
+
+ 
+
 ## [0.98.2] - 2025-07-22
 
 ### Added

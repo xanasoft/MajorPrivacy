@@ -10,11 +10,11 @@ CVolume::~CVolume()
 {
 }
 
-StVariant CVolume::ToVariant() const
+StVariant CVolume::ToVariant(FW::AbstractMemPool* pMemPool) const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	StVariantWriter Volume;
+	StVariantWriter Volume(pMemPool);
 	Volume.BeginIndex();
 
 	Volume.Write(API_V_VOL_REF, (uint64)this);

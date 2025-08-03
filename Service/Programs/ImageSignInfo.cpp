@@ -45,9 +45,9 @@ void CImageSignInfo::Update(const struct SVerifierInfo* pVerifyInfo)
 	}
 }
 
-StVariant CImageSignInfo::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CImageSignInfo::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
-	StVariantWriter Data;
+	StVariantWriter Data(pMemPool);
 	if (Opts.Format == SVarWriteOpt::eIndex) {
 		Data.BeginIndex();
 		WriteIVariant(Data, Opts);

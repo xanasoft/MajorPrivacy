@@ -115,12 +115,14 @@ void CProcess::OnSidResolved(const QByteArray& SID, const QString& Name)
 
 void CProcess::UpdateHandles(const class QtVariant& Handles)
 {
-	QMap<quint64, CHandlePtr> OldHandles = m_Handles;
+	QHash<quint64, CHandlePtr> OldHandles = m_Handles;
 
 	QtVariantReader(Handles).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Handle = *(QtVariant*)&vData;
 
-		quint64 HandleRef = QtVariantReader(Handle).Find(API_V_ACCESS_REF);
+		QtVariant vHandleRef(Handle.Allocator());
+		FW::CVariantReader::Find(Handle, API_V_ACCESS_REF, vHandleRef);
+		quint64 HandleRef = vHandleRef;
 
 		CHandlePtr pHandle = OldHandles.take(HandleRef);
 		bool bUpdate = false; // we dont have live handle data currently hence we dont update it once its enlisted
@@ -140,12 +142,14 @@ void CProcess::UpdateHandles(const class QtVariant& Handles)
 
 void CProcess::UpdateSockets(const class QtVariant& Sockets)
 {
-	QMap<quint64, CSocketPtr> OldSockets = m_Sockets;
+	QHash<quint64, CSocketPtr> OldSockets = m_Sockets;
 
 	QtVariantReader(Sockets).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Socket = *(QtVariant*)&vData;
 
-		quint64 SockRef = QtVariantReader(Socket).Find(API_V_SOCK_REF);
+		QtVariant vSockRef(Socket.Allocator());
+		FW::CVariantReader::Find(Socket, API_V_SOCK_REF, vSockRef);
+		quint64 SockRef = vSockRef;
 
 		CSocketPtr pSocket = OldSockets.take(SockRef);
 		if (!pSocket) {

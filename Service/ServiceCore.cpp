@@ -42,6 +42,8 @@ extern SERVICE_STATUS_HANDLE g_ServiceStatusHandle;
 CServiceCore::CServiceCore()
 	: m_Pool(4)
 {
+	m_pMemPool = FW::MemoryPool::Create();
+
 	m_pSysLog = new CEventLogger(API_SERVICE_NAME);
 	m_pEventLog = new CEventLog();
 
@@ -102,8 +104,9 @@ CServiceCore::~CServiceCore()
 
 	delete m_pConfig; // could be NULL
 
-
 	CNtPathMgr::Instance()->UnRegisterDeviceChangeCallback(DeviceChangedCallback, this);
+
+	FW::MemoryPool::Destroy(m_pMemPool);
 }
 
 STATUS CServiceCore::Startup(bool bEngineMode)
@@ -274,7 +277,7 @@ STATUS CServiceCore::InstallDriver()
 	return OK;
 }
 
-STATUS CServiceCore::RemoveDriver()
+STATUS CServiceCore::StopDriver()
 {
 	STATUS Status = OK;
 	SVC_STATE SvcState = GetServiceState(API_DRIVER_NAME);
@@ -300,6 +303,16 @@ STATUS CServiceCore::RemoveDriver()
 	SvcState = GetServiceState(API_DRIVER_NAME);
 	if ((SvcState & SVC_RUNNING) == SVC_RUNNING)
 		return ERR(STATUS_UNSUCCESSFUL);
+
+	return OK;
+}
+
+
+STATUS CServiceCore::RemoveDriver()
+{
+	STATUS Status = StopDriver();
+	if(!Status)
+		return Status;
 
 	CScopedHandle hKey = CScopedHandle((HKEY)0, RegCloseKey);
 	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, KEY_READ, &hKey) != ERROR_SUCCESS)

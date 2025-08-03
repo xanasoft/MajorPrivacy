@@ -168,7 +168,7 @@ void CServiceCore::OnClient(uint32 uEvent, struct SPipeClientInfo& pClient)
 }
 
 #define RETURN_STATUS(Status) if (Status.IsError()) { \
-StVariant vRpl; vRpl[API_V_ERR_CODE] = Status.GetStatus(); \
+StVariant vRpl(m_pMemPool); vRpl[API_V_ERR_CODE] = Status.GetStatus(); \
 vRpl[API_V_ERR_MSG] = Status.GetMessageText(); \
 vRpl.ToPacket(rpl); \
 } return STATUS_SUCCESS;
@@ -195,7 +195,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 	{
 		case SVC_API_GET_VERSION:
 		{
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_VERSION] = MY_ABI_VERSION;
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
@@ -203,16 +203,16 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_CONFIG_DIR:
 		{
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_VALUE] = theCore->GetDataFolder();
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 		case SVC_API_GET_CONFIG:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			/*if (vReq.Has(API_V_CONF_MAP))
 			{
 				StVariant vReqMap = vReq[API_V_CONF_MAP];
@@ -237,11 +237,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			}
 			else
 			{
-				StVariantWriter Data;
+				StVariantWriter Data(m_pMemPool);
 				Data.BeginMap();
 				for(auto Section: theCore->Config()->ListSections())
 				{
-					StVariantWriter Values;
+					StVariantWriter Values(m_pMemPool);
 					Values.BeginMap();
 					for(auto Key: theCore->Config()->ListKeys(Section))
 						Values.WriteEx(Key.c_str(), theCore->Config()->GetValue(Section, Key));
@@ -255,7 +255,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		}
 		case SVC_API_SET_CONFIG:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 			/*if (vReq.Has(API_V_CONF_MAP))
 			{
@@ -287,7 +287,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_CHECK_CONFIG_FILE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::wstring Path = vReq[API_V_FILE_PATH];
@@ -297,13 +297,13 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				Path = L"\\" + Path;
 			std::wstring FilePath = theCore->GetDataFolder() + Path;
 
-			StVariant vRpl = StVariant(FileExists(FilePath));
+			StVariant vRpl = StVariant(m_pMemPool, FileExists(FilePath));
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 		case SVC_API_SET_CONFIG_FILE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::wstring Path = vReq[API_V_FILE_PATH];
@@ -321,7 +321,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		}
 		case SVC_API_GET_CONFIG_FILE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::wstring Path = vReq[API_V_FILE_PATH];
@@ -335,14 +335,14 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (!ReadFile(FilePath, Data))
 				return STATUS_UNSUCCESSFUL;
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_DATA] = Data;
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 		case SVC_API_DEL_CONFIG_FILE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::wstring Path = vReq[API_V_FILE_PATH];
@@ -362,7 +362,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		}
 		case SVC_API_LIST_CONFIG_FILES:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::wstring Path = vReq[API_V_FILE_PATH];
@@ -380,7 +380,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			for (auto FullPath : FullPaths)
 				Files.push_back(FullPath.substr(theCore->GetDataFolder().length()));
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_FILES] = Files;
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
@@ -392,7 +392,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if(theCore->IsConfigDirty())
 				Status |= CONFIG_STATUS_DIRTY;
 
-			StVariant vRpl(Status);
+			StVariant vRpl(m_pMemPool, Status);
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
@@ -410,7 +410,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		// Network Manager
 		case SVC_API_GET_FW_RULES:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			bool bReload = vReq.Get(API_V_RELOAD).To<bool>(false);
@@ -432,18 +432,18 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				}
 			}
 
-			StVariant Rules;
+			StVariant Rules(m_pMemPool);
 			for (auto I : FwRules)
-				Rules.Append(I.second->ToVariant(SVarWriteOpt()));
+				Rules.Append(I.second->ToVariant(SVarWriteOpt(), m_pMemPool));
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_FW_RULES] = Rules;
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 		case SVC_API_SET_FW_RULE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			CFirewallRulePtr FwRule = std::make_shared<CFirewallRule>();
@@ -456,12 +456,12 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		}
 		case SVC_API_GET_FW_RULE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 				
 			CFirewallRulePtr pRule = m_pNetworkManager->Firewall()->GetRule(vReq[API_V_GUID].AsStr());
 			if (pRule) {
-				StVariant vRpl = pRule->ToVariant(SVarWriteOpt());
+				StVariant vRpl = pRule->ToVariant(SVarWriteOpt(), m_pMemPool);
 				vRpl.ToPacket(rpl);
 				return STATUS_SUCCESS;
 			}
@@ -469,7 +469,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		}
 		case SVC_API_DEL_FW_RULE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = m_pNetworkManager->Firewall()->DelRule(vReq[API_V_GUID].AsStr());
@@ -481,14 +481,14 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		case SVC_API_GET_FW_PROFILE:
 		{
 			FwFilteringModes Mode = m_pNetworkManager->Firewall()->GetFilteringMode();
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_FW_RULE_FILTER_MODE] = (uint32)Mode;
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 		case SVC_API_SET_FW_PROFILE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 			FwFilteringModes Mode = (FwFilteringModes)vReq[API_V_FW_RULE_FILTER_MODE].To<uint32>();
 			STATUS Status = m_pNetworkManager->Firewall()->SetFilteringMode(Mode);
@@ -498,14 +498,14 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		case SVC_API_GET_FW_AUDIT_MODE:
 		{
 			FwAuditPolicy Mode = m_pNetworkManager->Firewall()->GetAuditPolicy();
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_FW_AUDIT_MODE] = (uint32)Mode;
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 		case SVC_API_SET_FW_AUDIT_MODE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 			FwAuditPolicy Mode = (FwAuditPolicy)vReq[API_V_FW_AUDIT_MODE].To<uint32>();
 			STATUS Status = m_pNetworkManager->Firewall()->SetAuditPolicy(Mode);
@@ -514,7 +514,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_SOCKETS:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::set<CSocketPtr> Sockets;
@@ -532,11 +532,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				}
 			}
 
-			StVariant SocketList;
+			StVariant SocketList(m_pMemPool);
 			for (auto pSockets : Sockets)
-				SocketList.Append(pSockets->ToVariant());
+				SocketList.Append(pSockets->ToVariant(m_pMemPool));
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_SOCKETS] = SocketList;
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
@@ -544,7 +544,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_TRAFFIC:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			CProgramID ID;
@@ -554,11 +554,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
-				vRpl[API_V_TRAFFIC_LOG] = pProgram->TrafficLog()->ToVariant(vReq.Get(API_V_SOCK_LAST_NET_ACT));
+				vRpl[API_V_TRAFFIC_LOG] = pProgram->TrafficLog()->ToVariant(vReq.Get(API_V_SOCK_LAST_NET_ACT), m_pMemPool);
 			else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
-				vRpl[API_V_TRAFFIC_LOG] = pService->TrafficLog()->ToVariant(vReq.Get(API_V_SOCK_LAST_NET_ACT));
+				vRpl[API_V_TRAFFIC_LOG] = pService->TrafficLog()->ToVariant(vReq.Get(API_V_SOCK_LAST_NET_ACT), m_pMemPool);
 			else
 				return STATUS_OBJECT_TYPE_MISMATCH;
 
@@ -568,8 +568,8 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_DNC_CACHE:
 		{
-			StVariant vRpl;
-			vRpl[API_V_DNS_CACHE] = theCore->NetworkManager()->DnsInspector()->DumpDnsCache();
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_DNS_CACHE] = theCore->NetworkManager()->DnsInspector()->DumpDnsCache(m_pMemPool);
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
@@ -582,19 +582,19 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_DNS_RULES:
 		{
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			SVarWriteOpt Opts;
 			Opts.Flags |= SVarWriteOpt::eSaveAll;
-			vRpl[API_V_DNS_RULES] = theCore->NetworkManager()->DnsFilter()->SaveEntries(Opts);
+			vRpl[API_V_DNS_RULES] = theCore->NetworkManager()->DnsFilter()->SaveEntries(Opts, m_pMemPool);
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 
 		case SVC_API_GET_DNS_RULE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
-			auto Ret = theCore->NetworkManager()->DnsFilter()->GetEntry(vReq[API_V_GUID].AsStr(), SVarWriteOpt());
+			auto Ret = theCore->NetworkManager()->DnsFilter()->GetEntry(vReq[API_V_GUID].AsStr(), SVarWriteOpt(), m_pMemPool);
 			if (Ret.IsError()) {
 				RETURN_STATUS(Ret);
 			}
@@ -605,7 +605,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_SET_DNS_RULE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			auto Ret = theCore->NetworkManager()->DnsFilter()->SetEntry(vReq);
@@ -615,7 +615,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			theCore->SetConfigDirty(true);
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_GUID] = Ret.GetValue();
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
@@ -623,7 +623,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_DEL_DNS_RULE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 			STATUS Status = theCore->NetworkManager()->DnsFilter()->DelEntry(vReq[API_V_GUID].AsStr());
 			if(Status)
@@ -633,8 +633,8 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_DNS_LIST_INFO:
 		{
-			StVariant vRpl;
-			vRpl[API_V_DNS_LIST_INFO] = theCore->NetworkManager()->DnsFilter()->GetBlockListInfo();
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_DNS_LIST_INFO] = theCore->NetworkManager()->DnsFilter()->GetBlockListInfo(m_pMemPool);
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
@@ -642,18 +642,18 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		// Process Manager
 		case SVC_API_GET_PROCESSES:
 		{
-			StVariant Processes;
+			StVariant Processes(m_pMemPool);
 			for (auto pProcess: theCore->ProcessList()->List())
-				Processes.Append(pProcess.second->ToVariant(SVarWriteOpt()));
+				Processes.Append(pProcess.second->ToVariant(SVarWriteOpt(), m_pMemPool));
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_PROCESSES] = Processes;
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 		case SVC_API_GET_PROCESS:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			uint64 Pid = vReq[API_V_PID];
@@ -661,23 +661,23 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (!pProcess)
 				return STATUS_INVALID_CID;
 
-			StVariant vRpl = pProcess->ToVariant(SVarWriteOpt());
+			StVariant vRpl = pProcess->ToVariant(SVarWriteOpt(), m_pMemPool);
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 
 		case SVC_API_GET_PROGRAMS:
 		{
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 
 			//vRpl[API_V_PROGRAMS] = theCore->ProgramManager()->GetRoot()->ToVariant();
 
 			// todo restrict to a certain type by argument
 
-			StVariantWriter Programs;
+			StVariantWriter Programs(m_pMemPool);
 			Programs.BeginList();
 			for (auto pItem: theCore->ProgramManager()->GetItems())
-				Programs.WriteVariant(pItem.second->ToVariant(SVarWriteOpt()));
+				Programs.WriteVariant(pItem.second->ToVariant(SVarWriteOpt(), m_pMemPool));
 
 			vRpl[API_V_PROGRAMS] = Programs.Finish();
 			vRpl.ToPacket(rpl);
@@ -686,7 +686,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_LIBRARIES:
 		{
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 
 			//StVariant vReq;
 			//vReq.FromPacket(req);
@@ -701,7 +701,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			//std::map<uint64, uint64> OldCache = pClientData->LibraryCache;
 
-			StVariantWriter Libraries;
+			StVariantWriter Libraries(m_pMemPool);
 			Libraries.BeginList();
 			for (auto pItem : theCore->ProgramManager()->GetLibraries()) {
 				//auto F = OldCache.find(pItem.first);
@@ -710,10 +710,10 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				//	continue;
 				//}
 				//pClientData->LibraryCache[pItem.first] = 0;
-				Libraries.WriteVariant(pItem.second->ToVariant(SVarWriteOpt()));
+				Libraries.WriteVariant(pItem.second->ToVariant(SVarWriteOpt(), m_pMemPool));
 			}
 
-			//StVariantWriter OldLibraries;
+			//StVariantWriter OldLibraries(m_pMemPool);
 			//OldLibraries.BeginList();
 			//for (auto I : OldCache) {
 			//	pClientData->LibraryCache.erase(I.first);
@@ -729,7 +729,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_SET_PROGRAM:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			CProgramItemPtr pItem;
@@ -761,7 +761,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			theCore->SetConfigDirty(true);
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_PROG_UID] = pItem->GetUID();
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
@@ -769,7 +769,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_ADD_PROGRAM:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->ProgramManager()->AddProgramTo(vReq[API_V_PROG_UID], vReq[API_V_PROG_PARENT]);
@@ -780,7 +780,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_REMOVE_PROGRAM:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->ProgramManager()->RemoveProgramFrom(vReq[API_V_PROG_UID], vReq[API_V_PROG_PARENT], vReq[API_V_DEL_WITH_RULES]);
@@ -791,7 +791,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_CLEANUP_PROGRAMS:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->ProgramManager()->CleanUp(vReq[API_V_PURGE_RULES]);
@@ -802,7 +802,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_REGROUP_PROGRAMS:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->ProgramManager()->ReGroup();
@@ -813,7 +813,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_START_SECURE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status;
@@ -888,7 +888,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_TRACE_LOG:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			CProgramID ID;
@@ -908,12 +908,12 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CProgramFile::STraceLogPtr TraceLog = pProgram->GetTraceLog(Type);
 			std::shared_lock LogLock(TraceLog->Mutex);
 
-			StVariantWriter LogData;
+			StVariantWriter LogData(m_pMemPool);
 			LogData.BeginList();
 			for (auto pEntry : TraceLog->Entries)
-				LogData.WriteVariant(pEntry->ToVariant());
+				LogData.WriteVariant(pEntry->ToVariant(m_pMemPool));
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_LOG_OFFSET] = TraceLog->IndexOffset;
 			vRpl[API_V_LOG_DATA] = LogData.Finish();
 			vRpl.ToPacket(rpl);
@@ -922,7 +922,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_LIBRARY_STATS:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			CProgramID ID;
@@ -935,15 +935,15 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (!pProgram)
 				return STATUS_OBJECT_TYPE_MISMATCH;
 
-			StVariant vRpl;
-			vRpl[API_V_LIBRARIES] = pProgram->DumpLibraries();
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_LIBRARIES] = pProgram->DumpLibraries(m_pMemPool);
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 
 		case SVC_API_GET_EXEC_STATS:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			CProgramID ID;
@@ -953,11 +953,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
-				vRpl = pProgram->DumpExecStats();
+				vRpl = pProgram->DumpExecStats(m_pMemPool);
 			else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
-				vRpl = pService->DumpExecStats();
+				vRpl = pService->DumpExecStats(m_pMemPool);
 			else
 				return STATUS_OBJECT_TYPE_MISMATCH;
 
@@ -967,7 +967,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_INGRESS_STATS:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			CProgramID ID;
@@ -977,11 +977,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
-				vRpl = pProgram->DumpIngress();
+				vRpl = pProgram->DumpIngress(m_pMemPool);
 			else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
-				vRpl = pService->DumpIngress();
+				vRpl = pService->DumpIngress(m_pMemPool);
 			else
 				return STATUS_OBJECT_TYPE_MISMATCH;
 
@@ -991,7 +991,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_CLEANUP_LIBS:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::set<CHandlePtr> Handles;
@@ -1021,7 +1021,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_ACCESS_STATS:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			CProgramID ID;
@@ -1031,11 +1031,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (!pItem)
 				return STATUS_NOT_FOUND;
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
-				vRpl[API_V_PROG_RESOURCE_ACCESS] = pProgram->DumpResAccess(vReq.Get(API_V_LAST_ACTIVITY));
+				vRpl[API_V_PROG_RESOURCE_ACCESS] = pProgram->DumpResAccess(vReq.Get(API_V_LAST_ACTIVITY), m_pMemPool);
 			else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
-				vRpl[API_V_PROG_RESOURCE_ACCESS] = pService->DumpResAccess(vReq.Get(API_V_LAST_ACTIVITY));
+				vRpl[API_V_PROG_RESOURCE_ACCESS] = pService->DumpResAccess(vReq.Get(API_V_LAST_ACTIVITY), m_pMemPool);
 			else
 				return STATUS_OBJECT_TYPE_MISMATCH;
 			
@@ -1046,7 +1046,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		// Access Manager
 		case SVC_API_GET_HANDLES:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::set<CHandlePtr> Handles;
@@ -1064,18 +1064,19 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				}
 			}
 
-			StVariant HandleList;
+			StVariantWriter HandleList(m_pMemPool);
+			HandleList.BeginList();
 			for (auto pHandles : Handles)
-				HandleList.Append(pHandles->ToVariant());
+				HandleList.WriteVariant(pHandles->ToVariant(m_pMemPool));
 
-			StVariant vRpl;
-			vRpl[API_V_HANDLES] = HandleList;
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_HANDLES] = HandleList.Finish();
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 		case SVC_API_CLEAR_LOGS:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			ETraceLogs Log = (ETraceLogs)vReq[API_V_LOG_TYPE].To<int>();
@@ -1117,7 +1118,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_SET_ACCESS_EVENT_ACTION:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 			uint64 EventId = vReq[API_V_EVENT_REF].To<uint64>(0);
 			EAccessRuleType Action = (EAccessRuleType)vReq[API_V_EVENT_ACTION].To<int>();
@@ -1128,7 +1129,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		// Volume Manager
 		case SVC_API_VOL_CREATE_IMAGE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->VolumeManager()->CreateImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_SIZE).To<uint64>(0), vReq.Get(API_V_VOL_CIPHER).AsStr());
@@ -1136,7 +1137,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		}
 		case SVC_API_VOL_CHANGE_PASSWORD:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->VolumeManager()->ChangeImagePassword(vReq[API_V_VOL_PATH], vReq[API_V_VOL_OLD_PASS], vReq[API_V_VOL_NEW_PASS]);
@@ -1144,7 +1145,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		}
 		//case SVC_API_VOL_DELETE_IMAGE:
 		//{
-		//	StVariant vReq;
+		//	StVariant vReq(m_pMemPool);
 		//	vReq.FromPacket(req);
 		//
 		//  STATUS Status = theCore->VolumeManager()->DeleteImage(vReq[API_V_VOL_PATH]);
@@ -1153,7 +1154,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_VOL_MOUNT_IMAGE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->VolumeManager()->MountImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_MOUNT_POINT], vReq[API_V_VOL_PASSWORD], vReq[API_V_VOL_PROTECT]);
@@ -1161,7 +1162,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		}
 		case SVC_API_VOL_DISMOUNT_VOLUME:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->VolumeManager()->DismountVolume(vReq[API_V_VOL_MOUNT_POINT].ToWString());
@@ -1179,13 +1180,13 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (Ret.IsError())
 				return Ret.GetStatus();
 				
-			StVariant List;
+			StVariant List(m_pMemPool);
 			List.BeginList();
 			for(std::wstring& DevicePath : Ret.GetValue())
 				List.Write(DevicePath);
 			List.Finish();
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_VOL_LIST] = List;
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
@@ -1196,19 +1197,19 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (Ret.IsError())
 				return Ret.GetStatus();
 				
-			StVariantWriter List;
+			StVariantWriter List(m_pMemPool);
 			List.BeginList();
 			for(auto& pVolume : Ret.GetValue())
-				List.WriteVariant(pVolume->ToVariant());
+				List.WriteVariant(pVolume->ToVariant(m_pMemPool));
 
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_VOLUMES] = List.Finish();
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 		case SVC_API_VOL_GET_VOLUME:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			auto Ret = theCore->VolumeManager()->GetVolumeInfo(vReq[API_V_VOL_MOUNT_POINT]);
@@ -1222,16 +1223,16 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		// Tweak Manager
 		case SVC_API_GET_TWEAKS:
 		{
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 			SVarWriteOpt Opts;
 			Opts.Flags |= SVarWriteOpt::eSaveAll;
-			vRpl[API_V_TWEAKS] = theCore->TweakManager()->GetTweaks(Opts, pClient.PID);
+			vRpl[API_V_TWEAKS] = theCore->TweakManager()->GetTweaks(pClient.PID, Opts, m_pMemPool);
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
 		case SVC_API_APPLY_TWEAK:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->TweakManager()->ApplyTweak(vReq[API_V_ID], pClient.PID);
@@ -1239,7 +1240,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		}
 		case SVC_API_UNDO_TWEAK:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->TweakManager()->UndoTweak(vReq[API_V_ID], pClient.PID);
@@ -1247,7 +1248,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		}
 		case SVC_API_APPROVE_TWEAK:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			STATUS Status = theCore->TweakManager()->ApproveTweak(vReq[API_V_ID], pClient.PID);
@@ -1256,7 +1257,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_SET_WATCHED_PROG:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::unique_lock Lock(pClientData->Mutex);
@@ -1278,7 +1279,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_SET_DAT_FILE:
 		{
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::wstring FileName = vReq[API_V_NAME].AsStr();
@@ -1311,10 +1312,10 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_EVENT_LOG:
 		{
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 
 			SVarWriteOpt Opts;
-			vRpl[API_V_EVENT_LOG] = m_pEventLog->SaveEntries(Opts);
+			vRpl[API_V_EVENT_LOG] = m_pEventLog->SaveEntries(Opts, m_pMemPool);
 
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
@@ -1327,7 +1328,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_SVC_STATS:
 		{
-			StVariant vRpl;
+			StVariant vRpl(m_pMemPool);
 
 			PROCESS_MEMORY_COUNTERS pmc;
 			if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
@@ -1344,7 +1345,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		{
 			NTSTATUS status = STATUS_UNSUCCESSFUL;
 
-			StVariant vReq;
+			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
 			std::wstring Text = vReq[API_V_MB_TEXT].AsStr();
@@ -1398,7 +1399,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 								DWORD Code = 0;
 								if (GetExitCodeProcess(pi.hProcess, &Code))
 								{
-									StVariant vRpl;
+									StVariant vRpl(m_pMemPool);
 									vRpl[API_V_MB_CODE] = (uint32)Code;
 									vRpl.ToPacket(rpl);
 

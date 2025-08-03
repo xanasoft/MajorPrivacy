@@ -83,6 +83,6 @@ EAccessRuleType CAccessRule::RunScript(const std::wstring& NtPath, uint64 ActorP
 	auto Ret = m_pScript->CallFunc("TestAccess", 1, Event);
 	if(Ret.IsError())
 		return EAccessRuleType::eNone;
-	EAccessRuleType Action = (EAccessRuleType)Ret.GetValue().To<int>();;
+	EAccessRuleType Action = (EAccessRuleType)Ret.GetValue().To<int>();
 	return Action;
 }

@@ -13,9 +13,11 @@ public:
 	CStatusView(QWidget *parent = 0);
 	virtual ~CStatusView();
 
+	void Refresh();
 	void Update();
 
 protected:
+	bool			m_bHasKey = false;
 
 private slots:
 

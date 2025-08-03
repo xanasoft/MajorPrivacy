@@ -55,6 +55,6 @@ void CNetLogEntry::WriteVariant(StVariantWriter& Entry) const
 
     //m_Realm // todo
 
-	Entry.WriteVariant(API_V_FW_ALLOW_RULES, CFlexGuid::WriteList(m_AllowRules, false));
-	Entry.WriteVariant(API_V_FW_BLOCK_RULES, CFlexGuid::WriteList(m_BlockRules, false));
+	Entry.WriteVariant(API_V_FW_ALLOW_RULES, CFlexGuid::WriteList(m_AllowRules, false, Entry.Allocator()));
+	Entry.WriteVariant(API_V_FW_BLOCK_RULES, CFlexGuid::WriteList(m_BlockRules, false, Entry.Allocator()));
 }

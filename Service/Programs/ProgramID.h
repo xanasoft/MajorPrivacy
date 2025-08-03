@@ -26,7 +26,7 @@ public:
 
 	std::wstring ToString() const;
 
-	StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	StVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	bool FromVariant(const StVariant& ID);
 
 protected:

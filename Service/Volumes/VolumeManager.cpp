@@ -630,37 +630,72 @@ STATUS ExecImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, const
     WCHAR sName[32];
     wsprintf(sName, L"_%08X_%08X%08X", GetCurrentProcessId(), (ULONG)(ctr >> 32), (ULONG)ctr);
 
-    //HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, (IMBOX_EVENT + std::wstring(sName)).c_str());
-    //cmd += L" event=" IMBOX_EVENT + std::wstring(sName);
+    cmd += L" mem=0x0000000000000000";
 
-    SSection* pSection = NULL;
-    HANDLE hMapping = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 0x1000, (IMBOX_SECTION + std::wstring(sName)).c_str());
-    if (hMapping) {
-        pSection = (SSection*)MapViewOfFile(hMapping, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0x1000);
-        memset(pSection, 0, 0x1000);
-    }
-    cmd += L" section=" IMBOX_SECTION + std::wstring(sName);
-
-    //if (pPassword && *pPassword)
-    wmemcpy(pSection->in.pass, pPassword, wcslen(pPassword) + 1);
-
-    if (pBuffer && bWrite)
-    {
-        pSection->magic = SECTION_MAGIC;
-        pSection->id = uId;
-        pSection->size = (USHORT)pBuffer->GetSize();
-        memcpy(pSection->data, pBuffer->GetBuffer(), pSection->size);
-    }
+    VOID* pMem = NULL;
 
     std::wstring app = theCore->GetAppDir() + L"\\ImBox.exe";
     STARTUPINFO si = { sizeof(STARTUPINFO) };
     PROCESS_INFORMATION pi = { 0 };
-    if (CreateProcess(app.c_str(), (WCHAR*)cmd.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+    if (CreateProcessW(app.c_str(), (WCHAR*)cmd.c_str(), NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi))
+    {
+        NTSTATUS status = STATUS_SUCCESS;
+
+        auto Mem = AllocPasswordMemory(pi.hProcess, pPassword);
+
+        if (Mem.IsError()) 
+            status = Mem.GetStatus();
+        else
+        {
+            pMem = Mem.GetValue();
+
+            status = UpdateCommandLine(pi.hProcess, [](std::wstring& s, PVOID p) {
+                // Note: Do not change the string length, that would require a different update mechanism.
+                size_t pos = s.find(L"mem=0x0000000000000000");
+                if (pos != std::wstring::npos) {
+                    wchar_t Addr[17];
+                    toHexadecimal((ULONG64)p, Addr);
+                    s.replace(pos + 6, 16, Addr);
+                    return STATUS_SUCCESS;
+                }
+                return STATUS_UNSUCCESSFUL;
+                }, pMem);
+        }
+
+        if (NT_SUCCESS(status) && pBuffer && bWrite) 
+        {
+            union {
+                SSection pSection[1];
+                BYTE pSpace[0x1000];
+            };
+            memset(pSpace, 0, sizeof(pSpace));
+
+            memcpy(pSection->in.pass, pPassword, (wcslen(pPassword) + 1) * sizeof(wchar_t));
+            pSection->magic = SECTION_MAGIC;
+            pSection->id = uId;
+            pSection->size = (USHORT)pBuffer->GetSize();
+            memcpy(pSection->data, pBuffer->GetBuffer(), pSection->size);
+
+            status = NtWriteVirtualMemory(pi.hProcess, pMem, (PVOID)pSpace, sizeof(pSpace), NULL);
+        }
+
+        if (!NT_SUCCESS(status)) {
+            TerminateProcess(pi.hProcess, -1);
+            pMem = NULL;
+            CloseHandle(pi.hThread);
+            CloseHandle(pi.hProcess);
+        }
+    }
+
+    if (pMem)
+    {
+        ResumeThread(pi.hThread);
+
 
         HANDLE hEvents[] = { /*hEvent,*/ pi.hProcess };
         DWORD dwEvent = WaitForMultipleObjects(ARRAYSIZE(hEvents), hEvents, FALSE, 40 * 1000);
         //if (dwEvent != WAIT_OBJECT_0)
-            
+
         DWORD ret;
         GetExitCodeProcess(pi.hProcess, &ret);
         if (ret == STILL_ACTIVE)
@@ -671,30 +706,25 @@ STATUS ExecImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, const
         {
             if (pBuffer && !bWrite) 
             {
-                if (pSection->magic == SECTION_MAGIC && pSection->id == uId) {
-                    pBuffer->SetSize(pSection->size, true);
-                    memcpy(pBuffer->GetBuffer(), pSection->data, pSection->size);
+                union {
+                    SSection pSection[1];
+                    BYTE pSpace[0x1000];
+                };
+                if (NT_SUCCESS(NtReadVirtualMemory(pi.hProcess, (PVOID)pMem, pSpace, sizeof(pSpace), NULL)))
+                {
+                    // to do, don't care
                 }
             }
             Status = OK;
         }
-		
+
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
     }
 
-    if (pSection) {
-        memset(pSection, 0, 0x1000);
-        UnmapViewOfFile(pSection);
-    }
-    if(hMapping) 
-        CloseHandle(hMapping);
-
-    //if(hEvent) 
-    //    CloseHandle(hEvent);
-
     return Status;
 }
+
 
 STATUS CVolumeManager::Update()
 {

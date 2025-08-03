@@ -17,6 +17,8 @@ public:
 	virtual void SetEnclave(const QFlexGuid& Enclave) { m_Enclave = Enclave; }
 	virtual QFlexGuid GetEnclave() const			{ return m_Enclave; }
 
+	virtual bool ValidateUserSID();
+
 	virtual bool IsEnabled() const					{ return m_bEnabled; }
 	virtual void SetEnabled(bool bEnabled)			{ m_bEnabled = bEnabled; }
 	virtual bool IsTemporary() const				{ return m_bTemporary; }
@@ -44,6 +46,10 @@ protected:
 	bool m_bEnabled = true;
 
 	QFlexGuid m_Enclave;
+
+	QString m_User;
+	bool m_SidValid = false;
+	QtVariant m_UserSid;
 
 	bool m_bTemporary = false;
 	quint64 m_uTimeOut = -1;

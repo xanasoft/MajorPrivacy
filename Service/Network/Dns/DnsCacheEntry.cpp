@@ -40,9 +40,9 @@ void CDnsCacheEntry::SubtractTTL(uint64 Delta, bool bKill)
 	m_TTL -= Delta;	
 }
 
-StVariant CDnsCacheEntry::ToVariant() const
+StVariant CDnsCacheEntry::ToVariant(FW::AbstractMemPool* pMemPool) const
 {
-	StVariantWriter Entry;
+	StVariantWriter Entry(pMemPool);
 	Entry.BeginIndex();
 	Entry.Write(API_V_DNS_CACHE_REF, (uint64)this);
 	Entry.WriteEx(API_V_DNS_HOST, m_HostName);

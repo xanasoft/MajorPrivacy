@@ -135,6 +135,8 @@ public:
 	CVariantWriter(FW::AbstractMemPool* pMemPool = nullptr) : m_Buffer(pMemPool) {}
 #endif
 	
+	FW::AbstractMemPool*	Allocator() const { return m_Buffer.Allocator(); }
+
 	// Map Write
 	EResult					BeginMap() {return BeginWrite(VAR_TYPE_MAP);}
 	EResult					WriteValue(const char* Name, EType Type, size_t Size, const void* Value);

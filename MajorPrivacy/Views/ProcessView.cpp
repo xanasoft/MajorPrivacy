@@ -70,7 +70,7 @@ CProcessView::~CProcessView()
 	theConf->SetBlob("MainWindow/ProcessView_Columns", m_pTreeView->saveState());
 }
 
-void CProcessView::Sync(QMap<quint64, CProcessPtr> ProcessMap)
+void CProcessView::Sync(QHash<quint64, CProcessPtr> ProcessMap)
 {
 	EProcessScope Scope = (EProcessScope)m_pCmbScope->currentData().toInt();
 

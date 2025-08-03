@@ -222,6 +222,7 @@ CVariantModel::CVariantModel(QObject* parent)
 
 void CVariantModel::Update(const QtVariant& pRoot)
 {
+	CAbstractTreeModel::Clean();
 	CAbstractTreeModel::Update(&pRoot);
 }
 

@@ -11,7 +11,7 @@ public:
 	uint64 GetUID() const { return m_UID; }
 	std::wstring GetPath() const { std::unique_lock lock(m_Mutex); return m_Path; }
 
-	virtual StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual StVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual NTSTATUS FromVariant(const StVariant& Data);
 
 protected:

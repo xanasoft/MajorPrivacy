@@ -38,7 +38,7 @@ void CFwRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteEx(API_V_APP_NAME, TO_STR(M(PackageFamilyName)));
 
 #ifdef CFwRule
-    Rule.WriteVariant(API_V_ID, m_ProgramID.ToVariant(Opts));
+    Rule.WriteVariant(API_V_ID, m_ProgramID.ToVariant(Opts, Rule.Allocator()));
 
     Rule.WriteEx(API_V_NAME, TO_STR(M(Name)));
 #endif
@@ -55,21 +55,21 @@ void CFwRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 
     Rule.Write(API_V_FW_RULE_INTERFACE, (uint32)M(Interface));
 
-    Rule.WriteVariant(API_V_FW_RULE_LOCAL_ADDR, XVariant(M(LocalAddresses)));
-    Rule.WriteVariant(API_V_FW_RULE_LOCAL_PORT, XVariant(M(LocalPorts)));
-    Rule.WriteVariant(API_V_FW_RULE_REMOTE_ADDR, XVariant(M(RemoteAddresses)));
-    Rule.WriteVariant(API_V_FW_RULE_REMOTE_PORT, XVariant(M(RemotePorts)));
+    Rule.WriteVariant(API_V_FW_RULE_LOCAL_ADDR, XVariant(Rule.Allocator(), M(LocalAddresses)));
+    Rule.WriteVariant(API_V_FW_RULE_LOCAL_PORT, XVariant(Rule.Allocator(), M(LocalPorts)));
+    Rule.WriteVariant(API_V_FW_RULE_REMOTE_ADDR, XVariant(Rule.Allocator(), M(RemoteAddresses)));
+    Rule.WriteVariant(API_V_FW_RULE_REMOTE_PORT, XVariant(Rule.Allocator(), M(RemotePorts)));
 
 #ifdef CFwRule
     ASTR_VECTOR IcmpTypesAndCodes;
     for (auto I : m_FwRule->IcmpTypesAndCodes)
         IcmpTypesAndCodes.push_back(std::to_string(I.Type) + ":" + (I.Code == 256 ? "*" : std::to_string(I.Code)));
-    Rule.WriteVariant(API_V_FW_RULE_ICMP, XVariant(IcmpTypesAndCodes));
+    Rule.WriteVariant(API_V_FW_RULE_ICMP, XVariant(Rule.Allocator(), IcmpTypesAndCodes));
 #else
-    Rule.WriteVariant(API_V_FW_RULE_ICMP, XVariant(M(IcmpTypesAndCodes)));
+    Rule.WriteVariant(API_V_FW_RULE_ICMP, XVariant(Rule.Allocator(), M(IcmpTypesAndCodes)));
 #endif
 
-    Rule.WriteVariant(API_V_FW_RULE_OS, XVariant(M(OsPlatformValidity)));
+    Rule.WriteVariant(API_V_FW_RULE_OS, XVariant(Rule.Allocator(), M(OsPlatformValidity)));
 
     Rule.Write(API_V_FW_RULE_EDGE, M(EdgeTraversal));
 
@@ -208,7 +208,7 @@ void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteEx(API_S_APP_NAME, TO_STR(M(PackageFamilyName)));
 
 #ifdef CFwRule
-    Rule.WriteVariant(API_S_ID, m_ProgramID.ToVariant(Opts));
+    Rule.WriteVariant(API_S_ID, m_ProgramID.ToVariant(Opts, Rule.Allocator()));
 
     Rule.WriteEx(API_S_NAME, TO_STR(M(Name)));
 #endif
@@ -237,7 +237,7 @@ void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
         if(M(Profile) & (int)EFwProfiles::Private)	Profiles.push_back(API_S_FW_RULE_PROFILE_PRIVATE);
         if(M(Profile) & (int)EFwProfiles::Public)	Profiles.push_back(API_S_FW_RULE_PROFILE_PUBLIC);
     }
-    Rule.WriteVariant(API_S_FW_RULE_PROFILE, XVariant(Profiles));
+    Rule.WriteVariant(API_S_FW_RULE_PROFILE, XVariant(Rule.Allocator(), Profiles));
 
     Rule.Write(API_S_FW_RULE_PROTOCOL, (uint32)M(Protocol));
 
@@ -250,20 +250,20 @@ void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
         if(M(Interface) & (int)EFwInterfaces::Wireless)	    Interfaces.push_back(API_S_FW_RULE_INTERFACE_WIRELESS);
         if(M(Interface) & (int)EFwInterfaces::RemoteAccess) Interfaces.push_back(API_S_FW_RULE_INTERFACE_REMOTEACCESS);
     }
-    Rule.WriteVariant(API_S_FW_RULE_INTERFACE, XVariant(Interfaces));
+    Rule.WriteVariant(API_S_FW_RULE_INTERFACE, XVariant(Rule.Allocator(), Interfaces));
 
-    Rule.WriteVariant(API_S_FW_RULE_LOCAL_ADDR, XVariant(M(LocalAddresses)));
-    Rule.WriteVariant(API_S_FW_RULE_LOCAL_PORT, XVariant(M(LocalPorts)));
-    Rule.WriteVariant(API_S_FW_RULE_REMOTE_ADDR, XVariant(M(RemoteAddresses)));
-    Rule.WriteVariant(API_S_FW_RULE_REMOTE_PORT, XVariant(M(RemotePorts)));
+    Rule.WriteVariant(API_S_FW_RULE_LOCAL_ADDR, XVariant(Rule.Allocator(), M(LocalAddresses)));
+    Rule.WriteVariant(API_S_FW_RULE_LOCAL_PORT, XVariant(Rule.Allocator(), M(LocalPorts)));
+    Rule.WriteVariant(API_S_FW_RULE_REMOTE_ADDR, XVariant(Rule.Allocator(), M(RemoteAddresses)));
+    Rule.WriteVariant(API_S_FW_RULE_REMOTE_PORT, XVariant(Rule.Allocator(), M(RemotePorts)));
 
 #ifdef CFwRule
     ASTR_VECTOR IcmpTypesAndCodes;
     for (auto I : m_FwRule->IcmpTypesAndCodes)
         IcmpTypesAndCodes.push_back(std::to_string(I.Type) + ":" + (I.Code == 256 ? "*" : std::to_string(I.Code)));
-    Rule.WriteVariant(API_S_FW_RULE_ICMP, XVariant(IcmpTypesAndCodes));
+    Rule.WriteVariant(API_S_FW_RULE_ICMP, XVariant(Rule.Allocator(), IcmpTypesAndCodes));
 #else
-    Rule.WriteVariant(API_S_FW_RULE_ICMP, XVariant(M(IcmpTypesAndCodes)));
+    Rule.WriteVariant(API_S_FW_RULE_ICMP, XVariant(Rule.Allocator(), M(IcmpTypesAndCodes)));
 #endif
 
     Rule.WriteVariant(API_S_FW_RULE_OS, XVariant(M(OsPlatformValidity)));

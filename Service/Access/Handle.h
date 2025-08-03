@@ -17,7 +17,7 @@ public:
 	std::shared_ptr<class CProcess> GetProcess() const	{ std::shared_lock Lock(m_Mutex); return m_pProcess.lock(); }
 
 
-	StVariant ToVariant() const;
+	StVariant ToVariant(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 protected:
 	friend class CHandleList;

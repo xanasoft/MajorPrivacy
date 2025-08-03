@@ -13,20 +13,27 @@ CProcessList::CProcessList(QObject* parent)
 
 STATUS CProcessList::Update()
 {
+	//uint64 uStart = GetTickCount64();
+
 	auto Ret = theCore->GetProcesses();
+
+	//DbgPrint("theCore->GetProcesses() took %llu ms\n", GetTickCount64() - uStart);
+	
 	if (Ret.IsError())
-		return Ret.GetStatus();;
+		return Ret.GetStatus();
 
 	m_SocketCount = 0;
 
 	QtVariant& Processes = Ret.GetValue();
 
-	QMap<quint64, CProcessPtr> OldMap = m_List;
+	QHash<quint64, CProcessPtr> OldMap = m_List;
 
 	QtVariantReader(Processes).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Process = *(QtVariant*)&vData;
 
-		quint64 Pid = QtVariantReader(Process).Find(API_V_PID);
+		QtVariant vPid(Process.Allocator());
+		FW::CVariantReader::Find(Process, API_V_PID, vPid);
+		quint64 Pid = vPid;
 
 		CProcessPtr pProcess = OldMap.take(Pid);
 		bool bAdded;
@@ -55,12 +62,14 @@ STATUS CProcessList::Update()
 			pEnclave->RemoveProcess(pProcess);
 	}
 
+	//DbgPrint("CProcessList::Update() took %llu ms\n", GetTickCount64() - uStart);
+
 	return OK;
 }
 
-QMap<quint64, CProcessPtr> CProcessList::GetProcesses(const QSet<quint64>& Pids)
+QHash<quint64, CProcessPtr> CProcessList::GetProcesses(const QSet<quint64>& Pids)
 {
-	QMap<quint64, CProcessPtr> List;
+	QHash<quint64, CProcessPtr> List;
 	foreach(quint64 Pid, Pids) {
 		CProcessPtr pProcess = m_List.value(Pid);
 		if (pProcess)

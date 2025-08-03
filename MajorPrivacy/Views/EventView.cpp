@@ -51,7 +51,7 @@ CEventView::~CEventView()
 
 void CEventView::OnClearEventLog()
 {
-	if(!QMessageBox::question(this, tr("Clear Privacy Event Log"), tr("Do you really want to clear the Privacy Event Log?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) == QMessageBox::Yes)
+	if(QMessageBox::question(this, tr("Clear Privacy Event Log"), tr("Do you really want to clear the Privacy Event Log?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
 		return;
 
 	theCore->ClearPrivacyLog();

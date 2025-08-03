@@ -556,11 +556,11 @@ void CProcess::AddNetworkIO(int Type, uint32 TransferSize)
 	}
 }
 
-StVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CProcess::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	std::shared_lock Lock(m_Mutex);
 
-	StVariantWriter Process;
+	StVariantWriter Process(pMemPool);
 	Process.BeginIndex();
 
 	Process.Write(API_V_PID, m_Pid);
@@ -572,13 +572,13 @@ StVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
 	Process.WriteEx(API_V_FILE_NT_PATH, m_NtFilePath);
 	Process.WriteEx(API_V_CMD_LINE, m_CommandLine);
 
-	Process.WriteVariant(API_V_ENCLAVE, m_EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+	Process.WriteVariant(API_V_ENCLAVE, m_EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, pMemPool));
 	Process.Write(API_V_KPP_STATE, m_SecState);
 
 	Process.Write(API_V_FLAGS, m_Flags);
 	Process.Write(API_V_SFLAGS, m_SecFlags);
 	
-	Process.WriteVariant(API_V_SIGN_INFO, m_SignInfo.ToVariant(Opts));
+	Process.WriteVariant(API_V_SIGN_INFO, m_SignInfo.ToVariant(Opts, pMemPool));
 	Process.Write(API_V_NUM_IMG, m_NumberOfImageLoads);
 	Process.Write(API_V_NUM_MS_IMG, m_NumberOfMicrosoftImageLoads);
 	Process.Write(API_V_NUM_AV_IMG, m_NumberOfAntimalwareImageLoads);
@@ -586,7 +586,7 @@ StVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
 	Process.Write(API_V_NUM_S_IMG, m_NumberOfSignedImageLoads);
 	Process.Write(API_V_NUM_U_IMG, m_NumberOfUntrustedImageLoads);
 
-	Process.WriteVariant(API_V_SERVICES, StVariant(m_ServiceList));
+	Process.WriteVariant(API_V_SERVICES, StVariant(pMemPool, m_ServiceList));
 
 	Process.WriteEx(API_V_APP_SID, m_AppContainerSid);
 	Process.WriteEx(API_V_APP_NAME, m_AppContainerName);
@@ -609,12 +609,12 @@ StVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
 
 	std::shared_lock HandleLock(m_HandleMutex);
 
-	StVariantWriter Handles;
+	StVariantWriter Handles(pMemPool);
 	Handles.BeginList();
 	for (auto I : m_HandleList) {
 		if(I->GetFileName().empty())
 			continue; // skip unnamed handles
-		Handles.WriteVariant(I->ToVariant());
+		Handles.WriteVariant(I->ToVariant(pMemPool));
 	}
 	Process.WriteVariant(API_V_HANDLES, Handles.Finish());
 
@@ -622,10 +622,10 @@ StVariant CProcess::ToVariant(const SVarWriteOpt& Opts) const
 
 	std::shared_lock SocketLock(m_SocketMutex);
 
-	StVariantWriter Sockets;
+	StVariantWriter Sockets(pMemPool);
 	Sockets.BeginList();
 	for (auto I : m_SocketList)
-		Sockets.WriteVariant(I->ToVariant());
+		Sockets.WriteVariant(I->ToVariant(pMemPool));
 	Process.WriteVariant(API_V_SOCKETS, Sockets.Finish());
 
 	SocketLock.unlock();

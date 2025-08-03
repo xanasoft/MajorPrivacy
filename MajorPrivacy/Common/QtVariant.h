@@ -92,6 +92,7 @@ public:
 	}
 
 
+	QtVariant(FW::AbstractMemPool* pMemPool, const QString& String, bool bUtf8 = false) : CVariant(pMemPool, (const wchar_t*)String.utf16(), String.length(), bUtf8) {}
 	QtVariant(const QString& String, bool bUtf8 = false) : CVariant((const wchar_t*)String.utf16(), String.length(), bUtf8) {}
 	QString AsQStr() const
 	{
@@ -108,12 +109,15 @@ public:
 			return QString();
 	}
 
+	QtVariant(FW::AbstractMemPool* pMemPool, const QByteArray& Bytes) : CVariant(pMemPool, (byte*)Bytes.data(), Bytes.size(), VAR_TYPE_BYTES) {}
 	QtVariant(const QByteArray& Bytes) : CVariant((byte*)Bytes.data(), Bytes.size(), VAR_TYPE_BYTES) {}
 	QByteArray AsQBytes() const							{if (!IsRaw()) return QByteArray(); return QByteArray((char*)GetData(), GetSize());}
 
 
 	template<typename T>
-	QtVariant(const QList<T>& List) : CVariant() {
+	QtVariant(const QList<T>& List) : QtVariant(nullptr, List) {}
+	template<typename T>
+	QtVariant(FW::AbstractMemPool* pMemPool, const QList<T>& List) : CVariant(pMemPool) {
 		FW::CVariantWriter Writer;
 		Writer.BeginList();
 		foreach(const QString& Item, List)
@@ -121,7 +125,8 @@ public:
 		this->Assign(Writer.Finish());
 	}
 
-	QtVariant(const QStringList& List, bool bUtf8 = false) : CVariant() {
+	QtVariant(const QStringList& List, bool bUtf8 = false) : QtVariant(nullptr, List, bUtf8) {}
+	QtVariant(FW::AbstractMemPool* pMemPool, const QStringList& List, bool bUtf8 = false) : CVariant() {
 		FW::CVariantWriter Writer;
 		Writer.BeginList();
 		foreach(const QString& Item, List)

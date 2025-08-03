@@ -64,7 +64,7 @@ void CAccessLog::StoreAllExecParents(StVariantWriter& List, const CFlexGuid& Enc
 		{
 			auto& Entry = J->second;
 #endif
-			StVariantWriter vActor;
+			StVariantWriter vActor(List.Allocator());
 			vActor.BeginIndex();
 			if (Opts.Flags & SVarWriteOpt::eSaveToFile) {
 #ifdef DEF_USE_POOL
@@ -73,7 +73,7 @@ void CAccessLog::StoreAllExecParents(StVariantWriter& List, const CFlexGuid& Enc
 				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
 #endif
 				if (!pProg) continue;
-				vActor.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts));
+				vActor.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts, vActor.Allocator()));
 			}
 			else {
 #ifdef DEF_USE_POOL
@@ -85,14 +85,14 @@ void CAccessLog::StoreAllExecParents(StVariantWriter& List, const CFlexGuid& Enc
 #endif
 			}
 			if (!EnclaveGuid.IsNull()) // this is the Enclave we have been started into
-				vActor.WriteVariant(API_V_EVENT_TARGET_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+				vActor.WriteVariant(API_V_EVENT_TARGET_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, vActor.Allocator()));
 #ifdef DEF_USE_POOL
 			vActor.Write(API_V_PID, J.Key()); // Process UID
 #else
 			vActor.Write(API_V_PID, J->first); // Process UID
 #endif
 			if (!Entry.EnclaveGuid.IsNull()) // this is the Enclave of the process starting us
-				vActor.WriteVariant(API_V_EVENT_ACTOR_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+				vActor.WriteVariant(API_V_EVENT_ACTOR_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, vActor.Allocator()));
 
 			vActor.Write(API_V_LAST_ACTIVITY, Entry.LastExecTime);
 			vActor.Write(API_V_WAS_BLOCKED, Entry.bBlocked);
@@ -196,7 +196,7 @@ void CAccessLog::StoreAllExecChildren(StVariantWriter& List, const CFlexGuid& En
 		{
 			auto& Entry = J->second;
 #endif
-			StVariantWriter vTarget;
+			StVariantWriter vTarget(List.Allocator());
 			vTarget.BeginIndex();
 			if (Opts.Flags & SVarWriteOpt::eSaveToFile) {
 #ifdef DEF_USE_POOL
@@ -205,7 +205,7 @@ void CAccessLog::StoreAllExecChildren(StVariantWriter& List, const CFlexGuid& En
 				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
 #endif
 				if (!pProg) continue;
-				vTarget.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts));
+				vTarget.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts, vTarget.Allocator()));
 			}
 			else {
 				vTarget.Write(API_V_PROCESS_REF, (uint64)&Entry);
@@ -217,14 +217,14 @@ void CAccessLog::StoreAllExecChildren(StVariantWriter& List, const CFlexGuid& En
 				if (!SvcTag.empty()) vTarget.WriteEx(API_V_SERVICE_TAG, SvcTag);
 			}
 			if (!EnclaveGuid.IsNull()) // this is the Enclave we are in while starting an otherprocess
-				vTarget.WriteVariant(API_V_EVENT_ACTOR_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+				vTarget.WriteVariant(API_V_EVENT_ACTOR_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, vTarget.Allocator()));
 #ifdef DEF_USE_POOL
 			vTarget.Write(API_V_PID, J.Key()); // Process UID
 #else
 			vTarget.Write(API_V_PID, J->first); // Process UID
 #endif
 			if (!Entry.EnclaveGuid.IsNull()) // this is the Enclave of the process we are starting
-				vTarget.WriteVariant(API_V_EVENT_TARGET_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+				vTarget.WriteVariant(API_V_EVENT_TARGET_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, vTarget.Allocator()));
 
 			vTarget.Write(API_V_LAST_ACTIVITY, Entry.LastExecTime);
 			vTarget.Write(API_V_WAS_BLOCKED, Entry.bBlocked);
@@ -327,7 +327,7 @@ void CAccessLog::StoreAllIngressActors(StVariantWriter& List, const CFlexGuid& E
 		{
 			auto& Entry = J->second;
 #endif
-			StVariantWriter vActor;
+			StVariantWriter vActor(List.Allocator());
 			vActor.BeginIndex();
 			if (Opts.Flags & SVarWriteOpt::eSaveToFile) {
 #ifdef DEF_USE_POOL
@@ -336,7 +336,7 @@ void CAccessLog::StoreAllIngressActors(StVariantWriter& List, const CFlexGuid& E
 				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
 #endif
 				if (!pProg) continue;
-				vActor.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts));
+				vActor.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts, vActor.Allocator()));
 			}
 			else {
 				vActor.Write(API_V_PROCESS_REF, (uint64)&Entry);
@@ -347,14 +347,14 @@ void CAccessLog::StoreAllIngressActors(StVariantWriter& List, const CFlexGuid& E
 #endif
 			}
 			if (!EnclaveGuid.IsNull()) // this is the Enclave we are in while being accesses
-				vActor.WriteVariant(API_V_EVENT_TARGET_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+				vActor.WriteVariant(API_V_EVENT_TARGET_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, vActor.Allocator()));
 #ifdef DEF_USE_POOL
 			vActor.Write(API_V_PID, J.Key()); // Process UID
 #else
 			vActor.Write(API_V_PID, J->first); // Process UID
 #endif
 			if (!Entry.EnclaveGuid.IsNull()) // this is the Enclave of the process accessing us
-				vActor.WriteVariant(API_V_EVENT_ACTOR_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+				vActor.WriteVariant(API_V_EVENT_ACTOR_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, vActor.Allocator()));
 
 			vActor.Write(API_V_THREAD_ACCESS_MASK, Entry.ThreadAccessMask);
 			vActor.Write(API_V_PROCESS_ACCESS_MASK, Entry.ProcessAccessMask);
@@ -455,7 +455,7 @@ void CAccessLog::StoreAllIngressTargets(StVariantWriter& List, const CFlexGuid& 
 		{
 			auto& Entry = J->second;
 #endif
-			StVariantWriter vTarget;
+			StVariantWriter vTarget(List.Allocator());
 			vTarget.BeginIndex();
 			if (Opts.Flags & SVarWriteOpt::eSaveToFile) {
 #ifdef DEF_USE_POOL
@@ -464,7 +464,7 @@ void CAccessLog::StoreAllIngressTargets(StVariantWriter& List, const CFlexGuid& 
 				CProgramItemPtr pProg = theCore->ProgramManager()->GetItem(I->first);
 #endif
 				if (!pProg) continue;
-				vTarget.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts));
+				vTarget.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts, vTarget.Allocator()));
 			}
 			else {
 				vTarget.Write(API_V_PROCESS_REF, (uint64)&Entry);
@@ -476,14 +476,14 @@ void CAccessLog::StoreAllIngressTargets(StVariantWriter& List, const CFlexGuid& 
 				if (!SvcTag.empty()) vTarget.WriteEx(API_V_SERVICE_TAG, SvcTag);
 			}
 			if (!EnclaveGuid.IsNull()) // this is the Enclave we are in while accessign an other process
-				vTarget.WriteVariant(API_V_EVENT_ACTOR_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+				vTarget.WriteVariant(API_V_EVENT_ACTOR_EID, EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, vTarget.Allocator()));
 #ifdef DEF_USE_POOL
 			vTarget.Write(API_V_PID, J.Key()); // Process UID
 #else
 			vTarget.Write(API_V_PID, J->first); // Process UID
 #endif
 			if (!Entry.EnclaveGuid.IsNull()) // this is the Enclave of the process we are accessing
-				vTarget.WriteVariant(API_V_EVENT_TARGET_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids));
+				vTarget.WriteVariant(API_V_EVENT_TARGET_EID, Entry.EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, vTarget.Allocator()));
 
 			vTarget.Write(API_V_THREAD_ACCESS_MASK, Entry.ThreadAccessMask);
 			vTarget.Write(API_V_PROCESS_ACCESS_MASK, Entry.ProcessAccessMask);

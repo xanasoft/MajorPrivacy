@@ -48,7 +48,7 @@ public:
 
 	virtual size_t GetLogMemUsage() const {return 0;}
 
-	virtual StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual StVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual NTSTATUS FromVariant(const StVariant& Data);
 
 protected:
@@ -91,9 +91,9 @@ public:
 	std::set<std::shared_ptr<class CAccessRule>>	m_ResRules;
 
 private:
-	StVariant CollectFwRules() const;
-	StVariant CollectProgRules() const;
-	StVariant CollectResRules() const;
+	StVariant CollectFwRules(FW::AbstractMemPool* pMemPool = nullptr) const;
+	StVariant CollectProgRules(FW::AbstractMemPool* pMemPool = nullptr) const;
+	StVariant CollectResRules(FW::AbstractMemPool* pMemPool = nullptr) const;
 	
 };
 

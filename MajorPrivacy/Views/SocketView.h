@@ -14,7 +14,7 @@ public:
 	CSocketView(QWidget *parent = 0);
 	virtual ~CSocketView();
 
-	void					Sync(const QMap<quint64, CProcessPtr>& Processes, const QSet<CWindowsServicePtr>& ServicesEx);
+	void					Sync(const QHash<quint64, CProcessPtr>& Processes, const QSet<CWindowsServicePtr>& ServicesEx);
 	
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

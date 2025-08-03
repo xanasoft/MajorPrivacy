@@ -27,7 +27,7 @@ public:
     virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff, SCallParams* pParams) = 0;
     virtual RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message, SCallParams* pParams)
     {
-	    CBuffer sendBuff;
+	    CBuffer sendBuff(Message.Allocator());
 	    sendBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
 		PMSG_HEADER reqHeader = (PMSG_HEADER)sendBuff.GetBuffer();
 		reqHeader->MessageId = MessageId;
@@ -36,7 +36,7 @@ public:
 	    Message.ToPacket(&sendBuff);
         ((PMSG_HEADER)sendBuff.GetBuffer())->Size = (ULONG)sendBuff.GetSize();
 
-	    CBuffer recvBuff;
+	    CBuffer recvBuff(Message.Allocator());
 	    STATUS Status;
 		PMSG_HEADER resHeader;
 		size_t RetBufferSize = pParams ? pParams->RetBufferSize : 0x1000;
@@ -61,7 +61,7 @@ public:
 		if (!NT_SUCCESS(resHeader->Status))
 			return ERR(resHeader->Status);
 
-		StVariant Result;
+		StVariant Result(Message.Allocator());
 		if(recvBuff.GetSizeLeft() > 0)
 			Result.FromPacket(&recvBuff);
 

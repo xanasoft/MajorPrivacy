@@ -212,7 +212,7 @@ int WinMain(
         if ((SvcState & SVC_INSTALLED) == 0)
             Status = CServiceAPI::InstallSvc();
     }
-    else if (HasFlag(arguments, L"remove"))
+    else if (HasFlag(arguments, L"unload") || HasFlag(arguments, L"remove"))
     {
         SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
         if ((SvcState & SVC_RUNNING) == SVC_RUNNING) 
@@ -249,12 +249,18 @@ int WinMain(
 
             Status = KillService(API_SERVICE_NAME);
         }
-		if (Status && (SvcState & SVC_INSTALLED) == SVC_INSTALLED)
-            Status = RemoveService(API_SERVICE_NAME);
 
-        SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
-        if ((DrvState & SVC_INSTALLED) == SVC_INSTALLED) 
-            Status = CServiceCore::RemoveDriver();
+        Status = CServiceCore::StopDriver();
+
+        if (Status && HasFlag(arguments, L"remove"))
+        {
+            if (Status && (SvcState & SVC_INSTALLED) == SVC_INSTALLED)
+                Status = RemoveService(API_SERVICE_NAME);
+
+            SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
+            if ((DrvState & SVC_INSTALLED) == SVC_INSTALLED)
+                Status = CServiceCore::RemoveDriver();
+        }
     }
     else if (HasFlag(arguments, L"cleanup"))
     {

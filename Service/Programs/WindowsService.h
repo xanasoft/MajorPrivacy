@@ -22,28 +22,28 @@ public:
 		const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
 		const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked);
 	//virtual std::map<uint64, CAccessLog::SExecInfo> GetExecChildren() const { std::unique_lock lock(m_Mutex); return m_AccessLog.GetExecChildren(); }
-	virtual StVariant DumpExecStats() const;
+	virtual StVariant DumpExecStats(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 	virtual void AddIngressTarget(
 		const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
 		bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
 	//virtual std::map<uint64, CAccessLog::SAccessInfo> GetIngressTargets() const { std::unique_lock lock(m_Mutex); return m_AccessLog.GetIngressTargets(); }
-	virtual StVariant DumpIngress() const;
+	virtual StVariant DumpIngress(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 	virtual void AddAccess(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked);
-	virtual StVariant DumpResAccess(uint64 LastActivity) const;
+	virtual StVariant DumpResAccess(uint64 LastActivity, FW::AbstractMemPool* pMemPool = nullptr) const;
 
-	virtual StVariant StoreIngress(const SVarWriteOpt& Opts) const;
+	virtual StVariant StoreIngress(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual void LoadIngress(const StVariant& Data);
 
-	virtual StVariant StoreAccess(const SVarWriteOpt& Opts) const;
+	virtual StVariant StoreAccess(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual void LoadAccess(const StVariant& Data);
 
 	virtual void UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked);
 
 	virtual CTrafficLog* TrafficLog()							{ return &m_TrafficLog; }
 
-	virtual StVariant StoreTraffic(const SVarWriteOpt& Opts) const;
+	virtual StVariant StoreTraffic(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual void LoadTraffic(const StVariant& Data);
 
 	virtual void ClearLogs(ETraceLogs Log);

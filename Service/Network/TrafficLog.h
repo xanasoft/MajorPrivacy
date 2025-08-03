@@ -30,10 +30,10 @@ public:
 
 	void Clear();
 
-	StVariant StoreTraffic(const SVarWriteOpt& Opts) const;
+	StVariant StoreTraffic(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	void LoadTraffic(const StVariant& Data);
 
-	StVariant ToVariant(uint64 MinLastActivity = 0) const;
+	StVariant ToVariant(uint64 MinLastActivity = 0, FW::AbstractMemPool* pMemPool = nullptr) const;
 
 protected:
 
@@ -56,11 +56,11 @@ protected:
 #ifdef DEF_USE_POOL
 	static void CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, FW::Map<FW::StringW, STrafficLogEntry>& TrafficLog);
 
-	StVariant DumpEntry(const FW::StringW& Host, const STrafficLogEntry& Data) const;
+	StVariant DumpEntry(const FW::StringW& Host, const STrafficLogEntry& Data, FW::AbstractMemPool* pMemPool = nullptr) const;
 #else
 	static void CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, std::map<std::wstring, STrafficLogEntry>& TrafficLog);
 
-	StVariant DumpEntry(const std::wstring& Host, const STrafficLogEntry& Data) const;
+	StVariant DumpEntry(const std::wstring& Host, const STrafficLogEntry& Data, FW::AbstractMemPool* pMemPool = nullptr) const;
 #endif
 
 #ifdef DEF_USE_POOL

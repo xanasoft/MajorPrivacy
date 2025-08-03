@@ -14,7 +14,7 @@ public:
 	CHandleView(QWidget *parent = 0);
 	virtual ~CHandleView();
 
-	void					Sync(const QMap<quint64, CProcessPtr>& Processes, const QString& RootPath = QString());
+	void					Sync(const QHash<quint64, CProcessPtr>& Processes, const QString& RootPath = QString());
 	
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

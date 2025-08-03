@@ -134,7 +134,9 @@ quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const cla
     QtVariantReader(TrafficList).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& TrafficEntry = *(QtVariant*)&vData;
 
-		QString HostName = QtVariantReader(TrafficEntry).Find(API_V_SOCK_RHOST).AsQStr();
+        QtVariant vHostName(TrafficEntry.Allocator());
+        FW::CVariantReader::Find(TrafficEntry, API_V_SOCK_RHOST, vHostName);
+		QString HostName = vHostName.AsQStr();
 
 		CTrafficEntryPtr pEntry = OldList.take(HostName);
 		if (!pEntry) {

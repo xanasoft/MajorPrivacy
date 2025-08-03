@@ -31,7 +31,7 @@ public:
 
 	uint64 GetQueryCounter() const			{ std::shared_lock Lock(m_Mutex); return m_QueryCounter; }
 
-	StVariant ToVariant() const;
+	StVariant ToVariant(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 protected:
 

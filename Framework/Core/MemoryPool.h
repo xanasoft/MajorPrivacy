@@ -35,6 +35,7 @@ protected:
     static void DeletePool(struct POOL *Pool);
 
     static void FreeEmptyPages(struct POOL *Pool, ULONG Count);
+    static void FreeLargeEmptyPages(struct POOL *Pool);
 
     static struct PAGE* AllocPage(struct POOL *Pool, ULONG Tag);
 

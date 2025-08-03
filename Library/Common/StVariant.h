@@ -109,7 +109,9 @@ public:
 	// Other
 
 	template<typename T>
-	explicit StVariant(const std::vector<T>& List) : FW::CVariant() 
+	explicit StVariant(const std::vector<T>& List) : StVariant(nullptr, List) {}
+	template<typename T>
+	explicit StVariant(FW::AbstractMemPool* pMemPool, const std::vector<T>& List) : FW::CVariant(pMemPool) 
 	{
 		FW::CVariantWriter Writer;
 		Writer.BeginList();
@@ -123,7 +125,8 @@ public:
 		return *this;
 	}
 
-	explicit StVariant(const std::vector<std::wstring>& List, bool bUtf8 = false) : FW::CVariant() 
+	explicit StVariant(const std::vector<std::wstring>& List, bool bUtf8 = false) : StVariant(nullptr, List, bUtf8) {}
+	explicit StVariant(FW::AbstractMemPool* pMemPool, const std::vector<std::wstring>& List, bool bUtf8 = false) : FW::CVariant(pMemPool) 
 	{
 		FW::CVariantWriter Writer;
 		Writer.BeginList();
@@ -132,7 +135,8 @@ public:
 		this->Assign(Writer.Finish());
 	}
 
-	explicit StVariant(const std::vector<std::string>& List) : FW::CVariant() 
+	explicit StVariant(const std::vector<std::string>& List) : StVariant(nullptr, List) {}
+	explicit StVariant(FW::AbstractMemPool* pMemPool, const std::vector<std::string>& List) : FW::CVariant(pMemPool) 
 	{
 		FW::CVariantWriter Writer;
 		Writer.BeginList();
@@ -142,7 +146,9 @@ public:
 	}
 
 	template<typename T>
-	explicit StVariant(const std::set<T>& List) : FW::CVariant() 
+	explicit StVariant(const std::set<T>& List) : StVariant(nullptr, List) {}
+	template<typename T>
+	explicit StVariant(FW::AbstractMemPool* pMemPool, const std::set<T>& List) : FW::CVariant() 
 	{
 		FW::CVariantWriter Writer;
 		Writer.BeginList();
@@ -156,7 +162,9 @@ public:
 		return *this;
 	}
 
-	explicit StVariant(const std::set<std::wstring>& List, bool bUtf8 = false) : FW::CVariant() 
+
+	explicit StVariant(const std::set<std::wstring>& List, bool bUtf8 = false) : StVariant(nullptr, List, bUtf8) {}
+	explicit StVariant(FW::AbstractMemPool* pMemPool, const std::set<std::wstring>& List, bool bUtf8 = false) : FW::CVariant(pMemPool)
 	{
 		FW::CVariantWriter Writer;
 		Writer.BeginList();
@@ -165,7 +173,8 @@ public:
 		this->Assign(Writer.Finish());
 	}
 
-	explicit StVariant(const std::set<std::string>& List) : FW::CVariant() 
+	explicit StVariant(const std::set<std::string>& List) : StVariant(nullptr, List) {}
+	explicit StVariant(FW::AbstractMemPool* pMemPool, const std::set<std::string>& List) : FW::CVariant(pMemPool)
 	{
 		FW::CVariantWriter Writer;
 		Writer.BeginList();

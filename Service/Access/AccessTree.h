@@ -70,19 +70,19 @@ public:
 	typedef std::shared_ptr<SPathNode> SPathNodePtr;
 #endif
 
-	StVariant StoreTree(const SVarWriteOpt& Opts) const;
+	StVariant StoreTree(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	void LoadTree(const StVariant& Data);
-	StVariant DumpTree(uint64 LastActivity) const;
+	StVariant DumpTree(uint64 LastActivity, FW::AbstractMemPool* pMemPool = nullptr) const;
 
 protected:
 	mutable std::recursive_mutex	m_Mutex;
 
 	bool Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std::wstring& Path, size_t uOffset = 0);
 
-	StVariant StoreTree(const SPathNodePtr& pParent) const;
-	StVariant StoreNode(const SPathNodePtr& pParent, const StVariant& Children) const;
+	StVariant StoreTree(const SPathNodePtr& pParent, FW::AbstractMemPool* pMemPool = nullptr) const;
+	StVariant StoreNode(const SPathNodePtr& pParent, const StVariant& Children, FW::AbstractMemPool* pMemPool = nullptr) const;
 	uint32 LoadTree(const StVariant& Data, SPathNodePtr& pParent);
-	StVariant DumpTree(const SPathNodePtr& pParent, uint64 LastActivity) const;
+	StVariant DumpTree(const SPathNodePtr& pParent, uint64 LastActivity, FW::AbstractMemPool* pMemPool = nullptr) const;
 
 	bool CleanUp(SPathNodePtr& pParent, const std::wstring& Path, bool* pbCancel, uint32* puCounter);
 	uint64 Truncate(SPathNodePtr& pParent, uint64 CleanupDate);

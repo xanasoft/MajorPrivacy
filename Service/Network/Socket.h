@@ -71,7 +71,7 @@ public:
 
 	static uint64 MkHash(uint64 ProcessId, uint32 ProtocolType, const CAddress& LocalAddress, uint16 LocalPort, const CAddress& RemoteAddress, uint16 RemotePort);
 
-	StVariant ToVariant() const;
+	StVariant ToVariant(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 protected:
 	friend class CSocketList;

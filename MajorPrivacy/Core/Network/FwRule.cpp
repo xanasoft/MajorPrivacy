@@ -56,10 +56,21 @@ void CFwRule::SetTemporary(bool bTemporary)
 
 QString CFwRule::GetProgram() const
 {
-    if (!m_AppContainerSid.isEmpty())
+    if (!m_PackageFamilyName.isEmpty()) {
+        if (!m_BinaryPath.isEmpty())
+            return QString("%1 (%2)").arg(m_PackageFamilyName, m_BinaryPath);
+        return m_PackageFamilyName;
+    }
+    if (!m_AppContainerSid.isEmpty()) {
+        if(!m_BinaryPath.isEmpty())
+            return QString("%1 (%2)").arg(m_AppContainerSid, m_BinaryPath);
         return m_AppContainerSid;
-    if (!m_ServiceTag.isEmpty())
-        return m_ServiceTag;
+    }
+    if (!m_ServiceTag.isEmpty()) {
+        if(!m_BinaryPath.isEmpty())
+            return QString("%1 (%2)").arg(m_BinaryPath, m_ServiceTag);
+		return m_ServiceTag;
+    }
     return m_BinaryPath;
 }
 

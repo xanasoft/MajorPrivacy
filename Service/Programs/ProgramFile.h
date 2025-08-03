@@ -44,8 +44,8 @@ public:
 	//virtual SLibraryInfo GetLibrary(uint64 UID) const { std::unique_lock lock(m_Mutex); auto it = m_Libraries.find(UID); return it != m_Libraries.end() ? it->second : SLibraryInfo(); }
 	
 	
-	virtual StVariant DumpLibraries() const;
-	virtual StVariant StoreLibraries(const SVarWriteOpt& Opts) const;
+	virtual StVariant DumpLibraries(FW::AbstractMemPool* pMemPool = nullptr) const;
+	virtual StVariant StoreLibraries(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual void LoadLibraries(const StVariant& Data);
 	virtual void CleanUpLibraries();
 
@@ -55,7 +55,7 @@ public:
 	virtual void AddExecChild(const CFlexGuid& ActorEnclave, const std::wstring& ActorServiceTag, 
 		const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
 		const std::wstring& CmdLine, uint64 CreateTime, bool bBlocked);
-	virtual StVariant DumpExecStats() const;
+	virtual StVariant DumpExecStats(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 	virtual void AddIngressActor(const CFlexGuid& TargetEnclave, 
 		const std::shared_ptr<CProgramFile>& pActorProgram, const CFlexGuid& ActorEnclave, const SProcessUID& ProcessUID, const std::wstring& ActorServiceTag, 
@@ -63,22 +63,22 @@ public:
 	virtual void AddIngressTarget(const CFlexGuid& ActorEnclave, const std::wstring& ActorServiceTag, 
 		const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
 		bool bThread, uint32 AccessMask, uint64 AccessTime, bool bBlocked);
-	virtual StVariant DumpIngress() const;
+	virtual StVariant DumpIngress(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 	virtual void AddAccess(const std::wstring& ActorServiceTag, const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked);
-	virtual StVariant DumpResAccess(uint64 LastActivity) const;
+	virtual StVariant DumpResAccess(uint64 LastActivity, FW::AbstractMemPool* pMemPool = nullptr) const;
 
-	virtual StVariant StoreIngress(const SVarWriteOpt& Opts) const;
+	virtual StVariant StoreIngress(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual void LoadIngress(const StVariant& Data);
 
-	virtual StVariant StoreAccess(const SVarWriteOpt& Opts) const;
+	virtual StVariant StoreAccess(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual void LoadAccess(const StVariant& Data);
 
 	virtual void UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked);
 
 	virtual CTrafficLog* TrafficLog()							{ return &m_TrafficLog; }
 
-	virtual StVariant StoreTraffic(const SVarWriteOpt& Opts) const;
+	virtual StVariant StoreTraffic(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual void LoadTraffic(const StVariant& Data);
 
 #ifdef DEF_USE_POOL

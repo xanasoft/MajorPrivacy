@@ -1952,9 +1952,9 @@ const CMajorPrivacy::SCurrentItems& CMajorPrivacy::GetCurrentItems() const
 	return m_CurrentItems;
 }
 
-QMap<quint64, CProcessPtr> CMajorPrivacy::GetCurrentProcesses() const
+QHash<quint64, CProcessPtr> CMajorPrivacy::GetCurrentProcesses() const
 {
-	QMap<quint64, CProcessPtr> Processes;
+	QHash<quint64, CProcessPtr> Processes;
 
 	foreach(CProgramFilePtr pProgram, m_CurrentItems.ProgramsEx | m_CurrentItems.ProgramsIm) {
 		foreach(quint64 Pid, pProgram->GetProcessPids()) {
@@ -2778,7 +2778,7 @@ void CMajorPrivacy::LoadLanguage()
 	if (!m_LanguageId)
 		m_LanguageId = 1033; // default to English
 
-	LoadLanguage(m_Language, "majorprivacy", 0);
+	LoadLanguage(m_Language, "MajorPrivacy", 0);
 	LoadLanguage(m_Language, "qt", 1);
 
 	QTreeViewEx::m_ResetColumns = tr("Reset Columns");

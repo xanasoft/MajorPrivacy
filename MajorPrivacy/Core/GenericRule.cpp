@@ -32,6 +32,39 @@ void CGenericRule::CopyTo(CGenericRule* pRule, bool CloneGuid) const
 	//pRule->m_ProgramID = m_ProgramID;
 }
 
+bool CGenericRule::ValidateUserSID()
+{
+	if(m_SidValid)
+		return true;
+
+	if(m_User.isEmpty())
+	{
+		m_UserSid.Clear();
+		m_SidValid = true;
+		return true;
+	}
+
+	BYTE sidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
+	DWORD sidSize = sizeof(sidBuffer);
+	SID_NAME_USE sidType;
+	WCHAR domain[256];
+	DWORD domainSize = _countof(domain);
+
+	QtVariant SID;
+	if (LookupAccountNameW(nullptr, (wchar_t*)m_User.utf16(), sidBuffer, &sidSize, domain, &domainSize, &sidType))
+	{
+		CBuffer SidBuff;
+		SidBuff.AllocBuffer(72);
+		SidBuff.WriteData(sidBuffer, sizeof(sidBuffer));
+		SidBuff.WriteData(L"\0\0\0\0", 4);
+		ASSERT(SidBuff.GetSize() == 72);
+		m_UserSid = SidBuff;
+	}
+
+	m_SidValid = true;
+	return true;
+}
+
 QtVariant CGenericRule::ToVariant(const SVarWriteOpt& Opts) const
 {
 	QtVariantWriter Rule;

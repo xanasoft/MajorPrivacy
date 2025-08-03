@@ -2,9 +2,9 @@
 #include "TraceLogEntry.h"
 #include "../../Library/API/PrivacyAPI.h"
 
-StVariant CTraceLogEntry::ToVariant() const
+StVariant CTraceLogEntry::ToVariant(FW::AbstractMemPool* pMemPool) const
 {
-	StVariantWriter Entry;
+	StVariantWriter Entry(pMemPool);
 	Entry.BeginIndex();
 	
 	WriteVariant(Entry);
@@ -25,7 +25,7 @@ void CTraceLogEntry::WriteVariant(StVariantWriter& Entry) const
 	if(!m_ServiceTag.empty()) Entry.WriteEx(API_V_SERVICE_TAG, m_ServiceTag);
 	if(!m_AppSid.empty()) Entry.WriteEx(API_V_APP_SID, m_AppSid);
 #endif
-	if(!m_EnclaveGuid.IsNull()) Entry.WriteVariant(API_V_ENCLAVE, m_EnclaveGuid.ToVariant(false));
+	if(!m_EnclaveGuid.IsNull()) Entry.WriteVariant(API_V_ENCLAVE, m_EnclaveGuid.ToVariant(false, Entry.Allocator()));
 
 	Entry.Write(API_V_EVENT_TIME_STAMP, m_TimeStamp);
 }

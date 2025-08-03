@@ -30,7 +30,7 @@ public:
 
 	void IncHitCount()						{ m_HitCount++; }
 
-	virtual StVariant ToVariant(const SVarWriteOpt& Opts) const;
+	virtual StVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual STATUS FromVariant(const StVariant& Rule);
 
 protected:
@@ -72,10 +72,10 @@ public:
 	STATUS Store();
 
 	STATUS LoadEntries(const StVariant& Entries);
-	StVariant SaveEntries(const SVarWriteOpt& Opts);
+	StVariant SaveEntries(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr);
 
 	RESULT(StVariant) SetEntry(const StVariant& Entry);
-	RESULT(StVariant) GetEntry(const std::wstring& EntryId, const SVarWriteOpt& Opts);
+	RESULT(StVariant) GetEntry(const std::wstring& EntryId, const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr);
 	STATUS DelEntry(const std::wstring& EntryId);
 
 	virtual void UpdateBlockLists();
@@ -85,7 +85,7 @@ public:
 	template<typename T, class C>
 	void RegisterEventHandler(T Handler, C This) { RegisterEventHandler(std::bind(Handler, This, std::placeholders::_1)); }
 
-	StVariant GetBlockListInfo() const;
+	StVariant GetBlockListInfo(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 protected:
 	bool HandlePacket(DNS::Packet& Packet, const SAddress& Address) override;

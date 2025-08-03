@@ -391,7 +391,10 @@ enum ELogEventType
 	eLogExecRuleRemoved = 'exrd',	// EXecution Rule Deleted
 	eLogExecStartBlocked = 'exbl',	// EXecution Start Blocked
 
-	eLogProgramCleanedUp = 'plpc',	// Program List Program Cleared
+	eLogProgramAdded = 'prea',		// PRogram Entry Added
+	eLogProgramModified = 'prem',	// PRogram Entry Modified
+	eLogProgramRemoved = 'pred',	// PRogram Entry Removed
+	eLogProgramCleanedUp = 'prec',	// PRogram Entry Cleaned
 };
 
 enum ELogEventSubType

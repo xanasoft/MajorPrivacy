@@ -18,9 +18,9 @@ CEventLogEntry::CEventLogEntry(ELogLevels Level, int Type, const StVariant& Data
 	m_EventData = Data;
 }
 
-StVariant CEventLogEntry::ToVariant(const SVarWriteOpt& Opts) const
+StVariant CEventLogEntry::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
-    StVariantWriter Data;
+    StVariantWriter Data(pMemPool);
     if (Opts.Format == SVarWriteOpt::eIndex) {
         Data.BeginIndex();
         WriteIVariant(Data, Opts);
@@ -120,11 +120,11 @@ STATUS CEventLog::LoadEntries(const StVariant& Entries)
 	return OK;
 }
 
-StVariant CEventLog::SaveEntries(const SVarWriteOpt& Opts)
+StVariant CEventLog::SaveEntries(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool)
 {
 	std::shared_lock<std::shared_mutex> Lock(m_Mutex);
 
-	StVariantWriter EventLog;
+	StVariantWriter EventLog(pMemPool);
 	EventLog.BeginList();
 
 	size_t from = 0;
@@ -133,7 +133,7 @@ StVariant CEventLog::SaveEntries(const SVarWriteOpt& Opts)
 
 	for(size_t i=from; i < m_Entries.size(); i++) {
 		const CEventLogEntryPtr& pEntry = m_Entries[i];
-		EventLog.WriteVariant(pEntry->ToVariant(Opts));
+		EventLog.WriteVariant(pEntry->ToVariant(Opts, pMemPool));
 	}
 	return EventLog.Finish();
 }

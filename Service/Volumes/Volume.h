@@ -13,7 +13,7 @@ public:
 	std::wstring MountPoint() const { std::shared_lock Lock(m_Mutex); return m_MountPoint; }
 	uint64 VolumeSize() const { std::shared_lock Lock(m_Mutex); return m_VolumeSize; }
 
-	StVariant ToVariant() const;
+	StVariant ToVariant(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 //protected:
 	mutable std::shared_mutex m_Mutex;

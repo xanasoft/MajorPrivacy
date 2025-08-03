@@ -1469,7 +1469,7 @@ STATUS CProgramManager::Load()
 		else if (Type == EProgramType::eProgramGroup)
 		{
 			StVariant ID = IsMap ? Reader.Find(API_S_ID) : Reader.Find(API_V_ID);
-			std::wstring Guid = IsMap ? StVariantReader(ID).Find(API_S_APP_SID) : StVariantReader(ID).Find(API_V_APP_SID);
+			std::wstring Guid = IsMap ? StVariantReader(ID).Find(API_S_GUID) : StVariantReader(ID).Find(API_V_GUID);
 			std::wstring Key = MkLower(Guid);
 			CProgramGroupPtr& pGroup = m_GroupMap[Key];
 			if (!pGroup) {
