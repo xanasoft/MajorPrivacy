@@ -584,7 +584,7 @@
     </message>
     <message>
         <source>&lt;b&gt;MajorPrivacy&lt;/b&gt; provides additional features and box types exclusively to &lt;u&gt;project supporters&lt;/u&gt;. Boxes like the Privacy Enhanced boxes &lt;b&gt;&lt;font color=&apos;red&apos;&gt;protect user data from illicit access&lt;/font&gt;&lt;/b&gt; by the sandboxed programs. If you are not yet a supporter, then please consider &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;supporting the project&lt;/a&gt; to ensure further development of Sandboxie and to receive a &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</source>
-        <translation type="unfinished">&lt;b&gt;MajorPrivacy&lt;/b&gt; provides additional features and box types exclusively to &lt;u&gt;project supporters&lt;/u&gt;. Boxes like the Privacy Enhanced boxes &lt;b&gt;&lt;font color=&apos;red&apos;&gt;protect user data from illicit access&lt;/font&gt;&lt;/b&gt; by the sandboxed programs. If you are not yet a supporter, then please consider &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;supporting the project&lt;/a&gt; to ensure further development of Sandboxie and to receive a &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt;为&lt;u&gt;项目支持者们&lt;/u&gt;独家提供额外功能与沙盒类型，如隐私增强型的沙盒通过隔离程序&lt;b&gt;&lt;font color=&apos;red&apos;&gt;防止用户数据受到非法访问&lt;/font&gt;&lt;/b&gt;。若您还不是支持者，请考虑&lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;赞助项目&lt;/a&gt;以支持Sandboxie项目后续开发并获得一份&lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;支持者证书&lt;/a&gt;.</translation>
     </message>
     <message>
         <source>Failed to retrieve the certificate.</source>
@@ -963,7 +963,7 @@ Error: %1</source>
     </message>
     <message>
         <source>The process was ejected form the enclave, and is running unprotected, probably due to insuficient signature level!</source>
-        <translation>这个进程被从飞地中弹出，且在不受保护的状态下运行，这可能是由于签名级别不够！</translation>
+        <translation>该进程从飞地中被弹出，且在不受保护的状态下运行，可能由于签名级别过低！</translation>
     </message>
     <message>
         <source>Failed to start process!</source>
@@ -971,7 +971,7 @@ Error: %1</source>
     </message>
     <message>
         <source>Do you want to terminate all processes in the selected enclaves?</source>
-        <translation>你想要终止选定的飞地中的所有进程吗？</translation>
+        <translation>确认终止选定的飞地中的所有进程吗？</translation>
     </message>
     <message>
         <source>Terminate without asking</source>
@@ -979,7 +979,7 @@ Error: %1</source>
     </message>
     <message>
         <source>Do you want to delete selected Enclave?</source>
-        <translation>你想要删除选定的飞地吗？</translation>
+        <translation>确认删除选定的飞地吗？</translation>
     </message>
     <message>
         <source>Do you want to terminate %1?</source>
@@ -1455,11 +1455,11 @@ Error: %1</source>
     </message>
     <message>
         <source>Do you want to delete selected Rules Items?</source>
-        <translation>你想要删除选定的规则项吗？</translation>
+        <translation>确认删除选定的规则项吗？</translation>
     </message>
     <message>
         <source>Do you want to delete all Temporary Rules?</source>
-        <translation>你想要删除所有临时规则吗？</translation>
+        <translation>确认删除所有临时规则吗？</translation>
     </message>
 </context>
 <context>
@@ -2694,7 +2694,7 @@ Error: %1</source>
         <source>Your MajorPrivacy supporter certificate is expired, however for the current build you are using it remains active, when you update to a newer build exclusive supporter features will be disabled.
 
 Do you still want to update?</source>
-        <translation type="unfinished">您的 MajorPrivacy 支持者证书已过期，但对于您当前使用的版本，该证书仍然有效。当您更新到较新的版本时，独有的支持者功能将被禁用。
+        <translation>您的 MajorPrivacy 支持者证书已过期，但对于您当前使用的版本，该证书仍然有效。当您更新到较新的版本时，独有的支持者功能将被禁用。
 
 您仍要更新吗？</translation>
     </message>
@@ -2730,7 +2730,7 @@ Do you still want to update?</source>
         <source>No new updates found, your MajorPrivacy is up-to-date.
 
 Note: The update check is often behind the latest GitHub release to ensure that only tested updates are offered.</source>
-        <translation>未发现任何新更新，您的 MajorPrivacy 已更新。
+        <translation>未发现新版本，您的 MajorPrivacy 是最新版。
 
 注意：更新检查通常会在最新的 GitHub 版本之后进行，以确保仅提供经过测试的更新。&gt;</translation>
     </message>
@@ -3857,7 +3857,7 @@ The selected Item belongs to more than one Group, to delete it from all groups p
     </message>
     <message>
         <source>In the Insider Channel - exclusive features</source>
-        <translation>在内部版频道 - 专属功能</translation>
+        <translation>在Insider通频道 - 专属功能</translation>
     </message>
     <message>
         <source>The Insider channel offers early access to new features and bugfixes that will eventually be released to the public, as well as all relevant improvements from the stable channel. 
@@ -3867,7 +3867,7 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     </message>
     <message>
         <source>More about the &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-insider&quot;&gt;Insider Channel&lt;/a&gt;</source>
-        <translation>了解有关 &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-insider&gt;Insider Channel&lt;/a&gt; 的更多信息</translation>
+        <translation>了解有关 &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-insider&gt;Insider频道&lt;/a&gt; 的更多信息</translation>
     </message>
     <message>
         <source>Keep Compatibility Templates up to date and apply hotfixes</source>
@@ -3895,7 +3895,7 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     </message>
     <message>
         <source>MajorPrivacy applies strict application restrictions, which can lead to compatibility issues. Stay updated with MajorPrivacy, including compatibility templates and troubleshooting, to ensure smooth operation amid Windows updates and application changes.</source>
-        <translation type="unfinished">MajorPrivacy采用严格的应用限制，这可能会导致兼容性问题。建议保持更新，包括兼容性模板和故障排除数据库，以确保在 Windows 更新和应用程序变更期间顺畅运行。</translation>
+        <translation>MajorPrivacy采用严格的应用限制，这可能会导致兼容性问题。建议保持更新，包括兼容性模板和故障排除数据库，以确保在 Windows 更新和应用程序变更期间顺畅运行。</translation>
     </message>
     <message>
         <source>Access to the latest compatibility templates and the online troubleshooting database requires a valid &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-cert&quot;&gt;supporter certificate&lt;/a&gt;.</source>
@@ -4768,7 +4768,7 @@ For non-critical data, folder protection may still provide a basic level of secu
     </message>
     <message>
         <source>Remove Volume/Folder</source>
-        <translation>移除卷/目录></translation>
+        <translation>移除卷/目录&gt;</translation>
     </message>
     <message>
         <source>Do you want to remove selected Entries from list?
@@ -5858,11 +5858,11 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     </message>
     <message>
         <source>Check periodically for new Sandboxie-Plus versions</source>
-        <translation type="unfinished"></translation>
+        <translation>定期检查Sandboxie-Plus更新</translation>
     </message>
     <message>
         <source>More about the &lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-insider&quot;&gt;Insider Channel&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>更多有关&lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-insider&quot;&gt;内测通道&lt;/a&gt;</translation>
     </message>
     <message>
         <source>Keep Troubleshooting scripts up to date</source>
