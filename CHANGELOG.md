@@ -12,7 +12,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.98.3] - 2025-07-??
+
+## [0.98.3] - 2025-08-04
 
 ### Added
 - added the user as aditional parameter to resource access rules [#44](https://github.com/xanasoft/MajorPrivacy/issues/44)
@@ -20,6 +21,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Reduced CPU usage of UI and Service
 - ImBox no longer updates container file timestamps when accessing an secure encrypted volume
+- Improved windows firewall rule handling on windows 23H2 and later for Store Apps
 
 ### Fixed
 - fixed issue in ImBox.exe old volumes wont be mountable anymore! Use previouse build to save data then re create volumes with turent or later build.

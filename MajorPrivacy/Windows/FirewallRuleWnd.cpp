@@ -124,6 +124,12 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	int Index = m_Items.indexOf(pItem);
 	ui.cmbProgram->setCurrentIndex(Index);
 
+	ui.txtPath->setText(m_pRule->GetBinaryPath());
+	ui.txtService->setText(m_pRule->GetServiceTag());
+	QString AppSID = m_pRule->GetAppPkgId();
+	QString AppPFN = m_pRule->GetAppPFN();
+	ui.txtApp->setText(AppPFN.isEmpty() ? AppSID : AppPFN);
+
 	SetComboBoxValue(ui.cmbAction, (uint32)m_pRule->m_Action);
 
 	if (m_pRule->m_Profile == (int)EFwProfiles::All || m_pRule->m_Profile == (int)EFwProfiles::Invalid)
@@ -271,12 +277,14 @@ bool CFirewallRuleWnd::Save()
 		return false;
 
 	CProgramItemPtr pItem = m_Items[Index];
-	if (m_pRule->m_ProgramID != pItem->GetID()) {
-		m_pRule->m_BinaryPath = pItem->GetPath();
+	if (m_pRule->m_ProgramID != pItem->GetID()) 
+	{
 		CWindowsServicePtr pSvc = pItem.objectCast<CWindowsService>();
-		m_pRule->m_ServiceTag = pSvc ? pSvc->GetServiceTag() : "";
 		CAppPackagePtr pApp = pItem.objectCast<CAppPackage>();
+		m_pRule->m_BinaryPath = pApp ? "" : pItem->GetPath();
+		m_pRule->m_ServiceTag = pSvc ? pSvc->GetServiceTag() : "";
 		m_pRule->m_AppContainerSid = pApp ? pApp->GetAppSid() : "";
+		m_pRule->m_PackageFamilyName = pApp ? pApp->GetPackageName() : "";
 	}
 
 	m_pRule->m_Action = (EFwActions)GetComboBoxValue(ui.cmbAction).toUInt();
@@ -393,14 +401,18 @@ void CFirewallRuleWnd::OnProgramChanged()
 
 	CProgramItemPtr pItem = m_Items[Index];
 	//if (pItem) ui.cmbProgram->setCurrentText(pItem->GetName());
-	CProgramID ID = pItem->GetID();
-	ui.txtPath->setText(pItem->GetPath());
+	//CProgramID ID = pItem->GetID();
 	CWindowsServicePtr pSvc = pItem.objectCast<CWindowsService>();
+	CAppPackagePtr pApp = pItem.objectCast<CAppPackage>();
+	ui.txtPath->setText(pApp ? "" : pItem->GetPath());
 	ui.txtService->setText(pSvc ? pSvc->GetServiceTag() : "");
 	//ui.txtService->setToolTip(pSvc ? pSvc->GetName() : "");
-	CAppPackagePtr pApp = pItem.objectCast<CAppPackage>();
-	ui.txtApp->setText(pApp ? pApp->GetAppSid() : "");
-	//ui.txtApp->setToolTip(pApp ? pApp->GetContainerName() : "");
+	if (pApp) {
+		QString AppSID = pApp->GetAppSid() ;
+		QString AppPFN = pApp->GetPackageName();
+		ui.txtApp->setText(AppPFN.isEmpty() ? AppSID : AppPFN);
+	} else
+		ui.txtApp->clear();
 
 	TryMakeName();
 }

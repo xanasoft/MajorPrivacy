@@ -498,7 +498,7 @@ CAppPackagePtr CProgramManager::GetAppPackage(const std::wstring& AppContainserS
 	}
 	CAppPackagePtr& pAppPackage = m_PackageMap[Key];
 	if (!pAppPackage) {
-		pAppPackage = CAppPackagePtr(new CAppPackage(AppContainserSid));
+		pAppPackage = CAppPackagePtr(new CAppPackage(AppContainserSid, L""));
 		m_Items.insert(std::make_pair(pAppPackage->GetUID(), pAppPackage));
 		//pAppPackage->SetInstallPath(GetAppContainerRootPath( // todo:
 		// todo: icon
@@ -738,7 +738,7 @@ void CProgramManager::AddPackage(const CPackageList::SPackagePtr& pPackage)
 	std::unique_lock lock(m_Mutex);
 	CAppPackagePtr& pAppPackage = m_PackageMap[Key];
 	if (!pAppPackage) {
-		pAppPackage = CAppPackagePtr(new CAppPackage(pPackage->PackageSid, pPackage->PackageName));
+		pAppPackage = CAppPackagePtr(new CAppPackage(pPackage->PackageSid, pPackage->PackageFamilyName, pPackage->PackageName));
 		pAppPackage->SetName(pPackage->PackageDisplayName);
 		pAppPackage->SetPath(theCore->NormalizePath(pPackage->PackageInstallPath, false));
 		pAppPackage->SetIcon(pPackage->SmallLogoPath);
@@ -1461,7 +1461,7 @@ STATUS CProgramManager::Load()
 			std::wstring Key = MkLower(AppContainerSid);
 			CAppPackagePtr& pPackage = m_PackageMap[Key];
 			if (!pPackage) {
-				pPackage = CAppPackagePtr(new CAppPackage(AppContainerSid));
+				pPackage = CAppPackagePtr(new CAppPackage(AppContainerSid, L""));
 				m_Items.insert(std::make_pair(pPackage->GetUID(), pPackage));
 			}
 			pItem = pPackage;

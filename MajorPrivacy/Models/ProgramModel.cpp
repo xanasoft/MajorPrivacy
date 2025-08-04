@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ProgramModel.h"
 #include "../Core/PrivacyCore.h"
+#include "../Core/Programs/AppPackage.h"
 #include "../../MiscHelpers/Common/Common.h"
 #include "../../Library/Helpers/NtUtil.h"
 
@@ -296,6 +297,13 @@ QVariant CProgramModel::NodeData(STreeNode* pNode, int role, int section) const
 		{
 			if(section == ePath)
 				return pProcessNode->pItem->GetPath();
+			else if (section == eName)
+			{
+				CAppPackagePtr pApp = pProcessNode->pItem.objectCast<CAppPackage>();
+				if (pApp)
+					return tr("App Name: %1\nPacket Name: %2\nPacket SID: %3").arg(pApp->GetContainerName()).arg(pApp->GetPackageName()).arg(pApp->GetAppSid());
+			}
+
 			break;
 		}
 	}

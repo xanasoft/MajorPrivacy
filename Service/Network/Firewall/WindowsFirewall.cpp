@@ -792,6 +792,12 @@ SWindowsFwRulePtr SWindowsFirewall::LoadRule(const FW_RULE* fwRule)
 
 FW_RULE* SWindowsFirewall::SaveRule(const SWindowsFwRulePtr& pRule, std::list<std::vector<BYTE>>& Buffer)
 {
+    if (!pRule->PackageFamilyName.empty() && uApiVersion < FW_23H2_BINARY_VERSION && pRule->AppContainerSid.empty())
+    {
+		// If we have PackageFamilyName but can not set it and AppContainerSid is empty we can not save this rule
+        return NULL;
+    }
+
     Buffer.push_back(std::vector<BYTE>(sizeof(FW_RULE)));
     FW_RULE* fwRule = (FW_RULE*)Buffer.back().data();
 
@@ -805,8 +811,14 @@ FW_RULE* SWindowsFirewall::SaveRule(const SWindowsFwRulePtr& pRule, std::list<st
     fwRule->wszLocalApplication = SAFE_SET_STR(pRule->BinaryPath);
     fwRule->wszLocalService = SAFE_SET_STR(pRule->ServiceTag);
     if (fwRule->wSchemaVersion >= FW_WIN8_1_BINARY_VERSION) {
-        fwRule->wszPackageId = SAFE_SET_STR(pRule->AppContainerSid);
-        fwRule->wszLocalUserOwner = SAFE_SET_STR(pRule->LocalUserOwner);
+		// We can set eider AppContainerSid or PackageFamilyName, but not both
+        // we preffer to set PackageFamilyName if we can and have it,
+		// else we fall back to setting the AppContainerSid
+        if (pRule->PackageFamilyName.empty() || fwRule->wSchemaVersion < FW_23H2_BINARY_VERSION)
+            fwRule->wszPackageId = SAFE_SET_STR(pRule->AppContainerSid);
+        else
+            fwRule->wszPackageId = NULL;
+        fwRule->wszLocalUserOwner = NULL; //SAFE_SET_STR(pRule->LocalUserOwner); // we can not set this
     }
 
     if (fwRule->wSchemaVersion >= FW_23H2_BINARY_VERSION) {

@@ -55,12 +55,25 @@ bool CFirewallRule::Match(const std::shared_ptr<struct SWindowsFwRule>& RuleL, c
 		return false;
 	if (_wcsicmp(RuleL->ServiceTag.c_str(), RuleR->ServiceTag.c_str()) != 0)
 		return false;
-	if (_wcsicmp(RuleL->AppContainerSid.c_str(), RuleR->AppContainerSid.c_str()) != 0)
-		return false;
+
+	// Only AppContainerSid or PackageFamilyName should be set in a rule and the API wrapper SWindowsFirewall::SaveRule obays this,
+	// but our UI and potentially other comonents will not be aware of the rule scheme capabilities and attempt to set booth,
+	// so we need to handle this case here in a smart way.
+
+	bool AppSidSet = !RuleL->AppContainerSid.empty() || !RuleR->AppContainerSid.empty();
+	bool AppSidMissmatch = _wcsicmp(RuleL->AppContainerSid.c_str(), RuleR->AppContainerSid.c_str()) != 0;
+	bool AppPFNSet = !RuleL->PackageFamilyName.empty() || !RuleR->PackageFamilyName.empty();
+	bool AppPFNMissmatch = _wcsicmp(RuleL->PackageFamilyName.c_str(), RuleR->PackageFamilyName.c_str()) != 0;
+	if (AppSidSet && AppPFNSet) {
+		if (AppSidMissmatch && AppPFNMissmatch)
+			return false;
+	} else {
+		if (AppSidMissmatch || AppPFNMissmatch)
+			return false;
+	}
+
 	//if (_wcsicmp(RuleL->LocalUserOwner.c_str(), RuleR->LocalUserOwner.c_str()) != 0)
 	//	return false; // this is metadata only (has no effect on fitlering) and we can NOT set it
-	if (_wcsicmp(RuleL->PackageFamilyName.c_str(), RuleR->PackageFamilyName.c_str()) != 0)
-		return false;
 
 	if (RuleL->Enabled != RuleR->Enabled)
 		return false;

@@ -128,7 +128,7 @@ protected:
 
 	std::wstring m_AppContainerSid;
 	std::wstring m_AppContainerName;
-	std::wstring m_PackageFullName;
+	std::wstring m_AppPackageName;
 
 	std::wstring m_UserSid;
 

@@ -251,7 +251,7 @@ bool CProcess::InitOther()
 					continue;
 				if (_wcsnicmp(attribute->Name.Buffer, L"WIN://SYSAPPID", attribute->Name.Length / sizeof(wchar_t)) == 0)
 				{
-					m_PackageFullName = std::wstring(attribute->Values.pString->Buffer, attribute->Values.pString->Length / sizeof(wchar_t));
+					m_AppPackageName = std::wstring(attribute->Values.pString->Buffer, attribute->Values.pString->Length / sizeof(wchar_t));
 					if (m_AppContainerName.empty() && attribute->ValueCount >= 3)
 					{
 						m_AppContainerName = std::wstring(attribute->Values.pString[2].Buffer, attribute->Values.pString[2].Length / sizeof(wchar_t));
@@ -590,7 +590,7 @@ StVariant CProcess::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMe
 
 	Process.WriteEx(API_V_APP_SID, m_AppContainerSid);
 	Process.WriteEx(API_V_APP_NAME, m_AppContainerName);
-	Process.WriteEx(API_V_PACK_NAME, m_PackageFullName);
+	Process.WriteEx(API_V_PACK_NAME, m_AppPackageName);
 
 	Process.WriteEx(API_V_USER_SID, m_UserSid);
 

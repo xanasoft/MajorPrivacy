@@ -86,7 +86,7 @@ protected:
 
 	QString m_AppContainerSid;
 	QString m_AppContainerName;
-	QString m_PackageFullName;
+	QString m_AppPackageName;
 
 	QString m_UserSid;
 	QString m_UserName;

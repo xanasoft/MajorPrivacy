@@ -5,17 +5,18 @@
 #include "../../Library/API/PrivacyAPI.h"
 #include "../Library/Common/Strings.h"
 
-CAppPackage::CAppPackage(const std::wstring& AppContainerSid, const std::wstring& Name)
+CAppPackage::CAppPackage(const std::wstring& AppContainerSid, const std::wstring& AppPackageName, const std::wstring& Name)
 {
 	m_ID = CProgramID(MkLower(AppContainerSid), EProgramType::eAppPackage);
 
 	m_AppContainerSid = AppContainerSid;
-
-	if (Name.empty()) {
+	m_AppPackageName = AppPackageName;
+	if (AppPackageName.empty()) {
 		SSid Sid = SSid(std::string(AppContainerSid.begin(), AppContainerSid.end()));
-		m_AppContainerName = ::GetAppContainerNameBySid(Sid);
+		m_AppPackageName = ::GetAppContainerNameBySid(Sid);
 	} else
-		m_AppContainerName = Name;
+		m_AppPackageName = AppPackageName;
+	m_AppContainerName = Name;
 }
 
 bool CAppPackage::MatchFileName(const std::wstring& FileName) const
