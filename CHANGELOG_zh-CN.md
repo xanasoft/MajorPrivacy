@@ -3,8 +3,61 @@
 本项目遵循 [语义化版本控制](http://semver.org/)。
 
 
+## [0.98.3] - 2025-08-04
 
-## [0.98.1] - 2025-05-
+### 新增
+- 将用户作为资源访问规则的附加参数 [#44](https://github.com/xanasoft/MajorPrivacy/issues/44)
+
+### 更改
+- 降低了用户界面和服务的 CPU 使用率
+- ImBox 在访问安全加密卷时不再更新容器文件的时间戳
+- 改进了在 Windows 23H2 及更高版本中对商店应用程序的 Windows 防火墙规则处理
+
+### 修复
+- 修复了 ImBox.exe 中的旧卷无法再挂载的问题。请使用之前的版本保存数据，然后使用当前或更高版本重新创建卷。
+- 修复了翻译未加载的问题
+- 修复了 dat 编辑器：在打开第一个 .dat 文件后，后续 .dat 文件的树视图展开失败 [#61](https://github.com/xanasoft/MajorPrivacy/issues/61)
+- 修复了在开启时间过滤器时，执行监视器不显示任何条目的问题 [#60](https://github.com/xanasoft/MajorPrivacy/issues/60)
+- 修复了“添加到组”菜单中只有最后添加的组的问题 [#48](https://github.com/xanasoft/MajorPrivacy/issues/48)
+- 修复了目录索引和读取权限未阻止创建文件夹的问题 [#68](https://github.com/xanasoft/MajorPrivacy/issues/68)
+
+
+
+## [0.98.2] - 2025-07-22
+
+### 新增
+- 添加了阻止驱动事件的功能
+- 添加 JsEngine, 可用于创建脚本规则
+  - 大部分脚本的 API 还未实现，后续版本将支持更多的 API
+- 添加总结页面
+  - 显示当前系统状态
+  - 发现的隐私问题
+  - 相关事件
+  - 完整跟踪日志
+- 添加 windows 防火墙规则变化检测
+  - 可检测规则变更，允许还原至原始状态
+
+### 更改
+- 更换至 VS2022 工具链
+- 更换至 Qt 6
+- 优化通知窗口
+
+### 修复
+- 修复了与驱动程序导致蓝屏死机的问题
+- 修复了通过 安全 > 为文件签名 签名的文件在添加至数据库时出现斜杠的问题 [#73](https://github.com/xanasoft/MajorPrivacy/issues/73)
+- 修复了在签名数据库中删除有签名的文件夹时出现的错误 [#74](https://github.com/xanasoft/MajorPrivacy/issues/74)
+- 修复了 [UI] Tweak Description 未显示的问题 [#69](https://github.com/xanasoft/MajorPrivacy/issues/69)
+- 修复了加载卷规则时出现的问题
+
+
+
+## [0.98.1a] - 2025-05-23
+
+### 修复
+- [Driver/Service] 修复了当通过隐私代理启用 KernelIsolator 时，其注册表键值重置导致的自定义设置丢失问题。 [#71](github.com/xanasoft/MajorPrivacy/issues/71)
+
+
+## [0.98.1] - 2025-05-23
 
 ### 新增
 - 启用翻译支持
