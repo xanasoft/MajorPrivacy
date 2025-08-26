@@ -15,3 +15,10 @@ bool OpenFileProperties(const QString& Path);
 bool OpenFileFolder(const QString& Path);
 
 HANDLE ShellExecuteQ(const QString& Command);
+
+bool CheckInternet();
+
+QVariantList EnumNICs();
+
+
+bool IsFullScreenMode();

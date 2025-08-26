@@ -197,6 +197,8 @@ public:
 		return Res;
 	}
 
+	EResult Write(const char* Name, const CBuffer& Buff)			{return WriteValue(Name, VAR_TYPE_BYTES, Buff.GetSize(), Buff.GetBuffer());}
+
 	EResult Write(const char* Name, const FW::StringA& str)			{return WriteValue(Name, VAR_TYPE_ASCII, str.Length(), str.ConstData());}
 	EResult Write(const char* Name, const FW::StringW& wstr, bool bUtf8 = false) {return Write(Name, wstr.ConstData(), wstr.Length(), bUtf8);}
 
@@ -244,6 +246,8 @@ public:
 		return Res;
 	}
 
+	EResult Write(const CBuffer& Buff)			{ return WriteValue(VAR_TYPE_BYTES, Buff.GetSize(), Buff.GetBuffer()); }
+
 	EResult Write(const FW::StringA& str)		{return WriteValue(VAR_TYPE_ASCII, str.Length(), str.ConstData());}
 	EResult Write(const FW::StringW& wstr, bool bUtf8 = false) {return Write(wstr.ConstData(), wstr.Length(), bUtf8);}
 
@@ -289,6 +293,8 @@ public:
 			Res = WriteValue(Index, VAR_TYPE_UNICODE, len*sizeof(wchar_t), wstr);
 		return Res;
 	}
+
+	EResult Write(uint32 Index, const CBuffer& Buff)		{return WriteValue(Index, VAR_TYPE_BYTES, Buff.GetSize(), Buff.GetBuffer());}
 
 	EResult Write(uint32 Index, const FW::StringA& str)		{return WriteValue(Index, VAR_TYPE_ASCII, str.Length(), str.ConstData());}
 	EResult Write(uint32 Index, const FW::StringW& wstr, bool bUtf8 = false) {return Write(Index, wstr.ConstData(), wstr.Length(), bUtf8);}

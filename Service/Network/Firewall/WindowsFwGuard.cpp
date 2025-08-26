@@ -15,7 +15,7 @@ CWindowsFwGuard::~CWindowsFwGuard()
 	Stop();
 
 	if (m_OldAuditingMode != -1)
-		SetAuditPolicy(&Audit_ObjectAccess_FirewallRuleChange_, 1, m_OldAuditingMode, NULL);
+		SetAuditPolicy(&Audit_ObjectAccess_FirewallRuleChange_, m_OldAuditingMode, NULL);
 }
 
 void CWindowsFwGuard::OnEvent(EVT_HANDLE hEvent)
@@ -72,7 +72,7 @@ STATUS CWindowsFwGuard::Start()
 
 	int AuditingMode = AUDIT_POLICY_INFORMATION_TYPE_SUCCESS;		// rule changes
 
-	if (!SetAuditPolicy(&Audit_ObjectAccess_FirewallRuleChange_, 1, AuditingMode, &m_OldAuditingMode)) // todo: save old and restore
+	if (!SetAuditPolicy(&Audit_ObjectAccess_FirewallRuleChange_, AuditingMode, &m_OldAuditingMode)) // todo: save old and restore
 		return ERR(STATUS_UNSUCCESSFUL, L"Failed to configure the auditing policy");
 
 	std::wstring Query = L"*[System[(Level=4 or Level=0) and (EventID=" STR(WIN_LOG_EVENT_FW_ADDED) " or EventID=" STR(WIN_LOG_EVENT_FW_CHANGED) " or EventID=" STR(WIN_LOG_EVENT_FW_REMOVED)")]]";
@@ -96,7 +96,7 @@ void CWindowsFwGuard::Stop()
 	CEventLogListener::Stop();
 
 	if (m_OldAuditingMode != -1) {
-		SetAuditPolicy(&Audit_ObjectAccess_FirewallRuleChange_, 1, m_OldAuditingMode, NULL);
+		SetAuditPolicy(&Audit_ObjectAccess_FirewallRuleChange_, m_OldAuditingMode, NULL);
 		m_OldAuditingMode = -1;
 	}
 }

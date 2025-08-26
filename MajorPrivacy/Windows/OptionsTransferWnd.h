@@ -21,13 +21,14 @@ public:
 		eDriver		= 0x0002,
 		eUserKeys	= 0x0004,
 		eEnclaves	= 0x0008,
+		eHashDB		= 0x0400,
 		eExecRules	= 0x0010,
 		eResRules	= 0x0020,
 		eService	= 0x0040,
 		eFwRules	= 0x0080,
 		ePrograms	= 0x0100,
 		eTraceLog	= 0x0200,
-		eAllPermanent = 0x01FF,
+		eAllPermanent = 0x07FF,
 		eAll = 0xFFFF
 	};
 

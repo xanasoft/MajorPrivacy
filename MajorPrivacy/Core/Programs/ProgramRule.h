@@ -15,8 +15,13 @@ public:
 
 	EExecRuleType GetType() const					{return m_Type;}
 	QString GetTypeStr() const;
-	KPH_VERIFY_AUTHORITY GetSignatureLevel() const	{return m_SignatureLevel;}
+	
+	USignatures GetAllowedSignatures() const {return m_AllowedSignatures;}
+	QList<QString> GetAllowedCollections() const		{return m_AllowedCollections;}
+	QList<QString> GetAllowedSignaturesEx() const;
+
 	bool GetImageLoadProtection() const				{return m_ImageLoadProtection;}
+	bool GetImageCoherencyChecking() const			{return m_ImageCoherencyChecking;}
 
 	CProgramRule* Clone() const;
 
@@ -31,8 +36,11 @@ protected:
 	EExecRuleType m_Type = EExecRuleType::eUnknown;
 	QString m_ProgramPath;
 	QString m_ProgramNtPath;
-	KPH_VERIFY_AUTHORITY m_SignatureLevel = KPH_VERIFY_AUTHORITY::KphUntestedAuthority;
+	
+	USignatures m_AllowedSignatures = { 0 };
+	QList<QString> m_AllowedCollections;
 	bool m_ImageLoadProtection = true;
+	bool m_ImageCoherencyChecking = true; // not used yet, but will be in the future
 };
 
 typedef QSharedPointer<CProgramRule> CProgramRulePtr;

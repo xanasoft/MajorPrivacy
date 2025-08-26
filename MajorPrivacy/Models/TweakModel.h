@@ -35,7 +35,7 @@ public:
 
 protected:
 	
-	void Sync(const CTweakPtr& pTweak, bool bShowNotAvailable, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
+	void Sync(const CTweakPtr& pTweak, bool bShowNotAvailable, const QList<QVariant>& Path, TNewNodesMap& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
 
 	struct STweakNode : STreeNode
 	{

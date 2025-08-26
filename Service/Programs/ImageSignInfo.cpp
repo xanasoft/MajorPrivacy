@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ImageSignInfo.h"
 #include "../../Library/API/DriverAPI.h"
+#include "../../Library/Helpers/NtUtil.h"
 
 CImageSignInfo::CImageSignInfo()
 {
@@ -8,41 +9,35 @@ CImageSignInfo::CImageSignInfo()
 
 void CImageSignInfo::Update(const struct SVerifierInfo* pVerifyInfo)
 {
-	if (pVerifyInfo->SignAuthority != KphUntestedAuthority)
-		m_SignInfo.Authority = (uint8)pVerifyInfo->SignAuthority;
-	if (!pVerifyInfo->FileHash.empty())
+	m_StatusFlags = pVerifyInfo->StatusFlags;
+
+	if (!pVerifyInfo->FileHash.empty()) {
+		m_FileHashAlgorithm = pVerifyInfo->FileHashAlgorithm;
 		m_FileHash = pVerifyInfo->FileHash;
-	if (pVerifyInfo->VerificationFlags & KPH_VERIFY_FLAG_CI_SIG_DUMMY)
-	{
-		if (m_SignerHash.empty()) {
-			if (pVerifyInfo->SignerHash.empty())
-				m_HashStatus = EHashStatus::eHashNone;
-			else
-			{
-				m_HashStatus = EHashStatus::eHashDummy;
-				m_SignerHash = pVerifyInfo->SignerHash;
-				m_SignerName = pVerifyInfo->SignerName;
-			}
-		}
 	}
-	else if (pVerifyInfo->VerificationFlags & KPH_VERIFY_FLAG_CI_SIG_OK)
+
+	if (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_SA)
+		m_PrivateAuthority = pVerifyInfo->PrivateAuthority;
+
+	if (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_CI)
 	{
-		if (pVerifyInfo->SignLevel) m_SignInfo.Level = (uint8)pVerifyInfo->SignLevel;
-		if (pVerifyInfo->SignPolicy) m_SignInfo.Policy = pVerifyInfo->SignPolicy;
-		if (!pVerifyInfo->SignerHash.empty()) {
-			m_HashStatus = EHashStatus::eHashOk;
-			m_SignerHash = pVerifyInfo->SignerHash;
-			m_SignerName = pVerifyInfo->SignerName;
-		}
+		m_SignPolicyBits = pVerifyInfo->SignPolicyBits;
+
+		m_SignerHashAlgorithm = pVerifyInfo->SignerHashAlgorithm;
+		m_SignerHash = pVerifyInfo->SignerHash;
+		m_SignerName = pVerifyInfo->SignerName;
+		
+		m_IssuerHashAlgorithm = pVerifyInfo->IssuerHashAlgorithm;
+		m_IssuerHash = pVerifyInfo->IssuerHash;
+		m_IssuerName = pVerifyInfo->IssuerName;
 	}
-	else if (pVerifyInfo->VerificationFlags & KPH_VERIFY_FLAG_CI_SIG_FAIL)
-	{
-		m_SignInfo.Level = 0;
-		m_SignInfo.Policy = 0;
-		m_HashStatus = EHashStatus::eHashFail;
-		m_SignerHash.clear();
-		m_SignerName.clear();
-	}
+
+	if (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_SL)
+		m_SignLevel = pVerifyInfo->SignLevel;
+
+	m_Signatures = pVerifyInfo->FoundSignatures;
+
+	m_TimeStamp = GetCurrentTimeAsFileTime();
 }
 
 StVariant CImageSignInfo::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const

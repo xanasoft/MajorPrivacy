@@ -2,6 +2,10 @@
 #include "WinHelper.h"
 #include <QDebug>
 
+#include <winsock2.h>
+#include <iphlpapi.h>
+#include <ws2tcpip.h>
+
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QtWin>
 #else
@@ -223,4 +227,180 @@ HANDLE ShellExecuteQ(const QString& Command)
     if(ShellExecuteExW(&shex))
 		return shex.hProcess;
 	return INVALID_HANDLE_VALUE;
+}
+
+
+#include <netlistmgr.h>
+
+bool CheckInternet()
+{
+    bool bRet = false;
+
+    HRESULT hr = CoInitialize(NULL);
+    if (SUCCEEDED(hr))
+    {
+        INetworkListManager* pNetworkListManager = nullptr;
+        hr = CoCreateInstance(CLSID_NetworkListManager, NULL, CLSCTX_ALL, IID_INetworkListManager, (void**)&pNetworkListManager);
+        if (SUCCEEDED(hr)) 
+        {
+            NLM_CONNECTIVITY connectivity = NLM_CONNECTIVITY_DISCONNECTED;
+            hr = pNetworkListManager->GetConnectivity(&connectivity);
+            if (SUCCEEDED(hr)) {
+                if (connectivity & NLM_CONNECTIVITY_IPV4_INTERNET || connectivity & NLM_CONNECTIVITY_IPV6_INTERNET) {
+                    bRet = true;
+                }
+            }
+
+            pNetworkListManager->Release();
+        }
+        CoUninitialize();
+    }
+
+    return bRet;
+}
+
+QVariantList EnumNICs()
+{
+    QVariantList NICs;
+
+    ULONG bufferSize = 0;
+    GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, NULL, NULL, &bufferSize);
+    std::vector<byte> buffer;
+    buffer.resize(bufferSize * 10 / 8);
+    IP_ADAPTER_ADDRESSES* adapters = (IP_ADAPTER_ADDRESSES*)buffer.data();
+    if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, NULL, adapters, &bufferSize) == NO_ERROR)
+    {
+        for (IP_ADAPTER_ADDRESSES* adapter = adapters; adapter != NULL; adapter = adapter->Next)
+        {
+            QVariantMap Data;
+            Data["Adapter"] = QString::fromWCharArray(adapter->FriendlyName);
+            Data["Device"] = QString::fromLatin1(adapter->AdapterName);
+            Data["Index"] = (quint32)adapter->IfIndex;
+            Data["MAC"] = QByteArray((char*)adapter->PhysicalAddress, adapter->PhysicalAddressLength);
+
+            QStringList Ip4;
+            QStringList Ip6;
+            for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress; unicast != NULL; unicast = unicast->Next)
+            {
+                char addrStr[INET6_ADDRSTRLEN] = { 0 };
+
+                if (unicast->Address.lpSockaddr->sa_family == AF_INET) {
+                    struct sockaddr_in* sa4 = (struct sockaddr_in*)unicast->Address.lpSockaddr;
+                    inet_ntop(AF_INET, &(sa4->sin_addr), addrStr, sizeof(addrStr));
+                    Ip4.append(QString::fromLatin1(addrStr));
+                }
+                else if (unicast->Address.lpSockaddr->sa_family == AF_INET6) {
+                    struct sockaddr_in6* sa6 = (struct sockaddr_in6*)unicast->Address.lpSockaddr;
+                    inet_ntop(AF_INET6, &(sa6->sin6_addr), addrStr, sizeof(addrStr));
+                    Ip6.append(QString::fromLatin1(addrStr));
+                }
+            }
+            Data["Ip4"] = Ip4;
+            Data["Ip6"] = Ip6;
+
+            NICs.append(Data);
+        }
+    }
+
+    return NICs;
+}
+
+
+
+
+
+static bool IsPlatformFullScreenMode() 
+{
+    // SHQueryUserNotificationState is only available for Vista and above.
+#if defined(NTDDI_VERSION) && (NTDDI_VERSION >= NTDDI_VISTA)
+
+    OSVERSIONINFO osvi;
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+    if (GetVersionEx(&osvi) && osvi.dwMajorVersion < 6)
+        return false;
+
+
+    typedef HRESULT(WINAPI* SHQueryUserNotificationStatePtr)(
+        QUERY_USER_NOTIFICATION_STATE* state);
+
+    HMODULE shell32_base = ::GetModuleHandleW(L"shell32.dll");
+    if (!shell32_base) {
+        return false;
+    }
+    SHQueryUserNotificationStatePtr query_user_notification_state_ptr =
+        reinterpret_cast<SHQueryUserNotificationStatePtr>
+        (::GetProcAddress(shell32_base, "SHQueryUserNotificationState"));
+    if (!query_user_notification_state_ptr) {
+        return false;
+    }
+
+    QUERY_USER_NOTIFICATION_STATE state;
+    if (FAILED((*query_user_notification_state_ptr)(&state)))
+        return false;
+    return state == QUNS_RUNNING_D3D_FULL_SCREEN ||
+        state == QUNS_PRESENTATION_MODE;
+#else
+    return false;
+#endif
+}
+
+static bool IsFullScreenWindowMode() 
+{
+    // Get the foreground window which the user is currently working on.
+    HWND wnd = ::GetForegroundWindow();
+    if (!wnd)
+        return false;
+
+    // Get the monitor where the window is located.
+    RECT wnd_rect;
+    if (!::GetWindowRect(wnd, &wnd_rect))
+        return false;
+    HMONITOR monitor = ::MonitorFromRect(&wnd_rect, MONITOR_DEFAULTTONULL);
+    if (!monitor)
+        return false;
+    MONITORINFO monitor_info = { sizeof(monitor_info) };
+    if (!::GetMonitorInfo(monitor, &monitor_info))
+        return false;
+
+    // It should be the main monitor.
+    if (!(monitor_info.dwFlags & MONITORINFOF_PRIMARY))
+        return false;
+
+    // The window should be at least as large as the monitor.
+    if (!::IntersectRect(&wnd_rect, &wnd_rect, &monitor_info.rcMonitor))
+        return false;
+    if (!::EqualRect(&wnd_rect, &monitor_info.rcMonitor))
+        return false;
+
+    // At last, the window style should not have WS_DLGFRAME and WS_THICKFRAME and
+    // its extended style should not have WS_EX_WINDOWEDGE and WS_EX_TOOLWINDOW.
+    LONG style = ::GetWindowLong(wnd, GWL_STYLE);
+    LONG ext_style = ::GetWindowLong(wnd, GWL_EXSTYLE);
+    return !((style & (WS_DLGFRAME | WS_THICKFRAME)) ||
+        (ext_style & (WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW)));
+}
+
+static bool IsFullScreenConsoleMode() 
+{
+    // We detect this by attaching the current process to the console of the
+    // foreground window and then checking if it is in full screen mode.
+    DWORD pid = 0;
+    ::GetWindowThreadProcessId(::GetForegroundWindow(), &pid);
+    if (!pid)
+        return false;
+
+    if (!::AttachConsole(pid))
+        return false;
+
+    DWORD modes = 0;
+    ::GetConsoleDisplayMode(&modes);
+    ::FreeConsole();
+
+    return (modes & (CONSOLE_FULLSCREEN | CONSOLE_FULLSCREEN_HARDWARE)) != 0;
+}
+
+bool IsFullScreenMode() {
+    return IsPlatformFullScreenMode()
+        //|| IsFullScreenConsoleMode()
+        || IsFullScreenWindowMode();
 }

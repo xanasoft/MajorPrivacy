@@ -143,7 +143,7 @@ void CNetworkManager::Update()
     {
         UpdateAdapterInfo();
 
-        UpdateDnsConfig(theCore->Config()->GetBool("Service", "DnsEnableFilter", false) && theCore->Config()->GetBool("Service", "DnsInstallFilter", false));
+        UpdateDnsConfig(theCore->Config()->GetBool("Service", "DnsEnableFilter", false) && theCore->Config()->GetBool("Service", "DnsInstallFilter", true));
     }
 
     m_pDnsInspector->Update();
@@ -208,7 +208,7 @@ void CNetworkManager::Reconfigure(bool bWithResolvers, bool bWithBlocklist)
             m_pDnsFilter->UpdateBlockLists();
     }
 
-    bool bInstallFilter = bEnableFilter && theCore->Config()->GetBool("Service", "DnsInstallFilter", false);
+    bool bInstallFilter = bEnableFilter && theCore->Config()->GetBool("Service", "DnsInstallFilter", true);
 	UpdateDnsConfig(bInstallFilter);
 }
 

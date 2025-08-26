@@ -444,6 +444,47 @@ SCatalogCIInfoPtr GetCatalogCIInfo(const std::wstring& filePath)
 	return g_CatalogCertCache[MkLower(filePath)] = GetCatalogCIInfoImpl(filePath);
 }*/
 
+bool GetEmbeddedSignatureStatus(const std::wstring& filePath, bool* pValid)
+{
+	HCERTSTORE hStore = NULL;
+	HCRYPTMSG hMsg = NULL;	
+
+	BOOL res = CryptQueryObject(
+		CERT_QUERY_OBJECT_FILE,
+		filePath.c_str(),
+		CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
+		CERT_QUERY_FORMAT_FLAG_BINARY,
+		0,
+		NULL,
+		NULL,
+		NULL,
+		&hStore,
+		&hMsg,
+		NULL);
+
+	if (!res || !hMsg || !hStore) {
+		if (hStore)  CertCloseStore(hStore, 0);
+		if (hMsg)    CryptMsgClose(hMsg);
+		return false;
+	}
+
+	DWORD signerCount = 0;
+	DWORD dataSize = sizeof(signerCount);
+	if (!CryptMsgGetParam(hMsg, CMSG_SIGNER_COUNT_PARAM, 0, &signerCount, &dataSize)) {
+		CertCloseStore(hStore, 0);
+		CryptMsgClose(hMsg);
+		return false;
+	}
+
+	*pValid = IsEmbeddedSignatureValid(filePath);
+
+	// Cleanup
+	CertCloseStore(hStore, 0);
+	CryptMsgClose(hMsg);
+
+	return true;
+}
+
 #include "../PHlib/include/ph.h"
 
 std::wstring PHStr2WStr(PPH_STRING phStr, bool bFree = false);

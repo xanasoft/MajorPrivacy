@@ -36,7 +36,8 @@ public:
 	// Byte Array
 	explicit StVariant(const CBuffer& Buffer) : FW::CVariant(Buffer) {}
 	explicit StVariant(CBuffer& Buffer, bool bTake = false) : FW::CVariant(Buffer, bTake) {}
-	explicit StVariant(const std::vector<byte>& vec) :  FW::CVariant(vec.data(), vec.size(), VAR_TYPE_BYTES) {}
+	explicit StVariant(const std::vector<byte>& vec) : FW::CVariant(nullptr, vec.data(), vec.size(), VAR_TYPE_BYTES) {}
+	explicit StVariant(FW::AbstractMemPool* pMemPool, const std::vector<byte>& vec) : FW::CVariant(pMemPool, vec.data(), vec.size(), VAR_TYPE_BYTES) {}
 	StVariant& operator=(const std::vector<byte>& vec)	{Clear(); InitValue(VAR_TYPE_BYTES, vec.size(), vec.data()); return *this;}
 
 	// ASCII String

@@ -19,6 +19,7 @@ struct SProgramStats
 	int				ResRuleCount = 0;
 	int				ResRuleTotal = 0;
 	uint32			AccessCount = 0;
+	uint32			HandleCount = 0;
 
 	int				FwRuleCount = 0;
 	int				FwRuleTotal = 0;
@@ -49,17 +50,17 @@ public:
 	void SetID(const CProgramID& ID) 				{ m_ID = ID; }
 	const CProgramID& GetID() const					{ return m_ID; }
 
-	virtual void SetName(const QString& Name)		{ m_Name = Name; }
-	virtual QString GetName() const					{ return m_Name; }
-	virtual QString GetNameEx() const				{ return m_Name; }
+	virtual void SetName(const QString& Name)		{ QWriteLocker Lock(&m_Mutex); m_Name = Name; }
+	virtual QString GetName() const					{ QReadLocker Lock(&m_Mutex); return m_Name; }
+	virtual QString GetNameEx() const				{ QReadLocker Lock(&m_Mutex); return m_Name; }
 	virtual QString GetPublisher() const			{ return ""; }
 	//virtual QStringList GetCategories() const		{ return m_Categories; }
 	virtual QIcon DefaultIcon() const;
-	virtual void SetIconFile(const QString& IconFile) { m_IconFile = IconFile; UpdateIconFile(); }
-	virtual QString GetIconFile() const				{ return m_IconFile; }
-	virtual QIcon GetIcon() const					{ return m_Icon; }
+	virtual void SetIconFile(const QString& IconFile) { QWriteLocker Lock(&m_Mutex); m_IconFile = IconFile; Lock.unlock(); UpdateIconFile(); }
+	virtual QString GetIconFile() const				{ QReadLocker Lock(&m_Mutex); return m_IconFile; }
+	virtual QIcon GetIcon() const					{ QReadLocker Lock(&m_Mutex); return m_Icon; }
 	virtual void SetInfo(const QString& Info)		{ m_Info = Info; }
-	virtual QString GetInfo() const					{ return m_Info; }
+	virtual QString GetInfo() const					{ QReadLocker Lock(&m_Mutex); return m_Info; }
 	virtual QString GetPath() const					{ return ""; }
 
 	virtual ETracePreset GetExecTrace() const		{ return m_ExecTrace; }
@@ -73,16 +74,16 @@ public:
 	virtual void SetSaveTrace(ESavePreset Trace)	{ m_SaveTrace = Trace; }
 
 
-	virtual QList<QWeakPointer<QObject>> GetGroups() const	{ return m_Groups; }
+	virtual QList<QWeakPointer<QObject>> GetGroups() const	{ QReadLocker Lock(&m_Mutex); return m_Groups; }
 
-	virtual int GetFwRuleCount() const				{ return m_FwRuleIDs.count(); }
-	virtual QSet<QFlexGuid> GetFwRules() const		{ return m_FwRuleIDs; }
+	virtual int GetFwRuleCount() const				{ QReadLocker Lock(&m_Mutex); return m_FwRuleIDs.count(); }
+	virtual QSet<QFlexGuid> GetFwRules() const		{ QReadLocker Lock(&m_Mutex); return m_FwRuleIDs; }
 
-	virtual int GetProgRuleCount() const			{ return m_ProgRuleIDs.count(); }
-	virtual QSet<QFlexGuid> GetProgRules() const	{ return m_ProgRuleIDs; }
+	virtual int GetProgRuleCount() const			{ QReadLocker Lock(&m_Mutex); return m_ProgRuleIDs.count(); }
+	virtual QSet<QFlexGuid> GetProgRules() const	{ QReadLocker Lock(&m_Mutex); return m_ProgRuleIDs; }
 
-	virtual int GetResRuleCount() const				{ return m_ResRuleIDs.count(); }
-	virtual QSet<QFlexGuid> GetResRules() const		{ return m_ResRuleIDs; }
+	virtual int GetResRuleCount() const				{ QReadLocker Lock(&m_Mutex); return m_ResRuleIDs.count(); }
+	virtual QSet<QFlexGuid> GetResRules() const		{ QReadLocker Lock(&m_Mutex); return m_ResRuleIDs; }
 
 	virtual bool IsMissing() const					{ return m_IsMissing; }
 
@@ -104,6 +105,8 @@ protected:
 	virtual void WriteMVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const;
 	virtual void ReadIValue(uint32 Index, const QtVariant& Data);
 	virtual void ReadMValue(const SVarName& Name, const QtVariant& Data);
+
+	mutable QReadWriteLock m_Mutex;
 
 	quint64								m_UID = 0;
 	CProgramID							m_ID;

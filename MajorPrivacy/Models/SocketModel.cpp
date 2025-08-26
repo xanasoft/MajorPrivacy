@@ -25,7 +25,7 @@ QList<QModelIndex>	CSocketModel::Sync(const QMap<quint64, CSocketPtr>& SocketLis
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -44,7 +44,7 @@ QList<QModelIndex>	CSocketModel::Sync(const QMap<quint64, CSocketPtr>& SocketLis
 			//pNode->Path = Path;
 			pNode->pSocket = pSocket;
 			pNode->pProcess = theCore->ProcessList()->GetProcess(pSocket->GetProcessId(), true);
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{

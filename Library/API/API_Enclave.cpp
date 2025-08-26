@@ -19,10 +19,17 @@ void CEnclave::WriteIVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 	//Enclave.WriteEx(API_V_RULE_GROUP, TO_STR(m_Grouping));
 	Enclave.WriteEx(API_V_RULE_DESCR, TO_STR(m_Description));
 
-	Enclave.Write(API_V_EXEC_SIGN_REQ, (uint32)m_SignatureLevel);
+	Enclave.Write(API_V_EXEC_ALLOWED_SIGNERS, m_AllowedSignatures.Value);
+	VariantWriter Collections(Enclave.Allocator());
+	Collections.BeginList();
+	for(const auto& Collection : m_AllowedCollections)
+		Collections.WriteEx(TO_STR(Collection));
+	Enclave.WriteVariant(API_V_EXEC_ALLOWED_COLLECTIONS, Collections.Finish());
+
 	Enclave.Write(API_V_EXEC_ON_TRUSTED_SPAWN, (uint32)m_OnTrustedSpawn);
 	Enclave.Write(API_V_EXEC_ON_SPAWN, (uint32)m_OnSpawn);
 	Enclave.Write(API_V_IMAGE_LOAD_PROTECTION, m_ImageLoadProtection);
+	Enclave.Write(API_V_IMAGE_COHERENCY_CHECKING, m_ImageCoherencyChecking);
 
 	Enclave.Write(API_V_INTEGRITY_LEVEL, (uint32)m_IntegrityLevel);
 
@@ -37,20 +44,27 @@ void CEnclave::ReadIValue(uint32 Index, const XVariant& Data)
 	switch (Index)
 	{
 #ifdef KERNEL_MODE
-	case API_V_GUID:		if(IS_EMPTY(m_Guid)) m_Guid = AS_STR(Data); break;
+	case API_V_GUID:		if (IS_EMPTY(m_Guid)) m_Guid = AS_STR(Data); break;
 #else
-	case API_V_GUID:		if(m_Guid.IsNull()) m_Guid.FromVariant(Data); break;
+	case API_V_GUID:		if (m_Guid.IsNull()) m_Guid.FromVariant(Data); break;
 #endif
 	case API_V_ENABLED:		m_bEnabled = Data.To<bool>(); break;
 
 	case API_V_NAME:		m_Name = AS_STR(Data); break;
-	//case API_V_RULE_GROUP:	m_Grouping = AS_STR(Data); break;
+		//case API_V_RULE_GROUP:	m_Grouping = AS_STR(Data); break;
 	case API_V_RULE_DESCR:	m_Description = AS_STR(Data); break;
 
-	case API_V_EXEC_SIGN_REQ: m_SignatureLevel = (KPH_VERIFY_AUTHORITY)Data.To<uint32>(); break;
+	case API_V_EXEC_ALLOWED_SIGNERS: m_AllowedSignatures.Value = Data.To<uint32>(); break;
+	case API_V_EXEC_ALLOWED_COLLECTIONS:
+		LIST_CLEAR(m_AllowedCollections);
+		for (uint32 i = 0; i < Data.Count(); i++)
+			LIST_APPEND(m_AllowedCollections, AS_STR(Data[i]));
+		break;
+	
 	case API_V_EXEC_ON_TRUSTED_SPAWN: m_OnTrustedSpawn = (EProgramOnSpawn)Data.To<uint32>(); break;
 	case API_V_EXEC_ON_SPAWN: m_OnSpawn = (EProgramOnSpawn)Data.To<uint32>(); break;
 	case API_V_IMAGE_LOAD_PROTECTION: m_ImageLoadProtection = Data.To<bool>(); break;
+	case API_V_IMAGE_COHERENCY_CHECKING: m_ImageCoherencyChecking = Data.To<bool>(); break;
 
 	case API_V_INTEGRITY_LEVEL: m_IntegrityLevel = (EIntegrityLevel)Data.To<uint32>(); break;
 
@@ -78,21 +92,25 @@ void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 	//Enclave.WriteEx(API_S_RULE_GROUP, TO_STR(m_Grouping));
 	Enclave.WriteEx(API_S_RULE_DESCR, TO_STR(m_Description));
 
-	switch (m_SignatureLevel) 
-	{
-	case KphDevAuthority:
-	case KphUserAuthority:	Enclave.Write(API_S_EXEC_SIGN_REQ, API_S_EXEC_SIGN_REQ_VERIFIED); break;
-
-	case KphMsAuthority:
-	case KphAvAuthority:	Enclave.Write(API_S_EXEC_SIGN_REQ, API_S_EXEC_SIGN_REQ_MICROSOFT); break;
-
-	case KphMsCodeAuthority:Enclave.Write(API_S_EXEC_SIGN_REQ, API_S_EXEC_SIGN_REQ_TRUSTED); break;
-
-	case KphUnkAuthority:	Enclave.Write(API_S_EXEC_SIGN_REQ, API_S_EXEC_SIGN_REQ_OTHER); break;
-
-	case KphUntestedAuthority:
-	case KphNoAuthority:	Enclave.Write(API_S_EXEC_SIGN_REQ, API_S_EXEC_SIGN_REQ_NONE); break;
-	}
+	VariantWriter Signers(Enclave.Allocator());
+	Signers.BeginList();
+	if(m_AllowedSignatures.Windows)
+		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_WINDOWS);
+	if(m_AllowedSignatures.Microsoft)
+		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_MICROSOFT);
+	if(m_AllowedSignatures.Antimalware)
+		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_ANTIMALWARE);
+	if(m_AllowedSignatures.Authenticode)
+		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_AUTHENTICODE);
+	if (m_AllowedSignatures.Store)
+		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_STORE);
+	if(m_AllowedSignatures.User)
+		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_USER);
+	if(m_AllowedSignatures.Enclave)
+		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE);
+	for(const auto& Collection : m_AllowedCollections)
+		Signers.WriteEx(TO_STR(Collection));
+	Enclave.WriteVariant(API_S_EXEC_ALLOWED_SIGNERS, Signers.Finish());
 
 	switch (m_OnTrustedSpawn)
 	{
@@ -109,6 +127,7 @@ void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 	}
 
 	Enclave.Write(API_S_IMAGE_LOAD_PROTECTION, m_ImageLoadProtection);
+	Enclave.Write(API_S_IMAGE_COHERENCY_CHECKING, m_ImageCoherencyChecking);
 
 	switch (m_IntegrityLevel)
 	{
@@ -143,17 +162,27 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 	{
 		ASTR SignReq = Data;
 		if (SignReq == API_S_EXEC_SIGN_REQ_VERIFIED)
-			m_SignatureLevel = KphUserAuthority;
-		else if (SignReq == API_S_EXEC_SIGN_REQ_MICROSOFT)
-			m_SignatureLevel = KphAvAuthority;
-		else if (SignReq == API_S_EXEC_SIGN_REQ_TRUSTED)
-			m_SignatureLevel = KphMsCodeAuthority;
-		else if (SignReq == API_S_EXEC_SIGN_REQ_OTHER)
-			m_SignatureLevel = KphUnkAuthority;
-		//else if (SignReq == "None")
-		//	m_SignatureLevel = KphNoAuthority; // dont require signature
-		//else
-		//	return STATUS_INVALID_PARAMETER; // todo
+			m_AllowedSignatures.User = TRUE;
+		else if (SignReq == API_S_EXEC_SIGN_REQ_MICROSOFT || SignReq == API_S_EXEC_SIGN_REQ_TRUSTED)
+			m_AllowedSignatures.User = m_AllowedSignatures.Windows = m_AllowedSignatures.Microsoft = m_AllowedSignatures.Antimalware = TRUE;
+	}
+
+	else if (VAR_TEST_NAME(Name, API_S_EXEC_ALLOWED_SIGNERS))
+	{
+		m_AllowedSignatures.Value = 0;
+		LIST_CLEAR(m_AllowedCollections);
+		for (uint32 i = 0; i < Data.Count(); i++) {
+			ASTR SignReq = Data[i];
+			if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_WINDOWS || SignReq == "[MS]")			m_AllowedSignatures.Windows = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_MICROSOFT)	m_AllowedSignatures.Microsoft = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_ANTIMALWARE)	m_AllowedSignatures.Antimalware = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_AUTHENTICODE)	m_AllowedSignatures.Authenticode = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_STORE)		m_AllowedSignatures.Store = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_USER)			m_AllowedSignatures.User = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE)		m_AllowedSignatures.Enclave = TRUE;
+			else
+				LIST_APPEND(m_AllowedCollections, AS_STR(Data[i]));
+		}
 	}
 
 	else if (VAR_TEST_NAME(Name, API_S_EXEC_ON_TRUSTED_SPAWN))
@@ -183,6 +212,7 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 	}
 
 	else if (VAR_TEST_NAME(Name, API_S_IMAGE_LOAD_PROTECTION))	m_ImageLoadProtection = Data.To<bool>();
+	else if (VAR_TEST_NAME(Name, API_S_IMAGE_COHERENCY_CHECKING))	m_ImageCoherencyChecking = Data.To<bool>();
 
 	else if (VAR_TEST_NAME(Name, API_S_INTEGRITY_LEVEL))
 	{

@@ -180,6 +180,6 @@ void CAccessPage::Update(const QString& VolumeRoot, const QString& VolumeImage)
 void CAccessPage::UpdateEnabled()
 {
 	m_pHandleView->setEnabled(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));
-	m_pAccessView->setEnabled(theCore->GetConfigBool("Service/ResTrace", false));
+	m_pAccessView->setEnabled(theCore->GetConfigBool("Service/ResTrace", true));
 	m_pTraceView->setEnabled(theCore->GetConfigBool("Service/ResLog", false));
 }

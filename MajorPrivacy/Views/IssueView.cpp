@@ -12,16 +12,19 @@ CIssueView::CIssueView(QWidget *parent)
 	:QWidget(parent)
 {
 	m_pMainLayout = new QGridLayout(this);
-	m_pMainLayout->setContentsMargins(9, 9, 0, 0);
+	//m_pMainLayout->setContentsMargins(9, 9, 0, 0);
+	m_pMainLayout->setContentsMargins(0, 0, 0, 0);
 
 	m_pLabel = new QLabel(tr("Current Privacy related Issues requirering an Action to be taken:"));
 	m_pMainLayout->addWidget(m_pLabel, 0, 0);
 
 	m_pInfo = new CPanelWidgetEx();
 	//m_pInfo->GetView()->setItemDelegate(theGUI->GetItemDelegate());
+	m_pInfo->GetTree()->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	m_pInfo->GetTree()->setHeaderLabels(tr("Severity|Description").split("|"));
 	m_pInfo->GetTree()->setIndentation(0);
 	m_pInfo->GetTree()->setItemDelegate(new CTreeItemDelegate2());
+	m_pInfo->GetTree()->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	m_pInfo->GetTree()->setIconSize(QSize(32, 32));
 	m_pInfo->GetTree()->setSelectionMode(QAbstractItemView::ExtendedSelection);
 	m_pMainLayout->addWidget(m_pInfo, 1, 0);

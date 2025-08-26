@@ -64,23 +64,30 @@ void CTrafficLog::STrafficLogEntry::Merge(const STrafficLogEntry& Data)
 }
 
 #ifdef DEF_USE_POOL
-void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, FW::Map<FW::StringW, STrafficLogEntry>& TrafficLog)
+void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, FW::Map<FW::StringW, STrafficLogEntry>& TrafficLog, bool bTemp)
 #else
-void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, std::map<std::wstring, STrafficLogEntry>& TrafficLog)
+void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, std::map<std::wstring, STrafficLogEntry>& TrafficLog, bool bTemp)
 #endif
 {
 	std::wstring Host;
 	CHostNamePtr pHostName = pSocket->GetRemoteHostName();
 	if (pHostName) Host = pHostName->ToString(); // may be empty
-	if (Host.empty()) Host = pSocket->GetRemoteAddress().ToWString();
+
+	if (Host.empty())
+	{
+		Host = L"[" + pSocket->GetRemoteAddress().ToWString() + L"]";
+#ifdef _DEBUG
+		//if (!bTemp)
+		//	DbgPrint(L"DNS: Commiting traffic for UNResolved Hostname %s\n", Host.c_str());
+#endif
+	}
 
 #ifdef DEF_USE_POOL
 	STrafficLogEntry* pEntry = &TrafficLog[FW::StringW(TrafficLog.Allocator(), Host.c_str(), Host.length())];
 #else
 	STrafficLogEntry* pEntry = &TrafficLog[Host];
 #endif
-	if (pEntry->IpAddress.IsNull())
-		pEntry->IpAddress = pSocket->GetRemoteAddress();
+	pEntry->IpAddress = pSocket->GetRemoteAddress();
 	//STrafficLogEntryPtr& pEntry = m_TrafficLog[Host];
 	//if(!pEntry) pEntry = std::make_shared<STrafficLogEntry>(Host);
 	pEntry->Merge(Data);
@@ -189,7 +196,7 @@ StVariant CTrafficLog::ToVariant(uint64 MinLastActivity, FW::AbstractMemPool* pM
 		STrafficLogEntry Data(I);
 		if(Data.LastActivity == 0)
 			continue;
-		CommitTraffic(I, Data, Current);
+		CommitTraffic(I, Data, Current, true);
 	}
 
 #ifdef DEF_USE_POOL
@@ -205,14 +212,15 @@ StVariant CTrafficLog::ToVariant(uint64 MinLastActivity, FW::AbstractMemPool* pM
 #endif
 		if (F != Current.end())
 		{
+			// Note: for current (active) entries we always provide updates (eg. hostmay may have been resolved)
 #ifdef DEF_USE_POOL
-			if (MinLastActivity > F->LastActivity)
-				continue;
+			//if (MinLastActivity > F->LastActivity)
+			//	continue;
 			F->Merge(*I);
 			TrafficLog.WriteVariant(DumpEntry(I.Key(), F.Value(), pMemPool));
 #else
-			if(MinLastActivity > F->second.LastActivity)
-				continue;
+			//if(MinLastActivity > F->second.LastActivity)
+			//	continue;
 			F->second.Merge(I.second);
 			TrafficLog.WriteVariant(DumpEntry(I.first, F->second, pMemPool));
 #endif
@@ -239,12 +247,12 @@ StVariant CTrafficLog::ToVariant(uint64 MinLastActivity, FW::AbstractMemPool* pM
 #endif
 	{
 #ifdef DEF_USE_POOL
-		if (MinLastActivity > I.Value().LastActivity)
-			continue;
+		//if (MinLastActivity > I.Value().LastActivity)
+		//	continue;
 		TrafficLog.WriteVariant(DumpEntry(I.Key(), I.Value(), pMemPool));
 #else
-		if(MinLastActivity > I.second.LastActivity)
-			continue;
+		//if(MinLastActivity > I.second.LastActivity)
+		//	continue;
 		TrafficLog.WriteVariant(DumpEntry(I.first, I.second, pMemPool));
 #endif
 	}

@@ -16,6 +16,11 @@ CAccessManager::CAccessManager(QObject* parent)
 
 STATUS CAccessManager::Update()
 {
+	//////////////////////////////////////////////////////////
+	// WARING This is called from a differnt thread
+	//////////////////////////////////////////////////////////
+
+
 	return OK;
 }
 

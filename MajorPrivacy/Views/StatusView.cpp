@@ -286,7 +286,7 @@ void CStatusView::Update()
 
 	if (!theCore->GetConfigBool("Service/DnsEnableFilter", false))
 		m_pDnsStatus->setText(tr("DNS Filter NOT enabled"));
-	else if (!theCore->GetConfigBool("Service/DnsInstallFilter", false))
+	else if (!theCore->GetConfigBool("Service/DnsInstallFilter", true))
 		m_pDnsStatus->setText(tr("DNS Filter NOT installed"));
 	else
 		m_pDnsStatus->setText(tr("DNS Filter installed"));

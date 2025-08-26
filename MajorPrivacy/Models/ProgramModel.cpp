@@ -26,18 +26,49 @@ QList<QVariant> CProgramModel::Sync(const CProgramSetPtr& pRoot)
 	QList<QVariant> Added;
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QSet<QVariant> Current;
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
-	Sync(pRoot, QString::number(pRoot->GetUID()), QList<QVariant>(), New, Current, Old, Added);
+	foreach(const CProgramItemPtr& pItem, pRoot->GetNodes())
+	{
+		if (!TestFilter(pItem->GetType(), pItem->GetStats()))
+			continue;
+
+		Sync(pItem, QString::number(pRoot->GetUID()), QList<QVariant>(), New, Current, Old, Added);
+	}
 
 	CTreeItemModel::Sync(New, Old);
 	return Added;
 }
 
-bool CProgramModel::TestFilter(EProgramType Type, const SProgramStats* pStats)
+QList<QVariant> CProgramModel::Sync(const QHash<quint64, CProgramItemPtr>& Items)
+{
+	QList<QVariant> Added;
+#pragma warning(push)
+#pragma warning(disable : 4996)
+	TNewNodesMap New;
+#pragma warning(pop)
+	QSet<QVariant> Current;
+	QHash<QVariant, STreeNode*> Old = m_Map;
+
+	foreach(const CProgramItemPtr& pItem, Items)
+	{
+		if(pItem->GetUID() == 1)
+			continue; // skip root
+
+		if (!TestFilter(pItem->GetType(), pItem->GetStats(), false))
+			continue;
+
+		Sync(pItem, "", QList<QVariant>(), New, Current, Old, Added);
+	}
+
+	CTreeItemModel::Sync(New, Old);
+	return Added;
+}
+
+bool CProgramModel::TestFilter(EProgramType Type, const SProgramStats* pStats, bool bTree)
 {
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
@@ -46,19 +77,19 @@ bool CProgramModel::TestFilter(EProgramType Type, const SProgramStats* pStats)
 		bool bPass = false;
 
 		if (m_Filter & EFilters::ePrograms) {
-			if (pStats->ProgramsCount > 0 || (Type == EProgramType::eProgramFile))
+			if ((bTree && pStats->ProgramsCount > 0) || (Type == EProgramType::eProgramFile))
 				bPass = true;
 		}
 		if (m_Filter & EFilters::eSystem) {
-			if (pStats->ServicesCount > 0 || (Type == EProgramType::eWindowsService))
+			if ((bTree && pStats->ServicesCount > 0) || (Type == EProgramType::eWindowsService))
 				bPass = true;
 		}
 		if (m_Filter & EFilters::eApps) {
-			if (pStats->AppsCount > 0 || (Type == EProgramType::eAppPackage))
+			if ((bTree && pStats->AppsCount > 0) || (Type == EProgramType::eAppPackage))
 				bPass = true;
 		}
 		if (m_Filter & EFilters::eGroups) {
-			if (pStats->GroupCount > 0 || (Type == EProgramType::eFilePattern || Type == EProgramType::eAppInstallation || Type == EProgramType::eProgramGroup))
+			if ((bTree && pStats->GroupCount > 0) || (Type == EProgramType::eFilePattern || Type == EProgramType::eAppInstallation || Type == EProgramType::eProgramGroup))
 				bPass = true;
 		}
 
@@ -126,22 +157,18 @@ bool CProgramModel::TestFilter(EProgramType Type, const SProgramStats* pStats)
 	return true;
 }
 
-void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QSet<QVariant>& Current, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
+void CProgramModel::Sync(const CProgramItemPtr& pItem, const QString& RootID, const QList<QVariant>& Path, TNewNodesMap& New, QSet<QVariant>& Current, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
 {
-	foreach(const CProgramItemPtr& pItem, pRoot->GetNodes())
+	quint64 uID = pItem->GetUID();
+	QString sID = RootID + "/" + QString::number(uID);
+	QVariant ID = sID;
+
+	CProgramSetPtr pGroup;
+	if (!RootID.isEmpty())
 	{
-		quint64 uID = pItem->GetUID();
-		QString sID = RootID + "/" + QString::number(uID);
-		QVariant ID = sID;
+		pGroup = pItem.objectCast<CProgramSet>();
 
-		const SProgramStats* pStats = pItem->GetStats();
-		
-		if (!TestFilter(pItem->GetType(), pStats))
-			continue;
-
-		CProgramSetPtr pGroup = pItem.objectCast<CProgramSet>();
-
-		/*if (m_Filter & EFilters::eByType) 
+		/*if (m_Filter & EFilters::eByType)
 		{
 			if(Current.contains(ID))
 				continue;
@@ -155,127 +182,136 @@ void CProgramModel::Sync(const CProgramSetPtr& pRoot, const QString& RootID, con
 				continue;
 			}
 		}*/
+	}
 
+	QModelIndex Index;
 
-		QModelIndex Index;
+	QHash<QVariant, STreeNode*>::iterator I = Old.find(ID);
+	SProgramNode* pNode = I != Old.end() ? static_cast<SProgramNode*>(I.value()) : NULL;
+	if (!pNode)
+	{
+		pNode = static_cast<SProgramNode*>(MkNode(ID));
+		pNode->Values.resize(columnCount());
+		if (m_bTree)
+			pNode->Path = Path;
+		pNode->pItem = pItem;
+		New[pNode->Path.count()][pNode->Path].append(pNode);
+		Added.append(ID);
+	}
+	else
+	{
+		I.value() = NULL;
+		Index = Find(m_Root, pNode);
+	}
 
-		QHash<QVariant, STreeNode*>::iterator I = Old.find(ID);
-		SProgramNode* pNode = I != Old.end() ? static_cast<SProgramNode*>(I.value()) : NULL;
-		if (!pNode)
+	if (pGroup)
+	{
+		foreach(const CProgramItemPtr& pItem, pGroup->GetNodes())
 		{
-			pNode = static_cast<SProgramNode*>(MkNode(ID));
-			pNode->Values.resize(columnCount());
-			if (m_bTree)
-				pNode->Path = Path;
-			pNode->pItem = pItem;
-			New[pNode->Path].append(pNode);
-			Added.append(ID);
+			if (!TestFilter(pItem->GetType(), pItem->GetStats()))
+				continue;
+
+			Sync(pItem, sID, QList<QVariant>(pNode->Path) << ID, New, Current, Old, Added);
 		}
-		else
+	}
+
+	//if(Index.isValid()) // this is to slow, be more precise
+	//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
+
+	const SProgramStats* pStats = pItem->GetStats();
+
+	int Col = 0;
+	bool State = false;
+	int Changed = 0;
+	if (pNode->Icon.isNull() && !pItem->GetIcon().isNull() || pNode->IconFile != pItem->GetIconFile())
+	{
+		pNode->IconFile = pItem->GetIconFile();
+		pNode->Icon = pItem->GetIcon();
+		Changed = 1;
+	}
+	if (pNode->IsGray != pItem->IsMissing()) 
+	{
+		pNode->IsGray = pItem->IsMissing();
+		Changed = 2; // set change for all columns
+	}
+
+	for (int section = 0; section < columnCount(); section++)
+	{
+		//if (!IsColumnEnabled(section)) // todo xxxxxxxxx
+		//	continue; // ignore columns which are hidden
+
+		QVariant Value;
+		switch (section)
 		{
-			I.value() = NULL;
-			Index = Find(m_Root, pNode);
+		case eName: 			Value = pItem->GetNameEx(); break;
+		case eType:				Value = pItem->GetTypeStr(); break;
+
+		case eRunningCount:		Value = pStats->ProcessCount; break;
+		case eProgramRules:		Value = pStats->ProgRuleTotal; break;
+		case eLastExecution:	Value = pStats->LastExecution; break;
+		//case eTotalUpTime:
+
+		case eOpenedFiles:		Value = pStats->AccessCount; break;
+		//case eOpenFiles:		break;
+		//case eFsTotalRead:
+		//case eFsTotalWritten:
+		case eAccessRules:		Value = pStats->ResRuleTotal; break;
+
+		case eSockets:			Value = pStats->SocketCount; break;
+		case eFwRules:			Value = pStats->FwRuleTotal; break;
+		case eLastNetActivity:	Value = pStats->LastNetActivity; break;
+		case eUpload:			Value = pStats->Upload; break;
+		case eDownload:			Value = pStats->Download; break;
+		case eUploaded:			Value = pStats->Uploaded; break;
+		case eDownloaded:		Value = pStats->Downloaded; break;
+
+		case eLogSize:			Value = pItem->GetLogMemUsage(); break;
+
+		case ePath:				Value = pItem->GetPath(); break;
+
+		//case eInfo:				Value = pItem->GetInfo(); break;
 		}
 
-		if (pGroup)
-			Sync(pGroup, sID, QList<QVariant>(pNode->Path) << ID, New, Current, Old, Added);
+		STreeNode::SValue& ColValue = pNode->Values[section];
 
-		//if(Index.isValid()) // this is to slow, be more precise
-		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
-
-		int Col = 0;
-		bool State = false;
-		int Changed = 0;
-		if (pNode->Icon.isNull() && !pItem->GetIcon().isNull() || pNode->IconFile != pItem->GetIconFile())
+		if (ColValue.Raw != Value)
 		{
-			pNode->IconFile = pItem->GetIconFile();
-			pNode->Icon = pItem->GetIcon();
-			Changed = 1;
-		}
-		if (pNode->IsGray != pItem->IsMissing()) 
-		{
-			pNode->IsGray = pItem->IsMissing();
-			Changed = 2; // set change for all columns
-		}
+			if (Changed == 0)
+				Changed = 1;
+			ColValue.Raw = Value;
 
-		for (int section = 0; section < columnCount(); section++)
-		{
-			//if (!IsColumnEnabled(section)) // todo xxxxxxxxx
-			//	continue; // ignore columns which are hidden
-
-			QVariant Value;
 			switch (section)
 			{
-			case eName: 			Value = pItem->GetNameEx(); break;
-			case eType:				Value = pItem->GetTypeStr(); break;
+			//case eName: 		ColValue.Formatted = pItem->GetNameEx(); break;
 
-			case eRunningCount:		Value = pStats->ProcessCount; break;
-			case eProgramRules:		Value = pStats->ProgRuleTotal; break;
-			case eLastExecution:	Value = pStats->LastExecution; break;
-			//case eTotalUpTime:
+			case eProgramRules:		if(pStats->ProgRuleCount != pStats->ProgRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ProgRuleCount).arg(pStats->ProgRuleTotal); break;
+			case eLastExecution:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
 
-			case eOpenedFiles:		Value = pStats->AccessCount; break;
-			//case eOpenFiles:		break;
-			//case eFsTotalRead:
-			//case eFsTotalWritten:
-			case eAccessRules:		Value = pStats->ResRuleTotal; break;
+			case eAccessRules:		if(pStats->ResRuleCount != pStats->ResRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ResRuleCount).arg(pStats->ResRuleTotal); break;
 
-			case eSockets:			Value = pStats->SocketCount; break;
-			case eFwRules:			Value = pStats->FwRuleTotal; break;
-			case eLastNetActivity:	Value = pStats->LastNetActivity; break;
-			case eUpload:			Value = pStats->Upload; break;
-			case eDownload:			Value = pStats->Download; break;
-			case eUploaded:			Value = pStats->Uploaded; break;
-			case eDownloaded:		Value = pStats->Downloaded; break;
+			case eFwRules:			if(pStats->FwRuleCount != pStats->FwRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->FwRuleCount).arg(pStats->FwRuleTotal); break;
+			case eLastNetActivity:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
+			case eUpload:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
+			case eDownload:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
+			case eUploaded:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
+			case eDownloaded:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 
-			case eLogSize:			Value = pItem->GetLogMemUsage(); break;
-
-			case ePath:				Value = pItem->GetPath(); break;
-
-			//case eInfo:				Value = pItem->GetInfo(); break;
+			case eLogSize:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 			}
-
-			STreeNode::SValue& ColValue = pNode->Values[section];
-
-			if (ColValue.Raw != Value)
-			{
-				if (Changed == 0)
-					Changed = 1;
-				ColValue.Raw = Value;
-
-				switch (section)
-				{
-				//case eName: 		ColValue.Formatted = pItem->GetNameEx(); break;
-
-				case eProgramRules:		if(pStats->ProgRuleCount != pStats->ProgRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ProgRuleCount).arg(pStats->ProgRuleTotal); break;
-				case eLastExecution:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
-
-				case eAccessRules:		if(pStats->ResRuleCount != pStats->ResRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ResRuleCount).arg(pStats->ResRuleTotal); break;
-
-				case eFwRules:			if(pStats->FwRuleCount != pStats->FwRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->FwRuleCount).arg(pStats->FwRuleTotal); break;
-				case eLastNetActivity:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
-				case eUpload:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
-				case eDownload:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
-				case eUploaded:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
-				case eDownloaded:		ColValue.Formatted = FormatSize(Value.toULongLong()); break;
-
-				case eLogSize:			ColValue.Formatted = FormatSize(Value.toULongLong()); break;
-				}
-			}
-
-			if (State != (Changed != 0))
-			{
-				if (State && Index.isValid())
-					emit dataChanged(createIndex(Index.row(), Col, pNode), createIndex(Index.row(), section - 1, pNode));
-				State = (Changed != 0);
-				Col = section;
-			}
-			if (Changed == 1)
-				Changed = 0;
 		}
-		if (State && Index.isValid())
-			emit dataChanged(createIndex(Index.row(), Col, pNode), createIndex(Index.row(), columnCount() - 1, pNode));
+
+		if (State != (Changed != 0))
+		{
+			if (State && Index.isValid())
+				emit dataChanged(createIndex(Index.row(), Col, pNode), createIndex(Index.row(), section - 1, pNode));
+			State = (Changed != 0);
+			Col = section;
+		}
+		if (Changed == 1)
+			Changed = 0;
 	}
+	if (State && Index.isValid())
+		emit dataChanged(createIndex(Index.row(), Col, pNode), createIndex(Index.row(), columnCount() - 1, pNode));
 }
 
 QVariant CProgramModel::NodeData(STreeNode* pNode, int role, int section) const

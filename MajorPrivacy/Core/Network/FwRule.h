@@ -16,7 +16,7 @@ public:
 
 	EFwRuleState GetState() const           { if(IsTemplate()) return EFwRuleState::eApproved; return m_State; }
     QString GetStateStr() const;
-	QColor GetStateColor() const;
+	QVariant GetStateColor() const;
     void SetApproved()                      { m_State = EFwRuleState::eApproved; }
 	bool IsBackup() const                   { return m_State == EFwRuleState::eBackup; }
 	bool IsUnapproved() const               { if(IsTemplate()) return false; return m_State == EFwRuleState::eUnapproved || m_State == EFwRuleState::eUnapprovedDisabled; }
@@ -86,6 +86,7 @@ protected:
     QString m_OriginalGuid;
 
 	EFwRuleSource m_Source = EFwRuleSource::eUnknown;
+    QString m_TemplateGuid;
 
     QString m_BinaryPath;
     QString m_ServiceTag;

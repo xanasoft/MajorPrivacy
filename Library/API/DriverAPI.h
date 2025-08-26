@@ -81,15 +81,28 @@ struct SProcessEventEx : public SProcessEvent
 
 struct SVerifierInfo
 {
-	uint32 VerificationFlags = 0;
-	KPH_VERIFY_AUTHORITY SignAuthority = KphUntestedAuthority;
+	uint32 StatusFlags = 0;
+
+	KPH_VERIFY_AUTHORITY PrivateAuthority = KphUntestedAuthority;
 	uint32 SignLevel = 0;
-	uint32 SignPolicy = 0;
+	uint32 SignPolicyBits = 0;
+
 	uint32 FileHashAlgorithm = 0;
 	std::vector<uint8> FileHash;
+
+	uint32 ThumbprintAlgorithm = 0;
+	std::vector<uint8> Thumbprint;
+
 	uint32 SignerHashAlgorithm = 0;
 	std::vector<uint8> SignerHash;
 	std::string SignerName;
+
+	uint32 IssuerHashAlgorithm = 0;
+	std::vector<uint8> IssuerHash;
+	std::string IssuerName;
+
+	USignatures FoundSignatures = {0};
+	USignatures AllowedSignatures = {0};
 
 	void ReadFromEvent(const StVariant& Event);
 };
@@ -165,6 +178,7 @@ enum class EConfigGroup
 {
 	eUndefined = 0,
 	eEnclaves,
+	eHashDB,
 	eProgramRules,
 	eAccessRules,
 	eFirewallRules
@@ -180,7 +194,7 @@ public:
 	CDriverAPI(EInterface Interface = eFltPort);
 	virtual ~CDriverAPI();
 
-	static STATUS InstallDrv(uint32 TraceLogLevel = 0);
+	static STATUS InstallDrv(bool bAutoStart, uint32 TraceLogLevel = 0);
 	STATUS ConnectDrv();
 	bool IsConnected();
 	void Disconnect();
@@ -256,6 +270,7 @@ public:
 	uint32 GetConfigStatus();
 	STATUS UnlockConfig(const CBuffer& ChallengeResponse);
 	STATUS CommitConfigChanges(const CBuffer& ConfigSignature = CBuffer());
+	STATUS StoreConfigChanges(bool bPreShutdown = false);
 	STATUS DiscardConfigChanges();
 
 	STATUS GetChallenge(CBuffer& Challenge);
@@ -266,6 +281,9 @@ public:
 
 	STATUS AcquireUnloadProtection();
 	LONG ReleaseUnloadProtection();
+
+	STATUS AcquireHibernationPrevention();
+	LONG ReleaseHibernationPrevention();
 
 	STATUS RegisterForProcesses(uint32 uEvents, bool bRegister = true);
 	void RegisterProcessHandler(const std::function<sint32(const SProcessEvent* pEvent)>& Handler);
@@ -286,6 +304,7 @@ protected:
 	std::map<EConfigGroup, std::function<void(const std::wstring& Guid, EConfigEvent Event, EConfigGroup Config, uint64 PID)>> m_ConfigEventHandlers;
 
 	EInterface m_Interface;
+	std::mutex m_CallMutex;
 	class CAbstractClient* m_pClient;
 };
 

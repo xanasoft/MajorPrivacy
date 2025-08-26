@@ -57,6 +57,14 @@ void CHandleList::Update()
 //	m_hThread = NULL;
 //}
 
+uint64 CHandleList__MakeID(uint64 HandleValue, uint64 UniqueProcessId)
+{
+	uint64 HandleID = HandleValue;
+	HandleID ^= (UniqueProcessId << 32);
+	HandleID ^= (UniqueProcessId >> 32);
+	return HandleID;
+}
+
 STATUS CHandleList::EnumAllHandles()
 {
 #ifdef _DEBUG
@@ -72,7 +80,7 @@ STATUS CHandleList::EnumAllHandles()
 
 	std::unique_lock Lock(m_Mutex);
 
-	std::unordered_multimap<PVOID, CHandlePtr> OldHandles = m_List;
+	std::unordered_multimap<uint64, CHandlePtr> OldHandles = m_List;
 
 	//Lock.unlock();
 
@@ -85,7 +93,9 @@ STATUS CHandleList::EnumAllHandles()
 		if (handle->ObjectTypeIndex != m_FileObjectTypeIndex /*&& handle->ObjectTypeIndex != m_KeyObjectTypeIndex*/)
 			continue;
 
-		auto F = OldHandles.find(handle->Object);
+		uint64 HandleID = CHandleList__MakeID(handle->HandleValue, handle->UniqueProcessId);
+
+		auto F = OldHandles.find(HandleID);
 		if(F != OldHandles.end()) {
 			OldHandles.erase(F);
 			continue; // handle already listed
@@ -104,7 +114,7 @@ STATUS CHandleList::EnumAllHandles()
 
 		CHandlePtr pHandle = std::make_shared<CHandle>(Name);
 		//Lock.lock();
-		m_List.insert(std::make_pair(handle->Object, pHandle));
+		m_List.insert(std::make_pair(HandleID, pHandle));
 		//Lock.unlock();
 		
 		CProcessPtr pProcess = theCore->ProcessList()->GetProcess(handle->UniqueProcessId, true); // Note: this will add the process and load some basic data if it does not already exist

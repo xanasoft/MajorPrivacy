@@ -260,10 +260,13 @@ public:
 #endif
 
 	EResult WriteEx(const char* Name, const QString& qstr, bool bUtf8 = false)	{return Write(Name, (const wchar_t*)qstr.utf16(), qstr.length(), bUtf8);}
-
 	EResult WriteEx(const QString& qstr, bool bUtf8 = false)					{return Write((const wchar_t*)qstr.utf16(), qstr.length(), bUtf8);}
-
 	EResult WriteEx(uint32 Index, const QString& qstr, bool bUtf8 = false)		{return Write(Index, (const wchar_t*)qstr.utf16(), qstr.length(), bUtf8);}
+
+
+	EResult WriteEx(const char* Name, const QByteArray& qstr)					{return WriteValue(Name, VAR_TYPE_BYTES, qstr.size(), qstr.data()); }
+	EResult WriteEx(const QByteArray& qstr) { return WriteValue(VAR_TYPE_BYTES, qstr.size(), qstr.data()); }
+	EResult WriteEx(uint32 Index, const QByteArray& qstr)						{return WriteValue(Index, VAR_TYPE_BYTES, qstr.size(), qstr.data()); }
 };
 
 

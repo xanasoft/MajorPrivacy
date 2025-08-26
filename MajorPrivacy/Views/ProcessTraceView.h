@@ -27,6 +27,7 @@ protected:
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbRole;
 	QComboBox*				m_pCmbAction;
+	QComboBox*				m_pCmbOperation;
 	QToolButton*			m_pBtnClear;
 
 };

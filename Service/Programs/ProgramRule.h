@@ -18,8 +18,10 @@ public:
 	EExecRuleType GetType() const					{std::shared_lock Lock(m_Mutex); return m_Type;}
 	bool IsBlock() const							{std::shared_lock Lock(m_Mutex); return m_Type == EExecRuleType::eBlock;}
 	bool IsProtect() const							{std::shared_lock Lock(m_Mutex); return m_Type == EExecRuleType::eProtect;}
-	KPH_VERIFY_AUTHORITY GetSignatureLevel() const	{std::shared_lock Lock(m_Mutex); return m_SignatureLevel;}
+	USignatures GetAllowedSignatures() const {std::shared_lock Lock(m_Mutex); return m_AllowedSignatures;}
+	std::list<std::wstring> GetAllowedCollections() const {std::shared_lock Lock(m_Mutex); return m_AllowedCollections;}
 	bool GetImageLoadProtection() const				{std::shared_lock Lock(m_Mutex); return m_ImageLoadProtection;}
+	bool GetImageCoherencyChecking() const			{std::shared_lock Lock(m_Mutex); return m_ImageCoherencyChecking;}
 
 	void Update(const std::shared_ptr<CProgramRule>& Rule);
 
@@ -31,8 +33,10 @@ protected:
 
 	EExecRuleType m_Type = EExecRuleType::eUnknown;
 	std::wstring m_ProgramPath; // can be pattern
-	KPH_VERIFY_AUTHORITY m_SignatureLevel = KPH_VERIFY_AUTHORITY::KphUntestedAuthority;
+	USignatures m_AllowedSignatures = { 0 };
+	std::list<std::wstring> m_AllowedCollections;
 	bool m_ImageLoadProtection = true;
+	bool m_ImageCoherencyChecking = true;
 };
 
 typedef std::shared_ptr<CProgramRule> CProgramRulePtr;

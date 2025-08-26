@@ -12,6 +12,7 @@
 #include "../Views/StatusView.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Tweaks/TweakManager.h"
+#include "../Views/TweakView.h"
 
 
 CHomePage::CHomePage(QWidget* parent)
@@ -23,7 +24,7 @@ CHomePage::CHomePage(QWidget* parent)
 	m_pVSplitter = new QSplitter(Qt::Vertical, this);
 	m_pMainLayout->addWidget(m_pVSplitter);
 
-	m_pHSplitter = new QSplitter(Qt::Horizontal, this);
+	//m_pHSplitter = new QSplitter(Qt::Horizontal, this);
 
 	m_pStatusWidget = new QWidget();
 	m_pStatusLayout = new QVBoxLayout(m_pStatusWidget);
@@ -51,18 +52,24 @@ CHomePage::CHomePage(QWidget* parent)
 	m_pIssueView = new CIssueView();
 	m_pStatusLayout->addWidget(m_pIssueView);
 
-	m_pHSplitter->addWidget(m_pStatusWidget);
+	//m_pHSplitter->addWidget(m_pStatusWidget);
 
 	m_pEventView = new CEventView();
 
-	m_pHSplitter->addWidget(m_pEventView);
+	//m_pHSplitter->addWidget(m_pEventView);
 
-	m_pVSplitter->addWidget(m_pHSplitter);
+	//m_pVSplitter->addWidget(m_pHSplitter);
+	m_pVSplitter->addWidget(m_pStatusWidget);
+
+	m_pTabWidget = new QTabWidget();
+	m_pVSplitter->addWidget(m_pTabWidget);
+	m_pTabWidget->addTab(m_pEventView, QIcon(":/Icons/List.png"), tr("Privacy Events"));
 
 	m_pEventWidget = new QWidget();
 	m_pEventLayout = new QVBoxLayout(m_pEventWidget);
 	m_pEventLayout->setContentsMargins(0, 0, 0, 0);
-	m_pVSplitter->addWidget(m_pEventWidget);
+	//m_pVSplitter->addWidget(m_pEventWidget);
+	m_pTabWidget->addTab(m_pEventWidget, QIcon(":/Icons/SetLogging.png"), tr("System Events"));
 
 	m_pEventToolBar = new QToolBar();
 	m_pEventLayout->addWidget(m_pEventToolBar);	
@@ -76,11 +83,13 @@ CHomePage::CHomePage(QWidget* parent)
 
 	// Event Log
 	m_pEventLog = new QTreeWidgetEx();
-	QStyle* pStyle = QStyleFactory::create("windows");
-	m_pEventLog->setStyle(pStyle);
-	m_pEventLog->setItemDelegate(new CTreeItemDelegate());
+	//QStyle* pStyle = QStyleFactory::create("windows");
+	//m_pEventLog->setStyle(pStyle);
 	//m_pEventLog->setHeaderLabels(tr("#|Symbol|Stack address|Frame address|Control address|Return address|Stack parameters|File info").split("|"));
 	m_pEventLog->setHeaderLabels(tr("Time Stamp|Type|Event|Message").split("|"));
+	m_pEventLog->setIndentation(0);
+	m_pEventLog->setItemDelegate(new CTreeItemDelegate());
+	m_pEventLog->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	m_pEventLog->setMinimumHeight(50);
 
 	m_pEventLog->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -122,13 +131,13 @@ CHomePage::CHomePage(QWidget* parent)
 	m_pEventListener->Start(XmlQuery);
 
 	m_pVSplitter->restoreState(theConf->GetBlob("HomePage/VSplitter"));
-	m_pHSplitter->restoreState(theConf->GetBlob("HomePage/HSplitter"));
+	//m_pHSplitter->restoreState(theConf->GetBlob("HomePage/HSplitter"));
 }
 
 CHomePage::~CHomePage()
 {
 	theConf->SetBlob("HomePage/VSplitter", m_pVSplitter->saveState());
-	theConf->SetBlob("HomePage/HSplitter", m_pHSplitter->saveState());
+	//theConf->SetBlob("HomePage/HSplitter", m_pHSplitter->saveState());
 
 	m_pEventListener->Stop();
 	delete m_pEventListener;

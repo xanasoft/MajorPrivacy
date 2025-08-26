@@ -11,7 +11,62 @@
 #include "../../Library/Helpers/EvtUtil.h"
 #include "../../Framework/Core/MemoryPool.h"
 
-class CPrivacyCore : public QObject
+struct CIString 
+{
+	QString s;
+
+
+	CIString() = default;
+	CIString(const QString& str) : s(str) {}
+	CIString(QString&& str) noexcept : s(std::move(str)) {}
+
+	// ASCII-only case-insensitive equality to match the hash
+	bool operator==(const CIString& o) const noexcept {
+		if (s.size() != o.s.size()) return false;
+		const ushort* a = s.utf16();
+		const ushort* b = o.s.utf16();
+		for (qsizetype i = 0, n = s.size(); i < n; ++i) {
+			uint16_t ca = static_cast<uint16_t>(a[i]);
+			uint16_t cb = static_cast<uint16_t>(b[i]);
+
+			// fold ASCII A..Z -> a..z
+			if (ca >= 'A' && ca <= 'Z') ca = static_cast<uint16_t>(ca + 0x20);
+			if (cb >= 'A' && cb <= 'Z') cb = static_cast<uint16_t>(cb + 0x20);
+
+			if (ca != cb) return false;
+		}
+		return true;
+	}
+
+	// ASCII-only case-insensitive hash over UTF-16 code units
+	friend size_t qHash(const CIString& key, size_t seed = 0) noexcept {
+		const ushort* p = key.s.utf16();
+		const qsizetype n = key.s.size();
+
+		// FNV-1a (64-bit when size_t is 64, else 32-bit)
+		if constexpr (sizeof(size_t) == 8) {
+			uint64_t h = 1469598103934665603ull ^ static_cast<uint64_t>(seed);
+			for (qsizetype i = 0; i < n; ++i) {
+				uint16_t c = static_cast<uint16_t>(p[i]);
+				if (c >= 'A' && c <= 'Z') c = static_cast<uint16_t>(c + 0x20);
+				h ^= static_cast<uint64_t>(c);
+				h *= 1099511628211ull;
+			}
+			return static_cast<size_t>(h);
+		} else {
+			uint32_t h = 2166136261u ^ static_cast<uint32_t>(seed);
+			for (qsizetype i = 0; i < n; ++i) {
+				uint16_t c = static_cast<uint16_t>(p[i]);
+				if (c >= 'A' && c <= 'Z') c = static_cast<uint16_t>(c + 0x20);
+				h ^= static_cast<uint32_t>(c);
+				h *= 16777619u;
+			}
+			return static_cast<size_t>(h);
+		}
+	}
+};
+
+class CPrivacyCore : public QThread
 {
 	Q_OBJECT
 public:
@@ -42,6 +97,7 @@ public:
 
 	class CProcessList* ProcessList()			{ return m_pProcessList; }
 	class CEnclaveManager* EnclaveManager()		{ return m_pEnclaveManager; }
+	class CHashDB* HashDB()						{ return m_pHashDB; }
 	class CProgramManager* ProgramManager()		{ return m_pProgramManager; }
 	class CAccessManager* AccessManager()		{ return m_pAccessManager; }
 	class CNetworkManager* NetworkManager()		{ return m_pNetworkManager; }
@@ -59,12 +115,16 @@ public:
 
 	static QString		NormalizePath(QString sFilePath, bool bForID = false);
 
-	STATUS 				SignFiles(const QStringList& Paths, const class CPrivateKey* pPrivateKey);
-	bool				HasFileSignature(const QString& Path);
+	/*STATUS 				SignFiles(const QStringList& Paths, const class CPrivateKey* pPrivateKey);
+	bool				HasFileSignature(const QString& Path, const QByteArray& Hash);
 	STATUS 				RemoveFileSignature(const QStringList& Paths);
 	STATUS 				SignCerts(const QMap<QByteArray, QString>& Certs, const class CPrivateKey* pPrivateKey);
 	bool				HasCertSignature(const QString& Subject, const QByteArray& SignerHash);
-	STATUS 				RemoveCertSignature(const QMap<QByteArray, QString>& Certs);
+	STATUS 				RemoveCertSignature(const QMap<QByteArray, QString>& Certs);*/
+
+	std::shared_ptr<struct SEmbeddedCIInfo> GetEmbeddedCIInfo(const std::wstring& filePath);
+	std::shared_ptr<struct SCatalogCIInfo> GetCatalogCIInfo(const std::wstring& filePath);
+	void				ClearCIInfoCache();
 
 	QString				GetConfigDir() { return m_ConfigDir; }
 	QString				GetAppDir() { return m_AppDir; }
@@ -141,6 +201,7 @@ public:
 	RESULT(QtVariant)	GetProcess(uint64 Pid);
 	STATUS				StartProcessBySvc(const QString& Command);
 	STATUS				TerminateProcess(uint64 Pid);
+	RESULT(int)			RunUpdateUtility(const QStringList& Params, quint32 Elevate = 0, bool Wait = false);
 
 	// Secure Enclaves
 	STATUS				SetAllEnclaves(const QtVariant& Enclaves);
@@ -150,13 +211,23 @@ public:
 	STATUS				DelEnclave(const QFlexGuid& Guid);
 	STATUS				StartProcessInEnclave(const QString& Command, const QFlexGuid& Guid);
 
+	// HashDB
+	STATUS				SetAllHashes(const QtVariant& Enclaves);
+	RESULT(QtVariant)	GetAllHashes();
+	STATUS				SetHashEntry(const QtVariant& Enclave);
+	RESULT(QtVariant)	GetHashEntry(const QByteArray& HashValue);
+	STATUS				DelHashEntry(const QByteArray& HashValue);
+
+
 	// ProgramManager
 	RESULT(QtVariant)	GetPrograms();
+	RESULT(QtVariant)	GetProgram(const class CProgramID& ID);
+	RESULT(QtVariant)	GetProgram(uint64 UID);
 	RESULT(QtVariant)	GetLibraries(uint64 CacheToken = -1);
 
 	RESULT(quint64)		SetProgram(const CProgramItemPtr& pItem);
 	STATUS				AddProgramTo(uint64 UID, uint64 ParentUID);
-	STATUS				RemoveProgramFrom(uint64 UID, uint64 ParentUID = 0, bool bDelRules = false);
+	STATUS				RemoveProgramFrom(uint64 UID, uint64 ParentUID = 0, bool bDelRules = false, bool bKeepOne = false);
 
 	STATUS				CleanUpPrograms(bool bPurgeRules = false);
 	STATUS				ReGroupPrograms();
@@ -208,6 +279,7 @@ public:
 	RESULT(QtVariant)	GetHandlesFor(const QList<const class CProgramItem*>& Nodes);
 	RESULT(QtVariant)	GetAllHandles();
 	STATUS				ClearTraceLog(ETraceLogs Log, const CProgramItemPtr& pItem = CProgramItemPtr());
+	STATUS				ClearRecords(ETraceLogs Log, const CProgramItemPtr& pItem = CProgramItemPtr());
 
 	STATUS				CleanUpAccessTree();
 
@@ -256,8 +328,10 @@ public:
 
 	// 
 
+	STATUS				HashFile(const QString& Path, CBuffer& Hash);
 
 	void				OnClearTraceLog(const CProgramItemPtr& pItem, ETraceLogs Log);
+	void				OnClearRecords(const CProgramItemPtr& pItem, ETraceLogs Log);
 
 
 	virtual size_t		GetTotalMemUsage() const { return m_TotalMemoryUsed; }
@@ -271,6 +345,7 @@ signals:
 	void				FwChangeEvent(const QString& RuleId, qint32 iEventType);
 	
 	void				EnclavesChanged();
+	void				HashDBChanged();
 	void				ExecRulesChanged();
 	void				ResRulesChanged();
 	void				FwRulesChanged();
@@ -294,10 +369,9 @@ protected:
 	//void OnProgEvent(uint32 MessageId, const CBuffer* pEvent);
 
 	void				OnSvcEvent(uint32 MessageId, const CBuffer* pEvent);
-	//void				OnDrvEvent(const std::wstring& Guid, EConfigEvent Event, ERuleType Type);
+	void				OnDrvEvent(const std::wstring& Guid, enum class EConfigEvent Event, enum class EConfigGroup Type, uint64 PID);
 
-	STATUS				HashFile(const QString& Path, CBuffer& Hash);
-	QString				GetSignatureFilePath(const QString& Path);
+	QString				GetSignatureFilePath(const QString& Path, QByteArray Hash = QByteArray());
 
 	void				OnCleanUpDone(uint32 MessageId, const CBuffer* pEvent);
 	
@@ -305,8 +379,10 @@ protected:
 
 	static QtVariant		MakeIDs(const QList<const class CProgramItem*>& Nodes);
 
-	class CEventLogger*		m_pSysLog = NULL;
-	class CEventLog*		m_pEventLog = NULL;
+	class CEventLogger*	m_pSysLog = NULL;
+	class CEventLog* m_pEventLog = NULL;
+
+	class CPrivacyWorker* m_pWorker = NULL;
 
 	CDriverAPI	m_Driver;
 	CServiceAPI m_Service;
@@ -320,6 +396,7 @@ protected:
 
 	class CProcessList* m_pProcessList = NULL;
 	class CEnclaveManager* m_pEnclaveManager = NULL;
+	class CHashDB* m_pHashDB = NULL;
 	class CProgramManager* m_pProgramManager = NULL;
 	class CAccessManager* m_pAccessManager = NULL;
 	class CNetworkManager* m_pNetworkManager = NULL;
@@ -329,6 +406,7 @@ protected:
 	class CIssueManager* m_pIssueManager = NULL;
 
 	bool m_EnclavesUpToDate = false;
+	bool m_HashDBUpToDate = false;
 	bool m_ProgramRulesUpToDate = false;
 	bool m_AccessRulesUpToDate = false;
 	bool m_FwRulesUpToDate = false;
@@ -349,7 +427,32 @@ protected:
 
 	CSidResolver* m_pSidResolver;
 
-	QHash<QString, int> m_SigFileCache;
+	//QHash<CIString, int> m_SigFileCache;
+
+	struct SEmbeddedSigInfo
+	{
+		std::shared_ptr<struct SEmbeddedCIInfo> Info;
+	};
+
+	struct SCatalogSigInfo
+	{
+		std::shared_ptr<struct SCatalogCIInfo> Info;
+	};
+
+	std::unordered_map<std::wstring, SEmbeddedSigInfo> m_EmbeddedSigCache;
+	std::unordered_map<std::wstring, SCatalogSigInfo> m_CatalogSigCache;
+};
+
+class CPrivacyWorker : public QObject
+{
+	Q_OBJECT
+public:
+	CPrivacyWorker(QObject* parent = nullptr);
+	~CPrivacyWorker();
+
+private slots:
+	void DoUpdate();
+
 };
 
 extern CSettings* theConf;

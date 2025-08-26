@@ -4,7 +4,7 @@
 #include "../Library/Helpers/NtUtil.h"
 
 CFwRule::CFwRule(const CProgramID& ID, QObject* parent)
-	: CGenericRule(ID, parent)
+    : CGenericRule(ID, parent)
 {
     m_BinaryPath = ID.GetFilePath();
     m_ServiceTag = ID.GetServiceTag();
@@ -15,11 +15,11 @@ QString CFwRule::GetSourceStr() const
 {
     switch (GetSource()) {
     case EFwRuleSource::eWindowsDefault: return tr("Windows Default");
-	case EFwRuleSource::eWindowsStore:   return tr("Windows Store");
-    case EFwRuleSource::eMajorPrivacy:   return tr("Major Privacy");
+    case EFwRuleSource::eWindowsStore:   return tr("Windows Store");
+    case EFwRuleSource::eMajorPrivacy:   return tr("MajorPrivacy");
     case EFwRuleSource::eAutoTemplate:   return tr("Privacy Template");
     default:                             return "";
-	}
+    }
 }
 
 QString CFwRule::GetStateStr() const
@@ -29,23 +29,23 @@ QString CFwRule::GetStateStr() const
     case EFwRuleState::eUnapproved: return tr("Unapproved");
     case EFwRuleState::eApproved:   return tr("Approved");
     case EFwRuleState::eBackup:     return tr("Backup");
-	case EFwRuleState::eDiverged:   return tr("Diverged");
-	//case EFwRuleState::eDeleted:    return tr("Deleted");
+    case EFwRuleState::eDiverged:   return tr("Diverged");
+        //case EFwRuleState::eDeleted:    return tr("Deleted");
     }
     return tr("Unknown");
 }
 
-QColor CFwRule::GetStateColor() const
+QVariant CFwRule::GetStateColor() const
 {
     switch (GetState()) {
     case EFwRuleState::eUnapprovedDisabled:
-    case EFwRuleState::eUnapproved: return QColor(255, 255, 128); // Yellow
-    case EFwRuleState::eApproved:   return QColor(128, 255, 128); // Green
-    case EFwRuleState::eBackup:     return QColor(255, 128, 128); // Red
-	case EFwRuleState::eDiverged:   return QColor(255, 192, 128);   // Orange
-	//case EFwRuleState::eDeleted:    return QColor(128, 128, 128); // Gray
+    case EFwRuleState::eUnapproved: return QColor(255, 255, 192); // Yellow
+    case EFwRuleState::eApproved:   return QVariant(); //QColor(192, 255, 192); // Green
+    case EFwRuleState::eBackup:     return QColor(255, 192, 192); // Red
+    case EFwRuleState::eDiverged:   return QColor(255, 224, 192);   // Orange
+        //case EFwRuleState::eDeleted:    return QColor(192, 192, 192); // Gray
     }
-	return QColor(0, 0, 0); // Black for unknown state
+    return QVariant();
 }
 
 void CFwRule::SetTemporary(bool bTemporary)
@@ -69,14 +69,14 @@ QString CFwRule::GetProgram() const
     if (!m_ServiceTag.isEmpty()) {
         if(!m_BinaryPath.isEmpty())
             return QString("%1 (%2)").arg(m_BinaryPath, m_ServiceTag);
-		return m_ServiceTag;
+        return m_ServiceTag;
     }
     return m_BinaryPath;
 }
 
 CFwRule* CFwRule::Clone(bool CloneGuid) const
 {
-	CFwRule* pRule = new CFwRule(m_ProgramID);
+    CFwRule* pRule = new CFwRule(m_ProgramID);
     CopyTo(pRule, CloneGuid);
     if (CloneGuid) {
         pRule->m_Index = m_Index;
@@ -88,31 +88,31 @@ CFwRule* CFwRule::Clone(bool CloneGuid) const
         pRule->m_Source = EFwRuleSource::eMajorPrivacy;
     }
 
-	pRule->m_BinaryPath = m_BinaryPath;
-	pRule->m_ServiceTag = m_ServiceTag;
-	pRule->m_AppContainerSid = m_AppContainerSid;
+    pRule->m_BinaryPath = m_BinaryPath;
+    pRule->m_ServiceTag = m_ServiceTag;
+    pRule->m_AppContainerSid = m_AppContainerSid;
     pRule->m_LocalUserOwner = m_LocalUserOwner;
     pRule->m_PackageFamilyName = m_PackageFamilyName;
 
     pRule->m_Grouping = m_Grouping;
 
-	pRule->m_Action = m_Action;
-	pRule->m_Direction = m_Direction;
-	pRule->m_Profile = m_Profile;
+    pRule->m_Action = m_Action;
+    pRule->m_Direction = m_Direction;
+    pRule->m_Profile = m_Profile;
 
-	pRule->m_Protocol = m_Protocol;
-	pRule->m_Interface = m_Interface;
-	pRule->m_LocalAddresses = m_LocalAddresses;
-	pRule->m_LocalPorts = m_LocalPorts;
-	pRule->m_RemoteAddresses = m_RemoteAddresses;
-	pRule->m_RemotePorts = m_RemotePorts;
-	pRule->m_IcmpTypesAndCodes = m_IcmpTypesAndCodes;
+    pRule->m_Protocol = m_Protocol;
+    pRule->m_Interface = m_Interface;
+    pRule->m_LocalAddresses = m_LocalAddresses;
+    pRule->m_LocalPorts = m_LocalPorts;
+    pRule->m_RemoteAddresses = m_RemoteAddresses;
+    pRule->m_RemotePorts = m_RemotePorts;
+    pRule->m_IcmpTypesAndCodes = m_IcmpTypesAndCodes;
 
-	pRule->m_OsPlatformValidity = m_OsPlatformValidity;
+    pRule->m_OsPlatformValidity = m_OsPlatformValidity;
 
-	pRule->m_EdgeTraversal = m_EdgeTraversal;
+    pRule->m_EdgeTraversal = m_EdgeTraversal;
 
-	return pRule;
+    return pRule;
 }
 
 QString CFwRule::GetProfileStr() const
@@ -344,7 +344,7 @@ QString CFwRule::ProtocolToStr(EFwKnownProtocols Protocol)
     case 2: return "IGMP";
     case 3: return "GGP";
     case 4: return "IP";
-    //case 5: return "Stream";
+        //case 5: return "Stream";
     case 6: return "TCP";
     case 7: return "CBT";
     case 8: return "EGP";
@@ -357,7 +357,7 @@ QString CFwRule::ProtocolToStr(EFwKnownProtocols Protocol)
     case 15: return "XNET";
     case 16: return "CHAOS";
     case 17: return "UDP";
-     //case 18: return "Multiplexing";
+        //case 18: return "Multiplexing";
     case 19: return "DCN-MEAS";
     case 20: return "HMP";
     case 21: return "PRM";
@@ -380,7 +380,7 @@ QString CFwRule::ProtocolToStr(EFwKnownProtocols Protocol)
     case 38: return "IDPR-CMTP";
     case 39: return "TP++";
     case 40: return "IL";
-     ///case 41: return "Verkapselung von IPv6- in IPv4-Pakete";
+        ///case 41: return "Verkapselung von IPv6- in IPv4-Pakete";
     case 42: return "SDRP";
     case 43: return "IPv6-Route";
     case 44: return "IPv6-Frag";
@@ -400,14 +400,14 @@ QString CFwRule::ProtocolToStr(EFwKnownProtocols Protocol)
     case 58: return "IPv6-ICMP";
     case 59: return "IPv6-NoNxt";
     case 60: return "IPv6-Opts";
-    //case 61: return "Jedes Host-interne Protokoll";
+        //case 61: return "Jedes Host-interne Protokoll";
     case 62: return "CFTP";
-    //case 63: return "Jedes lokale Netz";
+        //case 63: return "Jedes lokale Netz";
     case 64: return "SAT-EXPAK";
     case 65: return "KRYPTOLAN";
     case 66: return "RVD";
     case 67: return "IPPC";
-    //case 68: return "Jedes verteilte Dateisystem";
+        //case 68: return "Jedes verteilte Dateisystem";
     case 69: return "SAT-MON";
     case 70: return "VISA";
     case 71: return "IPCV";
@@ -438,7 +438,7 @@ QString CFwRule::ProtocolToStr(EFwKnownProtocols Protocol)
     case 96: return "SCC-SP";
     case 97: return "ETHERIP";
     case 98: return "ENCAP";
-    //case 99: return "Jeder private Verschlüsselungsentwurf";
+        //case 99: return "Jeder private Verschlüsselungsentwurf";
     case 100: return "GMTP";
     case 101: return "IFMP";
     case 102: return "PNNI";

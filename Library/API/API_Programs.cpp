@@ -692,6 +692,7 @@ void CProgramLibrary::WriteIVariant(VariantWriter& Entry, const SVarWriteOpt& Op
 {
 	Entry.Write(API_V_PROG_UID, m_UID);
 	Entry.WriteEx(API_V_FILE_PATH, GET_PATH(m_Path));
+	Entry.WriteVariant(API_V_SIGN_INFO, m_SignInfo.ToVariant(Opts, Entry.Allocator()));
 }
 
 void CProgramLibrary::ReadIValue(uint32 Index, const XVariant& Data)
@@ -700,6 +701,7 @@ void CProgramLibrary::ReadIValue(uint32 Index, const XVariant& Data)
 	{
 	case API_V_PROG_UID: m_UID = Data.To<uint64>(); break;
 	case API_V_FILE_PATH: SET_PATH(m_Path, Data); break;
+	case API_V_SIGN_INFO: m_SignInfo.FromVariant(Data); break;
 	default: break;
 	}
 }
@@ -710,12 +712,14 @@ void CProgramLibrary::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opt
 {
 	Data.Write(API_S_PROG_UID, m_UID);
 	Data.WriteEx(API_S_FILE_PATH, GET_PATH(m_Path));
+	Data.WriteVariant(API_S_SIGN_INFO, m_SignInfo.ToVariant(Opts, Data.Allocator()));
 }
 
 void CProgramLibrary::ReadMValue(const SVarName& Name, const XVariant& Data)
 {
 	if (VAR_TEST_NAME(Name, API_S_PROG_UID))				m_UID = Data.To<uint64>();
 	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH))			SET_PATH(m_Path, Data);
+	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO))			m_SignInfo.FromVariant(Data);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -724,32 +728,65 @@ void CProgramLibrary::ReadMValue(const SVarName& Name, const XVariant& Data)
 
 void CImageSignInfo::WriteIVariant(VariantWriter& Entry, const SVarWriteOpt& Opts) const
 {
-	Entry.Write(API_V_IMG_SIGN_AUTH, m_SignInfo.Authority);
-	Entry.Write(API_V_IMG_SIGN_LEVEL, m_SignInfo.Level);
-	Entry.Write(API_V_IMG_SIGN_POLICY, m_SignInfo.Policy);
+	Entry.Write(API_V_SIGN_FLAGS, m_StatusFlags);
 
-	Entry.WriteVariant(API_V_FILE_HASH, XVariant(Entry.Allocator(), m_FileHash));
+	Entry.Write(API_V_IMG_SIGN_AUTH, m_PrivateAuthority);
+	Entry.Write(API_V_IMG_SIGN_LEVEL, m_SignLevel);
+	Entry.Write(API_V_IMG_SIGN_POLICY, m_SignPolicyBits);
 
-	Entry.Write(API_V_CERT_STATUS, (uint8)m_HashStatus);
-	if (m_HashStatus != EHashStatus::eHashNone && m_HashStatus != EHashStatus::eHashUnknown) {
-		Entry.WriteVariant(API_V_IMG_CERT_ALG, XVariant(Entry.Allocator(), m_SignerHash));
+	Entry.Write(API_V_IMG_SIGN_BITS, m_Signatures.Value);
+
+	if (m_FileHashAlgorithm)
+	{
+		Entry.Write(API_V_FILE_HASH_ALG, (uint32)m_FileHashAlgorithm);
+		Entry.WriteVariant(API_V_FILE_HASH, XVariant(Entry.Allocator(), m_FileHash));
+	}
+
+	//Entry.Write(API_V_CERT_STATUS, (uint8)m_HashStatus);
+
+	if (m_SignerHashAlgorithm) 
+	{
+		Entry.Write(API_V_IMG_CERT_ALG, (uint32)m_SignerHashAlgorithm);
+		Entry.WriteVariant(API_V_IMG_CERT_HASH, XVariant(Entry.Allocator(), m_SignerHash));
 		Entry.WriteEx(API_V_IMG_SIGN_NAME, TO_STR(m_SignerName));
 	}
+
+	if (m_IssuerHashAlgorithm) 
+	{
+		Entry.Write(API_V_IMG_CA_ALG, (uint32)m_IssuerHashAlgorithm);
+		Entry.WriteVariant(API_V_IMG_CA_HASH, XVariant(Entry.Allocator(), m_IssuerHash));
+		Entry.WriteEx(API_V_IMG_CA_NAME, TO_STR(m_IssuerName));
+	}
+
+	Entry.Write(API_V_TIME_STAMP, m_TimeStamp);
 }
 
 void CImageSignInfo::ReadIValue(uint32 Index, const XVariant& Data)
 {
 	switch (Index)
 	{
-	case API_V_IMG_SIGN_AUTH: m_SignInfo.Authority = Data.To<uint8>(); break;
-	case API_V_IMG_SIGN_LEVEL: m_SignInfo.Level = Data.To<uint8>(); break;
-	case API_V_IMG_SIGN_POLICY: m_SignInfo.Policy = Data.To<uint32>(); break;
+	case API_V_SIGN_FLAGS: m_StatusFlags = Data.To<uint32>(); break;
 
+	case API_V_IMG_SIGN_AUTH: m_PrivateAuthority = (KPH_VERIFY_AUTHORITY)Data.To<uint32>(); break;
+	case API_V_IMG_SIGN_LEVEL: m_SignLevel = Data.To<uint32>(); break;
+	case API_V_IMG_SIGN_POLICY: m_SignPolicyBits = Data.To<uint32>(); break;
+
+	case API_V_IMG_SIGN_BITS: m_Signatures.Value = Data.To<uint32>(); break;
+
+	case API_V_FILE_HASH_ALG: m_FileHashAlgorithm = Data.To<uint32>(); break;
 	case API_V_FILE_HASH: m_FileHash = TO_BYTES(Data); break;
 
-	case API_V_CERT_STATUS: m_HashStatus = (EHashStatus)Data.To<uint8>(); break;
-	case API_V_IMG_CERT_ALG: m_SignerHash = TO_BYTES(Data); break;
+	//case API_V_CERT_STATUS: m_HashStatus = (EHashStatus)Data.To<uint8>(); break;
+
+	case API_V_IMG_CERT_ALG: m_SignerHashAlgorithm = Data.To<uint32>(); break;
+	case API_V_IMG_CERT_HASH: m_SignerHash = TO_BYTES(Data); break;
 	case API_V_IMG_SIGN_NAME: m_SignerName = AS_ASTR(Data); break;
+
+	case API_V_IMG_CA_ALG: m_IssuerHashAlgorithm = Data.To<uint32>(); break;
+	case API_V_IMG_CA_HASH: m_IssuerHash = TO_BYTES(Data); break;
+	case API_V_IMG_CA_NAME: m_IssuerName = AS_ASTR(Data); break;
+
+	case API_V_TIME_STAMP: m_TimeStamp = Data; break;
 	default: break;
 	}
 }
@@ -758,28 +795,79 @@ void CImageSignInfo::ReadIValue(uint32 Index, const XVariant& Data)
 
 void CImageSignInfo::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) const
 {
-	Data.Write(API_S_SIGN_INFO_AUTH, m_SignInfo.Authority);
-	Data.Write(API_S_SIGN_INFO_LEVEL, m_SignInfo.Level);
-	Data.Write(API_S_SIGN_INFO_POLICY, m_SignInfo.Policy);
+	Data.Write(API_S_SIGN_FLAGS, m_StatusFlags);
 
-	Data.WriteVariant(API_S_FILE_HASH, XVariant(Data.Allocator(), m_FileHash));
+	Data.Write(API_S_SIGN_INFO_AUTH, m_PrivateAuthority);
+	Data.Write(API_S_SIGN_INFO_LEVEL, m_SignLevel);
+	Data.Write(API_S_SIGN_INFO_POLICY, m_SignPolicyBits);
 
-	Data.Write(API_S_CERT_STATUS, (uint8)m_HashStatus);
-	if (m_HashStatus != EHashStatus::eHashNone && m_HashStatus != EHashStatus::eHashUnknown) {
+	Data.Write(API_S_SIGN_SIGN_BITS, m_Signatures.Value);
+
+	if (m_FileHashAlgorithm)
+	{
+		Data.Write(API_S_FILE_HASH_ALG, (uint32)m_FileHashAlgorithm);
+		Data.WriteVariant(API_S_FILE_HASH, XVariant(Data.Allocator(), m_FileHash));
+	}
+
+	//switch (m_HashStatus) 
+	//{
+	//case EHashStatus::eHashUnknown:	Data.Write(API_S_CERT_STATUS, API_S_CERT_STATUS_UNKNOWN); break;
+	//case EHashStatus::eHashOk: 		Data.Write(API_S_CERT_STATUS, API_S_CERT_STATUS_OK); break;
+	////case EHashStatus::eHashError:	Data.Write(API_S_CERT_STATUS, API_S_CERT_STATUS_ERROR); break;
+	//case EHashStatus::eHashFail:	Data.Write(API_S_CERT_STATUS, API_S_CERT_STATUS_FAIL); break;
+	//case EHashStatus::eHashDummy:	Data.Write(API_S_CERT_STATUS, API_S_CERT_STATUS_DUMMY); break;
+	//case EHashStatus::eHashNone:	Data.Write(API_S_CERT_STATUS, API_S_CERT_STATUS_NONE); break;	
+	//}
+
+	if (m_SignerHashAlgorithm)
+	{
+		Data.Write(API_S_CERT_HASH_ALG, (uint32)m_SignerHashAlgorithm);
 		Data.WriteVariant(API_S_CERT_HASH, XVariant(Data.Allocator(), m_SignerHash));
 		Data.WriteEx(API_S_SIGNER_NAME, TO_STR(m_SignerName));
 	}
+
+	if(m_IssuerHashAlgorithm)
+	{
+		Data.Write(API_S_CA_HASH_ALG, (uint32)m_IssuerHashAlgorithm);
+		Data.WriteVariant(API_S_CA_HASH, XVariant(Data.Allocator(), m_IssuerHash));
+		Data.WriteEx(API_S_CA_NAME, TO_STR(m_IssuerName));
+	}
+
+	Data.Write(API_S_TIME_STAMP, m_TimeStamp);
 }
 
 void CImageSignInfo::ReadMValue(const SVarName& Name, const XVariant& Data)
 {
-	if (VAR_TEST_NAME(Name, API_S_SIGN_INFO_AUTH))			m_SignInfo.Authority = Data.To<uint8>();
-	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO_LEVEL))	m_SignInfo.Level = Data.To<uint8>();
-	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO_POLICY))	m_SignInfo.Policy = Data.To<uint32>();
+	if (VAR_TEST_NAME(Name, API_S_SIGN_FLAGS))				m_StatusFlags = Data.To<uint32>();
+	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO_AUTH))		m_PrivateAuthority = (KPH_VERIFY_AUTHORITY)Data.To<uint32>();
+	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO_LEVEL))	m_SignLevel = Data.To<uint32>();
+	else if (VAR_TEST_NAME(Name, API_S_SIGN_INFO_POLICY))	m_SignPolicyBits = Data.To<uint32>();
 
+	else if (VAR_TEST_NAME(Name, API_S_SIGN_SIGN_BITS))		m_Signatures.Value = Data.To<uint32>();
+
+	else if (VAR_TEST_NAME(Name, API_S_FILE_HASH_ALG))		m_FileHashAlgorithm = Data.To<uint32>();
 	else if (VAR_TEST_NAME(Name, API_S_FILE_HASH))			m_FileHash = TO_BYTES(Data);
 
-	else if (VAR_TEST_NAME(Name, API_S_CERT_STATUS))		m_HashStatus = (EHashStatus)Data.To<uint8>();
+	//else if (VAR_TEST_NAME(Name, API_S_CERT_STATUS))
+	//{
+	//	ASTR HashStatus = Data;
+	//	if (HashStatus == API_S_CERT_STATUS_UNKNOWN)		m_HashStatus = EHashStatus::eHashUnknown;
+	//	else if (HashStatus == API_S_CERT_STATUS_OK)			m_HashStatus = EHashStatus::eHashOk;
+	//	//else if (HashStatus == API_S_CERT_STATUS_ERROR)		m_HashStatus = EHashStatus::eHashError;
+	//	else if (HashStatus == API_S_CERT_STATUS_FAIL)		m_HashStatus = EHashStatus::eHashFail;
+	//	else if (HashStatus == API_S_CERT_STATUS_DUMMY)		m_HashStatus = EHashStatus::eHashDummy;
+	//	else if (HashStatus == API_S_CERT_STATUS_NONE)		m_HashStatus = EHashStatus::eHashNone;
+	//	else // fallback todo remove
+	//		m_HashStatus = (EHashStatus)Data.To<uint8>();
+	//}
+
+	else if (VAR_TEST_NAME(Name, API_S_CERT_HASH_ALG))		m_SignerHashAlgorithm = Data.To<uint32>();
 	else if (VAR_TEST_NAME(Name, API_S_CERT_HASH))			m_SignerHash = TO_BYTES(Data);
 	else if (VAR_TEST_NAME(Name, API_S_SIGNER_NAME))		m_SignerName = AS_ASTR(Data);
+
+	else if (VAR_TEST_NAME(Name, API_S_CA_HASH_ALG))		m_IssuerHashAlgorithm = Data.To<uint32>();
+	else if (VAR_TEST_NAME(Name, API_S_CA_HASH))			m_IssuerHash = TO_BYTES(Data);
+	else if (VAR_TEST_NAME(Name, API_S_CA_NAME))			m_IssuerName = AS_ASTR(Data);
+
+	else if (VAR_TEST_NAME(Name, API_S_TIME_STAMP))			m_TimeStamp = Data;
 }

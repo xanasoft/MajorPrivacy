@@ -16,16 +16,13 @@ void CDnsProcLog::Update()
 	// todo cleanup old entries by time stamps
 }
 
-static const CAddress LocalHost("127.0.0.1");
-static const CAddress LocalHostV6("::1");
-
 bool CDnsProcLog::ResolveHost(const CAddress& Address, const CHostNamePtr& pHostName)
 {
 	if (Address.IsNull()) // || Address == CAddress::AnyIPv4 || Address == CAddress::AnyIPv6)
 		return false;
 
 	// if its the local host return imminetly
-	if (Address == LocalHost || Address == LocalHostV6)
+	if (Address.IsLocalHost())
 		return false;
 
 	SHostNameInfoPtr pHostInfo = GetHostForAddress(Address);
@@ -36,7 +33,7 @@ bool CDnsProcLog::ResolveHost(const CAddress& Address, const CHostNamePtr& pHost
 		pAddrInfo->HitCount++;
 
 		auto ptr = std::dynamic_pointer_cast<CResHostName>(pHostName);
-		if (ptr) ptr->Resolve(pHostInfo->HostName, EDnsSource::eCapturedQuery, pAddrInfo->TimeStamp);
+		if (ptr) ptr->Resolve(Address, pHostInfo->HostName, EDnsSource::eCapturedQuery, pAddrInfo->TimeStamp, false);
 		return true;
 	}
 
@@ -70,7 +67,7 @@ void CDnsProcLog::OnEtwDnsEvent(const struct SEtwDnsEvent* pEvent)
 			CHostNamePtr pHostName = I->second.lock();
 			if (!pHostName) continue;
 			auto ptr = std::dynamic_pointer_cast<CResHostName>(pHostName);
-			if (ptr) ptr->Resolve(pEvent->HostName, EDnsSource::eCapturedQuery, pEvent->TimeStamp);
+			if (ptr) ptr->Resolve(Address, pEvent->HostName, EDnsSource::eCapturedQuery, pEvent->TimeStamp, true);
 		}
 	}
 }

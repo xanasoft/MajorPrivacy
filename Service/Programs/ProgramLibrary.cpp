@@ -11,6 +11,21 @@ CProgramLibrary::CProgramLibrary(const std::wstring& Path)
 	m_Path = Path;	
 }
 
+void CProgramLibrary::UpdateSignInfo(const struct SVerifierInfo* pVerifyInfo)
+{
+    std::unique_lock lock(m_Mutex);
+
+    m_SignInfo.Update(pVerifyInfo);
+}
+
+void CProgramLibrary::UpdateSignInfo(const CImageSignInfo& Info)
+{
+    std::unique_lock lock(m_Mutex);
+
+    if(Info.GetTimeStamp() > m_SignInfo.GetTimeStamp())
+        m_SignInfo = Info;
+}
+
 StVariant CProgramLibrary::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
     std::unique_lock Lock(m_Mutex);

@@ -24,7 +24,7 @@ QList<QModelIndex>	CTweakModel::Sync(const CTweakPtr& pRoot, bool bShowNotAvaila
 	QList<QVariant> Added;
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -37,7 +37,7 @@ QList<QModelIndex>	CTweakModel::Sync(const CTweakPtr& pRoot, bool bShowNotAvaila
 	return NewBranches;
 }
 
-void CTweakModel::Sync(const CTweakPtr& pTweak, bool bShowNotAvailable, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
+void CTweakModel::Sync(const CTweakPtr& pTweak, bool bShowNotAvailable, const QList<QVariant>& Path, TNewNodesMap& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
 {
 	QVariant ID = pTweak->GetId();
 
@@ -52,7 +52,7 @@ void CTweakModel::Sync(const CTweakPtr& pTweak, bool bShowNotAvailable, const QL
 		pNode = static_cast<STweakNode*>(MkNode(ID));
 		pNode->Values.resize(columnCount());
 		pNode->Path = Path;
-		New[pNode->Path].append(pNode);
+		New[pNode->Path.count()][pNode->Path].append(pNode);
 		pNode->Values[eName].SortKey = pTweak->GetIndex();
 	}
 	else

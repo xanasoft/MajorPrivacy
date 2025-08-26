@@ -111,15 +111,13 @@ public:
 	virtual void TruncateTraceLog();
 	virtual void ClearTraceLog(ETraceLogs Log);
 
-	virtual void ClearLogs(ETraceLogs Log);
+	virtual void ClearRecords(ETraceLogs Log);
 
 	virtual void TruncateAccessLog();
 
 	virtual void CleanUpAccessTree(bool* pbCancel, uint32* puCounter);
 	virtual void TruncateAccessTree();
 	virtual uint32 GetAccessCount() const { return m_AccessTree.GetAccessCount(); }
-
-	virtual void TestMissing();
 
 	virtual size_t GetLogMemUsage() const;
 

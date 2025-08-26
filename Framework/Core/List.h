@@ -123,6 +123,18 @@ public:
 		return true;
 	}
 
+	bool Contains(const V& Value) const
+	{
+		if(!m_ptr)
+			return FALSE;
+
+		for (SListEntry* Curr = m_ptr->Head; Curr != nullptr; Curr = Curr->Next) {
+			if (Curr->Data == Value)
+				return true;
+		}
+		return false;
+	}
+
 	// Support for range-based for loops
 	class Iterator {
 	public:

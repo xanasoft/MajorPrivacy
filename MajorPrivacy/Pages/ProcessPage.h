@@ -9,6 +9,7 @@ class CLibraryInfoView;
 class CExecutionView;
 class CIngressView;
 class CProcessTraceView;
+class CHashDBView;
 
 class CProcessPage : public QWidget
 {
@@ -37,6 +38,7 @@ private:
 
 	QTabWidget*				m_pRuleTabs;
 	CProgramRuleView*		m_pRuleView;
+	CHashDBView*			m_pHashDBView;
 
 	QTabWidget*				m_pTabs;
 	CProcessView*			m_pProcessView;

@@ -6,6 +6,37 @@ CImageSignInfo::CImageSignInfo()
 {
 }
 
+uint64 CImageSignInfo::GetUnion() const
+{
+	union UImageSignInfo
+	{
+		uint64					Data = 0;
+		struct {
+			uint8				Authority : 3;	// 3 bits - KPH_VERIFY_AUTHORITY
+			uint8				Unused : 1;
+			uint8				Level : 4;		// 4 bits
+			uint8				Policy : 8;
+			uint32				Signatures;
+		};
+	} u = {0};
+	u.Authority = (uint8)m_PrivateAuthority;
+	u.Level = (uint8)m_SignLevel;
+	u.Policy = (uint8)m_SignPolicyBits;
+	u.Signatures = m_Signatures.Value;
+	return u.Data;
+}
+
+bool CImageSignInfo::IsComplete() const
+{
+	if ((m_StatusFlags & MP_VERIFY_FLAG_SA) && m_PrivateAuthority >= KphUserAuthority)
+		return true;
+	if ((m_StatusFlags & MP_VERIFY_FLAG_CI) && m_SignPolicyBits != 0) 
+		return true;
+	if ((m_StatusFlags & MP_VERIFY_FLAG_SL) && m_SignLevel != 0)
+		return true;
+	return false;
+}
+
 QtVariant CImageSignInfo::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	QtVariantWriter Data(pMemPool);

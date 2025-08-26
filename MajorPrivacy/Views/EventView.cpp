@@ -13,10 +13,8 @@ CEventView::CEventView(QWidget *parent)
 	m_pMainLayout = new QGridLayout(this);
 	m_pMainLayout->setContentsMargins(0, 0, 0, 0);
 
-	m_pLabel = new QLabel(tr("Recent privacy relevant events:"));
-	m_pMainLayout->addWidget(m_pLabel, 0, 0);
-
-
+	//m_pLabel = new QLabel(tr("Recent privacy relevant events:"));
+	//m_pMainLayout->addWidget(m_pLabel, 0, 0);
 
 	m_pEventToolBar = new QToolBar();
 	m_pMainLayout->addWidget(m_pEventToolBar, 1, 0);
@@ -24,16 +22,17 @@ CEventView::CEventView(QWidget *parent)
 	m_pBtnClear = new QToolButton();
 	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
 	m_pBtnClear->setToolTip(tr("Clear Privacy Event Log"));
-	//m_pBtnClear->setFixedHeight(22);
+	m_pBtnClear->setFixedHeight(22);
 	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearEventLog()));
 	m_pEventToolBar->addWidget(m_pBtnClear);
 
 	m_pInfo = new CPanelWidgetEx();
-	//m_pInfo->GetView()->setItemDelegate(theGUI->GetItemDelegate());
 	m_pInfo->GetTree()->setHeaderLabels(tr("Level|Time Stamp|Information").split("|"));
 	m_pInfo->GetTree()->setIndentation(0);
-	m_pInfo->GetTree()->setItemDelegate(new CTreeItemDelegate2());
-	m_pInfo->GetTree()->setIconSize(QSize(32, 32));
+	m_pInfo->GetTree()->setItemDelegate(new CTreeItemDelegate());
+	m_pInfo->GetTree()->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
+	//m_pInfo->GetTree()->setItemDelegate(new CTreeItemDelegate2());
+	//m_pInfo->GetTree()->setIconSize(QSize(32, 32));
 	m_pMainLayout->addWidget(m_pInfo, 2, 0);
 
 

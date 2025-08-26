@@ -43,7 +43,8 @@ public:
 
 	void Update();
 
-	void TestMissing();
+	void CheckProgramFiles();
+	void CheckProgramFilesAsync();
 
 	STATUS CleanUp(bool bPurgeRules = false);
 
@@ -66,7 +67,7 @@ public:
 
 	RESULT(CProgramItemPtr) CreateProgram(const CProgramID& ID);
 	STATUS AddProgramTo(uint64 UID, uint64 ParentUID);
-	STATUS RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRules = false);
+	STATUS RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRules = false, bool bKeepOne = false);
 
 	void AddFwRule(const CFirewallRulePtr& pFwRule);
 	void RemoveFwRule(const CFirewallRulePtr& pFwRule);
@@ -115,7 +116,7 @@ protected:
 	bool RemoveProgramFromGroupEx(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
 	void AddItemToRoot(const CProgramItemPtr& pItem);
 	bool AddItemToBranch(const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
-	bool AddItemToBranch2(const std::wstring& FilePath, const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
+	int AddItemToBranch2(const std::wstring& FilePath, const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
 	void TryAddChildren(const CProgramListPtr& pGroup, const CProgramPatternPtr& pPattern, bool bRemove = false);
 
 	//void BroadcastItemChanged(const CProgramItemPtr& pItem, EConfigEvent Event);
@@ -170,5 +171,8 @@ protected:
 	friend DWORD CALLBACK CProgramManager__TruncateLogs(LPVOID lpThreadParameter);
 	bool					m_bCancelTruncateLogs = false;
 	volatile HANDLE			m_hTruncateLogsThread = NULL;
+
+	friend DWORD CALLBACK CAccessManager__CheckProgramFilesProc(LPVOID lpThreadParameter);
+	volatile HANDLE			m_hCheckThread = NULL;
 };
 

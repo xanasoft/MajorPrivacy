@@ -46,30 +46,34 @@ GUID Audit_ObjectAccess_FirewallConnection_ = { 0x0cce9226, 0x69ae, 0x11d9, { 0x
 
 GUID Audit_ObjectAccess_FirewallRuleChange_ = { 0x0cce9232, 0x69ae, 0x11d9, { 0xbe, 0xd3, 0x50, 0x50, 0x54, 0x50, 0x30, 0x30 } };
 
-bool SetAuditPolicy(const GUID* pSubCategoryGuids, ULONG dwPolicyCount, uint32 AuditingMode, uint32* pOldAuditingMode)
+bool SetAuditPolicy(const GUID* pSubCategoryGuid, uint32 AuditingMode, uint32* pOldAuditingMode)
 {
 	PAUDIT_POLICY_INFORMATION AuditPolicyInformation;
-	BOOLEAN success = AuditQuerySystemPolicy(pSubCategoryGuids, dwPolicyCount, &AuditPolicyInformation);
+	BOOLEAN success = AuditQuerySystemPolicy(pSubCategoryGuid, 1, &AuditPolicyInformation);
 	if (!success)
 		return false;
 
-	if ((AuditPolicyInformation->AuditingInformation & AuditingMode) != AuditingMode)
+	if (AuditPolicyInformation->AuditingInformation != AuditingMode)
 	{
 		if (pOldAuditingMode) *pOldAuditingMode = AuditPolicyInformation->AuditingInformation;
 
-		AuditPolicyInformation->AuditingInformation = AuditingMode;
+        AuditPolicyInformation->AuditingInformation = POLICY_AUDIT_EVENT_NONE;
+        success = AuditSetSystemPolicy(AuditPolicyInformation, 1);
 
-		success = AuditSetSystemPolicy(AuditPolicyInformation, 1);
+        if (success) {
+            AuditPolicyInformation->AuditingInformation = AuditingMode;
+            success = AuditSetSystemPolicy(AuditPolicyInformation, 1);
+        }
 	}
 
 	AuditFree(AuditPolicyInformation);
 	return success;
 }
 
-uint32 GetAuditPolicy(const GUID* pSubCategoryGuids, ULONG dwPolicyCount)
+uint32 GetAuditPolicy(const GUID* pSubCategoryGuid)
 {
     PAUDIT_POLICY_INFORMATION AuditPolicyInformation;
-    BOOLEAN success = AuditQuerySystemPolicy(pSubCategoryGuids, dwPolicyCount, &AuditPolicyInformation);
+    BOOLEAN success = AuditQuerySystemPolicy(pSubCategoryGuid, 1, &AuditPolicyInformation);
     if (!success)
         return -1;
 

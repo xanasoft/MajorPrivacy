@@ -40,16 +40,24 @@ DWORD WINAPI ServiceHandlerEx(DWORD dwControl, DWORD dwEventType, LPVOID lpEvent
 {
     if (dwControl == SERVICE_CONTROL_STOP || dwControl == SERVICE_CONTROL_SHUTDOWN)
     {
-        if(g_UnloadProtection)
+        if(dwControl == SERVICE_CONTROL_STOP && g_UnloadProtection)
 			return ERROR_SERVICE_CANNOT_ACCEPT_CTRL;
 
-        CServiceCore::Shutdown();
+#ifdef _DEBUG
+		DbgPrint("PrivacyAgent ServiceHandlerEx: Stopping service %d ...\n", dwControl);
+#endif
+        CServiceCore::Shutdown(dwControl == SERVICE_CONTROL_SHUTDOWN ? CServiceCore::eShutdown_System : CServiceCore::eShutdown_Wait);
 
         g_ServiceStatus.dwCurrentState        = SERVICE_STOPPED;
         g_ServiceStatus.dwCheckPoint          = 0;
         g_ServiceStatus.dwWaitHint            = 0;
 
-    } else if (dwControl != SERVICE_CONTROL_INTERROGATE)
+    } 
+    /*else if (dwControl == SERVICE_CONTROL_PRESHUTDOWN) 
+    {
+
+    } */
+    else if (dwControl != SERVICE_CONTROL_INTERROGATE)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
     if (! SetServiceStatus(g_ServiceStatusHandle, &g_ServiceStatus))
@@ -66,7 +74,7 @@ void WINAPI ServiceMain(DWORD argc, WCHAR *argv[])
 
     g_ServiceStatus.dwServiceType                 = SERVICE_WIN32;
     g_ServiceStatus.dwCurrentState                = SERVICE_START_PENDING;
-    g_ServiceStatus.dwControlsAccepted            = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
+    g_ServiceStatus.dwControlsAccepted            = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN; // | SERVICE_ACCEPT_PRESHUTDOWN
     g_ServiceStatus.dwWin32ExitCode               = 0;
     g_ServiceStatus.dwServiceSpecificExitCode     = 0;
     g_ServiceStatus.dwCheckPoint                  = 1;
@@ -175,7 +183,7 @@ int WinMain(
         *wcsrchr(szPath, L'\\') = L'\0';
         wcscat_s(szPath, MAX_PATH, L"\\MajorWallpaper.png");
 
-        return ShowSecureMessageBox(TypePrompt.second, L"Major Privacy", Type, szPath);
+        return ShowSecureMessageBox(TypePrompt.second, L"MajorPrivacy", Type, szPath);
     }
     else if (HasFlag(arguments, L"engine"))
     {
@@ -198,7 +206,7 @@ int WinMain(
 
         SvcState = GetServiceState(API_SERVICE_NAME);
         if ((SvcState & SVC_INSTALLED) == 0)
-            Status = CServiceAPI::InstallSvc();
+            Status = CServiceAPI::InstallSvc(false);
         if ((SvcState & SVC_RUNNING) == 0)
             Status = RunService(API_SERVICE_NAME);
     }
@@ -206,11 +214,19 @@ int WinMain(
     {
         SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
         if ((DrvState & SVC_INSTALLED) == 0)
-            Status = CServiceCore::InstallDriver();
+#ifdef _DEBUG_
+            Status = CServiceCore::InstallDriver(false);
+#else
+            Status = CServiceCore::InstallDriver(true);
+#endif
         
         SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
         if ((SvcState & SVC_INSTALLED) == 0)
-            Status = CServiceAPI::InstallSvc();
+#ifdef _DEBUG_
+            Status = CServiceAPI::InstallSvc(false);
+#else
+            Status = CServiceAPI::InstallSvc(true);
+#endif
     }
     else if (HasFlag(arguments, L"unload") || HasFlag(arguments, L"remove"))
     {
@@ -233,7 +249,7 @@ int WinMain(
                 if (g_UnloadProtection) 
                 {
                     StVariant Args;
-                    Args[API_V_MB_TEXT] = L"Do you want to remove Major Privacy Service and Driver?";
+                    Args[API_V_MB_TEXT] = L"Do you want to remove MajorPrivacy Service and Driver?";
                     //Args[API_V_MB_TITLE]
                     Args[API_V_MB_TYPE] = (uint32)MB_YESNO;
                     auto Ret = pSvcAPI->Call(SVC_API_SHOW_SECURE_PROMPT, Args, NULL);

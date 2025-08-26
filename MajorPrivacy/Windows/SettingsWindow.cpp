@@ -8,6 +8,7 @@
 #include "../MiscHelpers/Archive/ArchiveFS.h"
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include "../OnlineUpdater.h"
+#include <QFontDialog>
 
 void AddIconToLabel(QLabel* pLabel, const QPixmap& Pixmap)
 {
@@ -60,12 +61,12 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	//this->setWindowFlag(Qt::WindowStaysOnTopHint, theGUI->IsAlwaysOnTop());
 
 	ui.setupUi(this);
-	this->setWindowTitle(tr("Major Privacy - Settings"));
+	this->setWindowTitle(tr("MajorPrivacy - Settings"));
 
-	//if (theConf->GetBool("Options/AltRowColors", false)) {
-	//	foreach(QTreeWidget* pTree, this->findChildren<QTreeWidget*>()) 
-	//		pTree->setAlternatingRowColors(true);
-	//}
+	if (theConf->GetBool("Options/AltRowColors", false)) {
+		foreach(QTreeWidget* pTree, this->findChildren<QTreeWidget*>()) 
+			pTree->setAlternatingRowColors(true);
+	}
 
 	FixTriStateBoxPallete(this);
 
@@ -89,7 +90,9 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	size *= (QApplication::desktop()->logicalDpiX() / 96.0); // todo Qt6
 #endif
 	AddIconToLabel(ui.lblGeneral, QPixmap(":/Icons/Options.png").scaled(size, size));
+	AddIconToLabel(ui.lblOptions, QPixmap(":/Icons/Advanced.png").scaled(size, size));
 	AddIconToLabel(ui.lblInterface, QPixmap(":/Icons/GUI.png").scaled(size, size));
+	AddIconToLabel(ui.lblDisplay, QPixmap(":/Icons/Advanced.png").scaled(size, size));
 	AddIconToLabel(ui.lblIgnore, QPixmap(":/Icons/DisableMessagePopup.png").scaled(size, size));
 	AddIconToLabel(ui.lblExecInfo, QPixmap(":/Icons/Process.png").scaled(size, size));
 	AddIconToLabel(ui.lblResInfo, QPixmap(":/Icons/Ampel.png").scaled(size, size));
@@ -98,6 +101,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	AddIconToLabel(ui.lblFwInfo, QPixmap(":/Icons/Wall3.png").scaled(size, size));
 	AddIconToLabel(ui.lblLogging, QPixmap(":/Icons/List.png").scaled(size, size));
 	AddIconToLabel(ui.lblDns, QPixmap(":/Icons/DNS.png").scaled(size, size));
+	AddIconToLabel(ui.lblUpdates, QPixmap(":/Icons/Update.png").scaled(size,size));
 
 	ui.tabs->setCurrentIndex(0);
 
@@ -112,7 +116,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 		else
 			langDir = QApplication::applicationDirPath() + "/translations/";
 
-		foreach(const QString & langFile, QDir(langDir).entryList(QStringList("majorprivacy_*.qm"), QDir::Files))
+		foreach(const QString & langFile, QDir(langDir).entryList(QStringList("MajorPrivacy_*.qm"), QDir::Files))
 		{
 			QString Code = langFile.mid(13, langFile.length() - 13 - 3);
 			QLocale Locale(Code);
@@ -122,10 +126,45 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 		ui.uiLang->setCurrentIndex(ui.uiLang->findData(theConf->GetString("Options/UiLanguage")));
 	}
 
+	ui.cmbDPI->addItem(tr("None"), 0);
+	ui.cmbDPI->addItem(tr("Native"), 1);
+	ui.cmbDPI->addItem(tr("Qt"), 2);
+
+	int FontScales[] = { 75,100,125,150,175,200,225,250,275,300,350,400, 0 };
+	for (int* pFontScales = FontScales; *pFontScales != 0; pFontScales++)
+		ui.cmbFontScale->addItem(tr("%1").arg(*pFontScales), *pFontScales);
+
+	// UI Font
+	ui.btnSelectUiFont->setIcon(QPixmap(":/Icons/Font.png").scaled(size, size));
+	ui.btnSelectUiFont->setToolTip(tr("Select font"));
+	ui.btnResetUiFont->setIcon(QPixmap(":/Icons/ResetFont.png").scaled(size, size));
+	ui.btnResetUiFont->setToolTip(tr("Reset font"));
+
+	connect(ui.btnSelectUiFont, SIGNAL(clicked(bool)), this, SLOT(OnSelectUiFont()));
+	connect(ui.btnResetUiFont, SIGNAL(clicked(bool)), this, SLOT(OnResetUiFont()));
+	ui.lblUiFont->setText(QApplication::font().family());
+
 	ui.cmbFwAuditPolicy->addItem(tr("All"), (uint32)FwAuditPolicy::All);
 	ui.cmbFwAuditPolicy->addItem(tr("Blocked"), (uint32)FwAuditPolicy::Blocked);
 	ui.cmbFwAuditPolicy->addItem(tr("Allowed"), (uint32)FwAuditPolicy::Allowed);
 	ui.cmbFwAuditPolicy->addItem(tr("Off"), (uint32)FwAuditPolicy::Off);
+
+	// Updater
+	ui.cmbInterval->addItem(tr("Every Day"), 1 * 24 * 60 * 60);
+	ui.cmbInterval->addItem(tr("Every Week"), 7 * 24 * 60 * 60);
+	ui.cmbInterval->addItem(tr("Every 2 Weeks"), 14 * 24 * 60 * 60);
+	ui.cmbInterval->addItem(tr("Every 30 days"), 30 * 24 * 60 * 60);
+
+	ui.cmbUpdate->addItem(tr("Ignore"), "ignore");
+	ui.cmbUpdate->addItem(tr("Notify"), "notify");
+	ui.cmbUpdate->addItem(tr("Download & Notify"), "download");
+	ui.cmbUpdate->addItem(tr("Download & Install"), "install");
+
+	//ui.cmbRelease->addItem(tr("Ignore"), "ignore");
+	ui.cmbRelease->addItem(tr("Notify"), "notify");
+	ui.cmbRelease->addItem(tr("Download & Notify"), "download");
+	ui.cmbRelease->addItem(tr("Download & Install"), "install");
+	//
 
 	LoadSettings();
 
@@ -134,6 +173,9 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.uiLang, SIGNAL(currentIndexChanged(int)), this, SLOT(OnChangeGUI()));
 
 	connect(ui.chkEnumApps, SIGNAL(clicked(bool)), this, SLOT(OnOptChanged()));
+
+	connect(ui.chkEncryptSwap, SIGNAL(clicked(bool)), this, SLOT(OnOptChanged()));
+	connect(ui.chkGuardSuspend, SIGNAL(clicked(bool)), this, SLOT(OnOptChanged()));
 
 	connect(ui.btnDelIgnore, SIGNAL(clicked(bool)), this, SLOT(OnDelIgnore()));
 
@@ -153,6 +195,14 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 
 	connect(ui.chkDarkTheme, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
 	connect(ui.chkFusionTheme, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
+	connect(ui.chkUseW11Style, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	QOperatingSystemVersion current = QOperatingSystemVersion::current();
+	ui.chkUseW11Style->setEnabled(current.majorVersion() == 10 && current.microVersion() >= 22000); // Windows 10 22000+ (Windows 11)
+	connect(ui.chkAltRows, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
+	
+	connect(ui.cmbDPI, SIGNAL(currentIndexChanged(int)), this, SLOT(OnChangeGUI()));
+	connect(ui.cmbFontScale, SIGNAL(currentIndexChanged(int)), this, SLOT(OnChangeGUI()));
+	connect(ui.cmbFontScale, SIGNAL(currentTextChanged(const QString&)), this, SLOT(OnChangeGUI()));
 
 	connect(ui.chkExecShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkExecLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
@@ -175,7 +225,6 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.chkDnsFilter, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged()));
 	connect(ui.chkDnsInstall, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged()));
 	connect(ui.txtDnsResolvers, SIGNAL(textChanged(const QString &)), this, SLOT(OnDnsChanged2()));
-	connect(ui.chkDnsBlockLists, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged3()));
 	connect(ui.treeDnsBlockLists, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(OnDnsBlockListClicked(QTreeWidgetItem*, int)));
 	connect(ui.treeDnsBlockLists, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(OnDnsBlockDoubleClicked(QTreeWidgetItem*, int)));
 	connect(ui.btnAddBlockList, SIGNAL(clicked(bool)), this, SLOT(OnAddBlockList()));
@@ -183,6 +232,22 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 
 	connect(ui.txtLogLimit, SIGNAL(textChanged(const QString &)), this, SLOT(OnOptChanged()));
 	connect(ui.txtLogRetention, SIGNAL(textChanged(const QString &)), this, SLOT(OnOptChanged()));
+
+	// Updater
+	connect(ui.lblCurrent, SIGNAL(linkActivated(const QString&)), this, SLOT(OnUpdate(const QString&)));
+	connect(ui.lblStable, SIGNAL(linkActivated(const QString&)), this, SLOT(OnUpdate(const QString&)));
+	connect(ui.lblPreview, SIGNAL(linkActivated(const QString&)), this, SLOT(OnUpdate(const QString&)));
+	
+	connect(ui.chkAutoUpdate, SIGNAL(toggled(bool)), this, SLOT(UpdateUpdater()));
+
+	connect(ui.cmbInterval, SIGNAL(currentIndexChanged(int)), this, SLOT(OnOptChanged()));
+
+	connect(ui.radStable, SIGNAL(toggled(bool)), this, SLOT(UpdateUpdater()));
+	connect(ui.radPreview, SIGNAL(toggled(bool)), this, SLOT(UpdateUpdater()));
+
+	connect(ui.cmbUpdate, SIGNAL(currentIndexChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.cmbRelease, SIGNAL(currentIndexChanged(int)), this, SLOT(OnOptChanged()));
+	//
 
 	connect(ui.tabs, SIGNAL(currentChanged(int)), this, SLOT(OnTab()));
 
@@ -376,7 +441,15 @@ void CSettingsWindow::OnTab(QWidget* pTab)
 {
 	m_pCurrentTab = pTab;
 
-	// ....
+	if (pTab == ui.tabSupport)
+	{
+		if (ui.lblCurrent->text().isEmpty()) {
+			if (ui.chkAutoUpdate->checkState())
+				GetUpdates();
+			else
+				ui.lblCurrent->setText(tr("<a href=\"check\">Check Now</a>"));
+		}
+	}
 }
 
 void CSettingsWindow::apply()
@@ -447,7 +520,9 @@ void CSettingsWindow::OnDnsChanged()
 {
 	ui.chkDnsInstall->setEnabled(ui.chkDnsFilter->isChecked());
 	ui.txtDnsResolvers->setEnabled(ui.chkDnsFilter->isChecked());
-	ui.chkDnsBlockLists->setEnabled(ui.chkDnsFilter->isChecked());
+	ui.treeDnsBlockLists->setEnabled(ui.chkDnsFilter->isChecked());
+	ui.btnAddBlockList->setEnabled(ui.chkDnsFilter->isChecked());
+	ui.btnDelBlockList->setEnabled(ui.chkDnsFilter->isChecked());
 	OnOptChanged();
 }
 
@@ -496,15 +571,6 @@ void CSettingsWindow::OnDelBlockList()
 	if (!m_HoldChange) m_BlockListChanged = true;
 }
 
-void CSettingsWindow::OnDnsChanged3()
-{
-	ui.treeDnsBlockLists->setEnabled(ui.chkDnsBlockLists->isChecked() && ui.chkDnsFilter->isChecked());
-	ui.btnAddBlockList->setEnabled(ui.chkDnsBlockLists->isChecked() && ui.chkDnsFilter->isChecked());
-	ui.btnDelBlockList->setEnabled(ui.chkDnsBlockLists->isChecked() && ui.chkDnsFilter->isChecked());
-	if (!m_HoldChange) m_BlockListChanged = true;
-	OnOptChanged();
-}
-
 void CSettingsWindow::LoadSettings()
 {
 	m_HoldChange = true;
@@ -531,26 +597,35 @@ void CSettingsWindow::LoadSettings()
 
 	ui.chkEnumApps->setChecked(theCore->GetConfigBool("Service/EnumInstallations", true));
 
+	ui.chkEncryptSwap->setChecked(theCore->GetConfigBool("Service/EncryptPageFile", false));
+	ui.chkGuardSuspend->setChecked(theCore->GetConfigBool("Service/GuardHibernation", false));
+
 	ui.chkListOpenFiles->setChecked(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));
 	ui.chkAccessTrace->setChecked(theCore->GetConfigBool("Service/ResTrace", true));
 	ui.chkAccessRecord->setChecked(theCore->GetConfigBool("Service/SaveAccessRecord", false));
-	ui.chkAccessLog->setChecked(theCore->GetConfigBool("Service/ResLog", true));
+	ui.chkAccessLog->setChecked(theCore->GetConfigBool("Service/ResLog", false));
 	ui.chkLogNotFound->setChecked(theCore->GetConfigBool("Service/LogNotFound", false));
 	ui.chkLogRegistry->setChecked(theCore->GetConfigBool("Service/LogRegistry", false));
 
-	ui.chkFwPlus->setChecked(theCore->GetConfigBool("Service/UseFwRuleTemplates", false));
+	ui.chkFwPlus->setChecked(theCore->GetConfigBool("Service/UseFwRuleTemplates", true));
 	ui.chkNetTrace->setChecked(theCore->GetConfigBool("Service/NetTrace", true));
 	ui.chkTrafficRecord->setChecked(theCore->GetConfigBool("Service/SaveTrafficRecord", false));
-	ui.chkFwLog->setChecked(theCore->GetConfigBool("Service/NetLog", true));
+	ui.chkFwLog->setChecked(theCore->GetConfigBool("Service/NetLog", false));
 	ui.chkReverseDNS->setChecked(theCore->GetConfigBool("Service/UseReverseDns", false));
 	ui.chkSimpleDomains->setChecked(theCore->GetConfigBool("Service/UseSimpleDomains", true));
 
 	ui.chkDarkTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseDarkTheme", 2)));
 	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseFusionTheme", 1)));
+	ui.chkUseW11Style->setChecked(theConf->GetBool("Options/UseW11Style", false));
+	ui.chkAltRows->setChecked(theConf->GetBool("Options/AltRowColors", false));
+
+	ui.cmbDPI->setCurrentIndex(theConf->GetInt("Options/DPIScaling", 1));
+	//ui.cmbFontScale->setCurrentIndex(ui.cmbFontScale->findData(theConf->GetInt("Options/FontScaling", 100)));
+	ui.cmbFontScale->setCurrentText(QString::number(theConf->GetInt("Options/FontScaling", 100)));
 
 	ui.chkExecShowPopUp->setChecked(theConf->GetBool("ProcessProtection/ShowNotifications", true));
-	ui.chkExecRecord->setChecked(theCore->GetConfigBool("Service/SaveIngressRecord", true));
-	ui.chkExecLog->setChecked(theCore->GetConfigBool("Service/ExecLog", true));
+	ui.chkExecRecord->setChecked(theCore->GetConfigBool("Service/SaveIngressRecord", false));
+	ui.chkExecLog->setChecked(theCore->GetConfigBool("Service/ExecLog", false));
 
 	ui.chkResShowPopUp->setChecked(theConf->GetBool("ResourceAccess/ShowNotifications", true));
 
@@ -574,7 +649,7 @@ void CSettingsWindow::LoadSettings()
 	ui.chkLoadFwLog->setChecked(theCore->GetConfigBool("Service/LoadWindowsFirewallLog", false));
 
 	ui.chkDnsFilter->setChecked(theCore->GetConfigBool("Service/DnsEnableFilter", false));
-	ui.chkDnsInstall->setChecked(theCore->GetConfigBool("Service/DnsInstallFilter", false));
+	ui.chkDnsInstall->setChecked(theCore->GetConfigBool("Service/DnsInstallFilter", true));
 	ui.txtDnsResolvers->setText(theCore->GetConfigStr("Service/DnsResolvers"));
 	QStringList BlockLists = theCore->GetConfigStr("Service/DnsBlockLists").split(";");
 	ui.treeDnsBlockLists->clear();
@@ -600,6 +675,32 @@ void CSettingsWindow::LoadSettings()
 	OnFwAuditPolicyChanged();
 
 	UpdateCert();
+
+	ui.chkNoCheck->setChecked(theConf->GetBool("Options/NoSupportCheck", false));
+	if(ui.chkNoCheck->isCheckable() && !g_CertInfo.expired)
+		ui.chkNoCheck->setVisible(false); // hide if not relevant
+
+	// Updater
+	ui.chkAutoUpdate->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/CheckForUpdates", 2)));
+
+	int UpdateInterval = theConf->GetInt("Options/UpdateInterval", UPDATE_INTERVAL);
+	int pos = ui.cmbInterval->findData(UpdateInterval);
+	if (pos == -1)
+		ui.cmbInterval->setCurrentText(QString::number(UpdateInterval));
+	else
+		ui.cmbInterval->setCurrentIndex(pos);
+
+	QString ReleaseChannel = theConf->GetString("Options/ReleaseChannel", "stable");
+	ui.radStable->setChecked(ReleaseChannel == "stable");
+	ui.radPreview->setChecked(ReleaseChannel == "preview");
+
+	m_HoldChange = true;
+	UpdateUpdater();
+	m_HoldChange = false;
+
+	ui.cmbUpdate->setCurrentIndex(ui.cmbUpdate->findData(theConf->GetString("Options/OnNewUpdate", "ignore")));
+	ui.cmbRelease->setCurrentIndex(ui.cmbRelease->findData(theConf->GetString("Options/OnNewRelease", "download")));
+	//
 
 	m_HoldChange = false;
 
@@ -629,6 +730,9 @@ void CSettingsWindow::SaveSettings()
 
 	theCore->SetConfig("Service/EnumInstallations", ui.chkEnumApps->isChecked());
 
+	theCore->SetConfig("Service/EncryptPageFile", ui.chkEncryptSwap->isChecked());
+	theCore->SetConfig("Service/GuardHibernation", ui.chkGuardSuspend->isChecked());
+
 	theCore->SetConfig("Service/EnumAllOpenFiles", ui.chkListOpenFiles->isChecked());
 	theCore->SetConfig("Service/ResTrace", ui.chkAccessTrace->isChecked());
 	theCore->SetConfig("Service/SaveAccessRecord", ui.chkAccessRecord->isChecked());
@@ -645,6 +749,17 @@ void CSettingsWindow::SaveSettings()
 
 	theConf->SetValue("Options/UseDarkTheme", CSettingsWindow__Chk2Int(ui.chkDarkTheme->checkState()));
 	theConf->SetValue("Options/UseFusionTheme", CSettingsWindow__Chk2Int(ui.chkFusionTheme->checkState()));
+	theConf->SetValue("Options/UseW11Style", ui.chkUseW11Style->isChecked());
+	theConf->SetValue("Options/AltRowColors", ui.chkAltRows->isChecked());
+
+	theConf->SetValue("UIConfig/UIFont", ui.lblUiFont->text());
+	theConf->SetValue("Options/DPIScaling", ui.cmbDPI->currentData());
+	int Scaling = ui.cmbFontScale->currentText().toInt();
+	if (Scaling < 75)
+		Scaling = 75;
+	else if (Scaling > 500)
+		Scaling = 500;
+	theConf->SetValue("Options/FontScaling", Scaling);
 
 	theConf->SetValue("ProcessProtection/ShowNotifications", ui.chkExecShowPopUp->isChecked());
 	theCore->SetConfig("Service/SaveIngressRecord", ui.chkExecRecord->isChecked());
@@ -697,7 +812,46 @@ void CSettingsWindow::SaveSettings()
 	if(m_CertChanged)
 		ApplyCert();
 
+	theConf->SetValue("Options/NoSupportCheck", ui.chkNoCheck->isChecked());
+
+	// Updater
+	theConf->SetValue("Options/CheckForUpdates", CSettingsWindow__Chk2Int(ui.chkAutoUpdate->checkState()));
+
+	int UpdateInterval = ui.cmbInterval->currentData().toInt();
+	if (!UpdateInterval)
+		UpdateInterval = ui.cmbInterval->currentText().toInt();
+	if (!UpdateInterval)
+		UpdateInterval = UPDATE_INTERVAL;
+	theConf->SetValue("Options/UpdateInterval", UpdateInterval);
+
+	QString ReleaseChannel;
+	if (ui.radStable->isChecked())
+		ReleaseChannel = "stable";
+	else if (ui.radPreview->isChecked())
+		ReleaseChannel = "preview";
+	if(!ReleaseChannel.isEmpty()) theConf->SetValue("Options/ReleaseChannel", ReleaseChannel);
+
+	theConf->SetValue("Options/OnNewUpdate", ui.cmbUpdate->currentData());
+	theConf->SetValue("Options/OnNewRelease", ui.cmbRelease->currentData());
+	//
+
 	emit OptionsChanged(m_bRebuildUI);
+}
+
+void CSettingsWindow::OnSelectUiFont()
+{
+	bool ok;
+	auto newFont = QFontDialog::getFont(&ok, QApplication::font(), this);
+	if (!ok) return;
+	ui.lblUiFont->setText(newFont.family());
+	OnChangeGUI();
+}
+
+void CSettingsWindow::OnResetUiFont()
+{
+	QFont defaultFont = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
+	ui.lblUiFont->setText(defaultFont.family());
+	OnChangeGUI();
 }
 
 
@@ -717,7 +871,6 @@ void CSettingsWindow::InitSupport()
 	connect(ui.lblCert, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
 	connect(ui.lblCertExp, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
 	connect(ui.lblCertGuide, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
-	connect(ui.lblInsiderInfo, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
 
 	connect(ui.txtCertificate, SIGNAL(textChanged()), this, SLOT(CertChanged()));
 	ui.txtCertificate->installEventFilter(this);
@@ -913,8 +1066,6 @@ void CSettingsWindow::UpdateCert()
 			ui.lblEvalCert->setText(tr("<b><a href=\"_\">Get a free evaluation certificate</a> and enjoy all premium features for %1 days.</b>").arg(EVAL_DAYS));
 		ui.lblEvalCert->setToolTip(tr("You can request a free %1-day evaluation certificate up to %2 times per hardware ID.").arg(EVAL_DAYS).arg(EVAL_MAX));
 	}
-
-	ui.radInsider->setEnabled(CERT_IS_INSIDER(g_CertInfo));
 }
 
 void CSettingsWindow::OnGetCert()
@@ -1225,3 +1376,114 @@ bool CSettingsWindow::TryRefreshCert(QWidget* parent, QObject* receiver, const c
 
 	return true;
 }
+
+// Updater
+void CSettingsWindow::UpdateUpdater()
+{
+	bool bOk = (g_CertInfo.active && !g_CertInfo.expired);
+	//ui.radLive->setEnabled(false);
+	if (!ui.chkAutoUpdate->isChecked()) 
+	{
+		ui.cmbInterval->setEnabled(false);
+		ui.cmbUpdate->setEnabled(false);
+		ui.cmbRelease->setEnabled(false);
+		ui.lblRevision->setText(QString());
+		ui.lblRelease->setText(QString());
+	}
+	else 
+	{
+		ui.cmbInterval->setEnabled(true);
+
+		bool bAllowAuto;
+		if (ui.radStable->isChecked() && !bOk) {
+			ui.cmbUpdate->setEnabled(false);
+			ui.cmbUpdate->setCurrentIndex(ui.cmbUpdate->findData("ignore"));
+
+			ui.lblRevision->setText(tr("Supporter certificate required for access"));
+			bAllowAuto = false;
+		} else {
+			ui.cmbUpdate->setEnabled(true);
+
+			ui.lblRevision->setText(QString());
+			bAllowAuto = true;
+		}
+
+		ui.cmbRelease->setEnabled(true);
+		QStandardItemModel* model = qobject_cast<QStandardItemModel*>(ui.cmbRelease->model());
+		for (int i = 1; i < ui.cmbRelease->count(); i++) {
+			QStandardItem* item = model->item(i);
+			item->setFlags(bAllowAuto ? (item->flags() | Qt::ItemIsEnabled) : (item->flags() & ~Qt::ItemIsEnabled));
+		}
+
+		if(!bAllowAuto)
+			ui.lblRelease->setText(tr("Supporter certificate required for automation"));
+		else
+			ui.lblRelease->setText(QString());
+	}
+
+	OnOptChanged();
+}
+
+
+void CSettingsWindow::GetUpdates()
+{
+	QVariantMap Params;
+	Params["channel"] = "all";
+	theGUI->m_pUpdater->GetUpdates(this, SLOT(OnUpdateData(const QVariantMap&, const QVariantMap&)), Params);
+}
+
+QString CSettingsWindow__MkVersion(const QString& Name, const QVariantMap& Releases)
+{
+	QVariantMap Release = Releases[Name].toMap();
+	QString Version = Release.value("version").toString();
+	//if (Release["build"].type() != QVariant::Invalid) 
+	int iUpdate = Release["update"].toInt();
+	if(iUpdate) Version += QChar('a' + (iUpdate - 1));
+	return QString("<a href=\"%1\">%2</a>").arg(Name, Version);
+}
+
+void CSettingsWindow::OnUpdateData(const QVariantMap& Data, const QVariantMap& Params)
+{
+	if (Data.isEmpty() || Data["error"].toBool())
+		return;
+
+	m_UpdateData = Data;
+	QVariantMap Releases = m_UpdateData["releases"].toMap();
+	ui.lblCurrent->setText(tr("%1 (Current)").arg(theGUI->GetVersion(true)));
+	ui.lblStable->setText(CSettingsWindow__MkVersion("stable", Releases));
+	ui.lblPreview->setText(CSettingsWindow__MkVersion("preview", Releases));
+}
+
+void CSettingsWindow::OnUpdate(const QString& Channel)
+{
+	if (Channel == "check") {
+		GetUpdates();
+		return;
+	}
+
+	QVariantMap Releases = m_UpdateData["releases"].toMap();
+	QVariantMap Release = Releases[Channel].toMap();
+
+	QString VersionStr = Release["version"].toString();
+	if (VersionStr.isEmpty())
+		return;
+
+	QVariantMap Installer = Releases["installer"].toMap();
+	QString DownloadUrl = Installer["downloadUrl"].toString();
+	//QString DownloadSig = Installer["signature"].toString();
+	// todo xxx
+	//if (!DownloadUrl.isEmpty() /*&& !DownloadSig.isEmpty()*/)
+	//{
+	//	// todo: signature
+	//	if (QMessageBox("Sandboxie-Plus", tr("Do you want to download the installer for v%1?").arg(VersionStr), QMessageBox::Question, QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape, QMessageBox::NoButton, this).exec() == QMessageBox::Yes)
+	//		COnlineUpdater::Instance()->DownloadInstaller(DownloadUrl, true);
+	//}
+	//else
+	{
+		QString InfoUrl = Release["infoUrl"].toString();
+		if (InfoUrl.isEmpty())
+			InfoUrl = "https://sandboxie-plus.com/go.php?to=sbie-get";
+		QDesktopServices::openUrl(InfoUrl);
+	}
+}
+//

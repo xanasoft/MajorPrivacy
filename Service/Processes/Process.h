@@ -42,7 +42,7 @@ public:
 	CImageSignInfo GetSignInfo() const { std::shared_lock Lock(m_Mutex); return m_SignInfo; }
 	void SetSignInfo(const CImageSignInfo& SignInfo) { std::unique_lock Lock(m_Mutex); m_SignInfo = SignInfo; }
 	bool HashInfoUnknown() const;
-	static bool MakeVerifyInfo(const std::wstring& ModulePath, SVerifierInfo& VerifyInfo);
+	static bool FillVerifyInfo(const std::wstring& ModulePath, SVerifierInfo& VerifyInfo);
 
 	std::set<std::wstring> GetServices() const { std::shared_lock Lock(m_Mutex);  return m_ServiceList; }
 

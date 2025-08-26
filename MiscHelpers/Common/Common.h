@@ -64,7 +64,7 @@ QList<T> reversed( const QList<T> & in ) {
     return result;
 }
 
-template <class T>
+/*template <class T>
 class CScoped
 {
 public:
@@ -83,7 +83,7 @@ public:
 
 private:
 	T*	m_Val;
-};
+};*/
 
 MISCHELPERS_EXPORT bool ReadFromDevice(QIODevice* dev, char* data, int len, int timeout = 5000);
 
@@ -114,6 +114,7 @@ MISCHELPERS_EXPORT QAction* MakeAction(QActionGroup* pGroup, QMenu* pParent, con
 MISCHELPERS_EXPORT void SetPaleteTexture(QPalette& palette, QPalette::ColorRole role, const QImage& image);
 
 MISCHELPERS_EXPORT void SafeShow(QWidget* pWidget);
+MISCHELPERS_EXPORT void SetFocus(QWidget* pWidget);
 
 template <typename T>
 QSet<T> ListToSet(const QList<T>& qList) { return QSet<T>(qList.begin(), qList.end()); }

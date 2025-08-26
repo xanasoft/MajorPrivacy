@@ -8,11 +8,11 @@ struct CImageSignInfo
 public:
 	CImageSignInfo();
 
-	UCISignInfo	GetInfo() const { return m_SignInfo; }
-	uint64 GetRawInfo() const { return m_SignInfo.Data; }
-	//void SetRawInfo(uint64 Info) { m_SignInfo.Data = Info; }
-	void SetAuthority(uint8 Authority) { m_SignInfo.Authority = Authority; }
-	EHashStatus GetHashStatus() const { return m_HashStatus; }
+	bool HasFileHash() const { return !m_FileHash.empty(); }
+
+	KPH_VERIFY_AUTHORITY GetAuthority() const { return m_PrivateAuthority; }
+	void SetAuthority(KPH_VERIFY_AUTHORITY Authority) { m_PrivateAuthority = Authority; }
+	uint64 GetTimeStamp() const { return m_TimeStamp; }
 
 	void Update(const struct SVerifierInfo* pVerifyInfo);
 
@@ -26,11 +26,26 @@ protected:
 	void ReadIValue(uint32 Index, const StVariant& Data);
 	void ReadMValue(const SVarName& Name, const StVariant& Data);
 
-	UCISignInfo					m_SignInfo;
-	EHashStatus					m_HashStatus = EHashStatus::eHashUnknown;
+	uint32						m_StatusFlags = 0;
+
+	KPH_VERIFY_AUTHORITY		m_PrivateAuthority = KphUntestedAuthority;
+	uint32						m_SignLevel = 0;
+	uint32						m_SignPolicyBits = 0;
+
+	ULONG 						m_FileHashAlgorithm = 0;
 	std::vector<uint8>			m_FileHash;
+
+	ULONG						m_SignerHashAlgorithm = 0;
 	std::vector<uint8>			m_SignerHash;
 	std::string					m_SignerName;
+
+	ULONG						m_IssuerHashAlgorithm = 0;
+	std::vector<uint8>			m_IssuerHash;
+	std::string					m_IssuerName;
+
+	USignatures					m_Signatures = {0};
+
+	uint64						m_TimeStamp = 0;
 };
 
 struct SLibraryInfo

@@ -25,6 +25,23 @@ enum class EProgramType // API_S_PROG_TYPE
 // Program Rules
 //
 
+union USignatures
+{
+	uint32 Value;
+	struct {
+		uint32 Windows : 1;		// Signed windows component
+		uint32 Microsoft : 1;	// Signed by microsoft MS VS, Edge, Office etc
+		uint32 Antimalware : 1;	// 3rd party Antimalware signed my Microsoft
+		uint32 Authenticode : 1; // 3rd party signed
+		uint32 Store : 1;		// 3rd from the windows store
+		uint32 Developer : 1;	// Developer signed part of MajorPrivacy
+		uint32 User : 1;		// Signet with User Key by User
+		uint32 Enclave : 1;		// Signet with User Key by User for Enclave
+		uint32 Reserved : 23;
+		uint32 Collection : 1;	// for internal use indicates a collection tag match
+	};
+};
+
 enum class EExecRuleType // API_S_EXEC_RULE_ACTION
 {
 	eUnknown = 0,
@@ -53,6 +70,12 @@ enum class EIntegrityLevel
 	eMediumPlus,
 	eHigh,
 	eSystem
+};
+
+enum class EHashType {
+	eUnknown = 0,
+	eFileHash,
+	eCertHash,
 };
 
 
@@ -112,30 +135,29 @@ union KPH_PROCESS_SFLAGS // API_S_... TODO
 		ULONG DenyStart : 1;
 		ULONG AllowDebugging : 1;
 		ULONG DisableImageLoadProtection : 1;
+		ULONG DisableImageCoherencyChecking : 1;
 		ULONG SignatureAuthority : 4;
-		ULONG SignatureRequirement : 4;
 		ULONG ProtectionLevel : 2;
 		ULONG EjectFromEnclave : 1;
 		ULONG UntrustedSpawn: 1;
-		ULONG AuditEnabled : 1;
+		//ULONG AuditEnabled : 1;
 		//ULONG HasVerdict : 1;
 		//ULONG WasTainted : 1;
-		ULONG SecReserved : 16;
+		ULONG SecReserved : 20;
 	};
 };
 
-#define KPH_VERIFY_FLAG_FILE_SIG_OK     0x00000001
-#define KPH_VERIFY_FLAG_CERT_SIG_OK     0x00000002
-#define KPH_VERIFY_FLAG_FILE_SIG_FAIL   0x00000004
-#define KPH_VERIFY_FLAG_CERT_SIG_FAIL   0x00000008
-#define KPH_VERIFY_FLAG_SIG_MASK        0x0000000F
-#define KPH_VERIFY_FLAG_FILE_SIG_DB     0x00000010
-#define KPH_VERIFY_FLAG_CI_SIG_DUMMY    0x00000020
-#define KPH_VERIFY_FLAG_CI_SIG_OK       0x00000040
-#define KPH_VERIFY_FLAG_CI_SIG_FAIL     0x00000080
-#define KPH_VERIFY_FLAG_COHERENCY_FAIL  0x00000100
-
 #endif
+#define MP_VERIFY_FLAG_SA				0x00000001
+#define MP_VERIFY_FLAG_CI				0x00000002
+#define MP_VERIFY_FLAG_SL				0x00000004
+//#define MP_VERIFY_FLAG_...			0x00000008
+
+#define MP_VERIFY_FLAG_FILE_MISMATCH	0x00010000
+#define MP_VERIFY_FLAG_HASH_FILED		0x00020000
+#define MP_VERIFY_FLAG_COHERENCY_FAIL	0x00040000
+#define MP_VERIFY_FLAG_SIGNATURE_FAIL	0x00080000
+
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -175,10 +197,10 @@ enum class EExecLogRole // API_S_... TODO
 enum class EExecLogType // API_S_... TODO
 {
 	eUnknown = 0,
-	eProcessStarted,
-	eImageLoad,
-	eProcessAccess,
-	eThreadAccess,
+	eProcessStarted = 0x01,
+	eImageLoad = 0x02,
+	eProcessAccess = 0x04,
+	eThreadAccess = 0x08,
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -199,26 +221,15 @@ enum class EEventStatus // API_S_... TODO
 // Program Info
 //
 
-union UCISignInfo // API_S_... TODO
-{
-	uint64					Data = 0;
-	struct {
-		uint8				Authority;	// 3 bits - KPH_VERIFY_AUTHORITY
-		uint8				Level;		// 4 bits
-		uint8				Reserved1;
-		uint8				Reserved2;
-		uint32				Policy;
-	};
-};
-
-enum class EHashStatus // API_S_... TODO
-{
-	eHashUnknown = 0,
-	eHashOk,
-	eHashFail,
-	eHashDummy,
-	eHashNone
-};
+//enum class EHashStatus // API_S_... TODO
+//{
+//	eHashUnknown = 0,
+//	eHashOk,
+//	//eHashError,
+//	eHashFail,
+//	eHashDummy,
+//	eHashNone
+//};
 
 enum class ETracePreset
 {
@@ -394,7 +405,9 @@ enum ELogEventType
 	eLogProgramAdded = 'prea',		// PRogram Entry Added
 	eLogProgramModified = 'prem',	// PRogram Entry Modified
 	eLogProgramRemoved = 'pred',	// PRogram Entry Removed
+	eLogProgramMissing = 'prim',	// PRogram Item Missing
 	eLogProgramCleanedUp = 'prec',	// PRogram Entry Cleaned
+	eLogProgramBlocked = 'prbl',	// PRogram BLocked
 };
 
 enum ELogEventSubType

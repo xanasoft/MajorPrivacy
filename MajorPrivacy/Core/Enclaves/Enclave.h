@@ -32,14 +32,19 @@ public:
 	//QString GetGrouping() const					{ return m_Grouping; }
 	QString GetDescription() const					{ return m_Description; }
 
-	KPH_VERIFY_AUTHORITY GetSignatureLevel() const	{ return m_SignatureLevel; }
-	void SetSignatureLevel(KPH_VERIFY_AUTHORITY SignAuthority) { m_SignatureLevel = SignAuthority; }
+	USignatures GetAllowedSignatures() const {return m_AllowedSignatures;}
+	void SetAllowedSignatures(const USignatures& Signatures) { m_AllowedSignatures = Signatures; }
+	QList<QString> GetAllowedCollections() const		{ return m_AllowedCollections; }
+	static QStringList GetAllowedSigners(USignatures Signers, const QList<QString>& Collections);
+
 	EProgramOnSpawn GetOnTrustedSpawn() const		{ return m_OnTrustedSpawn; }
 	void SetOnTrustedSpawn(EProgramOnSpawn OnSpawn) { m_OnTrustedSpawn = OnSpawn; }
 	EProgramOnSpawn GetOnSpawn() const				{ return m_OnSpawn; }
 	void SetOnSpawn(EProgramOnSpawn OnSpawn)		{ m_OnSpawn = OnSpawn; }
 	bool GetImageLoadProtection() const				{ return m_ImageLoadProtection; }
 	void SetImageLoadProtection(bool bProtect)		{ m_ImageLoadProtection = bProtect; }
+	bool GetImageCoherencyChecking() const			{ return m_ImageCoherencyChecking; }
+	void SetImageCoherencyChecking(bool bCheck)		{ m_ImageCoherencyChecking = bCheck; }
 
 	bool GetAllowDebugging() const					{ return m_AllowDebugging; }
 	void SetAllowDebugging(bool bAllow)				{ m_AllowDebugging = bAllow; }
@@ -51,7 +56,7 @@ public:
 	void RemoveProcess(CProcessPtr Process)			{ m_Processes.remove(Process->GetProcessId()); }
 	QMap<quint64, CProcessPtr> GetProcesses()		{ return m_Processes; }
 
-	static QString GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority);
+	//static QString GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority);
 	static QString GetOnSpawnStr(EProgramOnSpawn OnSpawn);
 
 	void SetData(const char* pKey, const QtVariant& Value) { if (Value.IsValid()) m_Data[pKey] = Value; else m_Data.Remove(pKey); }
@@ -79,10 +84,14 @@ protected:
 	//QString m_Grouping;
 	QString m_Description;
 
-	KPH_VERIFY_AUTHORITY m_SignatureLevel = KPH_VERIFY_AUTHORITY::KphUntestedAuthority;
+
+	USignatures m_AllowedSignatures = { 0 };
+	QList<QString> m_AllowedCollections;
+	bool m_ImageLoadProtection = true;
+	bool m_ImageCoherencyChecking = true;
+
 	EProgramOnSpawn m_OnTrustedSpawn = EProgramOnSpawn::eAllow;
 	EProgramOnSpawn m_OnSpawn = EProgramOnSpawn::eEject;
-	bool m_ImageLoadProtection = true;
 
 	EIntegrityLevel	m_IntegrityLevel = EIntegrityLevel::eUnknown;
 

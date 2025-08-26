@@ -880,6 +880,12 @@ STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& 
         return Res;
     }
 
+    if (theCore->Config()->GetBool("Service", "GuardHibernation", false) && !m_NoHibernation)
+    {
+        if(theCore->Driver()->AcquireHibernationPrevention())
+            m_NoHibernation = true;
+    }
+
     std::shared_ptr<CVolume> pMount = Res.GetValue();
 
     /*if (MountPoint.size() > 3) {
@@ -970,11 +976,19 @@ STATUS CVolumeManager::DismountVolume(const std::wstring& DevicePath)
 		return STATUS_NOT_FOUND;
 
     STATUS Status = DismountVolume(F->second);
-    if (!Status.IsError()) {
-        m_VolumesByPath.erase(MkLower(F->second->m_ImageDosPath));
-        m_Volumes.erase(F);
+    if (Status.IsError())
+        return Status;
+
+    m_VolumesByPath.erase(MkLower(F->second->m_ImageDosPath));
+    m_Volumes.erase(F);
+
+    if (m_Volumes.empty() && m_NoHibernation)
+    {
+        if (theCore->Driver()->ReleaseHibernationPrevention())
+            m_NoHibernation = false;
     }
-	return Status;
+    
+	return OK;
 }
 
 STATUS CVolumeManager::DismountAll()
@@ -994,6 +1008,13 @@ STATUS CVolumeManager::DismountAll()
 
     if (!m_Volumes.empty())
         return STATUS_UNSUCCESSFUL;
+
+    if (m_NoHibernation)
+    {
+        if (theCore->Driver()->ReleaseHibernationPrevention())
+            m_NoHibernation = false;
+    }
+
     return STATUS_SUCCESS;
 }
 

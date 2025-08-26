@@ -70,6 +70,9 @@
     <Filter Include="JSEngine\quickjs">
       <UniqueIdentifier>{e553256d-aaef-4ca4-9b9a-f3f7094e9021}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HashDB">
+      <UniqueIdentifier>{9902c790-92c8-43fe-9ad6-3deff94dec61}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -281,6 +284,12 @@
     </ClCompile>
     <ClCompile Include="Common\EventLog.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="HashDB\HashDB.cpp">
+      <Filter>HashDB</Filter>
+    </ClCompile>
+    <ClCompile Include="HashDB\HashEntry.cpp">
+      <Filter>HashDB</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -592,6 +601,12 @@
     </ClInclude>
     <ClInclude Include="Common\EventLog.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="HashDB\HashDB.h">
+      <Filter>HashDB</Filter>
+    </ClInclude>
+    <ClInclude Include="HashDB\HashEntry.h">
+      <Filter>HashDB</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

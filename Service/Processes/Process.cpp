@@ -17,6 +17,9 @@
 #include "../../Library/Helpers/AppUtil.h"
 #include "../../Library/Helpers/NtUtil.h"
 #include "../../Library/Helpers/CertUtil.h"
+#include "../../Library/Crypto/HashFunction.h"
+
+#include "../../Driver\KSI\include\kphapi.h"
 
 //static inline uint16_t reverseBits16(uint16_t x)
 //{
@@ -341,7 +344,7 @@ bool CProcess::InitLibs()
 				//{
 				//	theCore->ThreadPool()->enqueueTask([pProgram, pLibrary](const std::wstring& ModulePath) {
 				//		SVerifierInfo VerifyInfo;
-				//		MakeVerifyInfo(ModulePath, VerifyInfo);
+				//		FillVerifyInfo(ModulePath, VerifyInfo);
 				//		pProgram->AddLibrary(pLibrary, 0, &VerifyInfo);
 				//	}, ModulePath);
 				//}
@@ -371,11 +374,13 @@ bool CProcess::HashInfoUnknown() const
 {
 	std::shared_lock lock(m_Mutex);
 
-	return m_SignInfo.GetHashStatus() == EHashStatus::eHashUnknown;
+	return !m_SignInfo.HasFileHash();
 }
 
-bool CProcess::MakeVerifyInfo(const std::wstring& ModulePath, SVerifierInfo& VerifyInfo)
+bool CProcess::FillVerifyInfo(const std::wstring& ModulePath, SVerifierInfo& VerifyInfo)
 {
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Update Module SingnInfo for: %s", ModulePath.c_str());
+
 	/*SVerifierInfo VerifyInfo;
 	SEmbeddedCIInfoPtr pEmbeddedInfo = GetEmbeddedCIInfo(ModulePath);
 	if (pEmbeddedInfo && pEmbeddedInfo->EmbeddedSignatureValid && !pEmbeddedInfo->EmbeddedSigners.empty()) 
@@ -406,21 +411,70 @@ bool CProcess::MakeVerifyInfo(const std::wstring& ModulePath, SVerifierInfo& Ver
 	}*/
 
 	SCICertificatePtr pCIInfo = GetCIInfo(ModulePath);
-	VerifyInfo.VerificationFlags |= KPH_VERIFY_FLAG_CI_SIG_DUMMY;
+	VerifyInfo.StatusFlags |= MP_VERIFY_FLAG_CI;
 
-	// todo hash file
+	if(VerifyInfo.FileHash.empty())
+	{
+		CScopedHandle hFile = CScopedHandle(::CreateFileW( ModulePath.c_str(),
+			GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+			nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr), CloseHandle);
+
+		if (hFile != INVALID_HANDLE_VALUE) 
+		{
+			CHashFunction hasher;
+			if (NT_SUCCESS(hasher.InitHash())) 
+			{
+				CBuffer chunk(256 * 1024, false);
+				for (;;) {
+					DWORD got = 0;
+					if (!::ReadFile(hFile, chunk.GetBuffer(), chunk.GetCapacity(), &got, nullptr)) break;
+					if (got == 0) break; // EOF
+					chunk.SetSize(got);
+					if (!NT_SUCCESS(hasher.UpdateHash(chunk))) break;
+				}
+
+				CBuffer hash;
+				if (NT_SUCCESS(hasher.FinalizeHash(hash))) {
+					const uint8_t* p = static_cast<const uint8_t*>(hash.GetBuffer());
+					const size_t   n = static_cast<size_t>(hash.GetSize());
+					VerifyInfo.FileHash = std::vector<uint8>(p, p + n);
+					VerifyInfo.FileHashAlgorithm = KphHashAlgorithmSha256;
+				}
+			}
+		}
+	}
 
 	if (!pCIInfo) 
 		return false;
 
-	if (!pCIInfo->SHA256.empty())
+	if (!pCIInfo->SHA256.empty()) {
+		VerifyInfo.SignerHashAlgorithm = KphHashAlgorithmSha256;
 		VerifyInfo.SignerHash = pCIInfo->SHA256;
-	else
+	}
+	else {
+		VerifyInfo.SignerHashAlgorithm = KphHashAlgorithmSha1;
 		VerifyInfo.SignerHash = pCIInfo->SHA1;
+	}
 #pragma warning(push)
 #pragma warning(disable : 4244)
 	VerifyInfo.SignerName = std::string(pCIInfo->Subject.begin(), pCIInfo->Subject.end());
 #pragma warning(pop)
+
+	if (pCIInfo->Issuer)
+	{
+		if (!pCIInfo->Issuer->SHA256.empty()) {
+			VerifyInfo.IssuerHashAlgorithm = KphHashAlgorithmSha256;
+			VerifyInfo.IssuerHash = pCIInfo->Issuer->SHA256;
+		}
+		else {
+			VerifyInfo.IssuerHashAlgorithm = KphHashAlgorithmSha1;
+			VerifyInfo.IssuerHash = pCIInfo->Issuer->SHA1;
+		}
+#pragma warning(push)
+#pragma warning(disable : 4244)
+		VerifyInfo.IssuerName = std::string(pCIInfo->Issuer->Subject.begin(), pCIInfo->Issuer->Subject.end());
+#pragma warning(pop)
+	}
 
 	return true;
 }
@@ -479,10 +533,10 @@ void CProcess::UpdateMisc()
 		m_NumberOfSignedImageLoads = Data->NumberOfSignedImageLoads;
 		m_NumberOfUntrustedImageLoads = Data->NumberOfUntrustedImageLoads;
 
-		if (!m_SignInfo.GetRawInfo()) {
+		if(m_SignInfo.GetAuthority() == KphUntestedAuthority){
 			KPH_PROCESS_SFLAGS kSFlags;
 			kSFlags.SecFlags = m_SecFlags;
-			m_SignInfo.SetAuthority(kSFlags.SignatureAuthority);
+			m_SignInfo.SetAuthority((KPH_VERIFY_AUTHORITY)kSFlags.SignatureAuthority);
 		}
 	}
 

@@ -43,6 +43,8 @@ bool CProcess::IsProtected(bool bAlsoLite) const
 
 void CProcess::FromVariant(const class QtVariant& Process)
 {
+	QWriteLocker Lock(&m_Mutex);
+
 	QtVariantReader(Process).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
 		const QtVariant& Data = *(QtVariant*)&vData;
 
@@ -99,9 +101,9 @@ void CProcess::FromVariant(const class QtVariant& Process)
 
 		case API_V_SERVICES:	m_ServiceList = Data.AsQList(); break;
 
-		case API_V_HANDLES:		UpdateHandles(Data); break;
+		case API_V_HANDLES:		UpdateHandlesUnsafe(Data); break;
 
-		case API_V_SOCKETS:		UpdateSockets(Data); break;
+		case API_V_SOCKETS:		UpdateSocketsUnsafe(Data); break;
 
 		}
 
@@ -110,10 +112,12 @@ void CProcess::FromVariant(const class QtVariant& Process)
 
 void CProcess::OnSidResolved(const QByteArray& SID, const QString& Name)
 {
+	QWriteLocker Lock(&m_Mutex);
+
 	m_UserName = Name;
 }
 
-void CProcess::UpdateHandles(const class QtVariant& Handles)
+void CProcess::UpdateHandlesUnsafe(const class QtVariant& Handles)
 {
 	QHash<quint64, CHandlePtr> OldHandles = m_Handles;
 
@@ -140,7 +144,7 @@ void CProcess::UpdateHandles(const class QtVariant& Handles)
 		m_Handles.remove(OldHandles.take(HandleRef)->GetHandleRef());
 }
 
-void CProcess::UpdateSockets(const class QtVariant& Sockets)
+void CProcess::UpdateSocketsUnsafe(const class QtVariant& Sockets)
 {
 	QHash<quint64, CSocketPtr> OldSockets = m_Sockets;
 

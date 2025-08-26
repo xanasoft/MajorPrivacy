@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "TrafficEntry.h"
 #include "../Library/API/PrivacyAPI.h"
+#include "../MiscHelpers/Common/Common.h"
 
 CTrafficEntry::CTrafficEntry(QObject* parent)
 	: QObject(parent)
@@ -125,11 +126,12 @@ void CTrafficEntry::SetIpAddress(const QString& IpAddress)
     m_Type = GetNetType(QHostAddress(IpAddress));
 }
 
-quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const class QtVariant& TrafficList)
+quint64 CTrafficEntry__LoadList(QHash<QString, CTrafficEntryPtr>& List, QHash<QHostAddress, QSet<CTrafficEntryPtr>>& Unresolved, const class QtVariant& TrafficList)
 {
 	quint64 LastActivity = 0;
 
-	QMap<QString, CTrafficEntryPtr> OldList = List;
+	QHash<QString, CTrafficEntryPtr> OldList = List;
+	QSet<QHostAddress> OldUnresolved = ListToSet(Unresolved.keys());
 
     QtVariantReader(TrafficList).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& TrafficEntry = *(QtVariant*)&vData;
@@ -148,11 +150,27 @@ quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const cla
 
 		if (pEntry->GetLastActivity() > LastActivity)
 			LastActivity = pEntry->GetLastActivity();
+
+		bool bIsUnresolved = HostName.startsWith("[");
+        if (bIsUnresolved) {
+			QHostAddress Address = QHostAddress(pEntry->GetIpAddress());
+			OldUnresolved.remove(Address); 
+            Unresolved[Address].insert(pEntry);
+        }
+        else {
+            QHostAddress Address = QHostAddress(pEntry->GetIpAddress());
+			QSet<CTrafficEntryPtr> UnresolvedSet = Unresolved.take(Address);
+            for(const CTrafficEntryPtr& pUnresolved : UnresolvedSet)
+                List.remove(pUnresolved->GetHostName());
+        }
 	});
 
 	// we update the list incrementaly
 	//foreach(const QString& HostName, OldList.keys())
 	//	List.remove(HostName);
+
+    foreach(const QHostAddress& Address, OldUnresolved)
+        Unresolved.remove(Address);
 
 	return LastActivity;
 }

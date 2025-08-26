@@ -35,7 +35,7 @@ QList<QModelIndex>	CAccessListModel::Sync(const QMap<CProgramItemPtr, QPair<quin
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -53,7 +53,7 @@ QList<QModelIndex>	CAccessListModel::Sync(const QMap<CProgramItemPtr, QPair<quin
 			pNode->Values.resize(columnCount());
 			//pNode->Path = Path;
 			pNode->pProgram = X.key();
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{
@@ -85,7 +85,7 @@ QList<QModelIndex>	CAccessListModel::Sync(const QMap<CProgramItemPtr, QPair<quin
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = QString(""); break; // no name update
+			case eName:				Value = pNode->pProgram->GetName(); break;
 			case eLastAccess:		Value = X.value().first; break;
 			case eAccess:			Value = X.value().second.count(); break;
 			}
@@ -126,7 +126,7 @@ QList<QModelIndex>	CAccessListModel::Sync(const QMap<CProgramItemPtr, QPair<quin
 	return NewBranches;
 }
 
-void CAccessListModel::Sync(const CProgramItemPtr& pItem, const QList<QPair<SAccessStatsPtr,SAccessItem::EType>>& List, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old)
+void CAccessListModel::Sync(const CProgramItemPtr& pItem, const QList<QPair<SAccessStatsPtr,SAccessItem::EType>>& List, TNewNodesMap& New, QHash<QVariant, STreeNode*>& Old)
 {
 	for (auto X = List.begin(); X != List.end(); ++X)
 	{
@@ -142,7 +142,7 @@ void CAccessListModel::Sync(const CProgramItemPtr& pItem, const QList<QPair<SAcc
 			pNode->Values.resize(columnCount());
 			pNode->Path = QVariantList() << (quint64)pItem.data();
 			pNode->pItem = X->first;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{

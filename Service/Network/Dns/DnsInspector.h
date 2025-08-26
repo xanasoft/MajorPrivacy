@@ -28,9 +28,10 @@ protected:
 	void OnEtwDnsEvent(const struct SEtwDnsEvent* pEvent);
 	void OnDnsFilterEvent(const struct SDnsFilterEvent* pEvent);
 
+	bool RevLookupHost(const CAddress& Address, const CHostNamePtr& pHostName);
 	void ProcessJobList();
 
-	std::wstring GetHostNameSmart(const CAddress& Address, const std::vector<std::wstring>& RevHostNames);
+	std::wstring GetHostNameSmart(const CAddress& Address, const std::vector<std::wstring>& RevHostNames = std::vector<std::wstring>());
 	std::wstring GetHostNamesSmart(const std::wstring& HostName, int Limit = 10);
 
 	std::shared_mutex m_Mutex;
@@ -40,12 +41,17 @@ protected:
 	std::multimap<CAddress, CDnsCacheEntryPtr>			m_AddressCache;
 	std::multimap<std::wstring, CDnsCacheEntryPtr>		m_RedirectionCache;
 
+	// Resolve from Cache queue
+	std::multimap<CAddress, CHostNamePtr>				m_DelayQueue;
+
+	// Reverse DNS lookup
 	std::map<CAddress, uint64>							m_NoResultBlackList;
 
 	std::mutex											m_JobMutex;
 	std::multimap<CAddress, CHostNamePtr>				m_JobList;
 	bool												m_bRunning = false;
 	std::shared_ptr<std::thread>						m_Resolver;
+
 private:
 	struct SDnsInspector* m;
 };

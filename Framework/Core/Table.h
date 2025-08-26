@@ -290,6 +290,29 @@ public:
 		return Count;
 	}
 
+	V Take(const K& Key)
+	{
+		V Value;
+		if (MakeExclusive(nullptr)) {
+			size_t Index = MapBucketIndex(m_ptr->BucketCount, Hash(Key));
+			SBucketEntry** pEntry = &m_ptr->Buckets[Index];
+			while (*pEntry != nullptr) {
+				if ((*pEntry)->Key != Key) {
+					pEntry = &(*pEntry)->Next;
+					continue;
+				}
+				SBucketEntry* pOld = *pEntry;
+				*pEntry = (*pEntry)->Next;
+				pOld->~SBucketEntry();
+				Value = pOld->Value;
+				if(m_pMem) m_pMem->Free(pOld);
+				else ::MemFree(pOld, 0);
+				break;
+			}
+		}
+		return Value;
+	}
+
 	// Support for range-based for loops
 	class Iterator {
 	public:

@@ -25,7 +25,7 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -43,7 +43,7 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 			pNode->Values.resize(columnCount());
 			//pNode->Path = Path;
 			pNode->pRule = pRule;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{

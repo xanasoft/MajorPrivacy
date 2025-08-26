@@ -122,9 +122,22 @@ QString CEventLog::GetEventInfoStr(const CEventLogEntryPtr& pEntry)
         return tr("Startup was blocked, Program '%1'").arg(Name);
     }
 
+    case eLogProgramMissing: {
+        QString Name = Data[API_V_NAME].To<QString>();
+        return tr("Program no longer present '%1'").arg(Name);
+    }
+
     case eLogProgramCleanedUp: {
         QString Name = Data[API_V_NAME].To<QString>();
         return tr("Removed no longer existign Program '%1'").arg(Name);
+    }
+                             
+    case eLogProgramBlocked: {
+        QString Name = Data[API_V_NAME].To<QString>();
+        if(Data[API_V_SIGN_FLAGS].To<uint32>() & MP_VERIFY_FLAG_COHERENCY_FAIL)
+            return tr("Program failed Coherency Check and was blocked '%1'").arg(Name);
+        else
+			return tr("Program had insificient Signature leven and was blocked '%1'").arg(Name);
     }
 
     default: {

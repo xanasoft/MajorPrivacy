@@ -35,6 +35,8 @@ public:
 		eSID,
 		eStatus,
 		eImageStats,
+		eHandles,
+		eSockets,
 		eFileName,
 		//eFileHash,
 

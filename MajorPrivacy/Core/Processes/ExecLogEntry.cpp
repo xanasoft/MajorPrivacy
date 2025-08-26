@@ -84,6 +84,8 @@ void CExecLogEntry::ReadValue(uint32 Index, const QtVariant& Data)
 	case API_V_PROC_MISC_ID:			m_MiscID = Data.To<uint64>(); break;
 	case API_V_PROC_MISC_ENCLAVE:		m_OtherEnclave.FromVariant(Data); break;
 	case API_V_ACCESS_MASK:				m_AccessMask = Data.To<uint32>(); break;
+	case API_V_IMG_SIGN_AUTH:			m_SignAuthority = (KPH_VERIFY_AUTHORITY)Data.To<uint32>(); break;
+	case API_V_SIGN_FLAGS:				m_VerificationFlags = Data.To<uint32>(); break;
 	case API_V_NT_STATUS:				m_NtStatus = Data.To<uint32>(); break;
 	default: CAbstractLogEntry::ReadValue(Index, Data);
 	}

@@ -7,11 +7,12 @@
 
 struct SLibraryItem
 {
+	QVariant				ID;
+	QVariant				Parent;
 	CProgramFilePtr			pProg;
 	CProgramLibraryPtr		pLibrary;
 	SLibraryInfo			Info;
 	int						Count = 0;
-	QVariant				Parent;
 };
 
 typedef QSharedPointer<SLibraryItem> SLibraryItemPtr;
@@ -42,6 +43,7 @@ public:
 		eStatus,
 		eLastLoadTime,
 		eNumber,
+		eHash,
 		eSigner,
 		eModule,
 		eCount

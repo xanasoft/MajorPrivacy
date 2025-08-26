@@ -69,7 +69,7 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<QFlexGuid, CEnclavePtr>& EnclaveM
 	QList<QVariant> Added;
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -86,7 +86,7 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<QFlexGuid, CEnclavePtr>& EnclaveM
 			pNode = static_cast<SEnclaveNode*>(MkNode(ID));
 			pNode->Values.resize(columnCount());
 			pNode->pEnclave = pEnclave;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 			Added.append(ID);
 		}
 		else
@@ -120,7 +120,7 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<QFlexGuid, CEnclavePtr>& EnclaveM
 			switch(section)
 			{
 			case eName:				Value = pEnclave->GetName(); break;
-			case eTrustLevel:		Value = (uint32)pEnclave->GetSignatureLevel(); break;
+			case eSigners:			Value = CEnclave::GetAllowedSigners(pEnclave->GetAllowedSignatures(), pEnclave->GetAllowedCollections()); break;
 			case eOnSpawn:			Value = ((uint32)pEnclave->GetOnTrustedSpawn()) << 16 | ((uint32)pEnclave->GetOnSpawn()); break;
 			}
 
@@ -134,7 +134,7 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<QFlexGuid, CEnclavePtr>& EnclaveM
 
 				switch (section)
 				{
-				case eTrustLevel:		ColValue.Formatted = CEnclave::GetSignatureLevelStr((KPH_VERIFY_AUTHORITY)Value.toUInt()); break;
+				case eSigners:			ColValue.Formatted = Value.toStringList().join(tr(", ")); break;
 				case eOnSpawn:			ColValue.Formatted = CEnclave::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() >> 16)) + "/" + CEnclave::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() & 0xFFFF)); break;
 				}
 			}
@@ -157,7 +157,7 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<QFlexGuid, CEnclavePtr>& EnclaveM
 	return Added;
 }
 
-bool CEnclaveModel::Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Path, const QMap<quint64, CProcessPtr>& ProcessList, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
+bool CEnclaveModel::Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Path, const QMap<quint64, CProcessPtr>& ProcessList, TNewNodesMap& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added)
 {
 	QVariant EnclaveID = pEnclave->GetGuid().ToQV();
 
@@ -180,7 +180,7 @@ bool CEnclaveModel::Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Pat
 				pNode->Path = Path + MakeProcPath(EnclaveID, pProcess, ProcessList);
 			pNode->pEnclave = pEnclave;
 			pNode->pProcess = pProcess;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 			Added.append(ID);
 		}
 		else
@@ -222,7 +222,7 @@ bool CEnclaveModel::Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Pat
 			{
 			case eName:					Value = pProcess->GetName(); break;
 			case eID:					Value = pProcess->GetProcessId(); break;
-			case eTrustLevel:			Value = pProcess->GetSignInfo().GetRawInfo(); break;
+			case eSigners:				Value = pProcess->GetSignInfo().GetUnion(); break;
 			case eProgram:				Value = pProcess->GetNtPath(); break;
 			}
 
@@ -236,7 +236,7 @@ bool CEnclaveModel::Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Pat
 
 				switch (section)
 				{
-				case eTrustLevel:		ColValue.Formatted = CProgramFile::GetSignatureInfoStr(UCISignInfo{Value.toULongLong()}); break;
+				case eSigners:			ColValue.Formatted = CProgramFile::GetSignatureInfoStr(pProcess->GetSignInfo()); break;
 				case eProgram:			ColValue.Formatted = theCore->NormalizePath(pProcess->GetNtPath()); break;
 				}
 			}
@@ -319,7 +319,7 @@ QVariant CEnclaveModel::headerData(int section, Qt::Orientation orientation, int
 		{
 		case eName:				return tr("Name");
 		case eID:				return tr("ID");
-		case eTrustLevel:		return tr("Trust Level");
+		case eSigners:			return tr("Signers");
 		case eOnSpawn:			return tr("Trusted Spawn/UnTrusted");
 		case eProgram:			return tr("Program");
 		}

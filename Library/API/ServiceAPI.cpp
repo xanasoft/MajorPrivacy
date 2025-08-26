@@ -57,7 +57,7 @@ CServiceAPI::~CServiceAPI()
 	delete m_pClient;
 }
 
-STATUS CServiceAPI::InstallSvc()
+STATUS CServiceAPI::InstallSvc(bool bAutoStart)
 {
 	std::wstring FileName = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
 	std::wstring DisplayName = L"MajorPrivacy System Service";
@@ -65,7 +65,13 @@ STATUS CServiceAPI::InstallSvc()
 	// The Windows Firewall must be started first
 	const wchar_t* Dependencies = L"MpsSvc\0\0";
 
-	return InstallService(API_SERVICE_NAME, FileName.c_str(), DisplayName.c_str(), NULL, Dependencies, OPT_OWN_TYPE | OPT_DEMAND_START);
+	uint32 uOptions = OPT_OWN_TYPE;
+	if(bAutoStart)
+		uOptions |= OPT_AUTO_START;
+	else
+		uOptions |= OPT_DEMAND_START;
+
+	return InstallService(API_SERVICE_NAME, FileName.c_str(), DisplayName.c_str(), NULL, Dependencies, uOptions);
 }
 
 STATUS CServiceAPI::ConnectSvc()
@@ -187,6 +193,7 @@ uint32 CServiceAPI::GetProcessId() const
 
 RESULT(StVariant) CServiceAPI::Call(uint32 MessageId, const StVariant& Message, SCallParams* pParams)
 {
+	std::unique_lock Lock(m_CallMutex);
 	auto Ret = m_pClient->Call(MessageId, Message, pParams);
 	auto& Val = Ret.GetValue();
 	if (!Ret.IsError() && (Val.Get(API_V_ERR_CODE).To<uint32>() != 0 || Val.Has(API_V_ERR_MSG)))
@@ -213,7 +220,7 @@ uint32 CServiceAPI::GetConfigStatus()
 {
 	StVariant ReqVar;
 
-    auto Ret = m_pClient->Call(SVC_API_GET_CONFIG_STATUS, ReqVar, NULL);
+    auto Ret = Call(SVC_API_GET_CONFIG_STATUS, ReqVar, NULL);
     if (Ret.IsError())
         return false;
 
@@ -222,18 +229,15 @@ uint32 CServiceAPI::GetConfigStatus()
     return ResVar.To<uint32>();
 }
 
-STATUS CServiceAPI::CommitConfigChanges(const CBuffer& ConfigSignature)
+STATUS CServiceAPI::StoreConfigChanges()
 {
 	StVariant ReqVar;
-    if(ConfigSignature.GetSize() > 0)
-	    ReqVar[API_V_SIGNATURE] = ConfigSignature;
-
-	return m_pClient->Call(SVC_API_COMMIT_CONFIG, ReqVar, NULL);
+    return Call(SVC_API_COMMIT_CONFIG, ReqVar, NULL);
 }
 
 STATUS CServiceAPI::DiscardConfigChanges()
 {
 	StVariant ReqVar;
 
-	return m_pClient->Call(SVC_API_DISCARD_CHANGES, ReqVar, NULL);
+	return Call(SVC_API_DISCARD_CHANGES, ReqVar, NULL);
 }

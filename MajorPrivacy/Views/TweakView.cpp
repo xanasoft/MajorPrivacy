@@ -14,6 +14,7 @@ CTweakView::CTweakView(QWidget *parent)
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pTreeView->setStyle(pStyle);
 	m_pTreeView->setItemDelegate(new CTreeItemDelegate2());
+	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	m_pTreeView->setIconSize(QSize(32, 32));
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));

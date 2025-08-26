@@ -2,6 +2,7 @@
 #include "./Common/QtVariant.h"
 #include "../Library/API/PrivacyDefs.h"
 #include "../MiscHelpers/Common/Common.h"
+#include "ImageSignInfo.h"
 
 class CProgramLibrary: public QObject
 {
@@ -16,6 +17,8 @@ public:
 	QString GetPath() const					{ return m_Path; }
 	QString GetName() const					{ return Split2(m_Path, "\\", true).second; }
 
+	virtual CImageSignInfo GetSignInfo() const { return m_SignInfo; }
+
 	virtual QtVariant ToVariant(const SVarWriteOpt& Opts) const;
 	virtual NTSTATUS FromVariant(const QtVariant& Data);
 
@@ -26,8 +29,10 @@ protected:
 	virtual void ReadIValue(uint32 Index, const QtVariant& Data);
 	virtual void ReadMValue(const SVarName& Name, const QtVariant& Data);
 
-	uint64											m_UID;
-	QString											m_Path;
+	uint64							m_UID;
+	QString							m_Path;
+
+	CImageSignInfo					m_SignInfo;
 };
 
 typedef QSharedPointer<CProgramLibrary> CProgramLibraryPtr;

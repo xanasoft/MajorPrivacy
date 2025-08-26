@@ -20,6 +20,7 @@ private slots:
 	void OnNameChanged(const QString& Text);
 	
 	void OnSaveAndClose();
+	void OnAddCollection();
 
 	void PickIcon();
 	void BrowseImage();
@@ -35,4 +36,6 @@ protected:
 
 private:
 	Ui::EnclaveWnd ui;
+	class CWinboxMultiCombo* m_pCollections;
+
 };

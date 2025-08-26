@@ -31,9 +31,9 @@ public:
 	quint64 GetSocketRef() const		{ return m_SocketRef; }
 
     quint32 GetProtocolType() const		{ return m_ProtocolType; }
-	QHostAddress GetLocalAddress() const{ return m_LocalAddress; }
+	QHostAddress GetLocalAddress() const{ QReadLocker Lock(&m_Mutex); return m_LocalAddress; }
 	quint16 GetLocalPort() const		{ return m_LocalPort; }
-	QHostAddress GetRemoteAddress() const { return m_RemoteAddress; }
+	QHostAddress GetRemoteAddress() const { QReadLocker Lock(&m_Mutex); return m_RemoteAddress; }
 	quint16 GetRemotePort() const		{ return m_RemotePort; }
 	quint32 GetState() const			{ return m_State; }
 	QString GetStateString() const;
@@ -41,9 +41,9 @@ public:
     uint32 GetRemoteScopeId() const		{ return m_RemoteScopeId; }
 
 	quint64 GetProcessId() const		{ return m_ProcessId; }
-	QString GetOwnerService() const		{ return m_OwnerService; }
+	QString GetOwnerService() const		{ QReadLocker Lock(&m_Mutex); return m_OwnerService; }
 
-	QString GetRemoteHostName() const	{ return m_RemoteHostName; }
+	QString GetRemoteHostName() const	{ QReadLocker Lock(&m_Mutex); return m_RemoteHostName; }
 
 	quint64 GetCreateTimeStamp() const	{ return m_CreateTimeStamp; }
 
@@ -56,6 +56,8 @@ public:
 	void FromVariant(const class QtVariant& Socket);
 
 protected:
+
+	mutable QReadWriteLock m_Mutex;
 
 	quint64						m_SocketRef = 0;
 

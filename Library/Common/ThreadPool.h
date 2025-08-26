@@ -27,23 +27,18 @@ public:
         size_t taskCount = tasks.size();
         lock.unlock();
 
-        // Wake up one waiting (or potential) worker
-        condition.notify_one();
-
-        // Spawn a new worker if we haven't hit maxThreads
-        std::unique_lock<std::mutex> lock2(workerMutex);
-        if (workers.size() < min(taskCount, maxThreads))
-            workers.emplace_back([this] { workerThread(); });
+        tryStart(taskCount);
     }
 
     // Gracefully stop all threads
     void stop();
 
 private:
+    void tryStart(size_t taskCount);
     void workerThread();
 
     size_t maxThreads;
-    std::vector<std::thread> workers;
+    std::map<std::thread::id, std::pair<std::shared_ptr<std::thread>, bool>> workers;
     std::queue<std::function<void()>> tasks;
 
     std::mutex queueMutex;

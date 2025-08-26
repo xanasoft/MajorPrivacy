@@ -35,6 +35,9 @@ public:
 	void SetSource(EFwRuleSource Source)	{ std::unique_lock Lock(m_Mutex); m_Source = Source; }
 	EFwRuleSource GetSource() const			{ std::shared_lock Lock(m_Mutex); return m_Source; }
 
+	void SetTemplateGuid(const std::wstring& Guid) { std::unique_lock Lock(m_Mutex); m_TemplateGuid = Guid; }
+	std::wstring GetTemplateGuid() const	{ std::shared_lock Lock(m_Mutex); return m_TemplateGuid; }
+
 	bool IsTemplate() const					{ std::shared_lock Lock(m_Mutex); return m_ProgramID.GetType() == EProgramType::eFilePattern; }
 
 	void SetEnabled(bool bEnabled);
@@ -75,6 +78,7 @@ protected:
 	std::wstring m_OriginalGuid;
 
 	EFwRuleSource m_Source = EFwRuleSource::eUnknown;
+	std::wstring m_TemplateGuid;
 
 	bool m_bTemporary = false;
 	uint64 m_uTimeOut = -1;

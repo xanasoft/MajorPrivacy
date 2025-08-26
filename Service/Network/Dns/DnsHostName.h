@@ -39,7 +39,7 @@ public:
 
 	virtual std::wstring ToString() const { std::shared_lock Lock(m_Mutex); return m_HostName; }
 
-	virtual void Resolve(const std::wstring& HostName, EDnsSource Source, uint64 SourceTimeStamp) 
+	virtual void Resolve(const CAddress& Address, const std::wstring& HostName, EDnsSource Source, uint64 SourceTimeStamp, bool bDelayed) 
 	{
 		std::unique_lock Lock(m_Mutex); 
 		if (Source > m_Source || (Source == EDnsSource::eCapturedQuery									// we may set an old captured value right away, but shortly therafter get a new etw event
@@ -55,7 +55,8 @@ public:
 			m_Source = Source;
 			m_SourceTimeStamp = SourceTimeStamp;
 #ifdef _DEBUG
-			//DbgPrint(L"Resolved Host Name %s (%d)\n", HostName.c_str(), Source);
+			//if (bDelayed)
+			//	DbgPrint(L"DNS: Delayed Resolved Hostname %s (%d) %s\n", HostName.c_str(), Source, Address.ToWString().c_str());
 #endif
 		}
 	}

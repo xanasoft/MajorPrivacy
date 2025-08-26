@@ -31,6 +31,9 @@ COptionsTransferWnd::COptionsTransferWnd(EAction Action, quint32 Options, QWidge
 	if (Options & eEnclaves)
 		ui.chkEnclaves->setChecked(true);
 
+	if (Options & eHashDB)
+		ui.chkHashDB->setChecked(true);
+
 	if (Options & eExecRules)
 		ui.chkExecRules->setChecked(true);
 
@@ -78,6 +81,9 @@ void COptionsTransferWnd::Disable(quint32 Options)
 	if (Options & eEnclaves)
 		ui.chkEnclaves->setEnabled(false);
 
+	if (Options & eHashDB)
+		ui.chkHashDB->setEnabled(false);
+
 	if (Options & eExecRules)
 		ui.chkExecRules->setEnabled(false);
 
@@ -112,6 +118,9 @@ quint32 COptionsTransferWnd::GetOptions() const
 
 	if (ui.chkEnclaves->isChecked() && ui.chkEnclaves->isEnabled())
 		Options |= eEnclaves;
+
+	if (ui.chkHashDB->isChecked() && ui.chkHashDB->isEnabled())
+		Options |= eHashDB;
 
 	if (ui.chkExecRules->isChecked() && ui.chkExecRules->isEnabled())
 		Options |= eExecRules;

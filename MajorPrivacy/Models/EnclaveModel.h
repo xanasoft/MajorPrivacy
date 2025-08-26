@@ -43,14 +43,14 @@ public:
 	{
 		eName = 0,
 		eID,
-		eTrustLevel,
+		eSigners,
 		eOnSpawn,
 		eProgram,
 		eCount
 	};
 
 protected:
-	bool			Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Path, const QMap<quint64, CProcessPtr>& ProcessList, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
+	bool			Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Path, const QMap<quint64, CProcessPtr>& ProcessList, TNewNodesMap& New, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
 
 	struct SEnclaveNode: STreeNode
 	{

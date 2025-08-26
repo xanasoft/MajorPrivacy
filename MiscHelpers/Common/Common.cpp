@@ -680,3 +680,9 @@ void SafeShow(QWidget* pWidget) {
 	pWidget->setProperty("windowOpacity", 1.0);
 }
 
+void SetFocus(QWidget* pWidget) 
+{
+	pWidget->setWindowState((pWidget->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
+	SetForegroundWindow((HWND)pWidget->winId());
+}
+

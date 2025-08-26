@@ -29,7 +29,7 @@ public:
 	CMajorPrivacy(QWidget *parent = Q_NULLPTR);
 	~CMajorPrivacy();
 
-	static QString		GetVersion();
+	static QString		GetVersion(bool bWithUpdates = false);
 
 	static void			ShowMessageBox(QWidget* Widget, QMessageBox::Icon Icon, const QString& Message);
 
@@ -46,7 +46,20 @@ public:
 		bool bAllPrograms = false;
 	};
 
-	STATUS				MakeKeyPair();
+	STATUS				MakeKeyPair(class CPrivateKey* pPrivateKey = nullptr);
+
+	enum class ESignerPurpose
+	{
+		eSignFile,
+		eSignCert,
+		eEnableProtection,
+		eDisableProtection,
+		eUnlockConfig,
+		eCommitConfig,
+		eClearUserKey,
+	};
+
+	STATUS					InitSigner(ESignerPurpose Purpose, class CPrivateKey& PrivateKey);
 
 	bool				IsDrvConfigLocked() const { return m_DrvConfigLocked; }
 	STATUS				UnlockDrvConfig();
@@ -66,10 +79,12 @@ public:
 
 	bool				IsAlwaysOnTop() const;
 
+	bool				IsSilentMode() const;
+
 	void				UpdateTitle();
 
-	STATUS				SignFiles(const QStringList& Paths);
-	STATUS				SignCerts(const QMap<QByteArray, QString>& Certs);
+	//STATUS				SignFiles(const QStringList& Paths);
+	//STATUS				SignCerts(const QMap<QByteArray, QString>& Certs);
 
 	void				IgnoreEvent(ERuleType Type, const CProgramFilePtr& pProgram, const QString& Path = QString());
 	bool				IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry) const;
@@ -134,6 +149,7 @@ private slots:
 	void				OnMaintenance();
 	void				OnExit();
 	void				OnHelp();
+	void				CheckForUpdates(bool bManual = true);
 	void				OnAbout();
 
 	void				BuildMenu();
@@ -156,7 +172,7 @@ private slots:
 	void				OnDiscardConfig();
 	void				OnMakeKeyPair();
 	void				OnClearKeys();
-	void				OnSignFile();
+	//void				OnSignFile();
 
 	void				OnToggleTree();
 	void				OnStackPanels();
@@ -186,18 +202,7 @@ protected:
 	STATUS				Connect();
 	void				Disconnect();
 
-	enum class ESignerPurpose
-	{
-		eSignFile,
-		eSignCert,
-		eEnableProtection,
-		eDisableProtection,
-		eUnlockConfig,
-		eCommitConfig,
-		eClearUserKey,
-	};
-
-	STATUS				InitSigner(ESignerPurpose Purpose, class CPrivateKey& PrivateKey);
+	void				UpdateViews();
 
 	void				CreateTrayIcon();
 	void				CreateTrayMenu();
@@ -307,8 +312,8 @@ private:
 	QAction*			m_pDiscardConfig = nullptr;
 	QAction*			m_pMakeKeyPair = nullptr;
 	QAction*			m_pClearKeys = nullptr;
-	QAction*			m_pSignFile = nullptr;
-	QAction*			m_pSignDb = nullptr;
+	//QAction*			m_pSignFile = nullptr;
+	//QAction*			m_pSignDb = nullptr;
 
 	QMenu*				m_pTools = nullptr;
 	QAction*			m_pCleanUpProgs = nullptr;
@@ -325,7 +330,7 @@ private:
 
 	QMenu*				m_pMenuHelp = nullptr;
 	QAction*			m_pForum = nullptr;
-	//QAction*			m_pUpdate = nullptr;
+	QAction*			m_pUpdate = nullptr;
 	QAction*			m_pAbout = nullptr;
 	QAction*			m_pAboutQt = nullptr;
 
@@ -358,18 +363,21 @@ private:
 protected:
 	friend class CNativeEventFilter;
 	CCustomTheme		m_CustomTheme;
+	double				m_DefaultFontSize;
 
 	bool				m_ThemeUpdatePending = false;
 
+	bool				m_HasUserKey = false;
 	bool				m_DrvConfigLocked = false;
 	quint64				m_ForgetSignerPW = 0;
 	quint64				m_AutoCommitConf = 0;
 	QString				m_CachedPassword; // todo replace with a secure storeage object
 
-	friend class CAccessView;
-	friend class CTraceView;
+public:
 	CProgressDialog*	m_pProgressDialog;
 	bool				m_pProgressModal = false;
+	//bool 				m_IgnoreHold = false;
+	bool 				m_UpdatignView = false;
 
 private:
 	void				LoadLanguage();

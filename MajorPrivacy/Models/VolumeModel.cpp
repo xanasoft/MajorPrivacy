@@ -24,7 +24,7 @@ QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -42,7 +42,7 @@ QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 			pNode->Values.resize(columnCount());
 			//pNode->Path = Path;
 			pNode->pVolume = pVolume;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{

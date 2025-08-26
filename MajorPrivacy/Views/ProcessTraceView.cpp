@@ -30,6 +30,14 @@ CProcessTraceView::CProcessTraceView(QWidget *parent)
 	connect(m_pCmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbAction);
 
+	m_pCmbOperation = new QComboBox();
+	m_pCmbOperation->addItem(QIcon(":/Icons/RunFilter.png"), tr("Any Operation"), (qint32)EExecLogType::eUnknown);
+	m_pCmbOperation->addItem(QIcon(":/Icons/Run.png"), tr("Process Start"), (qint32)EExecLogType::eProcessStarted);
+	m_pCmbOperation->addItem(QIcon(":/Icons/Dll.png"), tr("Image Load"), (qint32)EExecLogType::eImageLoad);
+	m_pCmbOperation->addItem(QIcon(":/Icons/Cmd.png"), tr("Process Access"), (qint32)EExecLogType::eProcessAccess | (qint32)EExecLogType::eThreadAccess);
+	connect(m_pCmbOperation, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
+	m_pToolBar->addWidget(m_pCmbOperation);
+
 	m_pToolBar->addSeparator();
 
 	m_pBtnScroll = new QToolButton();
@@ -47,7 +55,6 @@ CProcessTraceView::CProcessTraceView(QWidget *parent)
 	m_pToolBar->addWidget(m_pBtnHold);
 
 	m_pToolBar->addSeparator();
-
 	m_pBtnClear = new QToolButton();
 	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
 	m_pBtnClear->setToolTip(tr("Clear Trace Log"));
@@ -77,7 +84,7 @@ void CProcessTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Progra
 
 void CProcessTraceView::UpdateFilter()
 {
-	((CProcessTraceModel*)m_pItemModel)->SetFilter((EExecLogRole)m_pCmbRole->currentData().toInt(), (EEventStatus)m_pCmbAction->currentData().toInt());
+	((CProcessTraceModel*)m_pItemModel)->SetFilter((EExecLogRole)m_pCmbRole->currentData().toInt(), (EEventStatus)m_pCmbAction->currentData().toInt(), (EExecLogType)m_pCmbOperation->currentData().toInt());
 	m_FullRefresh = true;
 }
 

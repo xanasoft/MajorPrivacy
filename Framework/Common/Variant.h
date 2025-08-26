@@ -328,7 +328,7 @@ public:
 #endif
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
-	// Byte Array
+	// Byte Buffer
 
 #ifndef KERNEL_MODE
 	explicit CVariant(const CBuffer& Buffer) : FW::AbstractContainer(Buffer.Allocator() ? Buffer.Allocator() : (FW::AbstractMemPool*)nullptr) {
@@ -363,6 +363,25 @@ public:
 
 	CBuffer ToBuffer(bool bShared = false) const;
 	operator CBuffer() const							{return ToBuffer();}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	// Byte Array
+	/*
+#ifndef KERNEL_MODE
+	explicit CVariant(const FW::Array<BYTE>& Array) : FW::AbstractContainer(Array.Allocator() ? Array.Allocator() : (FW::AbstractMemPool*)nullptr) {
+#else
+	explicit CVariant(const FW::Array<BYTE>& Array) : FW::AbstractContainer(Array.Allocator()) {
+#endif
+		InitValue(VAR_TYPE_BYTES, Array.Count(), Array.Data());
+	}
+	CVariant& operator=(const FW::Array<BYTE>& Array) {
+		DetachPayload();
+		InitValue(VAR_TYPE_BYTES, Array.Count(), Array.Data());
+		return *this;
+	}
+
+	FW::Array<BYTE> ToByteArray(bool bShared = false) const;
+	operator FW::Array<BYTE>() const							{return ToByteArray();}*/
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
 	// ASCII String

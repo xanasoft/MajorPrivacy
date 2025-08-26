@@ -17,6 +17,7 @@ CSignatureDbWnd::CSignatureDbWnd(QWidget *parent)
 
 	m_pPanel = new CPanelWidgetEx();
 	//m_pPanel->GetView()->setItemDelegate(theGUI->GetItemDelegate());
+	m_pPanel->GetView()->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 
 	m_pDelete = new QAction(QIcon(":/Icons/Remove.png"), tr("Delete Signature"), this);
 	connect(m_pDelete, SIGNAL(triggered()), this, SLOT(OnAction()));

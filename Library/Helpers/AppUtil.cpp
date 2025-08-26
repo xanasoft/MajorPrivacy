@@ -251,11 +251,12 @@ SImageVersionInfoPtr GetImageVersionInfo(const std::wstring& FileName)
     PPH_STRING FileNameWin32 = PhCreateStringEx((WCHAR*)FileName.c_str(), FileName.length() * sizeof(WCHAR));
     if (PhInitializeImageVersionInfoCached(&PhVersionInfo, FileNameWin32, FALSE, FALSE)) 
     {
+        // todo: fix me PhInitializeImageVersionInfoCached returns to long strings
         pVersionInfo = std::make_shared<SImageVersionInfo>();
-        pVersionInfo->CompanyName = PHStr2WStr(PhVersionInfo.CompanyName, true);
-        pVersionInfo->FileDescription = PHStr2WStr(PhVersionInfo.FileDescription, true);
-        pVersionInfo->FileVersion = PHStr2WStr(PhVersionInfo.FileVersion, true);
-        pVersionInfo->ProductName = PHStr2WStr(PhVersionInfo.ProductName, true);
+        pVersionInfo->CompanyName = PHStr2WStr(PhVersionInfo.CompanyName, true).c_str();
+        pVersionInfo->FileDescription = PHStr2WStr(PhVersionInfo.FileDescription, true).c_str();
+        pVersionInfo->FileVersion = PHStr2WStr(PhVersionInfo.FileVersion, true).c_str();
+        pVersionInfo->ProductName = PHStr2WStr(PhVersionInfo.ProductName, true).c_str();
     }
     PhDereferenceObject(FileNameWin32);
     return pVersionInfo;

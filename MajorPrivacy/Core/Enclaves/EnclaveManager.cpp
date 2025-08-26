@@ -11,8 +11,13 @@ CEnclaveManager::CEnclaveManager(QObject* parent)
 {
 	CEnclavePtr pEnclave = CEnclavePtr(new CEnclave());
 	pEnclave->SetGuid(SYSTEM_ENCLAVE);
-	pEnclave->SetName(tr("Major Privacy's Private Enclave"));
-	pEnclave->SetSignatureLevel(KphDevAuthority);
+	pEnclave->SetName(tr("MajorPrivacy's Private Enclave"));
+	USignatures AllowedSignatures = {0};
+	AllowedSignatures.Developer = TRUE;
+	AllowedSignatures.Windows = TRUE;
+	AllowedSignatures.Microsoft = TRUE;
+	AllowedSignatures.Antimalware = TRUE;
+	pEnclave->SetAllowedSignatures(AllowedSignatures);
 	pEnclave->SetOnTrustedSpawn(EProgramOnSpawn::eAllow);
 	pEnclave->SetOnSpawn(EProgramOnSpawn::eEject);
 	pEnclave->SetImageLoadProtection(TRUE);
@@ -22,6 +27,11 @@ CEnclaveManager::CEnclaveManager(QObject* parent)
 
 STATUS CEnclaveManager::Update()
 {
+	//////////////////////////////////////////////////////////
+	// WARING This is called from a differnt thread
+	//////////////////////////////////////////////////////////
+
+
     return OK;
 }
 

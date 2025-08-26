@@ -25,7 +25,7 @@ QList<QModelIndex>	CDnsRuleModel::Sync(const QList<CDnsRulePtr>& RuleList)
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -43,7 +43,7 @@ QList<QModelIndex>	CDnsRuleModel::Sync(const QList<CDnsRulePtr>& RuleList)
 			pNode->Values.resize(columnCount());
 			//pNode->Path = Path;
 			pNode->pRule = pRule;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{

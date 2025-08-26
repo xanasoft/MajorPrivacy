@@ -11,6 +11,8 @@
 #include "../MiscHelpers/Common/Common.h"
 #include "../MajorPrivacy.h"
 #include "../Helpers/WinHelper.h"
+#include "../Core/HashDB/HashDB.h"
+#include "../MiscHelpers/Common/WinboxMultiCombo.h"
 
 CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 	: QDialog(parent)
@@ -42,22 +44,28 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 
 	setWindowTitle(bNew ? tr("Create Secure Enclave") : tr("Edit Secure Enclave"));
 
+	QList<QPair<QString,QVariant>> AllCollections;
+	AllCollections.append({ tr("None"), QVariant()});
+	foreach(const QString& Collection, theCore->HashDB()->GetCollections())
+		AllCollections.append({ Collection, Collection });
+	m_pCollections = new CWinboxMultiCombo(AllCollections, QList<QVariant>(), this);
+	m_pCollections->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+	ui.loCI->addWidget(m_pCollections, 3, 1, 1, 1);
+
+	ui.btnAddCollection->setIcon(QIcon(":/Icons/Add.png"));
+	connect(ui.btnAddCollection, SIGNAL(clicked(bool)), this, SLOT(OnAddCollection()));
+
 	if (bNew && m_pEnclave->m_Name.isEmpty()) {
 		m_pEnclave->m_Name = tr("New Secure Enclave");
-		m_pEnclave->m_SignatureLevel = KPH_VERIFY_AUTHORITY::KphMsCodeAuthority;
+		m_pEnclave->m_AllowedSignatures.Windows = TRUE;
+		m_pEnclave->m_AllowedSignatures.Antimalware = TRUE;
+		m_pEnclave->m_AllowedSignatures.Enclave = TRUE;
 	}
 
 	connect(ui.txtName, SIGNAL(textChanged(const QString&)), this, SLOT(OnNameChanged(const QString&)));
 	
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
-
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("User Signature ONLY (not recommended)"), QColor(144, 238, 144), (int)KPH_VERIFY_AUTHORITY::KphUserAuthority);
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("User + Microsoft/AV Signature"), QColor(173, 216, 230), (int)KPH_VERIFY_AUTHORITY::KphAvAuthority);
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("User + Trusted by Microsoft (Code Root)"), QColor(255, 255, 224), (int)KPH_VERIFY_AUTHORITY::KphMsCodeAuthority);
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("Any Signature (Unknown Root)"), QColor(255, 182, 193), (int)KPH_VERIFY_AUTHORITY::KphUnkAuthority);
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("No Signature"), QColor(255, 182, 193), (int)KPH_VERIFY_AUTHORITY::KphNoAuthority);
-	ColorComboBox(ui.cmbSignature);
 
 	ui.cmbOnTrustedExec->addItem(tr("Allow Execution"), (int)EProgramOnSpawn::eAllow);
 	ui.cmbOnTrustedExec->addItem(tr("Eject from Secure Enclave"), (int)EProgramOnSpawn::eEject);
@@ -82,10 +90,30 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 	//SetComboBoxValue(ui.cmbGroup, m_pEnclave->m_Grouping); // todo
 	ui.txtInfo->setPlainText(m_pEnclave->m_Description);
 
-	SetComboBoxValue(ui.cmbSignature, (int)m_pEnclave->m_SignatureLevel);
+	if(m_pEnclave->m_AllowedSignatures.Windows && m_pEnclave->m_AllowedSignatures.Microsoft && m_pEnclave->m_AllowedSignatures.Antimalware)
+		ui.chkAllowMS->setCheckState(Qt::Checked);
+	else if(m_pEnclave->m_AllowedSignatures.Windows ||  m_pEnclave->m_AllowedSignatures.Microsoft || m_pEnclave->m_AllowedSignatures.Antimalware)
+		ui.chkAllowMS->setCheckState(Qt::PartiallyChecked);
+	else
+		ui.chkAllowMS->setCheckState(Qt::Unchecked);
+	//if(m_pEnclave->m_AllowedSignatures.Authenticode && m_pEnclave->m_AllowedSignatures.Store)
+	//	ui.chkAllowAC->setCheckState(Qt::Checked);
+	//else if(m_pEnclave->m_AllowedSignatures.Authenticode || m_pEnclave->m_AllowedSignatures.Store)
+	//	ui.chkAllowAC->setCheckState(Qt::PartiallyChecked);
+	//else
+	//	ui.chkAllowAC->setCheckState(Qt::Unchecked);
+	ui.chkAllowUser->setChecked(m_pEnclave->m_AllowedSignatures.User);
+	ui.chkAllowEnclave->setChecked(m_pEnclave->m_AllowedSignatures.Enclave);
+
+	QList<QVariant> Collections;
+	foreach(const QString& Collection, m_pEnclave->m_AllowedCollections)
+		Collections.append(Collection);
+	m_pCollections->setValues(Collections);
+
 	SetComboBoxValue(ui.cmbOnTrustedExec, (int)m_pEnclave->m_OnTrustedSpawn);
 	SetComboBoxValue(ui.cmbOnUnTrustedExec, (int)m_pEnclave->m_OnSpawn);
 	ui.chkImageProtection->setChecked(m_pEnclave->m_ImageLoadProtection);
+	ui.chkCoherencyChecking->setChecked(m_pEnclave->m_ImageCoherencyChecking);
 
 	SetComboBoxValue(ui.cmbLevel, (int)m_pEnclave->m_IntegrityLevel);
 
@@ -122,11 +150,28 @@ bool CEnclaveWnd::Save()
 	m_pEnclave->SetIconFile(m_IconFile);
 	//m_pEnclave->m_Grouping = GetComboBoxValue(ui.cmbGroup).toString(); // todo
 	m_pEnclave->m_Description = ui.txtInfo->toPlainText();
+	
+	switch(ui.chkAllowMS->checkState()) {
+		case Qt::Checked:	m_pEnclave->m_AllowedSignatures.Windows = TRUE; m_pEnclave->m_AllowedSignatures.Microsoft = TRUE; m_pEnclave->m_AllowedSignatures.Antimalware = TRUE; break;
+		case Qt::Unchecked:	m_pEnclave->m_AllowedSignatures.Windows = FALSE; m_pEnclave->m_AllowedSignatures.Microsoft = FALSE; m_pEnclave->m_AllowedSignatures.Antimalware = FALSE; break;
+	}
+	//switch(ui.chkAllowAC->checkState()) {
+	//case Qt::Checked:	m_pEnclave->m_AllowedSignatures.Authenticode = TRUE; m_pEnclave->m_AllowedSignatures.Store = TRUE; break;
+	//case Qt::Unchecked:	m_pEnclave->m_AllowedSignatures.Authenticode = FALSE; m_pEnclave->m_AllowedSignatures.Store = FALSE; break;
+	//}
+	m_pEnclave->m_AllowedSignatures.User = ui.chkAllowUser->isChecked();
+	m_pEnclave->m_AllowedSignatures.Enclave = ui.chkAllowEnclave->isChecked();
 
-	m_pEnclave->m_SignatureLevel = (KPH_VERIFY_AUTHORITY)GetComboBoxValue(ui.cmbSignature).toInt();
+	m_pEnclave->m_AllowedCollections.clear();
+	foreach(QVariant Collection, m_pCollections->values()) {
+		if (!Collection.isNull() && !m_pEnclave->m_AllowedCollections.contains(Collection.toString()))
+			m_pEnclave->m_AllowedCollections.append(Collection.toString());
+	}
+
 	m_pEnclave->m_OnTrustedSpawn = (EProgramOnSpawn)GetComboBoxValue(ui.cmbOnTrustedExec).toInt();
 	m_pEnclave->m_OnSpawn = (EProgramOnSpawn)GetComboBoxValue(ui.cmbOnUnTrustedExec).toInt();
 	m_pEnclave->m_ImageLoadProtection = ui.chkImageProtection->isChecked();
+	m_pEnclave->m_ImageCoherencyChecking = ui.chkCoherencyChecking->isChecked();
 
 	m_pEnclave->m_IntegrityLevel = (EIntegrityLevel)GetComboBoxValue(ui.cmbLevel).toInt();
 
@@ -166,4 +211,19 @@ void CEnclaveWnd::BrowseImage()
 
 void CEnclaveWnd::OnNameChanged(const QString& Text)
 {
+}
+
+void CEnclaveWnd::OnAddCollection()
+{
+	QString Collection = QInputDialog::getText(this, tr("Add Collection"), tr("Enter the name of the collection:"));
+	if (Collection.isEmpty())
+		return;
+
+	theCore->HashDB()->AddCollection(Collection);
+
+	QList<QPair<QString,QVariant>> AllCollections;
+	AllCollections.append({ tr("None"), QVariant()});
+	foreach(const QString& Collection, theCore->HashDB()->GetCollections())
+		AllCollections.append({ Collection, Collection });
+	m_pCollections->setItems(AllCollections);
 }

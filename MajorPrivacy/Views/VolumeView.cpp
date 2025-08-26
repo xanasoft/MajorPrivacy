@@ -18,6 +18,7 @@ CVolumeView::CVolumeView(QWidget *parent)
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pTreeView->setStyle(pStyle);
 	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
+	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 	
@@ -278,7 +279,7 @@ void CVolumeView::OnAddFolder()
 	if (theConf->GetBool("Options/WarnFolderProtection", true)) {
 		bool State = false;
 		if(CCheckableMessageBox::question(this, "MajorPrivacy",
-			tr("The security of files and folders on unencrypted volumes cannot be guaranteed if Major Privacy is not running or if the Kernel Isolator driver is not loaded. In this state, folder access control will not be enforced.\n"
+			tr("The security of files and folders on unencrypted volumes cannot be guaranteed if MajorPrivacy is not running or if the Kernel Isolator driver is not loaded. In this state, folder access control will not be enforced.\n"
 				"For non-critical data, folder protection may still provide a basic level of security. However, for highly confidential or sensitive information, it is strongly recommended to use a secure, encrypted volume to ensure robust protection against unauthorized access.")
 			, tr("Don't show this message again."), &State, QDialogButtonBox::Ok | QDialogButtonBox::Cancel, QDialogButtonBox::Cancel, QMessageBox::Warning) != QDialogButtonBox::Ok)
 			return;

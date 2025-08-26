@@ -143,6 +143,8 @@ bool CDnsFilter::HandlePacket(DNS::Packet& Packet, const SAddress& Address)
 			 FW::StringW Path = ReversePath(&m_MemPool, HostName.c_str());
 			 if (!Path.IsEmpty())
 			 {
+				 std::shared_lock lock(m_Mutex);
+
 				 auto Entry = m_FilterTree.GetBestEntry(Path, CPathTree::eMayHaveSeparator);
 				 if (Entry) {
 					 Action = Entry.Cast<CDnsRule>()->GetAction(); 
@@ -153,6 +155,8 @@ bool CDnsFilter::HandlePacket(DNS::Packet& Packet, const SAddress& Address)
 
 			 if (Action == CDnsRule::eNone)
 			 {
+				 std::shared_lock lock(m_BlockListMutex);
+
 				 SKey key(HostName, query.q_type);
 				 if (m_BlockList.find(key) != m_BlockList.end()) {
 					 Action = CDnsRule::eBlock;
@@ -196,9 +200,6 @@ bool CDnsFilter::HandlePacket(DNS::Packet& Packet, const SAddress& Address)
 	}
 	return CDnsServer::HandlePacket(Packet, Address);
 }
-
-static const CAddress LocalHost("127.0.0.1");
-static const CAddress LocalHostV6("::1");
 
 std::wstring decodeDnsName(const std::vector<uint8_t>& field) 
 {
@@ -260,7 +261,7 @@ void CDnsFilter::SendResponse(DNS::Packet& Response, const SAddress& Address)
 			{
 				// IPv4 address (4 bytes)
 				Event.Address = CAddress(_ntohl(*((uint32*)answer.r_data.data())));
-				if (Event.Address == LocalHost)
+				if (Event.Address.IsLocalHost())
 					continue;
 			}
 		break;
@@ -270,7 +271,7 @@ void CDnsFilter::SendResponse(DNS::Packet& Response, const SAddress& Address)
 			{
 				// IPv6 address (16 bytes)
 				Event.Address = CAddress(answer.r_data.data());
-				if (Event.Address == LocalHostV6)
+				if (Event.Address.IsLocalHost())
 					continue;
 			}
 		break;
@@ -411,13 +412,13 @@ STATUS CDnsFilter::LoadEntries(const StVariant& Entries)
 		if (Status.IsError())
 			; //  todo log error
 		else
-			AddEntry_unlocked(pEntry);
+			AddEntry_NoLock(pEntry);
 	}
 
 	return OK;
 }
 
-bool CDnsFilter::AddEntry_unlocked(const FW::SharedPtr<CDnsRule>& pEntry)
+bool CDnsFilter::AddEntry_NoLock(const FW::SharedPtr<CDnsRule>& pEntry)
 {
 	CFlexGuid Guid = pEntry->GetGuid();
 	if (Guid.IsNull()) {
@@ -434,7 +435,7 @@ bool CDnsFilter::AddEntry_unlocked(const FW::SharedPtr<CDnsRule>& pEntry)
 
 StVariant CDnsFilter::SaveEntries(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool)
 {
-	std::unique_lock lock(m_Mutex);
+	std::shared_lock lock(m_Mutex);
 
 	StVariantWriter Entries(pMemPool);
 	Entries.BeginList();
@@ -492,7 +493,7 @@ RESULT(StVariant) CDnsFilter::SetEntry(const StVariant& Entry)
 
 RESULT(StVariant) CDnsFilter::GetEntry(const std::wstring& EntryId, const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool)
 {
-	std::unique_lock lock(m_Mutex);
+	std::shared_lock lock(m_Mutex);
 
 	CFlexGuid Guid(EntryId);
 	FW::SharedPtr<CDnsRule> pEntry = m_EntryMap.FindValue(Guid);
@@ -555,45 +556,49 @@ void CDnsFilter::UpdateBlockLists()
 	for (auto I = OldList.begin(); I != OldList.end(); I++)
 		m_BlockLists.erase(I->first);
 
+	lock.unlock();
+
 	//
-	// Load all BlockLists, this will load old versions of the already loaded lists
+	// Load all BlockLists, this will load old versions of the already downloaded lists
 	//
 
-	LoadBlockLists_unlocked();
+	LoadBlockLists();
 }
 
-void CDnsFilter::LoadBlockLists_unlocked()
+void CDnsFilter::LoadBlockLists()
 {
-	//
-	// empty the blocklist
-	// 
-	// and clear all entries that spiled over from the simple blocklist to the the filtertree
-	// thay will be readded by LoadBlockLists_unlocked
-	//
-
-	m_BlockList.clear();
-
-	for (auto I = m_EntryMap.begin(); I != m_EntryMap.end(); ++I)
 	{
-		if ((*I)->GetGuid().IsNull())
-			m_FilterTree.RemoveEntry(I.Value());
+		//
+		// clear all entries that spiled over from the simple blocklist to the filtertree, thay will be readded by LoadFilters_NoLock
+		//
+
+		std::unique_lock lock(m_Mutex);
+		for (auto I = m_EntryMap.begin(); I != m_EntryMap.end(); ++I)
+		{
+			if ((*I)->GetGuid().IsNull())
+				m_FilterTree.RemoveEntry(I.Value());
+		}
 	}
 
 	//
 	// load all current blocklists
 	//
 
+	std::unique_lock lock(m_BlockListMutex);
+
+	m_BlockList.clear();
+
 	for (auto I = m_BlockLists.begin(); I != m_BlockLists.end(); I++)
 	{
 		std::wstring sBlockListFile = I->first;
 		if (!sBlockListFile.empty() && FileExists(sBlockListFile)) 
-			I->second.Count = LoadFilters_unlocked(sBlockListFile, CDnsRule::eBlock, &m_BlockList);
+			I->second.Count = LoadFilters_NoLock(sBlockListFile, CDnsRule::eBlock, &m_BlockList);
 	}
 }
 
 StVariant CDnsFilter::GetBlockListInfo(FW::AbstractMemPool* pMemPool) const
 {
-	std::unique_lock lock(m_Mutex);
+	std::shared_lock lock(m_Mutex);
 
 	StVariantWriter BlockListInfo(pMemPool);
 	BlockListInfo.BeginList();
@@ -649,7 +654,7 @@ DWORD CALLBACK CDnsFilter__DlThreadProc(LPVOID lpThreadParameter)
 		time_t WebTimeStamp = -1;
 		if(!WebGetLastModifiedDate(sBlockListUrl.c_str(), WebTimeStamp))
 			bDownload = false;
-		else if (TimeStamp != -1 && WebTimeStamp <= TimeStamp)
+		else if (TimeStamp != -1 && WebTimeStamp - TimeStamp < 15*60) // if it is not more then 15 min newer dont re download
 			bDownload = false;
 
 		if (bDownload)
@@ -667,9 +672,7 @@ DWORD CALLBACK CDnsFilter__DlThreadProc(LPVOID lpThreadParameter)
 					// once we have downloaded a list reload all lists
 					//
 
-					std::unique_lock lock(This->m_Mutex);
-
-					This->LoadBlockLists_unlocked();
+					This->LoadBlockLists();
 				}
 			}
 		}
@@ -701,7 +704,7 @@ bool CDnsFilter::DownloadBlockList(const std::wstring& sBlockListUrl)
 	return true;
 }
 
-int CDnsFilter::LoadFilters_unlocked(const std::wstring& sHostsFile, CDnsRule::EAction Action, std::multimap<SKey, DNS::Binary>* pEntryMap)
+int CDnsFilter::LoadFilters_NoLock(const std::wstring& sHostsFile, CDnsRule::EAction Action, std::multimap<SKey, DNS::Binary>* pEntryMap)
 {
 	int Count = 0;
 
@@ -758,7 +761,8 @@ int CDnsFilter::LoadFilters_unlocked(const std::wstring& sHostsFile, CDnsRule::E
 			{
 				FW::StringW Path = ReversePath(&m_MemPool, HostName.c_str());
 				auto pEntry = m_MemPool.New<CDnsRule>(Path, Action, pEntryMap ? true : false); // use m_FilterTree for complex blocklist entries, but mask as temporary
-				AddEntry_unlocked(pEntry);
+				std::unique_lock lock(m_Mutex);
+				AddEntry_NoLock(pEntry);
 			}
 			Count++;
 
@@ -772,13 +776,13 @@ int CDnsFilter::LoadFilters_unlocked(const std::wstring& sHostsFile, CDnsRule::E
 
 void CDnsFilter::RegisterEventHandler(const std::function<void(const SDnsFilterEvent* pEvent)>& Handler) 
 {
-	std::unique_lock<std::mutex> Lock(m_Mutex);
+	std::unique_lock Lock(m_Mutex);
 	m_EventHandlers.push_back(Handler); 
 }
 
 void CDnsFilter::EmitEvent(const SDnsFilterEvent* pEvent)
 {
-	std::unique_lock<std::mutex> Lock(m_Mutex);
+	std::unique_lock Lock(m_Mutex);
 	for (auto Handler : m_EventHandlers)
 		Handler(pEvent);
 }

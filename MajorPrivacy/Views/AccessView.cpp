@@ -13,6 +13,7 @@ CAccessView::CAccessView(QWidget *parent)
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pTreeView->setStyle(pStyle);
 	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
+	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 
 	m_pTreeView->setColumnReset(2);
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
@@ -64,6 +65,13 @@ CAccessView::CAccessView(QWidget *parent)
 	connect(m_pBtnCleanUp, SIGNAL(clicked()), this, SLOT(CleanUpTree()));
 	m_pToolBar->addWidget(m_pBtnCleanUp);
 
+	m_pBtnClear = new QToolButton();
+	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
+	m_pBtnClear->setToolTip(tr("Clear Records"));
+	m_pBtnClear->setFixedHeight(22);
+	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearRecords()));
+	m_pToolBar->addWidget(m_pBtnClear);
+
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	m_pToolBar->addWidget(pSpacer);
@@ -85,12 +93,14 @@ CAccessView::~CAccessView()
 	theConf->SetBlob("MainWindow/AccessView_Columns", m_pTreeView->saveState());
 }
 
+void CAccessView::OnRefresh()
+{
+	m_FullRefresh = true;
+}
+
 void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, QString RootPath)
 {
-	if(m_pBtnHold->isChecked())
-		return;
-
-	if (m_CurPrograms != Programs || m_CurServices != Services || m_iAccessFilter != m_pCmbAccess->currentData().toInt() || m_RecentLimit != theGUI->GetRecentLimit() || m_RootPath != RootPath) 
+	if (m_CurPrograms != Programs || m_CurServices != Services || m_FullRefresh || m_iAccessFilter != m_pCmbAccess->currentData().toInt() || m_RecentLimit != theGUI->GetRecentLimit() || m_RootPath != RootPath) 
 	{
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
@@ -100,7 +110,11 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		m_RecentLimit = theGUI->GetRecentLimit();
 		m_RootPath = RootPath;
 		m_pItemModel->Clean();
+		m_FullRefresh = false;
+		m_RefreshCount++;
 	}
+	else if(m_pBtnHold->isChecked() /*&& !theGUI->m_IgnoreHold*/)
+		return;
 
 	RootPath = theCore->NormalizePath(RootPath);
 
@@ -271,25 +285,7 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 	quint64 start = GetUSTickCount();
 #endif
 
-	quint64 LastTime = GetUSTickCount();
-	int TotalCount = Programs.count() + Services.count();
-	int ProcessedCount = 0;
-	theGUI->m_pProgressDialog->ResetCanceled();
-
-	auto ShowProgress = [&](const QString& ProgName) {
-		quint64 ElapsedTimeMs = (GetUSTickCount() - LastTime) / 1000;
-		ProcessedCount++;
-		if (theGUI->m_pProgressDialog->isVisible()) {
-			if (ElapsedTimeMs > 50) {
-				LastTime = GetUSTickCount();
-				theGUI->m_pProgressDialog->ShowProgress(tr("Loading %1").arg(ProgName), 100 * ProcessedCount / TotalCount);
-				QCoreApplication::processEvents();
-			}
-		} else if(ElapsedTimeMs > 500)
-			theGUI->m_pProgressDialog->show();
-
-		return !theGUI->m_pProgressDialog->IsCancelled();
-	};
+	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Programs.count() + Services.count());
 
 	foreach(const CProgramFilePtr& pProgram, Programs) 
 	{
@@ -299,10 +295,11 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			continue;
 		Item.LastAccess = LastAccess;
 
-		if (!ShowProgress(pProgram->GetName())) {
+		if (!ProgressHelper.Next(pProgram->GetName())) {
 			m_pBtnHold->setChecked(true);
 			break;
 		}
+
 		QMap<quint64, SAccessStatsPtr> Log = pProgram->GetAccessStats();
 		for (auto I = Log.constBegin(); I != Log.constEnd(); I++) {
 			auto &Value = Item.Items[(quint64)I.value().data()];
@@ -320,10 +317,11 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			continue;
 		Item.LastAccess = LastAccess;
 
-		if (!ShowProgress(pService->GetName())) {
+		if (!ProgressHelper.Next(pService->GetName())) {
 			m_pBtnHold->setChecked(true);
 			break;
 		}
+
 		QMap<quint64, SAccessStatsPtr> Log = pService->GetAccessStats();
 		for (auto I = Log.constBegin(); I != Log.constEnd(); I++) {
 			auto &Value = Item.Items[(quint64)I.value().data()];
@@ -334,8 +332,13 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		}
 	}
 
-	if(theGUI->m_pProgressDialog->isVisible())
-		theGUI->m_pProgressDialog->hide();
+	if (ProgressHelper.Done()) {
+		if (/*!theGUI->m_IgnoreHold &&*/ ++m_SlowCount == 3) {
+			m_SlowCount = 0;
+			m_pBtnHold->setChecked(true);
+		}
+	} else
+		m_SlowCount = 0;
 
 #ifdef _DEBUG
 	quint64 elapsed = (GetUSTickCount() - start) / 1000;
@@ -369,11 +372,6 @@ void CAccessView::OnMenu(const QPoint& Point)
 	CPanelView::OnMenu(Point);
 }
 
-void CAccessView::OnRefresh()
-{
-	m_iAccessFilter = -1; // force full reload
-}
-
 void CAccessView::CleanUpTree()
 {
 	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to clean up the Access Tree? This will remove all Files and folders which are no longer present on the System. "
@@ -390,6 +388,7 @@ void CAccessView::OnCleanUpDone()
 	// refresh
 	m_CurPrograms.clear();
 	m_CurServices.clear();
+	m_FullRefresh = true;
 }
 
 void CAccessView::OnMenuAction()
@@ -409,4 +408,30 @@ void CAccessView::OnMenuAction()
 		}
 		QApplication::clipboard()->setText(Paths.join("\n"));
 	}
+}
+
+void CAccessView::OnClearRecords()
+{
+	auto Current = theGUI->GetCurrentItems();
+
+	if (Current.bAllPrograms)
+	{
+		if (QMessageBox::warning(this, "MajorPrivacy", tr("Are you sure you want to clear the all Access records for ALL program items?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+			return;
+
+		theCore->ClearRecords(ETraceLogs::eResLog);
+	}
+	else
+	{
+		if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the all Access records for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+			return;
+
+		foreach(CProgramFilePtr pProgram, Current.ProgramsEx | Current.ProgramsIm)
+			theCore->ClearRecords(ETraceLogs::eResLog, pProgram);
+
+		foreach(CWindowsServicePtr pService, Current.ServicesEx | Current.ServicesIm)
+			theCore->ClearRecords(ETraceLogs::eResLog, pService);
+	}
+
+	OnCleanUpDone();
 }

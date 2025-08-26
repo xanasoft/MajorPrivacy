@@ -222,7 +222,7 @@ void CWindowsService::CollectStats(SStats& Stats) const
 	}
 }
 
-void CWindowsService::ClearLogs(ETraceLogs Log)
+void CWindowsService::ClearRecords(ETraceLogs Log)
 {
 	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
 		m_TrafficLog.Clear();

@@ -103,9 +103,9 @@ public:
 	enum EUpdateScope
 	{
 		eNone = 0,	// No files updated
-		eTmpl,		// Only Templates.ini
-		eMeta,		// Only Templates.ini and/or translations changed
-		eCore,		// Core sandboxie Components Changed
+		eTmpl,		// Only Tweaks.ini
+		eMeta,		// Only Tweaks.ini and/or translations changed
+		eCore,		// Core Components Changed
 		eFull		// Plus components changed
 	};
 	bool				DownloadUpdate(const QVariantMap& Update, EUpdateScope Scope, bool bAndApply = false);

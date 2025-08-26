@@ -10,10 +10,10 @@ public:
 	~CProgramID();
 
 	void SetPath(const QString& FilePath);
-	void SetRegKey(const QString& RegKey)						{ Q_ASSERT(m_Type == EProgramType::eAppInstallation); m_AuxValue = RegKey; }
-	void SetServiceTag(const QString& ServiceTag)				{ m_ServiceTag = ServiceTag; }
-	void SetAppContainerSid(const QString& AppContainerSid)		{ Q_ASSERT(m_Type == EProgramType::eAppPackage); m_AuxValue = AppContainerSid; }
-	void SetGuid(const QString& Guid)							{ Q_ASSERT(m_Type == EProgramType::eProgramGroup); m_AuxValue = Guid; }
+	void SetRegKey(const QString& RegKey)						{ m_Type = EProgramType::eAppInstallation; m_AuxValue = RegKey; }
+	void SetServiceTag(const QString& ServiceTag)				{ m_Type = EProgramType::eWindowsService; m_ServiceTag = ServiceTag; }
+	void SetAppContainerSid(const QString& AppContainerSid)		{ m_Type = EProgramType::eAppPackage; m_AuxValue = AppContainerSid; }
+	void SetGuid(const QString& Guid)							{ m_Type = EProgramType::eProgramGroup; m_AuxValue = Guid; }
 
 	EProgramType GetType() const								{ return m_Type; }
 

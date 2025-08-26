@@ -11,6 +11,48 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [0.98.4] - 2025-08-??
+
+### Added 
+- added failsafe mechanisms to the Kernel Isolator driver
+  - the driver can now detect if windows was booted in safe mode and then it will not enforce any rules, this allows the user to recover from a misconfiguration which breaks the system
+  - the driver is counting unsuccessfull boot atempts and after 3 failed boots it will automatically load the last good rule set, after 5 failed boots it will not load any rule set at all
+- added hold & refresh button to most view
+- added option flatten program view
+- added program item missing event
+- added option to also sign the CA which issued a signign certificate
+- added menu option to traffic view to directly block domains in the dns filter or programs in the firewall
+- added option to hide default windows firewall rules
+- added option to hide default windows libraries in the module load view
+- added online updater
+- added missing 1st start wizard pages
+- added more ui config options
+- added option to prevetn hibernation when protected secure volumes are mounted
+ 
+### Changed
+- GUI is now multi threaded, this allows the GUI to be more responsive
+- improved image checking mechanism
+- improved status page
+- Redesigned the user controlled Code Integrity verification mechanism
+  - Instead of using C:\ProgramData\Xanasoft\MajorPrivacy\sig_db files all user trusted hashes and certtificates are now stored in the registry alongside the protected configuration
+  - Caution: the new code does not automatically import old signatures, you need to re-authorize your files
+- improved log cleanup handling
+- improved ui performance arounf exec records
+
+### Fixed
+- fixed BSOD issue with remote file systems
+- fixed issue with translation list not being filled
+- fixed issue with accept firewall rule change from summary page
+- fixed Hardlinked program runs outside the enclave [#49](https://github.com/xanasoft/MajorPrivacy/issues/49)
+- fixed resource leak in open handle list
+- fixed bug in thread pool
+- fixed many minor UI glitsches
+- fixed UPX compressed files causing repeated Exec Notifications [#76](https://github.com/xanasoft/MajorPrivacy/issues/76)
+- fixed issues with image signature verification
+- fixed issues with updating host names
+- fixed sometimes image protection being aplpied to not protected prcesses
+- fixed issue with notification window
+
 
 
 ## [0.98.3] - 2025-08-04
@@ -25,7 +67,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - fixed issue in ImBox.exe old volumes wont be mountable anymore! Use previouse build to save data then re create volumes with turent or later build.
-- fixed translations not being loaded
 - fixed Dat Editor: Tree view expansion fails in subsequent .dat files after opening the first [#61](https://github.com/xanasoft/MajorPrivacy/issues/61)
 - fixed Execution Monitor shows no entries when Time filter is selected [#60](https://github.com/xanasoft/MajorPrivacy/issues/60)
 - fixed Only the last added group is available in the "Add to Group" menu [#48](https://github.com/xanasoft/MajorPrivacy/issues/48)

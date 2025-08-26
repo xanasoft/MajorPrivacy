@@ -15,6 +15,7 @@
 #include "../Library/Common/Exception.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/EvtUtil.h"
+#include "../Library/Helpers/NtPathMgr.h"
 
 #define API_PROGRAMS_FILE_NAME L"Programs.dat"
 #define API_PROGRAMS_FILE_VERSION 2
@@ -55,11 +56,13 @@ CProgramManager::~CProgramManager()
 	//m_Items.clear();
 	for (auto I = m_Items.begin(); I != m_Items.end(); ++I) {
 		CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(I->second);
-		if (pProgram)
-			pProgram->ClearLogs(ETraceLogs::eLogMax);
+		if (pProgram) {
+			pProgram->ClearTraceLog(ETraceLogs::eLogMax);
+			pProgram->ClearRecords(ETraceLogs::eLogMax);
+		}
 		CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(I->second);
 		if (pService)
-			pService->ClearLogs(ETraceLogs::eLogMax);
+			pService->ClearRecords(ETraceLogs::eLogMax);
 	}
 
 	for (auto I = m_Items.begin(); I != m_Items.end(); ++I) {
@@ -140,7 +143,7 @@ STATUS CProgramManager::Init()
 	{
 		AddItemToRoot(m_NtOsKernel);
 
-		//AddPattern(GetApplicationDirectory() + L"\\*", L"Major Privacy");
+		//AddPattern(GetApplicationDirectory() + L"\\*", L"MajorPrivacy");
 
 		AddPattern(m_WinDir + L"\\*", L"Windows");
 		//AddPattern(m_WinDir + L"\\System32\\svchost.exe", L"Windows Service Host");
@@ -155,45 +158,6 @@ STATUS CProgramManager::Init()
 		AddPattern(m_OsDrive + L"Users\\*" + L"\\*", L"Users");
 
 		AddPattern(L"\\\\*", L"Network");
-	}
-	else
-	{
-		std::map<CProgramLibraryPtr, std::list<CProgramFilePtr>> LibraryMap;
-		for (auto& IItem : m_Items)
-		{
-			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(IItem.second);
-			if (pProgram)
-			{
-				if (pProgram->HashInfoUnknown())
-				{
-					theCore->ThreadPool()->enqueueTask([](const CProgramFilePtr& pProgram) {
-						SVerifierInfo VerifyInfo;
-						CProcess::MakeVerifyInfo(pProgram->GetPath(), VerifyInfo);
-						pProgram->UpdateSignInfo(&VerifyInfo, true);
-					}, pProgram);
-				}
-
-				for (auto& ILibrary : pProgram->GetLibraries())
-				{
-					if (ILibrary.second.SignInfo.GetHashStatus() == EHashStatus::eHashUnknown)
-					{
-						CProgramLibraryPtr pLibrary = GetLibrary(ILibrary.first);
-						if(pLibrary)
-							LibraryMap[pLibrary].push_back(pProgram);
-					}
-				}
-			}
-		}
-
-		for (auto& ILibrary : LibraryMap)
-		{
-			theCore->ThreadPool()->enqueueTask([](const CProgramLibraryPtr& pLibrary, const std::list<CProgramFilePtr>& Programs) {
-				SVerifierInfo VerifyInfo;
-				CProcess::MakeVerifyInfo(pLibrary->GetPath(), VerifyInfo);
-				for (auto& pProgram : Programs)
-					pProgram->AddLibrary(CFlexGuid(), pLibrary, 0, &VerifyInfo);
-			}, ILibrary.first, ILibrary.second);
-		}
 	}
 
 	uStart = GetTickCount64();
@@ -210,9 +174,7 @@ STATUS CProgramManager::Init()
 	LoadRules();
 	DbgPrint(L"CProgramManager::LoadRules() took %llu ms\n", GetTickCount64() - uStart);
 
-	uStart = GetTickCount64();
-	TestMissing();
-	DbgPrint(L"CProgramManager::TestMissing() took %llu ms\n", GetTickCount64() - uStart);
+	CheckProgramFilesAsync();
 
 	return OK;
 }
@@ -226,7 +188,7 @@ void CProgramManager::Update()
 		m_LastTruncateLogs = GetTickCount64();
 		TruncateLogs();
 
-		TestMissing();
+		CheckProgramFiles();
 	}
 }
 
@@ -235,30 +197,134 @@ bool CProgramManager::IsNtOsKrnl(const std::wstring& FilePath) const
 	return m_NtOsKernel->GetID().GetFilePath() == theCore->NormalizePath(FilePath);
 }
 
-void CProgramManager::TestMissing()
+void CProgramManager::CheckProgramFiles()
 {
 	auto Items = GetItems();
+
+	std::map<CProgramLibraryPtr, std::list<CProgramFilePtr>> LibraryMap;
+
+	std::map<std::wstring, FILE_BASIC_INFORMATION> FileInfoMap;
 
 	for (auto I = Items.begin(); I != Items.end(); ++I)
 	{
 		CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(I->second);
-		if (pProgram)
-			pProgram->TestMissing();
+		if (!pProgram)
+			continue;
+
+		std::wstring Path = pProgram->GetPath();
+		if (Path.substr(0, 2) != L"\\\\")
+		{
+			FILE_BASIC_INFORMATION* pInfo = &FileInfoMap[Path];
+			if(pInfo->ChangeTime.QuadPart == 0)
+			{
+				std::wstring NtPath = CNtPathMgr::Instance()->TranslateDosToNtPath(Path);
+				if (NtPath.empty() || !NT_SUCCESS(NtQueryAttributesFile(SNtObject(NtPath).Get(), pInfo)))
+					pInfo->ChangeTime.QuadPart = -1;
+			}
+
+			if(pInfo->ChangeTime.QuadPart != -1)
+			{
+				pProgram->SetMissing(false);
+
+				bool FileChanged = false;
+				if (pProgram->GetSignInfo().GetTimeStamp() < pInfo->LastWriteTime.QuadPart)
+					FileChanged = true;
+
+				if (pProgram->HashInfoUnknown() || FileChanged)
+				{
+					theCore->ThreadPool()->enqueueTask([](const CProgramFilePtr& pProgram) {
+						SVerifierInfo VerifyInfo;
+						CProcess::FillVerifyInfo(pProgram->GetPath(), VerifyInfo);
+						pProgram->UpdateSignInfo(&VerifyInfo, true);
+					}, pProgram);
+				}
+			}
+			else if(!pProgram->IsMissing())
+			{
+				pProgram->SetMissing(true);
+
+				StVariant Data;
+				Data[API_V_ID] = pProgram->GetID().ToVariant(SVarWriteOpt());
+				Data[API_V_NAME] = pProgram->GetNameEx();
+				theCore->EmitEvent(ELogLevels::eInfo, eLogProgramMissing, Data);
+
+				theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PROG_CLEANUP, StrLine(L"Program Item missing: %s", I->second->GetNameEx().c_str()));
+			}
+		}
+
+		for (auto& ILibrary : pProgram->GetLibraries())
+		{
+			CProgramLibraryPtr pLibrary = GetLibrary(ILibrary.first);
+			if(!pLibrary) continue;
+
+			std::wstring Path = pLibrary->GetPath();
+			if (Path.substr(0, 2) != L"\\\\")
+			{
+				FILE_BASIC_INFORMATION* pInfo = &FileInfoMap[Path];
+				if(pInfo->ChangeTime.QuadPart == 0)
+				{
+					std::wstring NtPath = CNtPathMgr::Instance()->TranslateDosToNtPath(Path);
+					if (NtPath.empty() || !NT_SUCCESS(NtQueryAttributesFile(SNtObject(NtPath).Get(), pInfo)))
+						pInfo->ChangeTime.QuadPart = -1;
+				}
+
+				if(pInfo->ChangeTime.QuadPart != -1)
+				{
+					bool FileChanged = false;
+					if (ILibrary.second.SignInfo.GetTimeStamp() < pInfo->LastWriteTime.QuadPart)
+						FileChanged = true;
+
+					if (!ILibrary.second.SignInfo.HasFileHash() || FileChanged)
+						LibraryMap[pLibrary].push_back(pProgram);
+				}
+			}
+		}
 	}
+
+	for (auto& ILibrary : LibraryMap)
+	{
+		theCore->ThreadPool()->enqueueTask([](const CProgramLibraryPtr& pLibrary, const std::list<CProgramFilePtr>& Programs) {
+			SVerifierInfo VerifyInfo;
+			CProcess::FillVerifyInfo(pLibrary->GetPath(), VerifyInfo);
+			for (auto& pProgram : Programs)
+				pProgram->AddLibrary(CFlexGuid(), pLibrary, 0, &VerifyInfo);
+		}, ILibrary.first, ILibrary.second);
+	}
+}
+
+DWORD CALLBACK CAccessManager__CheckProgramFilesProc(LPVOID lpThreadParameter)
+{
+#ifdef _DEBUG
+	SetThreadDescription(GetCurrentThread(), L"CAccessManager__CheckProgramFilesProc");
+#endif
+
+	CProgramManager* This = (CProgramManager*)lpThreadParameter;
+
+	uint64 uStart = GetTickCount64();
+	This->CheckProgramFiles();
+	DbgPrint(L"CProgramManager::CheckProgramFiles() took %llu ms\n", GetTickCount64() - uStart);
+
+	NtClose(This->m_hCheckThread);
+	This->m_hCheckThread = NULL;
+	return 0;
+}
+
+void CProgramManager::CheckProgramFilesAsync() 
+{
+	if (m_hCheckThread) return;
+	m_hCheckThread = CreateThread(NULL, 0, CAccessManager__CheckProgramFilesProc, (void*)this, 0, NULL);
 }
 
 STATUS CProgramManager::CleanUp(bool bPurgeRules)
 {
 	CollectSoftware();
 
+	CheckProgramFiles();
+
 	auto Items = GetItems();
 
 	for (auto I = Items.begin(); I != Items.end(); ++I)
 	{
-		CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(I->second);
-		if (pProgram) 
-			pProgram->TestMissing();
-
 		if(I->second->IsMissing())
 		{
 			if (I->second->HasFwRules() || I->second->HasProgRules() || I->second->HasResRules()) {
@@ -267,6 +333,7 @@ STATUS CProgramManager::CleanUp(bool bPurgeRules)
 			}
 
 			// don't remove program files when thay have still registered services
+			CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(I->second);
 			if (pProgram) {
 				std::unique_lock lock(pProgram->m_Mutex);
 				bool bContinue = false;
@@ -485,9 +552,9 @@ CProgramGroupPtr CProgramManager::GetGroup(const std::wstring& Guid, bool bCanAd
 	return pGroup;
 }
 
-CAppPackagePtr CProgramManager::GetAppPackage(const std::wstring& AppContainserSid, bool bCanAdd)
+CAppPackagePtr CProgramManager::GetAppPackage(const std::wstring& AppContainerSid, bool bCanAdd)
 {
-	std::wstring Key = MkLower(AppContainserSid);
+	std::wstring Key = MkLower(AppContainerSid);
 
 	std::unique_lock lock(m_Mutex);
 	if (!bCanAdd) {
@@ -498,7 +565,8 @@ CAppPackagePtr CProgramManager::GetAppPackage(const std::wstring& AppContainserS
 	}
 	CAppPackagePtr& pAppPackage = m_PackageMap[Key];
 	if (!pAppPackage) {
-		pAppPackage = CAppPackagePtr(new CAppPackage(AppContainserSid, L""));
+		pAppPackage = CAppPackagePtr(new CAppPackage(AppContainerSid, L""));
+		pAppPackage->SetPath(m_ProgDir + L"\\WindowsApps\\" + AppContainerSid);
 		m_Items.insert(std::make_pair(pAppPackage->GetUID(), pAppPackage));
 		//pAppPackage->SetInstallPath(GetAppContainerRootPath( // todo:
 		// todo: icon
@@ -740,7 +808,10 @@ void CProgramManager::AddPackage(const CPackageList::SPackagePtr& pPackage)
 	if (!pAppPackage) {
 		pAppPackage = CAppPackagePtr(new CAppPackage(pPackage->PackageSid, pPackage->PackageFamilyName, pPackage->PackageName));
 		pAppPackage->SetName(pPackage->PackageDisplayName);
-		pAppPackage->SetPath(theCore->NormalizePath(pPackage->PackageInstallPath, false));
+		std::wstring Path = theCore->NormalizePath(pPackage->PackageInstallPath, false);
+		if(Path.empty())
+			Path = m_ProgDir + L"\\WindowsApps\\" + pPackage->PackageSid;
+		pAppPackage->SetPath(Path);
 		pAppPackage->SetIcon(pPackage->SmallLogoPath);
 		m_Items.insert(std::make_pair(pAppPackage->GetUID(), pAppPackage));
 		lock.unlock();
@@ -844,7 +915,7 @@ STATUS CProgramManager::AddProgramTo(uint64 UID, uint64 ParentUID)
 	return OK;
 }
 
-STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRules)
+STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRules, bool bKeepOne)
 {
 	CProgramItemPtr pItem = GetItem(UID);
 	if(!pItem)
@@ -895,7 +966,7 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 		if (P == m_Items.end())
 			return ERR(STATUS_ERR_PROG_PARENT_NOT_FOUND);
 
-		if(std::dynamic_pointer_cast<CProgramPattern>(P->second) && pItem->GetGroupCount() > 1)
+		if(std::dynamic_pointer_cast<CProgramPattern>(P->second) && pItem->GetGroupCount() > 1 && !std::dynamic_pointer_cast<CProgramPattern>(pItem))
 			return ERR(STATUS_ERR_CANT_REMOVE_FROM_PATTERN); // Can't remove from a pattern unless we are removing it entierly
 
 		CProgramSetPtr pParent = std::dynamic_pointer_cast<CProgramSet>(P->second);
@@ -921,6 +992,11 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 				pItem->m_Groups.erase(Key);
 			}
 		}
+	}
+
+	if (bKeepOne) {
+		AddProgramToGroup(pItem, m_Root);
+		return OK;
 	}
 
 	// remove the item from all maps
@@ -1018,6 +1094,9 @@ bool CProgramManager::RemoveProgramFromGroupEx(const CProgramItemPtr& pItem, con
 	if(!RemoveProgramFromGroup(pItem, pGroup))
 		return false;
 
+	if(std::dynamic_pointer_cast<CProgramGroup>(pGroup))
+		return true; // don't try to add children to groups
+
 	CProgramSetPtr pSet = std::dynamic_pointer_cast<CProgramSet>(pItem);
 	if (pSet) {
 		std::unique_lock lock(m_Mutex);
@@ -1053,10 +1132,10 @@ bool CProgramManager::AddItemToBranch(const CProgramItemPtr& pItem, const CProgr
 	if (FilePath.empty())
 		return false;
 
-	return AddItemToBranch2(FilePath, pItem, pBranch);
+	return AddItemToBranch2(FilePath, pItem, pBranch) > 0;
 }
 
-bool CProgramManager::AddItemToBranch2(const std::wstring& FilePath, const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch)
+int CProgramManager::AddItemToBranch2(const std::wstring& FilePath, const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch)
 {
 	int MatchCount = 0;
 
@@ -1066,20 +1145,31 @@ bool CProgramManager::AddItemToBranch2(const std::wstring& FilePath, const CProg
 		CProgramListExPtr pSubBranch = std::dynamic_pointer_cast<CProgramListEx>(pNode);
 		if(pSubBranch && pSubBranch->MatchFileName(FilePath))
 		{
-			if (!AddItemToBranch2(FilePath, pItem, pSubBranch)) {
+			int count = AddItemToBranch2(FilePath, pItem, pSubBranch);
+			if (count == 0) {
+				count++;
 				AddProgramToGroup(pItem, pSubBranch);
 				if(CProgramPatternPtr pPattern = std::dynamic_pointer_cast<CProgramPattern>(pItem))
 					TryAddChildren(pSubBranch, pPattern, true);
 			}
-			MatchCount++;
+			MatchCount += count;
+		}
+
+		CProgramGroupPtr pSubGroup = std::dynamic_pointer_cast<CProgramGroup>(pNode);
+		if(pSubGroup)
+		{
+			MatchCount += AddItemToBranch2(FilePath, pItem, pSubGroup);
 		}
 	}
 
-	return MatchCount > 0;
+	return MatchCount;
 }
 
 void CProgramManager::TryAddChildren(const CProgramListPtr& pBranche, const CProgramPatternPtr& pPattern, bool bRemove)
 {
+	if (pBranche == pPattern)
+		return;
+
 	std::unique_lock lock2(pBranche->m_Mutex);
 	for(auto I = pBranche->m_Nodes.begin(); I != pBranche->m_Nodes.end(); )
 	{
@@ -1414,6 +1504,8 @@ STATUS CProgramManager::Load()
 		if (Type == EProgramType::eProgramFile) 
 		{
 			std::wstring FileName = theCore->NormalizePath(IsMap ? Reader.Find(API_S_FILE_PATH) : Reader.Find(API_V_FILE_PATH), false);
+			if(FileName.empty())
+				continue;
 			std::wstring Key = MkLower(FileName);
 			CProgramFilePtr& pFile = m_PathMap[Key];
 			if (!pFile) {
@@ -1455,7 +1547,7 @@ STATUS CProgramManager::Load()
 			}
 			pItem = pService;
 		}
-		else if (Type == EProgramType::eAppPackage)	
+		/*else if (Type == EProgramType::eAppPackage)	
 		{
 			std::wstring AppContainerSid = IsMap ? Reader.Find(API_S_APP_SID) : Reader.Find(API_V_APP_SID);
 			std::wstring Key = MkLower(AppContainerSid);
@@ -1465,7 +1557,7 @@ STATUS CProgramManager::Load()
 				m_Items.insert(std::make_pair(pPackage->GetUID(), pPackage));
 			}
 			pItem = pPackage;
-		}
+		}*/
 		else if (Type == EProgramType::eProgramGroup)
 		{
 			StVariant ID = IsMap ? Reader.Find(API_S_ID) : Reader.Find(API_V_ID);

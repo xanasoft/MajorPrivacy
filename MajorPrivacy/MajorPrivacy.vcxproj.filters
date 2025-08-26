@@ -119,6 +119,9 @@
     <Filter Include="Wizards">
       <UniqueIdentifier>{78dba3c0-d30c-423c-872d-410796d7f2e6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\HashDB">
+      <UniqueIdentifier>{ae7f2b7f-7aa7-4d6e-9b9f-a2afbc0963d9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -484,6 +487,21 @@
     <ClCompile Include="Core\EventLog.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="Core\HashDB\HashDB.cpp">
+      <Filter>Core\HashDB</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\HashDB\HashEntry.cpp">
+      <Filter>Core\HashDB</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\HashDBView.cpp">
+      <Filter>Views\Program</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\HashDBModel.cpp">
+      <Filter>Models\Program</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\HashEntryWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -564,6 +582,9 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="Forms\ScriptWindow.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\HashEntryWnd.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>
@@ -891,6 +912,21 @@
     </QtMoc>
     <QtMoc Include="Core\EventLog.h">
       <Filter>Core</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\HashDB\HashDB.h">
+      <Filter>Core\HashDB</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\HashDB\HashEntry.h">
+      <Filter>Core\HashDB</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\HashDBView.h">
+      <Filter>Views\Program</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\HashDBModel.h">
+      <Filter>Models\Program</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\HashEntryWnd.h">
+      <Filter>Windows</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

@@ -6,6 +6,8 @@
 #include "../Core/Programs/ProgramManager.h"
 #include "../Library/API/PrivacyAPI.h" // todo
 #include "../MiscHelpers/Common/CustomStyles.h"
+#include "../../MiscHelpers/Common/Common.h"
+#include "../../MiscHelpers/Common/OtherFunctions.h"
 
 CFwRuleView::CFwRuleView(QWidget *parent)
 	:CPanelViewEx<CFwRuleModel>(parent)
@@ -14,6 +16,7 @@ CFwRuleView::CFwRuleView(QWidget *parent)
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pTreeView->setStyle(pStyle);
 	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
+	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 	
@@ -73,6 +76,14 @@ CFwRuleView::CFwRuleView(QWidget *parent)
 	m_pBtnEnabled->setMaximumHeight(22);
 	m_pToolBar->addWidget(m_pBtnEnabled);
 
+	m_pBtnHideWin = new QToolButton();
+	m_pBtnHideWin->setIcon(QIcon(QPixmap::fromImage(ImageAddOverlay(QImage(":/Icons/Windows.png"), ":/Icons/Disable.png", 40))));
+	m_pBtnHideWin->setCheckable(true);
+	m_pBtnHideWin->setToolTip(tr("Hide default rules"));
+	m_pBtnHideWin->setMaximumHeight(22);
+	//connect(m_pBtnHideWin, SIGNAL(clicked()), this, SLOT(OnRefresh()));
+	m_pToolBar->addWidget(m_pBtnHideWin);
+
 	m_pToolBar->addSeparator();
 
 	m_pBtnRefresh = new QToolButton();
@@ -114,14 +125,17 @@ void CFwRuleView::Sync(QList<CFwRulePtr> RuleList)
 {
 	m_RuleList = RuleList;
 	bool bHideDisabled = m_pBtnEnabled->isChecked();
+	bool bHideWin = m_pBtnHideWin->isChecked();
 	EFwDirections Dir = (EFwDirections)m_pCmbDir->currentData().toInt();
 	EFwActions Type = (EFwActions)m_pCmbAction->currentData().toInt();
 
-	if (bHideDisabled || Type != EFwActions::Undefined || Dir != EFwDirections::Bidirectional)
+	if (bHideDisabled || bHideWin || Type != EFwActions::Undefined || Dir != EFwDirections::Bidirectional)
 	{
 		for (auto I = RuleList.begin(); I != RuleList.end();)
 		{
-			if (bHideDisabled && !(*I)->IsEnabled())
+			if (bHideWin && (*I)->GetSource() == EFwRuleSource::eWindowsDefault)
+				I = RuleList.erase(I);
+			else if (bHideDisabled && !(*I)->IsEnabled())
 				I = RuleList.erase(I);
 			else if (Dir != EFwDirections::Bidirectional && (*I)->GetDirection() != Dir)
 				I = RuleList.erase(I);

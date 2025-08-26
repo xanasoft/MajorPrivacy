@@ -19,6 +19,8 @@ CProgramFile::CProgramFile(QObject* parent)
 
 QString CProgramFile::GetNameEx() const
 { 
+	QReadLocker Lock(&m_Mutex); 
+
 	auto PathName = Split2(m_Path, "\\", true);
 	QString FileName = PathName.second.isEmpty() ? m_Path : PathName.second;
 	if(m_Name.isEmpty())
@@ -33,11 +35,14 @@ QString CProgramFile::GetPublisher() const
 
 QMultiMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
 {
+	QReadLocker Lock(&m_Mutex); 
 	if (m_LibrariesChanged)
 	{
+		Lock.unlock();
 		auto Res = theCore->GetLibraryStats(m_ID);
 		if (!Res.IsError())
 		{
+			QWriteLocker WriteLock(&m_Mutex);
 			m_Libraries.clear();
 			m_LibrariesChanged = false;
 
@@ -55,6 +60,7 @@ QMultiMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
 				m_Libraries.insert(LibraryRef, Info);
 			});
 		}
+		Lock.relock();
 	}
 
 	return m_Libraries;
@@ -62,11 +68,14 @@ QMultiMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
 
 QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 {
+	QReadLocker Lock(&m_Mutex);
 	if (m_ExecChanged)
 	{
+		Lock.unlock();
 		auto Res = theCore->GetExecStats(m_ID);
 		if (!Res.IsError())
 		{
+			QWriteLocker WriteLock(&m_Mutex);
 			m_ExecStats.clear();
 			m_ExecChanged = false;
 
@@ -119,6 +128,7 @@ QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 			});	
 
 		}
+		Lock.relock();
 	}
 
 	return m_ExecStats;
@@ -126,11 +136,14 @@ QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 
 QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 {
+	QReadLocker Lock(&m_Mutex);
 	if(m_IngressChanged)
 	{
+		Lock.unlock();
 		auto Res = theCore->GetIngressStats(m_ID);
 		if (!Res.IsError())
 		{
+			QWriteLocker WriteLock(&m_Mutex);
 			m_Ingress.clear();
 			m_IngressChanged = false;
 
@@ -184,15 +197,14 @@ QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 				m_Ingress[Ref] = Info;
 			});
 		}
+		Lock.relock();
 	}	
 
 	return m_Ingress;
 }
 
 void CProgramFile::TraceLogAdd(ETraceLogs Log, const CLogEntryPtr& pEntry, quint64 Index)
-{ 
-	STraceLogList* pLog = &m_Logs[(int)Log];
-
+{
 	if (Log == ETraceLogs::eResLog)
 	{
 		CWindowsServicePtr pActorService = GetService(pEntry->GetOwnerService());
@@ -216,6 +228,10 @@ void CProgramFile::TraceLogAdd(ETraceLogs Log, const CLogEntryPtr& pEntry, quint
 		}
 	}
 
+	QWriteLocker Lock(&m_Mutex);
+
+	STraceLogList* pLog = &m_Logs[(int)Log];
+
 	// dispose of unwatched logs
 	if (GetCurTick() - pLog->LastGetLog > 60 * 1000) { // 60 sec
 		if (!pLog->Entries.isEmpty()) {
@@ -237,54 +253,58 @@ void CProgramFile::TraceLogAdd(ETraceLogs Log, const CLogEntryPtr& pEntry, quint
 
 STraceLogList* CProgramFile::GetTraceLog(ETraceLogs Log)
 { 
+	QReadLocker Lock(&m_Mutex); 
 	STraceLogList* pLog = &m_Logs[(int)Log];
 
 	pLog->LastGetLog = GetCurTick();
 
 	if (pLog->MissingCount)
 	{
+		Lock.unlock();
 		auto Ret  = theCore->GetTraceLog(m_ID, Log);
-		if (Ret.IsError())
-			return pLog;
-		
-		pLog->Entries.clear();
-		pLog->MissingCount = 0;
-		QtVariant& LogData = Ret.GetValue();
-		QtVariant Entries = LogData.Get(API_V_LOG_DATA);
-		pLog->IndexOffset = LogData.Get(API_V_LOG_OFFSET).To<uint64>(0);
-
-		switch (Log)
+		if (!Ret.IsError())
 		{
-		case ETraceLogs::eNetLog:
-			QtVariantReader(Entries).ReadRawList([&](const FW::CVariant& vData) {
-				const QtVariant& Entry = *(QtVariant*)&vData;
+			QWriteLocker WriteLock(&m_Mutex);
+			pLog->Entries.clear();
+			pLog->MissingCount = 0;
+			QtVariant& LogData = Ret.GetValue();
+			QtVariant Entries = LogData.Get(API_V_LOG_DATA);
+			pLog->IndexOffset = LogData.Get(API_V_LOG_OFFSET).To<uint64>(0);
 
-				CLogEntryPtr pEntry = CLogEntryPtr(new CNetLogEntry());
-				pEntry->FromVariant(Entry);
-				pLog->Entries.append(pEntry);
-			});
-			break;
+			switch (Log)
+			{
+			case ETraceLogs::eNetLog:
+				QtVariantReader(Entries).ReadRawList([&](const FW::CVariant& vData) {
+					const QtVariant& Entry = *(QtVariant*)&vData;
 
-		case ETraceLogs::eExecLog:
-			QtVariantReader(Entries).ReadRawList([&](const FW::CVariant& vData) {
-				const QtVariant& Entry = *(QtVariant*)&vData;
+					CLogEntryPtr pEntry = CLogEntryPtr(new CNetLogEntry());
+					pEntry->FromVariant(Entry);
+					pLog->Entries.append(pEntry);
+					});
+				break;
 
-				CLogEntryPtr pEntry = CLogEntryPtr(new CExecLogEntry());
-				pEntry->FromVariant(Entry);
-				pLog->Entries.append(pEntry);
-			});
-			break;
+			case ETraceLogs::eExecLog:
+				QtVariantReader(Entries).ReadRawList([&](const FW::CVariant& vData) {
+					const QtVariant& Entry = *(QtVariant*)&vData;
 
-		case ETraceLogs::eResLog:
-			QtVariantReader(Entries).ReadRawList([&](const FW::CVariant& vData) {
-				const QtVariant& Entry = *(QtVariant*)&vData;
+					CLogEntryPtr pEntry = CLogEntryPtr(new CExecLogEntry());
+					pEntry->FromVariant(Entry);
+					pLog->Entries.append(pEntry);
+					});
+				break;
 
-				CLogEntryPtr pEntry = CLogEntryPtr(new CResLogEntry());
-				pEntry->FromVariant(Entry);
-				pLog->Entries.append(pEntry);
-			});
-			break;
+			case ETraceLogs::eResLog:
+				QtVariantReader(Entries).ReadRawList([&](const FW::CVariant& vData) {
+					const QtVariant& Entry = *(QtVariant*)&vData;
+
+					CLogEntryPtr pEntry = CLogEntryPtr(new CResLogEntry());
+					pEntry->FromVariant(Entry);
+					pLog->Entries.append(pEntry);
+					});
+				break;
+			}
 		}
+		Lock.relock();
 	}
 
 	return pLog;
@@ -292,6 +312,7 @@ STraceLogList* CProgramFile::GetTraceLog(ETraceLogs Log)
 
 void CProgramFile::ClearTraceLog(ETraceLogs Log)
 {
+	QWriteLocker Lock(&m_Mutex);
 	if (Log == ETraceLogs::eLogMax) 
 	{
 		for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
@@ -315,6 +336,7 @@ void CProgramFile::ClearTraceLog(ETraceLogs Log)
 
 void CProgramFile::ClearProcessLogs()
 {
+	QWriteLocker Lock(&m_Mutex);
 	m_ExecStats.clear();
 	m_ExecChanged = true;
 
@@ -322,32 +344,24 @@ void CProgramFile::ClearProcessLogs()
 	m_IngressChanged = true;
 }
 
-void CProgramFile::ClearLogs(ETraceLogs Log)
-{
-	ClearTraceLog(Log);
-
-	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
-		ClearAccessLog();
-	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eExecLog)
-		ClearProcessLogs();
-	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
-		ClearTrafficLog();
-}
-
 void CProgramFile::ClearAccessLog()
 {
+	QWriteLocker Lock(&m_Mutex);
 	m_AccessStats.clear();
 	m_AccessLastActivity = 0;
 }
 
 void CProgramFile::ClearTrafficLog()
 {
+	QWriteLocker Lock(&m_Mutex);
 	m_TrafficLog.clear();
+	m_Unresolved.clear();
 	m_TrafficLogLastActivity = 0;
 }
 
 void CProgramFile::CountStats()
 {
+	QWriteLocker Lock(&m_Mutex);
 	m_Stats.ServicesCount = m_Nodes.count(); // a CProgramFile can only have CWindowsService nodes
 
 	m_Stats.LastExecution = m_LastExec;
@@ -356,6 +370,7 @@ void CProgramFile::CountStats()
 
 	m_Stats.ResRuleTotal = m_Stats.ResRuleCount = m_ResRuleIDs.count();
 	m_Stats.AccessCount = m_AccessCount;
+	m_Stats.HandleCount = m_HandleCount;
 
 	m_Stats.FwRuleTotal = m_Stats.FwRuleCount = m_FwRuleIDs.count();
 	m_Stats.SocketCount = m_SocketRefs.count();
@@ -376,6 +391,7 @@ void CProgramFile::CountStats()
 QMap<quint64, SAccessStatsPtr> CProgramFile::GetAccessStats()
 {
 	auto Res = theCore->GetAccessStats(m_ID, m_AccessLastActivity);
+	QWriteLocker Lock(&m_Mutex);
 	if (!Res.IsError()) {
 		QtVariant Root = Res.GetValue();
 //#ifdef _DEBUG
@@ -390,11 +406,12 @@ QMap<quint64, SAccessStatsPtr> CProgramFile::GetAccessStats()
 	return m_AccessStats;
 }
 
-QMap<QString, CTrafficEntryPtr>	CProgramFile::GetTrafficLog()
+QHash<QString, CTrafficEntryPtr> CProgramFile::GetTrafficLog()
 {
 	auto Res = theCore->GetTrafficLog(m_ID, m_TrafficLogLastActivity);
+	QWriteLocker Lock(&m_Mutex);
 	if (!Res.IsError())
-		m_TrafficLogLastActivity = CTrafficEntry__LoadList(m_TrafficLog, Res.GetValue());
+		m_TrafficLogLastActivity = CTrafficEntry__LoadList(m_TrafficLog, m_Unresolved, Res.GetValue());
 	return m_TrafficLog;
 }
 
@@ -440,60 +457,79 @@ QMap<QString, CTrafficEntryPtr>	CProgramFile::GetTrafficLog()
 #define MINCRYPT_POLICY_TEST_WIN81_ROOT   0x1000
 #define MINCRYPT_POLICY_OTHER_ROOT        0x2000
 
-QString CProgramFile::GetSignatureInfoStr(UCISignInfo SignInfo)
+QString CProgramFile::GetSignatureInfoStr(const CImageSignInfo& SignInfo)
 {
-	QString Str = CEnclave::GetSignatureLevelStr((KPH_VERIFY_AUTHORITY)SignInfo.Authority);
+	QStringList Signs;
+	if(SignInfo.m_Signatures.Developer)
+		Signs += tr("Developer Signed");
+	else if(SignInfo.m_Signatures.User)
+		Signs += tr("User Signed");
 
-	switch (SignInfo.Level) {
-	case SE_SIGNING_LEVEL_UNSIGNED:			Str += tr(" (CI: Level 0)"); break;
-	case SE_SIGNING_LEVEL_ENTERPRISE:		Str += tr(" (CI: Enterprise)"); break;
-	case SE_SIGNING_LEVEL_DEVELOPER:		Str += tr(" (CI: Developer)"); break;
-	case SE_SIGNING_LEVEL_AUTHENTICODE:		Str += tr(" (CI: Authenticode)"); break;
-	case SE_SIGNING_LEVEL_CUSTOM_2:			Str += tr(" (CI: Level 2)"); break;
-	case SE_SIGNING_LEVEL_STORE:			Str += tr(" (CI: Store)"); break;
-	case SE_SIGNING_LEVEL_ANTIMALWARE:		Str += tr(" (CI: Antimalware)"); break;
-	case SE_SIGNING_LEVEL_MICROSOFT:		Str += tr(" (CI: Microsoft)"); break;
-	case SE_SIGNING_LEVEL_CUSTOM_4:			Str += tr(" (CI: Level 4)"); break;
-	case SE_SIGNING_LEVEL_CUSTOM_5:			Str += tr(" (CI: Level 5)"); break;
-	case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:	Str += tr(" (CI: Code Gen.)"); break;
-	case SE_SIGNING_LEVEL_WINDOWS:			Str += tr(" (CI: Windows)"); break;
-	case SE_SIGNING_LEVEL_CUSTOM_7:			Str += tr(" (CI: Level 7)"); break;
-	case SE_SIGNING_LEVEL_WINDOWS_TCB:		Str += tr(" (CI: Windows TCB)"); break;
-	case SE_SIGNING_LEVEL_CUSTOM_6:			Str += tr(" (CI: Level 6)"); break;
-	}
+	//if (SignInfo.m_HashStatus == EHashStatus::eHashFail)
+	//	Signs.append(tr("Embedded Signature INVALID"));
 
-	if (SignInfo.Policy) 
+	if (SignInfo.m_SignPolicyBits) 
 	{
 		QStringList Policy;
-		if (SignInfo.Policy & MINCRYPT_POLICY_NO_ROOT)				Policy += tr("None"); // self signed
-		if (SignInfo.Policy & MINCRYPT_POLICY_MICROSOFT_ROOT)		Policy += tr("Microsoft");
-		if (SignInfo.Policy & MINCRYPT_POLICY_TEST_ROOT)			Policy += tr("Test");
-		if (SignInfo.Policy & MINCRYPT_POLICY_CODE_ROOT)			Policy += tr("Code");
-		if (SignInfo.Policy & MINCRYPT_POLICY_UNKNOWN_ROOT)			Policy += tr("Unknown");
-		if (SignInfo.Policy & MINCRYPT_POLICY_DMD_ROOT)				Policy += tr("DMD");
-		if (SignInfo.Policy & MINCRYPT_POLICY_DMD_TEST_ROOT)		Policy += tr("DMD Test");
-		if (SignInfo.Policy & MINCRYPT_POLICY_3RD_PARTY_ROOT)		Policy += tr("3rd Party");
-		if (SignInfo.Policy & MINCRYPT_POLICY_TRUSTED_BOOT_ROOT)	Policy += tr("Trusted Boot");
-		if (SignInfo.Policy & MINCRYPT_POLICY_UEFI_ROOT)			Policy += tr("UEFI");
-		if (SignInfo.Policy & MINCRYPT_POLICY_FLIGHT_ROOT)			Policy += tr("Flight");
-		//if (SignInfo.Policy & MINCRYPT_POLICY_PRS_WIN81_ROOT)		Policy += tr("PRS Win81");
-		//if (SignInfo.Policy & MINCRYPT_POLICY_TEST_WIN81_ROOT)		Policy += tr("Test Win81");
-		if (SignInfo.Policy & MINCRYPT_POLICY_OTHER_ROOT)			Policy += tr("Other");
 
-		if(SignInfo.Policy & 0xFFFF0000)
-			Policy += tr("Error: %1").arg(SignInfo.Policy >> 16);
+		// 8 bit
+		if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_NO_ROOT)			Policy += tr("NONE"); // self signed
+		if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_MICROSOFT_ROOT)		Policy += tr("Microsoft");
+		if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_TEST_ROOT)			Policy += tr("Test");
+		if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_CODE_ROOT)			Policy += tr("Code");
+		if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_UNKNOWN_ROOT)		Policy += tr("UNKNOWN");
+		if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_DMD_ROOT)			Policy += tr("DMD");
+		if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_DMD_TEST_ROOT)		Policy += tr("DMD Test");
+		if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_3RD_PARTY_ROOT)		Policy += tr("3rd Party");
+
+		// 16 bit
+		//if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_TRUSTED_BOOT_ROOT)	Policy += tr("Trusted Boot");
+		//if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_UEFI_ROOT)			Policy += tr("UEFI");
+		//if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_FLIGHT_ROOT)		Policy += tr("Flight");
+		//if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_PRS_WIN81_ROOT)		Policy += tr("PRS Win81");
+		//if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_TEST_WIN81_ROOT)	Policy += tr("Test Win81");
+		if (SignInfo.m_SignPolicyBits & MINCRYPT_POLICY_OTHER_ROOT)			Policy += tr("Other");
 
 		if(Policy.size() == 1)
-			Str += tr(" (Root: %1)").arg(Policy[0]);
+			Signs += tr("Root: %1").arg(Policy[0]);
 		else if(Policy.size() > 1)
-			Str += tr(" (Roots: %1)").arg(Policy.join(", "));
+			Signs += tr("Roots: %1").arg(Policy.join(", "));
+
+#ifdef _DEBUG
+		// 32 bit
+		if (SignInfo.m_SignPolicyBits & 0xFFFF0000)							Signs += tr(" (Error: %1)").arg(SignInfo.m_SignPolicyBits >> 16);
+#endif
 	}
 
-	return Str;
+	// 4 bit
+	switch (SignInfo.m_SignLevel) { 
+	case SE_SIGNING_LEVEL_UNSIGNED:			Signs += tr("CI: Level 0"); break;
+	case SE_SIGNING_LEVEL_ENTERPRISE:		Signs += tr("CI: Enterprise"); break;
+	case SE_SIGNING_LEVEL_DEVELOPER:		Signs += tr("CI: Developer"); break;
+	case SE_SIGNING_LEVEL_AUTHENTICODE:		Signs += tr("CI: Authenticode"); break;	// CAUTION: this ine is also true for self-signed images
+	case SE_SIGNING_LEVEL_CUSTOM_2:			Signs += tr("CI: Level 2"); break;
+	case SE_SIGNING_LEVEL_STORE:			Signs += tr("CI: Store"); break;
+	case SE_SIGNING_LEVEL_ANTIMALWARE:		Signs += tr("CI: Antimalware"); break;
+	case SE_SIGNING_LEVEL_MICROSOFT:		Signs += tr("CI: Microsoft"); break;
+	case SE_SIGNING_LEVEL_CUSTOM_4:			Signs += tr("CI: Level 4"); break;
+	case SE_SIGNING_LEVEL_CUSTOM_5:			Signs += tr("CI: Level 5"); break;
+	case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:	Signs += tr("CI: Code Gen."); break;
+	case SE_SIGNING_LEVEL_WINDOWS:			Signs += tr("CI: Windows"); break;
+	case SE_SIGNING_LEVEL_CUSTOM_7:			Signs += tr("CI: Level 7"); break;
+	case SE_SIGNING_LEVEL_WINDOWS_TCB:		Signs += tr("CI: Windows TCB"); break;
+	case SE_SIGNING_LEVEL_CUSTOM_6:			Signs += tr("CI: Level 6"); break;
+	}
+
+	if (SignInfo.m_StatusFlags & MP_VERIFY_FLAG_COHERENCY_FAIL)
+		Signs.prepend(tr("Image INCOCHERENT"));
+
+	return Signs.join(" | ");
 }
 
 QSharedPointer<class CWindowsService> CProgramFile::GetService(const QString& SvcTag) const
 {
+	QReadLocker Lock(&m_Mutex); 
+
 	for (auto pNode : m_Nodes) {
 		CWindowsServicePtr pSvc = pNode.objectCast<CWindowsService>();
 		if (pSvc && pSvc->GetServiceTag() == SvcTag)

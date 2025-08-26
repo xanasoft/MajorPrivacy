@@ -4,6 +4,7 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/AppUtil.h"
 #include "../Core/PrivacyCore.h"
+#include "../Core/HashDB/HashDB.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../MiscHelpers/Common/OtherFunctions.h"
 #include "../Windows/AccessRuleWnd.h"
@@ -26,13 +27,13 @@ QList<QModelIndex> CLibraryModel::Sync(const QMap<SLibraryKey, SLibraryItemPtr>&
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	for(auto X = List.begin(); X != List.end(); ++X)
 	{
-		QVariant ID = QString("%1_%2").arg(X.key().first).arg(X.key().second);
+		QVariant ID = X.value()->ID;
 
 		QModelIndex Index;
 
@@ -47,7 +48,7 @@ QList<QModelIndex> CLibraryModel::Sync(const QMap<SLibraryKey, SLibraryItemPtr>&
 			if(pNode->pItem->Parent.isValid())
 				Path.append(pNode->pItem->Parent);
 			pNode->Path = Path;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{
@@ -58,12 +59,17 @@ QList<QModelIndex> CLibraryModel::Sync(const QMap<SLibraryKey, SLibraryItemPtr>&
 		//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
 
-		UCISignInfo SignAuth = pNode->pItem->pLibrary ? pNode->pItem->Info.SignInfo.GetInfo() : pNode->pItem->pProg->GetSignInfo().GetInfo();
-		//bool IsSigned = SignAuth.Authority >= KphUserAuthority;
-		//if (!IsSigned)
-		bool IsSignedFile = theCore->HasFileSignature(pNode->pItem->pLibrary ? pNode->pItem->pLibrary->GetPath() : pNode->pItem->pProg->GetPath());
-		bool IsSignedCert = theCore->HasCertSignature(pNode->pItem->pLibrary ? pNode->pItem->Info.SignInfo.GetSignerName() : pNode->pItem->pProg->GetSignInfo().GetSignerName()
-			, pNode->pItem->pLibrary ? pNode->pItem->Info.SignInfo.GetSignerHash() : pNode->pItem->pProg->GetSignInfo().GetSignerHash());
+		CImageSignInfo SignInfo = pNode->pItem->pLibrary ? pNode->pItem->Info.SignInfo : pNode->pItem->pProg->GetSignInfo();
+
+		bool IsSignedFile = !!theCore->HashDB()->GetHash(SignInfo.GetFileHash(), false);
+		bool IsSignedCert = !!theCore->HashDB()->GetHash(SignInfo.GetSignerHash(), false) || !!theCore->HashDB()->GetHash(SignInfo.GetIssuerHash(), false);
+		//if (pNode->pItem->pLibrary) {
+			//IsSignedFile = theCore->HasFileSignature(pNode->pItem->pLibrary->GetPath(), SignInfo.GetFileHash());
+			//IsSignedCert = theCore->HasCertSignature(SignInfo.GetSignerName(), SignInfo.GetSignerHash());	
+		//} else {
+			//IsSignedFile = theCore->HasFileSignature(pNode->pItem->pProg->GetPath(), pNode->pItem->pProg->GetSignInfo().GetFileHash());
+			//IsSignedCert = theCore->HasCertSignature(pNode->pItem->pProg->GetSignInfo().GetSignerName(), pNode->pItem->pProg->GetSignInfo().GetSignerHash());
+		//}
 
 		int Col = 0;
 		bool State = false;
@@ -99,11 +105,12 @@ QList<QModelIndex> CLibraryModel::Sync(const QMap<SLibraryKey, SLibraryItemPtr>&
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = QString(""); break; // no name update
-			case eTrustLevel:		Value = SignAuth.Data; break;
+			case eName:				Value = pNode->pItem->pLibrary ? pNode->pItem->pLibrary->GetPath() : pNode->pItem->pProg->GetPath(); break;
+			case eTrustLevel:		Value = SignInfo.GetUnion(); break;
 			case eStatus:			Value = pNode->pItem->pLibrary ? (uint32)pNode->pItem->Info.LastStatus : -1; break;
 			case eLastLoadTime:		Value = pNode->pItem->pLibrary ? pNode->pItem->Info.LastLoadTime : 0; break;
 			case eNumber:			Value = pNode->pItem->pLibrary ? pNode->pItem->Info.TotalLoadCount : pNode->pItem->Count; break;
+			case eHash:				Value = pNode->pItem->pLibrary ? pNode->pItem->Info.SignInfo.GetFileHash() : pNode->pItem->pProg->GetSignInfo().GetFileHash(); break;
 			//case eSigner:			Value = pNode->pItem->pLibrary ? QByteArray((char*)pNode->pItem->Info.SignerHash.data(), pNode->pItem->Info.SignerHash.size()) : pNode->pItem->pProg->GetSignerHash(); break;
 			case eSigner:			Value = pNode->pItem->pLibrary ? pNode->pItem->Info.SignInfo.GetSignerName() : pNode->pItem->pProg->GetSignInfo().GetSignerName(); break;
 			case eModule:			Value = pNode->pItem->pLibrary ? pNode->pItem->pLibrary->GetPath() : pNode->pItem->pProg->GetPath(); break;
@@ -120,44 +127,25 @@ QList<QModelIndex> CLibraryModel::Sync(const QMap<SLibraryKey, SLibraryItemPtr>&
 				switch (section)
 				{
 				case eName:				ColValue.Formatted = pNode->pItem->pLibrary ? pNode->pItem->pLibrary->GetName() : pNode->pItem->pProg->GetNameEx(); break;
-				case eTrustLevel:		ColValue.Formatted = CProgramFile::GetSignatureInfoStr(UCISignInfo{Value.toULongLong()}); 
+				case eTrustLevel:		ColValue.Formatted = CProgramFile::GetSignatureInfoStr(SignInfo); 
+					if (SignInfo.IsComplete())
 					{
-						UCISignInfo SignAuth;
-						SignAuth.Data = pNode->Values[section].Raw.toULongLong();
-						switch (SignAuth.Authority)
-						{
-						case KphUntestedAuthority:
-							break;
-						case KphNoAuthority:
-						case KphUnkAuthority:
-							ColValue.Color = QColor(255, 182, 193); // light red
-							break;
-							// 3
-							// 4
-						case KphMsCodeAuthority:
-							// dase KphStoreAuthority:
-							ColValue.Color = QColor(255, 255, 224); // light yellow
-							break;
-							// 7
-						case KphAvAuthority:
-						case KphMsAuthority:
-							ColValue.Color =  QColor(173, 216, 230); // light blue
-							break;
-							// 10
-							// 11
-							// 12
-							// 13
-						case KphUserAuthority:
-						case KphDevAuthority:
+						auto Signs = SignInfo.GetSignatures();
+						if (Signs.User || Signs.Developer)
 							ColValue.Color = QColor(144, 238, 144); // light green
-							break;
-						}
+						else if (Signs.Windows || Signs.Antimalware || Signs.Microsoft)
+							ColValue.Color = QColor(173, 216, 230); // light blue
+						else if (Signs.Authenticode || Signs.Store)
+							ColValue.Color = QColor(255, 255, 224); // light yellow
+						else
+							ColValue.Color = QColor(255, 182, 193); // light red
 					}
 					break;
 				case eStatus:			ColValue.Formatted = Value.toUInt() != -1 ? CAccessRuleWnd::GetStatusStr((EEventStatus)Value.toUInt()) : ""; 
 										ColValue.Color = Value.toUInt() != -1 ? CAccessRuleWnd::GetStatusColor((EEventStatus)Value.toUInt()) : QVariant();
 										break;
 				case eLastLoadTime:		ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(FILETIME2ms(Value.toULongLong())).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
+				case eHash:				ColValue.Formatted = Value.toByteArray().toHex().toUpper(); break;
 				//case eSigner:			ColValue.Formatted = Value.toByteArray().toHex().toUpper(); break;
 				}
 			}
@@ -213,7 +201,7 @@ QVariant CLibraryModel::NodeData(STreeNode* pNode, int role, int section) const
 	case Qt::ForegroundRole:
 		if (section == eSigner)
 		{
-			bool NotOK = (pLibNode->pItem->pLibrary ? pLibNode->pItem->Info.SignInfo.GetHashStatus() : pLibNode->pItem->pProg->GetSignInfo().GetHashStatus()) != EHashStatus::eHashOk;
+			bool NotOK = !(pLibNode->pItem->pLibrary ? pLibNode->pItem->Info.SignInfo.IsComplete() : pLibNode->pItem->pProg->GetSignInfo().IsComplete());
 			return NotOK ? QColor(192, 192, 192) : QVariant();
 		}
 		break;
@@ -256,6 +244,7 @@ QVariant CLibraryModel::headerData(int section, Qt::Orientation orientation, int
 		case eStatus:				return tr("Last Status");
 		case eLastLoadTime:			return tr("Last Load");
 		case eNumber:				return tr("Count");
+		case eHash:					return tr("File Hash");
 		case eSigner:				return tr("Signing Certificate");
 		case eModule:				return tr("Module");
 		}

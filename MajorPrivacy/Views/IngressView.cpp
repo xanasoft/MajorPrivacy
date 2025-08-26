@@ -14,6 +14,7 @@ CIngressView::CIngressView(QWidget *parent)
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pTreeView->setStyle(pStyle);
 	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
+	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 
@@ -59,6 +60,7 @@ CIngressView::CIngressView(QWidget *parent)
 	m_pBtnPrivate->setCheckable(true);
 	m_pBtnPrivate->setToolTip(tr("Show Private Entries"));
 	m_pBtnPrivate->setMaximumHeight(22);
+	connect(m_pBtnPrivate, SIGNAL(clicked()), this, SLOT(OnRefresh()));
 	m_pToolBar->addWidget(m_pBtnPrivate);
 
 	m_pBtnAll = new QToolButton();
@@ -66,7 +68,33 @@ CIngressView::CIngressView(QWidget *parent)
 	m_pBtnAll->setCheckable(true);
 	m_pBtnAll->setToolTip(tr("Show entries per UPID"));
 	m_pBtnAll->setMaximumHeight(22);
+	connect(m_pBtnAll, SIGNAL(clicked()), this, SLOT(OnRefresh()));
 	m_pToolBar->addWidget(m_pBtnAll);
+
+	m_pToolBar->addSeparator();
+
+	m_pBtnHold = new QToolButton();
+	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
+	m_pBtnHold->setCheckable(true);
+	m_pBtnHold->setToolTip(tr("Hold updates"));
+	m_pBtnHold->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnHold);
+
+	m_pBtnRefresh = new QToolButton();
+	m_pBtnRefresh->setIcon(QIcon(":/Icons/Refresh.png"));
+	m_pBtnRefresh->setToolTip(tr("Reload"));
+	m_pBtnRefresh->setFixedHeight(22);
+	m_pBtnRefresh->setShortcut(QKeySequence::fromString("F5"));
+	connect(m_pBtnRefresh, SIGNAL(clicked()), this, SLOT(OnRefresh()));
+	m_pToolBar->addWidget(m_pBtnRefresh);
+
+	m_pToolBar->addSeparator();
+	m_pBtnClear = new QToolButton();
+	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
+	m_pBtnClear->setToolTip(tr("Clear Records"));
+	m_pBtnClear->setFixedHeight(22);
+	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearRecords()));
+	m_pToolBar->addWidget(m_pBtnClear);
 
 	m_pToolBar->addSeparator();
 	m_pBtnExpand = new QToolButton();
@@ -101,13 +129,18 @@ CIngressView::~CIngressView()
 	theConf->SetBlob("MainWindow/IngressView_Columns", m_pTreeView->saveState());
 }
 
+void CIngressView::OnRefresh()
+{
+	m_FullRefresh = true;
+}
+
 void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QFlexGuid& EnclaveGuid)
 {
 	qint32 FilterRole = m_pCmbRole->currentData().toInt();
 	qint32 FilterAction = m_pCmbAction->currentData().toInt();
 	qint32 FilterOperation = m_pCmbOperation->currentData().toInt();
 
-	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_CurServices != Services 
+	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_CurServices != Services || m_FullRefresh
 	 || m_FilterRole != FilterRole 
 	 || m_FilterAction != FilterAction 
 	 || m_FilterOperation != FilterOperation
@@ -119,11 +152,14 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		m_CurServices = Services;
 		m_CurEnclaveGuid = EnclaveGuid;
 		m_RecentLimit = theGUI->GetRecentLimit();
-		m_ParentMap.clear();
 		m_IngressMap.clear();
 		m_pTreeView->collapseAll();
 		m_pItemModel->Clear();
+		m_FullRefresh = false;
+		m_RefreshCount++;
 	}
+	else if(m_pBtnHold->isChecked() /*&& !theGUI->m_IgnoreHold*/)
+		return;
 
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
@@ -138,12 +174,12 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 	std::function<void(const CProgramFilePtr&, const CProgramFilePtr&, const CProgramFile::SIngressInfo&)> AddEntry = 
 		[&](const CProgramFilePtr& pProg1, const CProgramFilePtr& pProg2, const CProgramFile::SIngressInfo& Info) {
 
-		SIngressItemPtr& pItem = m_ParentMap[qMakePair((uint64)pProg1.get(), 0)];
+		SIngressItemPtr& pItem = m_IngressMap[qMakePair((uint64)pProg1.get(), 0)];
 		if(pItem.isNull())
 		{
 			pItem = SIngressItemPtr(new SIngressItem());
+			pItem->ID = QString("%1_%2").arg((uint64)pProg1.get()).arg(0);
 			pItem->pProg1 = pProg1;
-			m_IngressMap.insert(qMakePair((uint64)pProg1.get(), 0), pItem);
 		}
 		else
 			OldMap.remove(qMakePair((uint64)pProg1.get(), 0));
@@ -156,16 +192,17 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 				SubID |= 0x8000000000000000;
 		}
 		//SIngressItemPtr pSubItem = OldMap.take(qMakePair((uint64)pProg1.get(), (uint64)pProg2.get()));
-		SIngressItemPtr pSubItem = OldMap.take(qMakePair((uint64)pProg1.get(), SubID));
-		if (!pSubItem) {
+		SIngressItemPtr& pSubItem = m_IngressMap[qMakePair((uint64)pProg1.get(), SubID)];
+		if (pSubItem.isNull()) {
 			pSubItem = SIngressItemPtr(new SIngressItem());
+			pSubItem->ID = QString("%1_%2").arg((uint64)pProg1.get()).arg(SubID);
 			pSubItem->pProg2 = pProg2;
 			pSubItem->Parent = QString("%1_%2").arg((uint64)pProg1.get()).arg(0);
 			//m_IngressMap.insert(qMakePair((uint64)pProg1.get(), (uint64)pProg2.get()), pSubItem);
-			m_IngressMap.insert(qMakePair((uint64)pProg1.get(), SubID), pSubItem);
 			pSubItem->Info = Info;
 		}
 		else {
+			OldMap.remove(qMakePair((uint64)pProg1.get(), SubID));
 			if (pSubItem->Info.LastAccessTime < Info.LastAccessTime)
 				pSubItem->Info.LastAccessTime = Info.LastAccessTime;
 			pSubItem->Info.ProcessAccessMask |= Info.ProcessAccessMask;
@@ -201,7 +238,15 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		return true;
 	};
 
+	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Programs.count() + Services.count());
+
 	foreach(const CProgramFilePtr & pProgram, Programs) {
+
+		if (!ProgressHelper.Next(pProgram->GetName())) {
+			m_pBtnHold->setChecked(true);
+			break;
+		}
+
 		QMap<quint64, CProgramFile::SIngressInfo> Log = pProgram->GetIngressStats();
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			if (!FilterEntry(I.value()))
@@ -214,6 +259,12 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		}
 	}
 	foreach(const CWindowsServicePtr& pService, Services) {
+
+		if (!ProgressHelper.Next(pService->GetName())) {
+			m_pBtnHold->setChecked(true);
+			break;
+		}
+
 		QMap<quint64, CProgramFile::SIngressInfo> Log = pService->GetIngressStats();
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			if (!FilterEntry(I.value()))
@@ -226,20 +277,28 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		}
 	}
 
-	foreach(SIngressKey Key, OldMap.keys()) {
-		SIngressItemPtr pOld = m_IngressMap.take(Key);
-		if(!pOld.isNull())
-			m_ParentMap.remove(qMakePair(pOld->Parent.toULongLong(), 0));
-	}
+	if (ProgressHelper.Done()) {
+		if (/*!theGUI->m_IgnoreHold &&*/ ++m_SlowCount == 3) {
+			m_SlowCount = 0;
+			m_pBtnHold->setChecked(true);
+		}
+	} else
+		m_SlowCount = 0;
+
+	foreach(SIngressKey Key, OldMap.keys())
+		m_IngressMap.remove(Key);
 
 	QList<QModelIndex> Added = m_pItemModel->Sync(m_IngressMap);
 
 	if (m_pBtnExpand->isChecked()) 
 	{
-		QTimer::singleShot(10, this, [this, Added]() {
+		int CurCount = m_RefreshCount;
+		QTimer::singleShot(10, this, [this, Added, CurCount]() {
+			if(CurCount != m_RefreshCount)
+				return; // ignore if refresh was called again
 			foreach(const QModelIndex & Index, Added)
 				m_pTreeView->expand(m_pSortProxy->mapFromSource(Index));
-			});
+		});
 	}
 }
 
@@ -258,5 +317,32 @@ void CIngressView::OnCleanUpDone()
 	// refresh
 	m_CurPrograms.clear();
 	m_CurServices.clear();
+	m_FullRefresh = true;
+}
+
+void CIngressView::OnClearRecords()
+{
+	auto Current = theGUI->GetCurrentItems();
+
+	if (Current.bAllPrograms)
+	{
+		if (QMessageBox::warning(this, "MajorPrivacy", tr("Are you sure you want to clear the all Execution and Ingress records for ALL program items?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+			return;
+
+		theCore->ClearRecords(ETraceLogs::eExecLog);
+	}
+	else
+	{
+		if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the all Execution and Ingress records for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+			return;
+
+		foreach(CProgramFilePtr pProgram, Current.ProgramsEx | Current.ProgramsIm)
+			theCore->ClearRecords(ETraceLogs::eExecLog, pProgram);
+
+		foreach(CWindowsServicePtr pService, Current.ServicesEx | Current.ServicesIm)
+			theCore->ClearRecords(ETraceLogs::eExecLog, pService);
+	}
+
+	OnCleanUpDone();
 }
 

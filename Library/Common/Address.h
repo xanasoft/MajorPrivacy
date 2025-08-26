@@ -34,6 +34,7 @@ public:
 
 	bool			Convert(EAF eAF);
 	bool			IsMappedIPv4() const;
+	bool			IsLocalHost() const;
 
 	void			FromSA(const struct sockaddr* sa, int sa_len, uint16* pPort = NULL) ;
 	void			ToSA(struct sockaddr* sa, int *sa_len, uint16 uPort = 0) const;

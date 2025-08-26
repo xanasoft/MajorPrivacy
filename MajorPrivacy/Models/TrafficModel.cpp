@@ -23,7 +23,7 @@ QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& Lis
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -48,7 +48,7 @@ QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& Lis
 			if(pNode->pItem->Parent.isValid())
 				Path.append(pNode->pItem->Parent);
 			pNode->Path = Path;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{
@@ -93,7 +93,7 @@ QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& Lis
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = QString(""); break; // no name update
+			case eName:				Value = pNode->pItem->pProg ? pNode->pItem->pProg->GetName() : pNode->pItem->pEntry->GetHostName(); break;
 			case eLastActive:		Value = pNode->pItem->pEntry->GetLastActivity(); break;
 			case eUploaded:			Value = pNode->pItem->pEntry->GetUploadTotal(); break;
 			case eDownloaded:		Value = pNode->pItem->pEntry->GetDownloadTotal(); break;

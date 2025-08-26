@@ -201,6 +201,7 @@ void CFinder::Open()
 
 	if(m_pBtnSearch)
 		m_pBtnSearch->setChecked(true);
+	emit Toggled();
 }
 
 void CFinder::OnUpdate()
@@ -250,6 +251,7 @@ void CFinder::Close()
 
 	if(m_pBtnSearch)
 		m_pBtnSearch->setChecked(false);
+	emit Toggled();
 }
 
 void CFinder::OnToggle(bool checked)

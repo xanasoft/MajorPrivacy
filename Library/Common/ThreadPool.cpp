@@ -22,11 +22,32 @@ void CThreadPool::stop()
 
     std::unique_lock<std::mutex> lock(workerMutex);
     for (auto &worker : workers) {
-        if (worker.joinable()) {
-            worker.join();
-        }
+        if (worker.second.first->joinable())
+            worker.second.first->join();
     }
     workers.clear();
+}
+
+void CThreadPool::tryStart(size_t taskCount)
+{
+    // Wake up one waiting (or potential) worker
+    condition.notify_one();
+
+    // Spawn a new worker if we haven't hit maxThreads
+    std::unique_lock<std::mutex> lock2(workerMutex);
+    for (auto it = workers.begin(); it != workers.end(); )
+    {
+        if (it->second.second == false) {
+            if (it->second.first->joinable())
+                it->second.first->join();
+            it = workers.erase(it);
+        } else
+            ++it;
+    }
+    if (workers.size() < min(taskCount, maxThreads)) {
+        std::shared_ptr<std::thread> workerPtr = std::make_shared<std::thread>(&CThreadPool::workerThread, this);
+        workers.insert({ workerPtr->get_id(), std::make_pair(workerPtr, true) });
+    }
 }
 
 void CThreadPool::workerThread()
@@ -36,7 +57,7 @@ void CThreadPool::workerThread()
         std::unique_lock<std::mutex> lock(queueMutex);
 
         if (stopFlag || tasks.empty())
-            return;
+            break;
 
         // Wait until we have tasks or we're stopping
         condition.wait(lock, [this] {
@@ -45,7 +66,7 @@ void CThreadPool::workerThread()
 
         // If stopping this thread should end
         if (stopFlag || tasks.empty())
-            return;
+            break;
 
         // If we still have tasks, pop one
         std::function<void()> task = std::move(tasks.front());
@@ -57,4 +78,8 @@ void CThreadPool::workerThread()
         if (task)
             task();
     }
+
+    std::thread::id tid = std::this_thread::get_id();
+    std::unique_lock<std::mutex> lock2(workerMutex);
+    workers[tid].second = false;
 }

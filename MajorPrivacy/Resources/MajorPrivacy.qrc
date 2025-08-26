@@ -292,5 +292,7 @@
         <file>Icons/Info2.png</file>
         <file>Icons/Error2.png</file>
         <file>Icons/Warning2.png</file>
+        <file>Icons/DataBase.png</file>
+        <file>Icons/Server.png</file>
     </qresource>
 </RCC>

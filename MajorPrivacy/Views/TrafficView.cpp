@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "TrafficView.h"
 #include "../Core/PrivacyCore.h"
+#include "../Core/Network/NetworkManager.h"
 #include "../MajorPrivacy.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
+#include "../MiscHelpers/Common/ComboInputDialog.h"
 
 CTrafficView::CTrafficView(QWidget *parent)
 	:CPanelViewEx<CTrafficModel>(parent)
@@ -11,10 +13,14 @@ CTrafficView::CTrafficView(QWidget *parent)
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pTreeView->setStyle(pStyle);
 	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
+	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 
 	connect(m_pItemModel, SIGNAL(CheckChanged(const QModelIndex&, bool)), this, SLOT(OnCheckChanged(const QModelIndex&, bool)));
+
+	m_pBlockFW = m_pMenu->addAction(QIcon(":/Icons/Wall2.png"), tr("Block Program in Firewall"), this, SLOT(OnItemAction()));
+	m_pFilterDNS = m_pMenu->addAction(QIcon(":/Icons/Disable.png"), tr("Add Domain to DNS Blocklist"), this, SLOT(OnItemAction()));
 
 	QByteArray Columns = theConf->GetBlob("MainWindow/TrafficView_Columns");
 	if (Columns.isEmpty()) {
@@ -50,6 +56,31 @@ CTrafficView::CTrafficView(QWidget *parent)
 	m_pAreaFilter->setMenu(m_pAreaMenu);
 	m_pAreaFilter->setMaximumHeight(22);
 	m_pToolBar->addWidget(m_pAreaFilter);
+
+	m_pToolBar->addSeparator();
+
+	m_pBtnHold = new QToolButton();
+	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
+	m_pBtnHold->setCheckable(true);
+	m_pBtnHold->setToolTip(tr("Hold updates"));
+	m_pBtnHold->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnHold);
+
+	m_pBtnRefresh = new QToolButton();
+	m_pBtnRefresh->setIcon(QIcon(":/Icons/Refresh.png"));
+	m_pBtnRefresh->setToolTip(tr("Reload"));
+	m_pBtnRefresh->setFixedHeight(22);
+	m_pBtnRefresh->setShortcut(QKeySequence::fromString("F5"));
+	connect(m_pBtnRefresh, SIGNAL(clicked()), this, SLOT(OnRefresh()));
+	m_pToolBar->addWidget(m_pBtnRefresh);
+
+	m_pToolBar->addSeparator();
+	m_pBtnClear = new QToolButton();
+	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
+	m_pBtnClear->setToolTip(tr("Clear Records"));
+	m_pBtnClear->setFixedHeight(22);
+	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearRecords()));
+	m_pToolBar->addWidget(m_pBtnClear);
 
 	m_pToolBar->addSeparator();
 	m_pBtnExpand = new QToolButton();
@@ -121,11 +152,22 @@ void CTrafficView::OnAreaFilter()
 	m_CurServices.clear();
 }
 
+void CTrafficView::OnRefresh()
+{
+	foreach(const CProgramFilePtr& pProgram, m_CurPrograms)
+		pProgram->ClearTrafficLog();
+
+	foreach(const CWindowsServicePtr& pService, m_CurServices)
+		pService->ClearTrafficLog();
+
+	m_FullRefresh = true;
+}
+
 void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services)
 {
 	bool bGroupByProgram = m_pCmbGrouping->currentIndex() == 1;
 
-	if (m_CurPrograms != Programs || m_CurServices != Services || bGroupByProgram != m_bGroupByProgram || m_RecentLimit != theGUI->GetRecentLimit()) {
+	if (m_CurPrograms != Programs || m_CurServices != Services || m_FullRefresh || bGroupByProgram != m_bGroupByProgram || m_RecentLimit != theGUI->GetRecentLimit()) {
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
 		m_RecentLimit = theGUI->GetRecentLimit();
@@ -133,7 +175,11 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		m_TrafficMap.clear();
 		m_pTreeView->collapseAll();
 		m_pItemModel->Clear();
+		m_FullRefresh = false;
+		m_RefreshCount++;
 	}
+	else if(m_pBtnHold->isChecked() /*&& !theGUI->m_IgnoreHold*/)
+		return;
 
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
@@ -196,8 +242,16 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		pItem->pEntry->Merge(pEntry);
 	};
 
+	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Programs.count() + Services.count());
+
 	foreach(const CProgramFilePtr& pProgram, Programs) {
-		QMap<QString, CTrafficEntryPtr> Log = pProgram->GetTrafficLog();
+
+		if (!ProgressHelper.Next(pProgram->GetName())) {
+			m_pBtnHold->setChecked(true);
+			break;
+		}
+
+		QHash<QString, CTrafficEntryPtr> Log = pProgram->GetTrafficLog();
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			if (uRecentLimit && I.value()->GetLastActivity() < uRecentLimit)
 				continue;
@@ -210,7 +264,13 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		}
 	}
 	foreach(const CWindowsServicePtr& pService, Services) {
-		QMap<QString, CTrafficEntryPtr> Log = pService->GetTrafficLog();
+
+		if (!ProgressHelper.Next(pService->GetName())) {
+			m_pBtnHold->setChecked(true);
+			break;
+		}
+
+		QHash<QString, CTrafficEntryPtr> Log = pService->GetTrafficLog();
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			if (uRecentLimit && I.value()->GetLastActivity() < uRecentLimit)
 				continue;
@@ -223,6 +283,14 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		}
 	}
 
+	if (ProgressHelper.Done()) {
+		if (/*!theGUI->m_IgnoreHold &&*/ ++m_SlowCount == 3) {
+			m_SlowCount = 0;
+			m_pBtnHold->setChecked(true);
+		}
+	} else
+		m_SlowCount = 0;
+
 	foreach(quint64 Key, OldTraffic.keys()) {
 		STrafficItemPtr pOld = m_TrafficMap.take(Key);
 		if(pOld->pProg.isNull())
@@ -233,7 +301,10 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 
 	if (m_pBtnExpand->isChecked()) 
 	{
-		QTimer::singleShot(10, this, [this, Added]() {
+		int CurCount = m_RefreshCount;
+		QTimer::singleShot(10, this, [this, Added, CurCount]() {
+			if(CurCount != m_RefreshCount)
+				return; // ignore if refresh was called again
 			foreach(const QModelIndex & Index, Added)
 				m_pTreeView->expand(m_pSortProxy->mapFromSource(Index));
 		});
@@ -247,7 +318,102 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 
 void CTrafficView::OnMenu(const QPoint& Point)
 {
+	auto Items = GetSelectedItems();
+
+	int iEntries = 0;
+	int iEntriesEx = 0;
+	int iPrograms = 0;
+	foreach(const STrafficItemPtr& pItem, Items)
+	{
+		if (pItem->pProg)
+			iPrograms++;
+		else //if (pItem->pEntry)
+		{
+			if(pItem->pEntry->GetHostName().startsWith("["))
+				continue; // not resolved IP only
+			if(pItem->pEntry->GetHostName().contains("("))
+				iEntriesEx++;
+			iEntries++;
+		}
+	}
+
+	m_pBlockFW->setEnabled(iPrograms > 0);
+	m_pFilterDNS->setEnabled(iEntries > 0 && iEntriesEx <= 1);
+
 	CPanelView::OnMenu(Point);
+}
+
+void CTrafficView::OnItemAction()
+{
+	auto Items = GetSelectedItems();
+
+	QList<STATUS> Results;
+	if(sender() == m_pBlockFW)
+	{
+		foreach(const STrafficItemPtr & pItem, Items)
+		{
+			if (!pItem->pProg)
+				continue;
+			
+			CFwRulePtr pRule = CFwRulePtr(new CFwRule(pItem->pProg->GetID()));
+			pRule->SetApproved();
+			pRule->SetSource(EFwRuleSource::eMajorPrivacy);
+			pRule->SetEnabled(true);
+			pRule->SetName(tr("MajorPrivacy-Rule, %1").arg(pItem->pProg->GetNameEx()));
+			pRule->SetProfile((int)EFwProfiles::All);
+			pRule->SetProtocol(EFwKnownProtocols::Any);
+			pRule->SetInterface((int)EFwInterfaces::All);
+			pRule->SetAction(EFwActions::Block);
+			pRule->SetDirection(EFwDirections::Outbound);
+			Results << theCore->NetworkManager()->SetFwRule(pRule);
+		}
+	}
+	else if(sender() == m_pFilterDNS)
+	{
+		if(!theCore->GetConfigBool("Service/DnsEnableFilter", false))
+		{
+			QMessageBox::critical(this, "MajorPrivacy", tr("DNS filtering is not enabled!"), QMessageBox::Ok);
+			return;
+		}
+
+		foreach(const STrafficItemPtr& pItem, Items)
+		{
+			if (pItem->pProg)
+				continue;
+
+			QString HostName = pItem->pEntry->GetHostName();
+			if (HostName.contains("("))
+			{
+				QStringList HostNames = SplitStr(Split2(Split2(HostName, "(").second, ")").first, "|");
+
+				CComboInputDialog progDialog(this);
+				progDialog.setText(tr("Select host name to block:"));
+				progDialog.setEditable(true);
+
+				foreach(const QString & Name, HostNames)
+					progDialog.addItem(Name, Name);
+
+				progDialog.setValue(HostNames[0]);
+
+				if (!progDialog.exec())
+					continue;
+
+				QString HostName = progDialog.value(); 
+				int Index = progDialog.findValue(HostName);
+				if (Index != -1 && progDialog.data().isValid())
+					HostName = progDialog.data().toString();
+			}
+
+			if (HostName.isEmpty())
+				continue;
+
+			CDnsRulePtr pRule = CDnsRulePtr(new CDnsRule());
+			pRule->SetAction(CDnsRule::EAction::eBlock);
+			pRule->SetHostName(HostName);
+			Results << theCore->NetworkManager()->SetDnsRule(pRule);
+		}
+	}
+	theGUI->CheckResults(Results, this);
 }
 
 void CTrafficView::OnCleanUpDone()
@@ -255,4 +421,31 @@ void CTrafficView::OnCleanUpDone()
 	// refresh
 	m_CurPrograms.clear();
 	m_CurServices.clear();
+	m_FullRefresh = true;
+}
+
+void CTrafficView::OnClearRecords()
+{
+	auto Current = theGUI->GetCurrentItems();
+
+	if (Current.bAllPrograms)
+	{
+		if (QMessageBox::warning(this, "MajorPrivacy", tr("Are you sure you want to clear the all execution and Network records for the ALL program items?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+			return;
+
+		theCore->ClearRecords(ETraceLogs::eNetLog);
+	}
+	else
+	{
+		if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the all execution and Network records for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+			return;
+
+		foreach(CProgramFilePtr pProgram, Current.ProgramsEx | Current.ProgramsIm)
+			theCore->ClearRecords(ETraceLogs::eNetLog, pProgram);
+
+		foreach(CWindowsServicePtr pService, Current.ServicesEx | Current.ServicesIm)
+			theCore->ClearRecords(ETraceLogs::eNetLog, pService);
+	}
+
+	OnCleanUpDone();
 }

@@ -17,6 +17,7 @@
 #include "../Library/Common/Strings.h"
 #include "Processes/ProcessList.h"
 #include "Enclaves/EnclaveManager.h"
+#include "HashDB/HashDB.h"
 #include "Programs/ProgramManager.h"
 #include "Network/SocketList.h"
 #include "Access/AccessManager.h"
@@ -51,6 +52,8 @@ CServiceCore::CServiceCore()
 	m_pUserPort = new CAlpcPortServer();
 
 	m_pEnclaveManager = new CEnclaveManager();
+
+	m_pHashDB = new CHashDB();
 
 	m_pProgramManager = new CProgramManager();
 
@@ -96,6 +99,8 @@ CServiceCore::~CServiceCore()
 
 	delete m_pEnclaveManager;
 
+	delete m_pHashDB;
+
 	delete m_pUserPipe;
 	delete m_pUserPort;
 
@@ -134,7 +139,7 @@ STATUS CServiceCore::Startup(bool bEngineMode)
 
 	STATUS Status = theCore->Init();
 	if (Status.IsError())
-		Shutdown();
+		Shutdown(eShutdown_Wait);
 
 	ULONGLONG End = GetTickCount64();
 	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Startup took %llu ms", End - Start);
@@ -177,7 +182,7 @@ STATUS CServiceCore::InitDriver()
 
 	if ((DrvState & SVC_INSTALLED) == 0)
 	{
-		InstallDriver();
+		InstallDriver(false);
 	}
 
 	//
@@ -194,7 +199,7 @@ STATUS CServiceCore::InitDriver()
 		m_pDriver->AcquireUnloadProtection();
 
 		if (g_ServiceStatusHandle) {
-			g_ServiceStatus.dwControlsAccepted = 0;
+			g_ServiceStatus.dwControlsAccepted &= ~SERVICE_ACCEPT_STOP;
 			SetServiceStatus(g_ServiceStatusHandle, &g_ServiceStatus);
 		}
 	}
@@ -210,7 +215,7 @@ STATUS CServiceCore::PrepareShutdown()
 		UnloadProtectionCount = m_pDriver->ReleaseUnloadProtection();
 
 		if (g_ServiceStatusHandle) {
-			g_ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
+			g_ServiceStatus.dwControlsAccepted |= SERVICE_ACCEPT_STOP;
 			SetServiceStatus(g_ServiceStatusHandle, &g_ServiceStatus);
 		}
 
@@ -235,9 +240,9 @@ void CServiceCore::CloseDriver()
 	}
 }
 
-STATUS CServiceCore::InstallDriver()
+STATUS CServiceCore::InstallDriver(bool bAutoStart)
 {
-	STATUS Status = CDriverAPI::InstallDrv();
+	STATUS Status = CDriverAPI::InstallDrv(bAutoStart);
 	if (!Status)
 		return Status;
 	
@@ -433,6 +438,12 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 		goto cleanup;
 	}
 
+	This->m_InitStatus = This->m_pHashDB->Init();
+	if (This->m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init HashDB, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
+	}
+
 	End = GetTickCount64();
 	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Enclave Manager init took %llu ms", End - Start);
 	Start = End;
@@ -528,7 +539,8 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 	//if (This->IsConfigDirty())
 	This->CommitConfig();
-	This->Driver()->CommitConfigChanges();
+
+	This->Driver()->StoreConfigChanges(This->m_Shutdown == CServiceCore::eShutdown_System);
 
 	This->m_pTweakManager->Store();
 
@@ -550,7 +562,7 @@ cleanup:
 	if (theCore->m_pDriver->IsConnected())
 		This->CloseDriver();
 
-	if (This->m_Shutdown == 2) {
+	if (This->m_Shutdown == CServiceCore::eShutdown_NoWait) {
 		delete theCore;
 		theCore = NULL;
 	}
@@ -653,14 +665,14 @@ STATUS CServiceCore::Init()
 	return m_InitStatus;
 }
 
-void CServiceCore::Shutdown(bool bWait)
+void CServiceCore::Shutdown(EShutdownMode eMode)
 {
 	if (!theCore || !theCore->m_hThread)
 		return;
 	HANDLE hThread = theCore->m_hThread;
 
-	theCore->m_Shutdown = bWait ? 1 : 2;
-	if (!bWait) 
+	theCore->m_Shutdown = eMode;
+	if (theCore->m_Shutdown == eShutdown_NoWait) 
 		return;
 
 	if (WaitForSingleObject(hThread, 10 * 1000) != WAIT_OBJECT_0)
@@ -693,7 +705,7 @@ void CServiceCore::StoreRecords(bool bAsync)
 
 void CServiceCore::Reconfigure(const std::string& Key)
 {
-	if(Key == "LogRegistry")
+	if (Key == "LogRegistry")
 		m_pProcessList->Reconfigure();
 
 	//m_pProgramManager->Reconfigure();
@@ -704,6 +716,18 @@ void CServiceCore::Reconfigure(const std::string& Key)
 		m_pNetworkManager->Reconfigure(Key == "DnsResolvers", Key == "DnsBlockLists");
 
 	//m_pEtwEventMonitor->Reconfigure();
+
+	if (Key == "EncryptPageFile") {
+		bool bNtfsEncryptPagingFile = m_pConfig->GetBool("Service", "EncryptPageFile", false);
+		RegSetDWord(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\FileSystem", L"NtfsEncryptPagingFile", bNtfsEncryptPagingFile ? 1 : 0);
+	}
+}
+
+void CServiceCore::RefreshConfig(const std::string& Key)
+{
+	if (Key == "EncryptPageFile") {
+		m_pConfig->SetBool("Service", "EncryptPageFile", RegQueryDWord(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\FileSystem", L"NtfsEncryptPagingFile", 0) == 1);
+	}
 }
 
 STATUS CServiceCore::CommitConfig()

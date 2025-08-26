@@ -28,7 +28,7 @@ public:
 		eName = 0,
 		eEnabled,
 		eAction,
-		eTrustLevel,
+		eSigners,
 		eEnclave,
 		eProgram,
 		eCount

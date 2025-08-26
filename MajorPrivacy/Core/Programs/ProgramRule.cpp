@@ -22,7 +22,10 @@ CProgramRule* CProgramRule::Clone() const
 	pRule->m_Type = m_Type;
 	pRule->m_ProgramPath = m_ProgramPath;
 	pRule->m_Enclave = m_Enclave;
-	pRule->m_SignatureLevel = m_SignatureLevel;
+
+	pRule->m_AllowedSignatures = m_AllowedSignatures;
+	pRule->m_AllowedCollections = m_AllowedCollections;
+
 	pRule->m_Data = m_Data;
 
 	return pRule;

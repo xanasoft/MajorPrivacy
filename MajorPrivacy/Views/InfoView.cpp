@@ -12,6 +12,7 @@ CInfoView::CInfoView(QWidget *parent)
 
 	m_pInfo = new CPanelWidgetEx();
 	//m_pInfo->GetView()->setItemDelegate(theGUI->GetItemDelegate());
+	m_pInfo->GetTree()->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	m_pInfo->GetTree()->setHeaderLabels(tr("Info").split("|"));
 	m_pMainLayout->addWidget(m_pInfo);
 

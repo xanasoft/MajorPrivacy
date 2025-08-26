@@ -58,4 +58,4 @@ protected:
 
 typedef QSharedPointer<CTrafficEntry> CTrafficEntryPtr;
 
-quint64 CTrafficEntry__LoadList(QMap<QString, CTrafficEntryPtr>& List, const class QtVariant& TrafficList);
+quint64 CTrafficEntry__LoadList(QHash<QString, CTrafficEntryPtr>& List, QHash<QHostAddress, QSet<CTrafficEntryPtr>>& Unresolved, const class QtVariant& TrafficList);

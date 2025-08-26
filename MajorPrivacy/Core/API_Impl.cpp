@@ -17,6 +17,7 @@
 
 #include "../../Library/API/PrivacyAPI.h"
 #include "Enclaves/Enclave.h"
+#include "HashDB/HashEntry.h"
 #include "Access/AccessRule.h"
 #include "Programs/ProgramID.h"
 #include "Programs/ProgramRule.h"
@@ -49,11 +50,17 @@
 #define GET_PATH(x) (x)
 #define SET_PATH(x, y) x = y.AsQStr()
 #define ASTR QString // todo switch to QByteArray or soemthing
+#define WSTR QString
 #define ASTR_VECTOR QStringList
+#define LIST_CLEAR(l) l.clear()
+#define LIST_APPEND(l, e) l.append(e)
 
 #define LOAD_NT_PATHS
 
 #include "../../Library/API/API_Enclave.cpp"
+
+#define HASHDB_GUI
+#include "../../Library/API/API_HashDB.cpp"
 
 #include "../../Library/API/API_GenericRule.cpp"
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../mischelpers_global.h"
+#include "Common.h"
 
 class MISCHELPERS_EXPORT CProgressDialog : public QDialog
 {
@@ -56,6 +57,19 @@ signals:
 	void		Cancel();
 
 public slots:
+	void		Show(bool bWatchEsc = false)
+	{
+		m_bWatchEsc = bWatchEsc;
+		SafeShow(this);
+		SetFocus(this);
+	}
+
+	void		Exec(bool bWatchEsc = false)
+	{
+		m_bWatchEsc = bWatchEsc;
+		exec();
+	}
+
 	void		ShowProgress(const QString& Message, int Progress = -1)
 	{
 		if(!Message.isEmpty())
@@ -115,18 +129,71 @@ protected:
 		}
 	}
 
+	void keyPressEvent(QKeyEvent *event)
+	{
+		if (event->key() == Qt::Key_Escape && m_bWatchEsc)
+			m_Cancelled = true;
+
+		QWidget::keyPressEvent(event);
+	}
+
 	void closeEvent(QCloseEvent *e)
 	{
 		emit Cancel();
 	}
 
-	int					m_TimerId;
-	int					m_CountDown;
-	bool				m_Cancelled;
+	int					m_TimerId = 0;
+	int					m_CountDown = 0;
+	bool				m_bWatchEsc = false;
+	bool				m_Cancelled = false;
 
-	QWidget*			m_pMainWidget;
-	QGridLayout*		m_pMainLayout;
-	QLabel*				m_pMessageLabel;
-	QProgressBar*		m_pProgressBar;
-	QDialogButtonBox*	m_pButtonBox;
+	QWidget*			m_pMainWidget = nullptr;
+	QGridLayout*		m_pMainLayout = nullptr;
+	QLabel*				m_pMessageLabel = nullptr;
+	QProgressBar*		m_pProgressBar = nullptr;
+	QDialogButtonBox*	m_pButtonBox = nullptr;
+};
+
+class MISCHELPERS_EXPORT CProgressDialogHelper
+{
+public:
+	CProgressDialogHelper(CProgressDialog* pDialog, const QString& Prompt, int TotalCount)
+	{
+		m_pDialog = pDialog;
+		m_pDialog->ResetCanceled();
+		m_Prompt = Prompt;
+		m_LastTime = GetCurTick();
+		m_TotalCount = TotalCount;
+	}
+
+	bool Next(const QString& Name)
+	{
+		quint64 ElapsedTimeMs = GetCurTick() - m_LastTime;
+		m_ProcessedCount++;
+		if (m_pDialog->isVisible()) {
+			if (ElapsedTimeMs > 250) {
+				m_LastTime = GetCurTick();
+				m_pDialog->ShowProgress(m_Prompt.arg(Name), 100 * m_ProcessedCount / m_TotalCount);
+				QCoreApplication::processEvents();
+			}
+		} else if(ElapsedTimeMs > 500)
+			m_pDialog->Show(true);
+
+		return !m_pDialog->IsCancelled();
+	}
+
+	bool Done()
+	{
+		if (!m_pDialog->isVisible())
+			return false;
+		m_pDialog->hide();
+		return true;
+	}
+
+protected:
+	CProgressDialog* m_pDialog;
+	QString m_Prompt;
+	quint64 m_LastTime = 0;
+	int m_TotalCount = 0;
+	int m_ProcessedCount = 0;
 };

@@ -23,6 +23,8 @@ private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
 
+	void					OnRefresh();
+	void					OnClearRecords();
 	void					OnCleanUpDone();
 
 protected:
@@ -31,14 +33,16 @@ protected:
 	QComboBox*				m_pCmbRole;
 	QComboBox*				m_pCmbAction;
 	QComboBox*				m_pCmbOperation;
+	QToolButton*			m_pBtnHold;
+	QToolButton*			m_pBtnRefresh;
 	QToolButton*			m_pBtnPrivate;
+	QToolButton*			m_pBtnClear;
 	QToolButton*			m_pBtnAll;
 	QToolButton*			m_pBtnExpand;
 
 	QSet<CProgramFilePtr>					m_CurPrograms;
 	QSet<CWindowsServicePtr>				m_CurServices;
 	QFlexGuid								m_CurEnclaveGuid;
-	QMap<SIngressKey, SIngressItemPtr>		m_ParentMap;
 	QMap<SIngressKey, SIngressItemPtr>		m_IngressMap;
 	qint32									m_FilterRole = 0;
 	qint32									m_FilterAction = 0;
@@ -46,4 +50,9 @@ protected:
 	bool									m_FilterPrivate = true;
 	bool									m_FilterAll = false;	
 	quint64									m_RecentLimit = 0;
+
+	bool					m_FullRefresh = false;
+	int 					m_RefreshCount = 0;
+
+	int 					m_SlowCount = 0;
 };

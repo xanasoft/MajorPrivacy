@@ -11,22 +11,23 @@ class QPlainTextEdit;
 QT_END_NAMESPACE
 
 #define SETUP_LVL_1 1
-#define SETUP_LVL_2 2
-#define SETUP_LVL_3 3
-#define SETUP_LVL_CURRENT SETUP_LVL_3
+#define SETUP_LVL_CURRENT SETUP_LVL_1
 
 class CSetupWizard : public QWizard
 {
     Q_OBJECT
 
 public:
-    enum { Page_Intro, Page_Certificate, /*Page_UI, Page_Shell,*/ Page_Update, Page_Finish };
+    enum { Page_Intro, Page_Certificate, Page_Exec, Page_Res, Page_Net, Page_Config, Page_System, Page_Update, Page_Finish };
 
     CSetupWizard(int iOldLevel = 0, QWidget *parent = nullptr);
+    ~CSetupWizard();
 
     static bool ShowWizard(int iOldLevel = 0);
 
-    static void ShellUninstall();
+protected:
+    friend class CConfigPage;
+    class CPrivateKey* m_pPrivateKey = nullptr;
 
 private slots:
     void showHelp();
@@ -47,9 +48,9 @@ public:
     bool isComplete() const override;
 
 private:
-    QLabel* m_pLabel;
-    QRadioButton *m_pPersonal;
-    QRadioButton *m_pBusiness;
+    //QLabel* m_pLabel;
+    //QRadioButton *m_pPersonal;
+    //QRadioButton *m_pBusiness;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -76,85 +77,115 @@ private:
     QPlainTextEdit* m_pCertificate;
     QLineEdit* m_pSerial;
     QCheckBox* m_pEvaluate;
-    int m_NextPage;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// CUIPage
+// CExecPage
 // 
 
-/*class CUIPage : public QWizardPage
+class CExecPage : public QWizardPage
 {
     Q_OBJECT
 
 public:
-    CUIPage(QWidget *parent = nullptr);
-
-    void initializePage() override;
-    int nextId() const override;
-
-private slots:
-    void UpdatePreview();
-
-private:
-    QRadioButton *m_pSimple;
-    QRadioButton *m_pAdvanced;
-    QRadioButton *m_pClassic;
-    QLabel* m_pPreview;
-    QRadioButton* m_pBrightMode;
-    QRadioButton* m_pDarkMode;
-};*/
-
-//////////////////////////////////////////////////////////////////////////////////////////
-// CShellPage
-// 
-
-/*class CShellPage : public QWizardPage
-{
-    Q_OBJECT
-
-public:
-	CShellPage(QWidget *parent = nullptr);
-
-    int nextId() const override;
-
-private slots:
-    void OnEditOnlyAdmin();
-
-private:
-    QCheckBox *m_pAutoStart;
-    QCheckBox *m_pContecxtMenu;
-    QCheckBox *m_pBrowserIcon;
-	QCheckBox* m_pEditOnlyAdmin;
-};*/
-
-//////////////////////////////////////////////////////////////////////////////////////////
-// CWFPPage
-// 
-
-/*class CWFPPage : public QWizardPage
-{
-    Q_OBJECT
-
-public:
-    CWFPPage(QWidget *parent = nullptr);
+    CExecPage(QWidget* parent = nullptr);
 
     int nextId() const override;
 
 private:
-    QCheckBox *m_pUseWFP;
-};*/
+    QCheckBox *m_pRecord;
+    QCheckBox *m_pLog;  
+};
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// CSBUpdate
+// CResPage
 // 
 
-class CSBUpdate : public QWizardPage
+class CResPage : public QWizardPage
 {
     Q_OBJECT
 
 public:
-    CSBUpdate(QWidget *parent = nullptr);
+    CResPage(QWidget* parent = nullptr);
+
+    int nextId() const override;
+
+private:
+    QCheckBox *m_pCollect;
+    QCheckBox *m_pRecord;
+    QCheckBox *m_pLog;
+    QCheckBox *m_pEnum;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// CNetPage
+// 
+
+class CNetPage : public QWizardPage
+{
+    Q_OBJECT
+
+public:
+    CNetPage(QWidget* parent = nullptr);
+
+    int nextId() const override;
+
+private:
+    QCheckBox *m_pEnable;
+    QCheckBox *m_pRestrict;
+    QCheckBox *m_pProtect;
+    QCheckBox *m_pCollect;
+    QCheckBox *m_pRecord;
+    QCheckBox *m_pLog;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// CConfigPage
+// 
+
+class CConfigPage : public QWizardPage
+{
+    Q_OBJECT
+
+public:
+    CConfigPage(QWidget* parent = nullptr);
+
+    int nextId() const override;
+    bool validatePage() override;
+
+private:
+    QCheckBox *m_pUnloadLock;
+    QCheckBox *m_pConfigLock;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// CSystemPage
+// 
+
+class CSystemPage : public QWizardPage
+{
+    Q_OBJECT
+
+public:
+    CSystemPage(QWidget* parent = nullptr);
+
+    int nextId() const override;
+
+private:
+    QCheckBox *m_pEncryptPageFile;
+    QCheckBox *m_pNoHibernation;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// CUpdatePage
+// 
+
+class CUpdatePage : public QWizardPage
+{
+    Q_OBJECT
+
+public:
+    CUpdatePage(QWidget *parent = nullptr);
     
     void initializePage() override;
 
@@ -169,13 +200,9 @@ private:
     QLabel* m_pChanelInfo;
     QRadioButton* m_pStable;
     QRadioButton* m_pPreview;
-    QRadioButton* m_pInsider;
-    QCheckBox* m_pHotfixes;
-    //QCheckBox* m_pTemplates;
-    QCheckBox* m_pIssues;
-    QCheckBox* m_pAddons;
-    QLabel* m_pUpdateInfo;
-    QLabel* m_pBottomLabel;
+    //QRadioButton* m_pInsider;
+    //QLabel* m_pUpdateInfo;
+    //QLabel* m_pBottomLabel;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////

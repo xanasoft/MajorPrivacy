@@ -25,17 +25,16 @@
 
 // mess with a dummy installation when debugging
 
-/*#undef VERSION_MJR
-#define VERSION_MJR		1
+#undef VERSION_MJR
+#define VERSION_MJR		0
 #undef VERSION_MIN
-#define VERSION_MIN 	11
+#define VERSION_MIN 	98
 #undef VERSION_REV
-#define VERSION_REV 	4
+#define VERSION_REV 	2
 #undef VERSION_UPD
-#define VERSION_UPD 	0*/
+#define VERSION_UPD 	0
 
-//#define DUMMY_PATH "C:\\Projects\\Sandboxie\\SandboxieTools\\x64\\Debug\\Test"
-#define DUMMY_PATH "C:\\Projects\\Sandboxie\\SandboxiePlus\\x64\\Test"
+#define DUMMY_PATH "C:\\Projects\\MajorPrivacy\\x64\\Test"
 
 #undef INSIDER_BUILD
 
@@ -101,7 +100,7 @@ PROGRESS COnlineUpdater::GetUpdates(QObject* receiver, const char* member, const
 {
 	QUrlQuery Query;
 	Query.addQueryItem("action", "update");
-	Query.addQueryItem("software", "majorprivacy");
+	Query.addQueryItem("software", "major-privacy");
 	//QString Branch = theConf->GetString("Options/ReleaseBranch");
 	//if (!Branch.isEmpty())
 	//	Query.addQueryItem("branch", Branch);
@@ -115,7 +114,7 @@ PROGRESS COnlineUpdater::GetUpdates(QObject* receiver, const char* member, const
 	Query.addQueryItem("system", "windows-" + QSysInfo::kernelVersion() + "-" + QSysInfo::currentCpuArchitecture());
 	Query.addQueryItem("language", QLocale::system().name());
 #ifdef _DEBUG
-	Query.addQueryItem("language", "zh_CN");
+	//Query.addQueryItem("language", "zh_CN");
 	Query.addQueryItem("debug", "1");
 #endif
 
@@ -289,6 +288,9 @@ PROGRESS COnlineUpdater::GetSupportCert(const QString& Serial, QObject* receiver
 		Query.addQueryItem("SN", Serial);
 		if (Serial.length() > 5 && Serial.at(4).toUpper() == 'N')
 			bHwId = true;
+	}
+	else {
+		Query.addQueryItem("Software", "MajorPrivacy");
 	}
 
 	if(!UpdateKey.isEmpty())
@@ -493,27 +495,7 @@ void COnlineUpdater::Process()
 			}
 		}
 	}
-	else if (g_CertInfo.active)
-	{
-		QDateTime LastUpdateDate = COnlineUpdater::GetLastUpdateDate();
-		int DaysSinceUpdate = LastUpdateDate.daysTo(CurretnDate);
-		if (DaysSinceUpdate > 90 && CurretnDate.toSecsSinceEpoch() >= NextUpdateCheck && m_JobQueue.isEmpty())
-		{
-			bool bCheck = true;
-			if (theConf->GetInt("Options/AutoUpdateTemplates", -1) != 1)
-			{
-				bool State = false;
-				if (CCheckableMessageBox::question(theGUI, "MajorPrivacy", tr("To ensure optimal compatibility with your software, Sandboxie needs to update its compatibility templates. Do you want to proceed?")
-					, tr("Enable auto template updates"), &State, QDialogButtonBox::Yes | QDialogButtonBox::No, QDialogButtonBox::Yes, QMessageBox::Information) == QDialogButtonBox::No)
-					bCheck = false;
-				if (State)
-					theConf->SetValue("Options/AutoUpdateTemplates", 1);
-			}
-			theConf->SetValue("Options/NextCheckForUpdates", CurretnDate.addSecs(UpdateInterval).toSecsSinceEpoch());
-			if (bCheck)
-				UpdateTemplates();
-		}
-	}
+	else
 
 	if (m_CheckMode == ePendingUpdate || m_CheckMode == ePendingInstall)
 	{
@@ -950,14 +932,14 @@ void COnlineUpdater::OnPrepareFinished(int exitCode, QProcess::ExitStatus exitSt
 
 bool COnlineUpdater::ApplyUpdate(EUpdateScope Scope, bool bSilent)
 {
-	/*if (Scope != eTmpl)
+	if (Scope != eTmpl)
 	{
 		if (!ShowCertWarningIfNeeded())
 			return false;
 
 		if (!bSilent)
 		{
-			QString Message = tr("<p>Updates for MajorPrivacy have been downloaded.</p><p>Do you want to apply these updates? If any programs are running sandboxed, they will be terminated.</p>");
+			QString Message = tr("<p>Updates for MajorPrivacy have been downloaded.</p><p>Do you want to apply these updates? If any programs are running in secure enclaves, they will be terminated.</p>");
 			int Ret = QMessageBox("MajorPrivacy", Message, QMessageBox::Information, QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape, QMessageBox::Cancel, theGUI).exec();
 			if (Ret == QMessageBox::Cancel) {
 				theConf->DelValue("Updater/UpdateVersion");
@@ -973,8 +955,8 @@ bool COnlineUpdater::ApplyUpdate(EUpdateScope Scope, bool bSilent)
 			return true; // nothing to do
 	}
 
-	if(Scope != eMeta)
-		theAPI->TerminateAll();
+	//if(Scope != eMeta) // todo
+	//	theAPI->TerminateAll();
 
 	QStringList Params;
 	Params.append("update");
@@ -1002,23 +984,21 @@ bool COnlineUpdater::ApplyUpdate(EUpdateScope Scope, bool bSilent)
 	if (!status.IsError()) {
 		if(bSilent)
 			theConf->DelValue("Updater/UpdateVersion");
-		if (Scope == eTmpl || Scope == eMeta)
+		/*if (Scope == eTmpl || Scope == eMeta)
 			theAPI->ReloadConfig();
-		else if (Scope == eFull)
+		else*/ if (Scope == eFull)
 			QApplication::quit();
 		else
-			theGUI->ConnectSbie();
+			theCore->Connect(false);
 		return true;
 	}
-	return false;*/
 	return false;
 }
 
 RESULT(int) COnlineUpdater::RunUpdater(const QStringList& Params, bool bSilent, bool Wait)
 {
-	/*
 	if (bSilent) {
-		RESULT(int) Result = theAPI->RunUpdateUtility(Params, 2, Wait);
+		RESULT(int) Result = theCore->RunUpdateUtility(Params, 2, Wait);
 		if (!Result.IsError())
 			return Result;
 		// else fallback to ShellExecuteEx
@@ -1036,8 +1016,7 @@ RESULT(int) COnlineUpdater::RunUpdater(const QStringList& Params, bool bSilent, 
 	int ExitCode = RunElevated(wFile, wParams, Wait ? INFINITE : 0);
 	if (ExitCode == STATUS_PENDING && !Wait)
 		ExitCode = 0;
-	return CResult<int>(ExitCode);*/
-	return CResult(0, 0);
+	return CResult<int>(0, ExitCode);
 }
 
 bool COnlineUpdater::DownloadInstaller(const QVariantMap& Release, bool bAndRun)
@@ -1108,7 +1087,7 @@ bool COnlineUpdater::RunInstaller(bool bSilent)
 	}
 
 	if (!bSilent) {
-		QString Message = tr("<p>A new MajorPrivacy installer has been downloaded to the following location:</p><p><a href=\"%2\">%1</a></p><p>Do you want to begin the installation? If any programs are running sandboxed, they will be terminated.</p>")
+		QString Message = tr("<p>A new MajorPrivacy installer has been downloaded to the following location:</p><p><a href=\"%2\">%1</a></p><p>Do you want to begin the installation? If any programs are running in secure enclaves, they will be terminated!</p>")
 			.arg(FilePath).arg("File:///" + Split2(FilePath, "/", true).first);
 		int Ret = QMessageBox("MajorPrivacy", Message, QMessageBox::Information, QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape, QMessageBox::Cancel, theGUI).exec();
 		if (Ret == QMessageBox::Cancel) {
@@ -1175,7 +1154,7 @@ void COnlineUpdater::OnUpdateDataTmpl(const QVariantMap& Data, const QVariantMap
 
 bool COnlineUpdater::RunInstaller2(const QString& FilePath, bool bSilent)
 {
-	/*if (bSilent) 
+	if (bSilent) 
 	{
 		QStringList Params;
 		Params.append("run_setup");
@@ -1186,7 +1165,7 @@ bool COnlineUpdater::RunInstaller2(const QString& FilePath, bool bSilent)
 		Params.append("/pause");
 #endif
 
-		RESULT(int) Result = theAPI->RunUpdateUtility(Params, 1);
+		RESULT(int) Result = theCore->RunUpdateUtility(Params, 1);
 		if (!Result.IsError())
 			return true;
 		// else fallback to ShellExecuteEx
@@ -1200,8 +1179,7 @@ bool COnlineUpdater::RunInstaller2(const QString& FilePath, bool bSilent)
 	wParams = L"/SILENT";
 #endif
 
-	return RunElevated(wFile, wParams) == 0;*/
-	return false;
+	return RunElevated(wFile, wParams) == 0;
 }
 
 bool COnlineUpdater::HandleUserMessage(const QVariantMap& Data)
@@ -1265,7 +1243,7 @@ QString COnlineUpdater::GetUpdateDir(bool bCreate)
 	QString TempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
 	if (TempDir.right(1) != "/")
 		TempDir += "/";
-	TempDir += "sandboxie-updater";
+	TempDir += "MajorPrivacy-Updater";
 	// Note: must not end with a /
 	if(bCreate)
 		QDir().mkpath(TempDir);

@@ -16,7 +16,14 @@ class CServiceCore
 	TRACK_OBJECT(CServiceCore)
 public:
 	static STATUS Startup(bool bEngineMode = false);
-	static void Shutdown(bool bWait = true);
+	enum EShutdownMode
+	{
+		eShutdown_None = 0,
+		eShutdown_Wait = 1,
+		eShutdown_NoWait = 2,
+		eShutdown_System = 3
+	};
+	static void Shutdown(EShutdownMode eMode);
 
 	FW::AbstractMemPool*	Allocator() const		{ return m_pMemPool; }
 
@@ -24,6 +31,7 @@ public:
 	std::wstring			GetDataFolder() const	{ return m_DataFolder; }
 	CConfigIni*				Config()				{ return m_pConfig; }
 	void					Reconfigure(const std::string& Key);
+	void					RefreshConfig(const std::string& Key);
 
 	bool					IsConfigDirty() const	{ return m_bConfigDirty; }
 	void					SetConfigDirty(bool bDirty = true) { m_bConfigDirty = bDirty; }
@@ -37,6 +45,8 @@ public:
 	class CAlpcPortServer*	UserPort()				{ return m_pUserPort; }
 
 	class CEnclaveManager*	EnclaveManager()		{ return m_pEnclaveManager; }
+
+	class CHashDB*			HashDB()				{ return m_pHashDB; }
 
 	class CProgramManager*	ProgramManager()		{ return m_pProgramManager; }
 
@@ -65,7 +75,7 @@ public:
 
 	CThreadPool*			ThreadPool()			{ return &m_Pool; }
 
-	static STATUS InstallDriver();
+	static STATUS InstallDriver(bool bAutoStart);
 	static STATUS StopDriver();
 	static STATUS RemoveDriver();
 
@@ -99,7 +109,7 @@ protected:
 
 	HANDLE					m_hThread = NULL;
     HANDLE					m_hTimer = NULL;
-	int						m_Shutdown = 0;
+	EShutdownMode			m_Shutdown = eShutdown_None;
 	STATUS					m_InitStatus;
 	bool					m_bConfigDirty = false;	
 	
@@ -112,6 +122,8 @@ protected:
 	class CAlpcPortServer*	m_pUserPort = NULL;
 	
 	class CEnclaveManager*	m_pEnclaveManager = NULL;
+
+	class CHashDB*			m_pHashDB = NULL;
 
 	class CProgramManager*	m_pProgramManager = NULL;
 

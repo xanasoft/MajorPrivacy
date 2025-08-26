@@ -39,6 +39,8 @@ QString CSocket::GetStateString() const
 
 void CSocket::FromVariant(const class QtVariant& Socket)
 {
+	QWriteLocker Lock(&m_Mutex);
+
 	QtVariantReader(Socket).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
 		const QtVariant& Data = *(QtVariant*)&vData;
 

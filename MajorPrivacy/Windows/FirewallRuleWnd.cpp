@@ -217,7 +217,7 @@ bool CFirewallRuleWnd::AddProgramItem(const CProgramItemPtr& pItem)
 	case EProgramType::eAllPrograms:
 		break;
 	case EProgramType::eFilePattern:
-		if(theCore->GetConfigBool("Service/UseFwRuleTemplates", false))
+		if(theCore->GetConfigBool("Service/UseFwRuleTemplates", true))
 			break;
 	default:
 		return false;

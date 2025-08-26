@@ -7,7 +7,7 @@
 #include "./Common/QtVariant.h"
 
 CProgramManager::CProgramManager(QObject* parent)
-	: QObject(parent)
+	: QObject(parent), m_Mutex(QReadWriteLock::Recursive)
 {
 	m_Root = CProgramSetPtr(new CProgramList());
 	m_Root->m_UID = 1;
@@ -50,11 +50,31 @@ CProgramManager::CProgramManager(QObject* parent)
 //		Group->m_Nodes.remove(uId);
 //}
 
+CProgramItemPtr CProgramManager::MakeProgram(EProgramType Type)
+{
+	CProgramItemPtr pItem;
+	if (Type == EProgramType::eProgramFile)				pItem = CProgramItemPtr(new CProgramFile());
+	else if (Type == EProgramType::eFilePattern)		pItem = CProgramItemPtr(new CProgramPattern());
+	else if (Type == EProgramType::eAppInstallation)	pItem = CProgramItemPtr(new CAppInstallation());
+	else if (Type == EProgramType::eWindowsService)		pItem = CProgramItemPtr(new CWindowsService());
+	else if (Type == EProgramType::eAppPackage)			pItem = CProgramItemPtr(new CAppPackage());
+	else if (Type == EProgramType::eProgramGroup)		pItem = CProgramItemPtr(new CProgramGroup());
+	else if (Type == EProgramType::eAllPrograms)		pItem = CProgramSetPtr(new CAllPrograms());
+	else if (Type == EProgramType::eProgramRoot)		pItem = CProgramItemPtr(new CProgramRoot()); // used only for root item
+	return pItem;
+}
+
 STATUS CProgramManager::Update()
 {
+	//////////////////////////////////////////////////////////
+	// WARING This is called from a differnt thread
+	//////////////////////////////////////////////////////////
+
 	auto Ret = theCore->GetPrograms();
 	if (Ret.IsError())
 		return Ret.GetStatus();
+
+	QWriteLocker Lock(&m_Mutex); 
 
 	int iAdded = 0;
 
@@ -80,21 +100,17 @@ STATUS CProgramManager::Update()
 			ID.FromVariant(Reader.Find(API_V_ID));
 
 			EProgramType Type = (EProgramType)Reader.Find(API_V_PROG_TYPE).To<uint32>();
-			if (Type == EProgramType::eProgramFile)				pItem = CProgramItemPtr(new CProgramFile());
-			else if (Type == EProgramType::eFilePattern)		pItem = CProgramItemPtr(new CProgramPattern());
-			else if (Type == EProgramType::eAppInstallation)	pItem = CProgramItemPtr(new CAppInstallation());
-			else if (Type == EProgramType::eWindowsService)		pItem = CProgramItemPtr(new CWindowsService());
-			else if (Type == EProgramType::eAppPackage)			pItem = CProgramItemPtr(new CAppPackage());
-			else if (Type == EProgramType::eProgramGroup)		pItem = CProgramItemPtr(new CProgramGroup());
-			else if (Type == EProgramType::eAllPrograms)		pItem = m_pAll = CProgramSetPtr(new CAllPrograms());
-			else if (Type == EProgramType::eProgramRoot)		pItem = CProgramItemPtr(new CProgramRoot()); // used only for root item
-			else 
-				return; // unknown type
-			pItem->SetUID(uId);
+			pItem = MakeProgram(Type);
+			if(!pItem)
+				return;
+
+			if(Type == EProgramType::eAllPrograms)
+				m_pAll = pItem.objectCast<CProgramSet>();
 			pItem->SetID(ID);
+			pItem->SetUID(uId);
 			m_Items.insert(uId, pItem);
 			if (ID.GetType() != EProgramType::eUnknown) {
-				AddProgram(pItem);
+				AddProgramUnsafe(pItem);
 				iAdded++;
 			}
 		}
@@ -109,7 +125,7 @@ STATUS CProgramManager::Update()
 				//Q_ASSERT(!ItemIDs.contains(vData.Get(SVC_API_PROG_UID))); // todo: xxx
 				ItemIDs.insert(vData.Get(API_V_PROG_UID));
 			});
-			if(!ItemIDs.isEmpty()) Tree[uId] = ItemIDs;
+			Tree[uId] = ItemIDs;
 		}
 	});
 
@@ -118,7 +134,7 @@ STATUS CProgramManager::Update()
 	{
 		CProgramSetPtr pItem = m_Items[I.key()].objectCast<CProgramSet>();
 		if (!pItem) continue; // should not happen but in case
-		QMap<quint64, CProgramItemPtr> OldItems = pItem->m_Nodes;
+		QHash<quint64, CProgramItemPtr> OldItems = pItem->m_Nodes;
 
 		foreach(quint64 uId, I.value())
 		{
@@ -143,10 +159,12 @@ STATUS CProgramManager::Update()
 			if(pGroup) pGroup->m_Nodes.remove(pItem->GetUID());
 		}
 		m_Items.remove(pItem->GetUID());
-		RemoveProgram(pItem);
+		RemoveProgramUnsafe(pItem);
 	}
 
 	m_Root->CountStats();
+
+	Lock.unlock();
 
 	if(iAdded > 0)
 		emit ProgramsAdded();
@@ -154,11 +172,13 @@ STATUS CProgramManager::Update()
 	return UpdateLibs();
 }
 
-STATUS  CProgramManager::UpdateLibs()
+STATUS CProgramManager::UpdateLibs()
 {
 	auto Ret = theCore->GetLibraries(m_LibrariesCacheToken);
 	if (Ret.IsError())
 		return Ret.GetStatus();
+
+	QWriteLocker Lock(&m_Mutex); 
 
 	const QtVariant& Libraries = Ret.GetValue().Get(API_V_LIBRARIES);
 
@@ -205,6 +225,8 @@ STATUS  CProgramManager::UpdateLibs()
 
 void CProgramManager::Clear()
 {
+	QWriteLocker Lock(&m_Mutex); 
+
 	m_Root->m_Nodes.clear();
 	m_Items.clear();
 	m_Items.insert(m_Root->GetUID(), m_Root);
@@ -221,7 +243,7 @@ void CProgramManager::Clear()
 	m_Libraries.clear();
 }
 
-void CProgramManager::AddProgram(const CProgramItemPtr& pItem)
+void CProgramManager::AddProgramUnsafe(const CProgramItemPtr& pItem)
 {
 	const CProgramID& ID = pItem->GetID();
 	switch (ID.GetType())
@@ -237,7 +259,7 @@ void CProgramManager::AddProgram(const CProgramItemPtr& pItem)
 	}
 }
 
-void CProgramManager::RemoveProgram(const CProgramItemPtr& pItem)
+void CProgramManager::RemoveProgramUnsafe(const CProgramItemPtr& pItem)
 {
 	const CProgramID& ID = pItem->GetID();
 	switch (ID.GetType())
@@ -255,7 +277,7 @@ CProgramItemPtr CProgramManager::GetProgramByID(const CProgramID& ID)
 {
 	switch (ID.GetType())
 	{
-	case EProgramType::eAllPrograms:			return m_pAll;
+	case EProgramType::eAllPrograms:			return GetAll();
 	case EProgramType::eProgramFile:			return GetProgramFile(ID.GetFilePath());
 	case EProgramType::eFilePattern:			return GetPattern(ID.GetFilePath());
 	case EProgramType::eWindowsService:			return GetService(ID.GetServiceTag());
@@ -264,14 +286,71 @@ CProgramItemPtr CProgramManager::GetProgramByID(const CProgramID& ID)
 	}
 }
 
+CProgramItemPtr CProgramManager::UpdateProgramByID(const CProgramID& ID)
+{
+	auto Ret = theCore->GetProgram(ID);
+	if (Ret.IsError())
+		return CProgramItemPtr();
+
+	return UpdateProgramImpl(Ret.GetValue());
+}
+
+CProgramItemPtr CProgramManager::UpdateProgramByUID(quint64 UID)
+{
+	auto Ret = theCore->GetProgram(UID);
+	if (Ret.IsError())
+		return CProgramItemPtr();
+
+	return UpdateProgramImpl(Ret.GetValue());
+}
+
+CProgramItemPtr CProgramManager::UpdateProgramImpl(const QtVariant& Data)
+{
+	QWriteLocker Lock(&m_Mutex); 
+	bool bAdded = false;
+
+	QtVariantReader Reader(Data);
+
+	quint64 uId = Reader.Find(API_V_PROG_UID);
+
+	CProgramItemPtr pItem = m_Items.value(uId);
+	if (!pItem) 
+	{
+		CProgramID ID;
+		ID.FromVariant(Reader.Find(API_V_ID));
+
+		EProgramType Type = (EProgramType)Reader.Find(API_V_PROG_TYPE).To<uint32>();
+		pItem = MakeProgram(Type);
+		if(!pItem)
+			return nullptr;
+
+		pItem->SetID(ID);
+		pItem->SetUID(uId);
+		m_Items.insert(uId, pItem);
+		if (ID.GetType() != EProgramType::eUnknown) {
+			AddProgramUnsafe(pItem);
+			bAdded = true;
+		}
+	}
+
+	pItem->FromVariant(Data);
+
+	Lock.unlock();
+	if(bAdded)
+		emit ProgramsAdded();
+
+	return pItem;
+}
+
 CProgramItemPtr CProgramManager::GetProgramByUID(quint64 UID, bool bCanUpdate)
 {
+	QReadLocker Lock(&m_Mutex);
 	CProgramItemPtr pProgram = m_Items.value(UID);
+	Lock.unlock();
+
 	if(!pProgram){
-		if (bCanUpdate) {
-			Update();
-			pProgram = m_Items.value(UID);
-		}
+		if (bCanUpdate)
+			pProgram = UpdateProgramByUID(UID);
 #ifdef _DEBUG
 		else
 			qDebug() << "Program not found by UID:" << UID;
@@ -282,10 +361,14 @@ CProgramItemPtr CProgramManager::GetProgramByUID(quint64 UID, bool bCanUpdate)
 
 CProgramLibraryPtr CProgramManager::GetLibraryByUID(quint64 UID, bool bCanUpdate)
 {
+	QReadLocker Lock(&m_Mutex);
+
 	CProgramLibraryPtr pLibrary = m_Libraries.value(UID);
 	if (!pLibrary) {
 		if (bCanUpdate) {
+			Lock.unlock();
 			UpdateLibs();
+			Lock.relock();
 			pLibrary = m_Libraries.value(UID);
 		}
 #ifdef _DEBUG
@@ -298,40 +381,56 @@ CProgramLibraryPtr CProgramManager::GetLibraryByUID(quint64 UID, bool bCanUpdate
 
 CProgramFilePtr CProgramManager::GetProgramFile(const QString& Path)
 {
+	QReadLocker Lock(&m_Mutex);
 	CProgramFilePtr pItem = m_PathMap.value(Path);
+	Lock.unlock();
+
 	if (!pItem) {
-		Update();
-		pItem = m_PathMap.value(Path);
+		CProgramID ID;
+		ID.SetPath(Path);
+		pItem = UpdateProgramByID(ID).objectCast<CProgramFile>();
 	}
 	return pItem;
 }
 	
 CWindowsServicePtr CProgramManager::GetService(const QString& Id)
 {
+	QReadLocker Lock(&m_Mutex);
 	CWindowsServicePtr pItem = m_ServiceMap.value(Id);
+	Lock.unlock();
+
 	if (!pItem) {
-		Update();
-		pItem = m_ServiceMap.value(Id);
+		CProgramID ID;
+		ID.SetServiceTag(Id);
+		pItem = UpdateProgramByID(ID).objectCast<CWindowsService>();
 	}
 	return pItem;
 }
 
 CAppPackagePtr CProgramManager::GetAppPackage(const QString& Id)
 {
+	QReadLocker Lock(&m_Mutex);
 	CAppPackagePtr pItem = m_PackageMap.value(Id);
+	Lock.unlock();
+
 	if (!pItem) {
-		Update();
-		pItem = m_PackageMap.value(Id);
+		CProgramID ID;
+		ID.SetAppContainerSid(Id);
+		pItem = UpdateProgramByID(ID).objectCast<CAppPackage>();
 	}
 	return pItem;
 }
 
 CProgramPatternPtr CProgramManager::GetPattern(const QString& Pattern)
 {
+	QReadLocker Lock(&m_Mutex);
 	CProgramPatternPtr pItem = m_PatternMap.value(Pattern);
+	Lock.unlock();
+
 	if (!pItem) {
-		Update();
-		pItem = m_PatternMap.value(Pattern);
+		CProgramID ID;
+		ID.SetPath(Pattern);
+		pItem = UpdateProgramByID(ID).objectCast<CProgramPattern>();
 	}
 	return pItem;
 }
@@ -346,9 +445,9 @@ STATUS CProgramManager::AddProgramTo(const CProgramItemPtr& pItem, const CProgra
 	return theCore->AddProgramTo(pItem->GetUID(), pParent->GetUID());
 }
 
-STATUS CProgramManager::RemoveProgramFrom(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent, bool bDelRules)
+STATUS CProgramManager::RemoveProgramFrom(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent, bool bDelRules, bool bKeepOne)
 {
-	return theCore->RemoveProgramFrom(pItem->GetUID(), pParent ? pParent->GetUID() : 0, bDelRules);
+	return theCore->RemoveProgramFrom(pItem->GetUID(), pParent ? pParent->GetUID() : 0, bDelRules, bKeepOne);
 }
 
 /////////////////////////////////////////////////////////////////////////////

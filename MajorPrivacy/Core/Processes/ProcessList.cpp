@@ -13,6 +13,10 @@ CProcessList::CProcessList(QObject* parent)
 
 STATUS CProcessList::Update()
 {
+	//////////////////////////////////////////////////////////
+	// WARING This is called from a differnt thread
+	//////////////////////////////////////////////////////////
+	
 	//uint64 uStart = GetTickCount64();
 
 	auto Ret = theCore->GetProcesses();
@@ -23,8 +27,11 @@ STATUS CProcessList::Update()
 		return Ret.GetStatus();
 
 	m_SocketCount = 0;
+	m_HandleCount = 0;
 
 	QtVariant& Processes = Ret.GetValue();
+
+	QWriteLocker Lock(&m_Mutex);
 
 	QHash<quint64, CProcessPtr> OldMap = m_List;
 
@@ -53,6 +60,7 @@ STATUS CProcessList::Update()
 		}
 
 		m_SocketCount += pProcess->GetSocketCount();
+		m_HandleCount += pProcess->GetHandleCount();
 	});
 
 	foreach(const quint64 & Pid, OldMap.keys()) {
@@ -69,6 +77,8 @@ STATUS CProcessList::Update()
 
 QHash<quint64, CProcessPtr> CProcessList::GetProcesses(const QSet<quint64>& Pids)
 {
+	QReadLocker Lock(&m_Mutex);
+
 	QHash<quint64, CProcessPtr> List;
 	foreach(quint64 Pid, Pids) {
 		CProcessPtr pProcess = m_List.value(Pid);
@@ -80,13 +90,19 @@ QHash<quint64, CProcessPtr> CProcessList::GetProcesses(const QSet<quint64>& Pids
 
 CProcessPtr CProcessList::GetProcess(quint64 Pid, bool CanUpdate)
 { 
+	QReadLocker Lock(&m_Mutex);
+
 	CProcessPtr pProcess = m_List.value(Pid); 
 
 	if (!pProcess && CanUpdate) 
 	{
+		Lock.unlock();
+
 		auto Ret = theCore->GetProcess(Pid);
 		if (!Ret.IsError())
 		{
+			QWriteLocker Lock(&m_Mutex);
+
 			pProcess = CProcessPtr(new CProcess(Pid));
 			m_List.insert(Pid, pProcess);
 			pProcess->FromVariant(Ret.GetValue());
@@ -101,6 +117,5 @@ STATUS CProcessList::TerminateProcess(const CProcessPtr& pProcess)
 	auto Ret = theCore->TerminateProcess(pProcess->GetProcessId());
 	if (Ret.IsError())
 		return Ret.GetStatus();
-	//m_List.remove(pProcess->GetProcessId());
 	return OK;
 }

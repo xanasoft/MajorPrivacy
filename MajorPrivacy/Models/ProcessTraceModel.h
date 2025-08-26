@@ -17,7 +17,7 @@ public:
 	CProcessTraceModel(QObject* parent = 0);
 	~CProcessTraceModel();
 
-	void					SetFilter(EExecLogRole Role, EEventStatus Action) { m_Role = Role; m_Action = Action; }
+	void					SetFilter(EExecLogRole Role, EEventStatus Action, EExecLogType Operation) { m_Role = Role; m_Action = Action; m_Operation = Operation;}
 
 	virtual int				columnCount(const QModelIndex &parent = QModelIndex()) const;
 	virtual QVariant		headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
@@ -51,6 +51,7 @@ protected:
 
 	EExecLogRole			m_Role = EExecLogRole::eUndefined;
 	EEventStatus			m_Action = EEventStatus::eUndefined;
+	EExecLogType			m_Operation = EExecLogType::eUnknown;
 
 	virtual bool			FilterNode(const SMergedLog::TLogEntry& Data) const;
 

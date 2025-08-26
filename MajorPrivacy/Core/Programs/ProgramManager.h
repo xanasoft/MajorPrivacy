@@ -20,13 +20,12 @@ public:
 	CProgramManager(QObject* parent = nullptr);
 
 	STATUS Update();
-	STATUS UpdateLibs();
 
 	void Clear();
 
-	CProgramSetPtr			GetRoot() const { return m_Root; }
-	CProgramSetPtr			GetAll() const { return m_pAll; }
-	QHash<QString, CProgramGroupPtr>	GetGroups() const { return m_Groups; }
+	CProgramSetPtr			GetRoot() const { QReadLocker Lock(&m_Mutex); return m_Root; }
+	CProgramSetPtr			GetAll() const { QReadLocker Lock(&m_Mutex); return m_pAll; }
+	QHash<QString, CProgramGroupPtr>	GetGroups() const { QReadLocker Lock(&m_Mutex); return m_Groups; }
 	CProgramItemPtr			GetProgramByID(const CProgramID& ID);
 	CProgramItemPtr			GetProgramByUID(quint64 UID, bool bCanUpdate = false);
 	CProgramLibraryPtr		GetLibraryByUID(quint64 UID, bool bCanUpdate = false);
@@ -36,19 +35,19 @@ public:
 	CAppPackagePtr			GetAppPackage(const QString& Id);
 	CProgramPatternPtr		GetPattern(const QString& Pattern);
 
-	QSet<CProgramFilePtr>	GetPrograms() const { return ListToSet(m_PathMap.values()); }
-	QSet<CWindowsServicePtr> GetServices() const { return ListToSet(m_ServiceMap.values()); }
+	QSet<CProgramFilePtr>	GetPrograms() const { QReadLocker Lock(&m_Mutex); return ListToSet(m_PathMap.values()); }
+	QSet<CWindowsServicePtr> GetServices() const { QReadLocker Lock(&m_Mutex); return ListToSet(m_ServiceMap.values()); }
 
 	RESULT(quint64) SetProgram(const CProgramItemPtr& pItem);
 	STATUS AddProgramTo(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent);
-	STATUS RemoveProgramFrom(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent = CProgramItemPtr(), bool bDelRules = false);
+	STATUS RemoveProgramFrom(const CProgramItemPtr& pItem, const CProgramItemPtr& pParent = CProgramItemPtr(), bool bDelRules = false, bool bKeepOne = false);
 
 	bool UpdateAllProgramRules();
 	bool UpdateProgramRule(const QFlexGuid& Guid);
 	void RemoveProgramRule(const QFlexGuid& Guid);
 
 	QSet<QFlexGuid> GetProgramRuleIDs() const;
-	QList<CProgramRulePtr> GetProgramRules() const { return m_ProgramRules.values(); }
+	QList<CProgramRulePtr> GetProgramRules() const { QReadLocker Lock(&m_Mutex); return m_ProgramRules.values(); }
 	//QList<CProgramRulePtr> GetProgramRulesFor(const QList<const class CProgramItem*>& Nodes);
 	QList<CProgramRulePtr> GetProgramRules(const QSet<QFlexGuid> &ProgramRuleIDs);
 
@@ -56,20 +55,29 @@ public:
 	RESULT(CProgramRulePtr) GetProgramRule(const QFlexGuid& Guid);
 	STATUS DelProgramRule(const CProgramRulePtr& pRule);
 
-	QSet<CProgramItemPtr> GetItems() const { return ListToSet(m_Items.values()); }
+	//QSet<CProgramItemPtr> GetItems() const { QReadLocker Lock(&m_Mutex); return ListToSet(m_Items.values()); }
+	QHash<quint64, CProgramItemPtr> GetItems() { QReadLocker Lock(&m_Mutex); return m_Items; }
 
 signals:
 	void					ProgramsAdded();
 
 protected:
 
+	static CProgramItemPtr	MakeProgram(EProgramType Type);
+	CProgramItemPtr			UpdateProgramByID(const CProgramID& ID);
+	CProgramItemPtr			UpdateProgramByUID(quint64 UID);
+	CProgramItemPtr			UpdateProgramImpl(const QtVariant& Data);
+	STATUS					UpdateLibs();
+
 	void					AddProgramRule(const CProgramRulePtr& pRule);
 	void					RemoveProgramRule(const CProgramRulePtr& pRule);
 
 	//void UpdateGroup(const CProgramGroupPtr& Group, const class QtVariant& Root);
 
-	void					AddProgram(const CProgramItemPtr& pItem);
-	void					RemoveProgram(const CProgramItemPtr& pItem);
+	void					AddProgramUnsafe(const CProgramItemPtr& pItem);
+	void					RemoveProgramUnsafe(const CProgramItemPtr& pItem);
+
+	mutable QReadWriteLock m_Mutex;
 
 	CProgramSetPtr							m_Root;
 	CProgramSetPtr							m_pAll;

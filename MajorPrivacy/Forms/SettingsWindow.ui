@@ -48,7 +48,7 @@
         <enum>QTabWidget::TabPosition::North</enum>
        </property>
        <property name="currentIndex">
-        <number>5</number>
+        <number>6</number>
        </property>
        <widget class="QWidget" name="tabGeneral">
         <attribute name="title">
@@ -57,58 +57,6 @@
         <layout class="QGridLayout" name="gridLayout_9">
          <item row="0" column="0">
           <layout class="QGridLayout" name="gridLayout_3">
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_9">
-             <property name="text">
-              <string>UI Language:</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QComboBox" name="uiLang"/>
-           </item>
-           <item row="3" column="2">
-            <spacer name="horizontalSpacer_7">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="3" column="0">
-            <spacer name="verticalSpacer_2">
-             <property name="orientation">
-              <enum>Qt::Orientation::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="3" column="1">
-            <spacer name="horizontalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
            <item row="0" column="0">
             <widget class="QLabel" name="lblGeneral">
              <property name="font">
@@ -122,10 +70,89 @@
              </property>
             </widget>
            </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="uiLang"/>
+           </item>
+           <item row="6" column="0">
+            <spacer name="verticalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_9">
+             <property name="text">
+              <string>UI Language:</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="lblOptions">
+             <property name="font">
+              <font>
+               <bold>true</bold>
+               <kerning>true</kerning>
+              </font>
+             </property>
+             <property name="text">
+              <string>More Options</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <spacer name="horizontalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
            <item row="2" column="1" colspan="2">
             <widget class="QCheckBox" name="chkEnumApps">
              <property name="text">
               <string>Auto list installed applications in the program tree</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1" colspan="2">
+            <widget class="QCheckBox" name="chkGuardSuspend">
+             <property name="text">
+              <string>Prevent Hibernation when secure protected volumes are mounted</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="2">
+            <spacer name="horizontalSpacer_7">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="4" column="1" colspan="2">
+            <widget class="QCheckBox" name="chkEncryptSwap">
+             <property name="text">
+              <string>Enable Virtual Memory Pagefile Encryption (requires system reboot)</string>
              </property>
             </widget>
            </item>
@@ -140,8 +167,74 @@
         <layout class="QGridLayout" name="gridLayout_17">
          <item row="0" column="0">
           <layout class="QGridLayout" name="gridLayout">
-           <item row="2" column="1">
-            <spacer name="horizontalSpacer_3">
+           <item row="4" column="0">
+            <widget class="QLabel" name="lblDisplay">
+             <property name="font">
+              <font>
+               <bold>true</bold>
+               <kerning>true</kerning>
+              </font>
+             </property>
+             <property name="text">
+              <string>Graphic Options</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="3">
+            <layout class="QHBoxLayout" name="horizontalLayout_7">
+             <item>
+              <widget class="QPushButton" name="btnSelectUiFont">
+               <property name="toolTip">
+                <string>Select Font</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnResetUiFont">
+               <property name="toolTip">
+                <string>Reset Font</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_23">
+               <property name="orientation">
+                <enum>Qt::Orientation::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+           <item row="5" column="1">
+            <widget class="QLabel" name="label_23">
+             <property name="text">
+              <string>High DPI Scaling</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             </property>
+             <property name="buddy">
+              <cstring>cmbDPI</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="2">
+            <widget class="QComboBox" name="cmbDPI"/>
+           </item>
+           <item row="8" column="3">
+            <spacer name="horizontalSpacer_12">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
              </property>
@@ -153,28 +246,32 @@
              </property>
             </spacer>
            </item>
-           <item row="1" column="1">
-            <widget class="QCheckBox" name="chkDarkTheme">
+           <item row="6" column="1">
+            <widget class="QLabel" name="label_33">
              <property name="text">
-              <string>Use Dark Theme</string>
+              <string>UI Font</string>
              </property>
-             <property name="tristate">
-              <bool>true</bool>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             </property>
+             <property name="buddy">
+              <cstring>lblUiFont</cstring>
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
-            <spacer name="verticalSpacer">
-             <property name="orientation">
-              <enum>Qt::Orientation::Vertical</enum>
+           <item row="5" column="3">
+            <widget class="QLabel" name="label_8">
+             <property name="text">
+              <string>(Restart required)</string>
              </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
+            </widget>
+           </item>
+           <item row="2" column="1" colspan="3">
+            <widget class="QCheckBox" name="chkUseW11Style">
+             <property name="text">
+              <string>Use the new SandMan style on Windows 11</string>
              </property>
-            </spacer>
+            </widget>
            </item>
            <item row="0" column="0">
             <widget class="QLabel" name="lblInterface">
@@ -189,13 +286,103 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="2">
+           <item row="1" column="4">
             <widget class="QCheckBox" name="chkFusionTheme">
              <property name="text">
               <string>Use Fusion Theme</string>
              </property>
              <property name="tristate">
               <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="2">
+            <spacer name="horizontalSpacer_11">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="1" column="1" colspan="3">
+            <widget class="QCheckBox" name="chkDarkTheme">
+             <property name="text">
+              <string>Use Dark Theme</string>
+             </property>
+             <property name="tristate">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="4">
+            <spacer name="horizontalSpacer_13">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="3" column="1" colspan="3">
+            <widget class="QCheckBox" name="chkAltRows">
+             <property name="text">
+              <string>Alternate row background in lists</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="0">
+            <spacer name="verticalSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="6" column="2">
+            <widget class="QLabel" name="lblUiFont">
+             <property name="text">
+              <string>#</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <widget class="QLabel" name="label_24">
+             <property name="text">
+              <string>Font Scaling</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             </property>
+             <property name="buddy">
+              <cstring>cmbFontScale</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="2">
+            <widget class="QComboBox" name="cmbFontScale">
+             <property name="editable">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="3">
+            <widget class="QLabel" name="label_13">
+             <property name="text">
+              <string>%</string>
              </property>
             </widget>
            </item>
@@ -307,7 +494,7 @@
            <item row="3" column="2">
             <widget class="QCheckBox" name="chkExecRecord">
              <property name="text">
-              <string>Record Process Execution and Ingress to Disk (IngressRecord.dat)</string>
+              <string>Save Process Execution and Ingress Records to Disk (IngressRecord.dat)</string>
              </property>
             </widget>
            </item>
@@ -327,7 +514,7 @@
            <item row="4" column="2">
             <widget class="QCheckBox" name="chkExecLog">
              <property name="text">
-              <string>Log Process Execution and Ingress (to RAM)</string>
+              <string>Log Process Execution and Ingress events to Memory</string>
              </property>
             </widget>
            </item>
@@ -378,7 +565,7 @@
            <item row="4" column="2">
             <widget class="QCheckBox" name="chkAccessRecord">
              <property name="text">
-              <string>Save File/Folder Accesses Record to Disk (AccessRecord.dat)</string>
+              <string>Save File/Folder Accesses Records to Disk (AccessRecord.dat)</string>
              </property>
             </widget>
            </item>
@@ -425,7 +612,7 @@
            <item row="3" column="1" colspan="2">
             <widget class="QCheckBox" name="chkAccessTrace">
              <property name="text">
-              <string>File/Folder Accesses Tracing</string>
+              <string>Collect File/Folder Accesses Events</string>
              </property>
             </widget>
            </item>
@@ -446,7 +633,7 @@
            <item row="5" column="2">
             <widget class="QCheckBox" name="chkAccessLog">
              <property name="text">
-              <string>Log all File/Folder Accesses (to RAM)</string>
+              <string>Log all File/Folder Accesses events to Memory</string>
              </property>
             </widget>
            </item>
@@ -619,14 +806,14 @@
            <item row="15" column="2" colspan="2">
             <widget class="QCheckBox" name="chkFwLog">
              <property name="text">
-              <string>Log all Network Access (to RAM)</string>
+              <string>Log all Network Access events to Memory</string>
              </property>
             </widget>
            </item>
            <item row="14" column="2" colspan="2">
             <widget class="QCheckBox" name="chkTrafficRecord">
              <property name="text">
-              <string>Save Traffic Record to Disk (TrafficRecord.dat)</string>
+              <string>Save Network Traffic Record to Disk (TrafficRecord.dat)</string>
              </property>
             </widget>
            </item>
@@ -681,14 +868,30 @@
         <layout class="QGridLayout" name="gridLayout_16">
          <item row="0" column="0">
           <layout class="QGridLayout" name="gridLayout_15">
-           <item row="2" column="2" colspan="2">
-            <widget class="QCheckBox" name="chkDnsInstall">
+           <item row="4" column="4">
+            <widget class="QToolButton" name="btnAddBlockList">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
-              <string>Setup DNS Proxy as default DNS in Windows</string>
+              <string>Add List</string>
              </property>
             </widget>
            </item>
-           <item row="7" column="4">
+           <item row="3" column="2">
+            <widget class="QLabel" name="label_6">
+             <property name="text">
+              <string>Upstream DNS Resolvers</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="4">
             <widget class="QToolButton" name="btnDelBlockList">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -701,20 +904,77 @@
              </property>
             </widget>
            </item>
-           <item row="4" column="2" colspan="2">
-            <widget class="QCheckBox" name="chkDnsBlockLists">
+           <item row="4" column="2" rowspan="3" colspan="2">
+            <widget class="QTreeWidget" name="treeDnsBlockLists">
+             <column>
+              <property name="text">
+               <string>Url</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Entries</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <spacer name="verticalSpacer_9">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="2" column="2" colspan="2">
+            <widget class="QCheckBox" name="chkDnsInstall">
              <property name="text">
-              <string>Load DNS Blocklists</string>
+              <string>Setup DNS Proxy as default DNS in Windows</string>
              </property>
             </widget>
            </item>
-           <item row="3" column="2">
-            <widget class="QLabel" name="label_6">
-             <property name="text">
-              <string>Upstream DNS Resolvers</string>
+           <item row="3" column="3">
+            <widget class="QLineEdit" name="txtDnsResolvers">
+             <property name="placeholderText">
+              <string>8.8.8.8;1.1.1.1</string>
              </property>
-             <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+            </widget>
+           </item>
+           <item row="7" column="2" colspan="2">
+            <spacer name="horizontalSpacer_10">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="5" column="4">
+            <spacer name="verticalSpacer_8">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="1" column="1" colspan="3">
+            <widget class="QCheckBox" name="chkDnsFilter">
+             <property name="text">
+              <string>Enable Filtering DNS Proxy</string>
              </property>
             </widget>
            </item>
@@ -729,86 +989,6 @@
              <property name="text">
               <string>DNS Filter</string>
              </property>
-            </widget>
-           </item>
-           <item row="1" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkDnsFilter">
-             <property name="text">
-              <string>Enable Filtering DNS Proxy</string>
-             </property>
-            </widget>
-           </item>
-           <item row="8" column="1">
-            <spacer name="verticalSpacer_9">
-             <property name="orientation">
-              <enum>Qt::Orientation::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="3" column="3">
-            <widget class="QLineEdit" name="txtDnsResolvers">
-             <property name="placeholderText">
-              <string>8.8.8.8;1.1.1.1</string>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="4">
-            <spacer name="verticalSpacer_8">
-             <property name="orientation">
-              <enum>Qt::Orientation::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="8" column="2" colspan="2">
-            <spacer name="horizontalSpacer_10">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="5" column="4">
-            <widget class="QToolButton" name="btnAddBlockList">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="text">
-              <string>Add List</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="2" rowspan="3" colspan="2">
-            <widget class="QTreeWidget" name="treeDnsBlockLists">
-             <column>
-              <property name="text">
-               <string>Url</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Entries</string>
-              </property>
-             </column>
             </widget>
            </item>
           </layout>
@@ -1172,10 +1352,39 @@
                <property name="leftMargin">
                 <number>0</number>
                </property>
-               <item row="4" column="4">
-                <widget class="QLabel" name="lblStable">
+               <item row="7" column="2">
+                <widget class="QLabel" name="label_25">
+                 <property name="toolTip">
+                  <string>New full installers from the selected release channel.</string>
+                 </property>
                  <property name="text">
-                  <string/>
+                  <string>Full Upgrades</string>
+                 </property>
+                 <property name="buddy">
+                  <cstring>cmbRelease</cstring>
+                 </property>
+                </widget>
+               </item>
+               <item row="8" column="6">
+                <spacer name="horizontalSpacer_22">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="3" column="3">
+                <widget class="QComboBox" name="cmbInterval"/>
+               </item>
+               <item row="2" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkAutoUpdate">
+                 <property name="text">
+                  <string>Check periodically for new MajorPrivacy versions</string>
                  </property>
                 </widget>
                </item>
@@ -1192,13 +1401,6 @@
                  </property>
                 </widget>
                </item>
-               <item row="10" column="1" colspan="6">
-                <widget class="QCheckBox" name="chkUpdateAddons">
-                 <property name="text">
-                  <string>Keep add-on list up to date</string>
-                 </property>
-                </widget>
-               </item>
                <item row="1" column="0" colspan="2">
                 <widget class="QLabel" name="lblUpdates">
                  <property name="font">
@@ -1212,30 +1414,23 @@
                  </property>
                 </widget>
                </item>
-               <item row="5" column="4">
-                <widget class="QLabel" name="lblPreview">
+               <item row="8" column="4" colspan="2">
+                <spacer name="horizontalSpacer_21">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="4" column="4">
+                <widget class="QLabel" name="lblStable">
                  <property name="text">
                   <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="4" colspan="2">
-                <widget class="QLabel" name="lblCurrent">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="7" column="2">
-                <widget class="QLabel" name="label_27">
-                 <property name="toolTip">
-                  <string>Hotpatches for the installed version, updates to the Templates.ini and translations.</string>
-                 </property>
-                 <property name="text">
-                  <string>Incremental Updates</string>
-                 </property>
-                 <property name="buddy">
-                  <cstring>cmbUpdate</cstring>
                  </property>
                 </widget>
                </item>
@@ -1249,106 +1444,48 @@
                  </property>
                 </widget>
                </item>
-               <item row="6" column="2" colspan="2">
-                <widget class="QRadioButton" name="radInsider">
-                 <property name="toolTip">
-                  <string>
-														  The Insider channel offers early access to new features and bugfixes that will eventually be released to the public, as well as all relevant improvements from the stable channel.
-														  Unlike the preview channel, it does not include untested, potentially breaking, or experimental changes that may not be ready for wider use.
-													  </string>
-                 </property>
-                 <property name="text">
-                  <string>Search in the Insider channel</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="4">
-                <widget class="QLabel" name="lblInsider">
+               <item row="6" column="4" colspan="3">
+                <widget class="QLabel" name="lblRevision">
                  <property name="text">
                   <string/>
                  </property>
                 </widget>
                </item>
-               <item row="7" column="3">
-                <widget class="QComboBox" name="cmbUpdate"/>
-               </item>
-               <item row="11" column="4" colspan="2">
-                <spacer name="horizontalSpacer_21">
-                 <property name="orientation">
-                  <enum>Qt::Orientation::Horizontal</enum>
+               <item row="7" column="4" colspan="3">
+                <widget class="QLabel" name="lblRelease">
+                 <property name="text">
+                  <string/>
                  </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </spacer>
+                </widget>
                </item>
-               <item row="8" column="2">
-                <widget class="QLabel" name="label_25">
+               <item row="2" column="4" colspan="2">
+                <widget class="QLabel" name="lblCurrent">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="4">
+                <widget class="QLabel" name="lblPreview">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="2">
+                <widget class="QLabel" name="label_27">
                  <property name="toolTip">
-                  <string>New full installers from the selected release channel.</string>
+                  <string>Hotpatches for the installed version, updates to the Templates.ini and translations.</string>
                  </property>
                  <property name="text">
-                  <string>Full Upgrades</string>
+                  <string>Incremental Updates</string>
                  </property>
                  <property name="buddy">
-                  <cstring>cmbRelease</cstring>
+                  <cstring>cmbUpdate</cstring>
                  </property>
                 </widget>
                </item>
-               <item row="2" column="1" colspan="3">
-                <widget class="QCheckBox" name="chkAutoUpdate">
-                 <property name="text">
-                  <string>Check periodically for new MajorPrivacy versions</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="5" colspan="2">
-                <widget class="QLabel" name="lblInsiderInfo">
-                 <property name="toolTip">
-                  <string/>
-                 </property>
-                 <property name="text">
-                  <string>More about the &lt;a href=&quot;https://sandboxie-plus.com/go.php?to=sbie-insider&quot;&gt;Insider Channel&lt;/a&gt;</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="11" column="6">
-                <spacer name="horizontalSpacer_22">
-                 <property name="orientation">
-                  <enum>Qt::Orientation::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item row="9" column="1" colspan="6">
-                <widget class="QCheckBox" name="chkUpdateIssues">
-                 <property name="text">
-                  <string>Keep Troubleshooting scripts up to date</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="2" colspan="2">
-                <widget class="QRadioButton" name="radStable">
-                 <property name="toolTip">
-                  <string>The stable channel contains the latest stable GitHub releases.</string>
-                 </property>
-                 <property name="text">
-                  <string>Search in the Stable channel</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="8" column="3">
-                <widget class="QComboBox" name="cmbRelease"/>
-               </item>
-               <item row="11" column="1">
+               <item row="8" column="1">
                 <spacer name="verticalSpacer_12">
                  <property name="orientation">
                   <enum>Qt::Orientation::Vertical</enum>
@@ -1361,8 +1498,18 @@
                  </property>
                 </spacer>
                </item>
-               <item row="3" column="3">
-                <widget class="QComboBox" name="cmbInterval"/>
+               <item row="4" column="2" colspan="2">
+                <widget class="QRadioButton" name="radStable">
+                 <property name="toolTip">
+                  <string>The stable channel contains the latest stable GitHub releases.</string>
+                 </property>
+                 <property name="text">
+                  <string>Search in the Stable channel</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="3">
+                <widget class="QComboBox" name="cmbRelease"/>
                </item>
                <item row="3" column="2">
                 <widget class="QLabel" name="label_5">
@@ -1374,19 +1521,8 @@
                  </property>
                 </widget>
                </item>
-               <item row="7" column="4" colspan="3">
-                <widget class="QLabel" name="lblRevision">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="8" column="4" colspan="3">
-                <widget class="QLabel" name="lblRelease">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
+               <item row="6" column="3">
+                <widget class="QComboBox" name="cmbUpdate"/>
                </item>
               </layout>
              </item>

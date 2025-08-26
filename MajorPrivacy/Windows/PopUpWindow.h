@@ -144,7 +144,6 @@ protected:
 
 private:
 
-	bool				m_ResetPosition;
 	int					m_iTopMost;
 
 	Ui::PopUpWindow ui;
@@ -169,7 +168,9 @@ private:
 
 	QAction*			m_pFwAlwaysIgnoreApp;
 	QAction*			m_pFwCustom;
-	QAction*			m_pFwLanOnly;
+	//QAction*			m_pFwLanOnly;
+	QAction*			m_pFwApproveAll;
+	QAction*			m_pFwRejectAll;
 
 	// Resources
 	enum EResColumns
@@ -196,6 +197,7 @@ private:
 		eExecStatus,
 		eExecTrust,
 		eExecSigner,
+		eExecIssuer,
 		eExecTimeStamp,
 		eExecEnclave,
 		eExecProcessId,
@@ -206,4 +208,5 @@ private:
 	QAction*			m_pExecAlwaysIgnoreFile;
 	//QAction*			m_pExecSignAll;
 	QAction*			m_pExecSignCert;
+	QAction*			m_pExecSignCA;
 };

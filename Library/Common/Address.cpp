@@ -286,6 +286,33 @@ bool CAddress::IsMappedIPv4() const
 	 && !m_IP[0] && !m_IP[1] && !m_IP[2] && !m_IP[3] && !m_IP[4] && !m_IP[5] && !m_IP[6] && !m_IP[7] && !m_IP[8] && !m_IP[9];
 }
 
+bool CAddress::IsLocalHost() const
+{
+	switch(m_eAF)
+	{
+	case EAF::INET:
+		return m_IP[0] == 127;
+
+	case EAF::INET6:
+	{
+		bool first15zero = true;
+		for(int i = 0; i < 15; ++i) {
+			if (m_IP[i] != 0) { first15zero = false; break; }
+		}
+		if (first15zero && m_IP[15] == 1)
+			return true;
+
+		if (IsMappedIPv4())
+			return m_IP[12] == 127;
+
+		return false;
+	}
+
+	default:
+		return false;
+	}
+}
+
 bool IsLanIPv4(uint32 IPv4)
 {
 	byte uIP[4];

@@ -30,6 +30,7 @@ private slots:
 	void OnActionChanged();
 
 	void OnSaveAndClose();
+	void OnAddCollection();
 
 protected:
 	void closeEvent(QCloseEvent* e);
@@ -43,6 +44,7 @@ protected:
 
 private:
 	Ui::ProgramRuleWnd ui;
+	class CWinboxMultiCombo* m_pCollections;
 
 	bool m_HoldProgramPath = false;
 

@@ -10,7 +10,7 @@ public:
 	CServiceAPI();
 	virtual ~CServiceAPI();
 
-	static STATUS InstallSvc();
+	static STATUS InstallSvc(bool bAutoStart);
 	STATUS ConnectSvc();
 	STATUS ConnectEngine();
 	void Disconnect();
@@ -23,7 +23,7 @@ public:
 	uint32 GetABIVersion();
 
 	uint32 GetConfigStatus();
-	STATUS CommitConfigChanges(const CBuffer& ConfigSignature = CBuffer());
+	STATUS StoreConfigChanges();
 	STATUS DiscardConfigChanges();
 
 	bool RegisterEventHandler(uint32 MessageId, const std::function<void(uint32 msgId, const CBuffer* pEvent)>& Handler);
@@ -39,6 +39,7 @@ protected:
 	HANDLE m_hEngineProcess = NULL;
 
 private:
+	std::mutex m_CallMutex;
 	class CAbstractClient* m_pClient;
 };
 

@@ -15,6 +15,8 @@ QIcon CProgramPattern::DefaultIcon() const
 
 void CProgramPattern::SetPattern(const QString& Pattern)
 { 
+	QWriteLocker Lock(&m_Mutex);
+
 	m_Pattern = Pattern; 
 
 	//QString regex = QRegularExpression::escape(Pattern.toLower());

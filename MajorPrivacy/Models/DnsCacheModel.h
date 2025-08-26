@@ -48,7 +48,7 @@ protected:
 		int					iColor;
 	};
 
-	virtual void SyncEntry(QMap<QList<QVariant>, QList<STreeNode*>>& New, QHash<QVariant, STreeNode*>& Old, const CDnsCacheEntryPtr& pEntry/*, const CDnsProcRecordPtr& pRecord = CDnsProcRecordPtr()*/);
+	virtual void SyncEntry(TNewNodesMap& New, QHash<QVariant, STreeNode*>& Old, const CDnsCacheEntryPtr& pEntry/*, const CDnsProcRecordPtr& pRecord = CDnsProcRecordPtr()*/);
 
 	virtual STreeNode* MkNode(const QVariant& Id) { return new SDnsNode(/*this,*/ Id); }
 };

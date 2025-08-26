@@ -12,7 +12,7 @@ public:
 
 	virtual EProgramType GetType() const {return EProgramType::eProgramSet; }
 
-	virtual QMap<quint64, CProgramItemPtr> GetNodes() const { return m_Nodes; }
+	virtual QHash<quint64, CProgramItemPtr> GetNodes() const { QReadLocker Lock(&m_Mutex); return m_Nodes; }
 
 	virtual size_t GetLogMemUsage() const;
 
@@ -26,7 +26,7 @@ protected:
 	void ReadIValue(uint32 Index, const QtVariant& Data) override;
 	void ReadMValue(const SVarName& Name, const QtVariant& Data) override;
 
-	QMap<quint64, CProgramItemPtr>		m_Nodes;
+	QHash<quint64, CProgramItemPtr>		m_Nodes;
 };
 
 typedef QSharedPointer<CProgramSet> CProgramSetPtr;

@@ -5,6 +5,7 @@
 #include "../MiscHelpers/Common/Common.h"
 #include "../MiscHelpers/Common/Settings.h"
 #include "../Core/PrivacyCore.h"
+#include "../Core/HashDB/HashDB.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Helpers/NtPathMgr.h"
 #include "../Core/Network/NetLogEntry.h"
@@ -128,7 +129,7 @@ CPopUpWindow::CPopUpWindow(QWidget* parent) : QMainWindow(parent)
 	PopulateTimes(ui.cmbFwTime);
 
 	connect(ui.btnFwAllow, SIGNAL(clicked(bool)), this, SLOT(OnFwAction()));
-	QMenu* pFwAllow = new QMenu(ui.btnFwIgnore);
+	QMenu* pFwAllow = new QMenu(ui.btnFwAllow);
 	m_pFwCustom = pFwAllow->addAction(tr("Create Custom Rule"), this, SLOT(OnFwAction()));
 	//pFwIgnore->addSeparator();
 	//m_pFwLanOnly = pFwAllow->addAction(tr("Allow LAN only"), this, SLOT(OnFwAction()));
@@ -139,8 +140,20 @@ CPopUpWindow::CPopUpWindow(QWidget* parent) : QMainWindow(parent)
 
 
 	connect(ui.btnFwDiscard, SIGNAL(clicked(bool)), this, SLOT(OnFwRule()));
+
 	connect(ui.btnFwApprove, SIGNAL(clicked(bool)), this, SLOT(OnFwRule()));
+	QMenu* pFwApprove = new QMenu(ui.btnFwApprove);
+	m_pFwApproveAll = pFwApprove->addAction(tr("Approve All"), this, SLOT(OnFwRule()));
+	ui.btnFwApprove->setPopupMode(QToolButton::MenuButtonPopup);
+	ui.btnFwApprove->setMenu(pFwApprove);
+
 	connect(ui.btnFwReject, SIGNAL(clicked(bool)), this, SLOT(OnFwRule()));
+	QMenu* pFwReject = new QMenu(ui.btnFwReject);
+	m_pFwRejectAll = pFwReject->addAction(tr("Reject All"), this, SLOT(OnFwRule()));
+	ui.btnFwReject->setPopupMode(QToolButton::MenuButtonPopup);
+	ui.btnFwReject->setMenu(pFwReject);
+
+
 	connect(ui.treeFwRules, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(OnFwRuleDblClick(QTreeWidgetItem*)));
 
 	// Resources
@@ -184,9 +197,12 @@ CPopUpWindow::CPopUpWindow(QWidget* parent) : QMainWindow(parent)
 	ui.btnExecIgnore->setMenu(pExecIgnore);
 
 	connect(ui.btnExecSign, SIGNAL(clicked(bool)), this, SLOT(OnExecAction()));
+	ui.btnExecSign->setText(tr("Allow File"));
 	QMenu* pExecSign = new QMenu(ui.btnExecIgnore);
 	//m_pExecSignAll = pExecSign->addAction(tr("Sign ALL Binaries"), this, SLOT(OnExecAction()));
-	m_pExecSignCert = pExecSign->addAction(tr("Sign Certificate"), this, SLOT(OnExecAction()));
+	//m_pExecSignCert = pExecSign->addAction(tr("Sign Certificate"), this, SLOT(OnExecAction()));
+	m_pExecSignCert = pExecSign->addAction(tr("Allow Certificate"), this, SLOT(OnExecAction()));
+	m_pExecSignCA = pExecSign->addAction(tr("Allow CA Certificate"), this, SLOT(OnExecAction()));
 	ui.btnExecSign->setPopupMode(QToolButton::MenuButtonPopup);
 	ui.btnExecSign->setMenu(pExecSign);
 
@@ -196,7 +212,7 @@ CPopUpWindow::CPopUpWindow(QWidget* parent) : QMainWindow(parent)
 	
 	m_uTimerID = startTimer(1000);
 
-	m_ResetPosition = !restoreGeometry(theConf->GetBlob("PopUpWindow/Window_Geometry"));
+	restoreGeometry(theConf->GetBlob("PopUpWindow/Window_Geometry"));
 
 	ui.treeFw->header()->restoreState(theConf->GetBlob("PopUpWindow/FirewallView_Columns"));
 	ui.treeFwRules->header()->restoreState(theConf->GetBlob("PopUpWindow/FirewallRulesView_Columns"));
@@ -225,22 +241,26 @@ void CPopUpWindow::Show()
 {
 	Poke();
 
-	QScreen *screen = this->windowHandle()->screen();
-	QRect scrRect = screen->availableGeometry();
+	QRect wndRect = this->frameGeometry();
+	bool visibleOnAnyScreen = false;
 
-	if (!m_ResetPosition)
+	for (QScreen *screen : QGuiApplication::screens())
 	{
-		QRect wndRect = this->frameGeometry();
-		if (wndRect.bottom() > scrRect.height() || wndRect.right() > scrRect.width() || wndRect.top() < 0 || wndRect.left() < 0)
-			m_ResetPosition = true;
+		QRect scrRect = screen->availableGeometry();
+		if (scrRect.intersects(wndRect))
+		{
+			visibleOnAnyScreen = true;
+			break;
+		}
 	}
 
-	if (m_ResetPosition)
+	if (!visibleOnAnyScreen)
 	{
-		m_ResetPosition = false;
+		QScreen *screen = this->windowHandle()->screen();
+		QRect scrRect = screen->availableGeometry();
 
 		this->resize(300, 400);
-		this->move(scrRect.width() - 300 - 20, scrRect.height() - 400 - 50);
+		this->move(scrRect.right() - 300 - 20, scrRect.bottom() - 400 - 50);
 	}
 
 	SafeShow(this);
@@ -336,11 +356,14 @@ void CPopUpWindow::PushFwEvent(const CProgramFilePtr& pProgram, const CLogEntryP
 	QList<SLogEntry>& List = m_FwEvents[pProgram];
 	if (List.isEmpty())
 		m_FwPrograms.append(Prog);
+	bool bFound = false;
 	for (int i = 0; i < List.size(); i++) {
-		if(pEntry->Match(List[i].pPtr.constData()))
-			return;
+		if (pEntry->Match(List[i].pPtr.constData())) {
+			bFound = true;
+			break;
+		}
 	}
-	List.append(pEntry);
+	if (!bFound) List.append(pEntry);
 
 	PushFwEvent(Prog);
 }
@@ -353,6 +376,7 @@ void CPopUpWindow::PushFwRuleEvent(EConfigEvent EventType, const CFwRulePtr& pFw
 	QList<SFwRuleEvent>& List = m_FwRuleEvents[pProgram];
 	if (List.isEmpty())
 		m_FwPrograms.append(Prog);
+	bool bFound = false;
 	for (int i = 0; i < List.size(); i++) {
 		if (pFwRule->GetGuid() == List[i].pFwRule->GetGuid()) {
 			List[i].EventType = EventType;
@@ -366,10 +390,11 @@ void CPopUpWindow::PushFwRuleEvent(EConfigEvent EventType, const CFwRulePtr& pFw
 					}
 				}
 			}
-			return;
+			bFound = true;
+			break;
 		}
 	}
-	List.append(SFwRuleEvent{ EventType, pFwRule });
+	if (!bFound) List.append(SFwRuleEvent{ EventType, pFwRule });
 
 	PushFwEvent(Prog);
 }
@@ -667,17 +692,27 @@ void CPopUpWindow::OnFwRule()
 		return;
 	}
 
-	auto Items = ui.treeFwRules->selectedItems();
+	QList<SFwRuleEvent>& List = m_FwRuleEvents[pProgram];
+
+	QList<QTreeWidgetItem*> Items;
+	if (pSender == m_pFwApproveAll || pSender == m_pFwRejectAll)
+	{
+		for(int i = 0; i < ui.treeFwRules->topLevelItemCount(); i++) {
+			QTreeWidgetItem* pItem = ui.treeFwRules->topLevelItem(i);
+			Items.append(pItem);	
+		}
+	}
+	else
+		Items = ui.treeFwRules->selectedItems();
+
 	if (Items.isEmpty()) {
 		QMessageBox::information(this, "MajorPrivacy", tr("Please select a rule."));
 		return;
 	}
 
-	QList<SFwRuleEvent>& List = m_FwRuleEvents[pProgram];
-
 	QList<SFwRuleEvent> Events;
 	for (auto pItem : Items) {
-		for( auto I = List.begin(); I != List.end(); ++I) {
+		for (auto I = List.begin(); I != List.end(); ++I) {
 			if ((int)I->EventType == pItem->data(eFwAction, Qt::UserRole).toInt() &&
 				I->pFwRule->GetGuid().ToQS() == pItem->data(eFwEvent, Qt::UserRole).toString()) {
 				Events.append(*I);
@@ -704,7 +739,7 @@ void CPopUpWindow::OnFwRule()
 			}
 		}
 
-		if (pSender == ui.btnFwApprove)
+		if (pSender == ui.btnFwApprove || pSender == m_pFwApproveAll)
 		{
 			switch (EventType)
 			{
@@ -724,7 +759,7 @@ void CPopUpWindow::OnFwRule()
 				break;
 			}
 		}
-		else if (pSender == ui.btnFwReject)
+		else if (pSender == ui.btnFwReject || pSender == m_pFwRejectAll)
 		{
 			switch (EventType)
 			{
@@ -773,7 +808,11 @@ void CPopUpWindow::OnFwRuleDblClick(QTreeWidgetItem* pItem)
 		}
 	}
 
-	CFirewallRuleWnd* pFirewallRuleWnd = new CFirewallRuleWnd(pFwRule, QSet<CProgramItemPtr>() << pProgram);
+	QSet<CProgramItemPtr> Items;
+	if (pProgram)
+		Items.insert(pProgram);
+
+	CFirewallRuleWnd* pFirewallRuleWnd = new CFirewallRuleWnd(pFwRule, Items);
 	pFirewallRuleWnd->SetReadOnly(true);
 	pFirewallRuleWnd->exec();
 }
@@ -786,14 +825,16 @@ void CPopUpWindow::PushResEvent(const CProgramFilePtr& pProgram, const CLogEntry
 	QList<SLogEntry>& List = m_ResEvents[pProgram];
 	if (List.isEmpty())
 		m_ResPrograms.append(pProgram);
+	int iFound = -1;
 	for (int i = 0; i < List.size(); i++) {
 		if (pEntry->Match(List[i].pPtr.constData())) {
 			if(TimeOut) List[i].AddWaiting(pEntry, TimeOut);
-			return;
+			iFound = i;
+			break;
 		}
 	}
-	List.append(pEntry);
-	if(TimeOut) List.last().AddWaiting(pEntry, TimeOut);
+	if (iFound != -1) List.append(pEntry);
+	if (TimeOut) List.last().AddWaiting(pEntry, TimeOut);
 
 	int oldIndex = m_iResIndex;
 
@@ -1081,11 +1122,14 @@ void CPopUpWindow::PushExecEvent(const CProgramFilePtr& pProgram, const CLogEntr
 	QList<SLogEntry>& List = m_ExecEvents[pProgram];
 	if (List.isEmpty())
 		m_ExecPrograms.append(pProgram);
+	bool bFound = false;
 	for (int i = 0; i < List.size(); i++) {
-		if(pEntry->Match(List[i].pPtr.constData()))
-			return;
+		if (pEntry->Match(List[i].pPtr.constData())) {
+			bFound = true;
+			break;
+		}
 	}
-	List.append(pEntry);
+	if (!bFound) List.append(pEntry);
 
 	int oldIndex = m_iExecIndex;
 
@@ -1202,10 +1246,16 @@ void CPopUpWindow::LoadExecEntry(bool bUpdate)
 					pItem->setText(eExecName, pLibrary->GetName());
 					pItem->setIcon(eExecName, CProgramLibrary::DefaultIcon());
 					pItem->setText(eExecStatus, pEntry->GetStatusStr());
-					pItem->setText(eExecTrust, CProgramFile::GetSignatureInfoStr(pLibInfo.SignInfo.GetInfo()));
+					pItem->setText(eExecTrust, CProgramFile::GetSignatureInfoStr(pLibInfo.SignInfo));
+					
 					pItem->setText(eExecSigner, pLibInfo.SignInfo.GetSignerName());
 					pItem->setToolTip(eExecSigner, pLibInfo.SignInfo.GetSignerHash().toHex().toUpper());
 					pItem->setData(eExecSigner, Qt::UserRole, pLibInfo.SignInfo.GetSignerHash());
+
+					pItem->setText(eExecIssuer, pLibInfo.SignInfo.GetIssuerName());
+					pItem->setToolTip(eExecIssuer, pLibInfo.SignInfo.GetIssuerHash().toHex().toUpper());
+					pItem->setData(eExecIssuer, Qt::UserRole, pLibInfo.SignInfo.GetIssuerHash());
+
 					pItem->setText(eExecTimeStamp, QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pEntry->GetTimeStamp())).toString("dd.MM.yyyy hh:mm:ss.zzz"));
 					QFlexGuid EnclaveGuid = pEntry->GetEnclaveGuid();
 					if (!EnclaveGuid.IsNull()) {
@@ -1220,16 +1270,24 @@ void CPopUpWindow::LoadExecEntry(bool bUpdate)
 			else if (pEntry->GetType() == EExecLogType::eProcessStarted)
 			{
 				uint64 uID = pEntry->GetMiscID();
-				CProgramFilePtr pExecutable = theCore->ProgramManager()->GetProgramByUID(uID, true).objectCast<CProgramFile>();
+				//CProgramFilePtr pExecutable = theCore->ProgramManager()->GetProgramByUID(uID, true).objectCast<CProgramFile>();
+				CProgramFilePtr pExecutable = pProgram;
+				CProgramFilePtr pParent = theCore->ProgramManager()->GetProgramByUID(uID, true).objectCast<CProgramFile>();
 				if (pExecutable) {
 					pItem->setData(eExecPath, Qt::UserRole, pExecutable->GetPath());
 					pItem->setText(eExecName, pExecutable->GetNameEx());
 					pItem->setIcon(eExecName, pExecutable->GetIcon());
 					pItem->setText(eExecStatus, pEntry->GetStatusStr());
-					pItem->setText(eExecTrust, CProgramFile::GetSignatureInfoStr(pExecutable->GetSignInfo().GetInfo()));
+					pItem->setText(eExecTrust, CProgramFile::GetSignatureInfoStr(pExecutable->GetSignInfo()));
+					
 					pItem->setText(eExecSigner, pExecutable->GetSignInfo().GetSignerName());
 					pItem->setToolTip(eExecSigner, pExecutable->GetSignInfo().GetSignerHash().toHex().toUpper());
 					pItem->setData(eExecSigner, Qt::UserRole, pExecutable->GetSignInfo().GetSignerHash());
+					
+					pItem->setText(eExecIssuer, pExecutable->GetSignInfo().GetIssuerName());
+					pItem->setToolTip(eExecIssuer, pExecutable->GetSignInfo().GetIssuerHash().toHex().toUpper());
+					pItem->setData(eExecIssuer, Qt::UserRole, pExecutable->GetSignInfo().GetIssuerHash());
+					
 					pItem->setText(eExecTimeStamp, QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pEntry->GetTimeStamp())).toString("dd.MM.yyyy hh:mm:ss.zzz"));
 					QFlexGuid EnclaveGuid = pEntry->GetEnclaveGuid();
 					if (!EnclaveGuid.IsNull()) {
@@ -1281,8 +1339,18 @@ void CPopUpWindow::OnExecAction()
 		return;
 	}
 
-	QStringList Paths;
-	QMap<QByteArray, QString> Certs;
+	struct SSignTask
+	{
+		QString Path;
+		QByteArray Cert;
+		QString CertName;
+		QFlexGuid EnclaveId;
+		QString Collection;
+	};
+
+	QMap<QString, SSignTask> FileTasks;
+	QMap<QByteArray, SSignTask> CertTasks;
+
 	/*if (pSender == m_pExecSignAll)
 	{
 		for (int i = 0; i < ui.treeExec->topLevelItemCount(); i++) {
@@ -1292,37 +1360,79 @@ void CPopUpWindow::OnExecAction()
 				Paths.append(Path);
 		}
 	} else*/
-	if (pSender == ui.btnExecSign || pSender == m_pExecSignCert)
+	if (pSender == ui.btnExecSign || pSender == m_pExecSignCert || pSender == m_pExecSignCA)
 	{
 		auto Items = ui.treeExec->selectedItems();
 		if (Items.isEmpty()) {
-			QMessageBox::information(this, "MajorPrivacy", tr("Please select a binnary file to sign with the your User Key."));
+			QMessageBox::information(this, "MajorPrivacy", tr("Please select a file to add to Allowed Hash Database."));
 			return;
+		}
+
+		if (pSender == m_pExecSignCA)
+		{
+			if (QMessageBox::question(this, "MajorPrivacy", tr("Do you really want to allow the Issuing Certificate Authoricy Certificate? This will allow all Signign Certificate issued by this CA."), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+				return;
 		}
 
 		foreach(auto pItem, Items) 
 		{
-			QString Path = pItem->data(eExecPath, Qt::UserRole).toString();
-			if(!Paths.contains(Path))
-				Paths.append(Path);
+			QVariant Guid = pItem->data(eExecEnclave, Qt::UserRole);
+			QFlexGuid EnclaveId(Guid);
 
-			QByteArray Cert = pItem->data(eExecSigner, Qt::UserRole).toByteArray();
-			QString CertName = pItem->text(eExecSigner);
-			Certs.insert(Cert, CertName);
+			QString Path = pItem->data(eExecPath, Qt::UserRole).toString();
+			if (!FileTasks.contains(Path)) {
+				SSignTask& FileTask = FileTasks[Path];
+				FileTask.Path = Path;
+				FileTask.EnclaveId = EnclaveId;
+				//FileTask.Collection = 
+			}
+
+			QByteArray Cert = pItem->data(pSender == m_pExecSignCA ? eExecIssuer : eExecSigner, Qt::UserRole).toByteArray();
+			QString CertName = pItem->text(pSender == m_pExecSignCA ? eExecIssuer : eExecSigner);
+			if (!Cert.isEmpty() && !CertTasks.contains(Cert)) {
+				SSignTask& CertTask = CertTasks[Cert];
+				CertTask.Path = Path;
+				CertTask.Cert = Cert;
+				CertTask.CertName = CertName;
+				CertTask.EnclaveId = EnclaveId;
+				//CertTask.Collection = 
+			}
+		}
+	}
+
+	if (theGUI->IsDrvConfigLocked()) {
+		STATUS Status = theGUI->UnlockDrvConfig();
+		if (Status.IsError()) {
+			theGUI->CheckResults(QList<STATUS>() << Status, this);
+			return;
 		}
 	}
 
 	STATUS Status;
-	if (pSender == m_pExecSignCert) {
-		if (Certs.isEmpty()) {
+	if (pSender == m_pExecSignCert)
+	{
+		if (CertTasks.isEmpty()) {
 			QMessageBox::critical(this, "MajorPrivacy", tr("Selected Items do not have Certificates!"));
 			return;
 		}
-		Status = theGUI->SignCerts(Certs);
-	} else
-		Status = theGUI->SignFiles(Paths);
+		//Status = theGUI->SignCerts(Certs);
+		foreach(const SSignTask& Task, CertTasks) {
+			Status = theCore->HashDB()->AllowCert(Task.Cert, Task.CertName, Task.EnclaveId, Task.Collection);
+			if (Status.IsError())
+				break;
+		}
+	}
+	else
+	{
+		//Status = theGUI->SignFiles(Paths);
+		foreach(const SSignTask& Task, FileTasks) {
+			Status = theCore->HashDB()->AllowFile(Task.Path, Task.EnclaveId, Task.Collection);
+			if (Status.IsError())
+				break;
+		}
+	}
 	if(theGUI->CheckResults(QList<STATUS>() << Status, this) != 0)
 		return;
 
-	PopExecEvent(Paths);
+	PopExecEvent(FileTasks.keys());
 }

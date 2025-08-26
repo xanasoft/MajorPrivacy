@@ -40,13 +40,18 @@ protected:
 
 	bool						m_FullRefresh;
 	QFlexGuid					m_EnclaveGuid;
+	QSet<CProgramFilePtr>		m_CurPrograms;
+	QSet<CWindowsServicePtr>	m_CurServices;
 
 	quint64						m_RecentLimit = 0;
 
 	QToolButton*				m_pBtnScroll = nullptr;
 	QToolButton*				m_pBtnHold = nullptr;
+	QToolButton*				m_pBtnRefresh = nullptr;
 	//QRegularExpression		m_FilterExp;
 	QString						m_FilterExp;
 	bool						m_bHighLight;
 	//int						m_FilterCol;
+
+	int 						m_SlowCount = 0;
 };

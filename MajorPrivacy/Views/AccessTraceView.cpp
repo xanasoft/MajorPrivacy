@@ -40,7 +40,6 @@ CAccessTraceView::CAccessTraceView(QWidget *parent)
 	m_pToolBar->addWidget(m_pBtnHold);
 
 	m_pToolBar->addSeparator();
-
 	m_pBtnClear = new QToolButton();
 	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
 	m_pBtnClear->setToolTip(tr("Clear Trace Log"));

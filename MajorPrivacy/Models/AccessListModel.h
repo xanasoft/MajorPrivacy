@@ -32,7 +32,7 @@ public:
 
 protected:
 
-	void Sync(const CProgramItemPtr& pItem, const QList<QPair<SAccessStatsPtr,SAccessItem::EType>>& List, QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old);
+	void Sync(const CProgramItemPtr& pItem, const QList<QPair<SAccessStatsPtr,SAccessItem::EType>>& List, TNewNodesMap& New, QHash<QVariant, STreeNode*>& Old);
 
 	struct SAccessNode : STreeNode
 	{

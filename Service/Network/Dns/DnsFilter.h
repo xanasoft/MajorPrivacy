@@ -79,7 +79,7 @@ public:
 	STATUS DelEntry(const std::wstring& EntryId);
 
 	virtual void UpdateBlockLists();
-	virtual bool AreBlockListsLoaded() const { std::unique_lock lock(m_Mutex); return m_BlockList.size() > 0; }
+	virtual bool AreBlockListsLoaded() const { std::shared_lock lock(m_BlockListMutex); return m_BlockList.size() > 0; }
 
 	void RegisterEventHandler(const std::function<void(const SDnsFilterEvent* pEvent)>& Handler);
 	template<typename T, class C>
@@ -96,12 +96,13 @@ protected:
 	std::wstring GetFileNameFromUrl(const std::wstring& sUrl);
 	virtual bool DownloadBlockList(const std::wstring& sBlockListUrl);
 
-	virtual void LoadBlockLists_unlocked();
+	virtual void LoadBlockLists();
 
-	virtual int LoadFilters_unlocked(const std::wstring& sHostsFile, CDnsRule::EAction Action, std::multimap<SKey, DNS::Binary>* pEntryMap = NULL);
+	virtual int LoadFilters_NoLock(const std::wstring& sHostsFile, CDnsRule::EAction Action, std::multimap<SKey, DNS::Binary>* pEntryMap = NULL);
 
-	virtual bool AddEntry_unlocked(const FW::SharedPtr<CDnsRule>& pEntry);
+	virtual bool AddEntry_NoLock(const FW::SharedPtr<CDnsRule>& pEntry);
 
+	mutable std::shared_mutex m_BlockListMutex;
 	std::multimap<SKey, DNS::Binary> m_BlockList;
 	FW::DefaultMemPool m_MemPool;
 	CPathTree m_FilterTree;
@@ -119,7 +120,7 @@ protected:
 	volatile HANDLE m_hDlThread = NULL;
 	std::map<std::wstring, std::wstring> m_DlList;
 
-	mutable std::mutex m_Mutex;
+	mutable std::shared_mutex m_Mutex;
 	std::vector<std::function<void(const SDnsFilterEvent* pEvent)>> m_EventHandlers;
 	void EmitEvent(const SDnsFilterEvent* pEvent);
 };

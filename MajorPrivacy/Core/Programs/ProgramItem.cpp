@@ -11,7 +11,7 @@
 
 
 CProgramItem::CProgramItem(QObject* parent)
-	: QObject(parent)
+	: QObject(parent), m_Mutex(QReadWriteLock::Recursive)
 {
 	m_UID = 0;
 }
@@ -28,11 +28,15 @@ QIcon CProgramItem::DefaultIcon() const
 
 void CProgramItem::SetIconFile()
 {
+	QWriteLocker Lock(&m_Mutex); 
+
 	if (!m_Icon.isNull())
 		return;
 
+	Lock.unlock();
 	if (!GetIconFile().isEmpty())
 		UpdateIconFile();
+	Lock.relock();
 
 	if (m_Icon.availableSizes().isEmpty())
 		m_Icon = DefaultIcon();
@@ -43,6 +47,7 @@ void CProgramItem::UpdateIconFile()
 	QString Path = GetIconFile();
 	int Index = 0;
 
+	QWriteLocker Lock(&m_Mutex); 
 	StrPair PathIndex = Split2(Path, ",", true);
 	if (!PathIndex.second.isEmpty() && !PathIndex.second.contains(".")) {
 		Path = PathIndex.first;
@@ -59,6 +64,7 @@ void CProgramItem::UpdateIconFile()
 
 QtVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const
 {
+	QReadLocker Lock(&m_Mutex); 
 	QtVariantWriter Data;
 	if (Opts.Format == SVarWriteOpt::eIndex) {
 		Data.BeginIndex();
@@ -72,10 +78,12 @@ QtVariant CProgramItem::ToVariant(const SVarWriteOpt& Opts) const
 
 NTSTATUS CProgramItem::FromVariant(const class QtVariant& Data)
 {
+	QWriteLocker Lock(&m_Mutex); 
 	if (Data.GetType() == VAR_TYPE_MAP)         QtVariantReader(Data).ReadRawMap([&](const SVarName& Name, const QtVariant& Data) { ReadMValue(Name, Data); });
 	else if (Data.GetType() == VAR_TYPE_INDEX)  QtVariantReader(Data).ReadRawIndex([&](uint32 Index, const QtVariant& Data) { ReadIValue(Index, Data); });
 	else
 		return STATUS_UNKNOWN_REVISION;
+	Lock.unlock();
 	SetIconFile();
 	return STATUS_SUCCESS;
 }

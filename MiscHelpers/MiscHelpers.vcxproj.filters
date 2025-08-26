@@ -282,5 +282,8 @@
     <QtMoc Include="Common\FlowLayout.h">
       <Filter>Common</Filter>
     </QtMoc>
+    <QtMoc Include="Common\WinboxMultiCombo.h">
+      <Filter>Common</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>

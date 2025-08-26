@@ -25,6 +25,7 @@ CTraceView::CTraceView(CTraceModel* pModel, QWidget *parent)
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pTreeView->setStyle(pStyle);
 	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
+	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	m_pTreeView->setMinimumHeight(50);
 
 	m_pTreeView->setModel(m_pItemModel);
@@ -83,16 +84,17 @@ void CTraceView::SetFilter(const QRegularExpression& RegExp, int iOptions, int C
 
 void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QFlexGuid& EnclaveGuid)
 {
-	if(m_pBtnHold && m_pBtnHold->isChecked())
-		return;
-
 	bool bReset = false;
-	if (m_EnclaveGuid != EnclaveGuid)
+	if (m_CurPrograms != Programs || m_CurServices != Services || m_EnclaveGuid != EnclaveGuid)
 	{
+		m_CurPrograms = Programs;
+		m_CurServices = Services;
 		m_EnclaveGuid = EnclaveGuid;
 
-		bReset = true;
+		bReset = (m_EnclaveGuid != EnclaveGuid);
 	}
+	else if(m_pBtnHold && m_pBtnHold->isChecked())
+		return;
 
 	QList<QPair<QVector<CLogEntryPtr>, CProgramItemPtr>> AllEntries;
 
@@ -100,32 +102,13 @@ void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, con
 	uint64 start = GetUSTickCount();
 #endif
 
-	quint64 LastTime = GetUSTickCount();
-	int TotalCount = Programs.count() + Services.count();
-	int ProcessedCount = 0;
-	theGUI->m_pProgressDialog->ResetCanceled();
-
-	auto ShowProgress = [&](const QString& ProgName) {
-		quint64 ElapsedTimeMs = (GetUSTickCount() - LastTime) / 1000;
-		ProcessedCount++;
-		if (theGUI->m_pProgressDialog->isVisible()) {
-			if (ElapsedTimeMs > 50) {
-				LastTime = GetUSTickCount();
-				theGUI->m_pProgressDialog->ShowProgress(tr("Loading %1").arg(ProgName), 100 * ProcessedCount / TotalCount);
-				QCoreApplication::processEvents();
-			}
-		} else if(ElapsedTimeMs > 500)
-			theGUI->m_pProgressDialog->show();
-
-		return !theGUI->m_pProgressDialog->IsCancelled();
-	};
-
+	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Programs.count() + Services.count());
 
 	foreach(const CProgramFilePtr& pProgram, Programs) 
 	{
 		SMergedLog::SLogState& State = m_Log.States[pProgram];
 
-		if (!ShowProgress(pProgram->GetName())) {
+		if (!ProgressHelper.Next(pProgram->GetName())) {
 			if(m_pBtnHold) m_pBtnHold->setChecked(true);
 			break;
 		}
@@ -140,7 +123,7 @@ void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, con
 		CProgramFilePtr pProgram = pService->GetProgramFile();
 		if (!pProgram) continue;
 
-		if(!ShowProgress(pService->GetName())) {
+		if(!ProgressHelper.Next(pService->GetName())) {
 			if(m_pBtnHold) m_pBtnHold->setChecked(true);
 			break;
 		}
@@ -148,9 +131,13 @@ void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, con
 		AllEntries.append(qMakePair(Entries, pService));
 	}
 
-
-	if(theGUI->m_pProgressDialog->isVisible())
-		theGUI->m_pProgressDialog->hide();
+	if (ProgressHelper.Done()) {
+		if (/*!theGUI->m_IgnoreHold &&*/ ++m_SlowCount == 3) {
+			m_SlowCount = 0;
+			m_pBtnHold->setChecked(true);
+		}
+	} else
+		m_SlowCount = 0;
 
 #ifdef _DEBUG
 	quint64 elapsed = (GetUSTickCount() - start) / 1000;
@@ -306,15 +293,20 @@ void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, con
 
 void CTraceView::ClearTraceLog(ETraceLogs Log)
 {
-	if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the trace logs for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
-		return;
-
 	auto Current = theGUI->GetCurrentItems();
 	
 	if (Current.bAllPrograms)
+	{
+		if (QMessageBox::warning(this, "MajorPrivacy", tr("Are you sure you want to clear the the trace logs for ALL program items?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+			return;
+
 		theCore->ClearTraceLog(Log);
+	}
 	else
 	{
+		if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the trace logs for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+			return;
+
 		foreach(CProgramFilePtr pProgram, Current.ProgramsEx | Current.ProgramsIm)
 			theCore->ClearTraceLog(Log, pProgram);
 
@@ -323,8 +315,6 @@ void CTraceView::ClearTraceLog(ETraceLogs Log)
 	}
 
 	emit theCore->CleanUpDone();
-
-	m_FullRefresh = true;
 }
 
 void CTraceView::OnCleanUpDone()

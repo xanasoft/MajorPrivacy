@@ -54,11 +54,11 @@ protected:
 	};
 
 #ifdef DEF_USE_POOL
-	static void CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, FW::Map<FW::StringW, STrafficLogEntry>& TrafficLog);
+	static void CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, FW::Map<FW::StringW, STrafficLogEntry>& TrafficLog, bool bTemp = false);
 
 	StVariant DumpEntry(const FW::StringW& Host, const STrafficLogEntry& Data, FW::AbstractMemPool* pMemPool = nullptr) const;
 #else
-	static void CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, std::map<std::wstring, STrafficLogEntry>& TrafficLog);
+	static void CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntry& Data, std::map<std::wstring, STrafficLogEntry>& TrafficLog, bool bTemp = false);
 
 	StVariant DumpEntry(const std::wstring& Host, const STrafficLogEntry& Data, FW::AbstractMemPool* pMemPool = nullptr) const;
 #endif

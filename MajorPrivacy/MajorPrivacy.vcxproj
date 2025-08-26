@@ -123,7 +123,7 @@
       <SubSystem>Windows</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Netapi32.lib;Advapi32.lib;GeneralLibrary.lib;MiscHelpers.lib;QtSingleApp.lib;UGlobalHotkey.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Advapi32.lib;Netapi32.lib;Iphlpapi.lib;ws2_32.lib;GeneralLibrary.lib;MiscHelpers.lib;QtSingleApp.lib;UGlobalHotkey.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
@@ -150,7 +150,7 @@
       <SubSystem>Windows</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Netapi32.lib;Advapi32.lib;GeneralLibrary.lib;MiscHelpers.lib;QtSingleApp.lib;UGlobalHotkey.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Advapi32.lib;Netapi32.lib;Iphlpapi.lib;ws2_32.lib;GeneralLibrary.lib;MiscHelpers.lib;QtSingleApp.lib;UGlobalHotkey.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
@@ -176,7 +176,7 @@
       <SubSystem>Windows</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Netapi32.lib;Advapi32.lib;GeneralLibrary.lib;MiscHelpers.lib;QtSingleApp.lib;UGlobalHotkey.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Advapi32.lib;Netapi32.lib;Iphlpapi.lib;ws2_32.lib;GeneralLibrary.lib;MiscHelpers.lib;QtSingleApp.lib;UGlobalHotkey.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
@@ -202,7 +202,7 @@
       <SubSystem>Windows</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Netapi32.lib;Advapi32.lib;GeneralLibrary.lib;MiscHelpers.lib;QtSingleApp.lib;UGlobalHotkey.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Advapi32.lib;Netapi32.lib;Iphlpapi.lib;ws2_32.lib;GeneralLibrary.lib;MiscHelpers.lib;QtSingleApp.lib;UGlobalHotkey.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
@@ -220,6 +220,8 @@
     <ClCompile Include="Core\Enclaves\EnclaveManager.cpp" />
     <ClCompile Include="Core\EventLog.cpp" />
     <ClCompile Include="Core\GenericRule.cpp" />
+    <ClCompile Include="Core\HashDB\HashDB.cpp" />
+    <ClCompile Include="Core\HashDB\HashEntry.cpp" />
     <ClCompile Include="Core\IssueManager.cpp" />
     <ClCompile Include="Core\Network\DnsCacheEntry.cpp" />
     <ClCompile Include="Core\Network\DnsRule.cpp" />
@@ -262,6 +264,7 @@
     <ClCompile Include="Models\EnclaveModel.cpp" />
     <ClCompile Include="Models\ExecutionModel.cpp" />
     <ClCompile Include="Models\HandleModel.cpp" />
+    <ClCompile Include="Models\HashDBModel.cpp" />
     <ClCompile Include="Models\IngressModel.cpp" />
     <ClCompile Include="Models\LibraryModel.cpp" />
     <ClCompile Include="Models\ProgramRuleModel.cpp" />
@@ -300,6 +303,7 @@
     <ClCompile Include="Views\EventView.cpp" />
     <ClCompile Include="Views\ExecutionView.cpp" />
     <ClCompile Include="Views\HandleView.cpp" />
+    <ClCompile Include="Views\HashDBView.cpp" />
     <ClCompile Include="Views\InfoView.cpp" />
     <ClCompile Include="Views\IngressView.cpp" />
     <ClCompile Include="Views\IssueView.cpp" />
@@ -323,6 +327,7 @@
     <ClCompile Include="Windows\AccessRuleWnd.cpp" />
     <ClCompile Include="Windows\EnclaveWnd.cpp" />
     <ClCompile Include="Windows\FirewallRuleWnd.cpp" />
+    <ClCompile Include="Windows\HashEntryWnd.cpp" />
     <ClCompile Include="Windows\MountMgrWnd.cpp" />
     <ClCompile Include="Windows\OptionsTransferWnd.cpp" />
     <ClCompile Include="Windows\PopUpWindow.cpp" />
@@ -337,6 +342,8 @@
     <ClCompile Include="Wizards\SetupWizard.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Windows\HashEntryWnd.h" />
+    <QtMoc Include="Views\HashDBView.h" />
     <QtMoc Include="Views\StatusView.h" />
     <QtMoc Include="Views\IssueView.h" />
     <QtMoc Include="Views\EventView.h" />
@@ -377,6 +384,8 @@
     <QtMoc Include="Core\Network\DnsRule.h" />
     <QtMoc Include="Core\IssueManager.h" />
     <QtMoc Include="Core\EventLog.h" />
+    <QtMoc Include="Core\HashDB\HashDB.h" />
+    <QtMoc Include="Core\HashDB\HashEntry.h" />
     <ClInclude Include="Core\Network\NetLogEntry.h" />
     <QtMoc Include="Windows\SettingsWindow.h" />
     <QtMoc Include="Core\Network\TrafficEntry.h" />
@@ -456,6 +465,7 @@
     <QtMoc Include="Models\AccessListModel.h" />
     <QtMoc Include="Models\DnsRuleModel.h" />
     <QtMoc Include="OnlineUpdater.h" />
+    <QtMoc Include="Models\HashDBModel.h" />
     <ClInclude Include="version.h" />
     <QtMoc Include="MajorPrivacy.h" />
     <ClInclude Include="Resources\resource.h" />
@@ -465,6 +475,7 @@
     <QtUic Include="Forms\AccessRuleWnd.ui" />
     <QtUic Include="Forms\EnclaveWnd.ui" />
     <QtUic Include="Forms\FirewallRuleWnd.ui" />
+    <QtUic Include="Forms\HashEntryWnd.ui" />
     <QtUic Include="Forms\OptionsTransferWnd.ui" />
     <QtUic Include="Forms\PopUpWindow.ui" />
     <QtUic Include="Forms\ProgramPicker.ui" />

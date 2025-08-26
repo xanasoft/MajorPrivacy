@@ -19,7 +19,7 @@ void CDnsCacheModel::Sync(QMap<quint64, CDnsCacheEntryPtr> List)
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*>> New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -44,7 +44,7 @@ void CDnsCacheModel::Sync(QMap<quint64, CDnsCacheEntryPtr> List)
 	CTreeItemModel::Sync(New, Old);
 }
 
-void CDnsCacheModel::SyncEntry(QMap<QList<QVariant>, QList<STreeNode*>>& New, QHash<QVariant, STreeNode*>& Old, const CDnsCacheEntryPtr& pEntry/*, const CDnsProcRecordPtr& pRecord*/)
+void CDnsCacheModel::SyncEntry(TNewNodesMap& New, QHash<QVariant, STreeNode*>& Old, const CDnsCacheEntryPtr& pEntry/*, const CDnsProcRecordPtr& pRecord*/)
 {
 	// todo-later: make this prettier
 	/*if (m_ProcessFilter)
@@ -80,7 +80,7 @@ void CDnsCacheModel::SyncEntry(QMap<QList<QVariant>, QList<STreeNode*>>& New, QH
 		pNode = static_cast<SDnsNode*>(MkNode(ID));
 		pNode->Values.resize(columnCount());
 		pNode->pEntry = pEntry;
-		New[pNode->Path].append(pNode);
+		New[pNode->Path.count()][pNode->Path].append(pNode);
 	}
 	else
 	{

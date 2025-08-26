@@ -16,6 +16,7 @@ CMountMgrWnd::CMountMgrWnd(QWidget *parent)
 
 	m_pPanel = new CPanelWidgetEx();
 	//m_pPanel->GetView()->setItemDelegate(theGUI->GetItemDelegate());
+	m_pPanel->GetView()->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 
 	m_pTree = m_pPanel->GetTree();
 	m_pTree->setHeaderLabels(tr("Volume|Device Path").split("|"));

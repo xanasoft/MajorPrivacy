@@ -51,7 +51,7 @@ QSet<quint64> CProcessModel::Sync(QHash<quint64, CProcessPtr> ProcessList)
 	QSet<quint64> Added;
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -77,7 +77,7 @@ QSet<quint64> CProcessModel::Sync(QHash<quint64, CProcessPtr> ProcessList)
 			if (m_bTree)
 				MakeProcPath(pProcess, ProcessList, pNode->Path);
 			pNode->pProcess = pProcess;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 			Added.insert(ID);
 		}
 		else
@@ -119,10 +119,12 @@ QSet<quint64> CProcessModel::Sync(QHash<quint64, CProcessPtr> ProcessList)
 				case ePID:					Value = pProcess->GetProcessId(); break;
 				case eParentPID:			Value = pProcess->GetParentId(); break;
 				case eEnclave:				Value = pProcess->GetEnclaveGuid().ToQV(); break;
-				case eTrustLevel:			Value = pProcess->GetSignInfo().GetRawInfo(); break;
+				case eTrustLevel:			Value = pProcess->GetSignInfo().GetUnion(); break;
 				case eSID:					Value = pProcess->GetUserName(); break;
 				case eStatus:				Value = pProcess->GetStatus(); break;
 				case eImageStats:			Value = pProcess->GetImgStats(); break;
+				case eHandles:				Value = pProcess->GetHandleCount(); break;
+				case eSockets: 				Value = pProcess->GetSocketCount(); break;
 				case eFileName:				Value = pProcess->GetNtPath(); break;
 			}
 
@@ -147,7 +149,7 @@ QSet<quint64> CProcessModel::Sync(QHash<quint64, CProcessPtr> ProcessList)
 				{
 					//case ePID:				if (Value.toLongLong() < 0) ColValue.Formatted = ""; break;
 					case eEnclave:				if(pProcess->GetEnclave()) ColValue.Formatted = pProcess->GetEnclave()->GetName(); break;
-					case eTrustLevel:			ColValue.Formatted = CProgramFile::GetSignatureInfoStr(UCISignInfo{Value.toULongLong()}); break;
+					case eTrustLevel:			ColValue.Formatted = CProgramFile::GetSignatureInfoStr(pProcess->GetSignInfo()); break;
 					case eFileName:				ColValue.Formatted = theCore->NormalizePath(pProcess->GetNtPath()); break;
 				}
 			}
@@ -271,6 +273,8 @@ QString CProcessModel::GetColumHeader(int section) const
 		case eSID:					return tr("User Name");	
 		case eStatus:				return tr("Status");
 		case eImageStats:			return tr("Image Loads (MS/V/S/U)");
+		case eHandles:				return tr("Handles");
+		case eSockets:				return tr("Sockets");
 		case eFileName:				return tr("File Name");
 	}
 	return "";

@@ -39,6 +39,13 @@ public:
 
 	CBuffer& operator=(const CBuffer& Other)			{Assign(Other); return *this;}
 
+	bool operator== (const CBuffer& Other) const		{ return Compare(Other) == 0; }
+	bool operator!= (const CBuffer& Other) const		{ return Compare(Other) != 0; }
+	bool operator>= (const CBuffer& Other) const		{ return Compare(Other) >= 0; }
+	bool operator<= (const CBuffer& Other) const		{ return Compare(Other) <= 0; }
+	bool operator> (const CBuffer& Other) const			{ return Compare(Other) > 0; }
+	bool operator< (const CBuffer& Other) const			{ return Compare(Other) < 0; }
+
 	void	Clear();
 	bool	Assign(const CBuffer& Other);
 

@@ -17,6 +17,8 @@ QIcon CWindowsService::DefaultIcon() const
 
 QString CWindowsService::GetNameEx() const
 {
+	QReadLocker Lock(&m_Mutex); 
+
 	if(m_Name.isEmpty())
 		return m_ServiceTag;
 	if(m_Name.contains(m_ServiceTag, Qt::CaseInsensitive))
@@ -26,6 +28,8 @@ QString CWindowsService::GetNameEx() const
 
 CProgramFilePtr CWindowsService::GetProgramFile() const
 {
+	QReadLocker Lock(&m_Mutex); 
+
 	CProgramFilePtr pProgram;
 	if (!m_Groups.isEmpty())
 		pProgram = m_Groups.first().lock().objectCast<CProgramFile>();
@@ -34,6 +38,8 @@ CProgramFilePtr CWindowsService::GetProgramFile() const
 
 void CWindowsService::CountStats()
 {
+	QWriteLocker Lock(&m_Mutex); 
+
 	m_Stats.LastExecution = m_LastExec;
 
 	m_Stats.ProcessCount = m_ProcessId != 0 ? 1 : 0;
@@ -42,6 +48,7 @@ void CWindowsService::CountStats()
 
 	m_Stats.ResRuleTotal = m_Stats.ResRuleCount = m_ResRuleIDs.count();
 	m_Stats.AccessCount = m_AccessCount;
+	m_Stats.HandleCount = m_HandleCount;
 
 	m_Stats.FwRuleTotal = m_Stats.FwRuleCount = m_FwRuleIDs.count();
 	m_Stats.SocketCount = m_SocketRefs.count();
@@ -49,11 +56,15 @@ void CWindowsService::CountStats()
 
 QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 {
+	QReadLocker Lock(&m_Mutex); 
 	if (m_ExecChanged)
 	{
+		Lock.unlock();
 		auto Res = theCore->GetExecStats(m_ID);
 		if (!Res.IsError())
 		{
+			QWriteLocker Lock(&m_Mutex); 
+
 			m_ExecStats.clear();
 			m_ExecChanged = false;
 
@@ -81,6 +92,7 @@ QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 				m_ExecStats[Ref] = Info;
 			});
 		}
+		Lock.relock();
 	}
 
 	return m_ExecStats;
@@ -88,11 +100,16 @@ QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 
 QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
 {
+	QReadLocker Lock(&m_Mutex);
+
 	if(m_IngressChanged)
 	{
+		Lock.unlock();
 		auto Res = theCore->GetIngressStats(m_ID);
 		if (!Res.IsError())
 		{
+			QWriteLocker Lock(&m_Mutex);
+
 			m_Ingress.clear();
 			m_IngressChanged = false;
 
@@ -121,6 +138,7 @@ QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
 				m_Ingress[Ref] = Info;
 			});
 		}
+		Lock.relock();
 	}	
 
 	return m_Ingress;
@@ -129,6 +147,7 @@ QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
 QMap<quint64, SAccessStatsPtr> CWindowsService::GetAccessStats()
 {
 	auto Res = theCore->GetAccessStats(m_ID, m_AccessLastActivity);
+	QWriteLocker Lock(&m_Mutex);
 	if (!Res.IsError()) {
 		QtVariant Root = Res.GetValue();
 		m_AccessLastActivity = ReadAccessBranch(m_AccessStats, Root);
@@ -136,26 +155,19 @@ QMap<quint64, SAccessStatsPtr> CWindowsService::GetAccessStats()
 	return m_AccessStats;
 }
 
-QMap<QString, CTrafficEntryPtr>	CWindowsService::GetTrafficLog()
+QHash<QString, CTrafficEntryPtr> CWindowsService::GetTrafficLog()
 {
 	auto Res = theCore->GetTrafficLog(m_ID, m_TrafficLogLastActivity);
+	QWriteLocker Lock(&m_Mutex);
 	if (!Res.IsError())
-		m_TrafficLogLastActivity = CTrafficEntry__LoadList(m_TrafficLog, Res.GetValue());
+		m_TrafficLogLastActivity = CTrafficEntry__LoadList(m_TrafficLog, m_Unresolved, Res.GetValue());
 	return m_TrafficLog;
-}
-
-void CWindowsService::ClearLogs(ETraceLogs Log)
-{
-	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
-		ClearAccessLog();
-	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eExecLog)
-		ClearProcessLogs();
-	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
-		ClearTrafficLog();
 }
 
 void CWindowsService::ClearProcessLogs()
 {
+	QWriteLocker Lock(&m_Mutex);
+
 	m_ExecStats.clear();
 	m_ExecChanged = true;
 
@@ -165,13 +177,18 @@ void CWindowsService::ClearProcessLogs()
 
 void CWindowsService::ClearAccessLog()
 {
+	QWriteLocker Lock(&m_Mutex);
+
 	m_AccessStats.clear();
 	m_AccessLastActivity = 0;
 }
 
 void CWindowsService::ClearTrafficLog()
 {
+	QWriteLocker Lock(&m_Mutex);
+
 	m_TrafficLog.clear();
+	m_Unresolved.clear();
 	m_TrafficLogLastActivity = 0;
 }
 

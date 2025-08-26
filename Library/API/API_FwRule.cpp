@@ -25,6 +25,7 @@ void CFwRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteEx(API_V_ORIGINAL_GUID, m_OriginalGuid);
 
     Rule.Write(API_V_SOURCE, (uint32)m_Source);
+	Rule.WriteEx(API_V_TEMPLATE_GUID, m_TemplateGuid);
 
 #ifdef CFwRule
     Rule.Write(API_V_ENABLED, m_FwRule->Enabled);
@@ -95,6 +96,7 @@ void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_ORIGINAL_GUID: m_OriginalGuid = AS_STR(Data); break;
 
 	case API_V_SOURCE: m_Source = (EFwRuleSource)Data.To<uint32>(); break;
+    case API_V_TEMPLATE_GUID: m_TemplateGuid = AS_STR(Data); break;
 
 #ifdef CFwRule
     case API_V_ENABLED: M(Enabled) = Data.To<bool>(); break;
@@ -194,6 +196,7 @@ void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
     case EFwRuleSource::eMajorPrivacy: Rule.Write(API_S_SOURCE, API_S_SOURCE_MP); break;
 	case EFwRuleSource::eAutoTemplate: Rule.Write(API_S_SOURCE, API_S_SOURCE_TEMPLATE); break;
     }
+	Rule.WriteEx(API_S_TEMPLATE_GUID, m_TemplateGuid);
 
 
 #ifdef CFwRule
@@ -323,6 +326,8 @@ void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
         else
 			m_Source = EFwRuleSource::eUnknown; // unknown source
     }
+    else if (VAR_TEST_NAME(Name, API_S_TEMPLATE_GUID))
+		m_TemplateGuid = AS_STR(Data);
 		
 
 #ifdef CFwRule

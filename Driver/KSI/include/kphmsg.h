@@ -51,9 +51,13 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgProgramRules  = 0x40000200,
     KphMsgAccessRules   = 0x40000400,
 	KphMsgFirewallRules = 0x40000800, // todo
+    KphMsgHashDB        = 0x40001000,
+    //                  = 0x40002000,
+    //                  = 0x40004000,
+    //                  = 0x40008000,
 
     // other events
-    KphMsgInjectDll     = 0x40001000,
+    KphMsgInjectDll     = 0x40010000,
 
     MaxKphMsg,
 

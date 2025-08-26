@@ -26,7 +26,9 @@ CEnclave* CEnclave::Clone() const
 	//pEnclave->m_Grouping = m_Grouping;
 	pEnclave->m_Description = m_Description;
 
-	pEnclave->m_SignatureLevel = m_SignatureLevel;
+	pEnclave->m_AllowedSignatures = m_AllowedSignatures;
+	pEnclave->m_AllowedCollections = m_AllowedCollections;
+
 	pEnclave->m_OnTrustedSpawn = m_OnTrustedSpawn;
 	pEnclave->m_OnSpawn = m_OnSpawn;
 	pEnclave->m_ImageLoadProtection = m_ImageLoadProtection;
@@ -103,7 +105,7 @@ void CEnclave::UpdateIconFile()
 		m_Icon = QIcon(QPixmap(Path));
 }
 
-QString CEnclave::GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority)
+/*QString CEnclave::GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority)
 {
 	switch (SignAuthority) {
 	case KphDevAuthority:	return tr("Developer Signed");			// Part of Majror Privacy
@@ -116,7 +118,7 @@ QString CEnclave::GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority)
 	case KphUntestedAuthority: return tr("Undetermined");
 	}
 	return "Unknown";
-}
+}*/
 
 QString CEnclave::GetOnSpawnStr(EProgramOnSpawn OnSpawn)
 {
@@ -126,4 +128,27 @@ QString CEnclave::GetOnSpawnStr(EProgramOnSpawn OnSpawn)
 	case EProgramOnSpawn::eEject:	return tr("Eject");
 	}
 	return "Unknown";
+}
+
+QStringList CEnclave::GetAllowedSigners(USignatures Signers, const QList<QString>& Collections)
+{
+	QList<QString> SignerList;
+	if(Signers.Windows)
+		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_WINDOWS);
+	if(Signers.Microsoft)
+		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_MICROSOFT);
+	if(Signers.Antimalware)
+		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_ANTIMALWARE);
+	if(Signers.Authenticode)
+		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_AUTHENTICODE);
+	if(Signers.Store)
+		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_STORE);
+	if(Signers.Developer)
+		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_DEVELOPER);
+	if(Signers.User)
+		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_USER);
+	if(Signers.Enclave)
+		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE);
+	SignerList.append(Collections);
+	return SignerList;
 }

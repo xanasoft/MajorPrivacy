@@ -49,6 +49,7 @@ private slots:
 	void					CleanUpTree();
 
 	void					OnCleanUpDone();
+	void					OnClearRecords();
 
 	void					OnMenuAction();
 
@@ -62,6 +63,7 @@ protected:
 	QToolButton*			m_pBtnHold;
 	QToolButton*			m_pBtnRefresh;
 	QToolButton*			m_pBtnCleanUp;
+	QToolButton*			m_pBtnClear;
 
 	QSet<CProgramFilePtr>			m_CurPrograms;
 	QSet<CWindowsServicePtr>		m_CurServices;
@@ -79,4 +81,9 @@ protected:
 	int						m_iAccessFilter = 0;
 	quint64					m_RecentLimit = 0;
 	QString					m_RootPath;
+
+	bool					m_FullRefresh = false;
+	int 					m_RefreshCount = 0;
+
+	int 					m_SlowCount = 0;
 };

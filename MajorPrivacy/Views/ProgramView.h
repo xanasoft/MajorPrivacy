@@ -17,6 +17,8 @@ public:
 	int GetFilter() const { return m_pProgramModel->GetFilter(); }
 	bool TestFilter(EProgramType Type, const SProgramStats* pStats) { return m_pProgramModel->TestFilter(Type, pStats); }
 
+	bool	HasFinder() const;
+
 	void	SetColumnSet(const QString& ColumnSet);
 
 signals:
@@ -75,6 +77,7 @@ private:
 
 	QToolBar*					m_pToolBar = nullptr;
 	QToolButton*				m_pBtnAdd;
+	QToolButton*				m_pBtnTree;
 	QToolButton*				m_pBtnExpand;
 
 	QToolButton*				m_pTypeFilter = nullptr;
@@ -116,10 +119,14 @@ private:
 
 	QAction*					m_pCreateProgram = nullptr;
 	QAction*					m_pEditProgram = nullptr;
-	QMenu*						m_pClearTrace = nullptr;
-		QAction*					m_pClearExec = nullptr;
-		QAction*					m_pClearRes = nullptr;
-		QAction*					m_pClearNet = nullptr;
+	QMenu*						m_pClear = nullptr;
+		QAction*					m_pClearExecRec = nullptr;
+		QAction*					m_pClearResRec = nullptr;
+		QAction*					m_pClearNetRec = nullptr;
+	
+		QAction*					m_pClearExecLog = nullptr;
+		QAction*					m_pClearResLog = nullptr;
+		QAction*					m_pClearNetLog = nullptr;
 	QMenu*						m_pTraceConfig = nullptr;
 		QMenu*						m_pExecTraceConfig = nullptr;
 		QMenu*						m_pResTraceConfig = nullptr;

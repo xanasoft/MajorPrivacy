@@ -45,9 +45,10 @@ public:
 	void					SetRecentLimit(int Limit)		{ m_RecentLimit = Limit; }
 	quint64					GetRecentLimit() const			{ return m_RecentLimit; }
 
-	bool					TestFilter(EProgramType Type, const SProgramStats* pStats);
+	bool					TestFilter(EProgramType Type, const SProgramStats* pStats, bool bTree = true);
 
 	QList<QVariant>			Sync(const CProgramSetPtr& pRoot);
+	QList<QVariant>			Sync(const QHash<quint64, CProgramItemPtr>& Items);
 
 	CProgramItemPtr			GetItem(const QModelIndex &index) const;
 
@@ -103,7 +104,7 @@ protected:
 		QSet<int>			Bold;
 	};
 
-	void					Sync(const CProgramSetPtr& pRoot, const QString& RootID, const QList<QVariant>& Path, QMap<QList<QVariant>, QList<STreeNode*> >& New, QSet<QVariant>& Current, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
+	void					Sync(const CProgramItemPtr& pItem, const QString& RootID, const QList<QVariant>& Path, TNewNodesMap& New, QSet<QVariant>& Current, QHash<QVariant, STreeNode*>& Old, QList<QVariant>& Added);
 
 	virtual QVariant		NodeData(STreeNode* pNode, int role, int section) const;
 

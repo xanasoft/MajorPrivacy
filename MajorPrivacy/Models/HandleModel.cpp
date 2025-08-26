@@ -24,7 +24,7 @@ QList<QModelIndex>	CHandleModel::Sync(const QList<CHandlePtr>& HandleList)
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -43,7 +43,7 @@ QList<QModelIndex>	CHandleModel::Sync(const QList<CHandlePtr>& HandleList)
 			//pNode->Path = Path;
 			pNode->pHandle = pHandle;
 			pNode->pProcess = theCore->ProcessList()->GetProcess(pHandle->GetProcessId(), true);
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{

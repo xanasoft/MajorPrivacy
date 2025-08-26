@@ -39,6 +39,9 @@ private slots:
 	void OnChangeGUI()		{ if (!m_HoldChange) m_bRebuildUI = true; OnOptChanged(); }
 	void OnIgnoreChanged()	{ if (!m_HoldChange) m_IgnoreChanged = true; OnOptChanged(); }
 
+	void OnSelectUiFont();
+	void OnResetUiFont();
+
 	void OnOptChanged();
 
 	void OnDnsChanged();
@@ -47,7 +50,11 @@ private slots:
 	void OnDnsBlockDoubleClicked(QTreeWidgetItem* pItem, int Column);
 	void OnAddBlockList();
 	void OnDelBlockList();
-	void OnDnsChanged3();
+
+	void GetUpdates();
+	void OnUpdateData(const QVariantMap& Data, const QVariantMap& Params);
+	void OnUpdate(const QString& Channel);
+	void UpdateUpdater();
 
 	void OnTab();
 
@@ -105,6 +112,8 @@ protected:
 
 	bool	m_CertChanged = false;
 
+	QVariantMap m_UpdateData;
+
 private:
 
 	Ui::SettingsWindow ui;
@@ -119,4 +128,4 @@ extern QString g_CertName;
 extern QString g_SystemHwid;
 
 #define EVAL_MAX 3		// for UI only actual limits enforced on server
-#define EVAL_DAYS 10	
+#define EVAL_DAYS 90

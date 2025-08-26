@@ -34,3 +34,5 @@ typedef std::shared_ptr<SCatalogCIInfo> SCatalogCIInfoPtr;
 LIBRARY_EXPORT SCatalogCIInfoPtr GetCatalogCIInfo(const std::wstring& filePath);
 
 LIBRARY_EXPORT SCICertificatePtr GetCIInfo(const std::wstring& filePath);
+
+LIBRARY_EXPORT bool GetEmbeddedSignatureStatus(const std::wstring& filePath, bool* pValid);

@@ -55,6 +55,7 @@ enum {
 	API_UNLOCK_CONFIG = 'ULCK',
 	API_COMMIT_CONFIG = 'CCFG',
 	API_DISCARD_CHANGES = 'DCFG',
+	API_STORE_CONFIG = 'WCFG',
 	API_GET_CONFIG_HASH = 'HCFG',
 
 	API_SET_ENCLAVES = 'LENC',
@@ -63,6 +64,12 @@ enum {
 	API_GET_ENCLAVE = 'GENC',
 	API_DEL_ENCLAVE = 'DENC',
 	API_PREP_ENCLAVE = 'PENC',
+
+	API_SET_HASHES = 'LHAS',
+	API_GET_HASHES = 'AHAS',
+	API_SET_HASH = 'SHAS',
+	API_GET_HASH = 'GHAS',
+	API_DEL_HASH = 'DHAS',
 
 	API_SET_PROGRAM_RULES = 'LPRG',
 	API_GET_PROGRAM_RULES = 'APRG',
@@ -83,6 +90,9 @@ enum {
 
 	API_ACQUIRE_NO_UNLOAD = 'ANUL',
 	API_RELEASE_NO_UNLOAD = 'RNUL',
+
+	API_ACQUIRE_NO_HIBERNATION = 'ANHB',
+	API_RELEASE_NO_HIBERNATION = 'RNHB',
 
 	API_GET_SUPPORT_INFO = 'SUPP',
 
@@ -150,8 +160,12 @@ enum {
 	SVC_API_GET_PROCESS = 'GPRX',
 
 	SVC_API_GET_PROGRAMS = 'GPRO',
+	SVC_API_GET_PROGRAM = 'GPRG',
 	SVC_API_GET_LIBRARIES = 'GLIB',
+	SVC_API_GET_LIBRARY = 'GLBR',
 	SVC_API_START_SECURE = 'SSEC',
+
+	SVC_API_RUN_UPDATER = 'RUPD',
 
 	SVC_API_SET_PROGRAM = 'SPRO',
 	SVC_API_ADD_PROGRAM = 'APRO',
@@ -171,6 +185,7 @@ enum {
 	// Access Manager
 	SVC_API_GET_HANDLES = 'GHND',
 	SVC_API_CLEAR_LOGS = 'CLOG',
+	SVC_API_CLEAR_RECORDS = 'CREC',
 	SVC_API_CLEANUP_ACCESS_TREE = 'CTRE',
 	SVC_API_SET_ACCESS_EVENT_ACTION = 'SAEA',
 
@@ -203,6 +218,7 @@ enum {
 	SVC_API_EVENT_LOG_ENTRY = 'ELOG',
 
 	SVC_API_EVENT_ENCLAVE_CHANGED = 'EENC',
+	SVC_API_EVENT_HASHDB_CHANGED = 'EHDB',
 	SVC_API_EVENT_FW_RULE_CHANGED = 'EFRU',
 	SVC_API_EVENT_DNS_RULE_CHANGED = 'EDFR',
 	SVC_API_EVENT_EXEC_RULE_CHANGED = 'EEXR',
@@ -307,6 +323,7 @@ API_V_VALUES : unsigned long
 	API_V_ENABLED = 'enbl',
 	API_V_TEMP = 'temp',
 	API_V_TIMEOUT = 'tmot',
+	API_V_TIME_STAMP = 'tmst',
 
 	//
 	API_V_GUI_CONFIG = 'gcfg',
@@ -330,6 +347,8 @@ API_V_VALUES : unsigned long
 	API_V_UNLOCK = 'unlk',
 	API_V_RAND = 'rand',
 	API_V_SIGNATURE = 'sign',
+	API_V_ENCLAVES = 'encs',
+	API_V_COLLECTIONS = 'cols',
 
 
 	////////////////////////////
@@ -351,6 +370,9 @@ API_V_VALUES : unsigned long
 	API_V_RULE_STATE = 'rste',
 	API_V_ORIGINAL_GUID = 'ogid',
 	API_V_SOURCE = 'src',
+	API_V_TEMPLATE_GUID = 'tgid',
+
+	API_V_SHUTDOWN = 'shdn',
 
 
 	////////////////////////////
@@ -363,6 +385,9 @@ API_V_VALUES : unsigned long
 	API_V_GET_DATA = 'gdat',
 	API_V_VERIFY = 'vfy',
 	API_V_BLOCKING = 'blk',
+	API_V_PARAMS = 'prms',
+	API_V_WAIT = 'wait',
+	API_V_ELEVATE = 'elvt',
 
 	////////////////////////////
 	// Program ID
@@ -396,6 +421,7 @@ API_V_VALUES : unsigned long
 
 	// Status
 	API_V_PROG_ACCESS_COUNT = 'pacn',
+	API_V_PROG_HANDLE_COUNT = 'phnd',
 	API_V_PROG_SOCKET_REFS = 'psok',
 	API_V_PROG_LAST_EXEC = 'plst',
 	API_V_PROG_ITEM_MISSING = 'pims',
@@ -405,6 +431,7 @@ API_V_VALUES : unsigned long
 	API_V_PROG_PARENT = 'ppar',
 	API_V_PURGE_RULES = 'prl',
 	API_V_DEL_WITH_RULES = 'drl',
+	API_V_KEEP_ONE = 'keep',
 
 
 	////////////////////////////
@@ -434,12 +461,15 @@ API_V_VALUES : unsigned long
 	API_V_EXEC_RULE_ACTION = 'exac',
 		// ...
 	API_V_EXEC_SIGN_REQ = 'exsr',
+	API_V_EXEC_ALLOWED_SIGNERS = 'exas',
+	API_V_EXEC_ALLOWED_COLLECTIONS = 'excl',
 		// ...
 	API_V_EXEC_ON_TRUSTED_SPAWN = 'exot',
 		// ...
 	API_V_EXEC_ON_SPAWN = 'exos',
 		// ...
 	API_V_IMAGE_LOAD_PROTECTION = 'ilpr',
+	API_V_IMAGE_COHERENCY_CHECKING = 'icck',
 	API_V_INTEGRITY_LEVEL = 'ilvl',
 	//API_V_PATH_PREFIX,
 	//API_V_DEVICE_PATH,
@@ -628,14 +658,20 @@ API_V_VALUES : unsigned long
 	API_V_SIGN_INFO = 'sinf',
 	API_V_SIGN_FLAGS = 'sflg', // --> API_V_CERT_STATUS
 	API_V_IMG_SIGN_AUTH = 'saut',
+	API_V_IMG_SIGN_BITS = 'sbit',
 	API_V_IMG_SIGN_LEVEL = 'slvl',
 	API_V_IMG_SIGN_POLICY = 'spol',
 	API_V_FILE_HASH = 'fhas',
 	API_V_FILE_HASH_ALG = 'falg',
+	API_V_FILE_TMBP = 'ftmb',
+	API_V_FILE_TMBP_ALG = 'talg',
 	API_V_CERT_STATUS = 'csts',
 	API_V_IMG_SIGN_NAME = 'snam',
 	API_V_IMG_CERT_ALG = 'calg',
 	API_V_IMG_CERT_HASH = 'chas',
+	API_V_IMG_CA_NAME = 'canm',
+	API_V_IMG_CA_ALG = 'caal',
+	API_V_IMG_CA_HASH = 'cahs',
 
 
 	////////////////////////////
@@ -745,16 +781,21 @@ API_V_VALUES : unsigned long
 // Driver Config Status
 //
 
-#define CONFIG_STATUS_DIRTY		0x01 // config has been altered
-#define CONFIG_STATUS_PROTECTED	0x02 // config is signature protected
-#define CONFIG_STATUS_LOCKED	0x04 // config is locked and can not be changed
-#define CONFIG_STATUS_KEYLOCKED	0x08 // the registry key is locked and can not be changed without a reboot
+#define CONFIG_STATUS_DIRTY		0x00000001 // config has been altered
+#define CONFIG_STATUS_PROTECTED	0x00000002 // config is signature protected
+#define CONFIG_STATUS_LOCKED	0x00000004 // config is locked and can not be changed
+#define CONFIG_STATUS_KEYLOCKED	0x00000008 // the registry key is locked and can not be changed without a reboot
 
-#define CONFIG_STATUS_BAD		0xF0
-#define CONFIG_STATUS_NO_SIG	0x10 // config is not signed
-#define CONFIG_STATUS_BAD_SIG	0x20 // config signature is invalid
-#define CONFIG_STATUS_BAD_SEQ	0x40 // config has invalid sequence number (replay atack?)
-#define CONFIG_STATUS_CORRUPT	0x80 // config is corrupted and can not be parsed
+#define CONFIG_STATUS_BAD		0x00FF0000
+#define CONFIG_STATUS_NO_SIG	0x00010000 // config is not signed
+#define CONFIG_STATUS_BAD_SIG	0x00020000 // config signature is invalid
+#define CONFIG_STATUS_BAD_SEQ	0x00040000 // config has invalid sequence number (replay atack?)
+#define CONFIG_STATUS_CORRUPT	0x00080000 // config is corrupted and can not be parsed
+
+#define CONFIG_STATUS_WARNINGS	0xFF000000
+#define CONFIG_STATUS_RESTORED	0x01000000 // config was restored
+#define CONFIG_STATUS_REVERTED	0x02000000 // config was reverted
+#define CONFIG_STATUS_SUPRESSED	0x04000000 // config was supressed
 
 
 

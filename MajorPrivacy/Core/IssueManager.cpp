@@ -292,8 +292,19 @@ STATUS CFirewallIssue::FixIssue(EFixMode Mode)
 		else
 			return ERR(STATUS_NOT_IMPLEMENTED, tr("This issue can not be fixed in this mode!").toStdWString());
 	case EFwRuleState::eBackup:
-		if(Mode == eAccept)
-			return theCore->NetworkManager()->DelFwRule(pFwRule);
+		if (Mode == eAccept) {
+			STATUS status = OK;
+			CFwRulePtr pFwOriginalRule = theCore->NetworkManager()->GetFwRule(pFwRule->GetOriginalGuid());
+			if (pFwOriginalRule) {
+				if (pFwOriginalRule->GetState() == EFwRuleState::eUnapprovedDisabled)
+					pFwOriginalRule->SetEnabled(true);
+				pFwOriginalRule->SetApproved();
+				status = theCore->NetworkManager()->SetFwRule(pFwOriginalRule);
+			}
+			if(status)
+				status = theCore->NetworkManager()->DelFwRule(pFwRule);
+			return status;
+		}
 		else if (Mode == eReject)
 		{
 			pFwRule->SetApproved();

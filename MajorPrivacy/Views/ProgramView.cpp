@@ -47,7 +47,9 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pTreeList->setStyle(pStyle);
 #ifdef SPLIT_TREE
 	m_pTreeList->GetView()->setItemDelegate(new CTreeItemDelegate());
+	m_pTreeList->GetView()->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	m_pTreeList->GetTree()->setItemDelegate(new CTreeItemDelegate());
+	m_pTreeList->GetTree()->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 
 	m_pFinder = new CFinder(m_pSortProxy, this);
 	m_pMainLayout->addWidget(m_pFinder);
@@ -55,6 +57,7 @@ CProgramView::CProgramView(QWidget* parent)
 	connect(m_pTreeList, SIGNAL(MenuRequested( const QPoint& )), this, SLOT(OnMenu(const QPoint &)));
 #else
 	m_pTreeList->setItemDelegate(new CTreeItemDelegate());
+	m_pTreeList->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 
 	m_pProgramLayout->addWidget(CFinder::AddFinder(m_pTreeList, m_pSortProxy, CFinder::eDefault, &m_pFinder));
 
@@ -204,12 +207,27 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pToolBar->addWidget(m_pBtnAdd);
 
 	m_pToolBar->addSeparator();
+	m_pBtnTree = new QToolButton();
+	m_pBtnTree->setIcon(QIcon(":/Icons/Tree.png"));
+	m_pBtnTree->setCheckable(true);
+	m_pBtnTree->setToolTip(tr("Show Tree"));
+	m_pBtnTree->setMaximumHeight(22);
+	m_pBtnTree->setChecked(theConf->GetBool("Options/UseProgramTree", true));
+	connect(m_pBtnTree, &QToolButton::toggled, this, [&](bool checked) {
+		theConf->SetValue("Options/UseProgramTree", checked);
+		m_pProgramModel->Clear();
+		m_pBtnExpand->setEnabled(checked);
+		Update();
+	});
+	m_pToolBar->addWidget(m_pBtnTree);
+
 	m_pBtnExpand = new QToolButton();
 	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
 	m_pBtnExpand->setCheckable(true);
 	m_pBtnExpand->setToolTip(tr("Auto Expand"));
 	m_pBtnExpand->setMaximumHeight(22);
 	m_pBtnExpand->setChecked(true);
+	m_pBtnExpand->setEnabled(m_pBtnTree->isChecked());
 	connect(m_pBtnExpand, &QToolButton::toggled, this, [&](bool checked) {
 		if(checked)
 			m_pTreeList->expandAll();
@@ -227,6 +245,9 @@ CProgramView::CProgramView(QWidget* parent)
 	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
 	pBtnSearch->setFixedHeight(22);
 	m_pToolBar->addWidget(pBtnSearch);
+	connect(m_pFinder, &CFinder::Toggled, this, [&] {
+		emit ProgramsChanged(m_CurPrograms);
+	});
 
 	//connect(theGUI, SIGNAL(ReloadPanels()), m_pProgramModel, SLOT(Clear()));
 
@@ -249,10 +270,14 @@ CProgramView::CProgramView(QWidget* parent)
 
 	m_pEditProgram = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Edit Program"), this, SLOT(OnProgramAction()));
 	
-	m_pClearTrace = m_pMenu->addMenu(QIcon(":/Icons/Trash.png"), tr("Clear Trace"));
-		m_pClearExec = m_pClearTrace->addAction(QIcon(":/Icons/Process.png"), tr("Execution Trace"), this, SLOT(OnProgramAction()));
-		m_pClearRes = m_pClearTrace->addAction(QIcon(":/Icons/Ampel.png"), tr("Resource Trace"), this, SLOT(OnProgramAction()));
-		m_pClearNet = m_pClearTrace->addAction(QIcon(":/Icons/Wall3.png"), tr("Network Trace"), this, SLOT(OnProgramAction()));
+	m_pClear = m_pMenu->addMenu(QIcon(":/Icons/Trash.png"), tr("Clear Trace Logs"));
+		(m_pClearExecLog = m_pClear->addAction(QIcon(":/Icons/Process.png"), tr("Execution/Ingress Trace Log"), this, SLOT(OnProgramAction())))->setData((int)ETraceLogs::eExecLog);
+		(m_pClearResLog = m_pClear->addAction(QIcon(":/Icons/Ampel.png"), tr("Resource Access Trace Log"), this, SLOT(OnProgramAction())))->setData((int)ETraceLogs::eResLog);
+		(m_pClearNetLog = m_pClear->addAction(QIcon(":/Icons/Wall3.png"), tr("Network Access Trace Log"), this, SLOT(OnProgramAction())))->setData((int)ETraceLogs::eNetLog);
+		m_pClear->addSeparator();
+		(m_pClearExecRec = m_pClear->addAction(QIcon(":/Icons/Process.png"), tr("Execution/Ingress Records"), this, SLOT(OnProgramAction())))->setData((int)ETraceLogs::eExecLog);
+		(m_pClearResRec = m_pClear->addAction(QIcon(":/Icons/Ampel.png"), tr("Resource Access Records"), this, SLOT(OnProgramAction())))->setData((int)ETraceLogs::eResLog);
+		(m_pClearNetRec = m_pClear->addAction(QIcon(":/Icons/Wall3.png"), tr("Network Access Records"), this, SLOT(OnProgramAction())))->setData((int)ETraceLogs::eNetLog);
 
 	m_pTraceConfig = m_pMenu->addMenu(QIcon(":/Icons/SetLogging.png"), tr("Trace Config"));
 		m_pExecTraceConfig = m_pTraceConfig->addMenu(QIcon(":/Icons/Process.png"), tr("Execution Trace"));
@@ -277,7 +302,7 @@ CProgramView::CProgramView(QWidget* parent)
 		pAction->setCheckable(true);
 
 
-	m_pAddToGroup = m_pMenu->addMenu(QIcon(":/Icons/MkLink.png"), tr("Add to Group"));
+	m_pAddToGroup = m_pMenu->addMenu(QIcon(":/Icons/MkLink.png"), tr("Groups"));
 
 	m_pRemoveItem = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Remove"), this, SLOT(OnProgramAction()));
 	m_pRemoveItem->setShortcut(QKeySequence::Delete);
@@ -293,6 +318,11 @@ CProgramView::~CProgramView()
 {	
 	SetColumnSet("");
 	theConf->SetBlob("MainWindow/ProgramView_Columns", m_pTreeList->saveState());
+}
+
+bool CProgramView::HasFinder() const
+{
+	return m_pFinder->isVisible();
 }
 
 void CProgramView::SetColumnSet(const QString& ColumnSet)
@@ -444,7 +474,21 @@ void CProgramView::Update()
 		m_pProgramModel->SetRecentLimit(RecentLimit);
 	}
 
-	QList<QVariant> AddedProgs = m_pProgramModel->Sync(theCore->ProgramManager()->GetRoot());
+	QList<QVariant> AddedProgs;
+	if(m_pBtnTree->isChecked())
+		AddedProgs = m_pProgramModel->Sync(theCore->ProgramManager()->GetRoot());
+	else // flat mode, dont show groups
+	{
+		QHash<quint64, CProgramItemPtr> Items = theCore->ProgramManager()->GetItems();
+		for (auto I = Items.begin(); I != Items.end(); )
+		{
+			if((*I)->GetType() == EProgramType::eProgramGroup)
+				I = Items.erase(I);
+			else
+				I++;
+		}
+		AddedProgs = m_pProgramModel->Sync(Items);
+	}
 
 	if (m_pProgramModel->IsTree())
 	{
@@ -487,6 +531,7 @@ void CProgramView::OnDoubleClicked(const QModelIndex& Index)
 void CProgramView::OnMenu(const QPoint& Point)
 {
 	QSet<CProgramItemPtr> Programs;
+	QSet<quint64> SetGroups;
 	foreach(const QModelIndex & index, m_pTreeList->selectionModel()->selectedIndexes())
 	{
 		if (index.column() != 0)
@@ -494,8 +539,17 @@ void CProgramView::OnMenu(const QPoint& Point)
 		QModelIndex ModelIndex = m_pSortProxy->mapToSource(index);
 
 		CProgramItemPtr pProgram = m_pProgramModel->GetItem(ModelIndex);
-		if(pProgram)
+		if (pProgram) 
+		{
 			Programs.insert(pProgram);
+
+			foreach(auto Group, pProgram->GetGroups())
+			{
+				CProgramSetPtr pGroup = Group.lock().objectCast<CProgramGroup>();
+				if(pGroup)
+					SetGroups.insert(pGroup->GetUID());
+			}
+		}
 	}
 
 	m_pEditProgram->setEnabled(Programs.count() == 1);
@@ -512,6 +566,7 @@ void CProgramView::OnMenu(const QPoint& Point)
 			QString Name = Names[index];
 			auto pGroup = Groups[Name];
 			QAction* Action = new QAction(pGroup->GetIcon(), Name);
+			Action->setCheckable(true);
 			connect(Action, SIGNAL(triggered()), this, SLOT(OnAddToGroup()));
 			Action->setData(pGroup->GetUID());
 			if (index < Names.size())
@@ -525,6 +580,10 @@ void CProgramView::OnMenu(const QPoint& Point)
 			m_Groups.removeAt(index);
 			--index;
 		}
+	}
+
+	for (int index = 0; index < m_Groups.size(); index++) {
+		m_Groups[index]->setChecked(SetGroups.contains(m_Groups[index]->data().toUInt()));
 	}
 
 	int ExecTrace = -1;
@@ -569,7 +628,7 @@ void CProgramView::OnMenu(const QPoint& Point)
 		pAction->setChecked(pAction->data().toInt() == NetTrace);
 	foreach(QAction * pAction, m_pStoreTraceConfig->actions())
 		pAction->setChecked(pAction->data().toInt() == SaveTrace);
-	m_pClearTrace->setEnabled(TraceCount > 0);
+	m_pClear->setEnabled(TraceCount > 0);
 	m_pTraceConfig->setEnabled(TraceCount > 0);
 	
 	CPanelView::OnMenu(Point);
@@ -578,6 +637,7 @@ void CProgramView::OnMenu(const QPoint& Point)
 void CProgramView::OnAddToGroup()
 {
 	QAction* Action = (QAction*)sender();
+	bool bChecked = Action->isChecked();
 	quint64 UID = Action->data().toUInt();
 	auto pItem = theCore->ProgramManager()->GetProgramByUID(UID);
 	auto pGroup = pItem.objectCast<CProgramGroup>();
@@ -597,7 +657,10 @@ void CProgramView::OnAddToGroup()
 		if (pProgram == pItem)
 			continue;
 
-		Results.append(theCore->ProgramManager()->AddProgramTo(pProgram, pGroup));
+		if (bChecked)
+			Results << theCore->ProgramManager()->AddProgramTo(pProgram, pGroup);
+		else
+			Results << theCore->ProgramManager()->RemoveProgramFrom(pProgram, pGroup, false, true);
 	}
 
 	theGUI->CheckResults(Results, this);
@@ -731,30 +794,22 @@ void CProgramView::OnProgramAction()
 				Results.append(RemoveProgram(index));
 		}
 	}
-	else if (pAction == m_pClearExec)
+	else if (pAction == m_pClearExecLog || pAction == m_pClearResLog || pAction == m_pClearNetLog)
 	{
-		if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the Execution/Ingress trace logs for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+		if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the %1 for the current program items?").arg(pAction->text()), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
 			return;
 
 		foreach(const CProgramItemPtr& pProgram, Programs)
-			theCore->ClearTraceLog(ETraceLogs::eExecLog, pProgram);
+			Results << theCore->ClearTraceLog(ETraceLogs(pAction->data().toInt()), pProgram);
 	} 
-	else if (pAction == m_pClearRes)
+	else if (pAction == m_pClearExecRec || pAction == m_pClearResRec || pAction == m_pClearNetRec)
 	{
-		if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the Resource Access trace logs for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+		if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the %1 for the current program items?").arg(pAction->text()), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
 			return;
 
 		foreach(const CProgramItemPtr& pProgram, Programs)
-			theCore->ClearTraceLog(ETraceLogs::eResLog, pProgram);
+			Results << theCore->ClearRecords(ETraceLogs(pAction->data().toInt()), pProgram);
 	} 
-	else if (pAction == m_pClearNet)
-	{
-		if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the the Network Access trace logs for the current program items?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
-			return;
-
-		foreach(const CProgramItemPtr& pProgram, Programs)
-			theCore->ClearTraceLog(ETraceLogs::eNetLog, pProgram);
-	}
 	else
 	{
 		QMenu* pMenu = qobject_cast<QMenu*>(pAction->parent());
@@ -774,6 +829,8 @@ void CProgramView::OnProgramAction()
 				pProgram->SetNetTrace(ETracePreset(pAction->data().toInt()));
 			else if (pMenu == m_pStoreTraceConfig)
 				pProgram->SetSaveTrace(ESavePreset(pAction->data().toInt()));
+
+			Results << theCore->ProgramManager()->SetProgram(pProgram);
 		}
 	}
 

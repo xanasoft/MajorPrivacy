@@ -2,6 +2,7 @@
 #include "PrivacyCore.h"
 #include "Processes/ProcessList.h"
 #include "Enclaves/EnclaveManager.h"
+#include "HashDB/HashDB.h"
 #include "Processes/ExecLogEntry.h"
 #include "Programs/ProgramManager.h"
 #include "Network/NetworkManager.h"
@@ -17,6 +18,7 @@
 #include "../Driver/KSI/include/kphapi.h"
 #include "IssueManager.h"
 #include "EventLog.h"
+#include "../Library/Helpers/CertUtil.h"
 
 #include <phnt_windows.h>
 #include <phnt.h>
@@ -35,7 +37,7 @@ CSettings* theConf = NULL;
 CPrivacyCore* theCore = NULL;
 
 CPrivacyCore::CPrivacyCore(QObject* parent)
-: QObject(parent), m_Driver(CDriverAPI::eDevice)
+: QThread(parent), m_Driver(CDriverAPI::eDevice)
 {
 #ifdef _DEBUG
 	/*NTSTATUS Status;
@@ -69,8 +71,15 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 	m_pSidResolver = new CSidResolver(this);
 	m_pSidResolver->Init();
 
+	this->start();
+	m_pWorker = new CPrivacyWorker();
+	m_pWorker->moveToThread(this);
+
 	m_pProcessList = new CProcessList(this);
 	m_pEnclaveManager = new CEnclaveManager(this);
+
+	m_pHashDB = new CHashDB(this);
+
 	m_pProgramManager = new CProgramManager(this);
 	m_pAccessManager = new CAccessManager(this);
 
@@ -94,15 +103,17 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 	// 
 	// TODO: add own firewall engine to the driver
 	//
-
-	//m_Driver.RegisterRuleEventHandler(ERuleType::eAccess, &CPrivacyCore::OnDrvEvent, this);
-	//m_Driver.RegisterRuleEventHandler(ERuleType::eProgram, &CPrivacyCore::OnDrvEvent, this);
+	//m_Driver.RegisterConfigEventHandler(EConfigGroup::eEnclaves, &CPrivacyCore::OnDrvEvent, this);
+	//m_Driver.RegisterConfigEventHandler(EConfigGroup::eHashDB, &CPrivacyCore::OnDrvEvent, this);
+	//m_Driver.RegisterConfigEventHandler(EConfigGroup::eAccessRules, &CPrivacyCore::OnDrvEvent, this);
+	//m_Driver.RegisterConfigEventHandler(EConfigGroup::eProgramRules, &CPrivacyCore::OnDrvEvent, this);
 
 	//m_Service.RegisterEventHandler(SVC_API_EVENT_PROG_ITEM_CHANGED, &CPrivacyCore::OnProgEvent, this);
 
 	m_Service.RegisterEventHandler(SVC_API_EVENT_LOG_ENTRY, &CPrivacyCore::OnSvcEvent, this);
 
 	m_Service.RegisterEventHandler(SVC_API_EVENT_ENCLAVE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
+	m_Service.RegisterEventHandler(SVC_API_EVENT_HASHDB_CHANGED, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_FW_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_DNS_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
 	m_Service.RegisterEventHandler(SVC_API_EVENT_EXEC_RULE_CHANGED, &CPrivacyCore::OnSvcEvent, this);
@@ -119,6 +130,10 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 
 CPrivacyCore::~CPrivacyCore()
 {
+	m_pWorker->deleteLater();
+	this->quit();
+	this->wait();
+
 	CNtPathMgr::Instance()->UnRegisterDeviceChangeCallback(DeviceChangedCallback, this);
 
 	// Hack to dispose the memory pool after all child objects are destroyed
@@ -234,9 +249,11 @@ STATUS CPrivacyCore::Connect(bool bEngineMode)
 			if(DriverABI != MY_ABI_VERSION)
 				return ERR(STATUS_REVISION_MISMATCH, L"Driver ABI Mismatch");
 
-			m_Driver.RegisterForConfigEvents(EConfigGroup::eEnclaves);
-			m_Driver.RegisterForConfigEvents(EConfigGroup::eAccessRules);
-			m_Driver.RegisterForConfigEvents(EConfigGroup::eProgramRules);
+			// WARNING: this does not work unless we use flt port !!!
+			//m_Driver.RegisterForConfigEvents(EConfigGroup::eEnclaves);
+			//m_Driver.RegisterForConfigEvents(EConfigGroup::eHashDB);
+			//m_Driver.RegisterForConfigEvents(EConfigGroup::eAccessRules);
+			//m_Driver.RegisterForConfigEvents(EConfigGroup::eProgramRules);
 
 			auto Result = m_Driver.GetProcessInfo(GetCurrentProcessId());
 			if (!Result.IsError())
@@ -274,6 +291,7 @@ void CPrivacyCore::Disconnect(bool bKeepEngine)
 	m_Service.Disconnect();
 
 	m_EnclavesUpToDate = false;
+	m_HashDBUpToDate = false;
 	m_ProgramRulesUpToDate = false;
 	m_AccessRulesUpToDate = false;
 	m_FwRulesUpToDate = false;
@@ -302,29 +320,6 @@ bool CPrivacyCore::IsSvcMaxSecurity() const
 
 STATUS CPrivacyCore::Update()
 {
-	STATUS Status;
-	
-	//uint64 uStart = GetTickCount64();
-
-	Status = m_pProcessList->Update(); if (!Status) return Status;
-
-	//DbgPrint("m_pProcessList->Update() took %llu ms\n", GetTickCount64() - uStart);
-	//uStart = GetTickCount64();
-
-	Status = m_pEnclaveManager->Update(); if (!Status) return Status;
-
-	//DbgPrint("m_pEnclaveManager->Update() took %llu ms\n", GetTickCount64() - uStart);
-	//uStart = GetTickCount64();
-
-	Status = m_pProgramManager->Update(); if (!Status) return Status;
-
-	//DbgPrint("m_pProgramManager->Update() took %llu ms\n", GetTickCount64() - uStart);
-	//uStart = GetTickCount64();
-
-	Status = m_pAccessManager->Update(); if (!Status) return Status;
-
-	//DbgPrint("m_pAccessManager->Update() took %llu ms\n", GetTickCount64() - uStart);
-
 	auto Ret = GetServiceStats();
 	if (Ret.IsError())
 		return Ret.GetStatus();
@@ -332,6 +327,8 @@ STATUS CPrivacyCore::Update()
 
 	m_TotalMemoryUsed = Stats[API_V_SVC_MEM_PB].To<uint64>();
 	m_LogMemoryUsed = Stats[API_V_LOG_MEM_USAGE].To<uint64>();
+
+	QMetaObject::invokeMethod(m_pWorker, "DoUpdate", Qt::QueuedConnection);
 
 	return OK;
 }
@@ -345,6 +342,7 @@ void CPrivacyCore::ProcessEvents()
 	auto LogEvents = m_SvcEventQueue.take(SVC_API_EVENT_LOG_ENTRY);
 
 	auto EnclaveEvents = m_SvcEventQueue.take(SVC_API_EVENT_ENCLAVE_CHANGED);
+	auto HashDBEvents = m_SvcEventQueue.take(SVC_API_EVENT_HASHDB_CHANGED);
 	auto FwRuleEvents = m_SvcEventQueue.take(SVC_API_EVENT_FW_RULE_CHANGED);
 	auto DnsRuleEvents = m_SvcEventQueue.take(SVC_API_EVENT_DNS_RULE_CHANGED);
 	auto ExecRuleEvents = m_SvcEventQueue.take(SVC_API_EVENT_EXEC_RULE_CHANGED);
@@ -363,7 +361,7 @@ void CPrivacyCore::ProcessEvents()
 
 
 	//////////////////
-	// Enclaved
+	// Enclaves
 
 	if (!m_EnclavesUpToDate) {
 		if (m_pEnclaveManager->UpdateAllEnclaves()) {
@@ -381,6 +379,26 @@ void CPrivacyCore::ProcessEvents()
 				m_pEnclaveManager->UpdateEnclave(Guid);
 		}
 		emit EnclavesChanged();
+	}
+
+	//////////////////
+	// HashDB
+
+	if (!m_HashDBUpToDate) {
+		if (m_pHashDB->UpdateAllHashes()) {
+			m_HashDBUpToDate = true;
+			emit HashDBChanged();
+		}
+	}
+	else if(!HashDBEvents.isEmpty()) {
+		foreach(const QtVariant& vEvent, HashDBEvents) {
+			QByteArray HashValue = QByteArray::fromHex(vEvent[API_V_GUID].AsQStr().toLatin1());
+			if (vEvent[API_V_EVENT_TYPE].To<uint32>() == (uint32)EConfigEvent::eRemoved)
+				m_pHashDB->RemoveHash(HashValue);
+			else
+				m_pHashDB->UpdateHash(HashValue);
+		}
+		emit HashDBChanged();
 	}
 
 	//////////////////
@@ -508,7 +526,8 @@ void CPrivacyCore::ProcessEvents()
 				emit ExecutionEvent(pProgram, pEntry);
 			break;
 		case EExecLogType::eProcessStarted:
-			if (pExecEnrty->GetRole() == EExecLogRole::eActor && pExecEnrty->GetStatus() == EEventStatus::eProtected)
+			//if (pExecEnrty->GetRole() == EExecLogRole::eActor && pExecEnrty->GetStatus() == EEventStatus::eProtected)
+			if (pExecEnrty->GetRole() == EExecLogRole::eTarget && pExecEnrty->GetStatus() == EEventStatus::eProtected)
 				emit ExecutionEvent(pProgram, pEntry);
 			break;
 		}
@@ -559,6 +578,10 @@ void CPrivacyCore::OnSvcEvent(uint32 MessageId, const CBuffer* pEvent)
 		if (vEvent[API_V_EVENT_TYPE].To<uint32>() == (uint32)EConfigEvent::eAllChanged)
 			m_EnclavesUpToDate = false;
 		break;
+	case SVC_API_EVENT_HASHDB_CHANGED:
+		if (vEvent[API_V_EVENT_TYPE].To<uint32>() == (uint32)EConfigEvent::eAllChanged)
+			m_HashDBUpToDate = false;
+		break;
 	case SVC_API_EVENT_RES_RULE_CHANGED:
 		if (vEvent[API_V_EVENT_TYPE].To<uint32>() == (uint32)EConfigEvent::eAllChanged)
 			m_ProgramRulesUpToDate = false;
@@ -606,18 +629,39 @@ void CPrivacyCore::Clear()
 void CPrivacyCore::OnClearTraceLog(const CProgramItemPtr& pItem, ETraceLogs Log)
 {
 	if (auto pProgram = pItem.objectCast<CProgramFile>())
-		pProgram->ClearLogs(Log);
-	if (auto pService = pItem.objectCast<CWindowsService>())
-		pService->ClearLogs(Log);
+		pProgram->ClearTraceLog(Log);
 }
 
-//void CPrivacyCore::OnDrvEvent(const std::wstring& Guid, EConfigEvent Event, ERuleType Type)
-//{
-//	// WARNING: this function is invoked from a worker thread !!!
-//
-//	QMutexLocker Lock(&m_EventQueueMutex);
-//	m_DrvEventQueue[Type].enqueue(SDrvRuleEvent { QString::fromStdWString(Guid), Event });
-//}
+void CPrivacyCore::OnClearRecords(const CProgramItemPtr& pItem, ETraceLogs Log)
+{
+	if (auto pProgram = pItem.objectCast<CProgramFile>())
+	{
+		if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
+			pProgram->ClearAccessLog();
+		if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eExecLog)
+			pProgram->ClearProcessLogs();
+		if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
+			pProgram->ClearTrafficLog();
+	}
+	if (auto pService = pItem.objectCast<CWindowsService>())
+	{
+		if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
+			pService->ClearAccessLog();
+		if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eExecLog)
+			pService->ClearProcessLogs();
+		if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
+			pService->ClearTrafficLog();
+
+	}
+}
+
+/*void CPrivacyCore::OnDrvEvent(const std::wstring& Guid, enum class EConfigEvent Event, enum class EConfigGroup Type, uint64 PID)
+{
+	// WARNING: this function is invoked from a worker thread !!!
+
+	QMutexLocker Lock(&m_EventQueueMutex);
+	//m_DrvEventQueue[Type].enqueue(SDrvRuleEvent { QString::fromStdWString(Guid), Event });
+}*/
 
 QString CPrivacyCore::NormalizePath(QString sPath, bool bForID)
 {
@@ -689,7 +733,7 @@ STATUS CPrivacyCore::HashFile(const QString& Path, CBuffer& Hash)
 	return OK;
 }
 
-QByteArray CPrivacyCore__MakeFileSig(const CBuffer& Signature, const QString& Path)
+/*QByteArray CPrivacyCore__MakeFileSig(const CBuffer& Signature, const QString& Path)
 {
 	QtVariant SigData;
 	// Note: the driver supportrs also teh V version
@@ -737,12 +781,12 @@ STATUS CPrivacyCore::SignFiles(const QStringList& Paths, const CPrivateKey* pPri
 
 		Status = WriteConfigFile(SignaturePath, CPrivacyCore__MakeFileSig(Signature, Path));
 		if(!Status.IsError())
-			m_SigFileCache[Path.toLower()] = 1;
+			m_SigFileCache[Path] = 1;
 	}
 	return Status;
 }
 
-QString CPrivacyCore::GetSignatureFilePath(const QString& Path)
+QString CPrivacyCore::GetSignatureFilePath(const QString& Path, QByteArray Hash)
 {
 	QString Name = Split2(Path, "\\", true).second;
 	QString SignaturePath = Name + ".mpsig";
@@ -752,28 +796,33 @@ QString CPrivacyCore::GetSignatureFilePath(const QString& Path)
 	SignaturePath = "\\sig_db\\" + Name;
 	if (!CheckConfigFile(SignaturePath)) return "";
 		
-	CBuffer Hash;
-	STATUS Status = HashFile(Path, Hash);
-	if (Status.IsError()) return "";
+	if (Hash.isEmpty())
+	{
+		CBuffer HashBuff;
+		STATUS Status = HashFile(Path, HashBuff);
+		if (Status.IsError()) 
+			return "";
+		Hash = QByteArray((char*)HashBuff.GetBuffer(), HashBuff.GetSize());
+	}
 	
-	SignaturePath += "\\" + QByteArray((char*)Hash.GetBuffer(), Hash.GetSize()).toHex().toUpper() + ".mpsig";
+	SignaturePath += "\\" + Hash.toHex().toUpper() + ".mpsig";
 	return SignaturePath;
 }
 
-bool CPrivacyCore::HasFileSignature(const QString& Path)
+bool CPrivacyCore::HasFileSignature(const QString& Path, const QByteArray& Hash)
 {
-	int State = m_SigFileCache.value(Path.toLower(), -1);
+	int State = m_SigFileCache.value(Path, -1);
 	if(State != -1)
 		return State == 1;
 	State = 0;
 
-	QString SignaturePath = GetSignatureFilePath(Path);
+	QString SignaturePath = GetSignatureFilePath(Path, Hash);
 	if (!SignaturePath.isEmpty()) {
 		if (SignaturePath.at(0) == '\\' ? CheckConfigFile(SignaturePath) : QFile::exists(SignaturePath))
 			State = 1;
 	}
 
-	m_SigFileCache.insert(Path.toLower(), State);
+	m_SigFileCache.insert(Path, State);
 	return State == 1;
 }
 
@@ -790,7 +839,7 @@ STATUS CPrivacyCore::RemoveFileSignature(const QStringList& Paths)
 				Status = QFile::remove(SignaturePath) ? OK : ERR(STATUS_UNSUCCESSFUL);
 		}
 		if(!Status.IsError())
-			m_SigFileCache[Path.toLower()] = 0;
+			m_SigFileCache[Path] = 0;
 	}
 	return Status;
 }
@@ -813,7 +862,7 @@ STATUS CPrivacyCore::SignCerts(const QMap<QByteArray, QString>& Certs, const cla
 		
 		Status = WriteConfigFile(SignaturePath, CPrivacyCore__MakeCertSig(Signature, Subject));
 		if(!Status.IsError())
-			m_SigFileCache[Subject.toLower() + "/" + SignerHash] = 1;
+			m_SigFileCache[Subject + "/" + SignerHash] = 1;
 	}
 	return Status;
 }
@@ -823,7 +872,7 @@ bool CPrivacyCore::HasCertSignature(const QString& Subject, const QByteArray& Si
 	if(SignerHash.isEmpty())
 		return false;
 
-	int State = m_SigFileCache.value(Subject.toLower() + "/" + SignerHash, -1);
+	int State = m_SigFileCache.value(Subject + "/" + SignerHash, -1);
 	if(State != -1)
 		return State == 1;
 	State = 0;
@@ -834,7 +883,7 @@ bool CPrivacyCore::HasCertSignature(const QString& Subject, const QByteArray& Si
 	if (CheckConfigFile(SignaturePath))
 		State = 1;
 
-	m_SigFileCache.insert(Subject.toLower() + "/" + SignerHash, State);
+	m_SigFileCache.insert(Subject + "/" + SignerHash, State);
 	return State == 1;
 }
 
@@ -851,9 +900,41 @@ STATUS CPrivacyCore::RemoveCertSignature(const QMap<QByteArray, QString>& Certs)
 
 		Status = RemoveConfigFile(SignaturePath);
 		if(!Status.IsError())
-			m_SigFileCache[Subject.toLower() + "/" + SignerHash] = 0;
+			m_SigFileCache[Subject + "/" + SignerHash] = 0;
 	}
 	return Status;
+}*/
+
+std::shared_ptr<struct SEmbeddedCIInfo> CPrivacyCore::GetEmbeddedCIInfo(const std::wstring& filePath)
+{
+	auto F = m_EmbeddedSigCache.find(filePath);
+	if (F != m_EmbeddedSigCache.end())
+	{
+		return F->second.Info;
+	}
+	std::shared_ptr<struct SEmbeddedCIInfo> pInfo = ::GetEmbeddedCIInfo(filePath);
+	if(pInfo)
+		m_EmbeddedSigCache[filePath].Info = pInfo;
+	return pInfo;
+}
+
+std::shared_ptr<struct SCatalogCIInfo> CPrivacyCore::GetCatalogCIInfo(const std::wstring& filePath)
+{
+	auto F = m_CatalogSigCache.find(filePath);
+	if (F != m_CatalogSigCache.end())
+	{
+		return F->second.Info;
+	}
+	std::shared_ptr<struct SCatalogCIInfo> pInfo = ::GetCatalogCIInfo(filePath);
+	if(pInfo)
+		m_CatalogSigCache[filePath].Info = pInfo;
+	return pInfo;
+}
+
+void CPrivacyCore::ClearCIInfoCache()
+{
+	m_EmbeddedSigCache.clear();
+	m_CatalogSigCache.clear();
 }
 
 QtVariant CPrivacyCore::MakeIDs(const QList<const class CProgramItem*>& Nodes)
@@ -1043,6 +1124,37 @@ STATUS CPrivacyCore::TerminateProcess(uint64 Pid)
 	return OK;
 }
 
+RESULT(int) CPrivacyCore::RunUpdateUtility(const QStringList& Params, quint32 Elevate, bool Wait)
+{
+	QString Command;
+	foreach(const QString & Param, Params) {
+		if (!Command.isEmpty()) Command += " ";
+		Command += "\"" + Param + "\"";
+	}
+
+	QtVariant Request(m_pMemPool);
+	Request[API_V_CMD_LINE] = Command;
+	Request[API_V_ELEVATE] = Elevate;
+	Request[API_V_WAIT] = Wait;
+	auto Ret = m_Service.Call(SVC_API_RUN_UPDATER, Request);
+	if (Ret.IsError())
+		return Ret;
+
+	auto Reply = Ret.GetValue();
+
+	HANDLE hProcess = (HANDLE)Reply[API_V_HANDLE].To<uint64>();
+	
+	DWORD ExitCode = 0;
+	if (Wait) {
+		WaitForSingleObject(hProcess, INFINITE);
+		GetExitCodeProcess(hProcess, &ExitCode);
+	}
+
+	CloseHandle(hProcess);
+
+	return CResult<int>(0, ExitCode);
+}
+
 // Secure Enclaves
 STATUS CPrivacyCore::SetAllEnclaves(const QtVariant& Enclaves)
 {
@@ -1102,11 +1214,56 @@ STATUS CPrivacyCore::StartProcessInEnclave(const QString& Command, const QFlexGu
 	return OK;
 }
 
+// HashDB
+STATUS CPrivacyCore::SetAllHashes(const QtVariant& Enclaves)
+{
+	return m_Driver.Call(API_SET_HASHES, Enclaves);
+}
+
+RESULT(QtVariant) CPrivacyCore::GetAllHashes()
+{
+	QtVariant Request(m_pMemPool);
+	RET_AS_XVARIANT(m_Driver.Call(API_GET_HASHES, Request));
+}
+
+STATUS CPrivacyCore::SetHashEntry(const QtVariant& Enclave)
+{
+	return m_Driver.Call(API_SET_HASH, Enclave);
+}
+
+RESULT(QtVariant) CPrivacyCore::GetHashEntry(const QByteArray& HashValue)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_HASH] = HashValue;
+	RET_AS_XVARIANT(m_Driver.Call(API_GET_HASH, Request));
+}
+
+STATUS CPrivacyCore::DelHashEntry(const QByteArray& HashValue)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_HASH] = HashValue;
+	return m_Driver.Call(API_DEL_HASH, Request);
+}
+
 // Program Manager
 RESULT(QtVariant) CPrivacyCore::GetPrograms()
 {
 	QtVariant Request(m_pMemPool);
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_PROGRAMS, Request), API_V_PROGRAMS);
+}
+
+RESULT(QtVariant) CPrivacyCore::GetProgram(const class CProgramID& ID)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_ID] = ID.ToVariant(SVarWriteOpt());
+	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_PROGRAM, Request));
+}
+
+RESULT(QtVariant) CPrivacyCore::GetProgram(uint64 UID)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_PROG_UID] = UID;
+	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_PROGRAM, Request));
 }
 
 RESULT(QtVariant) CPrivacyCore::GetLibraries(uint64 CacheToken)
@@ -1136,12 +1293,13 @@ STATUS CPrivacyCore::AddProgramTo(uint64 UID, uint64 ParentUID)
 	return m_Service.Call(SVC_API_ADD_PROGRAM, Request);
 }
 
-STATUS CPrivacyCore::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRules)
+STATUS CPrivacyCore::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRules, bool bKeepOne)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_PROG_UID] = UID;
 	Request[API_V_PROG_PARENT] = ParentUID;
 	Request[API_V_DEL_WITH_RULES] = bDelRules;
+	Request[API_V_KEEP_ONE] = bKeepOne;
 	return m_Service.Call(SVC_API_REMOVE_PROGRAM, Request);
 }
 
@@ -1394,6 +1552,21 @@ STATUS CPrivacyCore::ClearTraceLog(ETraceLogs Log, const CProgramItemPtr& pItem)
 	return m_Service.Call(SVC_API_CLEAR_LOGS, Request);
 }
 
+STATUS CPrivacyCore::ClearRecords(ETraceLogs Log, const CProgramItemPtr& pItem)
+{
+	if(pItem)
+		OnClearRecords(pItem, Log);
+	else {
+		foreach(auto pItem, m_pProgramManager->GetItems())
+			OnClearRecords(pItem, Log);
+	}
+
+	QtVariant Request(m_pMemPool);
+	if(pItem) Request[API_V_ID] = pItem->GetID().ToVariant(SVarWriteOpt());
+	Request[API_V_LOG_TYPE] = (int)Log;
+	return m_Service.Call(SVC_API_CLEAR_RECORDS, Request);
+}
+
 STATUS CPrivacyCore::CleanUpAccessTree()
 {
 	QtVariant Request(m_pMemPool);
@@ -1615,3 +1788,47 @@ STATUS CPrivacyCore::SetDatFile(const QString& FileName, const QByteArray& Data)
 //RESULT(QByteArray) CPrivacyCore::GetDatFile(const QString& FileName)
 //{
 //}
+
+
+
+CPrivacyWorker::CPrivacyWorker(QObject* parent)
+	: QObject(parent)
+{
+}
+
+CPrivacyWorker::~CPrivacyWorker()
+{
+}
+
+void CPrivacyWorker::DoUpdate()
+{
+	STATUS Status;
+
+	//uint64 uStart = GetTickCount64();
+
+	Status = theCore->ProcessList()->Update();
+
+	//DbgPrint("m_pProcessList->Update() took %llu ms\n", GetTickCount64() - uStart);
+	//uStart = GetTickCount64();
+
+	Status = theCore->EnclaveManager()->Update();
+
+	//DbgPrint("m_pEnclaveManager->Update() took %llu ms\n", GetTickCount64() - uStart);
+	//uStart = GetTickCount64();
+
+	Status = theCore->HashDB()->Update();
+
+	//DbgPrint("m_pHashDB->Update() took %llu ms\n", GetTickCount64() - uStart);
+	//uStart = GetTickCount64();
+
+	Status = theCore->ProgramManager()->Update();
+
+	//DbgPrint("m_pProgramManager->Update() took %llu ms\n", GetTickCount64() - uStart);
+	//uStart = GetTickCount64();
+
+	Status = theCore->AccessManager()->Update();
+
+	//DbgPrint("m_pAccessManager->Update() took %llu ms\n", GetTickCount64() - uStart);
+
+	// todo: log errors
+}

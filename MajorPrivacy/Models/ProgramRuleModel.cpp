@@ -25,7 +25,7 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -43,7 +43,7 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 			pNode->Values.resize(columnCount());
 			//pNode->Path = Path;
 			pNode->pRule = pRule;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{
@@ -94,7 +94,9 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 			case eName:				Value = tr("%1 - %2").arg(pRule->GetName()).arg(pRule->GetGuid().ToQS()); break;
 			case eEnabled:			Value = pRule->IsEnabled(); break;
 			case eAction:			Value = (int)pRule->GetType(); break;
-			case eTrustLevel:		Value = pNode->pEnclave ? pNode->pEnclave->GetSignatureLevel() : pRule->GetSignatureLevel(); break;
+			case eSigners:			Value = pNode->pEnclave 
+												? CEnclave::GetAllowedSigners(pNode->pEnclave->GetAllowedSignatures(), pNode->pEnclave->GetAllowedCollections())
+												: CEnclave::GetAllowedSigners(pRule->GetAllowedSignatures(), pRule->GetAllowedCollections()); break;
 			case eEnclave:			Value = pRule->GetEnclave().ToQV(); break;
 			case eProgram:			Value = pRule->GetProgramNtPath(); break;
 			}
@@ -112,7 +114,8 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 				case eName:				ColValue.Formatted = CMajorPrivacy::GetResourceStr(pRule->GetName()); break;
 				case eEnabled:			ColValue.Formatted = pRule->IsEnabled() ? tr("Yes") : tr("No"); break;
 				case eAction:			ColValue.Formatted = pRule->GetTypeStr(); { QColor Color = CProgramRuleWnd::GetActionColor(pRule->GetType()); if(Color.isValid()) ColValue.Color = Color; } break;
-				case eTrustLevel:
+				case eSigners:			ColValue.Formatted = Value.toStringList().join(tr(", ")); break;
+				/*case eSigners:
 					if (auto Leven = pNode->pEnclave ? pNode->pEnclave->GetSignatureLevel() : pRule->GetSignatureLevel()) {
 						ColValue.Formatted = CEnclave::GetSignatureLevelStr(Leven);
 						QColor Color = CProgramRuleWnd::GetAuthorityColor(Leven); if (Color.isValid()) ColValue.Color = Color;
@@ -120,7 +123,7 @@ QList<QModelIndex>	CProgramRuleModel::Sync(const QList<CProgramRulePtr>& RuleLis
 						ColValue.Formatted = "";
 						ColValue.Color = QVariant();
 					}
-					break;
+					break;*/
 				//case eProgram:			ColValue.Formatted = QString("%1 (%2)").arg(pRule->GetProgramPath()).arg(pRule->GetProgramNtPath()); break;
 				case eEnclave: {
 					QFlexGuid Enclave = pRule->GetEnclave();
@@ -194,7 +197,7 @@ QVariant CProgramRuleModel::headerData(int section, Qt::Orientation orientation,
 		case eName:					return tr("Name");
 		case eEnabled:				return tr("Enabled");
 		case eAction:				return tr("Action");
-		case eTrustLevel:			return tr("Trust Level");
+		case eSigners:				return tr("Signers");
 		case eEnclave:				return tr("Enclave");
 		case eProgram:				return tr("Program");
 		}

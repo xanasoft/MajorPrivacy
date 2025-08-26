@@ -33,12 +33,15 @@
 #define API_S_FOLDER						"Folder"
 #define API_S_ENTRY							"Entry"
 
-#define API_S_TYPE							"Type"	
+#define API_S_TYPE							"Type"
+	#define API_S_HASH_TYPE_FILE			"FileHash"
+	#define API_S_HASH_TYPE_CERT			"CertHash"
 #define API_S_GUID							"Guid"
 #define API_S_INDEX							"Index"
 #define API_S_ENABLED						"Enabled"
 #define API_S_TEMP							"Temporary"
 #define API_S_TIMEOUT						"TimeOut"
+#define API_S_TIME_STAMP					"TimeStamp"
 
 // Fields
 #define API_S_GUI_CONFIG					"GuiConfig"
@@ -51,6 +54,8 @@
 #define API_S_PROGRAMS						"Programs"
 #define API_S_LIBRARIES						"Libraries"
 #define API_S_ENCLAVES						"Enclaves"
+#define API_S_COLLECTIONS					"Collections"
+#define API_S_HASH_DB						"HashDB"
 
 
 ////////////////////////////
@@ -139,14 +144,29 @@
 #define API_S_LIB_LOAD_TIME					"LoadTime"
 #define API_S_LIB_LOAD_COUNT				"LoadCount"
 #define API_S_LIB_LOAD_LOG					"LoadLog"
+#define API_S_SIGN_FLAGS					"SignFlags"
 #define API_S_SIGN_INFO						"SignInfo"
 #define API_S_SIGN_INFO_AUTH				"SignAuthority"
 #define API_S_SIGN_INFO_LEVEL				"SignLevel"
 #define API_S_SIGN_INFO_POLICY				"SignPolicy"
+#define API_S_SIGN_SIGN_BITS				"SignBits"
 #define API_S_CERT_STATUS					"CertStatus"
+	#define API_S_CERT_STATUS_UNKNOWN			"Unknown"
+	#define API_S_CERT_STATUS_OK				"OK"
+	#define API_S_CERT_STATUS_ERROR 			"Error"
+	#define API_S_CERT_STATUS_FAIL				"Fail"
+	#define API_S_CERT_STATUS_DUMMY 			"Dummy"
+	#define API_S_CERT_STATUS_NONE 				"None"
+#define API_S_CERT_STATUS_UNVERIFIED		"Unverified"
+
 #define API_S_FILE_HASH						"FileHash"
+#define API_S_FILE_HASH_ALG					"FileHashAlg"
+#define API_S_CERT_HASH_ALG					"SignerHashAlg"
 #define API_S_CERT_HASH						"SignerHash"
 #define API_S_SIGNER_NAME					"SignerName"
+#define API_S_CA_HASH_ALG					"IssuerHashAlg"
+#define API_S_CA_HASH						"IssuerHash"
+#define API_S_CA_NAME						"IssuerName"
 #define API_S_LIB_STATUS					"LoadStatus"
 
 
@@ -164,6 +184,7 @@
 	#define API_S_RULE_STATE_DELETED			"Deleted"
 
 #define API_S_ORIGINAL_GUID					"OriginalGuid"
+#define API_S_TEMPLATE_GUID					"TemplateGuid"
 
 #define API_S_SOURCE						"Source"
 	#define API_S_SOURCE_UNKNOWN				"Unknown"
@@ -199,6 +220,15 @@
 	#define API_S_EXEC_SIGN_REQ_TRUSTED			"MSTrusted"
 	#define API_S_EXEC_SIGN_REQ_OTHER 			"Any"
 	#define API_S_EXEC_SIGN_REQ_NONE			"None"
+#define API_S_EXEC_ALLOWED_SIGNERS			"AllowedSigners"
+	#define API_S_EXEC_ALLOWED_SIGNERS_WINDOWS	"[WIN]"
+	#define API_S_EXEC_ALLOWED_SIGNERS_MICROSOFT "[MSFT]"
+	#define API_S_EXEC_ALLOWED_SIGNERS_ANTIMALWARE	"[AV]"
+	#define API_S_EXEC_ALLOWED_SIGNERS_AUTHENTICODE	"[AC]"
+	#define API_S_EXEC_ALLOWED_SIGNERS_STORE	"[Store]"
+	#define API_S_EXEC_ALLOWED_SIGNERS_DEVELOPER "[MPDev]"
+	#define API_S_EXEC_ALLOWED_SIGNERS_USER		"[User]"
+	#define API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE	"[Enclave]"
 #define API_S_EXEC_ON_TRUSTED_SPAWN			"TrustedSpawn"
 	// ...
 #define API_S_EXEC_ON_SPAWN					"ProcessSpawn"
@@ -212,7 +242,8 @@
 	#define API_S_INTEGRITY_LEVEL_MEDIUM_PLUS	"MediumPlus"
 	#define API_S_INTEGRITY_LEVEL_HIGH			"High"
 	#define API_S_INTEGRITY_LEVEL_SYSTEM		"System"
-#define API_S_IMAGE_LOAD_PROTECTION			"ImageProtection"
+#define API_S_IMAGE_LOAD_PROTECTION			"ImageLoadProtection"
+#define API_S_IMAGE_COHERENCY_CHECKING		"ImageCoherencyChecking"
 #define API_S_ALLOW_DEBUGGING 				"AllowDebugging"
 #define API_S_KEEP_ALIVE 					"KeepAlive"
 

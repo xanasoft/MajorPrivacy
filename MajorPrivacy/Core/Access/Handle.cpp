@@ -9,6 +9,8 @@ CHandle::CHandle(QObject* parent)
 
 void CHandle::FromVariant(const class QtVariant& Handle)
 {
+	QWriteLocker Lock(&m_Mutex);
+
 	QtVariantReader(Handle).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
 		const QtVariant& Data = *(QtVariant*)&vData;
 

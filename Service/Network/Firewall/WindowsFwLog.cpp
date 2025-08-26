@@ -17,7 +17,7 @@ CWindowsFwLog::~CWindowsFwLog()
 	Stop();
 
 	if (m_OldAuditingMode != -1) 
-		SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, 1, m_OldAuditingMode, NULL);
+		SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, m_OldAuditingMode, NULL);
 }
 
 bool CWindowsFwLog::ReadEvent(EVT_HANDLE hEvent, SWinFwLogEvent& Event)
@@ -201,7 +201,7 @@ STATUS CWindowsFwLog::Start(int AuditingMode)
 	if (m_hSubscription)
 		return OK;
 
-	if (!SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, 1, AuditingMode, &m_OldAuditingMode))
+	if (!SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, AuditingMode, &m_OldAuditingMode))
 		return ERR(STATUS_UNSUCCESSFUL, L"Failed to configure the auditing policy");
 
 	if (CEventLogListener::Start(GetXmlQuery()))
@@ -220,7 +220,7 @@ STATUS CWindowsFwLog::Start(int AuditingMode)
 STATUS CWindowsFwLog::UpdatePolicy(int AuditingMode)
 {
 	uint32 OldAuditingMode = -1;
-	if (!SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, 1, AuditingMode, &OldAuditingMode))
+	if (!SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, AuditingMode, &OldAuditingMode))
 		return ERR(STATUS_UNSUCCESSFUL, L"Failed to configure the auditing policy");
 	if(m_OldAuditingMode == -1) // keep the original old mode if there is any
 		m_OldAuditingMode = OldAuditingMode;
@@ -229,7 +229,7 @@ STATUS CWindowsFwLog::UpdatePolicy(int AuditingMode)
 
 uint32 CWindowsFwLog::GetCurrentPolicy()
 {
-	return GetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, 1);
+	return GetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_);
 }
 
 void CWindowsFwLog::Stop()
@@ -237,7 +237,7 @@ void CWindowsFwLog::Stop()
 	CEventLogListener::Stop();
 
 	if (m_OldAuditingMode != -1) {
-		SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, 1, m_OldAuditingMode, NULL);
+		SetAuditPolicy(&Audit_ObjectAccess_FirewallConnection_, m_OldAuditingMode, NULL);
 		m_OldAuditingMode = -1;
 	}
 }

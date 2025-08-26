@@ -47,6 +47,7 @@ public:
 signals:
 	void				SetFilter(const QRegularExpression& RegExp, int iOptions = 0, int Column = -1);
 	void				SelectNext();
+	void				Toggled();
 
 public slots:
 	void				Open();

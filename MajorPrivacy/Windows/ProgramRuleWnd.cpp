@@ -11,6 +11,8 @@
 #include "../MiscHelpers/Common/Common.h"
 #include "../MajorPrivacy.h"
 #include "../Windows/ProgramPicker.h"
+#include "../Core/HashDB/HashDB.h"
+#include "../MiscHelpers/Common/WinboxMultiCombo.h"
 
 CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget* parent)
 	: QDialog(parent)
@@ -33,6 +35,17 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	bool bNew = m_pRule->m_Guid.IsNull();
 
 	setWindowTitle(bNew ? tr("Create Program Rule") : tr("Edit Program Rule"));
+
+	QList<QPair<QString,QVariant>> AllCollections;
+	AllCollections.append({ tr("None"), QVariant()});
+	foreach(const QString& Collection, theCore->HashDB()->GetCollections())
+		AllCollections.append({ Collection, Collection });
+	m_pCollections = new CWinboxMultiCombo(AllCollections, QList<QVariant>(), this);
+	m_pCollections->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+	ui.loCI->addWidget(m_pCollections, 3, 1, 1, 1);
+
+	ui.btnAddCollection->setIcon(QIcon(":/Icons/Add.png"));
+	connect(ui.btnAddCollection, SIGNAL(clicked(bool)), this, SLOT(OnAddCollection()));
 
 	foreach(auto pItem, Items) 
 		AddProgramItem(pItem);
@@ -64,16 +77,8 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Block"), GetActionColor(EExecRuleType::eBlock), (int)EExecRuleType::eBlock);
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Protect"), GetActionColor(EExecRuleType::eProtect), (int)EExecRuleType::eProtect);
 	//AddColoredComboBoxEntry(ui.cmbAction, tr("Isolate"), GetActionColor(EExecRuleType::eIsolate), (int)EExecRuleType::eIsolate); // todo
-	AddColoredComboBoxEntry(ui.cmbAction, tr("Audit"), GetActionColor(EExecRuleType::eAudit), (int)EExecRuleType::eAudit);
+	//AddColoredComboBoxEntry(ui.cmbAction, tr("Audit"), GetActionColor(EExecRuleType::eAudit), (int)EExecRuleType::eAudit);
 	ColorComboBox(ui.cmbAction);
-
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("Unconfigured"), GetAuthorityColor(KPH_VERIFY_AUTHORITY::KphUntestedAuthority), (int)KPH_VERIFY_AUTHORITY::KphUntestedAuthority);
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("User Signature ONLY (not recommended)"), GetAuthorityColor(KPH_VERIFY_AUTHORITY::KphUserAuthority), (int)KPH_VERIFY_AUTHORITY::KphUserAuthority);
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("User + Microsoft/AV Signature"), GetAuthorityColor(KPH_VERIFY_AUTHORITY::KphAvAuthority), (int)KPH_VERIFY_AUTHORITY::KphAvAuthority);
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("User + Trusted by Microsoft (Code Root)"), GetAuthorityColor(KPH_VERIFY_AUTHORITY::KphMsCodeAuthority), (int)KPH_VERIFY_AUTHORITY::KphMsCodeAuthority);
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("Any Signature (Unknown Root)"), GetAuthorityColor(KPH_VERIFY_AUTHORITY::KphUnkAuthority), (int)KPH_VERIFY_AUTHORITY::KphUnkAuthority);
-	AddColoredComboBoxEntry(ui.cmbSignature, tr("No Signature"), GetAuthorityColor(KPH_VERIFY_AUTHORITY::KphNoAuthority), (int)KPH_VERIFY_AUTHORITY::KphNoAuthority);
-	ColorComboBox(ui.cmbSignature);
 
 	//FixComboBoxEditing(ui.cmbGroup);
 
@@ -103,8 +108,29 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	SetComboBoxValue(ui.cmbEnclave, QFlexGuid(m_pRule->m_Enclave).ToQV());
 
 	SetComboBoxValue(ui.cmbAction, (int)m_pRule->m_Type);
-	SetComboBoxValue(ui.cmbSignature, (int)m_pRule->m_SignatureLevel);
+
+	if(m_pRule->m_AllowedSignatures.Windows && m_pRule->m_AllowedSignatures.Microsoft && m_pRule->m_AllowedSignatures.Antimalware)
+		ui.chkAllowMS->setCheckState(Qt::Checked);
+	else if(m_pRule->m_AllowedSignatures.Windows || m_pRule->m_AllowedSignatures.Microsoft || m_pRule->m_AllowedSignatures.Antimalware)
+		ui.chkAllowMS->setCheckState(Qt::PartiallyChecked);
+	else
+		ui.chkAllowMS->setCheckState(Qt::Unchecked);
+	//if(m_pRule->m_AllowedSignatures.Authenticode && m_pRule->m_AllowedSignatures.Store)
+	//	ui.chkAllowAC->setCheckState(Qt::Checked);
+	//else if(m_pRule->m_AllowedSignatures.Authenticode || m_pRule->m_AllowedSignatures.Store)
+	//	ui.chkAllowAC->setCheckState(Qt::PartiallyChecked);
+	//else
+	//	ui.chkAllowAC->setCheckState(Qt::Unchecked);
+	ui.chkAllowUser->setChecked(m_pRule->m_AllowedSignatures.User);
+	ui.chkAllowEnclave->setChecked(m_pRule->m_AllowedSignatures.Enclave);
+
+	QList<QVariant> Collections;
+	foreach(const QString& Collection, m_pRule->m_AllowedCollections)
+		Collections.append(Collection);
+	m_pCollections->setValues(Collections);
+
 	ui.chkImageProtection->setChecked(m_pRule->m_ImageLoadProtection);
+	ui.chkCoherencyChecking->setChecked(m_pRule->m_ImageCoherencyChecking);
 
 	m_NameHold = false;
 }
@@ -139,7 +165,7 @@ QColor CProgramRuleWnd::GetActionColor(EExecRuleType Action)
 	case EExecRuleType::eBlock:		return QColor(255, 182, 193);
 	case EExecRuleType::eProtect:	return QColor(173, 216, 230);
 	//case EExecRuleType::eIsolate: return QColor(, , ); // todo
-	case EExecRuleType::eAudit:		return QColor(193, 193, 193);
+	//case EExecRuleType::eAudit:		return QColor(193, 193, 193);
 	default: return QColor();
 	}
 }
@@ -208,11 +234,32 @@ bool CProgramRuleWnd::Save()
 
 	m_pRule->m_Type = (EExecRuleType)GetComboBoxValue(ui.cmbAction).toInt();
 	if (m_pRule->m_Type == EExecRuleType::eAllow) {
-		m_pRule->m_SignatureLevel = (KPH_VERIFY_AUTHORITY)GetComboBoxValue(ui.cmbSignature).toInt();
+		
+		switch(ui.chkAllowMS->checkState()) {
+		case Qt::Checked:	m_pRule->m_AllowedSignatures.Windows = TRUE; m_pRule->m_AllowedSignatures.Microsoft = TRUE; m_pRule->m_AllowedSignatures.Antimalware = TRUE; break;
+		case Qt::Unchecked:	m_pRule->m_AllowedSignatures.Windows = FALSE; m_pRule->m_AllowedSignatures.Microsoft = FALSE; m_pRule->m_AllowedSignatures.Antimalware = FALSE; break;
+		}
+		//switch(ui.chkAllowAC->checkState()) {
+		//case Qt::Checked:	m_pRule->m_AllowedSignatures.Authenticode = TRUE; m_pRule->m_AllowedSignatures.Store = TRUE; break;
+		//case Qt::Unchecked:	m_pRule->m_AllowedSignatures.Authenticode = FALSE; m_pRule->m_AllowedSignatures.Store = FALSE; break;
+		//}
+		m_pRule->m_AllowedSignatures.User = ui.chkAllowUser->isChecked();
+		m_pRule->m_AllowedSignatures.Enclave = ui.chkAllowEnclave->isChecked();
+
+		m_pRule->m_AllowedCollections.clear();
+		foreach(QVariant Collection, m_pCollections->values()) {
+			if (!Collection.isNull() && !m_pRule->m_AllowedCollections.contains(Collection.toString()))
+				m_pRule->m_AllowedCollections.append(Collection.toString());
+		}
+
 		m_pRule->m_ImageLoadProtection = ui.chkImageProtection->isChecked();
+		m_pRule->m_ImageCoherencyChecking = ui.chkCoherencyChecking->isChecked();
 	} else {
-		m_pRule->m_SignatureLevel = KphUntestedAuthority;
+		m_pRule->m_AllowedSignatures.Value = 0;
+		m_pRule->m_AllowedCollections.clear();
+
 		m_pRule->m_ImageLoadProtection = false;
+		m_pRule->m_ImageCoherencyChecking = false;
 	}
 
 	if (m_pRule->m_Type == EExecRuleType::eProtect && m_pRule->m_Enclave.IsNull()) {
@@ -275,8 +322,15 @@ void CProgramRuleWnd::OnActionChanged()
 {
 	EExecRuleType Type = (EExecRuleType)GetComboBoxValue(ui.cmbAction).toInt();
 
-	ui.cmbSignature->setEnabled(Type == EExecRuleType::eAllow);
+	ui.chkAllowMS->setEnabled(Type == EExecRuleType::eAllow);
+	//ui.chkAllowAC->setEnabled(Type == EExecRuleType::eAllow);
+	ui.chkAllowUser->setEnabled(Type == EExecRuleType::eAllow);
+	ui.chkAllowEnclave->setEnabled(Type == EExecRuleType::eAllow);
+
+	m_pCollections->setEnabled(Type == EExecRuleType::eAllow);
+
 	ui.chkImageProtection->setEnabled(Type == EExecRuleType::eAllow);
+	ui.chkCoherencyChecking->setEnabled(Type == EExecRuleType::eAllow);
 
 	TryMakeName();
 }
@@ -296,4 +350,19 @@ void CProgramRuleWnd::TryMakeName()
 	m_NameHold = true;
 	ui.txtName->setText(tr("%1 %2").arg(Action).arg(Program));
 	m_NameHold = false;
+}
+
+void CProgramRuleWnd::OnAddCollection()
+{
+	QString Collection = QInputDialog::getText(this, tr("Add Collection"), tr("Enter the name of the collection:"));
+	if (Collection.isEmpty())
+		return;
+
+	theCore->HashDB()->AddCollection(Collection);
+
+	QList<QPair<QString,QVariant>> AllCollections;
+	AllCollections.append({ tr("None"), QVariant()});
+	foreach(const QString& Collection, theCore->HashDB()->GetCollections())
+		AllCollections.append({ Collection, Collection });
+	m_pCollections->setItems(AllCollections);
 }

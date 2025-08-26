@@ -22,8 +22,11 @@ size_t CProgramSet::GetLogMemUsage() const
 
 void CAllPrograms::CountStats()
 {
+	QWriteLocker Lock(&m_Mutex);
+
 	m_Stats.ProcessCount = theCore->ProcessList()->GetCount();
 	//m_Stats.AccessCount = // todo
+	m_Stats.HandleCount = theCore->ProcessList()->GetHandleCount();
 	m_Stats.SocketCount = theCore->ProcessList()->GetSocketCount();
 }
 
@@ -64,11 +67,14 @@ void CAllPrograms::ReadMValue(const SVarName& Name, const QtVariant& Data)
 
 void CProgramList::CountStats()
 {
+	QWriteLocker Lock(&m_Mutex);
+
 	m_Stats.ProgramsCount = m_Stats.ServicesCount = m_Stats.AppsCount = m_Stats.GroupCount = 0;
 
 	m_Stats.ProcessCount = m_Stats.SocketCount = 0;
 	m_Stats.LastExecution = 0;
 	m_Stats.AccessCount = 0;
+	m_Stats.HandleCount = 0;
 	m_Stats.LastNetActivity = m_Stats.LastFwAllowed = m_Stats.LastFwBlocked = 0;
 	m_Stats.Upload = m_Stats.Download = m_Stats.Uploaded = m_Stats.Downloaded = 0;
 
@@ -109,6 +115,7 @@ void CProgramList::CountStats()
 
 		m_Stats.ResRuleTotal += pStats->ResRuleTotal;
 		m_Stats.AccessCount+= pStats->AccessCount;
+		m_Stats.HandleCount+= pStats->HandleCount;
 
 		m_Stats.FwRuleTotal += pStats->FwRuleTotal;
 		m_Stats.SocketCount += pStats->SocketCount;

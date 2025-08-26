@@ -23,6 +23,13 @@ public:
 		if(closer) m_closer = closer;
 	}
 
+	T Detach()
+	{
+		T handle = m_handle;
+		m_handle = NULL;
+		return handle;
+	}
+
 	inline operator T& ()		{ return m_handle; }
 	inline T* operator&()		{ ASSERT(!m_handle); return &m_handle;}
 

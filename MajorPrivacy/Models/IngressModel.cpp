@@ -27,13 +27,13 @@ QList<QModelIndex> CIngressModel::Sync(const QMap<SIngressKey, SIngressItemPtr>&
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
 	for(auto X = List.begin(); X != List.end(); ++X)
 	{
-		QVariant ID = QString("%1_%2").arg(X.key().first).arg(X.key().second);
+		QVariant ID = X.value()->ID;
 
 		QModelIndex Index;
 
@@ -48,7 +48,7 @@ QList<QModelIndex> CIngressModel::Sync(const QMap<SIngressKey, SIngressItemPtr>&
 			if(pNode->pItem->Parent.isValid())
 				Path.append(pNode->pItem->Parent);
 			pNode->Path = Path;
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{
@@ -80,7 +80,7 @@ QList<QModelIndex> CIngressModel::Sync(const QMap<SIngressKey, SIngressItemPtr>&
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = QString(""); break; // no name update
+			case eName:				Value = pNode->pItem->pProg2 ? pNode->pItem->pProg2->GetName() : pNode->pItem->pProg1->GetName(); break;
 			case eRole:				Value = pNode->pItem->pProg2 ? (CExecLogEntry::GetRoleStr(pNode->pItem->Info.Role)) : ""; break;
 			case eTimeStamp:		Value = pNode->pItem->Info.LastAccessTime; break;
 			case eStatus:			Value = pNode->pItem->Info.bBlocked; break;

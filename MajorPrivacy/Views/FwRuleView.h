@@ -40,6 +40,7 @@ private:
 	QComboBox*				m_pCmbDir;
 	QComboBox*				m_pCmbAction;
 	QToolButton*			m_pBtnEnabled;
+	QToolButton*			m_pBtnHideWin;
 	QToolButton*			m_pBtnRefresh;
 	QToolButton*			m_pBtnCleanUp;
 

@@ -46,7 +46,7 @@ public:
 	virtual StVariant StoreTraffic(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual void LoadTraffic(const StVariant& Data);
 
-	virtual void ClearLogs(ETraceLogs Log);
+	virtual void ClearRecords(ETraceLogs Log);
 
 	virtual void TruncateAccessLog();
 

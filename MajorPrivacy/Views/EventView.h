@@ -29,7 +29,7 @@ private slots:
 
 private:
 	QGridLayout*			m_pMainLayout;
-	QLabel*					m_pLabel;
+	//QLabel*					m_pLabel;
 
 	QToolBar*				m_pEventToolBar;
 	QToolButton*			m_pBtnClear;

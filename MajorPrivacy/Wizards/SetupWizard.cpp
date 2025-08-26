@@ -8,21 +8,24 @@
 #include "Helpers/WinAdmin.h"
 #include <QButtonGroup>
 #include "../OnlineUpdater.h"
+#include "../Library/Crypto/Encryption.h"
+#include "../Library/Crypto/PrivateKey.h"
+#include "../Library/Crypto/PublicKey.h"
+#include "../Library/Crypto/HashFunction.h"
 
 CSetupWizard::CSetupWizard(int iOldLevel, QWidget *parent)
     : QWizard(parent)
 {
-    if (iOldLevel < SETUP_LVL_1)
+    if (iOldLevel < SETUP_LVL_1) {
         setPage(Page_Intro, new CIntroPage);
-    if (iOldLevel < SETUP_LVL_3)
         setPage(Page_Certificate, new CCertificatePage(iOldLevel));
-    /*if (iOldLevel < SETUP_LVL_1) {
-        setPage(Page_UI, new CUIPage);
-        setPage(Page_Shell, new CShellPage);
-        //setPage(Page_WFP, new CWFPPage);
-    }*/
-    if (iOldLevel < SETUP_LVL_2)
-        setPage(Page_Update, new CSBUpdate);
+        setPage(Page_Exec, new CExecPage);
+        setPage(Page_Res, new CResPage);
+        setPage(Page_Net, new CNetPage);
+        setPage(Page_Config, new CConfigPage);
+        setPage(Page_System, new CSystemPage);
+        setPage(Page_Update, new CUpdatePage);
+    }
     setPage(Page_Finish, new CFinishPage);
 
     setWizardStyle(ModernStyle);
@@ -32,6 +35,12 @@ CSetupWizard::CSetupWizard(int iOldLevel, QWidget *parent)
     connect(this, &QWizard::helpRequested, this, &CSetupWizard::showHelp);
 
     setWindowTitle(tr("Setup Wizard"));
+}
+
+CSetupWizard::~CSetupWizard()
+{
+    if(m_pPrivateKey)
+        delete m_pPrivateKey;
 }
 
 void CSetupWizard::showHelp()
@@ -62,26 +71,87 @@ bool CSetupWizard::ShowWizard(int iOldLevel)
     if (!theGUI->SafeExec(&wizard))
         return false;
     
-    if (iOldLevel < SETUP_LVL_1) {
+    if (iOldLevel < SETUP_LVL_1) 
+    {
+        // Cert
         //bool useBusiness = wizard.field("useBusiness").toBool();
         //QString Certificate = wizard.field("useCertificate").toString();
         //bool isEvaluate = wizard.field("isEvaluate").toBool();
+        //
 
-        /*if (wizard.field("useBrightMode").toInt())
-            theConf->SetValue("Options/UseDarkTheme", 0);
-        else if (wizard.field("useDarkMode").toInt())
-            theConf->SetValue("Options/UseDarkTheme", 1);*/
+        // Exec
+		theCore->SetConfig("Service/SaveIngressRecord", wizard.field("recordExec").toBool());
+        theCore->SetConfig("Service/ExecLog", wizard.field("logExec").toBool());
+        //
 
-        AutorunEnable(wizard.field("isAutoStart").toBool());
+        // Res
+        theCore->SetConfig("Service/ResTrace", wizard.field("collectRes").toBool());
+        theCore->SetConfig("Service/SaveAccessRecord", wizard.field("recordRes").toBool());
+        theCore->SetConfig("Service/ResLog", wizard.field("logRes").toBool());
+        theCore->SetConfig("Service/EnumAllOpenFiles", wizard.field("enumRes").toBool());
+        //
 
-        //if (wizard.field("useWFP").toBool()) {
-        //    theAPI->GetGlobalSettings()->SetBool("NetworkEnableWFP", true);
-        //    theAPI->ReloadConfig(true);
-        //}
-    }
+        // Net
+        if (wizard.field("enableFw").toBool())
+        {
+            theConf->SetValue("NetworkFirewall/ShowNotifications", true);
+            theConf->SetValue("NetworkFirewall/ShowChangeAlerts", true);
+        }
 
-    if (iOldLevel < SETUP_LVL_2) {
+        if(wizard.field("restrictFw").toBool())
+            theCore->SetFwProfile(FwFilteringModes::AllowList);
 
+        theCore->SetConfig("Service/GuardFwRules", wizard.field("protectFw").toBool());
+
+        theCore->SetConfig("Service/NetTrace", wizard.field("collectNet").toBool());
+        theCore->SetConfig("Service/SaveTrafficRecord", wizard.field("recordNet").toBool());
+        theCore->SetConfig("Service/NetLog", wizard.field("logNet").toBool());
+
+        if (wizard.field("enableFw").toBool() && wizard.field("collectNet").toBool())
+			theCore->SetAuditPolicy(FwAuditPolicy::All);
+        //
+
+        // Config
+        if (wizard.field("unloadLock").toBool())
+            theCore->Driver()->SetConfig("UnloadProtection", true);
+
+        if (wizard.field("configLock").toBool())
+        {
+#ifdef _DEBUG
+            bool bHardLock = false;
+#else
+            bool bHardLock = true;
+#endif
+            if (wizard.m_pPrivateKey)
+            {
+                CBuffer ConfigHash;
+                STATUS Status = theCore->Driver()->GetConfigHash(ConfigHash);
+                if (!Status.IsError())
+                {
+                    CBuffer ConfigSignature;
+                    wizard.m_pPrivateKey->Sign(ConfigHash, ConfigSignature);
+
+                    Status = theCore->Driver()->ProtectConfig(ConfigSignature, bHardLock);
+                }
+                //theGUI->UpdateLockStatus();
+                theGUI->CheckResults(QList<STATUS>() << Status, &wizard);
+            }
+        }
+        //
+
+        // System
+        theCore->SetConfig("Service/EncryptPageFile", wizard.field("encryptSwap").toBool());
+        theCore->SetConfig("Service/GuardHibernation", wizard.field("guardSuspend").toBool());
+        //
+
+        // UI
+        //if (wizard.field("useBrightMode").toInt())
+        //    theConf->SetValue("Options/UseDarkTheme", 0);
+        //else if (wizard.field("useDarkMode").toInt())
+        //    theConf->SetValue("Options/UseDarkTheme", 1);
+        //
+        
+        // Update
         if (wizard.field("updateAll").toBool())
         {
             theConf->SetValue("Options/CheckForUpdates", 1);
@@ -94,14 +164,6 @@ bool CSetupWizard::ShowWizard(int iOldLevel)
         {
             if(wizard.field("updateApp").toBool())
                 theConf->SetValue("Options/CheckForUpdates", 1);
-            if(wizard.field("applyHotfixes").toBool())
-                theConf->SetValue("Options/OnNewUpdate", "install");
-            //if(wizard.field("updateCompat").toBool())
-            //    theConf->SetValue("Options/CheckForTemplates", 1);
-            if(wizard.field("updateIssues").toBool())
-                theConf->SetValue("Options/CheckForIssues", 1);
-            if(wizard.field("updateAddons").toBool())
-                theConf->SetValue("Options/CheckForAddons", 1);
         }
 
         if (wizard.field("updateAll").toBool() || wizard.field("updateApp").toBool()) {
@@ -110,10 +172,11 @@ bool CSetupWizard::ShowWizard(int iOldLevel)
                 ReleaseChannel = "stable";
             else if (wizard.field("channelPreview").toBool())
                 ReleaseChannel = "preview";
-            else if (wizard.field("channelInsider").toBool())
-                ReleaseChannel = "insider";
+            //else if (wizard.field("channelInsider").toBool())
+            //    ReleaseChannel = "insider";
             if (!ReleaseChannel.isEmpty()) theConf->SetValue("Options/ReleaseChannel", ReleaseChannel);
         }
+        //
     }
 
     //if (wizard.field("isUpdate").toBool())
@@ -125,12 +188,6 @@ bool CSetupWizard::ShowWizard(int iOldLevel)
     theGUI->UpdateSettings(true);
     
     return true;
-}
-
-
-void CSetupWizard::ShellUninstall()
-{
-    AutorunEnable(false);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -148,7 +205,8 @@ CIntroPage::CIntroPage(QWidget *parent)
 
     QVBoxLayout *layout = new QVBoxLayout;
     QLabel* pTopLabel = new QLabel(tr("Welcome to the Setup Wizard. This wizard will help you to configure your copy of <b>MajorPrivacy</b>. "
-        "You can start this wizard at any time from the Sandbox->Maintenance menu if you do not wish to complete it now."));
+        "It is strongly recommended to go through this wizard in order to learn about some of the avilable featues and mechanisms. "
+        "You can start this wizard at any time from the Privacy->Maintenance menu if you do not wish to complete it now."));
     pTopLabel->setWordWrap(true);
     layout->addWidget(pTopLabel);
 
@@ -156,40 +214,40 @@ CIntroPage::CIntroPage(QWidget *parent)
     pSpace->setMinimumHeight(16);
     layout->addWidget(pSpace);
 
-    m_pLabel = new QLabel(tr("Select how you would like to use MajorPrivacy"));
-    layout->addWidget(m_pLabel);
-
-    m_pPersonal = new QRadioButton(tr("&Personally, for private non-commercial use"));
-    layout->addWidget(m_pPersonal);
-    connect(m_pPersonal, SIGNAL(toggled(bool)), this, SIGNAL(completeChanged()));
-    registerField("usePersonal", m_pPersonal);
-
-    m_pBusiness = new QRadioButton(tr("&Commercially, for business or enterprise use"));
-    layout->addWidget(m_pBusiness);
-    connect(m_pBusiness, SIGNAL(toggled(bool)), this, SIGNAL(completeChanged()));
-    registerField("useBusiness", m_pBusiness);
-
-    QLabel* pNote = new QLabel(tr("Note: this option is persistent"));
-    layout->addWidget(pNote);
-
-    uchar BusinessUse = 2;
-    if (!g_Certificate.isEmpty())
-        BusinessUse = CERT_IS_TYPE(g_CertInfo, eCertBusiness) ? 1 : 0;
-    else {
-        uchar UsageFlags = 0;
-        if (theCore->GetSecureParam("UsageFlags", &UsageFlags, sizeof(UsageFlags)))
-            BusinessUse = (UsageFlags & 1) != 0 ? 1 : 0;
-    }
-    if (BusinessUse != 2) {
-        m_pPersonal->setChecked(BusinessUse == 0);
-        m_pBusiness->setChecked(BusinessUse == 1);
-        if ((QApplication::keyboardModifiers() & Qt::ControlModifier) == 0) {
-            m_pLabel->setEnabled(false);
-            m_pPersonal->setEnabled(false);
-            m_pBusiness->setEnabled(false);
-        }
-        pNote->setEnabled(false);
-    }
+    //m_pLabel = new QLabel(tr("Select how you would like to use MajorPrivacy"));
+    //layout->addWidget(m_pLabel);
+    //
+    //m_pPersonal = new QRadioButton(tr("&Personally, for private non-commercial use"));
+    //layout->addWidget(m_pPersonal);
+    //connect(m_pPersonal, SIGNAL(toggled(bool)), this, SIGNAL(completeChanged()));
+    //registerField("usePersonal", m_pPersonal);
+    //
+    //m_pBusiness = new QRadioButton(tr("&Commercially, for business or enterprise use"));
+    //layout->addWidget(m_pBusiness);
+    //connect(m_pBusiness, SIGNAL(toggled(bool)), this, SIGNAL(completeChanged()));
+    //registerField("useBusiness", m_pBusiness);
+    //
+    //QLabel* pNote = new QLabel(tr("Note: this option is persistent"));
+    //layout->addWidget(pNote);
+    //
+    //uchar BusinessUse = 2;
+    //if (!g_Certificate.isEmpty())
+    //    BusinessUse = CERT_IS_TYPE(g_CertInfo, eCertBusiness) ? 1 : 0;
+    //else {
+    //    uchar UsageFlags = 0;
+    //    if (theCore->GetSecureParam("UsageFlags", &UsageFlags, sizeof(UsageFlags)))
+    //        BusinessUse = (UsageFlags & 1) != 0 ? 1 : 0;
+    //}
+    //if (BusinessUse != 2) {
+    //    m_pPersonal->setChecked(BusinessUse == 0);
+    //    m_pBusiness->setChecked(BusinessUse == 1);
+    //    if ((QApplication::keyboardModifiers() & Qt::ControlModifier) == 0) {
+    //        m_pLabel->setEnabled(false);
+    //        m_pPersonal->setEnabled(false);
+    //        m_pBusiness->setEnabled(false);
+    //    }
+    //    pNote->setEnabled(false);
+    //}
 
     setLayout(layout);
 
@@ -202,16 +260,18 @@ CIntroPage::CIntroPage(QWidget *parent)
 
 int CIntroPage::nextId() const
 {
-    if(g_Certificate.isEmpty())
-        return CSetupWizard::Page_Certificate;
-    //return CSetupWizard::Page_UI;
-    return CSetupWizard::Page_Update;
+#ifndef _DEBUG
+    //if(!g_Certificate.isEmpty())
+    if(g_CertInfo.active)
+        return CSetupWizard::Page_Exec;
+#endif
+    return CSetupWizard::Page_Certificate;
 }
 
 bool CIntroPage::isComplete() const 
 {
-    if (m_pLabel->isEnabled() && !m_pPersonal->isChecked() && !m_pBusiness->isChecked())
-        return false;
+    //if (m_pLabel->isEnabled() && !m_pPersonal->isChecked() && !m_pBusiness->isChecked())
+    //    return false;
     return QWizardPage::isComplete();
 }
 
@@ -223,17 +283,15 @@ CCertificatePage::CCertificatePage(int iOldLevel, QWidget *parent)
     : QWizardPage(parent)
 {
     setTitle(tr("Install your <b>MajorPrivacy</b> support certificate"));
-    setSubTitle(tr("If you have a supporter certificate, please fill it into the field below."));
-    
-    if (iOldLevel < SETUP_LVL_1)
-        //m_NextPage = CSetupWizard::Page_UI;
-        m_NextPage = CSetupWizard::Page_Update;
-    else if (iOldLevel < SETUP_LVL_3)
-        m_NextPage = CSetupWizard::Page_Finish;
-
+    setSubTitle(tr("To use most security features a support certificate must be installed."));
+   
     QGridLayout *layout = new QGridLayout;
+    layout->setContentsMargins(3,3,3,3);
+    layout->setSpacing(3);
 
-    m_pTopLabel = new QLabel();
+    m_pTopLabel = new QLabel(tr("<b>MajorPrivacy</b> provides strong features to protect your data exclusively to <u>project supporters</u>. "
+            "If you are not yet a supporter, then please consider <a href=\"https://xanasoft.com/go.php?to=priv-get-cert\">supporting the project</a> "
+            "to ensure further development of MajorPrivacy and to receive a <a href=\"https://xanasoft.com/go.php?to=priv-cert\">supporter certificate</a>."));
     m_pTopLabel->setWordWrap(true);
     connect(m_pTopLabel, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
     layout->addWidget(m_pTopLabel);
@@ -254,7 +312,7 @@ CCertificatePage::CCertificatePage(int iOldLevel, QWidget *parent)
     layout->addWidget(new QLabel(tr("Retrieve certificate using Serial Number:")));
 
     m_pSerial = new QLineEdit();
-    m_pSerial->setPlaceholderText("SBIE_-_____-_____-_____-_____");
+    m_pSerial->setPlaceholderText("PRIV_-_____-_____-_____-_____");
     layout->addWidget(m_pSerial);
 
     m_pEvaluate = new QCheckBox(tr("Start evaluation without a certificate for a limited period of time."));
@@ -266,7 +324,7 @@ CCertificatePage::CCertificatePage(int iOldLevel, QWidget *parent)
     connect(m_pEvaluate, SIGNAL(toggled(bool)), this, SIGNAL(completeChanged()));
     registerField("isEvaluate", m_pEvaluate);
 
-    QLabel* pGetEvalCert = new QLabel(tr("<b><a href=\"_\"><font color='red'>Get a free evaluation certificate</font></a> and enjoy all premium features for %1 days.</b>").arg(EVAL_DAYS));
+    QLabel* pGetEvalCert = new QLabel(tr("<b><a href=\"_\"><font color='red'>Get a free evaluation certificate</font></a> and enjoy all features for %1 days.</b>").arg(EVAL_DAYS));
     pGetEvalCert->setToolTip(tr("You can request a free %1-day evaluation certificate up to %2 times per hardware ID.").arg(EVAL_DAYS).arg(EVAL_MAX));
     layout->addWidget(pGetEvalCert);
     connect(pGetEvalCert, &QLabel::linkActivated, this, [=]() {
@@ -285,34 +343,7 @@ void CCertificatePage::initializePage()
     uchar UsageFlags = 0;
     theCore->GetSecureParam("UsageFlags", &UsageFlags, sizeof(UsageFlags));
 
-    if (field("useBusiness").toBool())
-    {
-        UsageFlags |= 1;
-        UsageFlags &= ~2;
-        theCore->SetSecureParam("UsageFlags", &UsageFlags, sizeof(UsageFlags));
-
-        m_pTopLabel->setText(
-            tr("To use <b>MajorPrivacy</b> in a business setting, an appropriate <a href=\"https://xanasoft.com/go.php?to=sbie-get-cert\">support certificate</a> for business use is required. "
-            "If you do not yet have the required certificate(s), you can get those from the <a href=\"https://xanasoft.com/shop/\">xanasoft.com web shop</a>.")
-        );
-
-        m_pEvaluate->setVisible(true);
-    }
-    else 
-    {
-        if((UsageFlags & 1) != 0)
-            UsageFlags |= 2;
-        UsageFlags &= ~1;
-        theCore->SetSecureParam("UsageFlags", &UsageFlags, sizeof(UsageFlags));
-
-        m_pTopLabel->setText(
-            tr("<b>MajorPrivacy</b> provides strong features to prevent your data from being stolean exclusively to <u>project supporters</u>. "
-                "If you are not yet a supporter, then please consider <a href=\"https://xanasoft.com/go.php?to=sbie-get-cert\">supporting the project</a> "
-                "to ensure further development of MajorPrivacy and to receive a <a href=\"https://xanasoft.com/go.php?to=sbie-cert\">supporter certificate</a>.")
-        );
-
-        m_pEvaluate->setVisible(false);
-    }
+    m_pEvaluate->setVisible(false);
 
     m_pSerial->setVisible(true);
     m_pSerial->clear();
@@ -320,17 +351,26 @@ void CCertificatePage::initializePage()
 
 int CCertificatePage::nextId() const
 {
-    return m_NextPage;
+    return CSetupWizard::Page_Exec;
 }
 
 bool CCertificatePage::isComplete() const 
 {
-    if (field("useBusiness").toBool())
+    //if (field("useBusiness").toBool())
+    //{
+    //    m_pCertificate->setEnabled(!(m_pEvaluate->isChecked() && m_pEvaluate->isEnabled()));
+    //    if (m_pCertificate->toPlainText().isEmpty() && !(m_pEvaluate->isChecked() && m_pEvaluate->isEnabled()))
+    //        return false;
+    //}
+
+    //if (g_Certificate.isEmpty()) 
+    if(!g_CertInfo.active)
     {
-        m_pCertificate->setEnabled(!(m_pEvaluate->isChecked() && m_pEvaluate->isEnabled()));
-        if (m_pCertificate->toPlainText().isEmpty() && !(m_pEvaluate->isChecked() && m_pEvaluate->isEnabled()))
-            return false;
+        if (QMessageBox::warning((CCertificatePage*)this, "MajorPrivacy", tr("Without an active support certificate, MajorPrivacy runs in demo mode and does not enforce any rules. "
+            "You can get a free %1-day evaluation certificate to unlock all features. Are you sure you want to continue without one?").arg(EVAL_DAYS), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) == QMessageBox::No)
+			return false;
     }
+
     return QWizardPage::isComplete();
 }
 
@@ -386,221 +426,299 @@ bool CCertificatePage::validatePage()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// CUIPage
+// CExecPage
 // 
-/*
-CUIPage::CUIPage(QWidget* parent)
+
+CExecPage::CExecPage(QWidget *parent)
     : QWizardPage(parent)
 {
-    setTitle(tr("Configure <b>MajorPrivacy</b> UI"));
-    setSubTitle(tr("Select the user interface style you prefer."));
+    setTitle(tr("Configure <b>MajorPrivacy</b> Process Protection"));
+    setSubTitle(tr("MajorPrivacy can protect the integrity of processes and enforce custom Code Integrity rules."));
 
     QGridLayout* layout = new QGridLayout;
-
-    m_pAdvanced = new QRadioButton(tr("&Advanced UI for experts"));
-    m_pAdvanced->setChecked(theConf->GetInt("Options/ViewMode", 1) == 1);
-    layout->addWidget(m_pAdvanced, 0, 0);
-    registerField("useAdvanced", m_pAdvanced);
-
-    m_pSimple = new QRadioButton(tr("&Simple UI for beginners"));
-    m_pSimple->setChecked(theConf->GetInt("Options/ViewMode", 1) == 0);
-    layout->addWidget(m_pSimple, 1, 0);
-    registerField("useSimple", m_pSimple);
-
-    m_pClassic = new QRadioButton(tr("&Vintage SbieCtrl.exe UI"));
-    m_pClassic->setChecked(theConf->GetInt("Options/ViewMode", 1) == 2);
-    layout->addWidget(m_pClassic, 2, 0);
-    registerField("useClassic", m_pClassic);
-
-    QButtonGroup *buttonGroup1 = new QButtonGroup();
-    buttonGroup1->addButton(m_pAdvanced, 0);
-    buttonGroup1->addButton(m_pSimple, 1);
-    buttonGroup1->addButton(m_pClassic, 2);
-    connect(buttonGroup1, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(UpdatePreview()));
-
-    QLabel* pDummy = new QLabel();
-    pDummy->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-    layout->addWidget(pDummy, 0, 1, 6, 4);
-    pDummy->setStyleSheet("QLabel { background-color : " + QApplication::palette().color(QPalette::Base).name() + "; }");
-
-    m_pPreview = new QLabel();
-    m_pPreview->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-    m_pPreview->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    layout->addWidget(m_pPreview, 0, 1, 6, 4);
-
-    QWidget* pSpacer = new QWidget();
-	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    layout->addWidget(pSpacer, 3, 0);
-
-    m_pBrightMode = new QRadioButton(tr("Use Bright Mode"));
-    layout->addWidget(m_pBrightMode, 4, 0);
-    registerField("useBrightMode", m_pBrightMode);
-
-    m_pDarkMode = new QRadioButton(tr("Use Dark Mode"));
-    layout->addWidget(m_pDarkMode, 5, 0);
-    registerField("useDarkMode", m_pDarkMode);
-
-    QButtonGroup *buttonGroup2 = new QButtonGroup();
-    buttonGroup2->addButton(m_pBrightMode, 0);
-    buttonGroup2->addButton(m_pDarkMode, 1);
-    connect(buttonGroup2, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(UpdatePreview()));
-
-
-
-    layout->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum), 0, 1, 1, 1);
-    layout->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum), 0, 2, 1, 1);
-    layout->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum), 0, 3, 1, 1);
-    layout->addItem(new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum), 0, 4, 1, 1);
-
-    setLayout(layout);
-}
-
-void CUIPage::initializePage() 
-{ 
-    QTimer::singleShot(10, this, SLOT(UpdatePreview()));
-}
-
-void CUIPage::UpdatePreview()
-{
-    bool bDark;
-    if (m_pDarkMode->isChecked())
-        bDark = true;
-    else if (m_pBrightMode->isChecked())
-        bDark = false;
-    else { // same as os
-        QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", QSettings::NativeFormat);
-        bDark = (settings.value("AppsUseLightTheme") == 0);
-    }
-
-    QPixmap preview;
-    if(m_pAdvanced->isChecked() && !bDark)
-        preview = QPixmap::fromImage(QImage(":/Assets/Advanced.png"));
-    else if(m_pAdvanced->isChecked() && bDark)
-        preview =  QPixmap::fromImage(QImage(":/Assets/AdvancedD.png"));
-    else if(m_pSimple->isChecked() && !bDark)
-        preview = QPixmap::fromImage(QImage(":/Assets/Simple.png"));
-    else if(m_pSimple->isChecked() && bDark)
-        preview = QPixmap::fromImage(QImage(":/Assets/SimpleD.png"));
-    else if(m_pClassic->isChecked() && !bDark)
-        preview = QPixmap::fromImage(QImage(":/Assets/Classic.png"));
-    else if(m_pClassic->isChecked() && bDark)
-        preview = QPixmap::fromImage(QImage(":/Assets/ClassicD.png"));
-
-    //QRect rect(0, 0, m_pPreview->width(), m_pPreview->height());
-    //m_pPreview->setPixmap(preview.scaled(preview.width()*5/10, preview.height()*5/10, Qt::KeepAspectRatio, Qt::SmoothTransformation).copy(rect));
-    //m_pPreview->setPixmap(preview.scaled(min(m_pPreview->width(), preview.width()), min(m_pPreview->height(), preview.height()), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    //m_pPreview->setPixmap(preview);
-    //m_pPreview->setPixmap(preview.scaled(preview.width()*7/10, preview.height()*7/10, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    m_pPreview->setPixmap(preview.scaled(std::min(preview.width(), std::max(preview.width()*7/10, m_pPreview->width())),
-        std::min(preview.height(), std::max(preview.height()*7/10, m_pPreview->height())), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-}
-
-int CUIPage::nextId() const
-{
-    return CSetupWizard::Page_Shell;
-}*/
-
-//////////////////////////////////////////////////////////////////////////////////////////
-// CShellPage
-// 
-/*
-CShellPage::CShellPage(QWidget *parent)
-    : QWizardPage(parent)
-{
-    setTitle(tr("Configure <b>MajorPrivacy</b> shell integration"));
-    setSubTitle(tr("Configure how MajorPrivacy should integrate with your system."));
-
-    QVBoxLayout *layout = new QVBoxLayout;
-
-    m_pAutoStart = new QCheckBox(tr("Start UI with Windows"));
-    m_pAutoStart->setChecked(true);
-    layout->addWidget(m_pAutoStart);
-    registerField("isAutoStart", m_pAutoStart);
-
-    m_pContecxtMenu = new QCheckBox(tr("Add 'Run Sandboxed' to the explorer context menu"));
-    m_pContecxtMenu->setChecked(true);
-    layout->addWidget(m_pContecxtMenu);
-    registerField("useContecxtMenu", m_pContecxtMenu);
-
-    m_pBrowserIcon = new QCheckBox(tr("Add desktop shortcut for starting Web browser under Sandboxie"));
-    m_pBrowserIcon->setChecked(true);
-    layout->addWidget(m_pBrowserIcon);
-    registerField("useBrowserIcon", m_pBrowserIcon);
-
-	m_pEditOnlyAdmin = new QCheckBox(tr("Only applications with admin rights can change configuration"));
-	m_pEditOnlyAdmin->setChecked(false);
-	connect(m_pEditOnlyAdmin,SIGNAL(clicked(bool)), this, SLOT(OnEditOnlyAdmin()));
-	layout->addWidget(m_pEditOnlyAdmin);
-	registerField("editAdminOnly", m_pEditOnlyAdmin);
-
-    setLayout(layout);
-}
-
-void CShellPage::OnEditOnlyAdmin() 
-{
-    if (m_pEditOnlyAdmin->isChecked()) {
-        if (QMessageBox::warning(this, tr("Warning"), tr("Enabling this option prevents changes to the Sandboxie.ini configuration from the user interface without admin rights. Be careful, as using Sandboxie Manager with normal user rights may result in a lockout. "
-          "To make changes to the configuration, you must restart Sandboxie Manager as an admin by clicking 'Restart as Admin' in the 'Sandbox' menu in the main window."),
-          QMessageBox::Ok, QMessageBox::Cancel) == QMessageBox::Cancel)
-            m_pEditOnlyAdmin->setChecked(false);
-    }
-}
-
-int CShellPage::nextId() const
-{
-    //return CSetupWizard::Page_WFP;
-    return CSetupWizard::Page_Update;
-    //return CSetupWizard::Page_Finish;
-}
-*/
-//////////////////////////////////////////////////////////////////////////////////////////
-// CWFPPage
-// 
-
-/*CWFPPage::CWFPPage(QWidget *parent)
-    : QWizardPage(parent)
-{
-    setTitle(tr("Configure <b>MajorPrivacy</b> network filtering"));
-    setSubTitle(tr("Sandboxie can use the Windows Filtering Platform (WFP) to restrict network access."));
-
-    QVBoxLayout *layout = new QVBoxLayout;
+    layout->setContentsMargins(3,3,3,3);
+    layout->setSpacing(1);
+    int row = 0;
 
     QLabel* pLabel = new QLabel;
     pLabel->setWordWrap(true);
-    pLabel->setText(tr("Using WFP allows Sandboxie to reliably enforce IP/Port based rules for network access. "
-        "Unlike system level application firewalls, Sandboxie can use different rules in each box for the same application. "
-        "If you already have a good and reliable application firewall and do not need per box rules, you can leave this option unchecked. "
-        "Without WFP enabled, Sandboxie will still be able to reliably and entirely block processes from accessing the network. "
-        "However, this can cause the process to crash, as the driver blocks the required network device endpoints. "
-        "Even with WFP disabled, Sandboxie offers to set IP/Port based rules, however these will be applied in user mode only and not be enforced by the driver. "
-        "Hence, without WFP enabled, an intentionally malicious process could bypass those rules, but not the entire network block."));
-    layout->addWidget(pLabel);
+    pLabel->setText(tr("MajorPrivacy puts you in charge of your system by letting you decide which programs are allowed to start others, which libraries they may load, and how processes can interact with each other (read/write memory, etc.). "
+        "To give you clear insight, Execution and inter-process access (Ingress) events are aggregated into records that clearly show interactions between programs. "
+        "These records are stored in memory (RAM) and can be saved to disk, giving you long-term insight into how your programs interact. For privacy, you can configure the storage options individually per program. "
+        "If needed, the raw events can also be logged to RAM, though this will consume a significant amount of memory."));
+    layout->addWidget(pLabel, row++, 0, 1, 2);
 
-    m_pUseWFP = new QCheckBox(tr("Enable Windows Filtering Platform (WFP) support"));
-    m_pUseWFP->setChecked(theAPI->GetGlobalSettings()->GetBool("NetworkEnableWFP", false));
-    layout->addWidget(m_pUseWFP);
-    registerField("useWFP", m_pUseWFP);
+    QWidget* pSpacer = new QWidget();
+    pSpacer->setMinimumHeight(16);
+    pSpacer->setMaximumWidth(16);
+    layout->addWidget(pSpacer, row, 0, 1, 1);
+
+    m_pRecord = new QCheckBox(tr("Save Process Execution and Ingress Records to Disk (IngressRecord.dat)"));
+    m_pRecord->setChecked(theCore->GetConfigBool("Service/SaveIngressRecord", false));
+    layout->addWidget(m_pRecord, row++, 1);
+    registerField("recordExec", m_pRecord);
+
+    m_pLog = new QCheckBox(tr("Log Process Execution and Ingress events to Memory"));
+    m_pLog->setChecked(theCore->GetConfigBool("Service/ExecLog", false));
+    layout->addWidget(m_pLog, row++, 1);
+    registerField("logExec", m_pLog);
 
     setLayout(layout);
 }
 
-int CWFPPage::nextId() const
+int CExecPage::nextId() const
 {
-    return CSetupWizard::Page_Finish;
-}*/
+    return CSetupWizard::Page_Res;
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// CSBUpdate
+// CResPage
 // 
 
-CSBUpdate::CSBUpdate(QWidget *parent)
+CResPage::CResPage(QWidget *parent)
+    : QWizardPage(parent)
+{
+    setTitle(tr("Configure <b>MajorPrivacy</b> Resource Protection"));
+    setSubTitle(tr("MajorPrivacy can pritect files and folders on your system from access by rogue applications."));
+
+    QGridLayout* layout = new QGridLayout;
+    layout->setContentsMargins(3,3,3,3);
+    layout->setSpacing(1);
+    int row = 0;
+
+    QLabel* pLabel = new QLabel;
+    pLabel->setWordWrap(true);
+    pLabel->setText(tr("MajorPrivacy lets you control how programs interact with your files and folders, you can decide which applications can read, write, modify, or delete protected data. "
+        "These access events can be aggregated into clear records that show which programs touched which files, when and how often. "
+        "These records are kept in memory (RAM) and can be saved to disk for long-term insight into data usage. For privacy, you can configure the storage options individually per program. "
+        "If needed, raw file access events can also be logged in detail, though this will consume a significant amount of memory."));
+    layout->addWidget(pLabel, row++, 0, 1, 2);
+
+    m_pCollect = new QCheckBox(tr("Collect File/Folder Accesses Events"));
+    m_pCollect->setChecked(theCore->GetConfigBool("Service/ResTrace", true));
+    layout->addWidget(m_pCollect, row++, 0, 1, 2);
+    registerField("collectRes", m_pCollect);
+
+    QWidget* pSpacer = new QWidget();
+    pSpacer->setMinimumHeight(16);
+    pSpacer->setMaximumWidth(16);
+    layout->addWidget(pSpacer, row, 0, 1, 1);
+
+        m_pRecord = new QCheckBox(tr("Save File/Folder Accesses Records to Disk (AccessRecord.dat)"));
+        m_pRecord->setChecked(theCore->GetConfigBool("Service/SaveAccessRecord", false));
+        layout->addWidget(m_pRecord, row++, 1);
+        registerField("recordRes", m_pRecord);
+
+        m_pLog = new QCheckBox(tr("Log all File/Folder Accesses events to Memory"));
+        m_pLog->setChecked(theCore->GetConfigBool("Service/ResLog", false));
+        layout->addWidget(m_pLog, row++, 1);
+        registerField("logRes", m_pLog);
+
+    m_pEnum = new QCheckBox(tr("Enable list of all Open Files (increases CPU load)"));
+    m_pEnum->setChecked(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));
+    layout->addWidget(m_pEnum, row++, 0, 1, 2);
+    registerField("enumRes", m_pEnum);
+
+    setLayout(layout);
+}
+
+int CResPage::nextId() const
+{
+    return CSetupWizard::Page_Net;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// CNetPage
+// 
+
+CNetPage::CNetPage(QWidget *parent)
+    : QWizardPage(parent)
+{
+    setTitle(tr("Configure <b>MajorPrivacy</b> Network Protection"));
+    setSubTitle(tr("MajorPrivacy enhance and protect the Windows Firewall and Filter DNS requests."));
+
+    QGridLayout* layout = new QGridLayout;
+    layout->setContentsMargins(3,3,3,3);
+    layout->setSpacing(1);
+    int row = 0;
+
+    QLabel* pLabel = new QLabel;
+    pLabel->setWordWrap(true);
+    pLabel->setText(tr("MajorPrivacy can take full control of the Windows Firewall, giving you the power to manage both outbound and inbound network connections. "
+        "It enhances the firewall with flexible, file-pattern based rule templates and safeguards your configuration against unauthorized changes made by other programs. "
+        "Every connection attempt can be tracked and aggregated (per domain) into records that clearly show which programs communicated where, and when."));
+    layout->addWidget(pLabel, row++, 0, 1, 2);
+
+
+    m_pEnable = new QCheckBox(tr("Take control of the Windows Firewall"));
+    m_pEnable->setChecked(true);
+    layout->addWidget(m_pEnable, row++, 0, 1, 2);
+    registerField("enableFw", m_pEnable);
+
+    QWidget* pSpacer = new QWidget();
+    pSpacer->setMinimumHeight(16);
+    pSpacer->setMaximumWidth(16);
+    layout->addWidget(pSpacer, row, 0, 1, 1);
+
+        m_pRestrict = new QCheckBox(tr("Block all outbound connection attempts by default"));
+        m_pRestrict->setChecked(theCore->GetFwProfile().GetValue() == FwFilteringModes::AllowList);
+        layout->addWidget(m_pRestrict, row++, 1);
+        registerField("restrictFw", m_pRestrict);
+
+        m_pProtect = new QCheckBox(tr("Automatically revert all unauthorized rule changes"));
+        m_pProtect->setChecked(theCore->GetConfigBool("Service/GuardFwRules", false));
+        layout->addWidget(m_pProtect, row++, 1);
+        registerField("protectFw", m_pProtect);
+
+    m_pCollect = new QCheckBox(tr("Collect File/Folder Accesses Events"));
+    m_pCollect->setChecked(theCore->GetConfigBool("Service/NetTrace", true));
+    layout->addWidget(m_pCollect, row++, 0, 1, 2);
+    registerField("collectNet", m_pCollect);
+
+        m_pRecord = new QCheckBox(tr("Save Network Traffic Record to Disk (TrafficRecord.dat)"));
+        m_pRecord->setChecked(theCore->GetConfigBool("Service/SaveTrafficRecord", false));
+        layout->addWidget(m_pRecord, row++, 1);
+        registerField("recordNet", m_pRecord);
+
+        m_pLog = new QCheckBox(tr("Log all Network Access events to Memory"));
+        m_pLog->setChecked(theCore->GetConfigBool("Service/NetLog", false));
+        layout->addWidget(m_pLog, row++, 1);
+        registerField("logNet", m_pLog);
+
+    connect(m_pEnable, &QCheckBox::toggled, this, [&] {
+        m_pRestrict->setEnabled(m_pEnable->isChecked());
+        m_pProtect->setEnabled(m_pEnable->isChecked());
+		m_pCollect->setEnabled(m_pEnable->isChecked());
+		m_pRecord->setEnabled(m_pEnable->isChecked());
+		m_pLog->setEnabled(m_pEnable->isChecked());
+    });
+
+    setLayout(layout);
+}
+
+int CNetPage::nextId() const
+{
+#ifndef _DEBUG
+    if(theCore->IsEngineMode())
+		return CSetupWizard::Page_System;
+#endif
+    return CSetupWizard::Page_Config;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// CConfigPage
+// 
+
+CConfigPage::CConfigPage(QWidget *parent)
+    : QWizardPage(parent)
+{
+    setTitle(tr("Configure <b>MajorPrivacy</b> Config Protection"));
+    setSubTitle(tr("To make MajorPrivacy truly secure its configuration must be protected."));
+
+    QGridLayout* layout = new QGridLayout;
+    layout->setContentsMargins(3,3,3,3);
+    layout->setSpacing(1);
+    int row = 0;
+
+    QLabel* pLabel = new QLabel;
+    pLabel->setWordWrap(true);
+    pLabel->setText(tr("The security-relevant configuration of MajorPrivacy (Process Protection rules, Secure Enclave settings, the Allowed Image Hash Database, and File/Folder access rules) is stored in the Windows registry. "
+        "While MajorPrivacy is running, this data is protected against tampering, and the software itself can prevent unauthorized termination. However, when MajorPrivacy is not active, the registry remains vulnerable. "
+        "To address this, the configuration can be protected with a digital signature, with the last valid revision locked in a read-only state that is only cleared on system shutdown. "
+        "It will be re-locked automatically as soon as the KernelIsolator driver loads early in the boot process. "
+        "The trade-off is that while this protection is engaged, the software cannot be uninstalled. To uninstall, the protection must first be disabled and the system rebooted."));
+    layout->addWidget(pLabel, row++, 0, 1, 2);
+
+    m_pUnloadLock = new QCheckBox(tr("Enable Unload Protection"));
+    layout->addWidget(m_pUnloadLock, row++, 0, 1, 2);
+    registerField("unloadLock", m_pUnloadLock);
+
+    m_pConfigLock = new QCheckBox(tr("Enable Config Protection and set up User Key"));
+    layout->addWidget(m_pConfigLock, row++, 0, 1, 2);
+    registerField("configLock", m_pConfigLock);
+
+    setLayout(layout);
+}
+
+int CConfigPage::nextId() const
+{
+    return CSetupWizard::Page_System;
+}
+
+bool CConfigPage::validatePage()
+{
+    if (m_pConfigLock->isChecked() && !((CSetupWizard*)wizard())->m_pPrivateKey)
+    {
+        ((CSetupWizard*)wizard())->m_pPrivateKey = new CPrivateKey;
+        STATUS Status = theCore->Driver()->GetUserKey();
+        if (Status.IsError())
+            Status = theGUI->MakeKeyPair(((CSetupWizard*)wizard())->m_pPrivateKey);
+        else
+            Status = theGUI->InitSigner(CMajorPrivacy::ESignerPurpose::eEnableProtection, *((CSetupWizard*)wizard())->m_pPrivateKey);
+        theGUI->CheckResults(QList<STATUS>() << Status, wizard());
+        
+        if (!((CSetupWizard*)wizard())->m_pPrivateKey->IsPrivateKeySet()) {
+            delete ((CSetupWizard*)wizard())->m_pPrivateKey;
+            ((CSetupWizard*)wizard())->m_pPrivateKey = nullptr;
+            return false;
+        }
+    }
+    return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// CSystemPage
+// 
+
+CSystemPage::CSystemPage(QWidget *parent)
+    : QWizardPage(parent)
+{
+    setTitle(tr("Windows System Configuration"));
+    setSubTitle(tr("To allow MajorPrivacy provide the up upmost security some system configurations should be changed."));
+
+    QGridLayout* layout = new QGridLayout;
+    layout->setContentsMargins(3,3,3,3);
+    layout->setSpacing(1);
+    int row = 0;
+
+    QLabel* pLabel = new QLabel;
+    pLabel->setWordWrap(true);
+    pLabel->setText(tr("When sensitive data is stored in RAM, it is critical to prevent that information from being written to disk in an unprotected form. "
+        "Windows may write memory contents into the page file during normal operation or into the hibernation file when the system is suspended, leaving sensitive data exposed to offline analysis or theft. "
+        "Enabling NTFS page file encryption ensures that any memory pages written to disk are securely encrypted, reducing the risk of leakage. "
+        "At the same time, disabling hibernation prevents entire memory snapshots from being saved to disk, closing off another major avenue through which sensitive data could persist beyond system uptime."));
+    layout->addWidget(pLabel, row++, 0, 1, 2);
+
+    m_pEncryptPageFile = new QCheckBox(tr("Enable Virtual Memory Pagefile Encryption"));
+    layout->addWidget(m_pEncryptPageFile, row++, 0, 1, 2);
+    registerField("encryptSwap", m_pEncryptPageFile);
+
+    m_pNoHibernation = new QCheckBox(tr("Prevent Hibernation when Secure Protected Volumes are mounted"));
+    layout->addWidget(m_pNoHibernation, row++, 0, 1, 2);
+    registerField("guardSuspend", m_pNoHibernation);
+
+    setLayout(layout);
+}
+
+int CSystemPage::nextId() const
+{
+    return CSetupWizard::Page_Update;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// CUpdatePage
+// 
+
+CUpdatePage::CUpdatePage(QWidget *parent)
     : QWizardPage(parent)
 {
     setTitle(tr("Configure <b>MajorPrivacy</b> updater"));
     setSubTitle(tr("Like with any other security product, it's important to keep your MajorPrivacy up to date."));
 
     QGridLayout *layout = new QGridLayout;
-    layout->setSpacing(3);
+    layout->setContentsMargins(3,3,3,3);
+    layout->setSpacing(1);
 
     int row = 0;
     int rows = 4;
@@ -608,7 +726,7 @@ CSBUpdate::CSBUpdate(QWidget *parent)
     m_pUpdate = new QCheckBox(tr("Regularly check for all updates to MajorPrivacy and optional components"));
     m_pUpdate->setToolTip(tr("Let MajorPrivacy regularly check for latest updates."));
     layout->addWidget(m_pUpdate, row++, 0, 1, rows);
-    connect(m_pUpdate, &QCheckBox::toggled, this, &CSBUpdate::UpdateOptions);
+    connect(m_pUpdate, &QCheckBox::toggled, this, &CUpdatePage::UpdateOptions);
     registerField("updateAll", m_pUpdate);
 
     QWidget* pSpacer = new QWidget();
@@ -620,7 +738,7 @@ CSBUpdate::CSBUpdate(QWidget *parent)
     m_pVersion->setToolTip(tr("Check for new MajorPrivacy builds."));
     layout->addWidget(m_pVersion, row++, 1, 1, rows-2);
     //layout->addWidget(new QComboBox(), row-1, 3, 1, 1);
-    connect(m_pVersion, &QCheckBox::toggled, this, &CSBUpdate::UpdateOptions);
+    connect(m_pVersion, &QCheckBox::toggled, this, &CUpdatePage::UpdateOptions);
     registerField("updateApp", m_pVersion);
 
     m_pChanelInfo = new QLabel(tr("Select in which update channel to look for new MajorPrivacy builds:"));
@@ -642,90 +760,58 @@ CSBUpdate::CSBUpdate(QWidget *parent)
     layout->addWidget(m_pPreview, row++, 2, 1, rows-2);
     registerField("channelPreview", m_pPreview);
 
-    m_pInsider = new QRadioButton(tr("In the Insider Channel - exclusive features"));
-    m_pInsider->setToolTip(tr("The Insider channel offers early access to new features and bugfixes that will eventually be released to the public, "
-        "as well as all relevant improvements from the stable channel. \nUnlike the preview channel, it does not include untested, potentially breaking, "
-        "or experimental changes that may not be ready for wider use."));
-    layout->addWidget(m_pInsider, row, 2, 1, 1);
-    registerField("channelInsider", m_pInsider);
-    QLabel* pInsiderInfo = new QLabel(tr("More about the <a href=\"https://xanasoft.com/go.php?to=sbie-insider\">Insider Channel</a>"));
-    connect(pInsiderInfo, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
-    layout->addWidget(pInsiderInfo, row++, 3, 1, 1);
+    //m_pInsider = new QRadioButton(tr("In the Insider Channel - exclusive features"));
+    //m_pInsider->setToolTip(tr("The Insider channel offers early access to new features and bugfixes that will eventually be released to the public, "
+    //    "as well as all relevant improvements from the stable channel. \nUnlike the preview channel, it does not include untested, potentially breaking, "
+    //    "or experimental changes that may not be ready for wider use."));
+    //layout->addWidget(m_pInsider, row, 2, 1, 1);
+    //registerField("channelInsider", m_pInsider);
+    //QLabel* pInsiderInfo = new QLabel(tr("More about the <a href=\"https://xanasoft.com/go.php?to=sbie-insider\">Insider Channel</a>"));
+    //connect(pInsiderInfo, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
+    //layout->addWidget(pInsiderInfo, row++, 3, 1, 1);
 
-    //m_pTemplates = new QCheckBox(tr("Keep Compatibility Templates up to date"));
-    //m_pTemplates->setToolTip(tr("Check for latest compatibility templates."));
-    //layout->addWidget(m_pTemplates, row++, 1, 1, rows-1);
-    //registerField("updateCompat", m_pTemplates);
+    //m_pUpdateInfo = new QLabel();
+    //m_pUpdateInfo->setWordWrap(true);
+    //m_pUpdateInfo->setText(tr("MajorPrivacy applies strict application restrictions, which can lead to compatibility issues. "
+    //    "Stay updated with MajorPrivacy, including compatibility templates and troubleshooting, to ensure smooth operation amid Windows updates and application changes."));
+    //layout->addWidget(m_pUpdateInfo, row++, 0, 1, rows);
 
-    m_pHotfixes = new QCheckBox(tr("Keep Compatibility Templates up to date and apply hotfixes"));
-    m_pHotfixes->setToolTip(tr("Check for latest compatibility templates and hotfixes."));
-    layout->addWidget(m_pHotfixes, row++, 1, 1, rows-1);
-    registerField("applyHotfixes", m_pHotfixes);
+    //layout->addItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Expanding), row++, 0);
 
-    m_pIssues = new QCheckBox(tr("Get the latest Scripts for the Troubleshooting Wizard"));
-    m_pIssues->setToolTip(tr("Check for latest troubleshooting scripts for the troubleshooting wizard."));
-    layout->addWidget(m_pIssues, row++, 1, 1, rows-1);
-    registerField("updateIssues", m_pIssues);
-
-    m_pAddons = new QCheckBox(tr("Keep the list of optional Add-on components up to date"));
-    m_pAddons->setToolTip(tr("Check for latest available add-ons."));
-    layout->addWidget(m_pAddons, row++, 1, 1, rows-1);
-    registerField("updateAddons", m_pAddons);
-
-    m_pUpdateInfo = new QLabel();
-    m_pUpdateInfo->setWordWrap(true);
-    //m_pUpdateInfo->setText(tr("MajorPrivacy applies many application restrictions which may occasionally lead to compatibility issues, necessitating mitigation efforts. "
-    //    "Compatibility may be broken by new Windows updates and changes within sandboxed applications themselves. "
-    //    "To ensure smooth operation, it is highly recommended to regularly check for MajorPrivacy updates, apply the latest compatibility templates, and keep troubleshooting scripts up-to-date."));
-    m_pUpdateInfo->setText(tr("MajorPrivacy applies strict application restrictions, which can lead to compatibility issues. "
-        "Stay updated with MajorPrivacy, including compatibility templates and troubleshooting, to ensure smooth operation amid Windows updates and application changes."));
-    layout->addWidget(m_pUpdateInfo, row++, 0, 1, rows);
-
-    layout->addItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Expanding), row++, 0);
-
-    m_pBottomLabel = new QLabel(tr("Access to the latest compatibility templates and the online troubleshooting database requires a valid <a href=\"https://xanasoft.com/go.php?to=sbie-cert\">supporter certificate</a>."));
-    connect(m_pBottomLabel, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
-    m_pBottomLabel->setWordWrap(true);
-    layout->addWidget(m_pBottomLabel, row++, 0, 1, rows);
+    //m_pBottomLabel = new QLabel(tr("Access to the latest compatibility templates and the online troubleshooting database requires a valid <a href=\"https://xanasoft.com/go.php?to=priv-cert\">supporter certificate</a>."));
+    //connect(m_pBottomLabel, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
+    //m_pBottomLabel->setWordWrap(true);
+    //layout->addWidget(m_pBottomLabel, row++, 0, 1, rows);
 
     setLayout(layout);
 }
 
-void CSBUpdate::initializePage()
+void CUpdatePage::initializePage()
 {
     m_pUpdate->setChecked(true);
     m_pStable->setChecked(true);
 
-    m_pBottomLabel->setVisible(!g_CertInfo.active || g_CertInfo.expired);
+    //m_pBottomLabel->setVisible(!g_CertInfo.active || g_CertInfo.expired);
 
     UpdateOptions();
 }
 
-void CSBUpdate::UpdateOptions()
+void CUpdatePage::UpdateOptions()
 {
     m_pVersion->setVisible(!m_pUpdate->isChecked());
-    //m_pTemplates->setVisible(!m_pUpdate->isChecked());
-    m_pHotfixes->setVisible(!m_pUpdate->isChecked());
-    m_pIssues->setVisible(!m_pUpdate->isChecked());
-    m_pAddons->setVisible(!m_pUpdate->isChecked());
     m_pChanelInfo->setVisible(m_pUpdate->isChecked());
-    m_pUpdateInfo->setVisible(m_pUpdate->isChecked());
+    //m_pUpdateInfo->setVisible(m_pUpdate->isChecked());
 
     if (m_pUpdate->isChecked()) {
         m_pVersion->setChecked(true);
-        //m_pTemplates->setChecked(true);
-        m_pIssues->setChecked(true);
-        m_pAddons->setChecked(true);
     }
 
     m_pStable->setEnabled(m_pVersion->isChecked());
     m_pPreview->setEnabled(m_pVersion->isChecked());
-    m_pInsider->setEnabled(CERT_IS_INSIDER(g_CertInfo) && m_pVersion->isChecked());
-
-    m_pHotfixes->setEnabled(m_pVersion->isChecked());
+    //m_pInsider->setEnabled(CERT_IS_INSIDER(g_CertInfo) && m_pVersion->isChecked());
 }
 
-int CSBUpdate::nextId() const
+int CUpdatePage::nextId() const
 {
     return CSetupWizard::Page_Finish;
 }
@@ -744,6 +830,8 @@ CFinishPage::CFinishPage(QWidget *parent)
     setPixmap(QWizard::WatermarkPixmap, Logo);
 
     QVBoxLayout *layout = new QVBoxLayout;
+    layout->setContentsMargins(3,3,3,3);
+	layout->setSpacing(1);
 
     m_pLabel = new QLabel;
     m_pLabel->setWordWrap(true);
@@ -776,20 +864,3 @@ void CFinishPage::initializePage()
 {
 
 }
-
-
-//void ConclusionPage::setVisible(bool visible)
-//{
-//    QWizardPage::setVisible(visible);
-//
-//    if (visible) {
-//        wizard()->setButtonText(QWizard::CustomButton1, tr("&Print"));
-//        wizard()->setOption(QWizard::HaveCustomButton1, true);
-//        connect(wizard(), &QWizard::customButtonClicked,
-//                this, &ConclusionPage::printButtonClicked);
-//    } else {
-//        wizard()->setOption(QWizard::HaveCustomButton1, false);
-//        disconnect(wizard(), &QWizard::customButtonClicked,
-//                   this, &ConclusionPage::printButtonClicked);
-//    }
-//}

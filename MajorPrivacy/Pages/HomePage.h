@@ -70,7 +70,7 @@ private:
 
 	QSplitter*				m_pVSplitter;
 
-	QSplitter*				m_pHSplitter;
+	//QSplitter*				m_pHSplitter;
 
 	QWidget*				m_pStatusWidget;
 	QVBoxLayout*			m_pStatusLayout;
@@ -78,6 +78,8 @@ private:
 	CStatusView*			m_pStatusView;
 	CIssueView*				m_pIssueView;
 	CEventView*				m_pEventView;
+
+	QTabWidget*				m_pTabWidget;
 
 	QWidget*				m_pEventWidget;
 	QVBoxLayout*			m_pEventLayout;

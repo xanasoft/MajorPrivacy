@@ -13,7 +13,7 @@ public:
 	
 	virtual QString GetNameEx() const;
 
-	virtual QString GetServiceTag() const { return m_ServiceTag; }
+	virtual QString GetServiceTag() const { QReadLocker Lock(&m_Mutex); return m_ServiceTag; }
 
 	virtual quint64 GetProcessId() const { return m_ProcessId; }
 
@@ -30,10 +30,9 @@ public:
 	quint64 GetAccessLastActivity() const { return m_AccessLastActivity; }
 	quint64 GetAccessLastEvent() const { return m_AccessLastEvent; }
 	quint32 GetAccessCount() const { return m_AccessCount; }
+	quint32 GetHandleCount() const { return m_HandleCount; }
 
-	virtual QMap<QString, CTrafficEntryPtr>	GetTrafficLog();
-
-	virtual void ClearLogs(ETraceLogs Log);
+	virtual QHash<QString, CTrafficEntryPtr> GetTrafficLog();
 
 	virtual void ClearAccessLog();
 	virtual void ClearProcessLogs();
@@ -63,10 +62,12 @@ protected:
 	quint64						m_AccessLastActivity = 0;
 	quint64						m_AccessLastEvent = 0;
 	quint32						m_AccessCount = 0;
+	quint32 					m_HandleCount = 0;
 
 	QSet<quint64>				m_SocketRefs;
 
-	QMap<QString, CTrafficEntryPtr> m_TrafficLog;
+	QHash<QString, CTrafficEntryPtr> m_TrafficLog;
+	QHash<QHostAddress, QSet<CTrafficEntryPtr>> m_Unresolved;
 	quint64						m_TrafficLogLastActivity = 0;
 };
 

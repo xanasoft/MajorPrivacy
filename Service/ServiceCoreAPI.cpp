@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <psapi.h>
+#include <wtsapi32.h>
 #include <userenv.h>
 #include "../Library/Helpers/NtObj.h"
 #include "../Library/Helpers/NtUtil.h"
@@ -25,6 +26,7 @@
 #include "../Library/Helpers/ScopedHandle.h"
 #include "../Library/Helpers/NtIO.h"
 #include "Common/EventLog.h"
+#include "../Library/Helpers/TokenUtil.h"
 
 void CServiceCore::RegisterUserAPI()
 {
@@ -77,7 +79,9 @@ void CServiceCore::RegisterUserAPI()
 	m_pUserPipe->RegisterHandler(SVC_API_GET_PROCESS, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_GET_PROGRAMS, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_GET_PROGRAM, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_GET_LIBRARIES, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_GET_LIBRARY, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_SET_PROGRAM, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_ADD_PROGRAM, &CServiceCore::OnRequest, this);
@@ -87,6 +91,8 @@ void CServiceCore::RegisterUserAPI()
 	m_pUserPipe->RegisterHandler(SVC_API_REGROUP_PROGRAMS, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_START_SECURE, &CServiceCore::OnRequest, this);
+
+	m_pUserPipe->RegisterHandler(SVC_API_RUN_UPDATER, &CServiceCore::OnRequest, this);
 
 	m_pUserPipe->RegisterHandler(SVC_API_GET_TRACE_LOG, &CServiceCore::OnRequest, this);
 
@@ -99,6 +105,7 @@ void CServiceCore::RegisterUserAPI()
 	// Access Manager
 	m_pUserPipe->RegisterHandler(SVC_API_GET_HANDLES, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_CLEAR_LOGS, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_CLEAR_RECORDS, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_CLEANUP_ACCESS_TREE, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_SET_ACCESS_EVENT_ACTION, &CServiceCore::OnRequest, this);
 	
@@ -153,9 +160,8 @@ void CServiceCore::OnClient(uint32 uEvent, struct SPipeClientInfo& pClient)
 				ProcessIdToSessionId(pClient.PID, &pClient.SessionId);
 
 				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pClient.PID, true);
-				auto SignInfo = pProcess->GetSignInfo().GetInfo();
 				//if ((pProcess->GetSecFlags() & KPH_PROCESS_STATE_MEDIUM) == KPH_PROCESS_STATE_MEDIUM)
-				if (SignInfo.Authority == KphDevAuthority)
+				if (pProcess->GetSignInfo().GetAuthority() == KphDevAuthority)
 					m_Clients[pClient.PID]->bIsTrusted = true;
 			}
 			break;
@@ -231,6 +237,8 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			else*/ if (vReq.Has(API_V_KEY))
 			{
 				auto SectionKey = Split2(vReq[API_V_KEY], "/");
+				if(SectionKey.first == "Service")
+					theCore->RefreshConfig(SectionKey.second);
 				bool bOk;
 				std::wstring Value = theCore->Config()->GetValue(SectionKey.first, SectionKey.second, L"", &bOk);
 				if (bOk) vRpl[API_V_VALUE] = Value;
@@ -683,6 +691,29 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
+		case SVC_API_GET_PROGRAM:
+		{
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+
+			CProgramItemPtr pItem;
+			if (uint64 UID = vReq.Get(API_V_PROG_UID)) // get by UID
+			{
+				pItem = theCore->ProgramManager()->GetItem(vReq[API_V_PROG_UID]);
+			}
+			else // get by ID
+			{
+				CProgramID ID;
+				ID.FromVariant(vReq[API_V_ID]);
+				pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
+			}
+			if (!pItem)
+				return STATUS_NOT_FOUND;
+
+			StVariant vRpl = pItem->ToVariant(SVarWriteOpt(), m_pMemPool);
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
+		}
 
 		case SVC_API_GET_LIBRARIES:
 		{
@@ -726,6 +757,10 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
+		case SVC_API_GET_LIBRARY:
+		{
+			return STATUS_NOT_IMPLEMENTED; // todo
+		}
 
 		case SVC_API_SET_PROGRAM:
 		{
@@ -733,7 +768,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			CProgramItemPtr pItem;
-			if (uint64 UID = vReq[API_V_PROG_UID]) // edit existing
+			if (uint64 UID = vReq.Get(API_V_PROG_UID)) // edit existing
 			{
 				pItem = theCore->ProgramManager()->GetItem(vReq[API_V_PROG_UID]);
 				if (!pItem)
@@ -783,7 +818,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
-			STATUS Status = theCore->ProgramManager()->RemoveProgramFrom(vReq[API_V_PROG_UID], vReq[API_V_PROG_PARENT], vReq[API_V_DEL_WITH_RULES]);
+			STATUS Status = theCore->ProgramManager()->RemoveProgramFrom(vReq[API_V_PROG_UID], vReq.Get(API_V_PROG_PARENT).To<uint64>(0), vReq.Get(API_V_DEL_WITH_RULES).To<bool>(false), vReq.Get(API_V_KEEP_ONE).To<bool>(false));
 			if(Status)
 				theCore->SetConfigDirty(true);
 			RETURN_STATUS(Status);
@@ -884,6 +919,110 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				Status = ERR(STATUS_UNSUCCESSFUL); // todo make a better error code
 
 			RETURN_STATUS(Status);
+		}
+
+		case SVC_API_RUN_UPDATER:
+		{
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+
+			std::wstring Cmd = L"\"" + theCore->GetAppDir() + L"\\UpdUtil.exe \" " + vReq[API_V_CMD_LINE].AsStr();
+			uint32 Elevate = vReq.Get(API_V_ELEVATE).To<uint32>(0);
+
+			CScopedHandle<HANDLE, BOOL(*)(HANDLE)> CallerProcessHandle(OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE, FALSE, pClient.PID), CloseHandle);
+			if (!CallerProcessHandle) 
+				return STATUS_UNSUCCESSFUL;
+			
+			ULONG CallerSession = pClient.SessionId;
+
+			CScopedHandle<HANDLE, BOOL(*)(HANDLE)> PrimaryTokenHandle(NULL, CloseHandle);
+
+			if (Elevate == 2) 
+			{
+				//
+				// run as system, works also for non administrative users
+				//
+
+				const ULONG TOKEN_RIGHTS = TOKEN_QUERY  | TOKEN_DUPLICATE
+								| TOKEN_ADJUST_DEFAULT	| TOKEN_ADJUST_SESSIONID
+								| TOKEN_ADJUST_GROUPS	| TOKEN_ASSIGN_PRIMARY;
+
+				if (!OpenProcessToken(GetCurrentProcess(), TOKEN_RIGHTS, &PrimaryTokenHandle))
+					return STATUS_UNSUCCESSFUL;
+					
+				CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hNewToken(NULL, CloseHandle);
+				if (!DuplicateTokenEx(PrimaryTokenHandle, TOKEN_RIGHTS, NULL, SecurityAnonymous, TokenPrimary, &hNewToken))
+					return STATUS_UNSUCCESSFUL;
+
+				PrimaryTokenHandle.Set(hNewToken.Detach());
+
+				if (SetTokenInformation(PrimaryTokenHandle, TokenSessionId, &CallerSession, sizeof(ULONG)))
+					return STATUS_UNSUCCESSFUL;
+			} 
+			else 
+			{
+				//
+				// get calling user's token
+				//
+
+				if (!WTSQueryUserToken(CallerSession, &PrimaryTokenHandle))
+					return STATUS_UNSUCCESSFUL;
+
+				if (Elevate == 1 && !TokenIsAdmin(PrimaryTokenHandle, true)) 
+				{
+					//
+					// run elevated as the current user, if the user is not in the admin group
+					// this will fail, and the process started as normal user
+					//
+
+					ULONG returnLength;
+					TOKEN_LINKED_TOKEN linkedToken = {0};
+					NtQueryInformationToken(PrimaryTokenHandle, (TOKEN_INFORMATION_CLASS)TokenLinkedToken, &linkedToken, sizeof(TOKEN_LINKED_TOKEN), &returnLength);
+
+					PrimaryTokenHandle.Set(linkedToken.LinkedToken);
+				}
+			}
+
+			if (!PrimaryTokenHandle)
+				return STATUS_UNSUCCESSFUL;
+
+			PROCESS_INFORMATION pi = {0};
+			STARTUPINFO si = {0};
+			si.cb = sizeof(STARTUPINFO);
+			si.dwFlags = STARTF_FORCEOFFFEEDBACK;
+			si.wShowWindow = SW_SHOWNORMAL;
+			if (!CreateProcessAsUser(PrimaryTokenHandle, NULL, (wchar_t*)Cmd.c_str(), NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi))
+				return STATUS_UNSUCCESSFUL;
+
+			//
+			// Filter Handles to prevent privilege escalation in case 
+			// a signed but hijacked agent requested the start of a utility process
+			// and would subsequenty try to hijack the utility process.
+			//
+
+			HANDLE hCreatedProcess = NULL;
+			// Note: PROCESS_SUSPEND_RESUME is enough to start a debugging session which will give a full access handle in the first debug event (diversenok)
+			DWORD dwRead =  STANDARD_RIGHTS_READ | SYNCHRONIZE |
+				PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | //PROCESS_SUSPEND_RESUME | unlike THREAD_SUSPEND_RESUME this one is dangerous
+				PROCESS_QUERY_LIMITED_INFORMATION;
+			DuplicateHandle(GetCurrentProcess(), pi.hProcess, CallerProcessHandle, &hCreatedProcess, dwRead, FALSE, 0);
+		
+			//HANDLE hCreatedThread = NULL;
+			//DWORD dwRead =  STANDARD_RIGHTS_READ | SYNCHRONIZE |
+			//	THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION | THREAD_SUSPEND_RESUME | 
+			//	THREAD_QUERY_LIMITED_INFORMATION;
+			//DuplicateHandle(GetCurrentProcess(), pi.hThread, CallerProcessHandle, &hCreatedThread, dwRead, FALSE, 0);
+	
+			ResumeThread(pi.hThread);
+
+			CloseHandle(pi.hThread);
+			CloseHandle(pi.hProcess);
+
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_HANDLE] = (uint64)hCreatedProcess;
+			vRpl[API_V_PID] = (uint32)pi.dwProcessId;
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
 		}
 
 		case SVC_API_GET_TRACE_LOG:
@@ -1087,9 +1226,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				for (auto pItem : theCore->ProgramManager()->GetItems())
 				{
 					if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
-						pProgram->ClearLogs(Log);
-					else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
-						pService->ClearLogs(Log);
+						pProgram->ClearTraceLog(Log);
 				}
 			}
 			else
@@ -1101,9 +1238,42 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				if (!pItem)
 					return STATUS_NOT_FOUND;
 				if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
-					pProgram->ClearLogs(Log);
+					pProgram->ClearTraceLog(Log);
+				else
+					return STATUS_OBJECT_TYPE_MISMATCH;
+			}
+			return STATUS_SUCCESS;
+		}
+		case SVC_API_CLEAR_RECORDS:
+		{
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+
+			ETraceLogs Log = (ETraceLogs)vReq[API_V_LOG_TYPE].To<int>();
+
+			std::set<CHandlePtr> Handles;
+			if (!vReq.Has(API_V_ID))
+			{
+				for (auto pItem : theCore->ProgramManager()->GetItems())
+				{
+					if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+						pProgram->ClearRecords(Log);
+					else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+						pService->ClearRecords(Log);
+				}
+			}
+			else
+			{
+				CProgramID ID;
+				ID.FromVariant(vReq[API_V_ID]);
+
+				CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
+				if (!pItem)
+					return STATUS_NOT_FOUND;
+				if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+					pProgram->ClearRecords(Log);
 				else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
-					pService->ClearLogs(Log);
+					pService->ClearRecords(Log);
 				else
 					return STATUS_OBJECT_TYPE_MISMATCH;
 			}
@@ -1350,7 +1520,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			std::wstring Text = vReq[API_V_MB_TEXT].AsStr();
 			//std::wstring Title = vReq.Get(API_V_MB_TITLE).AsStr();
-			//if(Title.empty()) Title = L"Major Privacy";
+			//if(Title.empty()) Title = L"MajorPrivacy";
 			uint32 Type = vReq[API_V_MB_TYPE].To<uint32>();
 		
 			CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hToken(NULL, CloseHandle);
@@ -1422,7 +1592,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			STATUS Status = theCore->PrepareShutdown();
 
 			if (theCore->m_bEngineMode)
-				CServiceCore::Shutdown(false);
+				CServiceCore::Shutdown(CServiceCore::eShutdown_NoWait);
 
 			return Status.GetStatus();
 		}

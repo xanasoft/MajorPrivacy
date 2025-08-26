@@ -142,7 +142,7 @@ bool CProgramFile::HashInfoUnknown() const
 {
 	std::unique_lock lock(m_Mutex);
 
-	return m_SignInfo.GetHashStatus() == EHashStatus::eHashUnknown;
+	return !m_SignInfo.HasFileHash();
 }
 
 bool CProgramFile::HashInfoUnknown(const CProgramLibraryPtr& pLibrary) const
@@ -152,7 +152,7 @@ bool CProgramFile::HashInfoUnknown(const CProgramLibraryPtr& pLibrary) const
 	auto F = m_Libraries.find(pLibrary->GetUID());
 	if (F == m_Libraries.end())
 		return true;
-	return F->second.SignInfo.GetHashStatus() == EHashStatus::eHashUnknown;
+	return !F->second.SignInfo.HasFileHash();
 }
 
 void CProgramFile__UpdateLibraryInfo(SLibraryInfo& Info, uint64 LoadTime, const struct SVerifierInfo* pVerifyInfo, EEventStatus Status)
@@ -291,6 +291,8 @@ void CProgramFile::LoadLibraries(const StVariant& Data)
 			pInfo->TotalLoadCount = vEntry[API_S_LIB_LOAD_COUNT];
 			pInfo->LastStatus = (EEventStatus)vEntry[API_S_LIB_STATUS].To<uint32>();
 			pInfo->SignInfo.FromVariant(vEntry[API_S_SIGN_INFO]);
+
+			pLib->UpdateSignInfo(pInfo->SignInfo);
 		});
 	});
 }
@@ -651,15 +653,15 @@ uint64 CProgramFile::AddTraceLogEntry(const CTraceLogEntryPtr& pLogEntry, ETrace
 
 	switch (Log) {
 	case ETraceLogs::eExecLog: 
-		bSave = theCore->Config()->GetBool("Service", "ExecLog", true); 
+		bSave = theCore->Config()->GetBool("Service", "ExecLog", false); 
 		ePreset = m_ExecTrace;
 		break;
 	case ETraceLogs::eResLog: 
-		bSave = theCore->Config()->GetBool("Service", "ResLog", true); 
+		bSave = theCore->Config()->GetBool("Service", "ResLog", false); 
 		ePreset = m_ResTrace;
 		break;
 	case ETraceLogs::eNetLog: 
-		bSave = theCore->Config()->GetBool("Service", "NetLog", true); 
+		bSave = theCore->Config()->GetBool("Service", "NetLog", false); 
 		ePreset = m_NetTrace;
 		break;
 	}
@@ -807,7 +809,7 @@ void CProgramFile::CollectStats(SStats& Stats) const
 	}
 }
 
-void CProgramFile::ClearLogs(ETraceLogs Log)
+void CProgramFile::ClearRecords(ETraceLogs Log)
 {
 	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
 		m_TrafficLog.Clear();
@@ -824,7 +826,9 @@ void CProgramFile::ClearLogs(ETraceLogs Log)
 	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
 		m_AccessTree.Clear();
 
-	ClearTraceLog(Log); // does m_pMem->CleanUp();
+#ifdef DEF_USE_POOL
+	m_pMem->CleanUp();
+#endif
 }
 
 void CProgramFile::TruncateAccessLog()
@@ -840,14 +844,6 @@ void CProgramFile::CleanUpAccessTree(bool* pbCancel, uint32* puCounter)
 void CProgramFile::TruncateAccessTree()
 {
 	m_AccessTree.Truncate();
-}
-
-void CProgramFile::TestMissing()
-{
-	if (m_Path.substr(0, 2) == L"\\\\")
-		return;
-	std::wstring NtPath = CNtPathMgr::Instance()->TranslateDosToNtPath(m_Path);
-	m_IsMissing = (!NtPath.empty() && NtIo_FileExists(SNtObject(NtPath).Get())) ? ePresent : eMissing;
 }
 
 size_t CProgramFile::GetLogMemUsage() const

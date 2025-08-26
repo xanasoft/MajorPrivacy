@@ -46,4 +46,5 @@ protected:
 	std::mutex m_Mutex;
 	std::map<std::wstring, CVolumePtr> m_Volumes; // by DevicePath
 	std::map<std::wstring, CVolumePtr> m_VolumesByPath;
+	bool m_NoHibernation = false;
 };

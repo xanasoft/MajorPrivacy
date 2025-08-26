@@ -39,6 +39,8 @@ bool CProcessTraceModel::FilterNode(const SMergedLog::TLogEntry& Data) const
 		case EEventStatus::eBlocked:	return m_Action == EEventStatus::eBlocked;
 		}
 	}
+	if(m_Operation != EExecLogType::eUnknown && ((uint32)pEntry->GetType() & (uint32)m_Operation) == 0)
+		return false;
 	return true;
 }
 

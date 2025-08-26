@@ -113,9 +113,6 @@ std::multimap<std::wstring, CDnsCacheEntryPtr>::iterator FindDnsEntry(std::multi
 	return Entries.end();
 }
 
-static const CAddress LocalHost("127.0.0.1");
-static const CAddress LocalHostV6("::1");
-
 CAddress RevDnsHost2Address(const std::wstring& HostName)
 {
 	// 10.0.0.1 -> 1.0.0.10.in-addr.arpa
@@ -154,7 +151,7 @@ void CDnsInspector::OnDnsFilterEvent(const struct SDnsFilterEvent* pEvent)
 		Address = pEvent->Address;
 		ResolvedString = Address.ToWString();
 
-		if (Address == LocalHost || Address == LocalHostV6)
+		if (Address.IsLocalHost())
 			return;
 
 		I = FindDnsEntry(m_DnsCache, pEvent->HostName, Address);
@@ -317,7 +314,7 @@ void CDnsInspector::Update()
 				}
 				ResolvedString = Address.ToWString();
 
-				if (Address == LocalHost || Address == LocalHostV6)
+				if (Address.IsLocalHost())
 					continue;
 
 				I = FindDnsEntry(OldEntries, HostName, Address);
@@ -423,7 +420,26 @@ void CDnsInspector::Update()
 		else if (!pEntry->IsMarkedForRemoval())
 			pEntry->MarkForRemoval();
 	}
+
+	std::multimap<CAddress, CHostNamePtr> DelayQueue = std::move(m_DelayQueue);
+
 	Lock.unlock();
+
+	for(auto I = DelayQueue.begin(); I != DelayQueue.end(); ++I)
+	{
+		const CAddress& Address = I->first;
+		const CHostNamePtr& pHostName = I->second;
+		
+		std::wstring HostName = GetHostNameSmart(Address);
+		if (!HostName.empty())
+		{
+			auto ptr = std::dynamic_pointer_cast<CResHostName>(pHostName);
+			if (ptr) ptr->Resolve(Address, HostName, EDnsSource::eCachedQuery, GetCurTimeStamp(), false); // todo fix me: use proepr tiemstamp from when the entry was caches
+		}
+		else if (theCore->Config()->GetBool("Service", "UseReverseDns", false))
+			RevLookupHost(Address, pHostName);
+	}
+
 
 #ifdef DNS_SCRAPE
 	if (dnsRecordRootPtr)
@@ -447,8 +463,31 @@ bool CDnsInspector::ResolveHost(const CAddress& Address, const CHostNamePtr& pHo
 	if (Address.IsNull()) // || Address == CAddress::AnyIPv4 || Address == CAddress::AnyIPv6)
 		return false;
 
-	// if its the local host return imminetly
-	if (Address == LocalHost || Address == LocalHostV6)
+	std::wstring HostName;
+	if (Address.IsLocalHost()) 
+	{
+		// if its the local host return imminetly
+		HostName = L"localhost";
+	}
+	else
+	{
+		HostName = GetHostNameSmart(Address);
+		if (HostName.empty())
+		{
+			// queue job for delayed resolution (after next cache update)
+			m_DelayQueue.insert(std::make_pair(Address, pHostName));
+			return false;
+		}
+	}
+
+	auto ptr = std::dynamic_pointer_cast<CResHostName>(pHostName);
+	if (ptr) ptr->Resolve(Address, HostName, EDnsSource::eCachedQuery, GetCurTimeStamp(), false); // todo fix me: use proepr tiemstamp from when the entry was caches
+	return true;
+}
+
+bool CDnsInspector::RevLookupHost(const CAddress& Address, const CHostNamePtr& pHostName)
+{
+	if (Address.IsNull()) // || Address == CAddress::AnyIPv4 || Address == CAddress::AnyIPv6)
 		return false;
 
 	// Check if we have a valid reverse DNS entry in the cache
@@ -474,7 +513,7 @@ bool CDnsInspector::ResolveHost(const CAddress& Address, const CHostNamePtr& pHo
 
 	// if we dont have a valid entry start a lookup job and finisch asynchroniously
 	//if (ValidReverseEntries == 0)
-	if(RevHostNames.size() == 0 && theCore->Config()->GetBool("Service", "UseReverseDns", false))
+	if(RevHostNames.size() == 0)
 	{
 		std::unique_lock Lock(m_JobMutex);
 
@@ -507,7 +546,7 @@ bool CDnsInspector::ResolveHost(const CAddress& Address, const CHostNamePtr& pHo
 	std::wstring HostName = GetHostNameSmart(Address, RevHostNames);
 	if (HostName.empty()) return false;
 	auto ptr = std::dynamic_pointer_cast<CResHostName>(pHostName);
-	if (ptr) ptr->Resolve(HostName, EDnsSource::eCachedQuery, GetCurTimeStamp()); // todo fix me: use proepr tiemstamp from when the entry was caches
+	if (ptr) ptr->Resolve(Address, HostName, EDnsSource::eCachedQuery, GetCurTimeStamp(), false); // todo fix me: use proepr tiemstamp from when the entry was caches
 	return true;
 }
 
@@ -551,7 +590,6 @@ std::wstring CDnsInspector::GetHostNamesSmart(const std::wstring& HostName, int 
 
 std::wstring CDnsInspector::GetHostNameSmart(const CAddress& Address, const std::vector<std::wstring>& RevHostNames)
 {
-
 	std::multimap<uint64, CDnsCacheEntryPtr> Entries;
 	//if (theConf->GetBool("Options/MonitorDnsCache", false))
 	{
@@ -672,7 +710,7 @@ void CDnsInspector::ProcessJobList()
 		for(auto I = m_JobList.find(Address); I != m_JobList.end() && I->first == Address; I = m_JobList.erase(I)) {
 			if (HostName.empty()) continue;
 			auto ptr = std::dynamic_pointer_cast<CResHostName>(I->second);
-			if (ptr) ptr->Resolve(HostName, EDnsSource::eReverseDns, GetCurTimeStamp());
+			if (ptr) ptr->Resolve(Address, HostName, EDnsSource::eReverseDns, GetCurTimeStamp(), true);
 		}
 
 		if(HostName.empty())

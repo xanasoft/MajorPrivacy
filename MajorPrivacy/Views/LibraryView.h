@@ -25,28 +25,37 @@ private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
 	void					OnCleanUpLibraries();
-	void 					UpdateFilter() { m_FullRefresh = true; }
+	void 					OnRefresh();
 
 protected:
+	friend class CProcessPage;
 
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbGrouping;
-	QComboBox*				m_pCmbSign;
+	//QComboBox*				m_pCmbSign;
 	QComboBox*				m_pCmbAction;
+	QToolButton*			m_pBtnHideWin;
+	QToolButton*			m_pBtnHold;
+	QToolButton*			m_pBtnRefresh;
 	QToolButton*			m_pBtnCleanUp;
 	QToolButton*			m_pBtnExpand;
+	QToolButton*			m_pBtnInfo;
 
 	QAction*				m_pSignFile;
 	QAction*				m_pRemoveSig;
 	QAction*				m_pSignCert;
 	QAction*				m_pRemoveCert;
+	QAction*				m_pSignCA;
+	QAction*				m_pRemoveCA;
 	QAction*				m_pExplore;
 	QAction*				m_pProperties;
 
 	QSet<CProgramFilePtr>					m_CurPrograms;
 	QFlexGuid								m_CurEnclaveGuid;
-	QMap<SLibraryKey, SLibraryItemPtr>		m_ParentMap;
 	QMap<SLibraryKey, SLibraryItemPtr>		m_LibraryMap;
 
 	bool					m_FullRefresh = false;
+	int 					m_RefreshCount = 0;
+
+	int 					m_SlowCount = 0;
 };

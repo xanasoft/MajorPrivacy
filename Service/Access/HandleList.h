@@ -30,5 +30,5 @@ protected:
 
 	//HANDLE m_hThread = NULL;
 
-	std::unordered_multimap<PVOID, CHandlePtr> m_List;
+	std::unordered_multimap<uint64, CHandlePtr> m_List;
 };

@@ -9,8 +9,8 @@ public:
 	
 	virtual EProgramType GetType() const			{ return EProgramType::eAppInstallation; }
 
-	virtual QString GetRegKey() const				{ return m_RegKey; }
-	virtual QString GetPath() const					{ return m_Path; }
+	virtual QString GetRegKey() const				{ QReadLocker Lock(&m_Mutex); return m_RegKey; }
+	virtual QString GetPath() const					{ QReadLocker Lock(&m_Mutex); return m_Path; }
 
 protected:
 

@@ -48,7 +48,10 @@
 #define GET_PATH TO_STR
 #define SET_PATH(x, y) (x) = (y)
 #define ASTR std::string
+#define WSTR std::wstring
 #define ASTR_VECTOR std::vector<std::string>
+#define LIST_CLEAR(l) l.clear()
+#define LIST_APPEND(l, e) l.push_back(e)
 #define CFwRule CFirewallRule
 
 #include "../../Library/API/API_GenericRule.cpp"

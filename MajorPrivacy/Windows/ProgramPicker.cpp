@@ -31,10 +31,19 @@ CProgramPicker::CProgramPicker(CProgramItemPtr pProgram, const QList<CProgramIte
 	QWidget* pWidget = new QWidget(this);
 	QVBoxLayout* pLayout = new QVBoxLayout(pWidget);
 	pLayout->setContentsMargins(0, 0, 0, 0);
-	pLayout->addWidget(new CFinder(this, pWidget, 0));
+	CFinder* pFinder = new CFinder(this, pWidget, 0);
+	pLayout->addWidget(pFinder);
 	ui.treePrograms->parentWidget()->layout()->replaceWidget(ui.treePrograms, pWidget);
 	pLayout->insertWidget(0, ui.treePrograms);
 	connect(ui.treePrograms, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(OnPick()));
+
+	QAbstractButton* pBtnSearch = pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setMaximumHeight(22);
+	ui.btnFind->parentWidget()->layout()->replaceWidget(ui.btnFind, pBtnSearch);
+	delete ui.btnFind;
+	
+	ui.btnAdd->setIcon(QIcon(":/Icons/Add.png"));
 
 	connect(ui.btnAdd, SIGNAL(clicked()), SLOT(OnAdd()));
 	connect(ui.chkAll, SIGNAL(toggled(bool)), SLOT(OnAll(bool)));

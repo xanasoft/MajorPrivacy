@@ -307,6 +307,7 @@
     <QtMoc Include="Common\MultiErrorDialog.h" />
     <ClInclude Include="Common\OtherFunctions.h" />
     <QtMoc Include="Common\NetworkAccessManager.h" />
+    <QtMoc Include="Common\WinboxMultiCombo.h" />
     <ClInclude Include="Common\Xml.h" />
     <ClInclude Include="MiscHelpers.h" />
     <ClInclude Include="mischelpers_global.h" />

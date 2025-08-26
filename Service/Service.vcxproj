@@ -149,7 +149,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
@@ -178,7 +178,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
@@ -204,7 +204,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
@@ -229,7 +229,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
@@ -258,7 +258,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
@@ -287,7 +287,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;Ws2_32.lib;iphlpapi.lib;GeneralLibrary.lib;Shlwapi.lib;Rpcrt4.lib;userenv.lib;wtsapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).sig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).exe</Command>
@@ -365,6 +365,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="GenericRule.cpp" />
+    <ClCompile Include="HashDB\HashDB.cpp" />
+    <ClCompile Include="HashDB\HashEntry.cpp" />
     <ClCompile Include="Helpers\SecDeskHelper.cpp" />
     <ClCompile Include="JsEngine\JSEngine.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -479,6 +481,8 @@
     <ClInclude Include="Etw\krabs\version_helpers.hpp" />
     <ClInclude Include="Etw\krabs\wstring_convert.hpp" />
     <ClInclude Include="GenericRule.h" />
+    <ClInclude Include="HashDB\HashDB.h" />
+    <ClInclude Include="HashDB\HashEntry.h" />
     <ClInclude Include="Helpers\SecDeskHelper.h" />
     <ClInclude Include="JsEngine\JSEngine.h" />
     <ClInclude Include="Network\Dns\DnsCacheEntry.h" />

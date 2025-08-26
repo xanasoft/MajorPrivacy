@@ -6,10 +6,11 @@
 
 struct SIngressItem
 {
+	QVariant					ID;
+	QVariant					Parent;
 	CProgramFilePtr				pProg1;
 	CProgramFilePtr				pProg2;
 	CProgramFile::SIngressInfo	Info;
-	QVariant					Parent;
 };
 
 typedef QSharedPointer<SIngressItem> SIngressItemPtr;

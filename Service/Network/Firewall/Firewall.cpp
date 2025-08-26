@@ -1060,7 +1060,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 			EventState = EFwEventStates::RuleBlocked;
 	}
 
-	if (EventState == EFwEventStates::UnRuled && theCore->Config()->GetBool("Service", "UseFwRuleTemplates", false))
+	if (EventState == EFwEventStates::UnRuled && theCore->Config()->GetBool("Service", "UseFwRuleTemplates", true))
 	{
 		auto DosPath = pProgram->GetPath();
 		auto Entry = m_FwTemplatesTree.GetBestEntry(FW::StringW(&g_DefaultMemPool, DosPath.c_str()));
@@ -1090,6 +1090,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 					pRule->Update(pFwRule);
 					pRule->SetApproved(true);
 					pRule->SetSource(EFwRuleSource::eAutoTemplate);
+					pRule->SetTemplateGuid(pFwRule->GetGuidStr());
 
 					EventState = EFwEventStates::RuleGenerated;
 

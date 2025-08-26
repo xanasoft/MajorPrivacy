@@ -12,6 +12,7 @@
 #include "../Views/ProcessTraceView.h"
 #include "../Views/IngressView.h"
 #include "../Views/ExecutionView.h"
+#include "../Views/HashDBView.h"
 
 CProcessPage::CProcessPage(bool bEmbedded, QWidget* parent)
 	: QWidget(parent)
@@ -29,6 +30,8 @@ CProcessPage::CProcessPage(bool bEmbedded, QWidget* parent)
 	m_pRuleView = new CProgramRuleView();
 	m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Process Rules"));
 
+	m_pHashDBView = new CHashDBView();
+	m_pRuleTabs->addTab(m_pHashDBView,  QIcon(":/Icons/CertDB.png"), tr("Hash Database"));
 
 	m_pTabs = new QTabWidget();
 
@@ -50,11 +53,12 @@ CProcessPage::CProcessPage(bool bEmbedded, QWidget* parent)
 	m_pLibrarySplitter->setStretchFactor(1, 0);
 	m_pLibraryInfoView->setVisible(false);
 
-	QAction* pToggleInfo = new QAction(m_pLibrarySplitter);
+	/*QAction* pToggleInfo = new QAction(m_pLibrarySplitter);
 	pToggleInfo->setShortcut(QKeySequence("Ctrl+I"));
 	pToggleInfo->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	addAction(pToggleInfo);
-	connect(pToggleInfo, &QAction::triggered, m_pLibrarySplitter, [&]() { m_pLibraryInfoView->setVisible(!m_pLibraryInfoView->isVisible()); });
+	connect(pToggleInfo, &QAction::triggered, m_pLibrarySplitter, [&]() { m_pLibraryInfoView->setVisible(!m_pLibraryInfoView->isVisible()); m_pLibraryView->m_pBtnInfo->setChecked(m_pLibraryInfoView->isVisible());});*/
+	connect(m_pLibraryView->m_pBtnInfo, &QToolButton::toggled, this, [&](bool checked) { m_pLibraryInfoView->setVisible(checked); });
 
 	connect(m_pLibraryView, &CLibraryView::SelectionChanged, m_pLibraryInfoView, &CLibraryInfoView::Sync);
 
@@ -94,6 +98,7 @@ void CProcessPage::SetMergePanels(bool bMerge)
 	{
 		m_pMainLayout->addWidget(m_pTabs);
 		m_pTabs->insertTab(0, m_pRuleView, QIcon(":/Icons/Rules.png"), tr("Process Rules"));
+		m_pTabs->insertTab(1, m_pHashDBView, QIcon(":/Icons/CertDB.png"), tr("Hash Database"));
 		delete m_pVSplitter;
 		m_pVSplitter = nullptr;
 	}
@@ -102,6 +107,7 @@ void CProcessPage::SetMergePanels(bool bMerge)
 		m_pVSplitter = new QSplitter(Qt::Vertical);
 		m_pRuleTabs = new QTabWidget();
 		m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Process Rules"));
+		m_pRuleTabs->addTab(m_pHashDBView, QIcon(":/Icons/CertDB.png"), tr("Hash Database"));
 		m_pVSplitter->addWidget(m_pRuleTabs);
 		m_pRuleView->setVisible(true);
 		m_pVSplitter->setCollapsible(0, false);
@@ -117,7 +123,7 @@ void CProcessPage::Update()
 {
 	if (!isVisible() || m_bEmbedded)
 		return;
-	m_pTraceView->setEnabled(theCore->GetConfigBool("Service/ExecLog", true));
+	m_pTraceView->setEnabled(theCore->GetConfigBool("Service/ExecLog", false));
 
 	auto Current = theGUI->GetCurrentItems();
 
@@ -139,6 +145,11 @@ void CProcessPage::Update()
 				RuleIDs.unite(pItem->GetProgRules());
 			m_pRuleView->Sync(theCore->ProgramManager()->GetProgramRules(RuleIDs));
 		}
+	}
+
+	if (m_pHashDBView->isVisible())
+	{
+		m_pHashDBView->Sync(Current.ProgramsEx | Current.ProgramsIm, Current.bAllPrograms);
 	}
 
 	if (m_pProcessView->isVisible())
@@ -175,6 +186,11 @@ void CProcessPage::Update(const QFlexGuid& EnclaveGuid)
 	if (m_pRuleView->isVisible())
 	{
 		m_pRuleView->Sync(theCore->ProgramManager()->GetProgramRules(), EnclaveGuid);
+	}
+
+	if (m_pHashDBView->isVisible())
+	{
+		m_pHashDBView->Sync(theCore->ProgramManager()->GetPrograms(), true, EnclaveGuid);
 	}
 
 	if (m_pLibraryView->isVisible())

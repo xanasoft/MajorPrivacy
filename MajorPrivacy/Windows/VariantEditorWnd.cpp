@@ -306,7 +306,20 @@ void CVariantModel::updateNodeData(SAbstractTreeNode* node, const void* data, co
 			{
 				case eName: ColValue.Formatted = pNode->key.type() == QVariant::UInt ? VariantIndexToNameEx(Value.toUInt()) : Value; break;
 				case eType: ColValue.Formatted = VariantTypeToString(pNode->data.GetType()); break;
-				case eValue: ColValue.Formatted = (pNode->data.GetType() == VAR_TYPE_UINT || pNode->data.GetType() == VAR_TYPE_SINT) ? VariantFormatInt(pNode->data) : Value; break;
+				case eValue: 
+					switch (pNode->data.GetType())
+					{
+					case VAR_TYPE_UINT:
+					case VAR_TYPE_SINT:
+						ColValue.Formatted = VariantFormatInt(pNode->data);
+						break;
+					case VAR_TYPE_BYTES:
+						ColValue.Formatted = Value.toByteArray().toHex();
+						break;
+					default:
+						ColValue.Formatted = Value;
+					}
+				break;
 			}
 		}
 

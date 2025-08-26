@@ -66,7 +66,7 @@ void CSimpleTreeModel::Sync(const QMap<QVariant, QVariantMap>& List)
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
-	QMap<QList<QVariant>, QList<STreeNode*> > New;
+	TNewNodesMap New;
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
@@ -84,7 +84,7 @@ void CSimpleTreeModel::Sync(const QMap<QVariant, QVariantMap>& List)
 			if(m_bTree)
 				pNode->Path = MakePath(Cur, List);
 			pNode->Icon = Cur["Icon"];
-			New[pNode->Path].append(pNode);
+			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
 		{
@@ -139,7 +139,7 @@ void CSimpleTreeModel::Sync(const QMap<QVariant, QVariantMap>& List)
 	CTreeItemModel::Sync(New, Old);
 }
 
-void CTreeItemModel::Sync(QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<QVariant, STreeNode*>& Old, QList<QModelIndex>* pNewBranches)
+void CTreeItemModel::Sync(TNewNodesMap& New, QHash<QVariant, STreeNode*>& Old, QList<QModelIndex>* pNewBranches)
 {
 	if(!Old.isEmpty())
 		Purge(m_Root, QModelIndex(), Old);
@@ -149,8 +149,9 @@ void CTreeItemModel::Sync(QMap<QList<QVariant>, QList<STreeNode*> >& New, QHash<
 		emit layoutAboutToBeChanged();
 
 		//foreach(const QString& Path, New.keys())
-		for(QMap<QList<QVariant>, QList<STreeNode*> >::const_iterator I = New.begin(); I != New.end(); I++)
-			Fill(m_Root, /*QModelIndex(),*/ I.key(), 0, I.value(), pNewBranches);
+		for(TNewNodesMap::const_iterator I = New.begin(); I != New.end(); I++)
+			for (auto J = I.value().begin(); J != I.value().end(); J++)
+				Fill(m_Root, /*QModelIndex(),*/ J.key(), 0, J.value(), pNewBranches);
 
 		emit layoutChanged();
 	}

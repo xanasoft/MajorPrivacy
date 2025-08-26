@@ -6,10 +6,11 @@
 
 struct SExecutionItem
 {
+	QVariant					ID;
+	QVariant					Parent;
 	CProgramFilePtr				pProg1;
 	CProgramFilePtr				pProg2;
 	CProgramFile::SExecutionInfo Info;
-	QVariant					Parent;
 };
 
 typedef QSharedPointer<SExecutionItem> SExecutionItemPtr;

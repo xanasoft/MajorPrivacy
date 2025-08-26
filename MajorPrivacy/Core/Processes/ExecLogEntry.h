@@ -31,6 +31,8 @@ public:
 	quint64 GetMiscID() const			{ return m_MiscID; }
 	QFlexGuid GetOtherEnclave() const	{ return m_OtherEnclave; }
 	quint32 GetAccessMask() const		{ return m_AccessMask; }
+	KPH_VERIFY_AUTHORITY GetSignatureLevel() const { return m_SignAuthority; }
+	uint32 GetVerificationFlags() const { return m_VerificationFlags; }
 
 	static EProcAccessClass ClassifyProcessAccess(quint32 uAccessMask);
 	static EProcAccessClass ClassifyThreadAccess(quint32 uAccessMask);
@@ -56,6 +58,8 @@ protected:
 	EEventStatus		m_Status = EEventStatus::eUndefined;
 	quint64				m_MiscID = 0; // Image UID or program file UID
 	QFlexGuid			m_OtherEnclave;
+	uint32				m_VerificationFlags = 0;
+	KPH_VERIFY_AUTHORITY m_SignAuthority = KphUntestedAuthority;
 	quint32				m_AccessMask = 0;
 	uint32				m_NtStatus = 0;
 

@@ -12,10 +12,10 @@ public:
 	virtual QIcon DefaultIcon() const;
 
 	void SetPattern(const QString& Pattern);
-	QString GetPattern() const					{ return m_Pattern; }
+	QString GetPattern() const					{ QReadLocker Lock(&m_Mutex); return m_Pattern; }
 	//bool MatchFileName(const QString& FileName);
 
-	virtual QString GetPath() const				{ return m_Pattern; }
+	virtual QString GetPath() const				{ QReadLocker Lock(&m_Mutex); return m_Pattern; }
 	
 protected:
 
