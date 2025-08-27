@@ -11,7 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.98.4] - 2025-08-??
+## [0.98.4] - 2025-08-27
 
 ### Added 
 - added failsafe mechanisms to the Kernel Isolator driver

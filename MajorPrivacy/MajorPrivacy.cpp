@@ -1567,8 +1567,10 @@ STATUS CMajorPrivacy::UnlockDrvConfig()
 STATUS CMajorPrivacy::CommitDrvConfig()
 {
 	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
-	if ((uConfigStatus & CONFIG_STATUS_DIRTY) == 0) // nothign changed
-		return theCore->Driver()->DiscardConfigChanges(); // to relock the config
+	if ((uConfigStatus & CONFIG_STATUS_DIRTY) == 0) { // nothign changed
+		theCore->Driver()->DiscardConfigChanges(); // to relock the config
+		return OK;
+	}
 	
 	if ((uConfigStatus & CONFIG_STATUS_PROTECTED) == 0)
 		return theCore->Driver()->StoreConfigChanges();
