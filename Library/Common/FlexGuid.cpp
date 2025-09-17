@@ -353,6 +353,11 @@ bool CFlexGuid::ToWString(wchar_t* pStr) const
     if (IsString())
         return false;
 
+    if (IsNull()) {
+        pStr[0] = L'\0';
+        return true;
+    }
+
     CFlexGuid__ToString(m_Data, pStr, m_LowerCaseMask);
     return true;
 }
@@ -361,6 +366,11 @@ bool CFlexGuid::ToAString(char* pStr) const
 {
     if (IsString())
         return false;
+
+    if (IsNull()) {
+        pStr[0] = '\0';
+        return true;
+    }
 
     CFlexGuid__ToString(m_Data, pStr, m_LowerCaseMask);
     return true;

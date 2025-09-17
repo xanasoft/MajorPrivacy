@@ -45,7 +45,10 @@ CAccessPage::CAccessPage(bool bEmbedded, QWidget* parent)
 	m_pAccessListView = new CAccessListView();
 	m_pAccessSplitter->addWidget(m_pAccessListView);
 
-	connect(m_pAccessView, &CAccessView::SelectionChanged, m_pAccessListView, &CAccessListView::OnSelectionChanged);
+	connect(m_pAccessView, &CAccessView::SelectionChanged, this, [&] {
+		if(m_pAccessSplitter->sizes().at(1) > 10)
+			m_pAccessListView->OnSelectionChanged(m_pAccessView->GetSelectedItemsWithChildren());
+	});
 
 	m_pTraceView = new CAccessTraceView();
 	m_pTabs->addTab(m_pTraceView, QIcon(":/Icons/SetLogging.png"), tr("Trace Log"));

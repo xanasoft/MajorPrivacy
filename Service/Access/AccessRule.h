@@ -30,9 +30,8 @@ public:
 
 	NTSTATUS FromVariant(const StVariant& Rule) override;
 
-	void UpdateScript();
 	bool HasScript() const;
-	EAccessRuleType RunScript(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask) const;
+	CJSEnginePtr GetScriptEngine() const;
 
 	bool IsInteractive() const
 	{
@@ -45,6 +44,8 @@ protected:
 	void WriteMVariant(StVariantWriter& Rule, const SVarWriteOpt& Opts) const override;
 	void ReadIValue(uint32 Index, const StVariant& Data) override;
 	void ReadMValue(const SVarName& Name, const StVariant& Data) override;
+
+	void UpdateScript_NoLock();
 
 	EAccessRuleType m_Type = EAccessRuleType::eNone;
 	bool m_bUseScript = false;

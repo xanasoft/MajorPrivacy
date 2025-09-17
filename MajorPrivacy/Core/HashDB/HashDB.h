@@ -22,8 +22,8 @@ public:
 	STATUS					AllowFile(QString FilePath, const QFlexGuid& EnclaveId = QFlexGuid(), const QString& Collection = QString());
 	STATUS					AllowCert(const QByteArray& HashValue, const QString& Subject, const QFlexGuid& EnclaveId = QFlexGuid(), const QString& Collection = QString());
 
-	STATUS					ClearFile(QString FilePath);
-	STATUS					ClearCert(const QByteArray& HashValue);
+	STATUS					ClearFile(QString FilePath, const QFlexGuid& EnclaveId = QFlexGuid());
+	STATUS					ClearCert(const QByteArray& HashValue, const QFlexGuid& EnclaveId = QFlexGuid());
 
 	QSet<QString>			GetCollections() const { return m_Collections; }
 	void					AddCollection(const QString& Collection) { m_Collections.insert(Collection); }

@@ -9,6 +9,11 @@ public:
 	CGenericRule(QObject* parent = NULL);
 	CGenericRule(const CProgramID& ID, QObject* parent = NULL);
 
+	static bool IsPathValid(QString FilePath);
+
+	static QString GetNextPath(const QString& Path, size_t& uPos);
+	static bool WildEnd(const QString& Path, size_t uPos);
+
 	QFlexGuid GetGuid() const						{ return m_Guid; }
 	void SetGuid(const QFlexGuid& Guid)				{ m_Guid = Guid; }
 

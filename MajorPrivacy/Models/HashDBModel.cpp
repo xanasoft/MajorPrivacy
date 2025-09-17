@@ -70,6 +70,10 @@ QList<QModelIndex>	CHashDBModel::Sync(const QMap<SHashItemKey, SHashItemPtr>& Li
 			pNode->IsGray = !pNode->pItem->pEntry->IsEnabled();
 			Changed = 2; // set change for all columns
 		}
+		if (pNode->pItem->pEntry && pNode->IsItalic != pNode->pItem->pEntry->IsTemporary()) {
+			pNode->IsItalic = pNode->pItem->pEntry->IsTemporary();
+			Changed = 2; // set change for all columns
+		}
 
 		for (int section = 0; section < columnCount(); section++)
 		{
@@ -79,8 +83,10 @@ QList<QModelIndex>	CHashDBModel::Sync(const QMap<SHashItemKey, SHashItemPtr>& Li
 			QVariant Value;
 			switch (section)
 			{
-			case eName:				Value = pNode->pItem->pEntry ? pNode->pItem->pEntry->GetHash().toHex().toUpper() : pNode->pItem->Name; break;
-			case ePath:				Value = pNode->pItem->pEntry && pNode->pItem->pEntry->GetType() == EHashType::eFileHash ? pNode->pItem->pEntry->GetName() : ""; break;
+			//case eName:				Value = pNode->pItem->pEntry ? pNode->pItem->pEntry->GetHash().toHex().toUpper() : pNode->pItem->Name; break;
+			//case eValue:			Value = pNode->pItem->pEntry && pNode->pItem->pEntry->GetType() == EHashType::eFileHash ? pNode->pItem->pEntry->GetName() : ""; break;
+			case eName:				Value = pNode->pItem->Name; break;
+			case eValue:			Value = pNode->pItem->pEntry ? QString::fromLatin1(pNode->pItem->pEntry->GetHash().toHex().toUpper()) : ""; break;
 			}
 
 			SHashNode::SValue& ColValue = pNode->Values[section];
@@ -152,7 +158,7 @@ QVariant CHashDBModel::headerData(int section, Qt::Orientation orientation, int 
 		switch (section)
 		{
 		case eName:				return tr("Name");
-		case ePath:				return tr("Path");
+		case eValue:			return tr("Value");
 		}
 	}
 	return QVariant();

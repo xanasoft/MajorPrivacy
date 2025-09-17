@@ -26,6 +26,14 @@ QString CWindowsService::GetNameEx() const
 	return QString("%1 (%2)").arg(m_Name).arg(m_ServiceTag); // todo advanced view only
 }
 
+QString CWindowsService::GetPath() const
+{
+	CProgramFilePtr pProg = GetProgramFile();
+	if(pProg)
+		return pProg->GetPath();
+	return "";
+}
+
 CProgramFilePtr CWindowsService::GetProgramFile() const
 {
 	QReadLocker Lock(&m_Mutex); 

@@ -20,7 +20,7 @@ CProcessView::CProcessView(QWidget *parent)
 	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
-	
+
 	QByteArray Columns = theConf->GetBlob("MainWindow/ProcessView_Columns");
 	if (Columns.isEmpty()) {
 		m_pTreeView->setColumnWidth(0, 300);
@@ -51,7 +51,7 @@ CProcessView::CProcessView(QWidget *parent)
 		m_pItemModel->SetTree(checked);
 		if(checked)
 			m_pTreeView->expandAll();
-	});
+		});
 	m_pToolBar->addWidget(m_pBtnTree);
 
 	QWidget* pSpacer = new QWidget();
@@ -81,8 +81,8 @@ void CProcessView::Sync(QHash<quint64, CProcessPtr> ProcessMap)
 		{
 			QString UserSid = I.value()->GetUserSid();
 			bool bIsSystem = UserSid == "S-1-5-18"	// SYSTEM
-				|| UserSid == "S-1-5-19"	// NT-AUTORITÄT\Lokaler Dienst
-				|| UserSid == "S-1-5-20";	// NT-AUTORITÄT\Netzwerkdienst
+				|| UserSid == "S-1-5-19"	// NT-AUTORITAET\Lokaler Dienst
+				|| UserSid == "S-1-5-20";	// NT-AUTORITAET\Netzwerkdienst
 
 			if ((Scope == EProcessScope::eSystem) != bIsSystem)
 				I = ProcessMap.erase(I);
@@ -99,7 +99,7 @@ void CProcessView::Sync(QHash<quint64, CProcessPtr> ProcessMap)
 				QModelIndex ModelIndex = m_pItemModel->FindIndex(ID);	
 				m_pTreeView->expand(m_pSortProxy->mapFromSource(ModelIndex));
 			}
-		});
+			});
 	}
 }
 

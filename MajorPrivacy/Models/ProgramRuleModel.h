@@ -42,6 +42,8 @@ protected:
 		CProgramRulePtr pRule;
 		CProgramItemPtr pProg;
 		CEnclavePtr pEnclave;
+
+		bool IsMissing = false;
 	};
 
 	virtual STreeNode*	MkNode(const QVariant& Id) { return new SRuleNode(/*this,*/ Id); }

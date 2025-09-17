@@ -16,6 +16,8 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/EvtUtil.h"
 #include "../Library/Helpers/NtPathMgr.h"
+#include "../Library/Helpers/WinUtil.h"
+#include "../Volumes/VolumeManager.h"
 
 #define API_PROGRAMS_FILE_NAME L"Programs.dat"
 #define API_PROGRAMS_FILE_VERSION 2
@@ -227,7 +229,7 @@ void CProgramManager::CheckProgramFiles()
 				pProgram->SetMissing(false);
 
 				bool FileChanged = false;
-				if (pProgram->GetSignInfo().GetTimeStamp() < pInfo->LastWriteTime.QuadPart)
+				if (pProgram->GetSignInfo().GetTimeStamp() < (uint64)pInfo->LastWriteTime.QuadPart)
 					FileChanged = true;
 
 				if (pProgram->HashInfoUnknown() || FileChanged)
@@ -271,7 +273,7 @@ void CProgramManager::CheckProgramFiles()
 				if(pInfo->ChangeTime.QuadPart != -1)
 				{
 					bool FileChanged = false;
-					if (ILibrary.second.SignInfo.GetTimeStamp() < pInfo->LastWriteTime.QuadPart)
+					if (ILibrary.second.SignInfo.GetTimeStamp() < (uint64)pInfo->LastWriteTime.QuadPart)
 						FileChanged = true;
 
 					if (!ILibrary.second.SignInfo.HasFileHash() || FileChanged)
@@ -295,7 +297,7 @@ void CProgramManager::CheckProgramFiles()
 DWORD CALLBACK CAccessManager__CheckProgramFilesProc(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-	SetThreadDescription(GetCurrentThread(), L"CAccessManager__CheckProgramFilesProc");
+	MySetThreadDescription(GetCurrentThread(), L"CAccessManager__CheckProgramFilesProc");
 #endif
 
 	CProgramManager* This = (CProgramManager*)lpThreadParameter;
@@ -435,7 +437,7 @@ STATUS CProgramManager::ReGroup()
 DWORD CALLBACK CProgramManager__TruncateLogs(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-	SetThreadDescription(GetCurrentThread(), L"CProgramManager__TruncateLogs");
+	MySetThreadDescription(GetCurrentThread(), L"CProgramManager__TruncateLogs");
 #endif
 
 	CProgramManager* This = (CProgramManager*)lpThreadParameter;
@@ -1289,7 +1291,7 @@ STATUS CProgramManager::LoadRules()
 
 	std::map<CFlexGuid, CProgramRulePtr> OldRules = m_Rules;
 
-	StVariant Rules = Res.GetValue();
+	const StVariant Rules = Res.GetValue().At(API_V_RULES);
 	for(uint32 i=0; i < Rules.Count(); i++)
 	{
 		StVariant Rule = Rules[i];
@@ -1383,13 +1385,19 @@ void CProgramManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEve
 			Request[API_V_GUID] = Guid.ToVariant(true);
 			auto Res = theCore->Driver()->Call(API_GET_PROGRAM_RULE, Request);
 			if (Res.IsSuccess()) {
-				StVariant Rule = Res.GetValue();
+				const StVariant Rule = Res.GetValue().At(API_V_RULE);
 				std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
 				CProgramID ID(ProgramPath);
 				pRule = std::make_shared<CProgramRule>(ID);
 				pRule->FromVariant(Rule);
 			}
 		}
+
+		CProgramRulePtr pRule2 = pRule;
+		if (Event == EConfigEvent::eRemoved)
+			pRule2 = GetRule(Guid);
+		if (pRule2)
+			theCore->VolumeManager()->UpdateProgramRule(pRule2, Event, PID);
 
 		UpdateRule(pRule, Guid);
 	}
@@ -1417,12 +1425,15 @@ CProgramRulePtr CProgramManager::GetRule(const CFlexGuid& Guid)
 	return nullptr;
 }
 
-RESULT(std::wstring) CProgramManager::AddRule(const CProgramRulePtr& pRule)
+RESULT(std::wstring) CProgramManager::AddRule(const CProgramRulePtr& pRule, uint64 LockdownToken)
 {
 	SVarWriteOpt Opts;
 	Opts.Flags = SVarWriteOpt::eTextGuids;
 
-	StVariant Request = pRule->ToVariant(Opts);
+	StVariant Request;
+	Request[API_V_RULE] = pRule->ToVariant(Opts);
+	if (LockdownToken)
+		Request[API_V_TOKEN] = LockdownToken;
 	auto Res = theCore->Driver()->Call(API_SET_PROGRAM_RULE, Request);
 	//if (Res.IsSuccess()) // will be done by the notification event
 	//	UpdateRule(pRule, pRule->GetGuid());
@@ -1431,14 +1442,18 @@ RESULT(std::wstring) CProgramManager::AddRule(const CProgramRulePtr& pRule)
 	RETURN(Res.GetValue().AsStr());
 }
 
-STATUS CProgramManager::RemoveRule(const CFlexGuid& Guid)
+STATUS CProgramManager::RemoveRule(const CFlexGuid& Guid, uint64 LockdownToken)
 {
 	StVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
+	if (LockdownToken)
+		Request[API_V_TOKEN] = LockdownToken;
 	auto Res = theCore->Driver()->Call(API_DEL_PROGRAM_RULE, Request);
 	//if (Res.IsSuccess()) // will be done by the notification event
 	//	UpdateRule(nullptr, Guid);
-	return Res;
+	if(Res.IsError())
+		return Res;
+	return OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1448,7 +1463,7 @@ STATUS CProgramManager::Load()
 {
 	CBuffer Buffer;
 	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_PROGRAMS_FILE_NAME, Buffer)) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_PROGRAMS_FILE_NAME L" not found");
+		theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_PROGRAMS_FILE_NAME L" not found");
 		return ERR(STATUS_NOT_FOUND);
 	}
 

@@ -42,6 +42,7 @@
 #define API_S_TEMP							"Temporary"
 #define API_S_TIMEOUT						"TimeOut"
 #define API_S_TIME_STAMP					"TimeStamp"
+#define API_S_LOCKDOWN						"Lockdown"
 
 // Fields
 #define API_S_GUI_CONFIG					"GuiConfig"
@@ -185,6 +186,7 @@
 
 #define API_S_ORIGINAL_GUID					"OriginalGuid"
 #define API_S_TEMPLATE_GUID					"TemplateGuid"
+#define API_S_VOLUME_GUID					"VolumeGuid"
 
 #define API_S_SOURCE						"Source"
 	#define API_S_SOURCE_UNKNOWN				"Unknown"

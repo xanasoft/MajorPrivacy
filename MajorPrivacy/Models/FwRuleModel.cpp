@@ -68,9 +68,9 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 			pNode->Icon = pNode->pProg->GetIcon();
 			Changed = 1;
 		}
-		if (pNode->IsBackup != (pRule->GetState() == EFwRuleState::eBackup)) {
-			pNode->IsBackup = (pRule->GetState() == EFwRuleState::eBackup);
-			pNode->TextColor = pNode->IsBackup ? QBrush(Qt::darkRed) : QVariant();
+		if (pNode->IsMissing != pNode->pProg->IsMissing()) {
+			pNode->IsMissing = pNode->pProg->IsMissing();
+			pNode->TextColor = pNode->IsMissing ? QBrush(Qt::red) : QVariant();
 			Changed = 2; // set change for all columns
 		}
 		if (pNode->IsGray != !pRule->IsEnabled()) {

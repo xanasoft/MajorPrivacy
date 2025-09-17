@@ -64,7 +64,7 @@ STATUS CEventLog::Load()
 {
 	CBuffer Buffer;
 	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_EVENT_LOG_FILE_NAME, Buffer)) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_EVENT_LOG_FILE_NAME L" not found");
+		theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_EVENT_LOG_FILE_NAME L" not found");
 		return ERR(STATUS_NOT_FOUND);
 	}
 

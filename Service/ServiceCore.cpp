@@ -31,6 +31,8 @@
 #include "../Library/Helpers/NtPathMgr.h"
 #include "JSEngine/JSEngine.h"
 #include "Common/EventLog.h"
+#include "../Library/Hooking/HookUtils.h"
+#include "../Library/Helpers/WinUtil.h"
 
 CServiceCore* theCore = NULL;
 
@@ -138,13 +140,15 @@ STATUS CServiceCore::Startup(bool bEngineMode)
 	ULONGLONG Start = GetTickCount64();
 
 	STATUS Status = theCore->Init();
-	if (Status.IsError())
+	if (Status.IsError()) {
 		Shutdown(eShutdown_Wait);
-
+		return Status;
+	}
+	
 	ULONGLONG End = GetTickCount64();
 	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Startup took %llu ms", End - Start);
 
-	return Status;
+	return OK;
 }
 
 VOID CALLBACK CServiceCore__TimerProc(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue)
@@ -352,7 +356,7 @@ STATUS CServiceCore::RemoveDriver()
 DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-	SetThreadDescription(GetCurrentThread(), L"CServiceCore__ThreadProc");
+	MySetThreadDescription(GetCurrentThread(), L"CServiceCore__ThreadProc");
 #endif
 
 	CServiceCore* This = (CServiceCore*)lpThreadParameter;
@@ -392,6 +396,16 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 	if(!NT_SUCCESS(status))
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to set privileges, error: 0x%08X", status);
+
+	//
+	// init hooks
+	//
+
+	This->m_InitStatus = This->InitHooks();
+	if (This->m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to initialize hooks, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
+	}
 
 	//
 	// init COM for this thread
@@ -542,8 +556,6 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 	This->Driver()->StoreConfigChanges(This->m_Shutdown == CServiceCore::eShutdown_System);
 
-	This->m_pTweakManager->Store();
-
 	This->m_LastStoreTime = GetTickCount64();
 	This->StoreRecords();
 	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent StoreRecords took %llu ms", GetTickCount64() - This->m_LastStoreTime);
@@ -605,7 +617,7 @@ STATUS CServiceCore::Init()
 	{
 		if (std::filesystem::create_directories(m_DataFolder)) 
 		{
-			SetAdminFullControl(m_DataFolder);
+			SetAdminFullControlAllowUsersRead(m_DataFolder);
 
 			//std::wofstream file(m_DataFolder + L"\\Readme.txt");
 			//if (file.is_open()) {
@@ -712,6 +724,9 @@ void CServiceCore::Reconfigure(const std::string& Key)
 
 	//m_pAccessManager->Reconfigure();
 
+	if (Key == "FwAutoApprove" || Key == "FwAutoReject")
+		m_pNetworkManager->Firewall()->UpdateAutoGuard();
+
 	if(Key.substr(0, 3) == "Dns")
 		m_pNetworkManager->Reconfigure(Key == "DnsResolvers", Key == "DnsBlockLists");
 
@@ -733,8 +748,12 @@ void CServiceCore::RefreshConfig(const std::string& Key)
 STATUS CServiceCore::CommitConfig()
 {
 	m_pProgramManager->Store();
+
 	m_pNetworkManager->DnsFilter()->Store();
 	m_pNetworkManager->Firewall()->Store();
+
+	m_pTweakManager->Store();
+
 	m_bConfigDirty = false;
 
 	return OK;
@@ -774,6 +793,10 @@ void CServiceCore::OnTimer()
 
 	m_pAccessManager->Update();
 
+	m_pEnclaveManager->Update();
+
+	m_pHashDB->Update();
+
 	if (m_NextLogTime && m_NextLogTime < GetTickCount64()) {
 		m_NextLogTime = 0;
 		m_pEventLog->Store();
@@ -804,6 +827,37 @@ void CServiceCore::OnTimer()
 		//DbgPrint(L"USED MEMORY: %llu bytes\n", memoryUsed);
 	}
 #endif
+}
+
+CJSEnginePtr CServiceCore::GetScript(const CFlexGuid& Guid, EScriptTypes Type)
+{
+	switch (Type) {
+	case EScriptTypes::eEnclave: {
+		CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(Guid);
+		if(pEnclave)
+			return pEnclave->GetScriptEngine();
+		break;
+	}
+	case EScriptTypes::eExecRule: {
+		CProgramRulePtr pRule = theCore->ProgramManager()->GetRule(Guid);
+		if(pRule)
+			return pRule->GetScriptEngine();
+		break;
+	}
+	case EScriptTypes::eResRule: {
+		CAccessRulePtr pRule = theCore->AccessManager()->GetRule(Guid);
+		if (pRule)
+			return pRule->GetScriptEngine();
+		break;
+	}
+	case EScriptTypes::eVolume: {
+		CVolumePtr pVolume = theCore->VolumeManager()->GetVolume(Guid);
+		if (pVolume)
+			return pVolume->GetScriptEngine();
+		break;
+	}
+	}
+	return nullptr;
 }
 
 void CServiceCore::DeviceChangedCallback(void* param)
@@ -926,4 +980,50 @@ void CServiceCore::EmitEvent(ELogLevels Level, int Type, const StVariant& Data)
 	if(!m_NextLogTime)
 		m_NextLogTime = GetTickCount64() + 1000;
 	m_pEventLog->AddEvent(Level, Type, Data);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Hooks
+//
+
+// Hook: LoadLibraryExW
+
+typedef HMODULE (*P_LoadLibraryExW)(
+	LPCWSTR lpLibFileName,
+	HANDLE hFile,
+	DWORD dwFlags);
+
+P_LoadLibraryExW LoadLibraryExWTramp = NULL;
+
+HMODULE NTAPI MyLoadLibraryExW(
+	LPCWSTR lpLibFileName,
+	HANDLE hFile,
+	DWORD dwFlags)
+{
+	bool bNonExecutable = ((dwFlags & LOAD_LIBRARY_AS_IMAGE_RESOURCE) && (dwFlags & (LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE)));
+
+	if (bNonExecutable)
+		theCore->Driver()->SetIgnorePendingImageLoad(true);
+	
+	HMODULE hModule = LoadLibraryExWTramp(lpLibFileName, hFile, dwFlags);
+
+	if (bNonExecutable)
+		theCore->Driver()->SetIgnorePendingImageLoad(false);
+
+	return hModule;
+}
+
+// Init
+
+STATUS CServiceCore::InitHooks()
+{
+	//
+	// On windows 7 the notifier set by PsSetLoadImageNotifyRoutine is als called for non executable image load
+	// we need those loads to read resoruces and icons, so we need to tell the driver upfront to skip the image verificatoin for the upcomming load
+	//
+
+	if (g_WindowsVersion < WINDOWS_10)
+		HookFunction(LoadLibraryExW, MyLoadLibraryExW, (VOID**)&LoadLibraryExWTramp);
+
+	return OK;
 }

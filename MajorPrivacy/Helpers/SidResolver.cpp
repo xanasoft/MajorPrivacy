@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "SidResolver.h"
 #include <QAbstractEventDispatcher>
+#include "../../Library/Helpers/WinUtil.h"
 
 CSidResolver::CSidResolver(QObject* parent)
 {
@@ -213,8 +214,9 @@ QString PhGetSidFullName(_In_ PSID Sid, _In_ BOOLEAN IncludeDomain, _Out_opt_ PS
 
 void CSidResolver::run()
 {
-	//if(WindowsVersion >= WINDOWS_10_RS1)
-	//	SetThreadDescription(GetCurrentThread(), L"SID Resolver");6
+#ifdef _DEBUG
+	MySetThreadDescription(GetCurrentThread(), L"SID Resolver");
+#endif
 
 	int IdleCount = 0;
 	while (m_bRunning)

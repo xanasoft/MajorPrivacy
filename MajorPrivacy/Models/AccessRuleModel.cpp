@@ -69,6 +69,16 @@ QList<QModelIndex>	CAccessRuleModel::Sync(const QList<CAccessRulePtr>& RuleList)
 			pNode->Icon = pNode->pProg->GetIcon();
 			Changed = 1;
 		}
+		if (pNode->IsNotMounted != pNode->pRule->IsNotMounted()) {
+			pNode->IsNotMounted = pNode->pRule->IsNotMounted();
+			pNode->TextColor = pNode->IsNotMounted ? QBrush(QColor(240, 134, 80)) : QVariant();
+			Changed = 2; // set change for all columns
+		}
+		if (pNode->IsMissing != pNode->pProg->IsMissing()) {
+			pNode->IsMissing = pNode->pProg->IsMissing();
+			pNode->TextColor = pNode->IsMissing ? QBrush(Qt::red) : QVariant();
+			Changed = 2; // set change for all columns
+		}
 		if (pNode->IsGray != !pRule->IsEnabled()) {
 			pNode->IsGray = !pRule->IsEnabled();
 			Changed = 2; // set change for all columns

@@ -76,7 +76,7 @@
     <Import Project="$(QtMsBuild)\qt_defaults.props" />
   </ImportGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <QtInstall>6.9.1_msvc2022_64</QtInstall>
+    <QtInstall>6.8.3_msvc2022_64</QtInstall>
     <QtModules>core;network;widgets;core-private</QtModules>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="QtSettings">
@@ -84,7 +84,7 @@
     <QtModules>core;network;widgets;winextras</QtModules>
   </PropertyGroup>
   <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <QtInstall>6.9.1_msvc2022_64</QtInstall>
+    <QtInstall>6.8.3_msvc2022_64</QtInstall>
     <QtModules>core;network;widgets;core-private</QtModules>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="QtSettings">
@@ -234,6 +234,7 @@
     <ClCompile Include="Archive\SplitFile.cpp" />
     <ClCompile Include="Common\AbstractTreeModel.cpp" />
     <ClCompile Include="Common\CheckableMessageBox.cpp" />
+    <ClCompile Include="Common\CodeEdit.cpp" />
     <ClCompile Include="Common\ComboInputDialog.cpp" />
     <ClCompile Include="Common\Common.cpp" />
     <ClCompile Include="Common\CustomTheme.cpp" />
@@ -279,6 +280,7 @@
     <ClInclude Include="Archive\ArchiveUpdater.h" />
     <ClInclude Include="Archive\CachedArchive.h" />
     <QtMoc Include="Archive\SplitFile.h" />
+    <QtMoc Include="Common\CodeEdit.h" />
     <ClInclude Include="Common\Common.h" />
     <ClInclude Include="Common\CustomStyles.h" />
     <ClInclude Include="Common\CustomTheme.h" />

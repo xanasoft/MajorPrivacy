@@ -117,7 +117,7 @@ bool CBuffer::SetBuffer(void* pBuffer, size_t uSize, bool bDerived, bool bFixed)
 		m_p.Data = (byte*)MemAlloc(uSize);
 	}
 	m_uSize = uSize;
-	m_bFixed = m_bDerived || bFixed;
+	m_bFixed = !!m_bDerived || bFixed;
 	return m_p.Data != nullptr;
 }
 

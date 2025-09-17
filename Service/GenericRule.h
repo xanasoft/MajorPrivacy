@@ -20,6 +20,8 @@ public:
 
 	void SetStrGuid(const std::wstring& Guid) { std::unique_lock Lock(m_Mutex); m_Guid = CFlexGuid(Guid); }
 	CFlexGuid GetGuid() const				{ std::shared_lock Lock(m_Mutex); return m_Guid; }
+
+	CFlexGuid GetEnclaveGuid() const		{ std::shared_lock Lock(m_Mutex); return m_Enclave; }
 	
 	void SetName(const std::wstring& Name)	{ std::unique_lock Lock(m_Mutex); m_Name = Name; }
 	std::wstring GetName() const			{ std::shared_lock Lock(m_Mutex); return m_Name; }

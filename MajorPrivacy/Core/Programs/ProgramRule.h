@@ -10,6 +10,8 @@ public:
 	CProgramRule(QObject* parent = NULL);
     CProgramRule(const CProgramID& ID, QObject* parent = NULL);
 
+	static bool IsUnsafePath(const QString& Path);
+
 	QString GetProgramPath() const					{return m_ProgramPath;}
 	QString GetProgramNtPath() const				{return m_ProgramNtPath;}
 
@@ -34,6 +36,8 @@ protected:
 	void ReadMValue(const SVarName& Name, const QtVariant& Data) override;
 
 	EExecRuleType m_Type = EExecRuleType::eUnknown;
+	bool m_bUseScript = false;
+	QString m_Script;
 	QString m_ProgramPath;
 	QString m_ProgramNtPath;
 	

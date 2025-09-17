@@ -7,6 +7,7 @@
 #include "AlpcPortServer.h"
 #include "../Helpers/NtObj.h"
 #include "../Helpers/Scoped.h"
+#include "../Helpers/WinUtil.h"
 #include "../Common/Exception.h"
 #include "PortMessage.h"
 
@@ -113,7 +114,7 @@ void CAlpcPortServer::Close()
 DWORD __stdcall CAlpcPortServer::ThreadStub(void *param)
 {
 #ifdef _DEBUG
-    SetThreadDescription(GetCurrentThread(), L"CAlpcPortServer::ThreadStub");
+    MySetThreadDescription(GetCurrentThread(), L"CAlpcPortServer::ThreadStub");
 #endif
 
     HRESULT result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);

@@ -155,15 +155,17 @@ bool CSetupWizard::ShowWizard(int iOldLevel)
         if (wizard.field("updateAll").toBool())
         {
             theConf->SetValue("Options/CheckForUpdates", 1);
-            theConf->SetValue("Options/OnNewUpdate", "install");
-            //theConf->SetValue("Options/CheckForTemplates", 1);
-            theConf->SetValue("Options/CheckForIssues", 1);
-            theConf->SetValue("Options/CheckForAddons", 1);
+            //theConf->SetValue("Options/OnNewUpdate", "install");
+            theConf->SetValue("Options/UpdateTweaks", 1);
         }
         else
         {
             if(wizard.field("updateApp").toBool())
                 theConf->SetValue("Options/CheckForUpdates", 1);
+            //if(wizard.field("applyHotfixes").toBool())
+            //    theConf->SetValue("Options/OnNewUpdate", "install");
+            if(wizard.field("updateTweaks").toBool())
+                theConf->SetValue("Options/UpdateTweaks", 1);
         }
 
         if (wizard.field("updateAll").toBool() || wizard.field("updateApp").toBool()) {
@@ -770,6 +772,16 @@ CUpdatePage::CUpdatePage(QWidget *parent)
     //connect(pInsiderInfo, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
     //layout->addWidget(pInsiderInfo, row++, 3, 1, 1);
 
+    //m_pHotfixes = new QCheckBox(tr("Keep Compatibility Templates up to date and apply hotfixes"));
+    //m_pHotfixes->setToolTip(tr("Check for latest compatibility templates and hotfixes."));
+    //layout->addWidget(m_pHotfixes, row++, 1, 1, rows-1);
+    //registerField("applyHotfixes", m_pHotfixes);
+
+    m_pTweaks = new QCheckBox(tr("Keep tweak list up to date"));
+    m_pTweaks->setToolTip(tr("Check for latest privacy tweaks."));
+    layout->addWidget(m_pTweaks, row++, 1, 1, rows-1);
+    registerField("updateTweaks", m_pTweaks);
+
     //m_pUpdateInfo = new QLabel();
     //m_pUpdateInfo->setWordWrap(true);
     //m_pUpdateInfo->setText(tr("MajorPrivacy applies strict application restrictions, which can lead to compatibility issues. "
@@ -799,16 +811,21 @@ void CUpdatePage::initializePage()
 void CUpdatePage::UpdateOptions()
 {
     m_pVersion->setVisible(!m_pUpdate->isChecked());
+    //m_pHotfixes->setVisible(!m_pUpdate->isChecked());
+    m_pTweaks->setVisible(!m_pUpdate->isChecked());
     m_pChanelInfo->setVisible(m_pUpdate->isChecked());
     //m_pUpdateInfo->setVisible(m_pUpdate->isChecked());
 
     if (m_pUpdate->isChecked()) {
         m_pVersion->setChecked(true);
+        m_pTweaks->setChecked(true);
     }
 
     m_pStable->setEnabled(m_pVersion->isChecked());
     m_pPreview->setEnabled(m_pVersion->isChecked());
     //m_pInsider->setEnabled(CERT_IS_INSIDER(g_CertInfo) && m_pVersion->isChecked());
+
+    //m_pHotfixes->setEnabled(m_pVersion->isChecked());
 }
 
 int CUpdatePage::nextId() const

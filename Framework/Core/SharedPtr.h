@@ -49,6 +49,8 @@ public:
 
 	template<class U>
 	SharedPtr<U> Cast() {
+		if(!m_ptr)
+			return SharedPtr<U>();
 		// todo add check
 		return SharedPtr<U>((U*)m_ptr);
 	}

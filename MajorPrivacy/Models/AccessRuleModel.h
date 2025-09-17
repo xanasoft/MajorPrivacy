@@ -40,6 +40,9 @@ protected:
 
 		CAccessRulePtr pRule;
 		CProgramItemPtr pProg;
+
+		bool IsMissing = false;
+		bool IsNotMounted = false;
 	};
 
 	virtual STreeNode*	MkNode(const QVariant& Id) { return new SRuleNode(/*this,*/ Id); }

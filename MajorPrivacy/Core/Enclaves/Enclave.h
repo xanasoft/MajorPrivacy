@@ -18,8 +18,14 @@ public:
 	void SetGuid(const QFlexGuid& Guid)				{ m_Guid = Guid; }
 	bool IsSystem() const							{ return m_Guid == QFlexGuid(SYSTEM_ENCLAVE); }
 
+	QFlexGuid GetVolumeGuid() const					{ return m_VolumeGuid; }
+	void SetVolumeGuid(const QFlexGuid& Guid)		{ m_VolumeGuid = Guid; }
+
 	bool IsEnabled() const							{ return m_bEnabled; }
 	void SetEnabled(bool bEnabled)					{ m_bEnabled = bEnabled; }
+	
+	//bool IsLockdown() const							{ return m_bLockdown; }
+	//void SetLockdown(bool bLockdown)				{ m_bLockdown = bLockdown; }
 
 	QString GetName() const							{ return m_Name; }
 	void SetName(const QString& Name)				{ m_Name = Name; }
@@ -79,11 +85,17 @@ protected:
 	QFlexGuid m_Guid;
 	bool m_bEnabled = true;
 
+	//bool m_bLockdown = true;
+
 	QString m_Name;
 	QIcon m_Icon;
 	//QString m_Grouping;
 	QString m_Description;
 
+	QFlexGuid m_VolumeGuid;
+
+	bool m_bUseScript = false;
+	QString m_Script;
 
 	USignatures m_AllowedSignatures = { 0 };
 	QList<QString> m_AllowedCollections;

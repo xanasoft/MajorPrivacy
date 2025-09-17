@@ -17,6 +17,8 @@ public:
 
 	virtual quint64 GetProcessId() const { return m_ProcessId; }
 
+	virtual QString GetPath() const;
+
 	virtual CProgramFilePtr GetProgramFile() const;
 
 	virtual void CountStats();

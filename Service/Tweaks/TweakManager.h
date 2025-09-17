@@ -13,6 +13,8 @@ public:
 	STATUS Load();
 	STATUS Store();
 
+	uint32 GetRevision() const { std::unique_lock Lock(m_Mutex); return m_Revision; }
+
 	void CheckTweaks();
 
 	StVariant GetTweaks(uint32 CallerPID, const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
@@ -27,11 +29,15 @@ public:
 	void ReleaseGPO(class CGPO* pGPO);
 
 protected:
+
+	static STATUS Load(std::shared_ptr<CTweakList>& pRoot, std::map<std::wstring, CTweakPtr>& Map);
+
 	mutable std::mutex m_Mutex;
 	std::shared_ptr<CTweakList> m_pRoot;
 	std::map<std::wstring, CTweakPtr> m_Map;
 	class CGPO* m_pGPO = NULL;
 	std::mutex m_GPOMutex;
+	uint32 m_Revision = 0;
 
 	bool m_bTweaksDirty = false;
 };

@@ -4,6 +4,7 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/API/DriverAPI.h"
 #include "./Common/QtVariant.h"
+#include "../Enclaves/EnclaveManager.h"
 
 CHashDB::CHashDB(QObject* parent)
  : QObject(parent)
@@ -149,6 +150,13 @@ STATUS CHashDB::AllowFile(QString FilePath, const QFlexGuid& EnclaveId, const QS
 	if(!pHash)
 	{
 		pHash = CHashPtr(new CHash(EHashType::eFileHash, HashValue, FilePath));
+
+		if (!EnclaveId.IsNull()) {
+			CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(EnclaveId);
+			if (!pEnclave->GetVolumeGuid().IsNull())
+				pHash->SetTemporary(true);
+		}
+
 		AddHash(pHash);
 	}
 
@@ -164,6 +172,13 @@ STATUS CHashDB::AllowCert(const QByteArray& HashValue, const QString& Subject, c
 	if(!pHash)
 	{
 		pHash = CHashPtr(new CHash(EHashType::eCertHash, HashValue, Subject));
+
+		if (!EnclaveId.IsNull()) {
+			CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(EnclaveId);
+			if (!pEnclave->GetVolumeGuid().IsNull())
+				pHash->SetTemporary(true);
+		}
+
 		AddHash(pHash);
 	}
 
@@ -173,7 +188,7 @@ STATUS CHashDB::AllowCert(const QByteArray& HashValue, const QString& Subject, c
 	return theCore->SetHashEntry(pHash->ToVariant(SVarWriteOpt()));
 }
 
-STATUS CHashDB::ClearFile(QString FilePath)
+STATUS CHashDB::ClearFile(QString FilePath, const QFlexGuid& EnclaveId)
 {
 	FilePath.replace("/", "\\");
 
@@ -182,10 +197,30 @@ STATUS CHashDB::ClearFile(QString FilePath)
 	if(!Status) return Status;
 	QByteArray HashValue((char*)FileHash.GetBuffer(), FileHash.GetSize());
 
+	if (!EnclaveId.IsNull()) {
+		CHashPtr pHash = GetHash(HashValue, true);
+		if(!pHash)
+			return OK;
+
+		pHash->RemoveEnclave(EnclaveId);
+
+		return theCore->SetHashEntry(pHash->ToVariant(SVarWriteOpt()));
+	}
+
 	return theCore->DelHashEntry(HashValue);
 }
 
-STATUS CHashDB::ClearCert(const QByteArray& HashValue)
+STATUS CHashDB::ClearCert(const QByteArray& HashValue, const QFlexGuid& EnclaveId)
 {
+	if (!EnclaveId.IsNull()) {
+		CHashPtr pHash = GetHash(HashValue, true);
+		if(!pHash)
+			return OK;
+
+		pHash->RemoveEnclave(EnclaveId);
+
+		return theCore->SetHashEntry(pHash->ToVariant(SVarWriteOpt()));
+	}
+
 	return theCore->DelHashEntry(HashValue);
 }

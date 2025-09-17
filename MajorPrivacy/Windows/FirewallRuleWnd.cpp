@@ -70,6 +70,7 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
+	connect(ui.buttonBox->button(QDialogButtonBox::Apply), SIGNAL(clicked(bool)), this, SLOT(OnSave()));
 
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Allow"), GetActionColor(EFwActions::Allow), (uint32)EFwActions::Allow);
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Block"), GetActionColor(EFwActions::Block), (uint32)EFwActions::Block);
@@ -253,17 +254,23 @@ void CFirewallRuleWnd::closeEvent(QCloseEvent *e)
 	this->deleteLater();
 }
 
-void CFirewallRuleWnd::OnSaveAndClose()
+bool CFirewallRuleWnd::OnSave()
 {
 	if (!Save()) {
 		QApplication::beep();
-		return;
+		return false;
 	}
 
 	STATUS Status = theCore->NetworkManager()->SetFwRule(m_pRule);	
 	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
-		return;
-	accept();
+		return false;
+	return true;
+}
+
+void CFirewallRuleWnd::OnSaveAndClose()
+{
+	if(OnSave())
+		accept();
 }
 
 bool CFirewallRuleWnd::Save()

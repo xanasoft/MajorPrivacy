@@ -9,16 +9,25 @@ void CHash::WriteIVariant(VariantWriter& Hash, const SVarWriteOpt& Opts) const
 	Hash.WriteEx(API_V_NAME, TO_STR(m_Name));
 	Hash.WriteEx(API_V_RULE_DESCR, TO_STR(m_Description));
 	Hash.Write(API_V_ENABLED, m_bEnabled);
+	Hash.Write(API_V_TEMP, m_bTemporary);
 	Hash.Write(API_V_TYPE, (uint32)m_Type);
+#ifdef HASHDB_GUI
 	Hash.WriteEx(API_V_HASH, m_Hash);
+#else
+	Hash.Write(API_V_HASH, m_Hash);
+#endif
 
 	VariantWriter Enclaves(Hash.Allocator());
 	Enclaves.BeginList();
-	for(const auto& Enclave : m_Enclaves)
-#ifdef HASHDB_GUI
-		Enclaves.WriteEx(Enclave.ToQS());
+#ifdef KERNEL_MODE
+	for (auto I = m_Enclaves.begin(); I != m_Enclaves.end(); ++I) {
+		if(!(Opts.Flags & SVarWriteOpt::eSaveAll) && I.Value().bIsVolumeEnclave)
+			continue;
+		Enclaves.WriteEx(I.Key());
+	}
 #else
-		Enclaves.WriteEx(TO_STR(Enclave));
+	for(const auto& Enclave : m_Enclaves)
+		Enclaves.WriteVariant(Enclave.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Hash.Allocator()));
 #endif
 	Hash.WriteVariant(API_V_ENCLAVES, Enclaves.Finish());
 
@@ -38,6 +47,7 @@ void CHash::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_NAME:		m_Name = AS_STR(Data); break;
 	case API_V_RULE_DESCR:	m_Description = AS_STR(Data); break;
 	case API_V_ENABLED:		m_bEnabled = Data.To<bool>(); break;
+	case API_V_TEMP:		m_bTemporary = Data.To<bool>(); break;
 	case API_V_TYPE:		m_Type = (EHashType)Data.To<uint32>(); break;
 #ifdef HASHDB_GUI
 	case API_V_HASH:		m_Hash = Data.AsQBytes(); break;
@@ -48,7 +58,11 @@ void CHash::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_ENCLAVES:
 		LIST_CLEAR(m_Enclaves);
 		for (uint32 i = 0; i < Data.Count(); i++)
+#ifdef KERNEL_MODE
+			m_Enclaves[Data.ToStringW()] = SEnclaveInfo();
+#else
 			LIST_APPEND(m_Enclaves, AS_STR(Data[i]));
+#endif
 		break;
 
 	case API_V_COLLECTIONS:
@@ -68,20 +82,29 @@ void CHash::WriteMVariant(VariantWriter& Hash, const SVarWriteOpt& Opts) const
 	Hash.WriteEx(API_S_NAME, TO_STR(m_Name));
 	Hash.WriteEx(API_S_RULE_DESCR, TO_STR(m_Description));
 	Hash.Write(API_S_ENABLED, m_bEnabled);
+	Hash.Write(API_S_TEMP, m_bTemporary);
 	switch (m_Type)
 	{
-	case EHashType::eFileHash:    Hash.Write(API_S_TYPE, API_S_HASH_TYPE_FILE); break;
+	case EHashType::eFileHash:  Hash.Write(API_S_TYPE, API_S_HASH_TYPE_FILE); break;
 	case EHashType::eCertHash: Hash.Write(API_S_TYPE, API_S_HASH_TYPE_CERT); break;
 	}
+#ifdef HASHDB_GUI
 	Hash.WriteEx(API_S_HASH, m_Hash);
+#else
+	Hash.Write(API_S_HASH, m_Hash);
+#endif
 
 	VariantWriter Enclaves(Hash.Allocator());
 	Enclaves.BeginList();
-	for(const auto& Enclave : m_Enclaves)
-#ifdef HASHDB_GUI
-		Enclaves.WriteEx(Enclave.ToQS());
+#ifdef KERNEL_MODE
+	for (auto I = m_Enclaves.begin(); I != m_Enclaves.end(); ++I) {
+		if(!(Opts.Flags & SVarWriteOpt::eSaveAll) && I.Value().bIsVolumeEnclave)
+			continue;
+		Enclaves.WriteEx(I.Key());
+	}
 #else
-		Enclaves.WriteEx(TO_STR(Enclave));
+	for(const auto& Enclave : m_Enclaves)
+		Enclaves.WriteVariant(Enclave.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Hash.Allocator()));
 #endif
 	Hash.WriteVariant(API_S_ENCLAVES, Enclaves.Finish());
 
@@ -99,6 +122,7 @@ void CHash::ReadMValue(const SVarName& Name, const XVariant& Data)
 	if (VAR_TEST_NAME(Name, API_S_NAME))				m_Name = AS_STR(Data);
 	else if (VAR_TEST_NAME(Name, API_S_RULE_DESCR))		m_Description = AS_STR(Data);
 	else if (VAR_TEST_NAME(Name, API_S_ENABLED))		m_bEnabled = Data.To<bool>();
+	else if (VAR_TEST_NAME(Name, API_S_TEMP))			m_bTemporary = Data.To<bool>();
 	else if (VAR_TEST_NAME(Name, API_S_TYPE))
 	{
 		ASTR Type = Data;
@@ -116,7 +140,11 @@ void CHash::ReadMValue(const SVarName& Name, const XVariant& Data)
 	{
 		LIST_CLEAR(m_Enclaves);
 		for (uint32 i = 0; i < Data.Count(); i++)
+#ifdef KERNEL_MODE
+			m_Enclaves[Data.ToStringW()] = SEnclaveInfo();
+#else
 			LIST_APPEND(m_Enclaves, AS_STR(Data[i]));
+#endif
 	}
 
 	else if (VAR_TEST_NAME(Name, API_S_COLLECTIONS))

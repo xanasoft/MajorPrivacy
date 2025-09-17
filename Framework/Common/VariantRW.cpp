@@ -157,7 +157,7 @@ CVariant::EResult CVariantReader::Find(const CVariant& Variant, const char* sNam
 
 	if (Variant.m_bContainer) { // in case this variant has already been parsed
 		auto Ret = Variant.PtrAt(sName);
-		if (Ret.Error) 
+		if (Ret.Error || !Ret.Value) 
 			return CVariant::eErrNotFound;
 		Data = *Ret.Value;
 		return CVariant::eErrNone;
@@ -251,7 +251,7 @@ CVariant::EResult CVariantReader::Find(const CVariant& Variant, uint32 uIndex, C
 
 	if (Variant.m_bContainer) { // in case this variant has already been parsed
 		auto Ret = Variant.PtrAt(uIndex);
-		if (Ret.Error) 
+		if (Ret.Error || !Ret.Value) 
 			return CVariant::eErrNotFound;
 		Data = *Ret.Value;
 	}

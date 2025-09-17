@@ -6,6 +6,7 @@
 #include "../../../Library/Common/FileIO.h"
 #include "../../../Library/Helpers/WebUtils.h"
 #include "../../../Library/Helpers/MiscHelpers.h"
+#include "../../../Library/Helpers/WinUtil.h"
 
 
 #define API_DNS_FILTER_FILE_NAME L"DnsFilter.dat"
@@ -81,7 +82,7 @@ STATUS CDnsFilter::Load()
 {
 	CBuffer Buffer;
 	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_DNS_FILTER_FILE_NAME, Buffer)) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_DNS_FILTER_FILE_NAME L" not found");
+		theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_DNS_FILTER_FILE_NAME L" not found");
 		return ERR(STATUS_NOT_FOUND);
 	}
 
@@ -636,7 +637,7 @@ std::wstring CDnsFilter::GetFileNameFromUrl(const std::wstring& sUrl)
 DWORD CALLBACK CDnsFilter__DlThreadProc(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-	SetThreadDescription(GetCurrentThread(), L"CServiceCore__ThreadProc");
+	MySetThreadDescription(GetCurrentThread(), L"CServiceCore__ThreadProc");
 #endif
 
 	CDnsFilter* This = (CDnsFilter*)lpThreadParameter;

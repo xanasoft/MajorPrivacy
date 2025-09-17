@@ -43,14 +43,14 @@ typedef QSharedPointer<CEventLogEntry> CEventLogEntryPtr;
 ////////////////////////////////////////////////////////////////////////////
 // CEventLog
 
-class CEventLog: QObject
+class CEventLog: public QObject
 {
 	Q_OBJECT
 public:
 	CEventLog(QObject* parent = nullptr);
 	virtual ~CEventLog() {}
 
-	STATUS AddEntry(const QtVariant& Entry);
+	STATUS AddEntry(const QtVariant& Entry, bool bLive);
 	STATUS LoadEntries(const QtVariant& Entries);
 
 	QList<CEventLogEntryPtr> GetEntries() const { return m_Entries; }
@@ -59,6 +59,9 @@ public:
 	static QString GetEventLevelStr(ELogLevels Level);
 	static QIcon GetEventLevelIcon(ELogLevels Level);
 	static QString GetEventInfoStr(const CEventLogEntryPtr& pEntry);
+
+signals:
+	void NewEntry(const CEventLogEntryPtr& pEntry);
 
 protected:
 

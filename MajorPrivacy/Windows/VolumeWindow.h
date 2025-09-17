@@ -25,6 +25,7 @@ public:
 	quint64		GetImageSize() const { return ui.txtImageSize->text().toULongLong() * 1024; }
 	QString 	GetMountPoint() const { return ui.cmbMount->currentText(); }
 	bool		UseProtection() const { return ui.chkProtect->isChecked(); }
+	bool		UseLockdown() const { return ui.chkLockdown->isChecked(); }
 	void		SetAutoLock(int iSeconds, const QString& Text = "") const;
 	int			GetAutoLock() const { return ui.cmbAutoLock->currentData().toInt(); }
 

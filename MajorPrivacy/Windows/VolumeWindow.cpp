@@ -31,6 +31,10 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 	connect(ui.btnMount, SIGNAL(clicked()), this, SLOT(BrowseMountPoint()));
 	connect(ui.txtImageSize, SIGNAL(textChanged(const QString&)), this, SLOT(OnImageSize()));
 
+	connect(ui.chkProtect, &QCheckBox::clicked, this, [&] {
+		ui.chkLockdown->setEnabled(ui.chkProtect->isChecked());
+	});
+
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(CheckPassword()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
 
@@ -104,8 +108,10 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 	ui.cmbCipher->addItem("Serpent-AES", 5);
 	ui.cmbCipher->addItem("AES-Twofish-Serpent", 6);
 
-	if (m_Action != eMount)
+	if (m_Action != eMount) {
 		ui.chkProtect->setVisible(false);
+		ui.chkLockdown->setVisible(false);
+	}
 
 	//restoreGeometry(theConf->GetBlob("VolumeWindow/Window_Geometry"));
 

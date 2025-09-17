@@ -34,7 +34,14 @@ private slots:
 	void OnFwModeChanged();
 	void OnFwGuardChanged();
 	void OnFwAuditPolicyChanged();
-	void OnFwShowPopUpChanged();
+	void OnOptFwChanged();
+
+	void OnFwGuardListClicked(QTreeWidgetItem* pItem, int Column);
+	void OnFwGuardDoubleClicked(QTreeWidgetItem* pItem, int Column);
+
+	void OnGuardAddApprove();
+	void OnGuardAddReject();
+	void OnGuardRemove();
 
 	void OnChangeGUI()		{ if (!m_HoldChange) m_bRebuildUI = true; OnOptChanged(); }
 	void OnIgnoreChanged()	{ if (!m_HoldChange) m_IgnoreChanged = true; OnOptChanged(); }
@@ -47,7 +54,7 @@ private slots:
 	void OnDnsChanged();
 	void OnDnsChanged2();
 	void OnDnsBlockListClicked(QTreeWidgetItem* pItem, int Column);
-	void OnDnsBlockDoubleClicked(QTreeWidgetItem* pItem, int Column);
+	void OnDnsBlockListDoubleClicked(QTreeWidgetItem* pItem, int Column);
 	void OnAddBlockList();
 	void OnDelBlockList();
 
@@ -77,6 +84,9 @@ protected:
 	bool	m_bRebuildUI = false;
 
 	bool	m_IgnoreChanged = false;
+
+	bool	m_AutoGuardChanged = false;
+
 	bool	m_ResolverChanged = false;
 	bool	m_BlockListChanged = false;
 
@@ -108,6 +118,9 @@ public slots:
 	void OnStartEval();
 
 protected:
+
+	void	AddAutoEntry(QString Path, bool bApprove);
+
 	void	InitSupport();
 
 	bool	m_CertChanged = false;

@@ -9,6 +9,8 @@ void CProgramRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 	CGenericRule::WriteIVariant(Rule, Opts);
 
 	Rule.Write(API_V_EXEC_RULE_ACTION, (uint32)m_Type);
+	Rule.Write(API_V_USE_SCRIPT, m_bUseScript);
+	Rule.WriteEx(API_V_SCRIPT, TO_STR_A(m_Script));
 	Rule.WriteEx(API_V_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
 	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
@@ -34,6 +36,8 @@ void CProgramRule::ReadIValue(uint32 Index, const XVariant& Data)
 	switch (Index)
 	{
 	case API_V_EXEC_RULE_ACTION: m_Type = (EExecRuleType)Data.To<uint32>(); break;
+	case API_V_USE_SCRIPT: m_bUseScript = Data.To<bool>(); break;
+	case API_V_SCRIPT: AS_STR_A(m_Script, Data); break;
 	case API_V_FILE_PATH: m_ProgramPath = AS_STR(Data); break;
 #ifdef LOAD_NT_PATHS
 	case API_V_FILE_NT_PATH: m_ProgramNtPath = AS_STR(Data); break;
@@ -65,6 +69,10 @@ void CProgramRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 	case EExecRuleType::eAudit:		Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_AUDIT); break;
 	// todo other:
 	}
+
+
+	Rule.Write(API_S_USE_SCRIPT, m_bUseScript);
+	Rule.WriteEx(API_S_SCRIPT, TO_STR(m_Script));
 
 	Rule.WriteEx(API_S_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
@@ -118,6 +126,9 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 		//else // todo other
 		//	return STATUS_INVALID_PARAMETER;
 	}
+
+	else if (VAR_TEST_NAME(Name, API_S_USE_SCRIPT))		m_bUseScript = Data.To<bool>();
+	else if (VAR_TEST_NAME(Name, API_S_SCRIPT))			AS_STR_A(m_Script, Data);
 
 	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH))
 	{

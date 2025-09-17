@@ -21,6 +21,8 @@
 #include "../Library/Hooking/HookUtils.h"
 #include "../Library/Common/FileIO.h"
 #include "../Library/Helpers/CertUtil.h"
+#include "../Enclaves/EnclaveManager.h"
+#include "../Library/Helpers/WinUtil.h"
 
 extern "C" {
 #include "../../Driver/KSI/include/kphmsg.h"
@@ -42,7 +44,7 @@ CProcessList::~CProcessList()
 DWORD CALLBACK CProcessList__LoadProc(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-    SetThreadDescription(GetCurrentThread(), L"CProcessList__LoadProc");
+    MySetThreadDescription(GetCurrentThread(), L"CProcessList__LoadProc");
 #endif
 
     CProcessList* This = (CProcessList*)lpThreadParameter;
@@ -96,7 +98,7 @@ STATUS CProcessList::Init()
 DWORD CALLBACK CProcessList__StoreProc(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-    SetThreadDescription(GetCurrentThread(), L"CProcessList__StoreProc");
+    MySetThreadDescription(GetCurrentThread(), L"CProcessList__StoreProc");
 #endif
 
     CProcessList* This = (CProcessList*)lpThreadParameter;
@@ -269,7 +271,7 @@ void CProcessList::AddProcessImpl(const CProcessPtr& pProcess)
     //}
 }
 
-CProcessPtr CProcessList::GetProcess(uint64 Pid, bool bCanAdd) 
+CProcessPtr CProcessList::GetProcessEx(uint64 Pid, EGetMode Mode)
 {
 	std::unique_lock Lock(m_Mutex);
 
@@ -277,7 +279,7 @@ CProcessPtr CProcessList::GetProcess(uint64 Pid, bool bCanAdd)
     if (F != m_List.end())
         return F->second;
 
-    if (!bCanAdd)
+    if (Mode == eCanNotAdd)
         return NULL;
 
     CProcessPtr pProcess = CProcessPtr(new CProcess(Pid));
@@ -294,6 +296,8 @@ CProcessPtr CProcessList::GetProcess(uint64 Pid, bool bCanAdd)
     else 
     {
         // Process already terminated
+        if (Mode != eMustAdd)
+            return nullptr;
 
         m_List.insert(std::make_pair(pProcess->GetProcessId(), pProcess));
     }
@@ -437,7 +441,46 @@ std::wstring CProcessList::GetPathFromCmd(const std::wstring &CommandLine, const
     return FindInPath(filePath + L".exe");
 }
 
-bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, const std::wstring& FileName, const std::wstring& Command, const struct SVerifierInfo* pVerifyInfo, uint64 CreateTime, EEventStatus Status, bool bETW)
+EProgramOnSpawn CProcessList::GetAllowStart(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, /*const std::wstring& EnclaveId, */const std::wstring& NtPath, const std::wstring& Command, const struct SVerifierInfo* pVerifyInfo, uint64 CreateTime, const CFlexGuid& RuleGuid, const CFlexGuid& EnclaveGuid, EEventStatus Status, uint32 TimeOut)
+{
+    EProgramOnSpawn Action = EProgramOnSpawn::eUnknown;
+
+	std::wstring EnclaveId = EnclaveGuid.ToWString();
+	bool bTrusted = (Status != EEventStatus::eUntrusted);
+
+    if (!RuleGuid.IsNull())
+    {
+        CProgramRulePtr pRule = theCore->ProgramManager()->GetRule(RuleGuid);
+        if (!pRule)
+            theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_RULE_NOT_FOUND, L"Program rule not found: %s", RuleGuid.ToString().c_str());
+        else if (pRule->HasScript())
+        {
+			auto pScript = pRule->GetScriptEngine();
+            if(pScript)
+                Action = pScript->RunStartScript(NtPath, Command, ActorPid, ActorServiceTag, EnclaveId, bTrusted, pVerifyInfo);
+        }
+    }
+
+    if (Action == EProgramOnSpawn::eUnknown && !EnclaveGuid.IsNull())
+    {
+        CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(EnclaveGuid);
+        if (!pEnclave)
+            theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_RULE_NOT_FOUND, L"Enclave not found: %s", EnclaveGuid.ToString().c_str());
+        else if (pEnclave->HasScript())
+        {
+            auto pScript = pEnclave->GetScriptEngine();
+            if (pScript) {
+                EProgramOnSpawn EnclaveAction = pScript->RunStartScript(NtPath, Command, ActorPid, ActorServiceTag, EnclaveId, bTrusted, pVerifyInfo);
+                if (EnclaveAction != EProgramOnSpawn::eUnknown)
+                    Action = EnclaveAction;
+            }
+        }
+    }
+
+    return Action;
+}
+
+bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, const std::wstring& NtPath, const std::wstring& Command, const struct SVerifierInfo* pVerifyInfo, uint64 CreateTime, EEventStatus Status, bool bETW)
 {
     CProcessPtr pChildProcess = GetProcess(Pid, true);
 
@@ -466,9 +509,9 @@ bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPi
             // we try to recover the full path from the command line
             //
 
-            pChildProcess->m_Name = FileName;
+            pChildProcess->m_Name = NtPath;
 
-            std::wstring FilePath = GetPathFromCmd(Command, FileName, ParentPid);
+            std::wstring FilePath = GetPathFromCmd(Command, NtPath, ParentPid);
             if (!FilePath.empty()) {
                 std::wstring NtPath = CNtPathMgr::Instance()->TranslateDosToNtPath(FilePath);
                 if(NtPath.empty()) // fallback
@@ -478,7 +521,7 @@ bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPi
             }
         }
         else
-            pChildProcess->m_NtFilePath = FileName;
+            pChildProcess->m_NtFilePath = NtPath;
 
         if (pChildProcess->m_CommandLine.empty())
             pChildProcess->m_CommandLine = Command;
@@ -612,6 +655,47 @@ void CProcessList::OnProcessAccessed(uint64 Pid, uint64 ActorPid, const std::wst
     AddExecLogEntry(pTargetProgram, pLogEntry);
 }
 
+EImageOnLoad CProcessList::GetAllowImage(const struct SProcessImageEvent* pImageEvent)
+{
+    EImageOnLoad Action = EImageOnLoad::eUnknown;
+
+    //CProcessPtr pProcess = GetProcess(pImageEvent->ProcessId, true);
+    //std::wstring ProgramPath = pProcess ? theCore->NormalizePath(pProcess->GetNtFilePath(), false) : L"";
+    //std::wstring ModulePath = theCore->NormalizePath(pImageEvent->FileName, false);
+    bool bTrusted = (pImageEvent->Status == EEventStatus::eAllowed);
+
+    if (!pImageEvent->RuleGuid.empty())
+    {
+        CProgramRulePtr pRule = theCore->ProgramManager()->GetRule(pImageEvent->RuleGuid);
+        if (!pRule)
+            theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_RULE_NOT_FOUND, L"Program rule not found: %s", pImageEvent->RuleGuid.c_str());
+        else if (pRule->HasScript())
+        {
+            auto pScript = pRule->GetScriptEngine();
+            if(pScript)
+                Action = pScript->RunLoadScript(pImageEvent->ProcessId, pImageEvent->FileName, pImageEvent->EnclaveId, bTrusted, &pImageEvent->VerifierInfo);
+        }
+    }
+
+    if (Action == EImageOnLoad::eUnknown && !pImageEvent->EnclaveGuid.empty())
+    {
+        CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(pImageEvent->EnclaveGuid);
+        if (!pEnclave)
+            theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_RULE_NOT_FOUND, L"Enclave not found: %s", pImageEvent->EnclaveGuid.c_str());
+        else if (pEnclave->HasScript())
+        {
+            auto pScript = pEnclave->GetScriptEngine();
+            if (pScript) {
+                EImageOnLoad EnclaveAction = pScript->RunLoadScript(pImageEvent->ProcessId, pImageEvent->FileName, pImageEvent->EnclaveId, bTrusted, &pImageEvent->VerifierInfo);
+                if (EnclaveAction != EImageOnLoad::eUnknown)
+                    Action = EnclaveAction;
+            }
+        }
+    }
+
+    return Action;
+}
+
 void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
 {
 	CProcessPtr pProcess = GetProcess(pImageEvent->ProcessId, true);
@@ -656,53 +740,52 @@ void CProcessList::OnImageEvent(const SProcessImageEvent* pImageEvent)
     // Note: this should no longer be the case, we now issue the event once all is checked and final
     //
 
-    EEventStatus Status;
-    if (pImageEvent->Type == SProcessEvent::EType::UntrustedLoad) { // image was deamed not trusted
-        if (pImageEvent->bLoadPrevented)
-            Status = EEventStatus::eBlocked;
-        else
-            Status = EEventStatus::eUntrusted;
-    } else // image was loaded, we do not know if it was trusted or not
-        Status = Status = EEventStatus::eAllowed;
-	
     CFlexGuid EnclaveGuid = pProcess->GetEnclave();
 
     pProcess->AddLibrary(pLibrary);
-    pProgram->AddLibrary(EnclaveGuid, pLibrary, pImageEvent->TimeStamp, &pImageEvent->VerifierInfo, Status);
+    pProgram->AddLibrary(EnclaveGuid, pLibrary, pImageEvent->TimeStamp, &pImageEvent->VerifierInfo, pImageEvent->Status);
 
 #ifdef DEF_USE_POOL
-	CExecLogEntryPtr pLogEntry = pProgram->Allocator()->New<CExecLogEntry>(EnclaveGuid, EExecLogRole::eBoth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId, &pImageEvent->VerifierInfo);
+	CExecLogEntryPtr pLogEntry = pProgram->Allocator()->New<CExecLogEntry>(EnclaveGuid, EExecLogRole::eBoth, EExecLogType::eImageLoad, pImageEvent->Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId, &pImageEvent->VerifierInfo);
 #else
-    CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EnclaveGuid, EExecLogRole::eBoth, EExecLogType::eImageLoad, Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId, &pImageEvent->VerifierInfo));
+    CExecLogEntryPtr pLogEntry = CExecLogEntryPtr(new CExecLogEntry(EnclaveGuid, EExecLogRole::eBoth, EExecLogType::eImageLoad, pImageEvent->Status, pLibrary->GetUID(), CFlexGuid(), pImageEvent->ActorServiceTag, pImageEvent->TimeStamp, pImageEvent->ProcessId, &pImageEvent->VerifierInfo));
 #endif
     AddExecLogEntry(pProgram, pLogEntry);
 }
 
-EAccessRuleType CProcessList::GetResourceAccess(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, uint32 TimeOut)
+EAccessRuleType CProcessList::GetResourceAccess(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, EEventStatus Status, uint32 TimeOut)
 {
+    if (RuleGuid.IsNull()) // this should not happen
+		return EAccessRuleType::eNone;
+    
+    CAccessRulePtr pRule = theCore->AccessManager()->GetRule(RuleGuid);
+    if (!pRule) {
+        theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_RULE_NOT_FOUND, L"Access rule not found: %s", RuleGuid.ToString().c_str());
+        return EAccessRuleType::eNone;
+    }
+    
+    if(pRule->HasScript())
+    {
+        auto pScript = pRule->GetScriptEngine();
+        if (pScript) {
+            EAccessRuleType Action = pScript->RunAccessScript(NtPath, ActorPid, ActorServiceTag, EnclaveId, AccessMask);
+            if (Action != EAccessRuleType::eNone)
+                return Action;
+        }
+    }
+
+    if(!pRule->IsInteractive())
+		return EAccessRuleType::eNone;
+
+    //
+	// Rule is interactive, emit event and wait for response from UI
+    //
+
     CProcessPtr pActorProcess = GetProcess(ActorPid, true);
     CProgramFilePtr pActorProgram = pActorProcess ? pActorProcess->GetProgram() : NULL;
 
     if (!pActorProgram)
-        return EAccessRuleType::eBlock;
-
-    std::wstring DosPath = theCore->NormalizePath(NtPath);
-
-    if (!RuleGuid.IsNull())
-    {
-        CAccessRulePtr pRule = theCore->AccessManager()->GetRule(RuleGuid);
-        if (!pRule)
-            theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_RULE_NOT_FOUND, L"Access rule not found: %s", RuleGuid.ToString().c_str());
-        else if(pRule->HasScript())
-        {
-            EAccessRuleType Action = pRule->RunScript(NtPath, ActorPid, ActorServiceTag, AccessMask);
-            if(Action != EAccessRuleType::eNone)
-                return Action;
-        }
-
-        if(!pRule->IsInteractive())
-			return EAccessRuleType::eProtect;
-    }
+        return EAccessRuleType::eNone;
 
 #ifdef DEF_USE_POOL
     CResLogEntryPtr pLogEntry = pActorProgram->Allocator()->New<CResLogEntry>(pActorProcess->GetEnclave(), NtPath, ActorServiceTag, AccessMask, EEventStatus::eProtected, AccessTime, ActorPid);
@@ -720,7 +803,7 @@ EAccessRuleType CProcessList::GetResourceAccess(const std::wstring& NtPath, uint
     Event[API_V_EVENT_DATA]	    = pLogEntry->ToVariant();
 
     if (theCore->BroadcastMessage(SVC_API_EVENT_RES_ACTIVITY, Event) == 0)
-        return EAccessRuleType::eBlock; // no cleints to make a decision
+        return EAccessRuleType::eNone; // no cleints to make a decision
 
     std::unique_lock WaitLock(m_WaitingEventsMutex);
 
@@ -731,8 +814,6 @@ EAccessRuleType CProcessList::GetResourceAccess(const std::wstring& NtPath, uint
     WaitingEvent.cv.wait_for(WaitLock, std::chrono::milliseconds(TimeOut), [&WaitingEvent] { return WaitingEvent.Action != EAccessRuleType::eNone; });
 
     m_WaitingEvents.erase(EventId);
-    if(WaitingEvent.Action == EAccessRuleType::eNone) // timeout
-        return EAccessRuleType::eBlock;
 
     return WaitingEvent.Action;
 }
@@ -749,7 +830,7 @@ STATUS CProcessList::SetAccessEventAction(uint64 EventId, EAccessRuleType Action
 	return STATUS_NOT_FOUND;
 }
 
-void CProcessList::OnResourceAccessed(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory)
+void CProcessList::OnResourceAccessed(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory)
 {
 	if (!m_bLogNotFound && (NtStatus == STATUS_UNRECOGNIZED_VOLUME 
         || NtStatus == STATUS_OBJECT_NAME_NOT_FOUND || NtStatus == STATUS_OBJECT_PATH_NOT_FOUND
@@ -838,8 +919,11 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
     {
         case SProcessEvent::EType::ProcessStarted: 
         {
-            const SProcessStartEvent* pStartEvent = (SProcessStartEvent*)(pEvent);
-            OnProcessStarted(pStartEvent->ProcessId, pStartEvent->ParentId, pStartEvent->ActorProcessId, pStartEvent->ActorServiceTag, pStartEvent->EnclaveId, pStartEvent->FileName, pStartEvent->CommandLine, &pStartEvent->VerifierInfo, pStartEvent->TimeStamp, pStartEvent->Status);
+            SProcessStartEvent* pStartEvent = (SProcessStartEvent*)(pEvent);
+            if (pStartEvent->TimeOut != 0)
+				pStartEvent->Action = GetAllowStart(pStartEvent->ProcessId, pStartEvent->ParentId, pStartEvent->ActorProcessId, pStartEvent->ActorServiceTag, /*pStartEvent->EnclaveId, */pStartEvent->NtPath, pStartEvent->CommandLine, &pStartEvent->VerifierInfo, pStartEvent->TimeStamp, pStartEvent->RuleGuid, pStartEvent->EnclaveGuid, pStartEvent->Status, pStartEvent->TimeOut);
+            else
+                OnProcessStarted(pStartEvent->ProcessId, pStartEvent->ParentId, pStartEvent->ActorProcessId, pStartEvent->ActorServiceTag, pStartEvent->EnclaveId, pStartEvent->NtPath, pStartEvent->CommandLine, &pStartEvent->VerifierInfo, pStartEvent->TimeStamp, pStartEvent->Status);
 
             //
             // Note: this triggers before teh process is started, during early process initialization
@@ -862,27 +946,33 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
             break;
 		}
         case SProcessEvent::EType::ImageLoad:
-        case SProcessEvent::EType::UntrustedLoad:
         {
-            OnImageEvent((SProcessImageEvent*)pEvent);
+            SProcessImageEvent* pImageEvent = (SProcessImageEvent*)(pEvent);
+            if (pImageEvent->TimeOut != 0)
+                pImageEvent->Action = GetAllowImage(pImageEvent);
+            else
+                OnImageEvent(pImageEvent);
             break;
 		}
         case SProcessEvent::EType::ProcessAccess:
         case SProcessEvent::EType::ThreadAccess:
 		{
-			const SProcessAccessEvent* pAccessEvent = (SProcessAccessEvent*)(pEvent);
+			SProcessAccessEvent* pAccessEvent = (SProcessAccessEvent*)(pEvent);
             if(pAccessEvent->bCreating)
                 break; // don't log events which are part of regular process creation process
-            OnProcessAccessed(pAccessEvent->ProcessId, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pEvent->Type == SProcessEvent::EType::ThreadAccess, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status);
+            if (pAccessEvent->TimeOut != 0)
+                ;//pAccessEvent->Action = EAccessRuleType::eNone; // todo <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            else
+                OnProcessAccessed(pAccessEvent->ProcessId, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pEvent->Type == SProcessEvent::EType::ThreadAccess, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->Status);
 			break;
 		}
         case SProcessEvent::EType::ResourceAccess:
         {
             SResourceAccessEvent* pAccessEvent = (SResourceAccessEvent*)(pEvent);
             if (pAccessEvent->TimeOut != 0)
-                pAccessEvent->Action = GetResourceAccess(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->RuleGuid, pAccessEvent->TimeOut);
+                pAccessEvent->Action = GetResourceAccess(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->EnclaveId, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->RuleGuid, pAccessEvent->Status, pAccessEvent->TimeOut);
             else
-			    OnResourceAccessed(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->RuleGuid, pAccessEvent->Status, pAccessEvent->NtStatus, pAccessEvent->IsDirectory);
+			    OnResourceAccessed(pAccessEvent->Path, pAccessEvent->ActorProcessId, pAccessEvent->ActorServiceTag, pAccessEvent->EnclaveId, pAccessEvent->AccessMask, pAccessEvent->TimeStamp, pAccessEvent->RuleGuid, pAccessEvent->Status, pAccessEvent->NtStatus, pAccessEvent->IsDirectory);
 			break;
         }
 		case SProcessEvent::EType::InjectionRequest:
@@ -923,7 +1013,7 @@ STATUS CProcessList::Load()
 {
     CBuffer Buffer;
     if (!ReadFile(theCore->GetDataFolder() + L"\\" API_INGRESS_RECORD_FILE_NAME, Buffer)) {
-        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_INGRESS_RECORD_FILE_NAME L" not found");
+        theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_INGRESS_RECORD_FILE_NAME L" not found");
         return ERR(STATUS_NOT_FOUND);
     }
 

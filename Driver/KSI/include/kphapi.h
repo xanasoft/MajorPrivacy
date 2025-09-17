@@ -75,7 +75,6 @@ typedef KPH_PROCESS_STATE* PKPH_PROCESS_STATE;
                                    KPH_PROCESS_NO_FILE_TRANSACTION            |\
                                    KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)
 
-#ifndef MP_EMBEDDED
 typedef enum _KPH_PROCESS_INFORMATION_CLASS
 {
     KphProcessBasicInformation,      // q: KPH_PROCESS_BASIC_INFORMATION
@@ -422,7 +421,6 @@ typedef struct _KPH_MEMORY_MAPPED_INFORMATION
     PVOID ImageControlArea;
     ULONG UserWritableReferences;
 } KPH_MEMORY_MAPPED_INFORMATION, *PKPH_MEMORY_MAPPED_INFORMATION;
-#endif
 
 // File
 
@@ -461,7 +459,6 @@ typedef struct _KPH_HASH_INFORMATION
                                    THREAD_QUERY_LIMITED_INFORMATION           |\
                                    THREAD_GET_CONTEXT)
 
-#ifndef MP_EMBEDDED
 #define KPH_TOKEN_READ_ACCESS     (STANDARD_RIGHTS_READ                       |\
                                    SYNCHRONIZE                                |\
                                    TOKEN_QUERY                                |\
@@ -714,6 +711,5 @@ typedef struct _KPH_SESSION_ACCESS_TOKEN
 } KPH_SESSION_ACCESS_TOKEN, *PKPH_SESSION_ACCESS_TOKEN;
 C_ASSERT(sizeof(KPH_SESSION_ACCESS_TOKEN) == 64);
 #include <poppack.h>
-#endif
 
 #pragma warning(pop)

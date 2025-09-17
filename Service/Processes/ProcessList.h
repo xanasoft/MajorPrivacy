@@ -26,7 +26,14 @@ public:
 	STATUS EnumProcesses();
 
 	std::map<uint64, CProcessPtr> List() { std::unique_lock Lock(m_Mutex); return m_List; }
-	CProcessPtr GetProcess(uint64 Pid, bool bCanAdd = false);
+	enum EGetMode
+	{
+		eCanNotAdd = 0, // if process is not listed return null
+		eCanAdd, // if process is not listed try to add it when its running, else return null
+		eMustAdd // always add process even if its not running
+	};
+	CProcessPtr GetProcessEx(uint64 Pid, EGetMode Mode);
+	CProcessPtr GetProcess(uint64 Pid, bool bCanAdd = false) { return GetProcessEx(Pid, bCanAdd ? eMustAdd : eCanNotAdd); }
 
 	std::map<uint64, CProcessPtr> FindProcesses(const CProgramID& ID);
 
@@ -47,14 +54,17 @@ protected:
 
 	//void TerminateProcess(uint64 Pid, const std::wstring& FileName);
 
-	bool OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, const std::wstring& FileName, const std::wstring& Command, const struct SVerifierInfo* pVerifyInfo, uint64 CreateTime, EEventStatus Status, bool bETW = false);
+	EProgramOnSpawn GetAllowStart(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, /*const std::wstring& EnclaveId,*/ const std::wstring& NtPath, const std::wstring& Command, const struct SVerifierInfo* pVerifyInfo, uint64 CreateTime, const CFlexGuid& RuleGuid, const CFlexGuid& EnclaveGuid, EEventStatus Status, uint32 TimeOut);
+	bool OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, const std::wstring& NtPath, const std::wstring& Command, const struct SVerifierInfo* pVerifyInfo, uint64 CreateTime, EEventStatus Status, bool bETW = false);
 	void OnProcessStopped(uint64 Pid, uint32 ExitCode);
 
 	void OnProcessAccessed(uint64 Pid, uint64 ActorPid, const std::wstring& ActorServiceTag, bool bThread, uint32 AccessMask, uint64 AccessTime, EEventStatus Status);
+
+	EImageOnLoad GetAllowImage(const struct SProcessImageEvent* pImageEvent);
 	void OnImageEvent(const struct SProcessImageEvent* pImageEvent);
 	
-	EAccessRuleType GetResourceAccess(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, uint32 TimeOut);
-	void OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory);
+	EAccessRuleType GetResourceAccess(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, EEventStatus Status, uint32 TimeOut);
+	void OnResourceAccessed(const std::wstring& Path, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, uint32 AccessMask, uint64 AccessTime, const CFlexGuid& RuleGuid, EEventStatus Status, NTSTATUS NtStatus, bool IsDirectory);
 
 	void AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram, const CExecLogEntryPtr& pLogEntry);
 

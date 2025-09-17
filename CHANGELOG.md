@@ -11,6 +11,46 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
+
+## [0.98.5] - 2025-08-17
+
+### Added
+- added scripting options to program rules and secure enclaves
+- added script edit
+- added script highlighter
+- added script log
+- added notifications to automated firewall events
+- added mechanism to auto approve/reject rule changes
+- added volume config window (only available when volume is mounted)
+- added volume mount/dismoutn scripting
+- added volume stored enclaves, thay are stored in a $mpsys$ file in the volume root and thay can only be edited when the volume is mounted
+  - Note: when an enclave is a volume stored enclave all rules referign the enclave are also stored in the volume's $mpsys$ file
+- added some basic rule safety checks to prevent breaking windows, more need to be added 
+
+
+### Changed
+- improved maintenance menu, moved config related options to options menu
+- switched to Qt 6.8.3 with [windows 7 compatybility patches](https://github.com/crystalidea/qt6windows7)
+- adapted Driver to work on Windows 7
+- when C:\ProgramData\Xanasoft\MajorPrivacy is created it is now readable to non admins
+- wildcard starting access rules are no longer allowed, an access rule path must start with a driver letter, mount point or device path
+  - Note: this restriction is required for hardened secure volume protection
+- enabled the ability to mount secure volumes to a folder
+- simplified HashDB View
+
+### Fixed
+- fixed MajorPrivacy.exe crashes when opening the hash database [#87](https://github.com/xanasoft/MajorPrivacy/issues/87)
+- fixed MajorPrivacy.exe crashes when opening process security ingress monitor [#88](https://github.com/xanasoft/MajorPrivacy/issues/88)
+- fixed issues with log cleanup
+- fixed The file info does not appear in the Access Notifications [#90](https://github.com/xanasoft/MajorPrivacy/issues/90)
+- fixed Crash on WIN7 [#67](https://github.com/xanasoft/MajorPrivacy/issues/67)
+- fixed issue with driver blocking required system accesses when mounting sectre protected volumes
+
+
+
+
+
 ## [0.98.4] - 2025-08-27
 
 ### Added 

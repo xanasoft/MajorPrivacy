@@ -122,6 +122,9 @@
     <Filter Include="Core\HashDB">
       <UniqueIdentifier>{ae7f2b7f-7aa7-4d6e-9b9f-a2afbc0963d9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Helpers\Highliter">
+      <UniqueIdentifier>{fad3803b-cdf0-4016-ad35-702339d5ae31}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -502,6 +505,18 @@
     <ClCompile Include="Windows\HashEntryWnd.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Helpers\Highliter\languagedata.cpp">
+      <Filter>Helpers\Highliter</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\Highliter\qsourcehighliter.cpp">
+      <Filter>Helpers\Highliter</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\Highliter\qsourcehighliterthemes.cpp">
+      <Filter>Helpers\Highliter</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\VolumeConfigWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -549,6 +564,15 @@
     <ClInclude Include="Helpers\WinAdmin.h">
       <Filter>Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="Helpers\Highliter\languagedata.h">
+      <Filter>Helpers\Highliter</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Highliter\qsourcehighliter.h">
+      <Filter>Helpers\Highliter</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Highliter\qsourcehighliterthemes.h">
+      <Filter>Helpers\Highliter</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="Forms\FirewallRuleWnd.ui">
@@ -585,6 +609,9 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="Forms\HashEntryWnd.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\VolumeConfigWnd.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>
@@ -926,6 +953,9 @@
       <Filter>Models\Program</Filter>
     </QtMoc>
     <QtMoc Include="Windows\HashEntryWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\VolumeConfigWnd.h">
       <Filter>Windows</Filter>
     </QtMoc>
   </ItemGroup>

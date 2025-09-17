@@ -13,6 +13,7 @@
 #include "../Windows/ProgramPicker.h"
 #include "../Core/HashDB/HashDB.h"
 #include "../MiscHelpers/Common/WinboxMultiCombo.h"
+#include "../Windows/ScriptWindow.h"
 
 CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget* parent)
 	: QDialog(parent)
@@ -68,10 +69,14 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	connect(ui.txtProgPath, SIGNAL(textChanged(const QString&)), this, SLOT(OnProgramPathChanged()));
 	//connect(ui.cmbEnclave, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
 
+	connect(ui.chkScript, SIGNAL(stateChanged(int)), this, SLOT(OnActionChanged()));
+	connect(ui.btnScript, SIGNAL(clicked()), this, SLOT(EditScript()));
+
 	connect(ui.cmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
 
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
+	connect(ui.buttonBox->button(QDialogButtonBox::Apply), SIGNAL(clicked(bool)), this, SLOT(OnSave()));
 
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Allow"), GetActionColor(EExecRuleType::eAllow), (int)EExecRuleType::eAllow);
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Block"), GetActionColor(EExecRuleType::eBlock), (int)EExecRuleType::eBlock);
@@ -106,6 +111,15 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	}
 
 	SetComboBoxValue(ui.cmbEnclave, QFlexGuid(m_pRule->m_Enclave).ToQV());
+
+	//ui.txtScript->setPlainText(m_pRule->m_Script);
+	m_Script = m_pRule->m_Script;
+
+	ui.chkScript->setChecked(m_pRule->m_bUseScript);
+	if(m_pRule->m_Script.isEmpty())
+		ui.btnScript->setIcon(QIcon(":/Icons/Script-Add.png"));
+	else
+		ui.btnScript->setIcon(QIcon(":/Icons/Script-Edit.png"));
 
 	SetComboBoxValue(ui.cmbAction, (int)m_pRule->m_Type);
 
@@ -200,18 +214,24 @@ void CProgramRuleWnd::closeEvent(QCloseEvent *e)
 	this->deleteLater();
 }
 
-void CProgramRuleWnd::OnSaveAndClose()
+bool CProgramRuleWnd::OnSave()
 {
 	if (!Save()) {
 		QApplication::beep();
-		return;
+		return false;
 	}
 
 	STATUS Status = theCore->ProgramManager()->SetProgramRule(m_pRule);	
 	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
-		return;
-	accept();
+		return false;
+	return true;
 }
+
+void CProgramRuleWnd::OnSaveAndClose()
+{
+	if(OnSave())
+		accept();
+} 
 
 bool CProgramRuleWnd::Save()
 {
@@ -229,8 +249,21 @@ bool CProgramRuleWnd::Save()
 	}*/
 	m_pRule->m_ProgramID.SetPath(ui.txtProgPath->text().toLower());
 	m_pRule->m_ProgramPath = ui.txtProgPath->text();
+	if (!CProgramRule::IsPathValid(m_pRule->m_ProgramPath)) {
+		QMessageBox::warning(this, tr("Error"), tr("The Program Path is not valid."));
+		return false;
+	}
+	if (CProgramRule::IsUnsafePath(m_pRule->m_ProgramPath)) {
+		QMessageBox::warning(this, tr("Error"), tr("The Program Path may break windows, please use a more specific path."));
+		return false;
+	}
 
 	m_pRule->m_Enclave = QFlexGuid(GetComboBoxValue(ui.cmbEnclave));
+
+	//m_pRule->m_Script = ui.txtScript->toPlainText();
+	m_pRule->m_Script = m_Script;
+
+	m_pRule->m_bUseScript = ui.chkScript->isChecked();
 
 	m_pRule->m_Type = (EExecRuleType)GetComboBoxValue(ui.cmbAction).toInt();
 	if (m_pRule->m_Type == EExecRuleType::eAllow) {
@@ -365,4 +398,19 @@ void CProgramRuleWnd::OnAddCollection()
 	foreach(const QString& Collection, theCore->HashDB()->GetCollections())
 		AllCollections.append({ Collection, Collection });
 	m_pCollections->setItems(AllCollections);
+}
+
+void CProgramRuleWnd::EditScript()
+{
+	CScriptWindow* pScriptWnd = new CScriptWindow(m_pRule->GetGuid(), EScriptTypes::eExecRule, this);
+	pScriptWnd->SetScript(m_Script);
+	pScriptWnd->SetSaver([&](const QString& Script, bool bApply){
+		m_Script = Script;
+		if (bApply) {
+			m_pRule->m_Script = Script;
+			return theCore->ProgramManager()->SetProgramRule(m_pRule);
+		}
+		return OK;
+	});
+	SafeShow(pScriptWnd);
 }

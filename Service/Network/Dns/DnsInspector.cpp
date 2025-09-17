@@ -8,6 +8,7 @@
 #include "..\..\Processes\ProcessList.h"
 #include "../NetworkManager.h"
 #include "DnsFilter.h"
+#include "..\Library\Helpers\WinUtil.h"
 
 #pragma comment(lib, "dnsapi.lib")
 
@@ -445,15 +446,21 @@ void CDnsInspector::Update()
 	if (dnsRecordRootPtr)
 		DnsRecordListFree(dnsRecordRootPtr, DnsFreeRecordList);
 #else
-	//if (dnsCacheDataTable)
-	//	DnsRecordListFree(dnsCacheDataTable, DnsFreeFlat); // memleak
-
-	for (PDNS_CACHE_ENTRY tablePtr = dnsCacheDataTable; tablePtr != NULL; )
+	
+	if (g_WindowsVersion < WINDOWS_10)
 	{
-		PDNS_CACHE_ENTRY entryPtr = tablePtr;
-		tablePtr = tablePtr->Next;
-		GlobalFree((void*)entryPtr->Name);
-		GlobalFree(entryPtr);
+		if (dnsCacheDataTable)
+			DnsRecordListFree(dnsCacheDataTable, DnsFreeFlat); // memleak on windows 10 WTF?
+	}
+	else
+	{
+		for (PDNS_CACHE_ENTRY tablePtr = dnsCacheDataTable; tablePtr != NULL; )
+		{
+			PDNS_CACHE_ENTRY entryPtr = tablePtr;
+			tablePtr = tablePtr->Next;
+			GlobalFree((void*)entryPtr->Name);
+			GlobalFree(entryPtr);
+		}
 	}
 #endif
 }

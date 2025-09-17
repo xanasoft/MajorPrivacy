@@ -15,10 +15,10 @@
 #include "Access/AccessManager.h"
 #include "../Library/Crypto/HashFunction.h"
 #include "Helpers/WinHelper.h"
-#include "../Driver/KSI/include/kphapi.h"
 #include "IssueManager.h"
 #include "EventLog.h"
 #include "../Library/Helpers/CertUtil.h"
+#include "../Library/Helpers/WinUtil.h"
 
 #include <phnt_windows.h>
 #include <phnt.h>
@@ -68,8 +68,14 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 	m_pSysLog = new CEventLogger(APP_NAME);
 	m_pEventLog = new CEventLog(this);
 	
+	InitHooks();
+
 	m_pSidResolver = new CSidResolver(this);
 	m_pSidResolver->Init();
+
+	WCHAR windir[MAX_PATH + 8] = { 0 };
+	GetWindowsDirectoryW(windir, MAX_PATH);
+	m_WinDir = QString::fromWCharArray(windir);
 
 	this->start();
 	m_pWorker = new CPrivacyWorker();
@@ -150,25 +156,42 @@ void CPrivacyCore::DeviceChangedCallback(void* param)
 	emit This->DevicesChanged();
 }
 
-STATUS CPrivacyCore__RunAgent(const std::wstring& params)
+STATUS CPrivacyCore__RunAgent(const std::wstring& params, bool bWait = true)
 {
-	STATUS Status;
-
 	std::wstring Path = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
 
 	HANDLE hEngineProcess = RunElevated(Path, params);
 	if (!hEngineProcess)
 		return ERR(STATUS_UNSUCCESSFUL);
-	if (WaitForSingleObject(hEngineProcess, 30 * 1000) == WAIT_OBJECT_0) {
-		DWORD exitCode;
-		GetExitCodeProcess(hEngineProcess, &exitCode);
-		if(exitCode != 0)
-			Status = ERR(exitCode);
-	} else
-		Status = ERR(STATUS_TIMEOUT);
+
+	STATUS Status = OK;
+	if (bWait) {
+		if (WaitForSingleObject(hEngineProcess, 30 * 1000) == WAIT_OBJECT_0) {
+			DWORD exitCode;
+			GetExitCodeProcess(hEngineProcess, &exitCode);
+			if (exitCode != 0)
+				Status = ERR(exitCode);
+		}
+		else
+			Status = ERR(STATUS_TIMEOUT);
+	}
+
 	CloseHandle(hEngineProcess);
 
 	return Status;
+}
+
+STATUS CPrivacyCore::Start()
+{
+	SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+	if(SvcState & SVC_INSTALLED)
+		return CPrivacyCore__RunAgent(L"-startup");
+	return CPrivacyCore__RunAgent(L"-engine", false);
+}
+
+STATUS CPrivacyCore::Stop()
+{
+	return CPrivacyCore__RunAgent(L"-unload");
 }
 
 STATUS CPrivacyCore::Install()
@@ -193,7 +216,7 @@ bool CPrivacyCore::SvcIsRunning()
 	return ((SvcState & SVC_RUNNING) == SVC_RUNNING);
 }
 
-STATUS CPrivacyCore::Connect(bool bEngineMode)
+STATUS CPrivacyCore::Connect(bool bCanStart, bool bEngineMode)
 {
 	m_GuiSecState = 0;
 	m_SvcSecState = 0;
@@ -201,25 +224,30 @@ STATUS CPrivacyCore::Connect(bool bEngineMode)
 	STATUS Status;
 	if (!m_Service.IsConnected())
 	{
-		if (bEngineMode && !IsInstalled())
-			Status = m_Service.ConnectEngine();
-		else
+		if (bCanStart) 
 		{
-			SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
-			if ((SvcState & SVC_RUNNING) == 0)
-				Status = CPrivacyCore__RunAgent(L"-startup");
-
-			if (Status)
+			if (bEngineMode && !IsInstalled())
+				Status = m_Service.ConnectEngine(true);
+			else
 			{
-				for (int i = 0; i < 10; i++) 
+				SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+				if ((SvcState & SVC_RUNNING) == 0)
+					Status = CPrivacyCore__RunAgent(L"-startup");
+
+				if (Status)
 				{
-					Status = m_Service.ConnectSvc();
-					if(Status)
-						break;
-					QThread::sleep(1+i);
+					for (int i = 0; i < 10; i++)
+					{
+						Status = m_Service.ConnectSvc();
+						if (Status)
+							break;
+						QThread::sleep(1 + i);
+					}
 				}
 			}
 		}
+		else
+			Status = m_Service.ConnectEngine();
 
 		if (Status) {
 			uint32 ServiceABI = m_Service.GetABIVersion();
@@ -356,7 +384,7 @@ void CPrivacyCore::ProcessEvents()
 
 	if (!LogEvents.isEmpty()) {
 		foreach(const QtVariant & vEvent, LogEvents)
-			m_pEventLog->AddEntry(vEvent);
+			m_pEventLog->AddEntry(vEvent, true);
 	}
 
 
@@ -679,9 +707,7 @@ QString CPrivacyCore::NormalizePath(QString sPath, bool bForID)
 		Path = ExpandEnvironmentVariablesInPath(Path);
 
 	if (MatchPathPrefix(Path, L"\\SystemRoot")) {
-		static WCHAR windir[MAX_PATH + 8] = { 0 };
-		if (!*windir) GetWindowsDirectoryW(windir, MAX_PATH);
-		Path = windir + Path.substr(11);
+		Path = theCore->m_WinDir.toStdWString() + Path.substr(11);
 	}
 
 	if (!bForID && _wcsnicmp(Path.c_str(), L"\\device\\mup\\", 12) == 0)
@@ -1158,25 +1184,29 @@ RESULT(int) CPrivacyCore::RunUpdateUtility(const QStringList& Params, quint32 El
 // Secure Enclaves
 STATUS CPrivacyCore::SetAllEnclaves(const QtVariant& Enclaves)
 {
-	return m_Driver.Call(API_SET_ENCLAVES, Enclaves);
+	QtVariant Request(m_pMemPool);
+	Request[API_V_ENCLAVES] = Enclaves;
+	return m_Driver.Call(API_SET_ENCLAVES, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetAllEnclaves()
 {
 	QtVariant Request(m_pMemPool);
-	RET_AS_XVARIANT(m_Driver.Call(API_GET_ENCLAVES, Request));
+	RET_GET_XVARIANT(m_Driver.Call(API_GET_ENCLAVES, Request), API_V_ENCLAVES);
 }
 
 STATUS CPrivacyCore::SetEnclave(const QtVariant& Enclave)
 {
-	return m_Driver.Call(API_SET_ENCLAVE, Enclave);
+	QtVariant Request(m_pMemPool);
+	Request[API_V_ENCLAVE] = Enclave;
+	return m_Driver.Call(API_SET_ENCLAVE, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetEnclave(const QFlexGuid& Guid)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_GUID] = Guid.ToVariant(true);
-	RET_AS_XVARIANT(m_Driver.Call(API_GET_ENCLAVE, Request));
+	RET_GET_XVARIANT(m_Driver.Call(API_GET_ENCLAVE, Request), API_V_ENCLAVE);
 }
 
 STATUS CPrivacyCore::DelEnclave(const QFlexGuid& Guid)
@@ -1215,33 +1245,37 @@ STATUS CPrivacyCore::StartProcessInEnclave(const QString& Command, const QFlexGu
 }
 
 // HashDB
-STATUS CPrivacyCore::SetAllHashes(const QtVariant& Enclaves)
+STATUS CPrivacyCore::SetAllHashes(const QtVariant& Entries)
 {
-	return m_Driver.Call(API_SET_HASHES, Enclaves);
+	QtVariant Request(m_pMemPool);
+	Request[API_V_ENTRIES] = Entries;
+	return m_Driver.Call(API_SET_HASHES, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetAllHashes()
 {
 	QtVariant Request(m_pMemPool);
-	RET_AS_XVARIANT(m_Driver.Call(API_GET_HASHES, Request));
+	RET_GET_XVARIANT(m_Driver.Call(API_GET_HASHES, Request), API_V_ENTRIES);
 }
 
-STATUS CPrivacyCore::SetHashEntry(const QtVariant& Enclave)
+STATUS CPrivacyCore::SetHashEntry(const QtVariant& Hash)
 {
-	return m_Driver.Call(API_SET_HASH, Enclave);
+	QtVariant Request(m_pMemPool);
+	Request[API_V_ENTRY] = Hash;
+	return m_Driver.Call(API_SET_HASH, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetHashEntry(const QByteArray& HashValue)
 {
 	QtVariant Request(m_pMemPool);
-	Request[API_V_HASH] = HashValue;
-	RET_AS_XVARIANT(m_Driver.Call(API_GET_HASH, Request));
+	Request[API_V_HASH] = QtVariant(HashValue);
+	RET_GET_XVARIANT(m_Driver.Call(API_GET_HASH, Request), API_V_ENTRY);
 }
 
 STATUS CPrivacyCore::DelHashEntry(const QByteArray& HashValue)
 {
 	QtVariant Request(m_pMemPool);
-	Request[API_V_HASH] = HashValue;
+	Request[API_V_HASH] = QtVariant(HashValue);
 	return m_Driver.Call(API_DEL_HASH, Request);
 }
 
@@ -1303,6 +1337,12 @@ STATUS CPrivacyCore::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDelRu
 	return m_Service.Call(SVC_API_REMOVE_PROGRAM, Request);
 }
 
+STATUS CPrivacyCore::RefreshPrograms()
+{
+	QtVariant Request(m_pMemPool);
+	return m_Service.Call(SVC_API_REFRESH_PROGRAMS, Request);
+}
+
 STATUS CPrivacyCore::CleanUpPrograms(bool bPurgeRules)
 {
 	QtVariant Request(m_pMemPool);
@@ -1318,25 +1358,29 @@ STATUS CPrivacyCore::ReGroupPrograms()
 
 STATUS CPrivacyCore::SetAllProgramRules(const QtVariant& Rules)
 {
-	return m_Driver.Call(API_SET_PROGRAM_RULES, Rules);
+	QtVariant Request(m_pMemPool);
+	Request[API_V_RULES] = Rules;
+	return m_Driver.Call(API_SET_PROGRAM_RULES, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetAllProgramRules()
 {
 	QtVariant Request(m_pMemPool);
-	RET_AS_XVARIANT(m_Driver.Call(API_GET_PROGRAM_RULES, Request));
+	RET_GET_XVARIANT(m_Driver.Call(API_GET_PROGRAM_RULES, Request), API_V_RULES);
 }
 
 STATUS CPrivacyCore::SetProgramRule(const QtVariant& Rule)
 {
-	return m_Driver.Call(API_SET_PROGRAM_RULE, Rule);
+	QtVariant Request(m_pMemPool);
+	Request[API_V_RULE] = Rule;
+	return m_Driver.Call(API_SET_PROGRAM_RULE, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetProgramRule(const QFlexGuid& Guid)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_GUID] = Guid.ToVariant(true);
-	RET_AS_XVARIANT(m_Driver.Call(API_GET_PROGRAM_RULE, Request));
+	RET_GET_XVARIANT(m_Driver.Call(API_GET_PROGRAM_RULE, Request), API_V_RULE);
 }
 
 STATUS CPrivacyCore::DelProgramRule(const QFlexGuid& Guid)
@@ -1349,25 +1393,29 @@ STATUS CPrivacyCore::DelProgramRule(const QFlexGuid& Guid)
 // Access Manager
 STATUS CPrivacyCore::SetAllAccessRules(const QtVariant& Rules)
 {
-	return m_Driver.Call(API_SET_ACCESS_RULES, Rules);
+	QtVariant Request(m_pMemPool);
+	Request[API_V_RULES] = Rules;
+	return m_Driver.Call(API_SET_ACCESS_RULES, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetAllAccessRules()
 {
 	QtVariant Request(m_pMemPool);
-	RET_AS_XVARIANT(m_Driver.Call(API_GET_ACCESS_RULES, Request));
+	RET_GET_XVARIANT(m_Driver.Call(API_GET_ACCESS_RULES, Request), API_V_RULES);
 }
 
 STATUS CPrivacyCore::SetAccessRule(const QtVariant& Rule)
 {
-	return m_Driver.Call(API_SET_ACCESS_RULE, Rule);
+	QtVariant Request(m_pMemPool);
+	Request[API_V_RULE] = Rule;
+	return m_Driver.Call(API_SET_ACCESS_RULE, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetAccessRule(const QFlexGuid& Guid)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_GUID] = Guid.ToVariant(true);
-	RET_AS_XVARIANT(m_Driver.Call(API_GET_ACCESS_RULE, Request));
+	RET_GET_XVARIANT(m_Driver.Call(API_GET_ACCESS_RULE, Request), API_V_RULE);
 }
 
 STATUS CPrivacyCore::DelAccessRule(const QFlexGuid& Guid)
@@ -1391,7 +1439,7 @@ RESULT(QtVariant) CPrivacyCore::GetFwRulesFor(const QList<const class CProgramIt
 	QtVariant Request(m_pMemPool);
 	if(!Nodes.isEmpty())
 		Request[API_V_IDS] = MakeIDs(Nodes);
-	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULES, Request), API_V_FW_RULES);
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULES, Request), API_V_RULES);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetAllFwRules(bool bReLoad)
@@ -1399,19 +1447,21 @@ RESULT(QtVariant) CPrivacyCore::GetAllFwRules(bool bReLoad)
 	QtVariant Request(m_pMemPool);
 	if(bReLoad)
 		Request[API_V_RELOAD] = true;
-	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULES, Request), API_V_FW_RULES);
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULES, Request), API_V_RULES);
 }
 
 STATUS CPrivacyCore::SetFwRule(const QtVariant& FwRule)
 {
-	return m_Service.Call(SVC_API_SET_FW_RULE, FwRule);
+	QtVariant Request(m_pMemPool);
+	Request[API_V_RULE] = FwRule;
+	return m_Service.Call(SVC_API_SET_FW_RULE, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetFwRule(const QFlexGuid& Guid)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_GUID] = Guid.ToVariant(true);
-	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULE, Request));
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULE, Request), API_V_RULE);
 }
 
 STATUS CPrivacyCore::DelFwRule(const QFlexGuid& Guid)
@@ -1481,19 +1531,21 @@ RESULT(QtVariant) CPrivacyCore::GetTrafficLog(const class CProgramID& ID, quint6
 RESULT(QtVariant)  CPrivacyCore::GetAllDnsRules()
 {
 	QtVariant Request(m_pMemPool);
-	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_DNS_RULES, Request), API_V_DNS_RULES);
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_DNS_RULES, Request), API_V_RULES);
 }
 
 STATUS CPrivacyCore::SetDnsRule(const QtVariant& FwRule)
 {
-	return m_Service.Call(SVC_API_SET_DNS_RULE, FwRule);
+	QtVariant Request(m_pMemPool);
+	Request[API_V_RULE] = FwRule;
+	return m_Service.Call(SVC_API_SET_DNS_RULE, Request);
 }
 
 RESULT(QtVariant) CPrivacyCore::GetDnsRule(const QFlexGuid& Guid)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_GUID] = Guid.ToVariant(true);
-	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_DNS_RULE, Request));
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_DNS_RULE, Request), API_V_RULE);
 }
 
 STATUS CPrivacyCore::DelDnsRule(const QFlexGuid& Guid)
@@ -1637,13 +1689,26 @@ RESULT(QtVariant) CPrivacyCore::GetVolumes()
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_VOL_GET_ALL_VOLUMES, Request), API_V_VOLUMES);
 }
 
-STATUS CPrivacyCore::MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect)
+RESULT(QtVariant) CPrivacyCore::GetVolume(const QFlexGuid& Guid)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	RET_AS_XVARIANT(m_Service.Call(SVC_API_VOL_GET_VOLUME, Request));
+}
+
+STATUS CPrivacyCore::SetVolume(const QtVariant& Volume)
+{
+	return m_Service.Call(SVC_API_VOL_SET_VOLUME, Volume);
+}
+
+STATUS CPrivacyCore::MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect, bool bLockdown)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\");
 	Request[API_V_VOL_MOUNT_POINT] = MountPoint;
 	Request[API_V_VOL_PASSWORD] = Password;
 	Request[API_V_VOL_PROTECT] = bProtect;
+	Request[API_V_VOL_LOCKDOWN] = bLockdown;
 	return m_Service.Call(SVC_API_VOL_MOUNT_IMAGE, Request);
 }
 
@@ -1680,10 +1745,20 @@ STATUS CPrivacyCore::ChangeVolumePassword(const QString& Path, const QString& Ol
 }
 
 // Tweak Manager
-RESULT(QtVariant) CPrivacyCore::GetTweaks()
+RESULT(QtVariant) CPrivacyCore::GetTweaks(uint32* pRevision)
 {
 	QtVariant Request(m_pMemPool);
-	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_TWEAKS, Request), API_V_TWEAKS);
+
+	auto Ret = m_Service.Call(SVC_API_GET_TWEAKS, Request);
+	if (Ret.IsError())
+		return ERR(Ret.GetStatus());
+
+	const QtVariant& Res = (const FW::CVariant&)Ret.GetValue();
+
+	if (pRevision)
+		*pRevision = Res.Get(API_V_REVISION).To<uint32>();
+
+	RETURN((QtVariant&)Res.Get(API_V_TWEAKS));
 }
 
 STATUS CPrivacyCore::ApplyTweak(const QString& Id)
@@ -1720,6 +1795,35 @@ RESULT(QtVariant) CPrivacyCore::GetServiceStats()
 {
 	QtVariant Request(m_pMemPool);
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_SVC_STATS, Request));
+}
+
+RESULT(QtVariant) CPrivacyCore::GetScriptLog(const QFlexGuid& Guid, EScriptTypes Type, quint32 LastID)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	Request[API_V_TYPE] = (uint32)Type;
+	if(LastID) 
+		Request[API_V_LAST_ACTIVITY] = LastID;
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_SCRIPT_LOG, Request), API_V_EVENT_LOG);
+}
+
+STATUS CPrivacyCore::ClearScriptLog(const QFlexGuid& Guid, EScriptTypes Type)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	Request[API_V_TYPE] = (uint32)Type;
+	return m_Service.Call(SVC_API_CLEAR_SCRIPT_LOG, Request);
+}
+
+RESULT(QtVariant) CPrivacyCore::CallScriptFunc(const QFlexGuid& Guid, EScriptTypes Type, const QString& Name, const QtVariant& Params)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	Request[API_V_TYPE] = (uint32)Type;
+	Request[API_V_NAME] = Name;
+	if(!Params.IsValid())
+		Request[API_V_PARAMS] = Params;
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_CALL_SCRIPT_FUNC, Request), API_V_DATA);
 }
 
 //
@@ -1790,6 +1894,9 @@ STATUS CPrivacyCore::SetDatFile(const QString& FileName, const QByteArray& Data)
 //}
 
 
+////////////////////////////////////////////////////////////////////////////////
+// Worker
+//
 
 CPrivacyWorker::CPrivacyWorker(QObject* parent)
 	: QObject(parent)
@@ -1831,4 +1938,114 @@ void CPrivacyWorker::DoUpdate()
 	//DbgPrint("m_pAccessManager->Update() took %llu ms\n", GetTickCount64() - uStart);
 
 	// todo: log errors
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Hooks
+//
+
+// Hook: NtMapViewOfSection
+
+#include "../Library/Hooking/HookUtils.h"
+
+typedef NTSTATUS (*P_NtMapViewOfSection)(
+	IN  HANDLE SectionHandle,
+	IN  HANDLE ProcessHandle,
+	IN  OUT PVOID *BaseAddress,
+	IN  ULONG_PTR ZeroBits,
+	IN  SIZE_T CommitSize,
+	IN  OUT PLARGE_INTEGER SectionOffset OPTIONAL,
+	IN  OUT PSIZE_T ViewSize,
+	IN  ULONG InheritDisposition,
+	IN  ULONG AllocationType,
+	IN  ULONG Protect);
+
+P_NtMapViewOfSection NtMapViewOfSectionTramp = NULL;
+
+bool IsMemoryReadable(PVOID Address)
+{
+	MEMORY_BASIC_INFORMATION mbi;
+	if (VirtualQuery(Address, &mbi, sizeof(mbi)) == 0)
+		return false;
+
+	if (mbi.Protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE))
+		return true;
+
+	return false;
+}
+
+NTSTATUS NTAPI MyMapViewOfSection(
+	IN  HANDLE SectionHandle,
+	IN  HANDLE ProcessHandle,
+	IN  OUT PVOID* BaseAddress,
+	IN  ULONG_PTR ZeroBits,
+	IN  SIZE_T CommitSize,
+	IN  OUT PLARGE_INTEGER SectionOffset OPTIONAL,
+	IN  OUT PSIZE_T ViewSize,
+	IN  ULONG InheritDisposition,
+	IN  ULONG AllocationType,
+	IN  ULONG Protect)
+{
+	NTSTATUS status = NtMapViewOfSectionTramp(SectionHandle, ProcessHandle, BaseAddress, ZeroBits, CommitSize, SectionOffset, ViewSize, InheritDisposition, AllocationType, Protect);
+	if (NT_SUCCESS(status))
+	{
+		if (BaseAddress && *BaseAddress && !IsMemoryReadable(*BaseAddress))
+		{
+			DbgPrint("MyMapViewOfSection: Invalid BaseAddress: %p", *BaseAddress);
+			status = STATUS_ACCESS_DENIED;
+		}
+	}
+	return status;
+}
+
+// Hook: LoadLibraryExW
+
+typedef HMODULE (*P_LoadLibraryExW)(
+	LPCWSTR lpLibFileName,
+	HANDLE hFile,
+	DWORD dwFlags);
+
+P_LoadLibraryExW LoadLibraryExWTramp = NULL;
+
+HMODULE NTAPI MyLoadLibraryExW(
+	LPCWSTR lpLibFileName,
+	HANDLE hFile,
+	DWORD dwFlags)
+{
+	bool bNonExecutable = ((dwFlags & LOAD_LIBRARY_AS_IMAGE_RESOURCE) && (dwFlags & (LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE)));
+
+	if (bNonExecutable)
+		theCore->Driver()->SetIgnorePendingImageLoad(true);
+
+	HMODULE hModule = LoadLibraryExWTramp(lpLibFileName, hFile, dwFlags);
+
+	if (bNonExecutable)
+		theCore->Driver()->SetIgnorePendingImageLoad(false);
+
+	return hModule;
+}
+
+// Init
+
+STATUS CPrivacyCore::InitHooks()
+{
+	//
+	// If a dll is not signed like a shell extension for the default windows file open dialog,
+	// or alike, we have a problem as our driver when ImageLoadProtection == TRUE will block the loading of the dll
+	// and unmap the just loaded section from the driver, so we add a sanity check for NtMapViewOfSection
+	// if it returns no error but the memory is not readable return STATUS_ACCESS_DENIED instead.
+	//
+
+	HookFunction(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtMapViewOfSection"), MyMapViewOfSection, (VOID**)&NtMapViewOfSectionTramp);
+
+	//
+	// On windows 7 the notifier set by PsSetLoadImageNotifyRoutine is als called for non executable image load
+	// we need those loads to read resoruces and icons, so we need to tell the driver upfront to skip the image verificatoin for the upcomming load
+	//
+
+	if (g_WindowsVersion < WINDOWS_10)
+		HookFunction(LoadLibraryExW, MyLoadLibraryExW, (VOID**)&LoadLibraryExWTramp);
+
+	return OK;
 }

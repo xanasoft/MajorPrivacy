@@ -8,6 +8,7 @@
 #include "../Library/Helpers/ScopedHandle.h"
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/Helpers/NtUtil.h"
+#include "../Library/Helpers/WinUtil.h"
 #include "../Library/IPC/AbstractClient.h"
 #include <shellapi.h>
 #include "Helpers/SecDeskHelper.h"
@@ -132,7 +133,7 @@ int WinMain(
     LPSTR lpCmdLine, int nCmdShow)
 {
 #ifdef _DEBUG
-    SetThreadDescription(GetCurrentThread(), L"WinMain");
+    MySetThreadDescription(GetCurrentThread(), L"WinMain");
 #endif
 
 	//NTCRT_DEFINE(MyCRT);
@@ -196,7 +197,8 @@ int WinMain(
     else if (HasFlag(arguments, L"startup"))
     {
         SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
-        if ((SvcState & SVC_INSTALLED) == SVC_INSTALLED && (SvcState & SVC_RUNNING) != SVC_RUNNING) {
+        if ((SvcState & SVC_INSTALLED) == SVC_INSTALLED && (SvcState & SVC_RUNNING) != SVC_RUNNING) 
+        {
             std::wstring BinaryPath = GetServiceBinaryPath(API_SERVICE_NAME);
             std::wstring ServicePath = CServiceCore::NormalizePath(GetFileFromCommand(BinaryPath));
             std::wstring AppDir = CServiceCore::NormalizePath(GetApplicationDirectory());
@@ -230,26 +232,34 @@ int WinMain(
     }
     else if (HasFlag(arguments, L"unload") || HasFlag(arguments, L"remove"))
     {
+        bool bRemove = HasFlag(arguments, L"remove");
+
+        CDriverAPI* pDrvApi = new CDriverAPI();
+        Status = pDrvApi->ConnectDrv();
+        if (Status) {
+            g_UnloadProtection = pDrvApi->GetConfigBool("UnloadProtection", false);
+            pDrvApi->Disconnect();
+        }
+        delete pDrvApi;
+        pDrvApi = NULL;
+
         SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
-        if ((SvcState & SVC_RUNNING) == SVC_RUNNING) 
+        if (SvcState == 0 || (SvcState & SVC_RUNNING) == SVC_RUNNING) // not installed or running
         {
-            CDriverAPI* pDrvApi = new CDriverAPI();
-            Status = pDrvApi->ConnectDrv();
-            if (Status) {
-                g_UnloadProtection = pDrvApi->GetConfigBool("UnloadProtection", false);
-                pDrvApi->Disconnect();
-            }
-            delete pDrvApi;
-            pDrvApi = NULL;
-
             CServiceAPI* pSvcAPI = new CServiceAPI();
-            Status = pSvcAPI->ConnectSvc();
-            if (Status) {
-
-                if (g_UnloadProtection) 
+			if (SvcState == 0) // when service is not installed try connect in case it runs in engine mode
+                Status = pSvcAPI->ConnectEngine(false);
+            else
+                Status = pSvcAPI->ConnectSvc();
+            if (Status) 
+            {
+                if (g_UnloadProtection)
                 {
                     StVariant Args;
-                    Args[API_V_MB_TEXT] = L"Do you want to remove MajorPrivacy Service and Driver?";
+                    if (bRemove)
+                        Args[API_V_MB_TEXT] = L"Do you want to remove MajorPrivacy Service and Driver?";
+                    else
+                        Args[API_V_MB_TEXT] = L"Do you want to unload MajorPrivacy Service and Driver?";
                     //Args[API_V_MB_TITLE]
                     Args[API_V_MB_TYPE] = (uint32)MB_YESNO;
                     auto Ret = pSvcAPI->Call(SVC_API_SHOW_SECURE_PROMPT, Args, NULL);
@@ -257,18 +267,30 @@ int WinMain(
                         return -1;
                 }
 
-                Status = pSvcAPI->Call(SVC_API_SHUTDOWN, StVariant(), NULL);
+                auto Ret = pSvcAPI->Call(SVC_API_SHUTDOWN, StVariant(), NULL);
+                if(Ret.IsError())
+					Status = Ret;
+                else if (SvcState == 0)
+                {
+					DWORD PID = Ret.GetValue().Get(API_V_PID).To<uint32>();
+					HANDLE hProcess = OpenProcess(SYNCHRONIZE, FALSE, PID);
+                    if (hProcess) {
+                        WaitForSingleObject(hProcess, 30000);
+                        CloseHandle(hProcess);
+                    }
+                }
                 pSvcAPI->Disconnect();
             }
             delete pSvcAPI;
             pSvcAPI = NULL;
 
-            Status = KillService(API_SERVICE_NAME);
+            if ((SvcState & SVC_RUNNING) == SVC_RUNNING)
+                Status = KillService(API_SERVICE_NAME);
         }
 
         Status = CServiceCore::StopDriver();
 
-        if (Status && HasFlag(arguments, L"remove"))
+        if (Status && bRemove)
         {
             if (Status && (SvcState & SVC_INSTALLED) == SVC_INSTALLED)
                 Status = RemoveService(API_SERVICE_NAME);

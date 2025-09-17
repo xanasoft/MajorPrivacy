@@ -3,6 +3,7 @@
 #include "../../MiscHelpers/Common/PanelView.h"
 #include "../../MiscHelpers/Common/TreeWidgetEx.h"
 #include "../Core/Programs/ProgramItem.h"
+#include "../Core/EventLog.h"
 
 class CEventView : public QWidget
 {
@@ -26,6 +27,8 @@ protected:
 
 private slots:
 	void					OnClearEventLog();	
+
+	void					OnNewEntry(const CEventLogEntryPtr& pEntry);
 
 private:
 	QGridLayout*			m_pMainLayout;

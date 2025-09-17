@@ -42,6 +42,7 @@ private slots:
 	void OnRemoteIPSet();
 
 	void OnSaveAndClose();
+	bool OnSave();
 
 
 protected:

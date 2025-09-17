@@ -8,6 +8,8 @@
 #include "../Framework/Core/Memory.h"
 #include "../Library/API/PrivacyDefs.h"
 #include "../../Framework/Core/MemoryPool.h"
+#include "JSEngine/JSEngine.h"
+#include "../Library/Common/FlexGuid.h"
 
 #define DEF_CORE_TIMER_INTERVAL		250
 
@@ -64,6 +66,8 @@ public:
 
 	class CEtwEventMonitor*	EtwEventMonitor()		{ return m_pEtwEventMonitor; }
 
+	CJSEnginePtr			GetScript(const CFlexGuid& Guid, EScriptTypes Type);
+
 	int						BroadcastMessage(uint32 MessageID, const StVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram = NULL);
 
 	HANDLE					GetThreadHandle() const { return m_hThread; }
@@ -87,6 +91,8 @@ protected:
 	~CServiceCore();
 
 	STATUS Init();
+
+	STATUS InitHooks();
 
 	STATUS InitDriver();
 	void CloseDriver();

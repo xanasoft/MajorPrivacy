@@ -126,6 +126,8 @@ StVariant CAbstractTweak::ToVariant(const SVarWriteOpt& Opts) const
 
 NTSTATUS CAbstractTweak::FromVariant(const class StVariant& Data)
 {
+    std::unique_lock Lock(m_Mutex);
+
     if (Data.GetType() == VAR_TYPE_MAP)         StVariantReader(Data).ReadRawMap([&](const SVarName& Name, const StVariant& Data) { ReadMValue(Name, Data); });
     else if (Data.GetType() == VAR_TYPE_INDEX)  StVariantReader(Data).ReadRawIndex([&](uint32 Index, const StVariant& Data) { ReadIValue(Index, Data); });
     else

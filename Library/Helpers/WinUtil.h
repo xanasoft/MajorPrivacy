@@ -56,3 +56,5 @@ FORCEINLINE VOID NTAPI PhServiceWorkaroundWindowsServiceTypeBug(_Inout_ LPENUM_S
     if (ServiceEntry->ServiceStatusProcess.dwServiceType == (SERVICE_WIN32 | SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE))
         ServiceEntry->ServiceStatusProcess.dwServiceType = SERVICE_USER_SHARE_PROCESS | SERVICE_USERSERVICE_INSTANCE;
 }
+
+LIBRARY_EXPORT VOID MySetThreadDescription(HANDLE hThread, PCWSTR lpThreadDescription);

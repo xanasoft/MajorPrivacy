@@ -4,6 +4,7 @@
 #include "../Core/Programs/AppPackage.h"
 #include "../../MiscHelpers/Common/Common.h"
 #include "../../Library/Helpers/NtUtil.h"
+#include "../../Library/Helpers/NtPathMgr.h"
 
 
 CProgramModel::CProgramModel(QObject *parent)
@@ -229,11 +230,16 @@ void CProgramModel::Sync(const CProgramItemPtr& pItem, const QString& RootID, co
 		pNode->Icon = pItem->GetIcon();
 		Changed = 1;
 	}
-	if (pNode->IsGray != pItem->IsMissing()) 
-	{
-		pNode->IsGray = pItem->IsMissing();
+	if (pNode->IsMissing != pItem->IsMissing()) {
+		pNode->IsMissing = pItem->IsMissing();
+		pNode->TextColor = pNode->IsMissing ? QBrush(Qt::red) : QVariant();
 		Changed = 2; // set change for all columns
 	}
+	//if (pNode->IsGray != pItem->IsMissing()) 
+	//{
+	//	pNode->IsGray = pItem->IsMissing();
+	//	Changed = 2; // set change for all columns
+	//}
 
 	for (int section = 0; section < columnCount(); section++)
 	{
@@ -282,8 +288,6 @@ void CProgramModel::Sync(const CProgramItemPtr& pItem, const QString& RootID, co
 
 			switch (section)
 			{
-			//case eName: 		ColValue.Formatted = pItem->GetNameEx(); break;
-
 			case eProgramRules:		if(pStats->ProgRuleCount != pStats->ProgRuleTotal) ColValue.Formatted = tr("%1/%2").arg(pStats->ProgRuleCount).arg(pStats->ProgRuleTotal); break;
 			case eLastExecution:	ColValue.Formatted = Value.toULongLong() ? QDateTime::fromMSecsSinceEpoch(Value.toULongLong()).toString("dd.MM.yyyy hh:mm:ss") : ""; break;
 
@@ -332,12 +336,14 @@ QVariant CProgramModel::NodeData(STreeNode* pNode, int role, int section) const
 		case Qt::ToolTipRole:
 		{
 			if(section == ePath)
-				return pProcessNode->pItem->GetPath();
+				return  QString::fromStdWString(CNtPathMgr::Instance()->TranslateDosToNtPath(pProcessNode->pItem->GetPath().toStdWString()));
 			else if (section == eName)
 			{
 				CAppPackagePtr pApp = pProcessNode->pItem.objectCast<CAppPackage>();
 				if (pApp)
-					return tr("App Name: %1\nPacket Name: %2\nPacket SID: %3").arg(pApp->GetContainerName()).arg(pApp->GetPackageName()).arg(pApp->GetAppSid());
+					return tr("App Name: %1\nPacket Name: %2\nPacket SID: %3\nPath: %4").arg(pApp->GetContainerName()).arg(pApp->GetPackageName()).arg(pApp->GetAppSid()).arg(pProcessNode->pItem->GetPath());
+				else
+					return pProcessNode->pItem->GetPath();
 			}
 
 			break;

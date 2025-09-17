@@ -48,7 +48,7 @@
         <enum>QTabWidget::TabPosition::North</enum>
        </property>
        <property name="currentIndex">
-        <number>6</number>
+        <number>5</number>
        </property>
        <widget class="QWidget" name="tabGeneral">
         <attribute name="title">
@@ -397,18 +397,40 @@
         <layout class="QGridLayout" name="gridLayout_12">
          <item row="0" column="0">
           <layout class="QGridLayout" name="gridLayout_11">
-           <item row="2" column="0" rowspan="2">
-            <widget class="QTreeWidget" name="treeIgnore">
-             <column>
-              <property name="text">
-               <string>Type</string>
-              </property>
-             </column>
-             <column>
-              <property name="text">
-               <string>Data</string>
-              </property>
-             </column>
+           <item row="3" column="1">
+            <widget class="QToolButton" name="btnDelIgnore">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>23</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Remove Entry</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="lblIgnore">
+             <property name="font">
+              <font>
+               <bold>true</bold>
+               <kerning>true</kerning>
+              </font>
+             </property>
+             <property name="text">
+              <string>Ignore List</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>When an event notification is displayed you can ignore all future notifications for a specific file, these ignore entries can be removed usin the below list, to add new entries you need to add them from the notification popup.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
             </widget>
            </item>
            <item row="2" column="1">
@@ -424,40 +446,18 @@
              </property>
             </spacer>
            </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="lblIgnore">
-             <property name="font">
-              <font>
-               <bold>true</bold>
-               <kerning>true</kerning>
-              </font>
-             </property>
-             <property name="text">
-              <string>Ignore List</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QToolButton" name="btnDelIgnore">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>23</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Remove Entry</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label">
-             <property name="text">
-              <string>When an event notification is displayed you can ignore all future notifications for a specific file, these ignore entries can be removed usin the below list, to add new entries you need to add them from the notification popup.</string>
-             </property>
-             <property name="wordWrap">
-              <bool>true</bool>
-             </property>
+           <item row="2" column="0" rowspan="2">
+            <widget class="QTreeWidget" name="treeIgnore">
+             <column>
+              <property name="text">
+               <string>Type</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Data</string>
+              </property>
+             </column>
             </widget>
            </item>
           </layout>
@@ -647,217 +647,371 @@
         </attribute>
         <layout class="QGridLayout" name="gridLayout_4">
          <item row="0" column="0">
-          <layout class="QGridLayout" name="gridLayout_2">
-           <item row="10" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkFwShowPopUp">
-             <property name="text">
-              <string>Show Connection Notification Popups</string>
-             </property>
-            </widget>
-           </item>
-           <item row="8" column="0" colspan="2">
-            <widget class="QLabel" name="lblFwInfo">
-             <property name="font">
-              <font>
-               <bold>true</bold>
-               <kerning>true</kerning>
-              </font>
-             </property>
-             <property name="text">
-              <string>Windows Firewall Logging</string>
-             </property>
-            </widget>
-           </item>
-           <item row="18" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkLoadFwLog">
-             <property name="text">
-              <string>Load Windows Firewall Log on start (can be very slow)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="19" column="2">
-            <spacer name="horizontalSpacer">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="9" column="3">
-            <widget class="QLabel" name="label_4">
-             <property name="text">
-              <string>(Should be set to All)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="11" column="2" colspan="2">
-            <widget class="QCheckBox" name="chkFwInOutRules">
-             <property name="text">
-              <string>When creating a new (outbound) rule also create an inbound rule</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1" colspan="2">
-            <widget class="QRadioButton" name="radFwBlockList">
-             <property name="text">
-              <string>Block List Mode (Windows default)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="19" column="3">
-            <spacer name="horizontalSpacer_2">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="lblFw">
-             <property name="font">
-              <font>
-               <bold>true</bold>
-               <kerning>true</kerning>
-              </font>
-             </property>
-             <property name="text">
-              <string>Windows Firewall Mode</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0" colspan="2">
-            <widget class="QLabel" name="lblFwGuard">
-             <property name="font">
-              <font>
-               <bold>true</bold>
-               <kerning>true</kerning>
-              </font>
-             </property>
-             <property name="text">
-              <string>Windows Firewall Protection</string>
-             </property>
-            </widget>
-           </item>
-           <item row="13" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkNetTrace">
-             <property name="text">
-              <string>Record Network Traffic</string>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkGuardFwRules">
-             <property name="text">
-              <string>Auto Revers any Unanthorized Changed to Windows Firewall Rules</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkFwShowAlerts">
-             <property name="text">
-              <string>Show Unexpected Rule Change Alert Popups</string>
-             </property>
-             <property name="shortcut">
-              <string>Ctrl+S</string>
-             </property>
-            </widget>
-           </item>
-           <item row="12" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkFwPlus">
-             <property name="toolTip">
-              <string>This feature enables the creation of firewall rule templates with path wildcards. When the Privacy Agent detects network activity matching a template without an existing rule, it automatically generates a new firewall rule.</string>
-             </property>
-             <property name="text">
-              <string>Enhance Windows Firewall with Dynamic Rule Templates</string>
-             </property>
-            </widget>
-           </item>
-           <item row="17" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkSimpleDomains">
-             <property name="text">
-              <string>Use Simple Domain Resolution</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1" colspan="2">
-            <widget class="QRadioButton" name="radFwDisable">
-             <property name="text">
-              <string>Disable Windows Firewall (not recomended)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="16" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkReverseDNS">
-             <property name="text">
-              <string>Use Reverse DNS</string>
-             </property>
-            </widget>
-           </item>
-           <item row="15" column="2" colspan="2">
-            <widget class="QCheckBox" name="chkFwLog">
-             <property name="text">
-              <string>Log all Network Access events to Memory</string>
-             </property>
-            </widget>
-           </item>
-           <item row="14" column="2" colspan="2">
-            <widget class="QCheckBox" name="chkTrafficRecord">
-             <property name="text">
-              <string>Save Network Traffic Record to Disk (TrafficRecord.dat)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="9" column="0">
-            <widget class="QLabel" name="label_3">
-             <property name="text">
-              <string>Firewall Audit Policy</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1" colspan="2">
-            <widget class="QRadioButton" name="radFwAllowList">
-             <property name="text">
-              <string>Allow List Mode (recommended)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="9" column="1" colspan="2">
-            <widget class="QComboBox" name="cmbFwAuditPolicy"/>
-           </item>
-           <item row="19" column="1">
-            <spacer name="verticalSpacer_3">
-             <property name="orientation">
-              <enum>Qt::Orientation::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="7" column="2" colspan="2">
-            <widget class="QCheckBox" name="chkFwDelRogue">
-             <property name="text">
-              <string>Delete Unauthorized rules instead of Disabling them</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
+          <widget class="QTabWidget" name="tabsFw">
+           <property name="currentIndex">
+            <number>1</number>
+           </property>
+           <widget class="QWidget" name="tab">
+            <attribute name="title">
+             <string>Windows Firewall Management</string>
+            </attribute>
+            <layout class="QGridLayout" name="gridLayout_18">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout_2">
+               <item row="8" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkFwPlus">
+                 <property name="toolTip">
+                  <string>This feature enables the creation of firewall rule templates with path wildcards. When the Privacy Agent detects network activity matching a template without an existing rule, it automatically generates a new firewall rule.</string>
+                 </property>
+                 <property name="text">
+                  <string>Enhance Windows Firewall with Dynamic Rule Templates</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="13" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkReverseDNS">
+                 <property name="text">
+                  <string>Use Reverse DNS</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1" colspan="2">
+                <widget class="QRadioButton" name="radFwAllowList">
+                 <property name="text">
+                  <string>Allow List Mode (recommended)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="0">
+                <widget class="QLabel" name="label_3">
+                 <property name="text">
+                  <string>Firewall Audit Policy</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1" colspan="2">
+                <widget class="QComboBox" name="cmbFwAuditPolicy"/>
+               </item>
+               <item row="12" column="2" colspan="2">
+                <widget class="QCheckBox" name="chkFwLog">
+                 <property name="text">
+                  <string>Log all Network Access events to Memory</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1" colspan="2">
+                <widget class="QRadioButton" name="radFwBlockList">
+                 <property name="text">
+                  <string>Block List Mode (Windows default)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="lblFw">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Windows Firewall Mode</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="10" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkNetTrace">
+                 <property name="text">
+                  <string>Record Network Traffic</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="16" column="1">
+                <spacer name="verticalSpacer_3">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="5" column="3">
+                <widget class="QLabel" name="label_4">
+                 <property name="text">
+                  <string>(Should be set to All)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="2" colspan="2">
+                <widget class="QCheckBox" name="chkFwInOutRules">
+                 <property name="text">
+                  <string>When creating a new (outbound) rule also create an inbound rule</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1" colspan="2">
+                <widget class="QRadioButton" name="radFwDisable">
+                 <property name="text">
+                  <string>Disable Windows Firewall (not recomended)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="15" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkLoadFwLog">
+                 <property name="text">
+                  <string>Load Windows Firewall Log on start (can be very slow)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="16" column="3">
+                <spacer name="horizontalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="14" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkSimpleDomains">
+                 <property name="text">
+                  <string>Use Simple Domain Resolution</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="16" column="2">
+                <spacer name="horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="4" column="0" colspan="2">
+                <widget class="QLabel" name="lblFwInfo">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Windows Firewall Logging</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkFwShowPopUp">
+                 <property name="text">
+                  <string>Show Connection Notification Popups</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="11" column="2" colspan="2">
+                <widget class="QCheckBox" name="chkTrafficRecord">
+                 <property name="text">
+                  <string>Save Network Traffic Record to Disk (TrafficRecord.dat)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="2" colspan="2">
+                <widget class="QCheckBox" name="chkFwPlusNotify">
+                 <property name="text">
+                  <string>Show system notification when a new rule has been created</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="tab_2">
+            <attribute name="title">
+             <string>Windows Firewall Protection</string>
+            </attribute>
+            <layout class="QGridLayout" name="gridLayout_20">
+             <item row="0" column="0">
+              <layout class="QGridLayout" name="gridLayout_19">
+               <item row="0" column="0" colspan="2">
+                <widget class="QLabel" name="lblFwGuard">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Windows Firewall Protection</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="3">
+                <widget class="QToolButton" name="btnFwGuardApprove">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Add Approve</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="0" colspan="3">
+                <widget class="QLabel" name="label_14">
+                 <property name="text">
+                  <string>You can specify guidelines below which rule changes to auto accept or revert based on the subject application file path.</string>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="2">
+                <spacer name="horizontalSpacer_14">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="8" column="3">
+                <widget class="QToolButton" name="btnFwGuardReject">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Add Reject</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkFwShowAlerts">
+                 <property name="text">
+                  <string>Show Unexpected Rule Change Alert Popups</string>
+                 </property>
+                 <property name="shortcut">
+                  <string>Ctrl+S</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="3">
+                <spacer name="verticalSpacer_10">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="10" column="3">
+                <widget class="QToolButton" name="btnFwGuardRemove">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Remove</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="2" colspan="2">
+                <widget class="QCheckBox" name="chkFwDelRogue">
+                 <property name="text">
+                  <string>Delete Unauthorized rules instead of Disabling them</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkGuardFwRules">
+                 <property name="text">
+                  <string>Auto Revers any Unanthorized Changed to Windows Firewall Rules</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QLabel" name="label_10">
+                 <property name="minimumSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="0">
+                <widget class="QLabel" name="lblFwAutoGuard">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Firewall Guard Autoamtion</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="0" rowspan="4" colspan="3">
+                <widget class="QTreeWidget" name="treeFwGuard">
+                 <column>
+                  <property name="text">
+                   <string>Type</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Path</string>
+                  </property>
+                 </column>
+                </widget>
+               </item>
+               <item row="11" column="0" colspan="4">
+                <widget class="QCheckBox" name="btnFwGuardNotify">
+                 <property name="text">
+                  <string>Show system notification when a rule is rejected or approved</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -1352,6 +1506,106 @@
                <property name="leftMargin">
                 <number>0</number>
                </property>
+               <item row="2" column="4" colspan="2">
+                <widget class="QLabel" name="lblCurrent">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="6">
+                <spacer name="horizontalSpacer_22">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="2" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkAutoUpdate">
+                 <property name="text">
+                  <string>Check periodically for new MajorPrivacy versions</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="3">
+                <widget class="QComboBox" name="cmbInterval"/>
+               </item>
+               <item row="9" column="4" colspan="2">
+                <spacer name="horizontalSpacer_21">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="4" column="1">
+                <widget class="QLabel" name="label_39">
+                 <property name="maximumSize">
+                  <size>
+                   <width>20</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="3">
+                <widget class="QComboBox" name="cmbRelease"/>
+               </item>
+               <item row="5" column="4">
+                <widget class="QLabel" name="lblPreview">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="4" colspan="3">
+                <widget class="QLabel" name="lblRevision">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="1">
+                <spacer name="verticalSpacer_12">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="4" column="4">
+                <widget class="QLabel" name="lblStable">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="4" colspan="3">
+                <widget class="QLabel" name="lblRelease">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
                <item row="7" column="2">
                 <widget class="QLabel" name="label_25">
                  <property name="toolTip">
@@ -1365,39 +1619,16 @@
                  </property>
                 </widget>
                </item>
-               <item row="8" column="6">
-                <spacer name="horizontalSpacer_22">
-                 <property name="orientation">
-                  <enum>Qt::Orientation::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </spacer>
+               <item row="6" column="3">
+                <widget class="QComboBox" name="cmbUpdate"/>
                </item>
-               <item row="3" column="3">
-                <widget class="QComboBox" name="cmbInterval"/>
-               </item>
-               <item row="2" column="1" colspan="3">
-                <widget class="QCheckBox" name="chkAutoUpdate">
+               <item row="3" column="2">
+                <widget class="QLabel" name="label_5">
                  <property name="text">
-                  <string>Check periodically for new MajorPrivacy versions</string>
+                  <string>Update Check Interval</string>
                  </property>
-                </widget>
-               </item>
-               <item row="4" column="1">
-                <widget class="QLabel" name="label_39">
-                 <property name="maximumSize">
-                  <size>
-                   <width>20</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string/>
+                 <property name="buddy">
+                  <cstring>cmbInterval</cstring>
                  </property>
                 </widget>
                </item>
@@ -1414,26 +1645,6 @@
                  </property>
                 </widget>
                </item>
-               <item row="8" column="4" colspan="2">
-                <spacer name="horizontalSpacer_21">
-                 <property name="orientation">
-                  <enum>Qt::Orientation::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item row="4" column="4">
-                <widget class="QLabel" name="lblStable">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
                <item row="5" column="2" colspan="2">
                 <widget class="QRadioButton" name="radPreview">
                  <property name="toolTip">
@@ -1441,34 +1652,6 @@
                  </property>
                  <property name="text">
                   <string>Search in the Preview channel</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="4" colspan="3">
-                <widget class="QLabel" name="lblRevision">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="7" column="4" colspan="3">
-                <widget class="QLabel" name="lblRelease">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="4" colspan="2">
-                <widget class="QLabel" name="lblCurrent">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="5" column="4">
-                <widget class="QLabel" name="lblPreview">
-                 <property name="text">
-                  <string/>
                  </property>
                 </widget>
                </item>
@@ -1485,19 +1668,6 @@
                  </property>
                 </widget>
                </item>
-               <item row="8" column="1">
-                <spacer name="verticalSpacer_12">
-                 <property name="orientation">
-                  <enum>Qt::Orientation::Vertical</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>20</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
                <item row="4" column="2" colspan="2">
                 <widget class="QRadioButton" name="radStable">
                  <property name="toolTip">
@@ -1508,21 +1678,12 @@
                  </property>
                 </widget>
                </item>
-               <item row="7" column="3">
-                <widget class="QComboBox" name="cmbRelease"/>
-               </item>
-               <item row="3" column="2">
-                <widget class="QLabel" name="label_5">
+               <item row="8" column="1" colspan="6">
+                <widget class="QCheckBox" name="chkUpdateTweaks">
                  <property name="text">
-                  <string>Update Check Interval</string>
-                 </property>
-                 <property name="buddy">
-                  <cstring>cmbInterval</cstring>
+                  <string>Update Tweak List from Server when checking for updates</string>
                  </property>
                 </widget>
-               </item>
-               <item row="6" column="3">
-                <widget class="QComboBox" name="cmbUpdate"/>
                </item>
               </layout>
              </item>
@@ -1554,7 +1715,6 @@
  </tabstops>
  <resources>
   <include location="../Resources/MajorPrivacy.qrc"/>
-  <include location="../Resources/SandMan.qrc"/>
  </resources>
  <connections/>
 </ui>

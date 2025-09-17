@@ -110,6 +110,7 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
+	connect(ui.buttonBox->button(QDialogButtonBox::Apply), SIGNAL(clicked(bool)), this, SLOT(OnSave()));
 	
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Allow"), GetActionColor(EAccessRuleType::eAllow), (int)EAccessRuleType::eAllow);
 	AddColoredComboBoxEntry(ui.cmbAction, tr("Read Only"), GetActionColor(EAccessRuleType::eAllowRO), (int)EAccessRuleType::eAllowRO);
@@ -187,8 +188,13 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 	SetComboBoxValue(ui.cmbAction, (int)m_pRule->m_Type);
 
 	//ui.txtScript->setPlainText(m_pRule->m_Script);
+	m_Script = m_pRule->m_Script;
 
 	ui.chkScript->setChecked(m_pRule->m_bUseScript);
+	if(m_pRule->m_Script.isEmpty())
+		ui.btnScript->setIcon(QIcon(":/Icons/Script-Add.png"));
+	else
+		ui.btnScript->setIcon(QIcon(":/Icons/Script-Edit.png"));
 	ui.chkInteractive->setChecked(m_pRule->m_bInteractive);
 
 	m_NameHold = false;
@@ -278,18 +284,18 @@ void CAccessRuleWnd::BrowseFile()
 	ui.cmbPath->setEditText(Value);
 }
 
-void CAccessRuleWnd::OnSaveAndClose()
+bool CAccessRuleWnd::OnSave()
 {
 	if (!Save()) {
 		QApplication::beep();
-		return;
+		return false;
 	}
 
 	if (m_pRule->m_Guid.IsNull())
 	{
 		QString Path = ui.cmbPath->currentText();
 		QString NtPath = Path.startsWith("\\") ? Path : QString::fromStdWString(CNtPathMgr::Instance()->TranslateDosToNtPath(Path.toStdWString()));
-		if (!NtPath.isEmpty()) 
+		if (!NtPath.isEmpty())
 		{
 			theCore->VolumeManager()->Update();
 			auto Volumes = theCore->VolumeManager()->List();
@@ -306,10 +312,17 @@ void CAccessRuleWnd::OnSaveAndClose()
 		}
 	}
 
-	STATUS Status = theCore->AccessManager()->SetAccessRule(m_pRule);	
+	STATUS Status = theCore->AccessManager()->SetAccessRule(m_pRule);
 	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
-		return;
-	accept();
+		return false;
+
+	return true;
+}
+
+void CAccessRuleWnd::OnSaveAndClose()
+{
+	if(OnSave())
+		accept();
 }
 
 bool CAccessRuleWnd::Save()
@@ -328,6 +341,12 @@ bool CAccessRuleWnd::Save()
 	}*/
 	m_pRule->m_ProgramID.SetPath(ui.txtProgPath->text().toLower());
 	m_pRule->m_ProgramPath = ui.txtProgPath->text();
+	if (!m_pRule->m_ProgramPath.isEmpty() && m_pRule->m_ProgramPath != "*") { // is set?
+		if (!CAccessRule::IsPathValid(m_pRule->m_ProgramPath)) {
+			QMessageBox::warning(this, tr("Error"), tr("The Program Path is not valid."));
+			return false;
+		}
+	}
 
 	m_pRule->m_Enclave = QFlexGuid(GetComboBoxValue(ui.cmbEnclave));
 
@@ -341,10 +360,19 @@ bool CAccessRuleWnd::Save()
 	}
 
 	m_pRule->m_AccessPath = Path;
+	if (!CAccessRule::IsPathValid(m_pRule->m_AccessPath)) {
+		QMessageBox::warning(this, tr("Error"), tr("The File Path is not valid."));
+		return false;
+	}
+	if (CAccessRule::IsUnsafePath(m_pRule->m_AccessPath)) {
+		QMessageBox::warning(this, tr("Error"), tr("The File Path may break windows, please use a more specific path."));
+		return false;
+	}
 
 	m_pRule->m_Type = (EAccessRuleType)GetComboBoxValue(ui.cmbAction).toInt();
 
 	//m_pRule->m_Script = ui.txtScript->toPlainText();
+	m_pRule->m_Script = m_Script;
 
 	m_pRule->m_bUseScript = ui.chkScript->isChecked();
 	m_pRule->m_bInteractive = ui.chkInteractive->isChecked();
@@ -435,13 +463,8 @@ void CAccessRuleWnd::OnActionChanged()
 {
 	TryMakeName();
 
-	ui.chkScript->setEnabled(ui.cmbAction->currentData() == (int)EAccessRuleType::eProtect);
+	//ui.chkScript->setEnabled(ui.cmbAction->currentData() == (int)EAccessRuleType::eProtect);
 	//ui.btnScript->setEnabled(ui.chkScript->isChecked());
-
-	if(m_pRule->m_Script.isEmpty())
-		ui.btnScript->setIcon(QIcon(":/Icons/Script-Add.png"));
-	else
-		ui.btnScript->setIcon(QIcon(":/Icons/Script-Edit.png"));
 
 	ui.chkInteractive->setEnabled(ui.cmbAction->currentData() == (int)EAccessRuleType::eProtect);
 }
@@ -466,11 +489,15 @@ void CAccessRuleWnd::TryMakeName()
 
 void CAccessRuleWnd::EditScript()
 {
-	CScriptWindow ScriptWnd(this);
-	ScriptWnd.SetScript(m_pRule->m_Script);
-	//if (theGUI->SafeExec(&ScriptWnd)) {
-	if (ScriptWnd.exec()) {
-		m_pRule->m_Script = ScriptWnd.GetScript();
-		//ui.txtScript->setPlainText(m_pRule->m_Script);
-	}
+	CScriptWindow* pScriptWnd = new CScriptWindow(m_pRule->GetGuid(), EScriptTypes::eResRule, this);
+	pScriptWnd->SetScript(m_Script);
+	pScriptWnd->SetSaver([&](const QString& Script, bool bApply){
+		m_Script = Script;
+		if (bApply) {
+			m_pRule->m_Script = Script;
+			return theCore->AccessManager()->SetAccessRule(m_pRule);
+		}
+		return OK;
+	});
+	SafeShow(pScriptWnd);
 }

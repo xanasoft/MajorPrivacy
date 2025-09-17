@@ -669,8 +669,18 @@ uint64 CProgramFile::AddTraceLogEntry(const CTraceLogEntryPtr& pLogEntry, ETrace
 	if (ePreset == ETracePreset::eNoTrace || (ePreset == ETracePreset::eDefault && !bSave))
 		return -1;
 
+	size_t CleanupCount = theCore->Config()->GetUInt64("Service", "TraceLogRetentionCount", 10000);
+
 	STraceLogPtr& TraceLog = m_TraceLogs[(int)Log];
 	std::unique_lock LogLock(TraceLog->Mutex);
+
+	// check if we exceed the maximum number of entries by more then 10% if so clean up instantly
+	if (TraceLog->Entries.size() > CleanupCount * 11 / 10) {
+		size_t pos = TraceLog->Entries.size() - CleanupCount;
+		TraceLog->IndexOffset += pos;
+		TraceLog->Entries.erase(TraceLog->Entries.begin(), TraceLog->Entries.begin() + pos);
+	}
+
 #ifdef DEF_USE_POOL
 	TraceLog->Entries.Append(pLogEntry);
 #else

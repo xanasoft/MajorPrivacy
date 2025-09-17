@@ -28,8 +28,8 @@ public:
 	std::map<CFlexGuid, CAccessRulePtr>	GetAllRules();
 	CAccessRulePtr GetRule(const CFlexGuid& Guid);
 
-	RESULT(std::wstring) AddRule(const CAccessRulePtr& pRule);
-	STATUS RemoveRule(const CFlexGuid& Guid);
+	RESULT(std::wstring) AddRule(const CAccessRulePtr& pRule, uint64 LockdownToken = 0);
+	STATUS RemoveRule(const CFlexGuid& Guid, uint64 LockdownToken = 0);
 
 	std::map<CFlexGuid, CAccessRulePtr> GetAccessRules() { std::unique_lock lock(m_RulesMutex); return m_Rules; }
 

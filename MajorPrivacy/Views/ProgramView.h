@@ -33,6 +33,7 @@ private slots:
 	void	OnDoubleClicked(const QModelIndex& Index);
 
 	void	OnAddProgram();
+	void	OnRefresh();
 	void	OnProgramAction();
 	void	OnAddToGroup();
 
@@ -113,6 +114,7 @@ private:
 	QAction*						m_pTcpServers = nullptr;
 	QAction*						m_pUdpSockets = nullptr;*/
 
+	QToolButton*				m_pBtnRefresh = nullptr;
 	QToolButton*				m_pBtnCleanUp = nullptr;
 	QMenu*						m_pCleanUpMenu = nullptr;
 	QAction*						m_pReGroup = nullptr;

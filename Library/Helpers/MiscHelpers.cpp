@@ -45,8 +45,8 @@ std::wstring MkGuid()
 	return Guid;
 }
 
-bool MatchPathPrefix(const std::wstring& Path, const wchar_t* pPrefix)
+bool MatchPathPrefix(const std::wstring& Path, const wchar_t* pPrefix, bool bStrict)
 {
 	size_t len = wcslen(pPrefix);
-	return Path.length() >= len && _wcsnicmp(Path.c_str(), pPrefix, len) == 0 && (Path.length() == len || Path.at(len) == L'\\');
+	return Path.length() >= len && _wcsnicmp(Path.c_str(), pPrefix, len) == 0 && (!bStrict || (Path.length() == len || Path.at(len) == L'\\'));
 }

@@ -61,6 +61,15 @@ enum class EProgramOnSpawn // API_S_EXEC_ON_SPAWN
 	eEject
 };
 
+enum class EImageOnLoad
+{
+	eUnknown = 0,
+	eAllow,
+	eBlock,
+	eAllowUntrusted
+};
+
+
 enum class EIntegrityLevel
 {
 	eUnknown = -1,
@@ -146,6 +155,71 @@ union KPH_PROCESS_SFLAGS // API_S_... TODO
 		ULONG SecReserved : 20;
 	};
 };
+
+typedef enum _KPH_HASH_ALGORITHM
+{
+	KphHashAlgorithmMd5,
+	KphHashAlgorithmSha1,
+	KphHashAlgorithmSha1Authenticode,
+	KphHashAlgorithmSha256,
+	KphHashAlgorithmSha256Authenticode,
+	KphHashAlgorithmSha384,
+	KphHashAlgorithmSha512,
+	MaxKphHashAlgorithm,
+} KPH_HASH_ALGORITHM, *PKPH_HASH_ALGORITHM;
+
+#define KPH_PROCESS_SECURELY_CREATED                     0x00000001ul
+#define KPH_PROCESS_VERIFIED_PROCESS                     0x00000002ul
+#define KPH_PROCESS_PROTECTED_PROCESS                    0x00000004ul
+#define KPH_PROCESS_NO_UNTRUSTED_IMAGES                  0x00000008ul
+#define KPH_PROCESS_HAS_FILE_OBJECT                      0x00000010ul
+#define KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS          0x00000020ul
+#define KPH_PROCESS_NO_USER_WRITABLE_REFERENCES          0x00000040ul
+#define KPH_PROCESS_NO_FILE_TRANSACTION                  0x00000080ul
+#define KPH_PROCESS_NOT_BEING_DEBUGGED                   0x00000100ul
+#define KPH_PROCESS_NO_WRITABLE_FILE_OBJECT              0x00000200ul
+
+#define KPH_PROCESS_STATE_MAXIMUM (KPH_PROCESS_SECURELY_CREATED               |\
+                                   KPH_PROCESS_VERIFIED_PROCESS               |\
+                                   KPH_PROCESS_PROTECTED_PROCESS              |\
+                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES            |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT                |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS    |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES    |\
+                                   KPH_PROCESS_NO_FILE_TRANSACTION            |\
+                                   KPH_PROCESS_NOT_BEING_DEBUGGED             |\
+                                   KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)
+
+#define KPH_PROCESS_STATE_HIGH    (KPH_PROCESS_VERIFIED_PROCESS               |\
+                                   KPH_PROCESS_PROTECTED_PROCESS              |\
+                                   KPH_PROCESS_NO_UNTRUSTED_IMAGES            |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT                |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS    |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES    |\
+                                   KPH_PROCESS_NO_FILE_TRANSACTION            |\
+                                   KPH_PROCESS_NOT_BEING_DEBUGGED             |\
+                                   KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)
+
+#define KPH_PROCESS_STATE_MEDIUM  (KPH_PROCESS_VERIFIED_PROCESS               |\
+                                   KPH_PROCESS_PROTECTED_PROCESS              |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT                |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS    |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES    |\
+                                   KPH_PROCESS_NO_FILE_TRANSACTION            |\
+                                   KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)
+
+#define KPH_PROCESS_STATE_LOW     (KPH_PROCESS_VERIFIED_PROCESS               |\
+                                   KPH_PROCESS_HAS_FILE_OBJECT                |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS    |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES    |\
+                                   KPH_PROCESS_NO_FILE_TRANSACTION            |\
+                                   KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)
+
+#define KPH_PROCESS_STATE_MINIMUM (KPH_PROCESS_HAS_FILE_OBJECT                |\
+                                   KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS    |\
+                                   KPH_PROCESS_NO_USER_WRITABLE_REFERENCES    |\
+                                   KPH_PROCESS_NO_FILE_TRANSACTION            |\
+                                   KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)
 
 #endif
 #define MP_VERIFY_FLAG_SA				0x00000001
@@ -370,10 +444,21 @@ enum class ETraceLogs // API_S_... TODO
 	eLogMax
 };
 
+enum class EScriptTypes // API_S_... TODO
+{
+	eNone = 0,
+	eExecRule,
+	eEnclave,
+	eResRule,
+	eVolume,
+	eMax
+};
+
 enum class ELogLevels // API_S_... TODO
 {
 	eNone = 0,
 	eInfo,
+	eSuccess,
 	eWarning,
 	eError,
 	eCritical,
@@ -392,15 +477,21 @@ enum ELogEventType
 	eLogFwRuleApproved = 'fwrc',	// FireWall Rule Confirmed
 	eLogFwRuleRestored = 'fwrf',	// FireWall Rule Fixed
 	eLogFwRuleRejected = 'fwrr',	// FireWall Rule Rejected
+	//eLogFwRuleScriptEvent = 'fwse',	// FireWall rule Script Event
 
 	eLogResRuleAdded = 'rara',		// Resource Access Rule Added
 	eLogResRuleModified = 'rarm',	// Resource Access Rule Modified
 	eLogResRuleRemoved = 'rard',	// Resource Access Rule Deleted
+	//eLogResRuleScriptEvent = 'rase',// Resource Access rule Script Event
 
 	eLogExecRuleAdded = 'exra',		// EXecution Rule Added
 	eLogExecRuleModified = 'exrm',	// EXecution Rule Modified
 	eLogExecRuleRemoved = 'exrd',	// EXecution Rule Deleted
 	eLogExecStartBlocked = 'exbl',	// EXecution Start Blocked
+	//eLogExecRuleScriptEvent = 'exse',// EXecution rule Script Event
+
+	//eLogEnclaveScriptEvent = 'ense',// ENclave Script Event
+	eLogScriptEvent = 'lsce',		// Log SCript Event
 
 	eLogProgramAdded = 'prea',		// PRogram Entry Added
 	eLogProgramModified = 'prem',	// PRogram Entry Modified

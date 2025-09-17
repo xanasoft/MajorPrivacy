@@ -73,13 +73,15 @@ public:
 	CPrivacyCore(QObject* parent = nullptr);
 	~CPrivacyCore();
 	
+	STATUS Start();
+	STATUS Stop();
 	STATUS Install();
 	STATUS Uninstall();
 	bool IsInstalled();
 	bool SvcIsRunning();
 
-	STATUS Connect(bool bEngineMode);
-	void Disconnect(bool bKeepEngine);
+	STATUS Connect(bool bCanStart = false, bool bEngineMode = false);
+	void Disconnect(bool bKeepEngine = false);
 
 	bool IsEngineMode() const					{ return m_bEngineMode; }
 
@@ -128,6 +130,7 @@ public:
 
 	QString				GetConfigDir() { return m_ConfigDir; }
 	QString				GetAppDir() { return m_AppDir; }
+	QString				GetWinDir() { return m_WinDir; }
 
 	RESULT(QtVariant)	GetConfig(const QString& Name);
 
@@ -229,6 +232,7 @@ public:
 	STATUS				AddProgramTo(uint64 UID, uint64 ParentUID);
 	STATUS				RemoveProgramFrom(uint64 UID, uint64 ParentUID = 0, bool bDelRules = false, bool bKeepOne = false);
 
+	STATUS				RefreshPrograms();
 	STATUS				CleanUpPrograms(bool bPurgeRules = false);
 	STATUS				ReGroupPrograms();
 
@@ -295,14 +299,16 @@ public:
 
 	// Volume Manager
 	RESULT(QtVariant)	GetVolumes();
-	STATUS				MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect);
+	RESULT(QtVariant)	GetVolume(const QFlexGuid& Guid);
+	STATUS				SetVolume(const QtVariant& Volume);
+	STATUS				MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect, bool bLockdown);
 	STATUS				DismountVolume(const QString& MountPoint);
 	STATUS				DismountAllVolumes();
 	STATUS				CreateVolume(const QString& Path, const QString& Password, quint64 ImageSize = 0, const QString& Cipher = QString());
 	STATUS				ChangeVolumePassword(const QString& Path, const QString& OldPassword, const QString& NewPassword);
 
 	// Tweak Manager
-	RESULT(QtVariant)	GetTweaks();
+	RESULT(QtVariant)	GetTweaks(uint32* pRevision = nullptr);
 	STATUS				ApplyTweak(const QString& Name);
 	STATUS				UndoTweak(const QString& Name);
 	STATUS				ApproveTweak(const QString& Id);
@@ -311,6 +317,10 @@ public:
 	void				ClearPrivacyLog();
 
 	RESULT(QtVariant)	GetServiceStats();
+
+	RESULT(QtVariant)	GetScriptLog(const QFlexGuid& Guid, EScriptTypes Type, quint32 LastID = 0);
+	STATUS				ClearScriptLog(const QFlexGuid& Guid, EScriptTypes Type);
+	RESULT(QtVariant)	CallScriptFunc(const QFlexGuid& Guid, EScriptTypes Type, const QString& Name, const QtVariant& Params = QtVariant());
 
 	//
 	STATUS				SetWatchedPrograms(const QSet<CProgramItemPtr>& Programs);
@@ -377,7 +387,9 @@ protected:
 	
 	static void			DeviceChangedCallback(void* param);
 
-	static QtVariant		MakeIDs(const QList<const class CProgramItem*>& Nodes);
+	static QtVariant	MakeIDs(const QList<const class CProgramItem*>& Nodes);
+
+	STATUS				InitHooks();
 
 	class CEventLogger*	m_pSysLog = NULL;
 	class CEventLog* m_pEventLog = NULL;
@@ -390,6 +402,7 @@ protected:
 	bool m_bEngineMode = false;
 	QString m_ConfigDir;
 	QString m_AppDir;
+	QString m_WinDir;
 
 	uint32 m_GuiSecState = 0;
 	uint32 m_SvcSecState = 0;

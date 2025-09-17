@@ -135,6 +135,9 @@
     <ClCompile Include="Archive\SplitFile.cpp">
       <Filter>Archive</Filter>
     </ClCompile>
+    <ClCompile Include="Common\CodeEdit.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MiscHelpers.h">
@@ -283,6 +286,9 @@
       <Filter>Common</Filter>
     </QtMoc>
     <QtMoc Include="Common\WinboxMultiCombo.h">
+      <Filter>Common</Filter>
+    </QtMoc>
+    <QtMoc Include="Common\CodeEdit.h">
       <Filter>Common</Filter>
     </QtMoc>
   </ItemGroup>

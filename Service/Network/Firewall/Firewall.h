@@ -22,6 +22,27 @@ protected:
 	CFirewallRulePtr m_pRule;
 };
 
+class CFwAutoGuardEntry : public CPathEntry
+{
+public:
+	enum EMode {
+		eNone = 0,
+		eApprove,
+		eReject,
+	};
+
+	CFwAutoGuardEntry(FW::AbstractMemPool* pMem, const std::wstring& Path, EMode Mode) : CPathEntry(pMem, FW::StringW(pMem, Path.c_str())) {
+		m_Mode = Mode;
+	}
+
+	EMode GetMode() const { return m_Mode; }
+
+protected:
+	EMode m_Mode;
+};
+
+
+
 class CFirewall
 {
 	TRACK_OBJECT(CFirewall)
@@ -41,6 +62,8 @@ public:
 
 	STATUS UpdateRules();
 	void UpdateDefaults();
+
+	void UpdateAutoGuard() {m_bUpdateAutoGuard = true;}
 
 	void PurgeExpired(bool All);
 
@@ -62,7 +85,7 @@ public:
 
 	static bool IsEmptyOrStar(const std::vector<std::wstring>& value);
 	static bool MatchPort(uint16 Port, const std::vector<std::wstring>& Ports);
-    static bool MatchAddress(const CAddress& Address, const std::vector<std::wstring>& Addresses, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
+	static bool MatchAddress(const CAddress& Address, const std::vector<std::wstring>& Addresses, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
 	static bool MatchEndpoint(const std::vector<std::wstring>& Addresses, const std::vector<std::wstring>& Ports, const CAddress& Address, uint16 Port, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
 	static std::vector<std::wstring> GetSpecialNet(std::wstring SubNet, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
 
@@ -71,7 +94,8 @@ protected:
 
 	CFirewallRulePtr UpdateFWRuleUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFlexGuid& Guid);
 
-	bool FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule);
+	void InitAutoGuard();
+	bool FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule, bool* pExpected = nullptr);
 
 	void AddRuleUnsafe(const CFirewallRulePtr& pFwRule);
 	void AddRuleUnsafeImpl(const CFirewallRulePtr& pFwRule);
@@ -97,8 +121,8 @@ protected:
 	struct SRuleMatch
 	{
 		EFwActions Result = EFwActions::Undefined;
-        int BlockCount = 0;
-        int AllowCount = 0;
+		int BlockCount = 0;
+		int AllowCount = 0;
 		//std::list<CFirewallRulePtr> AllowRules;
 		//std::list<CFirewallRulePtr> BlockRules;
 	};
@@ -132,5 +156,10 @@ protected:
 	EFwActions				m_DefaultoutboundAction[3] = { EFwActions::Undefined, EFwActions::Undefined, EFwActions::Undefined };
 
 	uint64					m_LastRulePurge = 0;
-	bool					m_RevertChanges = false;
+
+	std::set<CFirewallRulePtr> m_RulesToRemove;
+	std::set<CFirewallRulePtr> m_RulesToRevert;
+
+	bool 					m_bUpdateAutoGuard = false;	
+	CPathTree				m_AutoGuardTree;
 };

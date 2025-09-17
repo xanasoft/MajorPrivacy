@@ -5,7 +5,6 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../../Helpers/WinHelper.h"
-#include "../Driver/KSI/include/kphapi.h"
 #include "../../Library/Helpers/SID.h"
 #include "../Enclaves/EnclaveManager.h"
 

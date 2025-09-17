@@ -5,7 +5,6 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../../Helpers/WinHelper.h"
-#include "../Driver/KSI/include/kphapi.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../MiscHelpers/Common/Common.h"
 
@@ -25,6 +24,8 @@ CEnclave* CEnclave::Clone() const
 	pEnclave->m_Name = m_Name;
 	//pEnclave->m_Grouping = m_Grouping;
 	pEnclave->m_Description = m_Description;
+
+	pEnclave->m_VolumeGuid = m_VolumeGuid;
 
 	pEnclave->m_AllowedSignatures = m_AllowedSignatures;
 	pEnclave->m_AllowedCollections = m_AllowedCollections;

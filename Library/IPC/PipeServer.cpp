@@ -8,6 +8,7 @@
 #include "PipeServer.h"
 #include "../Helpers/NtObj.h"
 #include "../Helpers/Scoped.h"
+#include "../Helpers/WinUtil.h"
 #include "../Common/Exception.h"
 #include "PortMessage.h"
 
@@ -140,7 +141,7 @@ RESULT(PPipeSocket) CPipeServer::MakePipe()
 DWORD __stdcall CPipeServer::ServerThreadStub(void* param)
 {
 #ifdef _DEBUG
-    SetThreadDescription(GetCurrentThread(), L"CPipeServer::ServerThreadStub");
+    MySetThreadDescription(GetCurrentThread(), L"CPipeServer::ServerThreadStub");
 #endif
 
     ((CPipeServer *)param)->RunServerThread();
@@ -208,7 +209,7 @@ void CPipeServer::ClientConnected(const PPipeSocket& pPipe, uint32 PID, uint32 T
 DWORD __stdcall CPipeServer::ClientThreadStub(void *param)
 {
 #ifdef _DEBUG
-    SetThreadDescription(GetCurrentThread(), L"CPipeServer::ClientThreadStub");
+    MySetThreadDescription(GetCurrentThread(), L"CPipeServer::ClientThreadStub");
 #endif
 
     SPipeClient* pClient = (SPipeClient*)param;

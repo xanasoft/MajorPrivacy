@@ -38,3 +38,18 @@ void InitSysInfo()
         }
     }
 }
+
+VOID MySetThreadDescription(HANDLE hThread, PCWSTR lpThreadDescription)
+{
+    typedef HRESULT(WINAPI* P_SetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription);
+    P_SetThreadDescription pSetThreadDescription = (P_SetThreadDescription) -1;
+    if (pSetThreadDescription == (P_SetThreadDescription)-1)
+    {
+        HMODULE hMod = GetModuleHandleW(L"kernel32.dll");
+        if (hMod)
+            pSetThreadDescription = (P_SetThreadDescription)GetProcAddress(hMod, "SetThreadDescription");
+    }
+
+    if (pSetThreadDescription)
+        pSetThreadDescription(hThread, lpThreadDescription);
+}

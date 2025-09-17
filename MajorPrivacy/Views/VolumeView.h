@@ -23,6 +23,8 @@ protected:
 	void					OnMenu(const QPoint& Point) override;
 	void					OnDoubleClicked(const QModelIndex& Index) override;
 
+	void					OpenVolumeDialog(const CVolumePtr& pVolume);
+
 private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
@@ -32,6 +34,8 @@ private slots:
 	void					OnUnmountAllVolumes();
 	void					OnCreateVolume();
 	void					OnChangeVolumePassword();
+	void					OnChangeVolumeConfig();
+	void					OnAddVolumeEnclave();
 	void					OnRenameVolume();
 	void					OnRemoveVolume();
 	void					OnAddFolder();
@@ -46,6 +50,8 @@ private:
 	QAction*				m_pUnmountVolume;
 	QAction*				m_pCreateVolume;
 	QAction*				m_pChangeVolumePassword;
+	QAction*				m_pChangeVolumeConfig;
+	QAction*				m_pAddVolumeEnclave;
 	QAction*				m_pRenameVolume;
 	QAction*				m_pRemoveVolume;
 	QAction*				m_pMountAndAddVolume;

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>780</width>
-    <height>566</height>
+    <height>569</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -345,7 +345,7 @@
    <item row="4" column="0" colspan="2">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
-      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+      <set>QDialogButtonBox::StandardButton::Apply|QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
      </property>
     </widget>
    </item>
@@ -601,9 +601,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="radNICs"/>
   <buttongroup name="radRemoteIP"/>
-  <buttongroup name="radProfiles"/>
   <buttongroup name="radLocalIP"/>
+  <buttongroup name="radProfiles"/>
+  <buttongroup name="radNICs"/>
  </buttongroups>
 </ui>

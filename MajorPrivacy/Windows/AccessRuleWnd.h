@@ -36,6 +36,7 @@ private slots:
 	void EditScript();
 
 	void OnSaveAndClose();
+	bool OnSave();
 
 protected:
 	void closeEvent(QCloseEvent* e);
@@ -49,6 +50,8 @@ protected:
 
 	QString m_VolumeRoot;
 	QString m_VolumeImage;
+
+	QString m_Script;
 
 private:
 	Ui::AccessRuleWnd ui;

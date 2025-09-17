@@ -124,7 +124,10 @@ bool CVolumeManager::SaveVolumes()
 	{
 		QString Data;
 		Data = pVolume->GetImagePath() + "|" + pVolume->GetName();
-		theConf->SetValue("SecureVolumes/Volume_" + QCryptographicHash::hash(pVolume->GetImagePath().toLatin1(), QCryptographicHash::Sha256).mid(0,16).toHex(), Data);
+		QString Guid = pVolume->GetGuid().ToQS();
+		if(Guid.startsWith("{") && Guid.endsWith("}"))
+			Guid = Guid.mid(1, Guid.length() - 2);
+		theConf->SetValue("SecureVolumes/Volume_" + Guid, Data);
 	}
 
 	return true;
@@ -155,4 +158,23 @@ void CVolumeManager::UpdateProtectedFolders()
 
 	for(auto I = Folders.begin(); I != Folders.end(); ++I)
 		I.key()->SetStatus(I.value() ? CVolume::eSecFolder : CVolume::eFolder);
+}
+
+STATUS CVolumeManager::SetVolume(const CVolumePtr& pVolume)
+{
+	SVarWriteOpt Opts;
+	Opts.Flags = SVarWriteOpt::eTextGuids;
+
+	theCore->SetVolume(pVolume->ToVariant(Opts));
+	return OK;
+}
+
+CVolumePtr CVolumeManager::GetVolume(const QFlexGuid& Guid)
+{
+	for(auto pVolume: m_List)
+	{
+		if(pVolume->GetGuid() == Guid)
+			return pVolume;
+	}
+	return CVolumePtr();
 }

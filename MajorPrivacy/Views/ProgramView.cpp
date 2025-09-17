@@ -188,6 +188,13 @@ CProgramView::CProgramView(QWidget* parent)
 
 	m_pToolBar->addSeparator();
 
+	m_pBtnRefresh = new QToolButton();
+	m_pBtnRefresh->setIcon(QIcon(":/Icons/Recover.png"));
+	m_pBtnRefresh->setToolTip(tr("Refresh Programs"));
+	m_pBtnRefresh->setMaximumHeight(22);
+	connect(m_pBtnRefresh, SIGNAL(clicked()), this, SLOT(OnRefresh()));
+	m_pToolBar->addWidget(m_pBtnRefresh);
+
 	m_pBtnCleanUp = new QToolButton();
 	m_pBtnCleanUp->setIcon(QIcon(":/Icons/Clean.png"));
 	m_pBtnCleanUp->setToolTip(tr("CleanUp Program List"));
@@ -677,6 +684,12 @@ void CProgramView::OnAddProgram()
 		Results.append(theCore->ProgramManager()->AddProgramTo(pProgram, pParent));
 		}*/
 	}
+}
+
+void CProgramView::OnRefresh()
+{
+	QList<STATUS> Results = QList<STATUS>() << theCore->RefreshPrograms();
+	theGUI->CheckResults(Results, this);
 }
 
 void CProgramView::OnProgramAction()

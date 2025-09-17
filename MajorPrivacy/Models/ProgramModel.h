@@ -93,13 +93,13 @@ public:
 protected:
 	struct SProgramNode: STreeNode
 	{
-		SProgramNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id), iColor(0) { }
+		SProgramNode(/*CTreeItemModel* pModel,*/ const QVariant& Id) : STreeNode(/*pModel,*/ Id) { }
 
 		CProgramItemPtr		pItem;
 
 		QString				IconFile;
 
-		int					iColor;
+		bool				IsMissing = false;
 
 		QSet<int>			Bold;
 	};

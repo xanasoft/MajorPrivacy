@@ -100,8 +100,8 @@ public:
 	std::map<CFlexGuid, CProgramRulePtr> GetAllRules();
 	CProgramRulePtr GetRule(const CFlexGuid& Guid);
 
-	RESULT(std::wstring) AddRule(const CProgramRulePtr& pRule);
-	STATUS RemoveRule(const CFlexGuid& Guid);
+	RESULT(std::wstring) AddRule(const CProgramRulePtr& pRule, uint64 LockdownToken = 0);
+	STATUS RemoveRule(const CFlexGuid& Guid, uint64 LockdownToken = 0);
 
 	bool							IsNtOsKrnl(const std::wstring& FilePath) const;
 

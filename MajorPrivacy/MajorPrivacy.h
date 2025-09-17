@@ -216,7 +216,7 @@ protected:
 	bool				m_bWasVisible = false;
 	bool				m_bOnTop = false;
 	int					m_iReConnected = 0;
-	bool				m_bWasConnected = false;
+	int					m_iWasConnected = 2;
 	bool				m_bExit = false;
 
 	void				LoadIgnoreList(ERuleType Type);
@@ -276,14 +276,10 @@ private:
 
 	QMenu*				m_pMain = nullptr;
 	QMenu*				m_pMaintenance = nullptr;
-	QAction*			m_pImportOptions = nullptr;
-	QAction*			m_pExportOptions = nullptr;
-	QAction*			m_pVariantEditor = nullptr;
-	QAction*			m_pOpenUserFolder = nullptr;
-	QAction*			m_pOpenSystemFolder = nullptr;
-	QMenu*				m_pMaintenanceItems = nullptr;
 	QAction*			m_pConnect = nullptr;
 	QAction*			m_pDisconnect = nullptr;
+	QAction*			m_pStartService = nullptr;
+	QAction*			m_pStopService = nullptr;
 	QAction*			m_pInstallService = nullptr;
 	QAction*			m_pRemoveService = nullptr;
 	QAction*			m_pSetupWizard = nullptr;
@@ -325,6 +321,13 @@ private:
 
 	QMenu*				m_pOptions = nullptr;
 	QAction*			m_pSettings = nullptr;
+	QMenu*				m_pManagement = nullptr;
+	QAction*			m_pImportOptions = nullptr;
+	QAction*			m_pExportOptions = nullptr;
+	QAction*			m_pVariantEditor = nullptr;
+	QAction*			m_pOpenUserFolder = nullptr;
+	QAction*			m_pOpenSystemFolder = nullptr;
+
 	QAction*			m_pClearIgnore = nullptr;
 	QAction*			m_pResetPrompts = nullptr;
 

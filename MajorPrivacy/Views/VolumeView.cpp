@@ -4,12 +4,14 @@
 #include "../Core/Volumes/VolumeManager.h"
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include "Windows/VolumeWindow.h"
+#include "Windows/VolumeConfigWnd.h"
 #include "../MajorPrivacy.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Core/Access/AccessManager.h"
 #include "../Core/Programs/ProgramManager.h"
 #include "../Library/Helpers/NtPathMgr.h"
+#include "../Core/Enclaves/EnclaveManager.h"
 
 CVolumeView::CVolumeView(QWidget *parent)
 	:CPanelViewEx<CVolumeModel>(parent)
@@ -29,6 +31,8 @@ CVolumeView::CVolumeView(QWidget *parent)
 	m_pMountVolume = m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Mount Volume"), this, SLOT(OnMountVolume()));
 	m_pUnmountVolume = m_pMenu->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount Volume"), this, SLOT(OnUnmountVolume()));
 	m_pChangeVolumePassword = m_pMenu->addAction(QIcon(":/Icons/VolumePW.png"), tr("Change Volume Password"), this, SLOT(OnChangeVolumePassword()));
+	m_pChangeVolumeConfig = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Change Volume Configuration"), this, SLOT(OnChangeVolumeConfig()));
+	m_pAddVolumeEnclave = m_pMenu->addAction(QIcon(":/Icons/Enclave.png"), tr("Add Volume Enclave"), this, SLOT(OnAddVolumeEnclave()));
 	m_pRenameVolume = m_pMenu->addAction(QIcon(":/Icons/Rename.png"), tr("Rename Volume/Folder"), this, SLOT(OnRenameVolume()));
 	m_pRemoveVolume = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Remove Volume/Folder"), this, SLOT(OnRemoveVolume()));
 	m_pRemoveVolume->setShortcut(QKeySequence::Delete);
@@ -116,11 +120,19 @@ void CVolumeView::OnDoubleClicked(const QModelIndex& Index)
 
 	if (!pVolume->IsMounted())
 		MountVolume(pVolume->GetImagePath());
-	else if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to unmount the selected volume?"), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
+	/*else if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to unmount the selected volume?"), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
 	{
 		STATUS Status = theCore->DismountVolume(pVolume->GetDevicePath());
 		theGUI->CheckResults(QList<STATUS>() << Status, this);
-	}
+	}*/
+	else
+		OpenVolumeDialog(pVolume);
+}
+
+void CVolumeView::OpenVolumeDialog(const CVolumePtr& pVolume)
+{
+	CVolumeConfigWnd* pVolumeWnd = new CVolumeConfigWnd(pVolume);
+	pVolumeWnd->show();
 }
 
 void CVolumeView::OnMenu(const QPoint& Point)
@@ -143,6 +155,8 @@ void CVolumeView::OnMenu(const QPoint& Point)
 	m_pMountVolume->setEnabled(iMountedCount == 0 && iVolumeCount == 1);
 	m_pUnmountVolume->setEnabled(iMountedCount > 0);
 	m_pChangeVolumePassword->setEnabled(iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
+	m_pAddVolumeEnclave->setEnabled(iMountedCount > 0);
+	m_pChangeVolumeConfig->setEnabled(iMountedCount == 1);
 	m_pRenameVolume->setEnabled(iVolumeCount + iFolderCount == 1);
 	m_pRemoveVolume->setEnabled(iMountedCount == 0 && iVolumeCount + iFolderCount > 0);
 
@@ -171,8 +185,9 @@ void CVolumeView::MountVolume(QString Path)
 	QString Password = window.GetPassword();
 	QString MountPoint = window.GetMountPoint();
 	bool bProtect = window.UseProtection();
+	bool bLockdown = window.UseLockdown();
 
-	STATUS Status = theCore->MountVolume(Path, MountPoint, Password, bProtect);
+	STATUS Status = theCore->MountVolume(Path, MountPoint, Password, bProtect, bLockdown);
 	theGUI->CheckResults(QList<STATUS>() << Status, this);
 }
 
@@ -246,6 +261,31 @@ void CVolumeView::OnChangeVolumePassword()
 
 	STATUS Status = theCore->ChangeVolumePassword(Path, OldPassword, NewPassword);
 	theGUI->CheckResults(QList<STATUS>() << Status, this);
+}
+
+void CVolumeView::OnChangeVolumeConfig()
+{
+	QList<CVolumePtr> Volumes = GetSelectedItems();
+	if (Volumes.count() != 1) return;
+
+	OpenVolumeDialog(Volumes.at(0));
+}
+
+void CVolumeView::OnAddVolumeEnclave()
+{
+	QList<CVolumePtr> Volumes = GetSelectedItems();
+
+	QList<STATUS> Results;
+
+	foreach(CVolumePtr pVolume, Volumes) 
+	{
+		CEnclavePtr pEnclave = CEnclavePtr(new CEnclave());
+		pEnclave->SetName(tr("%1 Enclave").arg(pVolume->GetName()));
+		pEnclave->SetVolumeGuid(pVolume->GetGuid());
+		Results << theCore->EnclaveManager()->SetEnclave(pEnclave);
+	}
+
+	theGUI->CheckResults(Results, this);
 }
 
 void CVolumeView::OnRenameVolume()

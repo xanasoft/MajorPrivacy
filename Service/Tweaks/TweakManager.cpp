@@ -24,14 +24,25 @@ CTweakManager::~CTweakManager()
 
 STATUS CTweakManager::Init()
 {
-	std::unique_lock Lock(m_Mutex);
+	return Load();
+}
 
-	m_pRoot = std::make_shared<CTweakGroup>(L"", L"");
-
+STATUS CTweakManager::Load()
+{
 	// prepare default tweak list
 	std::list<CTweakPtr> List;
-#ifndef _DEBUG
+#ifndef _DEBUG_
 	CScoped pTweaksIni = new CConfigIni(GetApplicationDirectory() + L"\\Tweaks.ini");
+	uint32 Revision = pTweaksIni->GetUInt("Tweaks", "Revision", 0);
+
+	CScoped pTweaksIni2 = new CConfigIni(theCore->GetDataFolder() + L"\\Tweaks.ini");
+	uint32 Revision2 = pTweaksIni2->GetUInt("Tweaks", "Revision", 0);
+	if (Revision2 > Revision) {
+		pTweaksIni = pTweaksIni2.Detache();
+		Revision = Revision2;
+	}
+	pTweaksIni2 = nullptr;
+
 	auto Tweaks = pTweaksIni->ListSections();
 	if (!Tweaks.empty())
 	{
@@ -46,26 +57,31 @@ STATUS CTweakManager::Init()
 	}
 	else
 #endif
+	{
 		InitKnownTweaks(&List);
+		Revision = 1;
+	}
 
-	DbgPrint("Tweaks loaded: %d\n", List.size());
+	DbgPrint("Tweaks loaded: %d\n", (uint32)List.size());
 
-	// Load Tweaks from file
-	Load();
 
-#if 1
-	std::shared_ptr<CTweakList> pRoot = m_pRoot;
-	std::map<std::wstring, CTweakPtr> Map = m_Map;
+	// Load Tweaks from config file
+	std::shared_ptr<CTweakList> pRoot = std::make_shared<CTweakGroup>(L"", L"");
+	std::map<std::wstring, CTweakPtr> Map;
+	Load(pRoot, Map);
+
+
+	// Create final list
+	std::unique_lock Lock(m_Mutex);
 
 	m_pRoot = std::make_shared<CTweakGroup>(L"", L"");
 	m_Map.clear();
-#endif
 
 	// add tweaks to the list
 	for (auto& pTweak : List) 
 	{
 		std::wstring Id = pTweak->GetId();
-#if 1
+
 		auto F = Map.find(Id);
 		if (F != Map.end())
 		{
@@ -74,15 +90,11 @@ STATUS CTweakManager::Init()
 			if(pTweak1 && pTweak2)
 				pTweak1->SetSet(pTweak2->IsSet());
 		}
-#else
-		auto F = m_Map.find(Id);
-		if (F != m_Map.end())
-			continue; // this one is already known or duplicate
-#endif
+
 		m_Map[Id] = pTweak;
 
 		std::wstring Parent = pTweak->GetParentId();
-		if (!Parent.empty()) {
+		if (!Parent.empty() && Parent != L"None") {
 			std::shared_ptr<CTweakList> pParent;
 			auto F = m_Map.find(Parent);
 			if (F != m_Map.end())
@@ -96,14 +108,16 @@ STATUS CTweakManager::Init()
 		m_pRoot->AddTweak(pTweak);
 	}
 
+	m_Revision = Revision;
+
 	return OK;
 }
 
-STATUS CTweakManager::Load()
+STATUS CTweakManager::Load(std::shared_ptr<CTweakList>& pRoot, std::map<std::wstring, CTweakPtr>& Map)
 {
 	CBuffer Buffer;
 	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_TWEAK_LIST_FILE_NAME, Buffer)) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_TWEAK_LIST_FILE_NAME L" not found");
+		theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_TWEAK_LIST_FILE_NAME L" not found");
 		return ERR(STATUS_NOT_FOUND);
 	}
 
@@ -153,12 +167,12 @@ STATUS CTweakManager::Load()
 		}
 		pTweak->FromVariant(Tweak);
 
-		m_Map[Id] = pTweak;
+		Map[Id] = pTweak;
 
-		if (!Parent.empty()) {
+		if (!Parent.empty() && Parent != L"None") {
 			std::shared_ptr<CTweakList> pParent;
-			auto F = m_Map.find(Parent);
-			if (F != m_Map.end())
+			auto F = Map.find(Parent);
+			if (F != Map.end())
 				pParent = std::dynamic_pointer_cast<CTweakList>(F->second);
 			ASSERT(pParent);
 			if (pParent) {
@@ -167,7 +181,7 @@ STATUS CTweakManager::Load()
 			}
 		}
 
-		m_pRoot->AddTweak(pTweak);
+		pRoot->AddTweak(pTweak);
 	}
 
 	return OK;

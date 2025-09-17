@@ -170,6 +170,70 @@ bool SetAdminFullControl(const std::wstring& folderPath)
     return result;
 }
 
+bool SetAdminFullControlAllowUsersRead(const std::wstring& folderPath)
+{
+    bool result = false;
+    PACL pACL = nullptr;
+    EXPLICIT_ACCESS ea[2];
+    SECURITY_DESCRIPTOR sd;
+    BYTE adminSidBuffer[SECURITY_MAX_SID_SIZE];
+    BYTE authSidBuffer[SECURITY_MAX_SID_SIZE];
+    DWORD cbAdminSid = sizeof(adminSidBuffer);
+    DWORD cbAuthSid = sizeof(authSidBuffer);
+
+    // Create well-known SIDs
+    if (!CreateWellKnownSid(WinBuiltinAdministratorsSid, nullptr, adminSidBuffer, &cbAdminSid)) {
+        return false;
+    }
+    if (!CreateWellKnownSid(WinAuthenticatedUserSid, nullptr, authSidBuffer, &cbAuthSid)) {
+        return false;
+    }
+
+    // Initialize security descriptor
+    if (!InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION)) {
+        return false;
+    }
+
+    ZeroMemory(&ea, sizeof(ea));
+
+    // 1) Administrators: full control
+    ea[0].grfAccessPermissions = GENERIC_ALL;
+    ea[0].grfAccessMode = SET_ACCESS;
+    ea[0].grfInheritance = CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE; // inherit to subfolders/files
+    ea[0].Trustee.TrusteeForm = TRUSTEE_IS_SID;
+    ea[0].Trustee.TrusteeType = TRUSTEE_IS_GROUP;
+    ea[0].Trustee.ptstrName = (LPWSTR)adminSidBuffer;
+
+    // 2) Authenticated Users: read & execute (allows normal users to list/read)
+    ea[1].grfAccessPermissions = FILE_GENERIC_READ | FILE_GENERIC_EXECUTE;
+    ea[1].grfAccessMode = SET_ACCESS;
+    ea[1].grfInheritance = CONTAINER_INHERIT_ACE | OBJECT_INHERIT_ACE;
+    ea[1].Trustee.TrusteeForm = TRUSTEE_IS_SID;
+    ea[1].Trustee.TrusteeType = TRUSTEE_IS_GROUP;
+    ea[1].Trustee.ptstrName = (LPWSTR)authSidBuffer;
+
+    // Build ACL from the two EXPLICIT_ACCESS entries
+    if (SetEntriesInAcl(2, ea, nullptr, &pACL) != ERROR_SUCCESS) {
+        goto cleanup;
+    }
+
+    // Attach ACL to the security descriptor
+    if (!SetSecurityDescriptorDacl(&sd, TRUE, pACL, FALSE)) {
+        goto cleanup;
+    }
+
+    // Apply to folder (DACL_SECURITY_INFORMATION)
+    if (SetFileSecurity(folderPath.c_str(), DACL_SECURITY_INFORMATION, &sd) == 0) {
+        goto cleanup;
+    }
+
+    result = true;
+
+cleanup:
+    if (pACL) LocalFree(pACL);
+    return result;
+}
+
 BOOL GetProcessUserSID(DWORD processID, PSID *userSID) 
 {
     HANDLE processHandle = NULL;

@@ -226,7 +226,7 @@ public:
 		return MemCmp(m_ptr->Data, pStr, len * sizeof(C));
 	}
 
-	int CompareI(const C* pStr, size_t uLength = NPos) const
+	int CompareI(const C* pStr, size_t uLength = NPos, bool bOpenEnd = false) const
 	{
 		if (!m_ptr || !m_ptr->Data)
 			return pStr ? -1 : 0;
@@ -237,10 +237,10 @@ public:
 			uLength = StrLen(pStr);
 		size_t len = Length();
 		if(len < uLength) return -1;
-		if(len > uLength) return 1;
+		if(len > uLength && !bOpenEnd) return 1;
 		if(len == 0) return 0;
 
-		for (size_t i = 0; i < len; ++i)
+		for (size_t i = 0; i < uLength; ++i)
 		{
 			C c1 = m_ptr->Data[i];
 			if ((c1 >= (C)'A') && (c1 <= (C)'Z'))
@@ -442,31 +442,35 @@ public:
 		}
 	}
 
-	size_t Find(const String& Str, size_t uStart = 0) const
+	size_t Find(const String& Str, size_t uStart = 0, size_t uStop = NPos) const
 	{
-		return Find(Str.ConstData(), uStart);
+		return Find(Str.ConstData(), uStart, uStop);
 	}
 
-	size_t Find(const C* pStr, size_t uStart = 0) const
+	size_t Find(const C* pStr, size_t uStart = 0, size_t uStop = NPos) const
 	{
-		if (!pStr || uStart >= Length())
+		if (uStop == NPos)
+			uStop = Length();
+		if (!pStr || uStart >= uStop)
 			return NPos;
 		size_t len = StrLen(pStr);
 		if (len == 0)
 			return uStart;
-		if (len > Length() - uStart)
+		if (len > uStop - uStart)
 			return NPos;
-		for (size_t i = uStart; i <= Length() - len; i++)
+		for (size_t i = uStart; i <= uStop - len; i++)
 			if (MemCmp(m_ptr->Data + i, pStr, len * sizeof(C)) == 0)
 				return i;
 		return NPos;
 	}
 
-	size_t Find(const C Char, size_t uStart = 0) const
+	size_t Find(const C Char, size_t uStart = 0, size_t uStop = NPos) const
 	{
-		if (uStart >= Length())
+		if (uStop == NPos)
+			uStop = Length();
+		if (uStart >= uStop)
 			return NPos;
-		for (size_t i = uStart; i < Length(); i++)
+		for (size_t i = uStart; i < uStop; i++)
 			if (m_ptr->Data[i] == Char)
 				return i;
 		return NPos;

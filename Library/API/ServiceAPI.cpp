@@ -100,7 +100,7 @@ STATUS CServiceAPI::ConnectSvc()
 	return Status;
 }
 
-STATUS CServiceAPI::ConnectEngine()
+STATUS CServiceAPI::ConnectEngine(bool bCanStart)
 {
 	if(m_pClient->IsConnected())
 		m_pClient->Disconnect();
@@ -112,6 +112,9 @@ STATUS CServiceAPI::ConnectEngine()
 #endif
 	if (Status)
 		return Status;
+
+	if(!bCanStart)
+		return ERR(STATUS_INVALID_SYSTEM_SERVICE);
 	
 	if (m_hEngineProcess) {
 		DWORD exitCode;

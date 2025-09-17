@@ -16,7 +16,7 @@ QString ReadFileAsString(const QString& filename)
 		content.remove("\r").replace("\n","\r\n");
 		return content;
 	}
-	return "";
+	return QString();
 }
 
 bool WriteStringToFile(const QString& filename, const QString& content)

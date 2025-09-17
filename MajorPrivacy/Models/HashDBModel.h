@@ -38,7 +38,7 @@ public:
 	enum EColumns
 	{
 		eName = 0,
-		ePath,
+		eValue,
 		eCount
 	};
 

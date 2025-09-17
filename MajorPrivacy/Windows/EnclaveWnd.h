@@ -20,11 +20,15 @@ private slots:
 	void OnNameChanged(const QString& Text);
 	
 	void OnSaveAndClose();
+	bool OnSave();
+
 	void OnAddCollection();
 
 	void PickIcon();
 	void BrowseImage();
 	//void ResetIcon();
+
+	void EditScript();
 
 protected:
 	void closeEvent(QCloseEvent* e);
@@ -33,6 +37,8 @@ protected:
 
 	CEnclavePtr m_pEnclave;
 	QString m_IconFile;
+
+	QString m_Script;
 
 private:
 	Ui::EnclaveWnd ui;

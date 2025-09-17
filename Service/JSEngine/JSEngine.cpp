@@ -6,6 +6,8 @@
 #include "../ServiceCore.h"
 #include "../../Library/API/PrivacyAPI.h"
 #include "../Processes/ProcessList.h"
+#include "../../Library/Helpers/NtUtil.h"
+#include "../../Library/API/DriverAPI.h"
 
 struct SJSEngine
 {
@@ -161,16 +163,6 @@ struct SJSEngine
         }
     }
 
-    void HandleException()
-    {
-        auto exc = context.getException();
-        auto str = (std::string)exc;
-        if((bool)exc["stack"])
-            str += "\n" + (std::string)exc["stack"];
-        
-        theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_JSLOG_MSG, s2w(str));
-    }
-
 	qjs::Runtime runtime;
 	qjs::Context context;
 };
@@ -178,12 +170,12 @@ struct SJSEngine
 //
 // Script API
 // 
-// Resource Access Callback TestAccess(event)
-//  event.NtPath            - the NT path of the resource
-//  event.DosPath           - the DOS path of the resource
-//  event.ActorPid          - the PID of the process that is accessing the resource
-//  event.ActorServiceTag   - the service tag of the process that is accessing the resource
-//  event.AccessMask        - the access mask of the access request
+// Resource Access Callback onAccess(event)
+//  event.ntPath            - the NT path of the resource
+//  event.dosPath           - the DOS path of the resource
+//  event.actorPid          - the PID of the process that is accessing the resource
+//  event.actorServiceTag   - the service tag of the process that is accessing the resource
+//  event.accessMask        - the access mask of the access request
 //
 // Global Objects:
 //  processList             - the process list object
@@ -206,8 +198,12 @@ struct SJSEngine
     int test = 0;
 };*/
 
-CJSEngine::CJSEngine(const std::string& Script)
+CJSEngine::CJSEngine(const std::string& Script, const CFlexGuid& Guid, EScriptTypes Type)
 {
+    m_Script = Script;
+    m_Guid = Guid;
+    m_Type = Type;
+
 	m = new SJSEngine();
     
     /*
@@ -233,7 +229,7 @@ CJSEngine::CJSEngine(const std::string& Script)
 
         auto ctx = m->context.ctx;
 
-		CProcessPtr pProcess = theCore->ProcessList()->GetProcess(PID, true);
+		CProcessPtr pProcess = theCore->ProcessList()->GetProcessEx(PID, CProcessList::eCanAdd);
         if(!pProcess)
             return qjs::Value {ctx, JS_NULL};
 
@@ -252,8 +248,8 @@ CJSEngine::CJSEngine(const std::string& Script)
         auto path = pProcess->GetNtFilePath();
 
         obj["pid"]  = PID;
-        obj["ntFilePath"] = ToUtf8(nullptr, path.c_str()).ConstData();
-        obj["filePath"] = ToUtf8(nullptr, theCore->NormalizePath(path).c_str()).ConstData();
+        obj["ntPath"] = ToUtf8(nullptr, path.c_str()).ConstData();
+        obj["dosPath"] = ToUtf8(nullptr, theCore->NormalizePath(path).c_str()).ConstData();
 
         //auto meta = m->context.newObject();
         //meta["createdAt"] = std::time(nullptr);
@@ -271,25 +267,54 @@ CJSEngine::CJSEngine(const std::string& Script)
     //    std::cout << s << std::endl; 
     //};
 
-    m->context.global()["logLine"] = [](const std::string& s) { theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_JSLOG_MSG, s2w(s)); };
-    m->context.global()["logSuccess"] = [](const std::string& s) { theCore->Log()->LogEvent(EVENTLOG_SUCCESS, 0, SVC_EVENT_JSLOG_MSG, s2w(s)); };
-    m->context.global()["logWarning"] = [](const std::string& s) { theCore->Log()->LogEvent(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_JSLOG_MSG, s2w(s)); };
-    m->context.global()["logError"] = [](const std::string& s) { theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_JSLOG_MSG, s2w(s)); };
+    qjs::Value eSpawn = m->context.newObject();
+    eSpawn["Undefined"] = EProgramOnSpawn::eUnknown;
+    eSpawn["Allow"]     = EProgramOnSpawn::eAllow;
+    eSpawn["Block"]     = EProgramOnSpawn::eBlock;
+    eSpawn["Eject"]     = EProgramOnSpawn::eEject;
+    m->context.global()["Spawn"] = eSpawn;
 
-	if(!Script.empty())
-		SetScript(Script);
+    qjs::Value eLoad = m->context.newObject();
+    eLoad["Undefined"] = EImageOnLoad::eUnknown;
+    eLoad["Allow"]     = EImageOnLoad::eAllow;
+    eLoad["Block"]     = EImageOnLoad::eBlock;
+    eLoad["AllowUntrusted"] = EImageOnLoad::eAllowUntrusted;
+    m->context.global()["Load"] = eLoad;
+
+    qjs::Value eAccess = m->context.newObject();
+    eAccess["Undefined"]= EAccessRuleType::eNone;
+    eAccess["Allow"]    = EAccessRuleType::eAllow;
+    eAccess["AllowRO"]  = EAccessRuleType::eAllowRO;
+    eAccess["Enum"]     = EAccessRuleType::eEnum;
+    eAccess["Protect"]  = EAccessRuleType::eProtect;
+    eAccess["Block"]    = EAccessRuleType::eBlock;
+    eAccess["Ignore"]   = EAccessRuleType::eIgnore;
+    m->context.global()["Access"] = eAccess;
+
+    m->context.global()["log"] = [&](const std::string& s)          { Log(s); };
+    m->context.global()["logInfo"] = [&](const std::string& s)      { Log(s, ELogLevels::eInfo); };
+    m->context.global()["logSuccess"] = [&](const std::string& s)   { Log(s, ELogLevels::eSuccess); };
+    m->context.global()["logWarning"] = [&](const std::string& s)   { Log(s, ELogLevels::eWarning); };
+    m->context.global()["logError"] = [&](const std::string& s)     { Log(s, ELogLevels::eError); };
+
+    m->context.global()["slogInfo"] = [&](const std::string& s)     { Log(s, ELogLevels::eInfo);    theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_JSLOG_MSG, s2w(s)); };
+    m->context.global()["slogSuccess"] = [&](const std::string& s)  { Log(s, ELogLevels::eSuccess); theCore->Log()->LogEvent(EVENTLOG_SUCCESS, 0, SVC_EVENT_JSLOG_MSG, s2w(s)); };
+    m->context.global()["slogWarning"] = [&](const std::string& s)  { Log(s, ELogLevels::eWarning); theCore->Log()->LogEvent(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_JSLOG_MSG, s2w(s)); };
+    m->context.global()["slogError"] = [&](const std::string& s)    { Log(s, ELogLevels::eError);   theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_JSLOG_MSG, s2w(s)); };
+
+    m->context.global()["emitInfo"] = [&](const std::string& s)     { Log(s, ELogLevels::eInfo);    EmitEvent(s, ELogLevels::eInfo); };
+    m->context.global()["emitSuccess"] = [&](const std::string& s)  { Log(s, ELogLevels::eSuccess); EmitEvent(s, ELogLevels::eSuccess); };
+    m->context.global()["emitWarning"] = [&](const std::string& s)  { Log(s, ELogLevels::eWarning); EmitEvent(s, ELogLevels::eWarning); };
+    m->context.global()["emitError"] = [&](const std::string& s)    { Log(s, ELogLevels::eError);   EmitEvent(s, ELogLevels::eError); };
+
+    //m->context.global()["dump"] = [&](const qjs::Value& v)          { Dump(v); };
+
+    ClearLog();
 }
 
 CJSEngine::~CJSEngine()
 {
 	delete m;
-}
-
-void CJSEngine::SetScript(const std::string& script)
-{
-	std::unique_lock Lock(m_Mutex);
-
-	m_Script = script;
 }
 
 RESULT(StVariant) CJSEngine::RunScript()
@@ -300,24 +325,39 @@ RESULT(StVariant) CJSEngine::RunScript()
         auto Val = m->context.eval(m_Script);
 
         if (Val.v.tag == JS_TAG_EXCEPTION) {
-            m->HandleException();
+            HandleException();
             return STATUS_UNSUCCESSFUL;
         }
 
         return m->JS2Var(Val);
     }
     catch (qjs::exception & ex) {
-        m->HandleException();
+        HandleException();
         return STATUS_UNSUCCESSFUL;
     }
 }
 
-RESULT(StVariant) CJSEngine::CallFunc(const std::string& Name, int arg_count, ...)
+void CJSEngine::HandleException()
+{
+    auto exc = m->context.getException();
+    auto str = (std::string)exc;
+    if((bool)exc["stack"])
+        str += "\n" + (std::string)exc["stack"];
+
+	Log(str, ELogLevels::eError);
+
+    theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_JSLOG_MSG, s2w(str));
+}
+
+RESULT(StVariant) CJSEngine::CallFunc(const char* FuncName, int arg_count, ...)
 {
     std::unique_lock Lock(m_Mutex);
 
     try {
-        qjs::Value fn = m->context.global()[Name.c_str()];
+        qjs::Value fn = m->context.global()[FuncName];
+
+        if (fn.v.tag == JS_TAG_UNDEFINED)
+            return STATUS_NOT_FOUND;
 
         std::vector<JSValue> jsArgs;
         jsArgs.reserve(arg_count);
@@ -340,14 +380,235 @@ RESULT(StVariant) CJSEngine::CallFunc(const std::string& Name, int arg_count, ..
         retVal.ctx = m->context.ctx;
 
         if (retVal.v.tag == JS_TAG_EXCEPTION) {
-            m->HandleException();
+            HandleException();
             return STATUS_UNSUCCESSFUL;
         }
 
         return m->JS2Var(retVal);
     }
     catch (qjs::exception& ex) {
-        m->HandleException();
+        HandleException();
         return STATUS_UNSUCCESSFUL;
     }
+}
+
+void CJSEngine::EmitEvent(const std::string& Message, ELogLevels Level)
+{
+    StVariant Data;
+	Data[API_V_GUID] = m_Guid.ToVariant(false);
+    Data[API_V_TYPE] = (uint32)m_Type;
+	Data[API_V_DATA] = Message;
+    theCore->EmitEvent(Level, ELogEventType::eLogScriptEvent, Data);
+}
+
+//void CJSEngine::Dump(const qjs::Value& Value)
+//{
+//    
+//}
+
+void CJSEngine::Log(const std::string& Message, ELogLevels Level)
+{
+    std::unique_lock Lock(m_Mutex);
+
+    while (m_Log.Count() >= 100) {
+        m_BaseID++;
+        m_Log.erase(m_Log.begin());
+    }
+
+    SLogEntry Entry;
+    Entry.TimeStamp = GetCurrentTimeAsFileTime();
+	Entry.Level = Level;
+    Entry.Message = Message;
+	m_Log.Append(Entry);
+}
+
+void CJSEngine::ClearLog()
+{
+    std::unique_lock Lock(m_Mutex);
+
+    m_BaseID = rand();
+    m_Log.Clear();
+}
+
+StVariant CJSEngine::DumpLog(uint32 LastID, FW::AbstractMemPool* pMemPool)
+{
+    std::unique_lock Lock(m_Mutex);
+
+    int Index = 0;
+    if(LastID > m_BaseID && LastID <= m_BaseID + m_Log.Count())
+		Index = LastID - m_BaseID;
+    
+    StVariantWriter Log(pMemPool);
+    Log.BeginList();
+    for (; Index < m_Log.Count(); Index++)
+    {
+        StVariantWriter Entry(pMemPool);
+        Entry.BeginIndex();
+        Entry.Write(API_V_ID,  m_BaseID + Index + 1);
+		Entry.Write(API_V_TYPE, (uint32)m_Log[Index].Level);
+		Entry.Write(API_V_TIME_STAMP, m_Log[Index].TimeStamp);
+		Entry.WriteEx(API_V_DATA, m_Log[Index].Message);
+        Log.WriteVariant(Entry.Finish());
+    }
+	return Log.Finish();
+}
+
+FW::StringW CJSEngine__DumpHash(uint32 Algorithm, const std::vector<uint8>& Hash)
+{
+    FW::StringW Hex;
+    ToHex(Hex, Hash.data(), Hash.size());
+
+    switch (Algorithm)
+    {
+    case KphHashAlgorithmSha1:              return FW::StringW(nullptr, L"SHA1:") + Hex;
+    case KphHashAlgorithmSha1Authenticode:  return FW::StringW(nullptr, L"SHA1ac:") + Hex;
+    case KphHashAlgorithmSha256:            return FW::StringW(nullptr, L"SHA256:") + Hex;
+    case KphHashAlgorithmSha256Authenticode:return FW::StringW(nullptr, L"SHA256ac:") + Hex;
+    case KphHashAlgorithmSha384:            return FW::StringW(nullptr, L"SHA384:") + Hex;
+    case KphHashAlgorithmSha512:            return FW::StringW(nullptr, L"SHA512:") + Hex;
+    default: return Hex;
+    }
+}
+
+StVariant CJSEngine__SumpSign(USignatures uSign)
+{
+    StVariant Sign;
+
+    Sign["value"] = uSign.Value;
+	Sign["windows"] = uSign.Windows != 0;
+	Sign["microsoft"] = uSign.Microsoft != 0;
+	Sign["antimalware"] = uSign.Antimalware != 0;
+	Sign["authenticode"] = uSign.Authenticode != 0;
+	Sign["store"] = uSign.Store != 0;
+	Sign["developer"] = uSign.Developer != 0;
+	Sign["user"] = uSign.User != 0;
+	Sign["enclave"] = uSign.Enclave != 0;
+    Sign["collection"] = uSign.Collection != 0;
+
+	return Sign;
+}
+
+StVariant CJSEngine__FillVerifierInfo(const struct SVerifierInfo* pVerifyInfo)
+{
+    StVariant Verifier;
+
+    if (!pVerifyInfo)
+        return Verifier;
+
+    StVariant Status(nullptr, VAR_TYPE_MAP);
+    Status["signAuthority"] = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_SA) != 0;
+    Status["codeIntegrity"] = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_CI) != 0;
+    Status["signLevel"]     = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_SL) != 0;
+    Status["fileMismatch"]  = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_FILE_MISMATCH) != 0;
+	Status["hashFailed"]    = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_HASH_FILED) != 0;
+    Status["coherencyFail"] = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_COHERENCY_FAIL) != 0;
+    Status["signatureFail"] = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_SIGNATURE_FAIL) != 0;
+    Verifier["statusFlags"] = Status;
+
+	Verifier["signAuthority"] = (uint32)pVerifyInfo->PrivateAuthority;
+	Verifier["signLevel"] = (uint32)pVerifyInfo->SignLevel;
+	Verifier["codeIntegrity"] = (uint32)pVerifyInfo->SignPolicyBits;
+
+    if(pVerifyInfo->FileHashAlgorithm)
+	    Verifier["fileHash"] = CJSEngine__DumpHash(pVerifyInfo->FileHashAlgorithm, pVerifyInfo->FileHash);
+
+    if (pVerifyInfo->SignerHashAlgorithm) {
+        Verifier["signerHash"] = CJSEngine__DumpHash(pVerifyInfo->SignerHashAlgorithm, pVerifyInfo->SignerHash);
+        Verifier["signerName"] = pVerifyInfo->SignerName;
+    }
+
+    if (pVerifyInfo->IssuerHashAlgorithm) {
+        Verifier["issuerHash"] = CJSEngine__DumpHash(pVerifyInfo->IssuerHashAlgorithm, pVerifyInfo->IssuerHash);
+        Verifier["issuerName"] = pVerifyInfo->IssuerName;
+    }
+
+	Verifier["foundSignatures"] = CJSEngine__SumpSign(pVerifyInfo->FoundSignatures);
+	Verifier["allowedSignatures"] = CJSEngine__SumpSign(pVerifyInfo->AllowedSignatures);
+
+    return Verifier;
+}
+
+EProgramOnSpawn CJSEngine::RunStartScript(const std::wstring& NtPath, const std::wstring& CommandLine, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, bool bTrusted, const struct SVerifierInfo* pVerifierInfo)
+{
+    //std::unique_lock Lock(m_Mutex);
+
+    StVariant Event;
+    Event["ntPath"] = NtPath;
+    Event["dosPath"] = theCore->NormalizePath(NtPath);
+    Event["commandLine"] = CommandLine;
+    Event["actorPid"] = ActorPid;
+    Event["actorServiceTag"] = ActorServiceTag;
+    Event["enclaveId"] = EnclaveId;
+    Event["trusted"] = bTrusted;
+    Event["ci"] = CJSEngine__FillVerifierInfo(pVerifierInfo);
+
+    auto Ret = CallFunc("onStart", 1, Event);
+    if(Ret.IsError())
+        return EProgramOnSpawn::eUnknown;
+    EProgramOnSpawn Action = (EProgramOnSpawn)Ret.GetValue().To<int>();
+    return Action;
+}
+
+EImageOnLoad CJSEngine::RunLoadScript(uint64 Pid, const std::wstring& NtPath, const std::wstring& EnclaveId, bool bTrusted, const struct SVerifierInfo* pVerifierInfo)
+{
+    //std::unique_lock Lock(m_Mutex);
+
+    StVariant Event;
+    Event["pid"] = Pid;
+    Event["ntPath"] = NtPath;
+    Event["dosPath"] = theCore->NormalizePath(NtPath);
+    Event["enclaveId"] = EnclaveId;
+    Event["trusted"] = bTrusted;
+    Event["ci"] = CJSEngine__FillVerifierInfo(pVerifierInfo);
+    
+    auto Ret = CallFunc("onLoad", 1, Event);
+    if(Ret.IsError())
+        return EImageOnLoad::eUnknown;
+    EImageOnLoad Action = (EImageOnLoad)Ret.GetValue().To<int>();
+    return Action;
+}
+
+EAccessRuleType CJSEngine::RunAccessScript(const std::wstring& NtPath, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, uint32 AccessMask)
+{
+    //std::unique_lock Lock(m_Mutex);
+
+    StVariant Event;
+    Event["ntPath"] = NtPath;
+    Event["dosPath"] = theCore->NormalizePath(NtPath);
+    Event["actorPid"] = ActorPid;
+    Event["actorServiceTag"] = ActorServiceTag;
+    Event["enclaveId"] = EnclaveId;
+    Event["accessMask"] = AccessMask;
+
+    auto Ret = CallFunc("onAccess", 1, Event);
+    if(Ret.IsError())
+        return EAccessRuleType::eNone;
+    EAccessRuleType Action = (EAccessRuleType)Ret.GetValue().To<int>();
+    return Action;
+}
+
+bool CJSEngine::RunMountScript(const std::wstring& ImagePath, const std::wstring& DevicePath, const std::wstring& MountPoint)
+{
+    StVariant Data;
+	Data["imagePath"] = ImagePath;
+	Data["devicePath"] = DevicePath;
+    Data["mountPoint"] = MountPoint;
+    auto Ret = CallFunc("onMount", 1, Data);
+    if (Ret.IsError()) {
+        if(Ret.GetStatus() == STATUS_NOT_FOUND)
+			return true; // allow if no function
+		return false; // block on error
+    }
+    if(!Ret.GetValue().IsValid())
+		return true; // allow if no return value
+	return Ret.GetValue().To<bool>(); // allow/block
+}
+
+void CJSEngine::RunDismountScript(const std::wstring& ImagePath, const std::wstring& DevicePath, const std::wstring& MountPoint)
+{
+    StVariant Data;
+    Data["imagePath"] = ImagePath;
+    Data["devicePath"] = DevicePath;
+    Data["mountPoint"] = MountPoint;
+	CallFunc("onDismount", 1, Data);
 }

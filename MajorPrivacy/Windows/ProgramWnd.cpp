@@ -71,6 +71,7 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 	
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
+	connect(ui.buttonBox->button(QDialogButtonBox::Apply), SIGNAL(clicked(bool)), this, SLOT(OnSave()));
 
 	if (bNew)
 	{
@@ -194,7 +195,7 @@ void CProgramWnd::BrowseFolder()
 	ui.txtPath->setText(Value);
 }
 
-void CProgramWnd::OnSaveAndClose()
+bool CProgramWnd::OnSave()
 {
 	CProgramItemPtr pProgram = m_pProgram;
 	if (pProgram.isNull())
@@ -235,11 +236,17 @@ void CProgramWnd::OnSaveAndClose()
 
 	RESULT(quint64) Ret = theCore->ProgramManager()->SetProgram(pProgram);
 	if (theGUI->CheckResults(QList<STATUS>() << Ret, this))
-		return;
+		return false;
 
 	if (!m_pProgram) {
 		pProgram->SetUID(Ret.GetValue());
 		m_pProgram = pProgram;
 	}
-	accept();
+	return true;
+}
+
+void CProgramWnd::OnSaveAndClose()
+{
+	if(OnSave())
+		accept();
 }

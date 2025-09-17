@@ -54,7 +54,6 @@ struct SProcessEvent
 		ProcessStarted,
 		ProcessStopped,
 		ImageLoad,
-		UntrustedLoad,
 		ProcessAccess,
 		ThreadAccess,
 		ResourceAccess,
@@ -77,6 +76,9 @@ struct SProcessEventEx : public SProcessEvent
 	uint64 ActorProcessId = 0;
 	uint64 ActorThreadId = 0;
 	std::wstring ActorServiceTag;
+	std::wstring EnclaveId;
+
+	uint32 TimeOut = 0;
 };
 
 struct SVerifierInfo
@@ -111,12 +113,15 @@ struct SProcessStartEvent : public SProcessEventEx
 {
 	uint64 ProcessId = 0;
 	uint64 ParentId = 0;
-	std::wstring EnclaveId;
-	std::wstring FileName;
+	std::wstring NtPath;
 	std::wstring CommandLine;
 	SVerifierInfo VerifierInfo;
 	sint32 CreationStatus = 0;
 	EEventStatus Status = EEventStatus::eUndefined;
+
+	std::wstring EnclaveGuid;
+	std::wstring RuleGuid;
+	EProgramOnSpawn Action = EProgramOnSpawn::eUnknown;
 };
 
 struct SProcessStopEvent : public SProcessEvent
@@ -129,20 +134,22 @@ struct SProcessStopEvent : public SProcessEvent
 struct SProcessImageEvent : public SProcessEventEx
 {
 	uint64 ProcessId = 0;
-	std::wstring EnclaveId;
 	std::wstring FileName;
-	bool bLoadPrevented = false;
+	EEventStatus Status = EEventStatus::eUndefined;
 	//uint32 ImageProperties = 0;
 	uint64 ImageBase = 0;
 	//uint32 ImageSelector = 0;
 	//uint32 ImageSectionNumber = 0;
 	SVerifierInfo VerifierInfo;
+
+	std::wstring EnclaveGuid;
+	std::wstring RuleGuid;
+	EImageOnLoad Action = EImageOnLoad::eUnknown;
 };
 
 struct SProcessAccessEvent : public SProcessEventEx
 {
 	uint64 ProcessId = 0;
-	std::wstring EnclaveId;
 	//bool bThread = false;
 	uint32 AccessMask = 0;
 	EEventStatus Status = EEventStatus::eUndefined;
@@ -155,11 +162,10 @@ struct SResourceAccessEvent : public SProcessEventEx
 	std::wstring Path;
 	uint32 AccessMask = 0;
 	EEventStatus Status = EEventStatus::eUndefined;
-	std::wstring RuleGuid;
 	NTSTATUS NtStatus = 0;
 	bool IsDirectory = false;
 
-	uint32 TimeOut = 0;
+	std::wstring RuleGuid;
 	EAccessRuleType Action = EAccessRuleType::eNone;
 };
 
@@ -284,6 +290,8 @@ public:
 
 	STATUS AcquireHibernationPrevention();
 	LONG ReleaseHibernationPrevention();
+
+	STATUS SetIgnorePendingImageLoad(bool bSet);
 
 	STATUS RegisterForProcesses(uint32 uEvents, bool bRegister = true);
 	void RegisterProcessHandler(const std::function<sint32(const SProcessEvent* pEvent)>& Handler);

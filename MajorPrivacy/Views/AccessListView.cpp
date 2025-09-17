@@ -8,6 +8,7 @@
 #include <QFileIconProvider>
 #include "../MiscHelpers/Common/CustomStyles.h"
 #include "..\Core\Access\ResLogEntry.h"
+#include "../MajorPrivacy.h"
 
 CAccessListView::CAccessListView(QWidget *parent)
 	:CPanelViewEx<CAccessListModel>(parent)
@@ -61,14 +62,17 @@ CAccessListView::~CAccessListView()
 	theConf->SetBlob("MainWindow/AccessListView_Columns", m_pTreeView->saveState());
 }
 
-void CAccessListView::OnSelectionChanged()
+void CAccessListView::OnSelectionChanged(const QList<SAccessItemPtr>& Items)
 {
-	CAccessView* pView = (CAccessView*)sender();
-
-	QList<SAccessItemPtr> Items = pView->GetSelectedItemsWithChildren();
+	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Items.count());
 
 	QMap<CProgramItemPtr, QPair<quint64,QList<QPair<SAccessStatsPtr,SAccessItem::EType>>>> Map;
 	for (auto pItem : Items) {
+
+		if (!ProgressHelper.Next(pItem->Name)) {
+			break;
+		}
+
 		for (auto I = pItem->Stats.begin(); I != pItem->Stats.end(); ++I) {
 			auto& Pair = Map[I.key()];
 			if (Pair.first < pItem->LastAccess)
@@ -76,6 +80,8 @@ void CAccessListView::OnSelectionChanged()
 			Pair.second.append(qMakePair(I.value(),pItem->Type));
 		}
 	}
+
+	ProgressHelper.Done();
 
 	QList<QModelIndex> Added = m_pItemModel->Sync(Map);
 

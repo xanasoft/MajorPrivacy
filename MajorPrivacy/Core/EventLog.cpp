@@ -40,13 +40,14 @@ CEventLog::CEventLog(QObject* parent)
 {
 }
 
-STATUS CEventLog::AddEntry(const QtVariant& Entry)
+STATUS CEventLog::AddEntry(const QtVariant& Entry, bool bLive)
 {
     CEventLogEntryPtr pEntry = CEventLogEntryPtr(new CEventLogEntry());
     NTSTATUS status = pEntry->FromVariant(Entry);
     if (!NT_SUCCESS(status))
         return ERR(status);
     m_Entries.append(pEntry);
+    if (bLive) emit NewEntry(pEntry);
     return OK;
 }
 
@@ -54,7 +55,7 @@ STATUS CEventLog::LoadEntries(const QtVariant& Entries)
 {
     m_Entries.clear();
 	StVariantReader(Entries).ReadRawList([&](const StVariant& Entry) {
-        AddEntry(Entry);
+        AddEntry(Entry, false);
 	});
 	return OK;
 }
@@ -64,6 +65,7 @@ QString CEventLog::GetEventLevelStr(ELogLevels Level)
     switch (Level)
     {
     case ELogLevels::eInfo:			return tr("Info");
+	case ELogLevels::eSuccess:		return tr("Success");
     case ELogLevels::eWarning:		return tr("Warning");
     case ELogLevels::eError:		return tr("Error");
     case ELogLevels::eCritical:		return tr("Critical");
@@ -76,6 +78,7 @@ QIcon CEventLog::GetEventLevelIcon(ELogLevels Level)
     switch (Level)
     {
     case ELogLevels::eInfo:			return QIcon(":/Icons/Info.png");
+	case ELogLevels::eSuccess:		return QIcon(":/Icons/Approve2.png");
 	case ELogLevels::eWarning:		return QIcon(":/Icons/Warning.png");
     case ELogLevels::eError:		return QIcon(":/Icons/Error.png");
     case ELogLevels::eCritical:		return QIcon(":/Icons/Critical.png");
@@ -140,9 +143,14 @@ QString CEventLog::GetEventInfoStr(const CEventLogEntryPtr& pEntry)
 			return tr("Program had insificient Signature leven and was blocked '%1'").arg(Name);
     }
 
+    case eLogScriptEvent: {
+        QString Message = Data[API_V_DATA].To<QString>();
+        return Message;
+    }
+
     default: {
         QJsonDocument doc(QJsonValue::fromVariant(Data.ToQVariant()).toObject());			
-        return tr("Unknown Event: %1").arg(doc.toJson(QJsonDocument::Compact));
+        return tr("Unknown Event: %1").arg(QString::fromUtf8(doc.toJson(QJsonDocument::Compact)));
     }
     }
 }

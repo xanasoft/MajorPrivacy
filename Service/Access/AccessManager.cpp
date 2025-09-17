@@ -9,6 +9,7 @@
 #include "../Library/Helpers/NtUtil.h"
 #include "../Volumes/VolumeManager.h"
 #include "../Library/Common/FileIO.h"
+#include "../Library/Helpers/WinUtil.h"
 
 #define API_ACCESS_RECORD_FILE_NAME L"AccessRecord.dat"
 #define API_ACCESS_RECORD_FILE_VERSION 1
@@ -35,7 +36,7 @@ CAccessManager::~CAccessManager()
 DWORD CALLBACK CAccessManager__LoadProc(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-	SetThreadDescription(GetCurrentThread(), L"CAccessManager__LoadProc");
+	MySetThreadDescription(GetCurrentThread(), L"CAccessManager__LoadProc");
 #endif
 
 	CAccessManager* This = (CAccessManager*)lpThreadParameter;
@@ -65,7 +66,7 @@ STATUS CAccessManager::Init()
 DWORD CALLBACK CAccessManager__StoreProc(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-	SetThreadDescription(GetCurrentThread(), L"CAccessManager__StoreProc");
+	MySetThreadDescription(GetCurrentThread(), L"CAccessManager__StoreProc");
 #endif
 
 	CAccessManager* This = (CAccessManager*)lpThreadParameter;
@@ -108,7 +109,7 @@ void CAccessManager::Update()
 DWORD CALLBACK CAccessManager__CleanUp(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-	SetThreadDescription(GetCurrentThread(), L"CAccessManager__CleanUp");
+	MySetThreadDescription(GetCurrentThread(), L"CAccessManager__CleanUp");
 #endif
 
 	CAccessManager* This = (CAccessManager*)lpThreadParameter;
@@ -183,12 +184,15 @@ CAccessRulePtr CAccessManager::GetRule(const CFlexGuid& Guid)
 	return nullptr;
 }
 
-RESULT(std::wstring) CAccessManager::AddRule(const CAccessRulePtr& pRule)
+RESULT(std::wstring) CAccessManager::AddRule(const CAccessRulePtr& pRule, uint64 LockdownToken)
 {
 	SVarWriteOpt Opts;
 	Opts.Flags = SVarWriteOpt::eTextGuids;
 
-	StVariant Request = pRule->ToVariant(Opts);
+	StVariant Request;
+	Request[API_V_RULE]= pRule->ToVariant(Opts);
+	if(LockdownToken)
+		Request[API_V_TOKEN] = LockdownToken;
 	auto Res = theCore->Driver()->Call(API_SET_ACCESS_RULE, Request);
 	//if (Res.IsSuccess()) // will be done by the notification event
 	//	UpdateRule(pRule, pRule->GetGuid());
@@ -197,14 +201,18 @@ RESULT(std::wstring) CAccessManager::AddRule(const CAccessRulePtr& pRule)
 	RETURN(Res.GetValue().AsStr());
 }
 
-STATUS CAccessManager::RemoveRule(const CFlexGuid& Guid)
+STATUS CAccessManager::RemoveRule(const CFlexGuid& Guid, uint64 LockdownToken)
 {
 	StVariant Request;
 	Request[API_V_GUID] = Guid.ToVariant(true);
+	if(LockdownToken)
+		Request[API_V_TOKEN] = LockdownToken;
 	auto Res = theCore->Driver()->Call(API_DEL_ACCESS_RULE, Request);
 	//if (Res.IsSuccess()) // will be done by the notification event
 	//	UpdateRule(nullptr, Guid);
-	return Res;
+	if(Res.IsError())
+		return Res;
+	return OK;
 }
 
 STATUS CAccessManager::LoadRules()
@@ -219,7 +227,7 @@ STATUS CAccessManager::LoadRules()
 
 	std::map<CFlexGuid, CAccessRulePtr> OldRules = m_Rules;
 
-	StVariant Rules = Res.GetValue();
+	const StVariant Rules = Res.GetValue().At(API_V_RULES);
 	for(uint32 i=0; i < Rules.Count(); i++)
 	{
 		StVariant Rule = Rules[i];
@@ -320,7 +328,7 @@ void CAccessManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEven
 			Request[API_V_GUID] = Guid.ToVariant(true);
 			auto Res = theCore->Driver()->Call(API_GET_ACCESS_RULE, Request);
 			if (Res.IsSuccess()) {
-				StVariant Rule = Res.GetValue();
+				const StVariant Rule = Res.GetValue().At(API_V_RULE);
 				std::wstring ProgramPath = theCore->NormalizePath(Rule[API_V_FILE_PATH].AsStr());
 				CProgramID ID(ProgramPath);
 				pRule = std::make_shared<CAccessRule>(ID);
@@ -332,7 +340,7 @@ void CAccessManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEven
 		if (Event == EConfigEvent::eRemoved)
 			pRule2 = GetRule(Guid);
 		if (pRule2)
-			theCore->VolumeManager()->UpdateRule(pRule2, Event, PID);
+			theCore->VolumeManager()->UpdateAccessRule(pRule2, Event, PID);
 
 		UpdateRule(pRule, Guid);
 	}
@@ -352,7 +360,7 @@ STATUS CAccessManager::Load()
 {
 	CBuffer Buffer;
 	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_ACCESS_RECORD_FILE_NAME, Buffer)) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_ACCESS_RECORD_FILE_NAME L" not found");
+		theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_ACCESS_RECORD_FILE_NAME L" not found");
 		return ERR(STATUS_NOT_FOUND);
 	}
 

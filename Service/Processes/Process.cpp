@@ -19,7 +19,6 @@
 #include "../../Library/Helpers/CertUtil.h"
 #include "../../Library/Crypto/HashFunction.h"
 
-#include "../../Driver\KSI\include\kphapi.h"
 
 //static inline uint16_t reverseBits16(uint16_t x)
 //{
@@ -151,9 +150,9 @@ bool CProcess::Init()
 	}
 
 	if(m_NtFilePath == L"MemCompression")
-		m_NtFilePath = std::wstring(NtOsKernel_exe) + L"\\MemCompression";
+		m_NtFilePath = std::wstring(NtOsKernel_exe);
 	else if(m_NtFilePath == L"Registry")
-		m_NtFilePath = std::wstring(NtOsKernel_exe) + L"\\Registry";
+		m_NtFilePath = std::wstring(NtOsKernel_exe);
 
 	return InitOther();
 }

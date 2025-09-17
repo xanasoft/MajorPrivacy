@@ -16,6 +16,9 @@ public:
 	STATUS AddVolume(const QString& Path);
 	STATUS RemoveVolume(const QString& Path);
 
+	STATUS SetVolume(const CVolumePtr& pVolume);
+	CVolumePtr GetVolume(const QFlexGuid& Guid);
+
 	bool LoadVolumes();
 	bool SaveVolumes();
 

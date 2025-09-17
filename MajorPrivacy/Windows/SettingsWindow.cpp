@@ -83,6 +83,16 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	ui.tabs->setTabIcon(7, QIcon(":/Icons/Advanced.png"));
 	ui.tabs->setTabIcon(8, QIcon(":/Icons/Support.png"));
 
+	ui.tabsFw->setTabIcon(0, QIcon(":/Icons/Windows.png"));
+	ui.tabsFw->setTabIcon(1, QIcon(":/Icons/Shield12.png"));
+
+	ui.tabsSupport->setTabIcon(0, QIcon(":/Icons/Cert.png"));
+	ui.tabsSupport->setTabIcon(1, QIcon(":/Icons/ReloadIni.png"));
+
+	ui.tabs->setCurrentIndex(0);
+	ui.tabsFw->setCurrentIndex(0);
+	ui.tabsSupport->setCurrentIndex(0);
+
 	ui.treeIgnore->setIndentation(0);
 
 	int size = 16.0;
@@ -97,13 +107,12 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	AddIconToLabel(ui.lblExecInfo, QPixmap(":/Icons/Process.png").scaled(size, size));
 	AddIconToLabel(ui.lblResInfo, QPixmap(":/Icons/Ampel.png").scaled(size, size));
 	AddIconToLabel(ui.lblFw, QPixmap(":/Icons/Options.png").scaled(size, size));
-	AddIconToLabel(ui.lblFwGuard, QPixmap(":/Icons/Wall2.png").scaled(size, size));
+	AddIconToLabel(ui.lblFwGuard, QPixmap(":/Icons/Shield8.png").scaled(size, size));
+	AddIconToLabel(ui.lblFwAutoGuard, QPixmap(":/Icons/Security2.png").scaled(size, size));
 	AddIconToLabel(ui.lblFwInfo, QPixmap(":/Icons/Wall3.png").scaled(size, size));
 	AddIconToLabel(ui.lblLogging, QPixmap(":/Icons/List.png").scaled(size, size));
 	AddIconToLabel(ui.lblDns, QPixmap(":/Icons/DNS.png").scaled(size, size));
 	AddIconToLabel(ui.lblUpdates, QPixmap(":/Icons/Update.png").scaled(size,size));
-
-	ui.tabs->setCurrentIndex(0);
 
 	{
 		ui.uiLang->addItem(tr("Auto Detection"), "");
@@ -186,7 +195,8 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.chkLogNotFound, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLogRegistry, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
-	connect(ui.chkFwPlus, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkFwPlus, SIGNAL(stateChanged(int)), this, SLOT(OnOptFwChanged()));
+	connect(ui.chkFwPlusNotify, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkNetTrace, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkTrafficRecord, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
@@ -215,18 +225,27 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.radFwDisable, SIGNAL(clicked()), this, SLOT(OnFwModeChanged()));
 
 	connect(ui.cmbFwAuditPolicy, SIGNAL(currentIndexChanged(int)), this, SLOT(OnFwAuditPolicyChanged()));
-	connect(ui.chkFwShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnFwShowPopUpChanged()));
+	connect(ui.chkFwShowPopUp, SIGNAL(stateChanged(int)), this, SLOT(OnOptFwChanged()));
 	connect(ui.chkFwInOutRules, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkFwShowAlerts, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkGuardFwRules, SIGNAL(stateChanged(int)), this, SLOT(OnFwGuardChanged()));
 	connect(ui.chkFwDelRogue, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLoadFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
+	connect(ui.btnFwGuardApprove, SIGNAL(clicked(bool)), this, SLOT(OnGuardAddApprove()));
+	connect(ui.btnFwGuardReject, SIGNAL(clicked(bool)), this, SLOT(OnGuardAddReject()));
+	connect(ui.btnFwGuardRemove, SIGNAL(clicked(bool)), this, SLOT(OnGuardRemove()));
+
+	connect(ui.treeFwGuard, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(OnFwGuardListClicked(QTreeWidgetItem*, int)));
+	connect(ui.treeFwGuard, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(OnFwGuardDoubleClicked(QTreeWidgetItem*, int)));
+
+	connect(ui.btnFwGuardNotify, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+
 	connect(ui.chkDnsFilter, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged()));
 	connect(ui.chkDnsInstall, SIGNAL(stateChanged(int)), this, SLOT(OnDnsChanged()));
 	connect(ui.txtDnsResolvers, SIGNAL(textChanged(const QString &)), this, SLOT(OnDnsChanged2()));
 	connect(ui.treeDnsBlockLists, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this, SLOT(OnDnsBlockListClicked(QTreeWidgetItem*, int)));
-	connect(ui.treeDnsBlockLists, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(OnDnsBlockDoubleClicked(QTreeWidgetItem*, int)));
+	connect(ui.treeDnsBlockLists, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(OnDnsBlockListDoubleClicked(QTreeWidgetItem*, int)));
 	connect(ui.btnAddBlockList, SIGNAL(clicked(bool)), this, SLOT(OnAddBlockList()));
 	connect(ui.btnDelBlockList, SIGNAL(clicked(bool)), this, SLOT(OnDelBlockList()));
 
@@ -247,6 +266,8 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 
 	connect(ui.cmbUpdate, SIGNAL(currentIndexChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.cmbRelease, SIGNAL(currentIndexChanged(int)), this, SLOT(OnOptChanged()));
+
+	connect(ui.chkUpdateTweaks, SIGNAL(toggled(bool)), this, SLOT(OnOptChanged()));
 	//
 
 	connect(ui.tabs, SIGNAL(currentChanged(int)), this, SLOT(OnTab()));
@@ -497,16 +518,82 @@ void CSettingsWindow::OnFwAuditPolicyChanged()
 {
 	ui.chkFwShowPopUp->setEnabled(ui.cmbFwAuditPolicy->currentData().toUInt() != (uint32)FwAuditPolicy::Off);
 
-	OnFwShowPopUpChanged();
+	OnOptFwChanged();
 
 	m_bFwAuditPolicyChanged = true;
 }
 
-void CSettingsWindow::OnFwShowPopUpChanged()
+void CSettingsWindow::OnOptFwChanged()
 {
 	ui.chkFwInOutRules->setEnabled(ui.chkFwShowPopUp->isEnabled() && ui.chkFwShowPopUp->isChecked());
+	ui.chkFwPlusNotify->setEnabled(ui.chkFwPlus->isChecked());
 
 	OnOptChanged();
+}
+
+void CSettingsWindow::AddAutoEntry(QString Path, bool bApprove)
+{
+	if (Path.isEmpty())
+		return;
+
+	QTreeWidgetItem* pItem = new QTreeWidgetItem();
+	pItem->setText(0, bApprove ? tr("Auto Approve") : tr("Auto Reject"));
+	pItem->setData(0, Qt::UserRole, bApprove);
+	if (Path.startsWith("-")) {
+		Path.remove(0, 1);
+		pItem->setCheckState(0, Qt::Unchecked);
+	}
+	else
+		pItem->setCheckState(0, Qt::Checked);
+	pItem->setText(1, Path);
+	//pItem->setFlags(pItem->flags() | Qt::ItemIsEditable);
+	ui.treeFwGuard->addTopLevelItem(pItem);
+}
+
+void CSettingsWindow::OnGuardAddApprove()
+{
+	QString Value = QInputDialog::getText(this, "MajorPrivacy", tr("Enter file path pattern for the entry"), QLineEdit::Normal);
+	
+	AddAutoEntry(Value, true);
+
+	if (!m_HoldChange) m_AutoGuardChanged = true;
+}
+
+void CSettingsWindow::OnGuardAddReject()
+{
+	QString Value = QInputDialog::getText(this, "MajorPrivacy", tr("Enter file path pattern for the entry"), QLineEdit::Normal);
+
+	AddAutoEntry(Value, false);
+
+	if (!m_HoldChange) m_AutoGuardChanged = true;
+	OnOptChanged();
+}
+
+void CSettingsWindow::OnGuardRemove()
+{
+	QTreeWidgetItem* pItem = ui.treeFwGuard->currentItem();
+	if (!pItem)
+		return;
+
+	delete pItem;
+	
+	if (!m_HoldChange) m_AutoGuardChanged = true;
+	OnOptChanged();
+}
+
+void CSettingsWindow::OnFwGuardListClicked(QTreeWidgetItem* pItem, int Column)
+{
+	/*QTreeWidgetItem* pItem = ui.treeFwGuard->currentItem();
+	if (!pItem)
+	return;
+
+	pItem->setCheckState(0, Qt::Unchecked);*/
+	if (!m_HoldChange) m_AutoGuardChanged = true;
+	OnOptChanged();
+}
+
+void CSettingsWindow::OnFwGuardDoubleClicked(QTreeWidgetItem* pItem, int Column)
+{
 }
 
 void CSettingsWindow::OnOptChanged()
@@ -543,7 +630,7 @@ void CSettingsWindow::OnDnsBlockListClicked(QTreeWidgetItem* pItem, int Column)
 	OnOptChanged();
 }
 
-void CSettingsWindow::OnDnsBlockDoubleClicked(QTreeWidgetItem* pItem, int Column)
+void CSettingsWindow::OnDnsBlockListDoubleClicked(QTreeWidgetItem* pItem, int Column)
 {
 }
 
@@ -608,6 +695,7 @@ void CSettingsWindow::LoadSettings()
 	ui.chkLogRegistry->setChecked(theCore->GetConfigBool("Service/LogRegistry", false));
 
 	ui.chkFwPlus->setChecked(theCore->GetConfigBool("Service/UseFwRuleTemplates", true));
+	ui.chkFwPlusNotify->setChecked(theConf->GetBool("Options/NotifyFwRuleTemplates", true));
 	ui.chkNetTrace->setChecked(theCore->GetConfigBool("Service/NetTrace", true));
 	ui.chkTrafficRecord->setChecked(theCore->GetConfigBool("Service/SaveTrafficRecord", false));
 	ui.chkFwLog->setChecked(theCore->GetConfigBool("Service/NetLog", false));
@@ -648,6 +736,20 @@ void CSettingsWindow::LoadSettings()
 
 	ui.chkLoadFwLog->setChecked(theCore->GetConfigBool("Service/LoadWindowsFirewallLog", false));
 
+	ui.treeFwGuard->clear();
+
+	QStringList AutoApproveList = theCore->GetConfigStr("Service/FwAutoApprove").split("|");
+	foreach(QString AutoApprove, AutoApproveList)
+		AddAutoEntry(AutoApprove, true);
+
+	QStringList AutoRejectList = theCore->GetConfigStr("Service/FwAutoReject").split("|");
+	foreach(QString AutoReject, AutoRejectList)
+		AddAutoEntry(AutoReject, false);
+
+	m_AutoGuardChanged = false;
+
+	ui.btnFwGuardNotify->setChecked(theConf->GetBool("Options/NotifyFwGuardAction", true));
+
 	ui.chkDnsFilter->setChecked(theCore->GetConfigBool("Service/DnsEnableFilter", false));
 	ui.chkDnsInstall->setChecked(theCore->GetConfigBool("Service/DnsInstallFilter", true));
 	ui.txtDnsResolvers->setText(theCore->GetConfigStr("Service/DnsResolvers"));
@@ -666,6 +768,7 @@ void CSettingsWindow::LoadSettings()
 		//pItem->setFlags(pItem->flags() | Qt::ItemIsEditable);
 		ui.treeDnsBlockLists->addTopLevelItem(pItem);
 	}
+	m_BlockListChanged = false;
 
 	OnDnsChanged();
 
@@ -700,6 +803,8 @@ void CSettingsWindow::LoadSettings()
 
 	ui.cmbUpdate->setCurrentIndex(ui.cmbUpdate->findData(theConf->GetString("Options/OnNewUpdate", "ignore")));
 	ui.cmbRelease->setCurrentIndex(ui.cmbRelease->findData(theConf->GetString("Options/OnNewRelease", "download")));
+
+	ui.chkUpdateTweaks->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UpdateTweaks", 2)));
 	//
 
 	m_HoldChange = false;
@@ -741,6 +846,7 @@ void CSettingsWindow::SaveSettings()
 	theCore->SetConfig("Service/LogRegistry", ui.chkLogRegistry->isChecked());
 
 	theCore->SetConfig("Service/UseFwRuleTemplates", ui.chkFwPlus->isChecked());
+	theConf->SetValue("Options/NotifyFwRuleTemplates", ui.chkFwPlusNotify->isChecked());
 	theCore->SetConfig("Service/NetTrace", ui.chkNetTrace->isChecked());
 	theCore->SetConfig("Service/SaveTrafficRecord", ui.chkTrafficRecord->isChecked());
 	theCore->SetConfig("Service/NetLog", ui.chkFwLog->isChecked());
@@ -789,6 +895,28 @@ void CSettingsWindow::SaveSettings()
 
 	theCore->SetConfig("Service/LoadWindowsFirewallLog", ui.chkLoadFwLog->isChecked());
 
+	if (m_AutoGuardChanged)
+	{
+		QStringList AutoApproveList;
+		QStringList AutoRejectList;
+		for (int i = 0; i < ui.treeFwGuard->topLevelItemCount(); i++) {
+			QTreeWidgetItem* pItem = ui.treeFwGuard->topLevelItem(i);
+			QString Value = pItem->text(1);
+			if (pItem->checkState(0) == Qt::Unchecked)
+				Value = "-" + Value;
+			if(pItem->data(0, Qt::UserRole).toBool())
+				AutoApproveList.append(Value);
+			else
+				AutoRejectList.append(Value);
+		}
+		theCore->SetConfig("Service/FwAutoApprove", AutoApproveList.join("|"));
+		theCore->SetConfig("Service/FwAutoReject", AutoRejectList.join("|"));
+
+		m_AutoGuardChanged = false;
+	}
+
+	theConf->SetValue("Options/NotifyFwGuardAction", ui.btnFwGuardNotify->isChecked());
+
 	theCore->SetConfig("Service/DnsEnableFilter", ui.chkDnsFilter->isChecked());
 	theCore->SetConfig("Service/DnsInstallFilter", ui.chkDnsInstall->isChecked());
 	if (m_ResolverChanged)
@@ -833,6 +961,8 @@ void CSettingsWindow::SaveSettings()
 
 	theConf->SetValue("Options/OnNewUpdate", ui.cmbUpdate->currentData());
 	theConf->SetValue("Options/OnNewRelease", ui.cmbRelease->currentData());
+
+	theConf->SetValue("Options/UpdateTweaks", CSettingsWindow__Chk2Int(ui.chkUpdateTweaks->checkState()));
 	//
 
 	emit OptionsChanged(m_bRebuildUI);

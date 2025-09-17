@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <bcrypt.h>
 
 #include "ServiceCore.h"
 #include "../../Library/API/PrivacyAPI.h"
@@ -10,6 +11,10 @@
 #include "../../Library/Helpers/NtUtil.h"
 #include "../../Library/Helpers/NtIo.h"
 #include "../../Library/Helpers/MiscHelpers.h"
+#include "../Enclaves/EnclaveManager.h"
+#include "../Programs/ProgramManager.h"
+#include "../Library/Helpers/NtPathMgr.h"
+#include "../HashDB/HashDB.h"
 
 #define FILE_SHARE_VALID_FLAGS          0x00000007
 
@@ -98,7 +103,7 @@ std::wstring GetProxyName(const std::wstring& ImageFile)
 //    for (ULONG counter = 1; counter <= DeviceList[0]; counter++) {
 //
 //        std::wstring proxy = ImDiskQueryDeviceProxy(IMDISK_DEVICE + std::to_wstring(DeviceList[counter]));
-//        if (!MatchPathPrefix(proxy, L"\\BaseNamedObjects\\Global\\" IMBOX_PROXY))
+//        if (!MatchPathPrefix(proxy, L"\\BaseNamedObjects\\Global\\" IMBOX_PROXY, false))
 //            continue;
 //        std::size_t pos = proxy.find_first_of(L'!');
 //        if (pos == std::wstring::npos || _wcsicmp(proxy.c_str() + (pos + 1), ProxyName.c_str()) != 0)
@@ -149,7 +154,7 @@ retry:
 	return DeviceList[1] + 1;    
 }
 
-/*HANDLE OpenOrCreateNtFolder(const WCHAR* NtPath)
+HANDLE OpenOrCreateNtFolder(const WCHAR* NtPath)
 {
     UNICODE_STRING objname;
     RtlInitUnicodeString(&objname, NtPath);
@@ -181,7 +186,7 @@ retry:
     return handle;
 }
 
-int CreateJunction(const std::wstring& TargetNtPath, const std::wstring& FileRootPath, ULONG session_id)
+int CreateJunction(const std::wstring& TargetNtPath, const std::wstring& FileRootPath)
 {
     ULONG errlvl = 0;
     HANDLE handle;
@@ -216,7 +221,6 @@ int CreateJunction(const std::wstring& TargetNtPath, const std::wstring& FileRoo
 
     if (errlvl == 0 && !JunctionTarget.empty()) {
         if (_wcsicmp(JunctionTarget.c_str(), TargetNtPath.c_str()) != 0) {
-            //SbieApi_LogEx(session_id, 2231, L"%S != %S", JunctionTarget.c_str(), TargetNtPath.c_str());
 
             memset(buf, 0, REPARSE_MOUNTPOINT_HEADER_SIZE);
             ReparseBuffer.ReparseTag = IO_REPARSE_TAG_MOUNT_POINT;
@@ -259,7 +263,7 @@ int CreateJunction(const std::wstring& TargetNtPath, const std::wstring& FileRoo
     return errlvl;
 }
 
-bool RemoveJunction(const std::wstring& FileRootPath, ULONG session_id)
+bool RemoveJunction(const std::wstring& FileRootPath)
 {
     bool ok = false;
 
@@ -294,7 +298,7 @@ bool RemoveJunction(const std::wstring& FileRootPath, ULONG session_id)
     }
 
     return ok;
-}*/
+}
 
 RESULT(PVOID) AllocPasswordMemory(HANDLE hProcess, const wchar_t* pPassword)
 {
@@ -500,7 +504,7 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
             if (NT_SUCCESS(NtReadVirtualMemory(pi.hProcess, (PVOID)pMem, pSection, 0x1000, NULL)))
             {
                 if (_wcsnicmp(pSection->out.mount, IMDISK_DEVICE, IMDISK_DEVICE_LEN) == 0)
-                    pMount->m_DevicePath = std::wstring(pSection->out.mount);
+                    pMount->SetDevicePath(std::wstring(pSection->out.mount));
             }
 
             //if (_wcsnicmp(pSection->out.mount, IMDISK_DEVICE, IMDISK_DEVICE_LEN) == 0)
@@ -522,14 +526,14 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
             //    }
             //}
 
-            if (pMount->m_DevicePath.empty())
+            if (!pMount->HasDevicePath())
                 Result = ERR(STATUS_UNSUCCESSFUL);
             else
             {
                 Result = pMount;
 
                 if (!drvLetter) {
-                    if (!DefineDosDevice(DDD_REMOVE_DEFINITION | DDD_EXACT_MATCH_ON_REMOVE | DDD_RAW_TARGET_PATH, Drive, pMount->m_DevicePath.c_str())) {
+                    if (!DefineDosDevice(DDD_REMOVE_DEFINITION | DDD_EXACT_MATCH_ON_REMOVE | DDD_RAW_TARGET_PATH, Drive, pMount->GetDevicePath().c_str())) {
                         //todo log error
                     }
                 }
@@ -537,7 +541,7 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
         }
 
         if(!Result.IsError())
-            pMount->m_ProcessHandle = pi.hProcess;
+            pMount->SetProcessHandle(pi.hProcess);
         else
             CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
@@ -556,9 +560,9 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
     if (Result.IsError())
         return Result;
 
-    pMount->m_ImageDosPath = ImageFile;
-    pMount->m_VolumeSize = ImDiskQueryDeviceSize(pMount->m_DevicePath);
-    pMount->m_MountPoint = MountPoint;
+    pMount->SetImageDosPath(ImageFile);
+    pMount->SetVolumeSize(ImDiskQueryDeviceSize(pMount->GetDevicePath()));
+    pMount->SetMountPoint(MountPoint);
 
     return Result;
 }
@@ -580,7 +584,11 @@ bool TryUnmountImDisk(const std::wstring& Device, HANDLE hProcess, int iMode)
 
     STARTUPINFO si = { sizeof(STARTUPINFO) };
     si.dwFlags = STARTF_USESHOWWINDOW;
+#ifdef _DEBUG
+    si.wShowWindow = SW_SHOW;
+#else
     si.wShowWindow = SW_HIDE;
+#endif
     PROCESS_INFORMATION pi = { 0 };
     if (CreateProcess(NULL, (WCHAR*)cmd.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
         if (WaitForSingleObject(pi.hProcess, 10 * 1000) == WAIT_OBJECT_0) {
@@ -602,8 +610,8 @@ bool TryUnmountImDisk(const std::wstring& Device, HANDLE hProcess, int iMode)
 
 bool UnmountImDisk(const std::wstring& Device, HANDLE hProcess) 
 {
-    for (int i = 0; i < 7; i++) { // 5 attempt forced and 2 emergency
-        if (TryUnmountImDisk(Device, hProcess, i > 4 ? 2 : 1))
+    for (int i = 0; i < 7; i++) { // 5 attempt gracefull and 2 forced
+        if (TryUnmountImDisk(Device, hProcess, i > 4 ? 1 : 0))
             return true;
         Sleep(1000);
     }
@@ -762,7 +770,7 @@ retry:
         }
 
         std::wstring proxy = ImDiskQueryDeviceProxy(IMDISK_DEVICE + std::to_wstring(DeviceList[counter]));
-        if (!MatchPathPrefix(proxy, L"\\BaseNamedObjects\\Global\\" IMBOX_PROXY))
+        if (!MatchPathPrefix(proxy, L"\\BaseNamedObjects\\Global\\" IMBOX_PROXY, false))
             continue;
         std::size_t pos = proxy.find_first_of(L'!');
         if (pos == std::wstring::npos)
@@ -772,19 +780,25 @@ retry:
         //  continue;
 
         auto pMount = std::make_shared<CVolume>();
-        pMount->m_DevicePath = DevicePath;
-        pMount->m_ImageDosPath = proxy.c_str() + (pos + 1);
-        pMount->m_VolumeSize = ImDiskQueryDeviceSize(pMount->m_DevicePath);
-        pMount->m_MountPoint = ImDiskQueryDriveLetter(pMount->m_DevicePath) + std::wstring(L":\\");
-        std::replace(pMount->m_ImageDosPath.begin(), pMount->m_ImageDosPath.end(), L'/', L'\\');
+        pMount->SetDevicePath(DevicePath);
+        pMount->SetVolumeSize(ImDiskQueryDeviceSize(pMount->GetDevicePath()));
+        pMount->SetMountPoint(ImDiskQueryDriveLetter(pMount->GetDevicePath()) + std::wstring(L":\\"));
+        std::wstring ImageDosPath = proxy.c_str() + (pos + 1);
+        std::replace(ImageDosPath.begin(), ImageDosPath.end(), L'/', L'\\');
+        pMount->SetImageDosPath(ImageDosPath);
 
-        m_Volumes[MkLower(pMount->m_DevicePath)] = pMount;
-        m_VolumesByPath[MkLower(pMount->m_ImageDosPath)] = pMount;
+        STATUS status = LoadVolumeData(pMount, false);
+        if(!NT_SUCCESS(status))
+            theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_VOL_PROTECT_ERROR, L"Failed to Load Volume Data, error: 0x%08X, Volume: %s", status, pMount->GetImageDosPath());
+
+        m_Volumes[MkLower(pMount->GetDevicePath())] = pMount;
+        m_VolumesByGuid[pMount->GetGuid()] = pMount;
     }
 
     for (auto& pMount : OldVolumes)
     {
-        m_VolumesByPath.erase(MkLower(pMount.second->m_ImageDosPath));
+        CleanUpVolume(pMount.second);
+        m_VolumesByGuid.erase(pMount.second->GetGuid());
         m_Volumes.erase(pMount.first);
     }
 
@@ -794,13 +808,12 @@ retry:
 
     for (auto I = m_Volumes.begin(); I != m_Volumes.end(); ++I)
     {
-        if (!I->second->m_bDataDirty) 
+        if (!I->second->HasDirtyData()) 
             continue;
-        I->second->m_bDataDirty = false;
 
-        STATUS status = SaveVolumeRules(I->second);
+        STATUS status = SaveVolumeData(I->second);
         if (!NT_SUCCESS(status))
-            theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_VOL_PROTECT_ERROR, L"Failed to Save Volume Rules, error: 0x%08X, Volume: %s", status, I->second->ImageDosPath());
+            theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_VOL_PROTECT_ERROR, L"Failed to Save Volume Data, error: 0x%08X, Volume: %s", status, I->second->GetImageDosPath());
     }
 
     return STATUS_SUCCESS;
@@ -814,7 +827,7 @@ STATUS CVolumeManager::CreateImage(const std::wstring& Path, const std::wstring&
         return Res;
 
     std::shared_ptr<CVolume> pMount =  Res.GetValue();
-    UnmountImDisk(pMount->m_DevicePath, pMount->m_ProcessHandle);
+    UnmountImDisk(pMount->GetDevicePath(), pMount->GetProcessHandle());
     return STATUS_SUCCESS;
 }
 
@@ -830,16 +843,18 @@ STATUS CVolumeManager::ChangeImagePassword(const std::wstring& Path, const std::
 //	return STATUS_NOT_IMPLEMENTED;
 //}
 
-STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& MountPoint, const std::wstring& Password, bool bProtect)
+STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& MountPoint, const std::wstring& Password, bool bProtect, bool bLockdown)
 {
     std::unique_lock Lock(m_Mutex);
 
-    auto F = m_VolumesByPath.find(MkLower(Path));
-    if(F != m_VolumesByPath.end())
+    auto Guid = CVolume::GetGuidFromPath(Path);
+
+    auto F = m_VolumesByGuid.find(Guid);
+    if(F != m_VolumesByGuid.end())
 		return STATUS_ALREADY_COMPLETE;
 
-    if (MountPoint.size() > 3)
-        return STATUS_NOT_IMPLEMENTED;
+    //if (MountPoint.size() > 3) // disablenon drive mounting
+    //    return STATUS_NOT_IMPLEMENTED;
 
     ULONG Number = FindNextFreeDevice();
     if(!Number)
@@ -851,22 +866,47 @@ STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& 
     //
 
     std::wstring ruleGuid;
+	uint64 LockDownToken = 0;
     if (bProtect) 
     {
+        if (bLockdown)
+        {
+			for (int i = 0; LockDownToken == 0 && i < 3; i++) // very unlikely but in case we get a zero token, try again a few times
+                BCryptGenRandom(NULL, (BYTE*)&LockDownToken, sizeof(LockDownToken), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+            STATUS Status = SetVolumeLockdown(DevicePath, Guid, LockDownToken);
+            if(!Status)
+				return Status;
+        }
+
         CProgramID ID(EProgramType::eAllPrograms);
         CAccessRulePtr pRule = std::make_shared<CAccessRule>(ID);
         pRule->SetName(L"#Protect," + Path);
         pRule->SetAccessPath(DevicePath + L"\\*");
         pRule->SetType(EAccessRuleType::eProtect);
         pRule->SetTemporary(true);
-        auto Res = theCore->AccessManager()->AddRule(pRule);
+        auto Res = theCore->AccessManager()->AddRule(pRule, LockDownToken);
         if(!Res.IsError()) 
             ruleGuid = Res.GetValue();
         
-        STATUS Status = ProtectVolume(Path, DevicePath);
+        //
+        // Add host stored rules for a secure volume 
+		// Note: This is not done in lockdown mode
+        //
+
+        if (!bLockdown)
+        {
+            auto Rules = theCore->AccessManager()->GetAllRules();
+            for (auto I : Rules)
+            {
+                if (!I.second->IsEnabled())
+                    continue;
+                TryAddRule(I.second, Path, DevicePath);
+            }
+        }
+
         //Status = theCore->Driver()->SetupRuleAlias(DosPathToNtPath(Path), DevicePath); 
-        if (Status.IsError())
-            return Status;
+        //if (Status.IsError())
+        //    return Status;
     }
 
     //
@@ -876,7 +916,7 @@ STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& 
     auto Res = MountImDisk(Path, Password.c_str(), 0, MountPoint, Number);
     if (Res.IsError()) {
         if(!ruleGuid.empty())
-            theCore->AccessManager()->RemoveRule(ruleGuid);
+            theCore->AccessManager()->RemoveRule(ruleGuid, LockDownToken);
         return Res;
     }
 
@@ -888,28 +928,46 @@ STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& 
 
     std::shared_ptr<CVolume> pMount = Res.GetValue();
 
-    /*if (MountPoint.size() > 3) {
-        NTSTATUS status = CreateJunction(pMount->m_DevicePath + L"\\", DosPathToNtPath(pMount->m_MountPoint), 0);
+    if (MountPoint.size() > 3) {
+        NTSTATUS status = CreateJunction(pMount->GetDevicePath() + L"\\", CNtPathMgr::Instance()->TranslateDosToNtPath(pMount->GetMountPoint()));
         if (!NT_SUCCESS(status)) {
             DismountVolume(pMount);
             return status;
         }
-    }*/
+    }
 
-    pMount->m_bProtected = bProtect;
+    pMount->SetProtected(bProtect);
+    pMount->SetLockdownToken(LockDownToken);
 
-    m_Volumes[MkLower(pMount->m_DevicePath)] = pMount;
-    m_VolumesByPath[MkLower(pMount->m_ImageDosPath)] = pMount;
+    m_Volumes[MkLower(pMount->GetDevicePath())] = pMount;
+    m_VolumesByGuid[pMount->GetGuid()] = pMount;
 
     //
-    // Load rules for the mounted volume
+    // Load data from the mounted volume
+	// and apply protection if so desired
     //
 
-    if (bProtect)
+    STATUS status = LoadVolumeData(pMount, bProtect);
+    if(!NT_SUCCESS(status))
+        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_VOL_PROTECT_ERROR, L"Failed to Load Volume Data, error: 0x%08X, Volume: %s", status, pMount->GetImageDosPath());
+
+    //
+    // Run Script
+    //
+
+    if (bProtect && pMount->HasScript())
     {
-        STATUS status = LoadVolumeRules(pMount);
-        if(!NT_SUCCESS(status))
-            theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_VOL_PROTECT_ERROR, L"Failed to Load Volume Rules, error: 0x%08X, Volume: %s", status, pMount->ImageDosPath());
+        auto pScript = pMount->GetScriptEngine();
+        if (pScript) {
+            if (!pScript->RunMountScript(pMount->GetImageDosPath(), pMount->GetDevicePath(), pMount->GetMountPoint())) 
+            {
+                if(!ruleGuid.empty())
+                    theCore->AccessManager()->RemoveRule(ruleGuid, LockDownToken);
+
+                DismountVolume(pMount);
+                return ERR(STATUS_BREAKPOINT);
+            }
+        }
     }
 
     //
@@ -917,52 +975,68 @@ STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& 
     //
 
     if(!ruleGuid.empty())
-        theCore->AccessManager()->RemoveRule(ruleGuid);
+        theCore->AccessManager()->RemoveRule(ruleGuid, LockDownToken);
 
     return OK;
 }
 
 STATUS CVolumeManager::DismountVolume(const std::shared_ptr<CVolume>& pMount)
 {
-    if (pMount->m_bDataDirty) {
-        STATUS status = SaveVolumeRules(pMount);
+    std::wstring ImageDosPath = pMount->GetImageDosPath();
+    std::wstring DevicePath = pMount->GetDevicePath();
+    std::wstring MountPoint = pMount->GetMountPoint();
+
+    uint64 uStart = GetTickCount64();
+
+    if (pMount->IsProtected() && pMount->HasScript())
+    {
+        auto pScript = pMount->GetScriptEngine();
+        if (pScript)
+            pScript->RunDismountScript(ImageDosPath, DevicePath, MountPoint);
+    }
+
+    if (pMount->HasDirtyData()) {
+        STATUS status = SaveVolumeData(pMount);
         if (!NT_SUCCESS(status))
-            theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_VOL_PROTECT_ERROR, L"Failed to Save Volume Rules, error: 0x%08X, Volume: %s", status, pMount->ImageDosPath());
+            theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_VOL_PROTECT_ERROR, L"Failed to Save Volume Data, error: 0x%08X, Volume: %s", status, ImageDosPath);
     }
 
     //
     // When unmounting imdisk.exe needs to be able to lock the volume
     //
 
-    CProgramID ID(theCore->NormalizePath( L"\\SystemRoot\\System32\\imdisk.exe"));
+    CProgramID ID(theCore->NormalizePath(L"\\SystemRoot\\System32\\imdisk.exe"));
     CAccessRulePtr pRule = std::make_shared<CAccessRule>(ID);
-    pRule->SetName(L"#Unmount," + pMount->ImageDosPath());
-    pRule->SetAccessPath(pMount->DevicePath());
+    pRule->SetName(L"#Unmount," + ImageDosPath);
+    pRule->SetAccessPath(DevicePath);
     pRule->SetType(EAccessRuleType::eAllow);
     pRule->SetTemporary(true);
-    auto Res = theCore->AccessManager()->AddRule(pRule); // returns guid on success
+    auto Res = theCore->AccessManager()->AddRule(pRule, pMount->GetLockdownToken()); // returns guid on success
     std::wstring ruleGuid;
-    if(!Res.IsError()) 
+    if (!Res.IsError())
         ruleGuid = Res.GetValue();
     //
     // Inmount the volume
     //
 
-    bool bOk = UnmountImDisk(pMount->m_DevicePath, pMount->m_ProcessHandle);
+    bool bOk = UnmountImDisk(DevicePath, pMount->GetProcessHandle());
 
     //
-    // Clean up rules
+    // Clean up rule
     //
 
     if (!bOk) {
         if(!ruleGuid.empty())
-            theCore->AccessManager()->RemoveRule(ruleGuid);
+            theCore->AccessManager()->RemoveRule(ruleGuid, pMount->GetLockdownToken());
         return STATUS_UNSUCCESSFUL;
     }
-    // else UnProtectVolume wil clean up all aplicable rules
 
-    UnProtectVolume(pMount->m_DevicePath);
-    //theCore->Driver()->ClearRuleAlias(pMount->m_DevicePath);
+	CleanUpVolume(pMount);
+
+    if (MountPoint.size() > 3)
+        RemoveJunction(MountPoint);
+
+    DbgPrint(L"CVolumeManager::DismountVolume() took %llu ms\n", GetTickCount64() - uStart);
 
     return OK;
 }
@@ -979,7 +1053,7 @@ STATUS CVolumeManager::DismountVolume(const std::wstring& DevicePath)
     if (Status.IsError())
         return Status;
 
-    m_VolumesByPath.erase(MkLower(F->second->m_ImageDosPath));
+    m_VolumesByGuid.erase(F->second->GetGuid());
     m_Volumes.erase(F);
 
     if (m_Volumes.empty() && m_NoHibernation)
@@ -1001,7 +1075,7 @@ STATUS CVolumeManager::DismountAll()
         if (Status.IsError())
             I++;
         else {
-            m_VolumesByPath.erase(MkLower(I->second->m_ImageDosPath));
+            m_VolumesByGuid.erase(I->second->GetGuid());
             I = m_Volumes.erase(I);
         }
 	}
@@ -1026,7 +1100,7 @@ RESULT(std::vector<std::wstring>) CVolumeManager::GetVolumeList()
 
 	std::vector<std::wstring> Volumes;
 	for (auto& V : m_Volumes)
-		Volumes.push_back(V.second->m_DevicePath);
+		Volumes.push_back(V.second->GetDevicePath());
 	return Volumes;	
 }
 
@@ -1052,32 +1126,31 @@ RESULT(CVolumePtr) CVolumeManager::GetVolumeInfo(const std::wstring& DevicePath)
 	return STATUS_NOT_IMPLEMENTED;
 }
 
-STATUS CVolumeManager::ProtectVolume(const std::wstring& Path, const std::wstring& DevicePath)
+CVolumePtr CVolumeManager::GetVolume(const CFlexGuid& Guid)
 {
-    auto Rules = theCore->AccessManager()->GetAllRules();
-    for (auto I : Rules) 
-    {
-        if(!I.second->IsEnabled())
-            continue;
-        TryAddRule(I.second, Path, DevicePath);
-    }
+    std::unique_lock Lock(m_Mutex);
 
-    return OK; // todo
+    auto F = m_VolumesByGuid.find(Guid);
+    if (F == m_VolumesByGuid.end())
+        return nullptr;
+    return F->second;
 }
 
-STATUS CVolumeManager::UnProtectVolume(const std::wstring& DevicePath)
+STATUS CVolumeManager::SetVolume(const CVolumePtr& pVolume)
 {
-    auto Rules = theCore->AccessManager()->GetAllRules();
-    for(auto I: Rules) 
-    {
-        auto pRule = I.second;
+    std::unique_lock Lock(m_Mutex);
 
-        std::wstring RulePath = pRule->GetAccessPath();
-        if (MatchPathPrefix(RulePath, DevicePath.c_str()))
-            theCore->AccessManager()->RemoveRule(pRule->GetGuid());
-    }
+    auto F = m_VolumesByGuid.find(pVolume->GetGuid());
+    if (F == m_VolumesByGuid.end())
+        return ERR(STATUS_NOT_FOUND);
 
-    return OK;
+    F->second->Update(pVolume);
+
+    STATUS status = SaveVolumeData(F->second);
+    if (!NT_SUCCESS(status))
+        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_VOL_PROTECT_ERROR, L"Failed to Save Volume Data, error: 0x%08X, Volume: %s", status, F->second->GetImageDosPath());
+
+	return OK;
 }
 
 STATUS CVolumeManager::TryAddRule(const CAccessRulePtr& pRule, const std::wstring& Path, const std::wstring& DevicePath)
@@ -1098,16 +1171,29 @@ STATUS CVolumeManager::TryAddRule(const CAccessRulePtr& pRule, const std::wstrin
         pClone->SetTemporary(true);
         pClone->SetData(API_S_RULE_REF_GUID, pRule->GetGuid().ToVariant(true));
         pClone->SetAccessPath(AccessPath);
-        return theCore->AccessManager()->AddRule(pClone);
+        return theCore->AccessManager()->AddRule(pClone, 0);
     }
 
     return OK;
 }
 
-void CVolumeManager::UpdateRule(const CAccessRulePtr& pRule, enum class EConfigEvent Event, uint64 PID)
+void CVolumeManager::UpdateAccessRule(const CAccessRulePtr& pRule, enum class EConfigEvent Event, uint64 PID)
 {
     if (PID == GetCurrentProcessId())
         return;
+
+    auto EnclaveGuid = pRule->GetEnclaveGuid();
+    if (!EnclaveGuid.IsNull()) {
+        auto pEnclave = theCore->EnclaveManager()->GetEnclave(EnclaveGuid);
+        if (pEnclave) {
+            auto VolumeGuid = pEnclave->GetVolumeGuid();
+            if (!VolumeGuid.IsNull()) {
+                auto F = m_VolumesByGuid.find(VolumeGuid);
+                if (F != m_VolumesByGuid.end())
+                    F->second->SetDataDirty(true);
+            }
+        }
+    }
 
     //
     // Volume Rules
@@ -1117,16 +1203,17 @@ void CVolumeManager::UpdateRule(const CAccessRulePtr& pRule, enum class EConfigE
     {
         size_t pos = pRule->GetAccessPath().find(L"\\", IMDISK_DEVICE_LEN);
         std::wstring DevicePath = pRule->GetAccessPath().substr(0, pos);
-
+    
         auto F = m_Volumes.find(MkLower(DevicePath));
         if (F != m_Volumes.end()) {
-            if (F->second->m_bProtected) 
-                F->second->m_bDataDirty = true;
+            if (F->second->IsProtected()) 
+                F->second->SetDataDirty(true);
         }
     }
 
     //
-    // Image Rules
+    // Image Rules stored on host
+	// will fail of volume is locked down
     //
 
     // remove old rule
@@ -1139,7 +1226,7 @@ void CVolumeManager::UpdateRule(const CAccessRulePtr& pRule, enum class EConfigE
             CFlexGuid Guid;
             Guid.FromVariant(pRule->GetData(API_S_RULE_REF_GUID));
             if(Guid == pRule->GetGuid())
-                theCore->AccessManager()->RemoveRule(pRule->GetGuid());
+                theCore->AccessManager()->RemoveRule(pRule->GetGuid(), 0);
         }
     }
 
@@ -1153,35 +1240,139 @@ void CVolumeManager::UpdateRule(const CAccessRulePtr& pRule, enum class EConfigE
 
         for (auto I = m_Volumes.begin(); I != m_Volumes.end(); ++I)
         {
-            std::wstring Path = I->second->m_ImageDosPath;
-            std::wstring DevicePath = I->second->m_DevicePath;
+            std::wstring Path = I->second->GetImageDosPath();
+            std::wstring DevicePath = I->second->GetDevicePath();
 
             TryAddRule(pRule, Path, DevicePath);
         }
     }
 }
 
-STATUS CVolumeManager::LoadVolumeRules(const std::shared_ptr<CVolume>& pMount)
+void CVolumeManager::UpdateProgramRule(const CProgramRulePtr& pRule, enum class EConfigEvent Event, uint64 PID)
+{
+    if (PID == GetCurrentProcessId())
+        return;
+
+    auto EnclaveGuid = pRule->GetEnclaveGuid();
+    if (!EnclaveGuid.IsNull()) {
+        auto pEnclave = theCore->EnclaveManager()->GetEnclave(EnclaveGuid);
+        if (pEnclave) {
+            auto VolumeGuid = pEnclave->GetVolumeGuid();
+            if (!VolumeGuid.IsNull()) {
+                auto F = m_VolumesByGuid.find(VolumeGuid);
+                if (F != m_VolumesByGuid.end())
+                    F->second->SetDataDirty(true);
+            }
+        }
+    }
+}
+
+void CVolumeManager::UpdateEnclave(const CEnclavePtr& pEnclave, enum class EConfigEvent Event, uint64 PID)
+{
+    if (PID == GetCurrentProcessId())
+        return;
+
+    auto VolumeGuid = pEnclave->GetVolumeGuid();
+    if (!VolumeGuid.IsNull()) {
+        auto F = m_VolumesByGuid.find(VolumeGuid);
+        if (F != m_VolumesByGuid.end())
+            F->second->SetDataDirty(true);
+    }
+}
+
+void CVolumeManager::UpdateHashEntry(const CHashPtr& pEntry, enum class EConfigEvent Event, uint64 PID)
+{
+    if (PID == GetCurrentProcessId())
+        return;
+
+    // todo
+}
+
+STATUS CVolumeManager::LoadVolumeData(const std::shared_ptr<CVolume>& pMount, bool bFull)
 {
     CBuffer Buffer;
-    NTSTATUS status = NtIo_ReadFile(pMount->DevicePath() + DEF_MP_SYS_FILE, &Buffer);
+    NTSTATUS status = NtIo_ReadFile(pMount->GetDevicePath() + DEF_MP_SYS_FILE, &Buffer);
     if (!NT_SUCCESS(status)) {
         if(status == STATUS_OBJECT_NAME_NOT_FOUND)
             return STATUS_SUCCESS; // file not (yet) being there is ok
         return status;
     }
     
-    StVariant Data;
-    if (Data.FromPacket(&Buffer, true) != StVariant::eErrNone)
+    StVariant ReadData;
+    if (ReadData.FromPacket(&Buffer, true) != StVariant::eErrNone)
         return STATUS_UNSUCCESSFUL;
 
-    pMount->m_Data = Data.Clone(); // we want the m_Data to be writable
+    StVariant Data = ReadData.Clone(); // we want the m_Data to be writable
+    pMount->SetData(Data);
 
-    const StVariant& RuleList = pMount->m_Data[API_S_ACCESS_RULES];
+    pMount->SetUseScript(Data[API_S_USE_SCRIPT]);
+    pMount->SetScript(Data[API_S_SCRIPT]);
 
-    for (uint32 i = 0; i < RuleList.Count(); i++)
+    if (!bFull)
+        return STATUS_SUCCESS;
+    
+
+    const StVariant& Enclaves = Data[API_S_ENCLAVES];
+    for (uint32 i = 0; i < Enclaves.Count(); i++)
     {
-        StVariant Rule = RuleList[i];
+        StVariant Enclave = Enclaves[i];
+
+        CEnclavePtr pEnclave = std::make_shared<CEnclave>();
+        if (!NT_SUCCESS(pEnclave->FromVariant(Enclave)))
+            continue;
+
+        pEnclave->SetVolumeGuid(pMount->GetGuid());
+
+        //pEnclave->SetLockdown(true);
+
+        theCore->EnclaveManager()->AddEnclave(pEnclave, pMount->GetLockdownToken());
+    }
+
+    const StVariant& Hashes = Data[API_S_HASH_DB];
+    for (uint32 i = 0; i < Hashes.Count(); i++)
+    {
+        StVariant Entry = Hashes[i];
+
+        CBuffer HashValue = Entry[API_S_HASH];
+
+		CHashPtr pEntry = theCore->HashDB()->GetEntry(HashValue);
+        if (pEntry)
+        {
+            StVariant Enclaves = Data[API_S_ENCLAVES];
+            for (uint32 i = 0; i < Enclaves.Count(); i++)
+                pEntry->AddEnclave(Enclaves[i].AsStr());
+        }
+        else
+        {
+            pEntry = std::make_shared<CHash>();
+			pEntry->FromVariant(Entry);
+            pEntry->SetTemporary(true);
+        }
+        theCore->HashDB()->SetEntry(pEntry, pMount->GetLockdownToken());
+    }
+
+    const StVariant& ProgramRule = Data[API_S_PROGRAM_RULES];
+    for (uint32 i = 0; i < ProgramRule.Count(); i++)
+    {
+        StVariant Rule = ProgramRule[i];
+
+        //std::wstring Guid = Rule[API_S_GUID].AsStr();
+
+        std::wstring ProgramPath = theCore->NormalizePath(Rule[API_S_FILE_PATH].AsStr());
+        CProgramID ID(ProgramPath);
+
+        CProgramRulePtr pRule = std::make_shared<CProgramRule>(ID);
+        if (!NT_SUCCESS(pRule->FromVariant(Rule)))
+            continue;
+        
+        theCore->ProgramManager()->AddRule(pRule, pMount->GetLockdownToken());
+    }
+
+
+    const StVariant& AccessRule = Data[API_S_ACCESS_RULES];
+    for (uint32 i = 0; i < AccessRule.Count(); i++)
+    {
+        StVariant Rule = AccessRule[i];
 
         //std::wstring Guid = Rule[API_S_GUID].AsStr();
 
@@ -1189,43 +1380,218 @@ STATUS CVolumeManager::LoadVolumeRules(const std::shared_ptr<CVolume>& pMount)
         CProgramID ID(ProgramPath);
 
         CAccessRulePtr pRule = std::make_shared<CAccessRule>(ID);
-        pRule->FromVariant(Rule);
-        pRule->SetAccessPath(pMount->m_DevicePath + L"\\" + pRule->GetAccessPath());
-		pRule->SetVolumeRule(true);
+        if (!NT_SUCCESS(pRule->FromVariant(Rule)))
+            continue;
 
-        theCore->AccessManager()->AddRule(pRule);
+        //if(pRule->GetAccessPath().substr(0, 2) == L":\\")
+        //    pRule->SetAccessPath(pMount->GetDevicePath() + pRule->GetAccessPath().substr(1));
+        if(pRule->GetAccessPath().size() < 2 || (pRule->GetAccessPath().at(0) != L'\\' && pRule->GetAccessPath().at(1) != L':'))
+            pRule->SetAccessPath(pMount->GetDevicePath() + L"\\" + pRule->GetAccessPath());
+        pRule->SetVolumeRule(true);
+
+        theCore->AccessManager()->AddRule(pRule, pMount->GetLockdownToken());
     }
+
 
     return STATUS_SUCCESS;
 }
 
-STATUS CVolumeManager::SaveVolumeRules(const std::shared_ptr<CVolume>& pMount)
+STATUS CVolumeManager::SaveVolumeData(const std::shared_ptr<CVolume>& pMount)
 {
-    StVariant RuleList;
+    if(pMount->GetLockdownToken())
+        return STATUS_RESOURCEMANAGER_READ_ONLY;
 
     SVarWriteOpt Opts;
     Opts.Format = SVarWriteOpt::eMap;
     Opts.Flags = SVarWriteOpt::eTextGuids;
 
-    auto Rules = theCore->AccessManager()->GetAllRules();
-    for(auto I: Rules) 
+    StVariant Data = pMount->GetData();
+
+    Data[API_S_USE_SCRIPT] = pMount->IsUseScript();
+    Data[API_S_SCRIPT] = pMount->GetScript();
+
+	std::set<CFlexGuid> EnclaveGuids;
+
+    StVariant Enclaves;
+    for (auto I : theCore->EnclaveManager()->GetAllEnclaves())
+    {
+        auto pEnclave = I.second;
+        
+		if (pEnclave->GetVolumeGuid() == pMount->GetGuid())
+        {
+			EnclaveGuids.insert(pEnclave->GetGuid());
+            Enclaves.Append(pEnclave->ToVariant(Opts));
+        }
+	}
+    Data[API_S_ENCLAVES] = Enclaves;
+    
+	std::map<CHashPtr, std::set<CFlexGuid>> HashMap;
+    for(auto I : theCore->HashDB()->GetAllEntries())
+    {
+        auto pEntry = I.second;
+        for (auto EnclaveGuid : pEntry->GetEnclaves()) 
+        {
+            if(EnclaveGuids.find(EnclaveGuid) != EnclaveGuids.end()) 
+				HashMap[pEntry].insert(EnclaveGuid);
+        }
+	}
+
+    StVariant Hashes;
+    for (auto I : HashMap)
+    {
+        auto pEntry = I.first;
+
+        StVariantWriter Hash;
+        Hash.BeginMap();
+
+        Hash.WriteEx(API_S_NAME, pEntry->GetName());
+        Hash.WriteEx(API_S_RULE_DESCR, pEntry->GetDescription());
+        Hash.Write(API_S_ENABLED, pEntry->IsEnabled());
+        switch (pEntry->GetType())
+        {
+        case EHashType::eFileHash:    Hash.Write(API_S_TYPE, API_S_HASH_TYPE_FILE); break;
+        case EHashType::eCertHash: Hash.Write(API_S_TYPE, API_S_HASH_TYPE_CERT); break;
+        }
+        Hash.Write(API_S_HASH, pEntry->GetHash());
+
+        StVariantWriter Enclaves(Hash.Allocator());
+        Enclaves.BeginList();
+        for(const auto& Guid : I.second)
+            Enclaves.WriteEx(Guid.ToVariant(true));
+        Hash.WriteVariant(API_S_ENCLAVES, Enclaves.Finish());
+
+        Hashes.Append(Hash.Finish());
+	}
+    Data[API_S_HASH_DB] = Hashes;
+
+    StVariant ProgramRules;
+    for (auto I : theCore->ProgramManager()->GetAllRules())
     {
         auto pRule = I.second;
-        if(pRule->IsTemporary())
+        if (pRule->IsTemporary())
+            continue;
+
+        if (EnclaveGuids.find(pRule->GetEnclaveGuid()) != EnclaveGuids.end())
+        {
+            ProgramRules.Append(pRule->ToVariant(Opts));
+        }
+	}
+    Data[API_S_PROGRAM_RULES] = ProgramRules;
+
+    StVariant AccessRules;
+    for (auto I : theCore->AccessManager()->GetAllRules())
+    {
+        auto pRule = I.second;
+        if (pRule->IsTemporary())
             continue;
 
         std::wstring RulePath = pRule->GetAccessPath();
-        if (MatchPathPrefix(RulePath, pMount->DevicePath().c_str()))
+		bool bWithPrefix = false;
+        if ((bWithPrefix = MatchPathPrefix(RulePath, pMount->GetDevicePath().c_str())) || EnclaveGuids.find(pRule->GetEnclaveGuid()) != EnclaveGuids.end())
         {
             auto pClone = pRule->Clone(true);
-            pClone->SetAccessPath(RulePath.substr(pMount->DevicePath().length() + 1));
-            RuleList.Append(pClone->ToVariant(Opts));
+            //if(bWithPrefix) pClone->SetAccessPath(L":" + RulePath.substr(pMount->GetDevicePath().length()));
+            if(bWithPrefix) pClone->SetAccessPath(RulePath.substr(pMount->GetDevicePath().length() + 1));
+            AccessRules.Append(pClone->ToVariant(Opts));
+        }
+    }
+    Data[API_S_ACCESS_RULES] = AccessRules;
+
+    pMount->SetData(Data);
+
+    CBuffer Buffer;
+    Data.ToPacket(&Buffer);
+    STATUS Status = NtIo_WriteFile(pMount->GetDevicePath() + DEF_MP_SYS_FILE, &Buffer);
+
+    if(Status.IsSuccess())
+		pMount->SetDataDirty(false);
+    return Status;
+}
+
+void CVolumeManager::CleanUpVolume(const std::shared_ptr<CVolume>& pMount)
+{
+    std::wstring DevicePath = pMount->GetDevicePath();
+
+    //
+    // Clean Up Volume Enclaves and asociated hashes
+    //
+
+    std::set<CFlexGuid> EnclaveGuids;
+
+    for (auto I : theCore->EnclaveManager()->GetAllEnclaves())
+    {
+        auto pEnclave = I.second;
+
+        if (pEnclave->GetVolumeGuid() == pMount->GetGuid())
+        {
+            EnclaveGuids.insert(pEnclave->GetGuid());
+            theCore->EnclaveManager()->RemoveEnclave(pEnclave, pMount->GetLockdownToken());
         }
     }
 
-    pMount->m_Data[API_S_ACCESS_RULES] = RuleList;
+    std::map<CHashPtr, std::set<CFlexGuid>> HashMap;
+    for(auto I : theCore->HashDB()->GetAllEntries())
+    {
+        auto pEntry = I.second;
+        for (auto EnclaveGuid : pEntry->GetEnclaves()) 
+        {
+            if(EnclaveGuids.find(EnclaveGuid) != EnclaveGuids.end()) 
+                HashMap[pEntry].insert(EnclaveGuid);
+        }
+    }
 
-    CBuffer Buffer;
-    pMount->m_Data.ToPacket(&Buffer);
-    return NtIo_WriteFile(pMount->DevicePath() + DEF_MP_SYS_FILE, &Buffer);
+    for (auto I : HashMap)
+    {
+        auto pEntry = I.first;
+
+        for(const auto& Guid : I.second)
+            pEntry->RemoveEnclave(Guid);
+
+        if (pEntry->IsTemporary() && pEntry->GetEnclaves().empty() && pEntry->GetCollections().empty())
+            theCore->HashDB()->RemoveEntry(pEntry, pMount->GetLockdownToken()); // if temp and not needed remove
+        else
+            theCore->HashDB()->SetEntry(pEntry, pMount->GetLockdownToken()); // else update with removed enclaves
+    }
+
+    //
+    // remove program rules
+    //
+
+    for (auto I : theCore->ProgramManager()->GetAllRules())
+    {
+        auto pRule = I.second;
+
+        if (EnclaveGuids.find(pRule->GetEnclaveGuid()) != EnclaveGuids.end())
+        {
+            theCore->ProgramManager()->RemoveRule(pRule->GetGuid(), pMount->GetLockdownToken());
+        }
+    }
+
+    //
+    // remove all rules that were created for this volume
+    // that is all rules having an nt path matching the device path 
+    //
+
+    for(auto I: theCore->AccessManager()->GetAllRules()) 
+    {
+        auto pRule = I.second;
+
+        std::wstring RulePath = pRule->GetAccessPath();
+        if (MatchPathPrefix(RulePath, DevicePath.c_str()) || EnclaveGuids.find(pRule->GetEnclaveGuid()) != EnclaveGuids.end())
+            theCore->AccessManager()->RemoveRule(pRule->GetGuid(), pMount->GetLockdownToken());
+    }
+
+    //theCore->Driver()->ClearRuleAlias(pMount->m_DevicePath);
+}
+
+STATUS CVolumeManager::SetVolumeLockdown(const std::wstring& DevicePath, const CFlexGuid& Guid, uint64 Token)
+{
+    SVarWriteOpt Opts;
+    Opts.Flags = SVarWriteOpt::eTextGuids;
+
+    StVariant Request;
+	Request[API_V_FILE_NT_PATH] = DevicePath;
+    Request[API_V_GUID]= Guid.ToVariant(true);
+    Request[API_V_TOKEN] = Token;
+    return theCore->Driver()->Call(API_SET_VOLUME_LOCKDOWN, Request);
 }

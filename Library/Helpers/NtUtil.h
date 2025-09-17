@@ -16,6 +16,7 @@ LIBRARY_EXPORT uint64 FILETIME2time(uint64 fileTime);
 LIBRARY_EXPORT uint64 GetCurrentTimeAsFileTime();
 
 LIBRARY_EXPORT bool SetAdminFullControl(const std::wstring& folderPath);
+LIBRARY_EXPORT bool SetAdminFullControlAllowUsersRead(const std::wstring& folderPath);
 
 LIBRARY_EXPORT BOOL GetProcessUserSID(DWORD processID, PSID* userSID);
 LIBRARY_EXPORT std::wstring GetProcessUserSID(DWORD processID);

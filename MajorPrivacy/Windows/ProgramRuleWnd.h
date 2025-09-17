@@ -30,7 +30,11 @@ private slots:
 	void OnActionChanged();
 
 	void OnSaveAndClose();
+	bool OnSave();
+
 	void OnAddCollection();
+
+	void EditScript();
 
 protected:
 	void closeEvent(QCloseEvent* e);
@@ -41,6 +45,8 @@ protected:
 
 	CProgramRulePtr m_pRule;
 	QList<CProgramItemPtr> m_Items;
+
+	QString m_Script;
 
 private:
 	Ui::ProgramRuleWnd ui;

@@ -273,7 +273,9 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 			if (!pProgram2) continue;
 			if (m_FilterPrivate && I.value().Role == EExecLogRole::eActor && !FilterPrivate(pProgram2, I.value().ActorSvcTag))
 				continue;
-			AddEntry(pService->GetProgramFile(), pProgram2, I.value());
+			CProgramFilePtr pProgram = pService->GetProgramFile();
+			if (!pProgram) continue;
+			AddEntry(pProgram, pProgram2, I.value());
 		}
 	}
 

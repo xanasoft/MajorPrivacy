@@ -15,9 +15,22 @@ void CEnclave::WriteIVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 #endif
 	Enclave.Write(API_V_ENABLED, m_bEnabled);
 
+	//Enclave.Write(API_S_LOCKDOWN, m_bLockdown);
+
 	Enclave.WriteEx(API_V_NAME, TO_STR(m_Name));
 	//Enclave.WriteEx(API_V_RULE_GROUP, TO_STR(m_Grouping));
 	Enclave.WriteEx(API_V_RULE_DESCR, TO_STR(m_Description));
+
+#ifdef KERNEL_MODE
+	if(!IS_EMPTY(m_VolumeGuid))
+		Enclave.Write(API_V_VOLUME_GUID, TO_STR(m_VolumeGuid));
+#else
+	if(!m_VolumeGuid.IsNull())
+		Enclave.WriteVariant(API_V_VOLUME_GUID, m_VolumeGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Enclave.Allocator()));
+#endif
+
+	Enclave.Write(API_V_USE_SCRIPT, m_bUseScript);
+	Enclave.WriteEx(API_V_SCRIPT, TO_STR_A(m_Script));
 
 	Enclave.Write(API_V_EXEC_ALLOWED_SIGNERS, m_AllowedSignatures.Value);
 	VariantWriter Collections(Enclave.Allocator());
@@ -50,9 +63,20 @@ void CEnclave::ReadIValue(uint32 Index, const XVariant& Data)
 #endif
 	case API_V_ENABLED:		m_bEnabled = Data.To<bool>(); break;
 
+	//case API_V_LOCKDOWN:	m_bLockdown = Data.To<bool>(); break;
+
 	case API_V_NAME:		m_Name = AS_STR(Data); break;
 		//case API_V_RULE_GROUP:	m_Grouping = AS_STR(Data); break;
 	case API_V_RULE_DESCR:	m_Description = AS_STR(Data); break;
+
+#ifdef KERNEL_MODE
+	case API_V_VOLUME_GUID:	m_VolumeGuid = AS_STR(Data); break;
+#else
+	case API_V_VOLUME_GUID:	m_VolumeGuid.FromVariant(Data); break;
+#endif
+
+	case API_V_USE_SCRIPT: m_bUseScript = Data.To<bool>(); break;
+	case API_V_SCRIPT: AS_STR_A(m_Script, Data); break;
 
 	case API_V_EXEC_ALLOWED_SIGNERS: m_AllowedSignatures.Value = Data.To<uint32>(); break;
 	case API_V_EXEC_ALLOWED_COLLECTIONS:
@@ -88,9 +112,22 @@ void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 #endif
 	Enclave.Write(API_S_ENABLED, m_bEnabled);
 
+	//Enclave.Write(API_S_LOCKDOWN, m_bLockdown);
+
 	Enclave.WriteEx(API_S_NAME, TO_STR(m_Name));
 	//Enclave.WriteEx(API_S_RULE_GROUP, TO_STR(m_Grouping));
 	Enclave.WriteEx(API_S_RULE_DESCR, TO_STR(m_Description));
+
+#ifdef KERNEL_MODE
+	if(!IS_EMPTY(m_VolumeGuid))
+		Enclave.Write(API_S_VOLUME_GUID, TO_STR(m_VolumeGuid));
+#else
+	if(!m_VolumeGuid.IsNull())
+		Enclave.WriteVariant(API_S_VOLUME_GUID, m_VolumeGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Enclave.Allocator()));
+#endif
+
+	Enclave.Write(API_S_USE_SCRIPT, m_bUseScript);
+	Enclave.WriteEx(API_S_SCRIPT, TO_STR_A(m_Script));
 
 	VariantWriter Signers(Enclave.Allocator());
 	Signers.BeginList();
@@ -154,9 +191,20 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 #endif
 	else if (VAR_TEST_NAME(Name, API_S_ENABLED))		m_bEnabled = Data.To<bool>();
 
+	//else if (VAR_TEST_NAME(Name, API_S_LOCKDOWN))		m_bLockdown = Data.To<bool>();
+
 	else if (VAR_TEST_NAME(Name, API_S_NAME))			m_Name = AS_STR(Data);
 	//else if (VAR_TEST_NAME(Name, API_S_RULE_GROUP))	m_Grouping = AS_STR(Data);
 	else if (VAR_TEST_NAME(Name, API_S_RULE_DESCR))		m_Description = AS_STR(Data);
+
+#ifdef KERNEL_MODE
+	if (VAR_TEST_NAME(Name, API_S_VOLUME_GUID))			m_VolumeGuid = AS_STR(Data);
+#else
+	if (VAR_TEST_NAME(Name, API_S_VOLUME_GUID))			m_VolumeGuid.FromVariant(Data);
+#endif
+
+	else if (VAR_TEST_NAME(Name, API_S_USE_SCRIPT))		m_bUseScript = Data.To<bool>();
+	else if (VAR_TEST_NAME(Name, API_S_SCRIPT))			AS_STR_A(m_Script, Data);
 
 	else if (VAR_TEST_NAME(Name, API_S_EXEC_SIGN_REQ))
 	{

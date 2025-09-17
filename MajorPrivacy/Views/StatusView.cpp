@@ -178,11 +178,11 @@ void CStatusView::Update()
 
 			CBuffer FP(8); // 64 bits
 			CEncryption::GetKeyFromPW(pInfo->PubKey, FP, 1048576); // 2^20 iterations
-			m_pSecKey->setText(tr("User Key: %1").arg(QByteArray((char*)FP.GetBuffer(), (int)FP.GetSize()).toHex().toUpper()));
+			m_pSecKey->setText(tr("User Key: %1").arg(QString::fromLatin1(QByteArray((char*)FP.GetBuffer(), (int)FP.GetSize()).toHex().toUpper())));
 
 			CBuffer Hash(64);
 			CHashFunction::Hash(pInfo->PubKey, Hash);
-			m_pSecKey->setToolTip(tr("SHA256-FP: %1").arg(QByteArray((char*)Hash.GetBuffer(), (int)Hash.GetSize()).toHex().toUpper()));
+			m_pSecKey->setToolTip(tr("SHA256-FP: %1").arg(QString::fromLatin1(QByteArray((char*)Hash.GetBuffer(), (int)Hash.GetSize()).toHex().toUpper())));
 
 			m_bHasKey = true;
 		}

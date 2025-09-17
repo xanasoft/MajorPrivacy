@@ -13,6 +13,7 @@
 #include "../Helpers/WinHelper.h"
 #include "../Core/HashDB/HashDB.h"
 #include "../MiscHelpers/Common/WinboxMultiCombo.h"
+#include "../Windows/ScriptWindow.h"
 
 CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 	: QDialog(parent)
@@ -64,8 +65,12 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 
 	connect(ui.txtName, SIGNAL(textChanged(const QString&)), this, SLOT(OnNameChanged(const QString&)));
 	
+	connect(ui.chkScript, SIGNAL(stateChanged(int)), this, SLOT(OnActionChanged()));
+	connect(ui.btnScript, SIGNAL(clicked()), this, SLOT(EditScript()));
+
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
+	connect(ui.buttonBox->button(QDialogButtonBox::Apply), SIGNAL(clicked(bool)), this, SLOT(OnSave()));
 
 	ui.cmbOnTrustedExec->addItem(tr("Allow Execution"), (int)EProgramOnSpawn::eAllow);
 	ui.cmbOnTrustedExec->addItem(tr("Eject from Secure Enclave"), (int)EProgramOnSpawn::eEject);
@@ -89,6 +94,15 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 	// todo: load groups
 	//SetComboBoxValue(ui.cmbGroup, m_pEnclave->m_Grouping); // todo
 	ui.txtInfo->setPlainText(m_pEnclave->m_Description);
+
+	//ui.txtScript->setPlainText(m_pEnclave->m_Script);
+	m_Script = m_pEnclave->m_Script;
+
+	ui.chkScript->setChecked(m_pEnclave->m_bUseScript);
+	if(m_pEnclave->m_Script.isEmpty())
+		ui.btnScript->setIcon(QIcon(":/Icons/Script-Add.png"));
+	else
+		ui.btnScript->setIcon(QIcon(":/Icons/Script-Edit.png"));
 
 	if(m_pEnclave->m_AllowedSignatures.Windows && m_pEnclave->m_AllowedSignatures.Microsoft && m_pEnclave->m_AllowedSignatures.Antimalware)
 		ui.chkAllowMS->setCheckState(Qt::Checked);
@@ -131,17 +145,23 @@ void CEnclaveWnd::closeEvent(QCloseEvent *e)
 	this->deleteLater();
 }
 
-void CEnclaveWnd::OnSaveAndClose()
+bool CEnclaveWnd::OnSave()
 {
 	if (!Save()) {
 		QApplication::beep();
-		return;
+		return false;
 	}
 
 	STATUS Status = theCore->EnclaveManager()->SetEnclave(m_pEnclave);	
 	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
-		return;
-	accept();
+		return false;
+	return true;
+}
+
+void CEnclaveWnd::OnSaveAndClose()
+{
+	if(OnSave())
+		accept();
 }
 
 bool CEnclaveWnd::Save()
@@ -151,6 +171,11 @@ bool CEnclaveWnd::Save()
 	//m_pEnclave->m_Grouping = GetComboBoxValue(ui.cmbGroup).toString(); // todo
 	m_pEnclave->m_Description = ui.txtInfo->toPlainText();
 	
+	//m_pEnclave->m_Script = ui.txtScript->toPlainText();
+	m_pEnclave->m_Script = m_Script;
+
+	m_pEnclave->m_bUseScript = ui.chkScript->isChecked();
+
 	switch(ui.chkAllowMS->checkState()) {
 		case Qt::Checked:	m_pEnclave->m_AllowedSignatures.Windows = TRUE; m_pEnclave->m_AllowedSignatures.Microsoft = TRUE; m_pEnclave->m_AllowedSignatures.Antimalware = TRUE; break;
 		case Qt::Unchecked:	m_pEnclave->m_AllowedSignatures.Windows = FALSE; m_pEnclave->m_AllowedSignatures.Microsoft = FALSE; m_pEnclave->m_AllowedSignatures.Antimalware = FALSE; break;
@@ -226,4 +251,19 @@ void CEnclaveWnd::OnAddCollection()
 	foreach(const QString& Collection, theCore->HashDB()->GetCollections())
 		AllCollections.append({ Collection, Collection });
 	m_pCollections->setItems(AllCollections);
+}
+
+void CEnclaveWnd::EditScript()
+{
+	CScriptWindow* pScriptWnd = new CScriptWindow(m_pEnclave->GetGuid(), EScriptTypes::eEnclave, this);
+	pScriptWnd->SetScript(m_Script);
+	pScriptWnd->SetSaver([&](const QString& Script, bool bApply){
+		m_Script = Script;
+		if (bApply) {
+			m_pEnclave->m_Script = Script;
+			return theCore->EnclaveManager()->SetEnclave(m_pEnclave);
+		}
+		return OK;
+	});
+	SafeShow(pScriptWnd);
 }

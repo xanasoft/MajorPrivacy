@@ -147,6 +147,30 @@ public:
 signals:
     void valuesChanged(const QList<QVariant>& values);
 
+private slots:
+    void OnIndexChanged()
+    {
+        QComboBox* combo = (QComboBox*)sender();
+
+        // Enforce no-duplicates if requested
+        if (!m_allowDuplicates) {
+            const QVariant d = combo->currentData();
+            if (d.isValid()) {
+                // If any other combo already has this data, revert this selection to placeholder/invalid.
+                int count = 0;
+                for (const auto &row : m_rows) {
+                    if (row.combo && row.combo->currentData() == d) ++count;
+                }
+                if (count > 1) {
+                    QSignalBlocker b(combo);
+                    // Set to placeholder (or -1) if duplicate detected
+                    combo->setCurrentIndex(m_placeholder.isEmpty() ? -1 : 0);
+                }
+            }
+        }
+        emitValuesChanged();
+    }
+
 private:
     struct Row {
         QWidget    *w = nullptr;
@@ -305,25 +329,7 @@ private:
         m_vbox->insertWidget(insertIndex, r.w);
 
         // Connect signals (capture row pointer by value)
-        QObject::connect(r.combo, &QComboBox::currentIndexChanged, this, [this, combo=r.combo]() {
-            // Enforce no-duplicates if requested
-            if (!m_allowDuplicates) {
-                const QVariant d = combo->currentData();
-                if (d.isValid()) {
-                    // If any other combo already has this data, revert this selection to placeholder/invalid.
-                    int count = 0;
-                    for (const auto &row : m_rows) {
-                        if (row.combo && row.combo->currentData() == d) ++count;
-                    }
-                    if (count > 1) {
-                        QSignalBlocker b(combo);
-                        // Set to placeholder (or -1) if duplicate detected
-                        combo->setCurrentIndex(m_placeholder.isEmpty() ? -1 : 0);
-                    }
-                }
-            }
-            emitValuesChanged();
-        });
+        QObject::connect(r.combo, SIGNAL(currentIndexChanged(int index)), SLOT(OnIndexChanged()));
 
         QObject::connect(r.btnAdd, &QToolButton::clicked, this, [this, r]() {
             // Add a new empty row below this one

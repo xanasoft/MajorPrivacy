@@ -10,11 +10,14 @@ public:
 	CAccessRule(QObject* parent = NULL);
     CAccessRule(const CProgramID& ID, QObject* parent = NULL);
 
+	static bool IsUnsafePath(const QString& Path);
+
 	bool IsHidden() const;
 
 	void SetPath(const QString& Path)				{m_AccessPath = Path;}
 	QString GetPath() const							{return m_AccessPath;}
 	QString GetNtPath() const						{return m_AccessNtPath;}
+	bool IsNotMounted() const;
 	void SetProgramPath(const QString& Path)		{m_ProgramPath = Path;}
 	QString GetProgramPath() const					{return m_ProgramPath;}
 	QString GetProgramNtPath() const				{return m_ProgramNtPath;}

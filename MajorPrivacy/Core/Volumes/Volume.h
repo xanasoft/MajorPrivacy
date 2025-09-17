@@ -1,11 +1,16 @@
 #pragma once
-#include "../Programs/ProgramID.h"
+#include "./Common/QtFlexGuid.h"
+#include "../Library/API/PrivacyDefs.h"
 
 class CVolume : public QObject
 {
 	Q_OBJECT
 public:
 	CVolume(QObject* parent = NULL);
+
+
+	QFlexGuid GetGuid() const						{ return m_Guid; }
+	void SetGuid(const QFlexGuid& Guid)				{ m_Guid = Guid; }
 
 	quint64 GetVolumeRef() const					{ return m_VolumeRef; }
 
@@ -34,10 +39,14 @@ public:
 	bool IsMounted() const							{ return m_Status == eMounted; }
 	void SetMounted(bool Mounted);
 
+	QtVariant ToVariant(const SVarWriteOpt& Opts) const;
 	void FromVariant(const class QtVariant& Volume);
 
 protected:
+	friend class CVolumeConfigWnd;
 
+
+	QFlexGuid					m_Guid;
 	quint64						m_VolumeRef = 0;
 
 	QString						m_Name;
@@ -45,6 +54,9 @@ protected:
 	QString						m_DevicePath;
 	QString						m_MountPoint;
 	uint64						m_VolumeSize = 0;
+
+	bool						m_bUseScript = false;
+	QString						m_Script;
 
 	EStatus						m_Status = eUnmounted;
 };

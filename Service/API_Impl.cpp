@@ -28,7 +28,9 @@
 #include "Programs/ProgramPattern.h"
 #include "Programs/AppInstallation.h"
 #include "Programs/ImageSignInfo.h"
+#include "Enclaves/Enclave.h"
 #include "Common/EventLog.h"
+#include "HashDB/HashDB.h"
 
 #define XVariant StVariant
 #define VariantWriter StVariantWriter
@@ -59,6 +61,10 @@
 #include "../../Library/API/API_ProgramRule.cpp"
 
 #include "../../Library/API/API_AccessRule.cpp"
+
+#include "../../Library/API/API_Enclave.cpp"
+
+#include "../../Library/API/API_HashDB.cpp"
 
 #include "../../Library/API/API_DnsRule.cpp"
 

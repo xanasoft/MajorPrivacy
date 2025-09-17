@@ -85,6 +85,8 @@ enum {
 	//API_SETUP_ACCESS_RULE_ALIAS = 'SARA',
 	//API_CLEAR_ACCESS_RULE_ALIAS = 'CARA',
 
+	API_SET_VOLUME_LOCKDOWN = 'SVLK',
+
 	API_SET_CONFIG_VALUE = 'SCFG',
 	API_GET_CONFIG_VALUE = 'GCFG',
 
@@ -93,6 +95,8 @@ enum {
 
 	API_ACQUIRE_NO_HIBERNATION = 'ANHB',
 	API_RELEASE_NO_HIBERNATION = 'RNHB',
+
+	API_IGNORE_PENDING_IMAGE_LOAD = 'IPIL',
 
 	API_GET_SUPPORT_INFO = 'SUPP',
 
@@ -170,6 +174,7 @@ enum {
 	SVC_API_SET_PROGRAM = 'SPRO',
 	SVC_API_ADD_PROGRAM = 'APRO',
 	SVC_API_REMOVE_PROGRAM = 'RPRO',
+	SVC_API_REFRESH_PROGRAMS = 'RPRG',
 	SVC_API_CLEANUP_PROGRAMS = 'CPRG',
 	SVC_API_REGROUP_PROGRAMS = 'RGRP',
 
@@ -200,7 +205,8 @@ enum {
 
 	//SVC_API_VOL_GET_VOLUME_LIST = 'GVL',
 	SVC_API_VOL_GET_ALL_VOLUMES = 'GAVL',
-	SVC_API_VOL_GET_VOLUME = 'GVLX',
+	SVC_API_VOL_GET_VOLUME = 'GVOL',
+	SVC_API_VOL_SET_VOLUME = 'SVOL',
 
 	SVC_API_GET_TWEAKS = 'GTWK',
 	SVC_API_APPLY_TWEAK = 'ATWK',
@@ -234,6 +240,10 @@ enum {
 	SVC_API_GET_EVENT_LOG = 'GELG',
 	SVC_API_CLEAR_EVENT_LOG = 'CELG',
 	SVC_API_GET_SVC_STATS = 'GSST',
+
+	SVC_API_GET_SCRIPT_LOG = 'GSLG',
+	SVC_API_CLEAR_SCRIPT_LOG = 'CSLG',
+	SVC_API_CALL_SCRIPT_FUNC = 'CSCF',
 
 	SVC_API_SHOW_SECURE_PROMPT = 'SSPT',
 
@@ -314,6 +324,9 @@ API_V_VALUES : unsigned long
 	API_V_DATA = 'data',
 	API_V_FOLDER = 'fldr',
 	API_V_ENTRY  = 'entr',
+	API_V_ENTRIES = 'ents',
+	API_V_RULE = 'rule',
+	API_V_RULES = 'ruls',
 	API_V_LIST = 'list',
 	API_V_FILES = 'flst',
 
@@ -324,6 +337,7 @@ API_V_VALUES : unsigned long
 	API_V_TEMP = 'temp',
 	API_V_TIMEOUT = 'tmot',
 	API_V_TIME_STAMP = 'tmst',
+	API_V_LOCKDOWN = 'lckd',
 
 	//
 	API_V_GUI_CONFIG = 'gcfg',
@@ -349,6 +363,7 @@ API_V_VALUES : unsigned long
 	API_V_SIGNATURE = 'sign',
 	API_V_ENCLAVES = 'encs',
 	API_V_COLLECTIONS = 'cols',
+	API_V_TOKEN = 'tokn',
 
 
 	////////////////////////////
@@ -371,6 +386,7 @@ API_V_VALUES : unsigned long
 	API_V_ORIGINAL_GUID = 'ogid',
 	API_V_SOURCE = 'src',
 	API_V_TEMPLATE_GUID = 'tgid',
+	API_V_VOLUME_GUID = 'vgid',
 
 	API_V_SHUTDOWN = 'shdn',
 
@@ -388,6 +404,7 @@ API_V_VALUES : unsigned long
 	API_V_PARAMS = 'prms',
 	API_V_WAIT = 'wait',
 	API_V_ELEVATE = 'elvt',
+	API_V_REVISION = 'revs',
 
 	////////////////////////////
 	// Program ID
@@ -685,7 +702,6 @@ API_V_VALUES : unsigned long
 	API_V_DNS_TTL = 'dttl',
 	API_V_DNS_STATUS = 'dsts',
 	API_V_DNS_QUERY_COUNT = 'dqc',
-	API_V_DNS_RULES = 'drul',
 	API_V_DNS_RULE_ACTION = 'drac',
 	API_V_DNS_LIST_INFO = 'dlin',
 
@@ -700,6 +716,7 @@ API_V_VALUES : unsigned long
 	API_V_VOL_SIZE = 'vsiz',
 	API_V_VOL_PASSWORD = 'vpwd',
 	API_V_VOL_PROTECT = 'vprt',
+	API_V_VOL_LOCKDOWN = 'vlck',
 	API_V_VOL_CIPHER = 'vcip',
 	API_V_VOL_OLD_PASS = 'vold',
 	API_V_VOL_NEW_PASS = 'vnew',

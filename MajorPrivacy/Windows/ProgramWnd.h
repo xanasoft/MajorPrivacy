@@ -20,6 +20,7 @@ signals:
 
 private slots:
 	void OnSaveAndClose();
+	bool OnSave();
 
 	void PickIcon();
 	void BrowseImage();

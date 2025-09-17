@@ -5,7 +5,6 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../../Helpers/WinHelper.h"
-#include "../Driver/KSI/include/kphapi.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../MiscHelpers/Common/Common.h"
 
@@ -25,6 +24,8 @@ CHash* CHash::Clone() const
 	CHash* pHash = new CHash();
 
 	pHash->m_Name = m_Name;
+	pHash->m_bEnabled = m_bEnabled;
+	//pHash->m_bTemporary = m_bTemporary;
 	pHash->m_Type = m_Type;
 	pHash->m_Hash = m_Hash;
 
@@ -44,6 +45,13 @@ void CHash::AddEnclave(const QFlexGuid& EnclaveId)
 	if(m_Enclaves.contains(EnclaveId))
 		return;
 	m_Enclaves.append(EnclaveId);
+}
+
+void CHash::RemoveEnclave(const QFlexGuid& EnclaveId)
+{
+	if(EnclaveId.IsNull())
+		return;
+	m_Enclaves.removeOne(EnclaveId);
 }
 
 bool CHash::HasEnclave(const QFlexGuid& EnclaveId) const

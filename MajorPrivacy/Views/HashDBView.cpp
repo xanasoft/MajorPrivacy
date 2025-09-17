@@ -45,7 +45,7 @@ CHashDBView::CHashDBView(QWidget *parent)
 	m_pBtnAdd->setIcon(QIcon(":/Icons/Add.png"));
 	m_pBtnAdd->setToolTip(tr("Add Entry"));
 	m_pBtnAdd->setMaximumHeight(22);
-	connect(m_pBtnAdd, SIGNAL(clicked()), this, SLOT(OnAddRule()));
+	connect(m_pBtnAdd, SIGNAL(clicked()), this, SLOT(OnAddHash()));
 	m_pToolBar->addWidget(m_pBtnAdd);
 	m_pToolBar->addSeparator();
 
@@ -164,10 +164,11 @@ void CHashDBView::Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms,
 			pItem->ID = QString("%1_%2").arg((uint64)pEntry.get()).arg(0);
 			pItem->Name = pEntry->GetType() == EHashType::eFileHash ? Split2(pEntry->GetName(), "\\", true).second : pEntry->GetName();
 			pItem->Type = pEntry->GetType();
+			pItem->pEntry = pEntry;
 			m_EntryMap.insert(qMakePair((uint64)pEntry.get(), 0), pItem);
 		}
 
-		SHashItemPtr pSubItem = OldMap.take(qMakePair((uint64)pEntry.get(), (uint64)pItem.get()));
+		/*SHashItemPtr pSubItem = OldMap.take(qMakePair((uint64)pEntry.get(), (uint64)pItem.get()));
 		if (!pSubItem) {
 			pSubItem = SHashItemPtr(new SHashItem());
 			pSubItem->ID = QString("%1_%2").arg((uint64)pEntry.get()).arg((uint64)pItem.get());
@@ -176,7 +177,7 @@ void CHashDBView::Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms,
 			pSubItem->pEntry = pEntry;
 			pSubItem->Parents.append(QString("%1_%2").arg((uint64)pEntry.get()).arg(0));
 			m_EntryMap.insert(qMakePair((uint64)pEntry.get(), (uint64)pItem.get()), pSubItem);
-		}
+		}*/
 
 		if (I == Hashes.end()) 
 			continue;
@@ -195,8 +196,9 @@ void CHashDBView::Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms,
 				pAuxItem->ID = QString("%1_%2").arg((uint64)pItem.get()).arg(uid);
 				pAuxItem->Name = Path;
 				pAuxItem->Type = pEntry->GetType();
-				pAuxItem->Parents = pSubItem->Parents;
-				pAuxItem->Parents.append(QString("%1_%2").arg((uint64)pEntry.get()).arg((uint64)pItem.get()));
+				//pAuxItem->Parents = pSubItem->Parents;
+				//pAuxItem->Parents.append(QString("%1_%2").arg((uint64)pEntry.get()).arg((uint64)pItem.get()));
+				pAuxItem->Parents.append(QString("%1_%2").arg((uint64)pEntry.get()).arg(0));
 				m_EntryMap.insert(qMakePair((uint64)pItem.get(), uid), pAuxItem);
 			}
 		}
@@ -261,7 +263,10 @@ void CHashDBView::OnMenu(const QPoint& Point)
 
 void CHashDBView::OnAddHash()
 {
-	CHashEntryWnd* pHashEntryWnd = new CHashEntryWnd(CHashPtr());
+	CHashPtr pHash = CHashPtr(new CHash());
+	if (!m_CurEnclaveGuid.IsNull())
+		pHash->AddEnclave(m_CurEnclaveGuid);
+	CHashEntryWnd* pHashEntryWnd = new CHashEntryWnd(pHash);
 	pHashEntryWnd->show();
 }
 

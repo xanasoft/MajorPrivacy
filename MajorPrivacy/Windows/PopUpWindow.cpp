@@ -529,7 +529,10 @@ void CPopUpWindow::LoadFwEvent(const CProgramFilePtr& pProgram, bool bUpdate)
 		pItem->setText(eFwEndpoint, EndPoint);
 		pItem->setToolTip(eFwEndpoint, Host);
 		pItem->setText(eFwTimeStamp, QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pEntry->GetTimeStamp())).toString("dd.MM.yyyy hh:mm:ss.zzz"));
-		pItem->setText(eFwProcessId, QString::number(pEntry->GetProcessId()));
+		if(pEntry->GetOwnerService().isEmpty())
+			pItem->setText(eFwProcessId, QString::number(pEntry->GetProcessId()));
+		else
+			pItem->setText(eFwProcessId, tr("%1 (%2)").arg(pEntry->GetProcessId()).arg(pEntry->GetOwnerService()));
 		CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pEntry->GetProcessId(), true);
 		if(pProcess) pItem->setText(eFwCmdLine, pProcess->GetCmdLine());
 		ui.treeFw->addTopLevelItem(pItem);
@@ -833,7 +836,7 @@ void CPopUpWindow::PushResEvent(const CProgramFilePtr& pProgram, const CLogEntry
 			break;
 		}
 	}
-	if (iFound != -1) List.append(pEntry);
+	if (iFound == -1) List.append(pEntry);
 	if (TimeOut) List.last().AddWaiting(pEntry, TimeOut);
 
 	int oldIndex = m_iResIndex;
@@ -980,7 +983,10 @@ void CPopUpWindow::LoadResEntry(bool bUpdate)
 			pItem->setText(eResEnclave, pEnclave ? pEnclave->GetName() : EnclaveGuid.ToQS());
 			pItem->setData(eResEnclave, Qt::UserRole, EnclaveGuid.ToQV());
 		}
-		pItem->setText(eResProcessId, QString::number(pEntry->GetProcessId()));
+		if(pEntry->GetOwnerService().isEmpty())
+			pItem->setText(eResProcessId, QString::number(pEntry->GetProcessId()));
+		else
+			pItem->setText(eResProcessId, tr("%1 (%2)").arg(pEntry->GetProcessId()).arg(pEntry->GetOwnerService()));
 		CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pEntry->GetProcessId(), true);
 		if(pProcess) pItem->setText(eResCmdLine, pProcess->GetCmdLine());
 		ui.treeRes->addTopLevelItem(pItem);
@@ -1263,7 +1269,10 @@ void CPopUpWindow::LoadExecEntry(bool bUpdate)
 						pItem->setText(eExecEnclave, pEnclave ? pEnclave->GetName() : EnclaveGuid.ToQS());
 						pItem->setData(eExecEnclave, Qt::UserRole, EnclaveGuid.ToQV());
 					}
-					pItem->setText(eExecProcessId, QString::number(pEntry->GetProcessId()));
+					if(pEntry->GetOwnerService().isEmpty())
+						pItem->setText(eExecProcessId, QString::number(pEntry->GetProcessId()));
+					else
+						pItem->setText(eExecProcessId, tr("%1 (%2)").arg(pEntry->GetProcessId()).arg(pEntry->GetOwnerService()));
 					pItem->setText(eExecPath, pLibrary->GetPath());
 				}
 			}

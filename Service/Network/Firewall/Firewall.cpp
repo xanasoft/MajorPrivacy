@@ -27,9 +27,10 @@
 EFwProfiles CFirewall__Profiles[] = { EFwProfiles::Private, EFwProfiles::Public, EFwProfiles::Domain };
 
 CFirewall::CFirewall()
-	: m_FwRuleTemplates(&g_DefaultMemPool), m_FwTemplatesTree(&g_DefaultMemPool)
+	: m_FwRuleTemplates(&g_DefaultMemPool), m_FwTemplatesTree(&g_DefaultMemPool), m_AutoGuardTree(&g_DefaultMemPool)
 {
 	m_FwTemplatesTree.SetSimplePattern(true);
+	m_AutoGuardTree.SetSimplePattern(true);
 
 	m_pLog = new CWindowsFwLog();
 	m_pLog->RegisterHandler(&CFirewall::OnFwLogEvent, this);
@@ -73,14 +74,15 @@ STATUS CFirewall::Init()
 	if(!m_pGuard->Start())
 		theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed set Firewall Rule auditing policy");
 
+	InitAutoGuard();
+
 	if(!UpdateRules())
 		theCore->Log()->LogEvent(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed set load Firewall Rules");
 	UpdateDefaults();
 
 	PurgeExpired(true);
 
-	if (theCore->Config()->GetBool("Service", "GuardFwRules", false))
-		RevertChanges();
+	RevertChanges();
 
 	if(theCore->Config()->GetBool("Service", "LoadWindowsFirewallLog", false))
 		LoadFwLog();
@@ -92,7 +94,7 @@ STATUS CFirewall::Load()
 {
 	CBuffer Buffer;
 	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_FIREWALL_FILE_NAME, Buffer)) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_FIREWALL_FILE_NAME L" not found");
+		theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_FIREWALL_FILE_NAME L" not found");
 		return ERR(STATUS_NOT_FOUND);
 	}
 
@@ -177,7 +179,7 @@ void CFirewall::Update()
 
 		UpdateDefaults();
 
-		if (bEmit) 
+		if (bEmit)
 		{
 			StVariant Data;
 			Data[API_V_FW_RULE_FILTER_MODE] = (uint32)GetFilteringMode();
@@ -185,17 +187,19 @@ void CFirewall::Update()
 		}
 	}
 
+	if (m_bUpdateAutoGuard) {
+		m_bUpdateAutoGuard = false;
+		InitAutoGuard();
+	}
+
 	if (m_UpdateAllRules)
 		UpdateRules();
 
 	// purge rules once per minute
-	if(m_LastRulePurge + 60*1000 < GetTickCount64())
+	if (m_LastRulePurge + 60 * 1000 < GetTickCount64())
 		PurgeExpired(false);
 
-	if (m_RevertChanges) {
-		m_RevertChanges = false;
-		RevertChanges();
-	}
+	RevertChanges();
 }
 
 STATUS CFirewall::UpdateRules()
@@ -246,7 +250,7 @@ STATUS CFirewall::UpdateRules()
 
 	for (auto I : OldFwRules)
 	{
-		if(I.second->IsTemplate() || I.second->IsBackup())
+		if(I.second->IsTemplate())
 			continue;
 		FWRuleChangedUnsafe(NULL, I.second);
 		//RemoveRuleUnsafe(I.second);
@@ -300,24 +304,11 @@ void CFirewall::PurgeExpired(bool All)
 
 void CFirewall::RevertChanges()
 {
+	std::unique_lock Lock(m_RulesMutex);
+
 	bool bDelRuled = theCore->Config()->GetBool("Service", "DeleteRogueFwRules", false);
 
-	std::unique_lock Lock(m_RulesMutex);
-	std::list<CFirewallRulePtr> RulesToRemove;
-	std::list<CFirewallRulePtr> RulesToRevert;
-	for (auto I = m_FwRules.begin(); I != m_FwRules.end(); ++I)
-	{
-		if (I->second->IsTemplate()) continue;
-		if (I->second->IsBackup())
-			RulesToRevert.push_back(I->second);
-		else if (!I->second->IsApproved() && !I->second->IsDiverged()) {
-			if(!bDelRuled && !I->second->IsEnabled())
-				continue;
-			RulesToRemove.push_back(I->second);
-		}
-	}
-
-	for (auto& pFwRule : RulesToRemove)
+	for (auto& pFwRule : m_RulesToRemove)
 	{
 		STATUS Status;
 		if (bDelRuled)
@@ -328,6 +319,9 @@ void CFirewall::RevertChanges()
 		}
 		else 
 		{
+			if(!pFwRule->IsEnabled())
+				continue;
+
 			std::unique_lock Lock(pFwRule->m_Mutex);
 			pFwRule->m_FwRule->Enabled = false;
 			pFwRule->m_State = EFwRuleState::eUnapprovedDisabled;
@@ -345,8 +339,9 @@ void CFirewall::RevertChanges()
 		Data[API_V_STATUS] = Status.GetStatus();
 		theCore->EmitEvent(Status.IsError() ? ELogLevels::eInfo : ELogLevels::eError, eLogFwRuleRejected, Data);
 	}
+	m_RulesToRemove.clear();
 
-	for (auto& pFwRuleBackup : RulesToRevert)
+	for (auto& pFwRuleBackup : m_RulesToRevert)
 	{
 		if(pFwRuleBackup->GetSetErrorCount() > 0)
 			continue;
@@ -360,6 +355,7 @@ void CFirewall::RevertChanges()
 		Data[API_V_STATUS] = Status.GetStatus();
 		theCore->EmitEvent(Status.IsError() ? ELogLevels::eInfo : ELogLevels::eError, eLogFwRuleRestored, Data);
 	}
+	m_RulesToRevert.clear();
 }
 
 STATUS CFirewall::RestoreRule(const CFirewallRulePtr& pFwRuleBackup)
@@ -783,7 +779,34 @@ CFirewallRulePtr CFirewall::UpdateFWRuleUnsafe(const std::shared_ptr<struct SWin
 	return pFwRule;
 }
 
-bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule)
+void CFirewall::InitAutoGuard()
+{
+	std::unique_lock Lock(m_RulesMutex);
+
+	m_AutoGuardTree.Clear();
+
+	auto AutoApproveList = SplitStr(theCore->Config()->GetValue("Service", "FwAutoApprove"), L"|");
+	for (auto& AutoApprove : AutoApproveList)
+	{
+		if(AutoApprove.empty() || AutoApprove[0] == L'-')
+			continue;
+
+		FW::SharedPtr<CFwAutoGuardEntry> pEntry = g_DefaultMemPool.New<CFwAutoGuardEntry>(AutoApprove, CFwAutoGuardEntry::eApprove);
+		m_AutoGuardTree.AddEntry(pEntry);
+	}
+
+	auto AutoRejectList = SplitStr(theCore->Config()->GetValue("Service", "FwAutoReject"), L"|");
+	for (auto& AutoReject : AutoRejectList)
+	{
+		if(AutoReject.empty() || AutoReject[0] == L'-')
+			continue;
+
+		FW::SharedPtr<CFwAutoGuardEntry> pEntry = g_DefaultMemPool.New<CFwAutoGuardEntry>(AutoReject, CFwAutoGuardEntry::eReject);
+		m_AutoGuardTree.AddEntry(pEntry);
+	}
+}
+
+bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule, bool* pExpected)
 {
 	bool bProgramChanged = false;
 	if (pRule && pFwRule && !(bProgramChanged = !MatchProgramID(pRule, pFwRule))) // false on remove as then pRule == NULL
@@ -792,11 +815,54 @@ bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>
 			return false; // nothing changed
 	}
 
+	FW::SharedPtr<CFwAutoGuardEntry> pGuardEntry;
+
+	if (!bProgramChanged) 
+	{
+		// TODO: add support for not only path based macthing
+
+		CProgramID ProgID;
+		if(pFwRule)
+			ProgID = pFwRule->GetProgramID();
+		else
+		{
+			std::wstring BinaryPath = pRule->BinaryPath;
+			if (_wcsicmp(BinaryPath.c_str(), L"system") == 0)
+				BinaryPath = CProcess::NtOsKernel_exe;
+
+			//std::wstring AppContainerSid = pRule->AppContainerSid;
+			//if(AppContainerSid.empty() && !pRule->PackageFamilyName.empty())
+			//	AppContainerSid = GetAppContainerSidFromName(pRule->PackageFamilyName);
+
+			ProgID = CProgramID::FromFw(BinaryPath, pRule->ServiceTag, L"");
+		}
+
+		auto& DosPath = ProgID.GetFilePath();
+		pGuardEntry = m_AutoGuardTree.GetBestEntry(FW::StringW(&g_DefaultMemPool, DosPath.c_str())).Cast<CFwAutoGuardEntry>();
+	}
+
+	CFwAutoGuardEntry::EMode GuardAction = CFwAutoGuardEntry::eNone;
+	if (pGuardEntry)
+		GuardAction = pGuardEntry->GetMode();
+	else if(theCore->Config()->GetBool("Service", "GuardFwRules", false))
+		GuardAction = CFwAutoGuardEntry::eReject;
+
+	if (pFwRule && pFwRule->IsBackup())
+	{
+		// we arrive here only from UpdateRules() 
+		if (GuardAction == CFwAutoGuardEntry::eReject)
+			m_RulesToRevert.insert(pFwRule);
+		return false; // nothing changed
+	}
+
+	bool bExpected = false;
 	if (pFwRule)  // modified or removed
 	{
 		ASSERT(!pFwRule->IsTemplate()); // should not happen
 
-		if (pFwRule->IsApproved())
+		if (!pFwRule->IsApproved() || GuardAction == CFwAutoGuardEntry::eApprove)
+			RemoveRuleUnsafe(pFwRule); // a non approved rule chaneg or the rule is to be auto approved
+		else
 		{
 			RemoveRuleUnsafeImpl(pFwRule);
 
@@ -805,17 +871,38 @@ bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>
 			m_FwRules.insert(std::make_pair(pFwRule->GetGuidStr(), pFwRule));
 
 			EmitChangeEvent(pFwRule->GetGuidStr(), pFwRule->GetFwRule()->Name, EConfigEvent::eAdded, true); // event for the backup rule
+
+			if (GuardAction == CFwAutoGuardEntry::eReject) 
+			{
+				m_RulesToRevert.insert(pFwRule);
+				bExpected = true;
+			}
 		}
-		else
-			RemoveRuleUnsafe(pFwRule);
 	}
 
 	if (pRule) // added or modified
 	{
 		CFirewallRulePtr pNewRule = std::make_shared<CFirewallRule>(pRule);
 		AddRuleUnsafe(pNewRule);
+		if (GuardAction == CFwAutoGuardEntry::eApprove)
+		{
+			pNewRule->SetApproved(true);
+			bExpected = true;
+
+			StVariant Data;
+			Data[API_V_GUID] = pNewRule->GetOriginalGuid();
+			Data[API_V_NAME] = pNewRule->GetName(); 
+			Data[API_V_ID] = pNewRule->GetProgramID().ToVariant(SVarWriteOpt());
+			theCore->EmitEvent(ELogLevels::eInfo, eLogFwRuleApproved, Data);
+		}
+		else if (GuardAction == CFwAutoGuardEntry::eReject && !bExpected)
+		{
+			m_RulesToRemove.insert(pNewRule);
+			bExpected = true;
+		}
 	}
 
+	if (pExpected) *pExpected = bExpected;
 	return true;
 }
 
@@ -838,7 +925,11 @@ uint32 CFirewall::OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent)
 			pFwRule = F->second;
 	}
 
-	bool bChanged = FWRuleChangedUnsafe(pRule, pFwRule);
+	if(!pRule && !pFwRule)
+		return 0;
+
+	bool bExpected = false;
+	bool bChanged = FWRuleChangedUnsafe(pRule, pFwRule, &bExpected);
 
 	Lock.unlock();
 
@@ -855,14 +946,9 @@ uint32 CFirewall::OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent)
 		case EConfigEvent::eModified:	theCore->EmitEvent(ELogLevels::eWarning, eLogFwRuleModified, Data); break;
 		case EConfigEvent::eRemoved:	theCore->EmitEvent(ELogLevels::eWarning, eLogFwRuleRemoved, Data); break;
 		}
-
-		if (theCore->Config()->GetBool("Service", "GuardFwRules", false)) {
-			m_RevertChanges = true;
-			bChanged = false;
-		}
 	}
 
-	EmitChangeEvent(pEvent->RuleId, pEvent->RuleName, pEvent->Type, !bChanged);
+	EmitChangeEvent(pEvent->RuleId, pEvent->RuleName, pEvent->Type, !bChanged || bExpected);
 
 	return 0;
 }
@@ -1096,6 +1182,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 
 					StVariant Data;
 					Data[API_V_GUID] = pRule->GetGuidStr();
+					Data[API_V_NAME] = pRule->GetName();
 					theCore->EmitEvent(ELogLevels::eInfo, eLogFwRuleGenerated, Data);
 				}
 			}

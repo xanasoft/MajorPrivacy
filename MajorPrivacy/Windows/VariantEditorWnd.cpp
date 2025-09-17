@@ -923,8 +923,6 @@ QString VariantIndexToName(uint32 Index)
 		return "DNS Status";
 	case API_V_DNS_QUERY_COUNT:
 		return "DNS Query Count";
-	case API_V_DNS_RULES:
-		return "DNS Rules";
 	case API_V_DNS_RULE_ACTION:
 		return "DNS Rule Action";
 

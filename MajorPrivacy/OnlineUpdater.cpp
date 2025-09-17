@@ -16,6 +16,7 @@
 #include "Helpers/WinAdmin.h"
 #include <windows.h>
 #include <QRandomGenerator>
+#include "Core/Tweaks/TweakManager.h"
 
 #ifdef QT_NO_SSL
 #error Qt requires Open SSL support for the updater to work
@@ -30,7 +31,7 @@
 #undef VERSION_MIN
 #define VERSION_MIN 	98
 #undef VERSION_REV
-#define VERSION_REV 	2
+#define VERSION_REV 	5
 #undef VERSION_UPD
 #define VERSION_UPD 	0
 
@@ -562,6 +563,10 @@ void COnlineUpdater::OnUpdateData(const QVariantMap& Data, const QVariantMap& Pa
 	theGUI->UpdateLabel();
 
 	if (PendingUpdate) {
+		bNothing = false;
+	}
+
+	if (bNothing && HandleTweaks(Data)) {
 		bNothing = false;
 	}
 
@@ -1236,6 +1241,45 @@ bool COnlineUpdater::HandleUserMessage(const QVariantMap& Data)
 		}
 	}
 	return false;
+}
+
+bool COnlineUpdater::HandleTweaks(const QVariantMap& Data)
+{
+	QVariantMap Tweaks = Data["tweaks"].toMap();
+	uint32 uRevision = Tweaks["revision"].toUInt();
+
+	if (theConf->GetInt("Options/UpdateTweaks", 2) != 1)
+		return false;
+	
+	if (uRevision <= theCore->TweakManager()->GetRevision())
+		return false;
+
+	QString DownloadUrl = Tweaks["download"].toString();
+
+	QVariantMap Params;
+	PROGRESS Status = DownloadFile(DownloadUrl, this, SLOT(OnTweaksDownload(const QString&, const QVariantMap&)), Params);
+	if (Status.GetStatus() == OP_ASYNC) {
+		theGUI->AddAsyncOp(Status.GetValue());
+		Status.GetValue()->ShowMessage(tr("Downloading tweaks..."));
+	}
+
+	return true;
+}
+
+void COnlineUpdater::OnTweaksDownload(const QString& Path, const QVariantMap& Params)
+{
+	QFile File(Path);
+	if (File.open(QFile::ReadOnly)) 
+	{
+		QByteArray TweakIni = File.readAll();
+		File.close();
+
+		if (!TweakIni.isEmpty())
+		{
+			theCore->WriteConfigFile("\\Tweaks.ini", TweakIni);
+		}
+	}
+	File.remove();
 }
 
 QString COnlineUpdater::GetUpdateDir(bool bCreate)

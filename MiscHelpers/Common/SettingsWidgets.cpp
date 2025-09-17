@@ -2,6 +2,9 @@
 #include "SettingsWidgets.h"
 #include "CheckableMessageBox.h"
 #include "NeonEffect.h"
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#include  <QDesktopWidget>
+#endif
 
 ///////////////////////////////////////////////////
 // CPathEdit

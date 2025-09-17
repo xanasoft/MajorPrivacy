@@ -28,7 +28,7 @@ CProcessPage::CProcessPage(bool bEmbedded, QWidget* parent)
 	m_pRuleTabs = new QTabWidget();
 
 	m_pRuleView = new CProgramRuleView();
-	m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Process Rules"));
+	m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Program Rules"));
 
 	m_pHashDBView = new CHashDBView();
 	m_pRuleTabs->addTab(m_pHashDBView,  QIcon(":/Icons/CertDB.png"), tr("Hash Database"));
@@ -97,7 +97,7 @@ void CProcessPage::SetMergePanels(bool bMerge)
 	if (bMerge)
 	{
 		m_pMainLayout->addWidget(m_pTabs);
-		m_pTabs->insertTab(0, m_pRuleView, QIcon(":/Icons/Rules.png"), tr("Process Rules"));
+		m_pTabs->insertTab(0, m_pRuleView, QIcon(":/Icons/Rules.png"), tr("Program Rules"));
 		m_pTabs->insertTab(1, m_pHashDBView, QIcon(":/Icons/CertDB.png"), tr("Hash Database"));
 		delete m_pVSplitter;
 		m_pVSplitter = nullptr;
@@ -106,7 +106,7 @@ void CProcessPage::SetMergePanels(bool bMerge)
 	{
 		m_pVSplitter = new QSplitter(Qt::Vertical);
 		m_pRuleTabs = new QTabWidget();
-		m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Process Rules"));
+		m_pRuleTabs->addTab(m_pRuleView,  QIcon(":/Icons/Rules.png"), tr("Program Rules"));
 		m_pRuleTabs->addTab(m_pHashDBView, QIcon(":/Icons/CertDB.png"), tr("Hash Database"));
 		m_pVSplitter->addWidget(m_pRuleTabs);
 		m_pRuleView->setVisible(true);

@@ -14,7 +14,7 @@ public:
 	virtual ~CAccessListView();
 
 public slots:
-	void					OnSelectionChanged();
+	void					OnSelectionChanged(const QList<SAccessItemPtr>& Items);
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

@@ -2,6 +2,7 @@
 #include "EnclaveModel.h"
 #include "../Core/PrivacyCore.h"
 #include "../../MiscHelpers/Common/Common.h"
+#include "../core/Volumes/VolumeManager.h"
 
 
 CEnclaveModel::CEnclaveModel(QObject *parent)
@@ -120,6 +121,7 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<QFlexGuid, CEnclavePtr>& EnclaveM
 			switch(section)
 			{
 			case eName:				Value = pEnclave->GetName(); break;
+			case eID:				Value = pEnclave->GetVolumeGuid().ToQV(); break;
 			case eSigners:			Value = CEnclave::GetAllowedSigners(pEnclave->GetAllowedSignatures(), pEnclave->GetAllowedCollections()); break;
 			case eOnSpawn:			Value = ((uint32)pEnclave->GetOnTrustedSpawn()) << 16 | ((uint32)pEnclave->GetOnSpawn()); break;
 			}
@@ -134,6 +136,8 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<QFlexGuid, CEnclavePtr>& EnclaveM
 
 				switch (section)
 				{
+				case eName:				ColValue.ToolTip = pEnclave->GetGuid().ToQS(); ColValue.Formatted = pEnclave->GetName(); break;
+				case eID:				{ auto pVolume = theCore->VolumeManager()->GetVolume(pEnclave->GetVolumeGuid()); ColValue.Formatted = pVolume ? pVolume->GetName() : pEnclave->GetVolumeGuid().ToQS(); break; }
 				case eSigners:			ColValue.Formatted = Value.toStringList().join(tr(", ")); break;
 				case eOnSpawn:			ColValue.Formatted = CEnclave::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() >> 16)) + "/" + CEnclave::GetOnSpawnStr((EProgramOnSpawn)(Value.toUInt() & 0xFFFF)); break;
 				}

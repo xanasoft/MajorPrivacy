@@ -18,6 +18,7 @@
 #include "../Programs/ProgramManager.h"
 #include "../Library/Common/FileIO.h"
 #include "../Library/Common/Strings.h"
+#include "../Library/Helpers/WinUtil.h"
 
 #define API_TRAFFIC_RECORD_FILE_NAME L"TrafficRecord.dat"
 #define API_TRAFFIC_RECORD_FILE_VERSION 1
@@ -57,7 +58,7 @@ CNetworkManager::~CNetworkManager()
 DWORD CALLBACK CNetworkManager__LoadProc(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-    SetThreadDescription(GetCurrentThread(), L"CNetworkManager__LoadProc");
+    MySetThreadDescription(GetCurrentThread(), L"CNetworkManager__LoadProc");
 #endif
 
     CNetworkManager* This = (CNetworkManager*)lpThreadParameter;
@@ -116,7 +117,7 @@ STATUS CNetworkManager::Init()
 DWORD CALLBACK CNetworkManager__StoreProc(LPVOID lpThreadParameter)
 {
 #ifdef _DEBUG
-    SetThreadDescription(GetCurrentThread(), L"CNetworkManager__StoreProc");
+    MySetThreadDescription(GetCurrentThread(), L"CNetworkManager__StoreProc");
 #endif
 
     CNetworkManager* This = (CNetworkManager*)lpThreadParameter;
@@ -442,7 +443,7 @@ STATUS CNetworkManager::Load()
 {
     CBuffer Buffer;
     if (!ReadFile(theCore->GetDataFolder() + L"\\" API_TRAFFIC_RECORD_FILE_NAME, Buffer)) {
-        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_TRAFFIC_RECORD_FILE_NAME L" not found");
+        theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_TRAFFIC_RECORD_FILE_NAME L" not found");
         return ERR(STATUS_NOT_FOUND);
     }
 

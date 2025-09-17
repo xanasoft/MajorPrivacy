@@ -357,17 +357,21 @@ void CLibraryView::OnMenu(const QPoint& Point)
 			IssuerName = pItem->pProg->GetSignInfo().GetIssuerName();
 		}
 		Files.append(Path);
-		if (theCore->HashDB()->GetHash(FileHash))
-			FilesSigned++;
+		if (auto pHash = theCore->HashDB()->GetHash(FileHash)) {
+			if(m_CurEnclaveGuid.IsNull() || pHash->HasEnclave(m_CurEnclaveGuid))
+				FilesSigned++;
+		}
 		if (!SignerHash.isEmpty()) {
 			Certs[SignerHash] = SignerName;
-			if (theCore->HashDB()->GetHash(SignerHash))
-				CertsSigned++;
+			if (auto pHash = theCore->HashDB()->GetHash(SignerHash))
+				if(m_CurEnclaveGuid.IsNull() || pHash->HasEnclave(m_CurEnclaveGuid))
+					CertsSigned++;
 		}
 		if (!IssuerHash.isEmpty()) {
 			CAs[IssuerHash] = IssuerName;
-			if (theCore->HashDB()->GetHash(IssuerHash))
-				CAsSigned++;
+			if (auto pHash = theCore->HashDB()->GetHash(IssuerHash))
+				if(m_CurEnclaveGuid.IsNull() || pHash->HasEnclave(m_CurEnclaveGuid))
+					CAsSigned++;
 		}
 	}
 
@@ -414,22 +418,22 @@ void CLibraryView::OnFileAction()
 	QList<STATUS> Results;
 	if (pAction == m_pSignFile) {
 		foreach(const QString& File, Files)
-			Results << theCore->HashDB()->AllowFile(File);
+			Results << theCore->HashDB()->AllowFile(File, m_CurEnclaveGuid);
 		//Status = theGUI->SignFiles(Files);
 	}
 	else if (pAction == m_pRemoveSig) {
 		foreach(const QString& File, Files)
-			Results << theCore->HashDB()->ClearFile(File);
+			Results << theCore->HashDB()->ClearFile(File, m_CurEnclaveGuid);
 		//Status = theCore->RemoveFileSignature(Files);
 	}
 	else if (pAction == m_pSignCert) {
 		for(auto I = Certs.begin(); I != Certs.end(); ++I)
-			Results << theCore->HashDB()->AllowCert(I.key(), I.value());
+			Results << theCore->HashDB()->AllowCert(I.key(), I.value(), m_CurEnclaveGuid);
 		//Status = theGUI->SignCerts(Certs);
 	}
 	else if (pAction == m_pRemoveCert) {
 		for(auto I = Certs.begin(); I != Certs.end(); ++I)
-			Results << theCore->HashDB()->ClearCert(I.key());
+			Results << theCore->HashDB()->ClearCert(I.key(), m_CurEnclaveGuid);
 		//Status = theCore->RemoveCertSignature(Certs);
 	}
 	else if (pAction == m_pSignCA) {
@@ -437,12 +441,12 @@ void CLibraryView::OnFileAction()
 			return;
 
 		for(auto I = CAs.begin(); I != CAs.end(); ++I) 
-			Results << theCore->HashDB()->AllowCert(I.key(), I.value());
+			Results << theCore->HashDB()->AllowCert(I.key(), I.value(), m_CurEnclaveGuid);
 		//Status = theGUI->SignCACerts(Certs);
 	}
 	else if (pAction == m_pRemoveCA) {
 		for(auto I = CAs.begin(); I != CAs.end(); ++I)
-			Results <<  theCore->HashDB()->ClearCert(I.key());
+			Results <<  theCore->HashDB()->ClearCert(I.key(), m_CurEnclaveGuid);
 		//Status = theCore->RemoveCACertSignature(Certs);
 	}
 	else if (pAction == m_pExplore || pAction == m_pProperties)

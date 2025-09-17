@@ -27,8 +27,8 @@ void CTweakManager::Update()
 		LoadTranslations(Lang);
 	}
 
-
-	auto Ret = theCore->GetTweaks();
+	uint32 uRevision = 0;
+	auto Ret = theCore->GetTweaks(&uRevision);
 	if (Ret.IsError())
 		return;
 
@@ -65,7 +65,7 @@ void CTweakManager::Update()
 
 		m_Map[pTweak->GetId()] = pTweak;
 
-		if (!pTweak->GetParentId().isEmpty()) {
+		if (!pTweak->GetParentId().isEmpty() && pTweak->GetParentId() != "None") {
 			QSharedPointer<CTweakList> pParent;
 			auto F = m_Map.find(pTweak->GetParentId());
 			if (F != m_Map.end())
@@ -90,6 +90,8 @@ void CTweakManager::Update()
 
 		m_pRoot->AddTweak(pTweak);
 	});
+
+	m_Revision = uRevision;
 }
 
 STATUS CTweakManager::ApplyTweak(const CTweakPtr& pTweak)

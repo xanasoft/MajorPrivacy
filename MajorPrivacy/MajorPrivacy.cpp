@@ -433,38 +433,42 @@ void CMajorPrivacy::UpdateLockStatus(bool bOnConnect)
 
 STATUS CMajorPrivacy::Connect()
 {
-	STATUS Status;
+	STATUS Status = theCore->Connect();
 	
-	bool bEngineMode = false;
-	if (!theCore->IsInstalled())
+	if (!Status)
 	{
-		int iEngineMode = theConf->GetInt("Options/AskAgentMode", -1);
-		if (iEngineMode == -1) {
-			bool State = false;
-			int ret = CCheckableMessageBox::question(this, "MajorPrivacy",
-				tr("The Privacy Agent is not currently installed as a service. Would you like to install it now (Yes), run it without installation (No), or abort the connection attempt (Cancel)?")
-				, tr("Remember this choice."), &State, QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel, QDialogButtonBox::No, QMessageBox::Question);
+		bool bEngineMode = false;
+		if (!theCore->IsInstalled())
+		{
+			int iEngineMode = theConf->GetInt("Options/AskAgentMode", -1);
+			if (iEngineMode == -1) {
+				bool State = false;
+				int ret = CCheckableMessageBox::question(this, "MajorPrivacy",
+					tr("The Privacy Agent is not currently installed as a service. Would you like to install it now (Yes), run it without installation (No), or abort the connection attempt (Cancel)?")
+					, tr("Remember this choice."), &State, QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel, QDialogButtonBox::No, QMessageBox::Question);
 
-			if (ret == QMessageBox::Cancel)
-				return ERR(STATUS_OK_CNCELED);
+				if (ret == QMessageBox::Cancel)
+					return ERR(STATUS_OK_CNCELED);
 
-			bEngineMode = ret == QMessageBox::No;
+				bEngineMode = ret == QMessageBox::No;
 
-			if (State)
-				theConf->SetValue("Options/AskAgentMode", bEngineMode ? 1 : 0);
+				if (State)
+					theConf->SetValue("Options/AskAgentMode", bEngineMode ? 1 : 0);
+			}
+			else
+				bEngineMode = iEngineMode == 1;
 		}
-		else
-			bEngineMode = iEngineMode == 1;
-	}
 
-	if(!theCore->SvcIsRunning() && !IsRunningElevated())
-		QMessageBox::information(this, "MajorPrivacy", tr("MajorPrivacy will now attempt to start the Privacy Agent, please confirm the UAC prompt."));
-	
-	m_iReConnected = 1;
-	Status = theCore->Connect(bEngineMode);
+		if (!theCore->SvcIsRunning() && !IsRunningElevated())
+			QMessageBox::information(this, "MajorPrivacy", tr("MajorPrivacy will now attempt to start the Privacy Agent, please confirm the UAC prompt."));
+
+		Status = theCore->Connect(true, bEngineMode);
+	}
 
 	if (Status) 
 	{
+		m_iReConnected = 1;
+
 		ReloadCert();
 		UpdateLabel();
 
@@ -590,7 +594,7 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 
 	// Try reconnect if we lost connection
 	if (m_iReConnected == 1 && !bConnected) {
-		STATUS Status = theCore->Connect(theCore->IsEngineMode());
+		STATUS Status = theCore->Connect();
 		if (Status) 
 			bConnected = true;
 		else // on failure go back to disconnected state
@@ -598,8 +602,8 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 	}
 
 	// handle connection state change
-	if (m_bWasConnected != bConnected) {
-		m_bWasConnected = bConnected;
+	if (m_iWasConnected != (bConnected ? 1 : 0)) {
+		m_iWasConnected = (bConnected ? 1 : 0);
 
 		UpdateTitle();
 
@@ -607,6 +611,9 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 		m_pDisconnect->setEnabled(bConnected);
 
 		bool bInstalled = theCore->IsInstalled();
+		bool bRunning = theCore->SvcIsRunning();
+		m_pStartService->setEnabled(!bConnected && !bRunning);
+		m_pStopService->setEnabled(!bConnected);
 		m_pInstallService->setEnabled(!bConnected && !bInstalled);
 		m_pRemoveService->setEnabled(!bConnected && bInstalled);
 
@@ -784,20 +791,13 @@ void CMajorPrivacy::BuildMenu()
 	m_pMain = menuBar()->addMenu(tr("Privacy"));
 	//m_pMain->addSeparator();
 	m_pMaintenance = m_pMain->addMenu(QIcon(":/Icons/Maintenance.png"), tr("&Maintenance"));
-		m_pImportOptions = m_pMaintenance->addAction(QIcon(":/Icons/Import.png"), tr("Import Options"), this, SLOT(OnMaintenance()));
-		m_pExportOptions = m_pMaintenance->addAction(QIcon(":/Icons/Export.png"), tr("Export Options"), this, SLOT(OnMaintenance()));
+		m_pConnect = m_pMaintenance->addAction(QIcon(":/Icons/Connect.png"), tr("Connect"), this, SLOT(OnMaintenance()));
+		m_pDisconnect = m_pMaintenance->addAction(QIcon(":/Icons/Disconnect.png"), tr("Disconnect"), this, SLOT(OnMaintenance()));
 		m_pMaintenance->addSeparator();
-		m_pMaintenanceItems = m_pMaintenance->addMenu(QIcon(":/Icons/ManMaintenance.png"), tr("&Advanced"));
-			m_pConnect = m_pMaintenanceItems->addAction(QIcon(":/Icons/Connect.png"), tr("Connect"), this, SLOT(OnMaintenance()));
-			m_pDisconnect = m_pMaintenanceItems->addAction(QIcon(":/Icons/Disconnect.png"), tr("Disconnect"), this, SLOT(OnMaintenance()));
-			m_pMaintenance->addSeparator();
-			m_pInstallService = m_pMaintenanceItems->addAction(QIcon(":/Icons/Install.png"), tr("Install Services"), this, SLOT(OnMaintenance()));
-			m_pRemoveService = m_pMaintenanceItems->addAction(QIcon(":/Icons/Stop.png"), tr("Remove Services"), this, SLOT(OnMaintenance()));
-		
-		m_pMaintenance->addSeparator();
-		m_pOpenUserFolder = m_pMaintenance->addAction(QIcon(":/Icons/Folder.png"), tr("Open User Data Folder"), this, SLOT(OnMaintenance()));
-		m_pOpenSystemFolder = m_pMaintenance->addAction(QIcon(":/Icons/Folder.png"), tr("Open System Data Folder"), this, SLOT(OnMaintenance()));
-		m_pVariantEditor = m_pMaintenance->addAction(QIcon(":/Icons/EditIni.png"), tr("Open *.dat Editor"), this, SLOT(OnMaintenance()));
+		m_pStartService = m_pMaintenance->addAction(QIcon(":/Icons/Enable.png"), tr("Start Services"), this, SLOT(OnMaintenance()));
+		m_pStopService = m_pMaintenance->addAction(QIcon(":/Icons/Disable.png"), tr("Stop Services"), this, SLOT(OnMaintenance()));
+		m_pInstallService = m_pMaintenance->addAction(QIcon(":/Icons/Install.png"), tr("Install Services"), this, SLOT(OnMaintenance()));
+		m_pRemoveService = m_pMaintenance->addAction(QIcon(":/Icons/Stop.png"), tr("Remove Services"), this, SLOT(OnMaintenance()));
 		m_pMaintenance->addSeparator();
 		m_pSetupWizard = m_pMaintenance->addAction(QIcon(":/Icons/Wizard.png"), tr("Setup Wizard"), this, SLOT(OnMaintenance()));
 	m_pMain->addSeparator();
@@ -893,6 +893,14 @@ void CMajorPrivacy::BuildMenu()
 	m_pUnlockConfig = m_pOptions->addAction(QIcon(":/Icons/LockOpen.png"), tr("Unlock Config"), this, SLOT(OnUnlockConfig()));
 	m_pCommitConfig = m_pOptions->addAction(QIcon(":/Icons/Approve.png"), tr("Commit Changes"), this, SLOT(OnCommitConfig()));
 	m_pDiscardConfig = m_pOptions->addAction(QIcon(":/Icons/Uninstall.png"), tr("Discard Changes"), this, SLOT(OnDiscardConfig()));
+	m_pOptions->addSeparator();
+	m_pManagement = m_pOptions->addMenu(QIcon(":/Icons/Maintenance.png"), tr("&Management"));
+		m_pImportOptions = m_pManagement->addAction(QIcon(":/Icons/Import.png"), tr("Import Options"), this, SLOT(OnMaintenance()));
+		m_pExportOptions = m_pManagement->addAction(QIcon(":/Icons/Export.png"), tr("Export Options"), this, SLOT(OnMaintenance()));
+		m_pManagement->addSeparator();
+		m_pOpenUserFolder = m_pManagement->addAction(QIcon(":/Icons/Folder.png"), tr("Open User Data Folder"), this, SLOT(OnMaintenance()));
+		m_pOpenSystemFolder = m_pManagement->addAction(QIcon(":/Icons/Folder.png"), tr("Open System Data Folder"), this, SLOT(OnMaintenance()));
+		m_pVariantEditor = m_pManagement->addAction(QIcon(":/Icons/EditIni.png"), tr("Open *.dat Editor"), this, SLOT(OnMaintenance()));
 	m_pOptions->addSeparator();
 	m_pClearIgnore = m_pOptions->addAction(QIcon(":/Icons/ClearList.png"), tr("Clear Ignore List"), this, SLOT(ClearIgnoreLists()));
 	m_pResetPrompts = m_pOptions->addAction(QIcon(":/Icons/Refresh.png"), tr("Reset All Prompts"), this, SLOT(ResetPrompts()));
@@ -2512,6 +2520,7 @@ void CMajorPrivacy::ResetPrompts()
 	theConf->DelValue("Options/WarnProtection");
 	theConf->DelValue("Options/WarnBreakingTweaks");
 	theConf->DelValue("Options/DblClickFixQuick");
+	theConf->DelValue("Options/AskApplyScript");
 }
 
 void CMajorPrivacy::OnMaintenance()
@@ -2740,10 +2749,14 @@ void CMajorPrivacy::OnMaintenance()
 		Status = Connect();
 	else if (sender() == m_pDisconnect) 
 		Disconnect();
+	else if (sender() == m_pStartService)
+		Status = theCore->Start();
+	else if (sender() == m_pStopService)
+		Status = theCore->Stop();
 	else if (sender() == m_pInstallService)
 		Status = theCore->Install();
 	else if (sender() == m_pRemoveService)
-		theCore->Uninstall();
+		Status = theCore->Uninstall();
 	else if (sender() == m_pSetupWizard) {
 		CSetupWizard::ShowWizard();
 		return;
@@ -2756,7 +2769,8 @@ void CMajorPrivacy::OnExit()
 {
 	bool bKeepEngine = false;
 
-	if (theCore->IsEngineMode()) {
+	if (theCore->IsEngineMode() && theCore->Service()->IsConnected()) 
+	{
 		int iKeepEngine = theConf->GetInt("Options/KeepEngine", -1);
 		if (iKeepEngine == -1) {
 			bool State = false;

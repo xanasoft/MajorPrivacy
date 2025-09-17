@@ -135,6 +135,7 @@ private slots:
 	void				OnRequestFinished();
 
 	void				OnInstallerDownload(const QString& Path, const QVariantMap& Params);
+	void				OnTweaksDownload(const QString& Path, const QVariantMap& Params);
 
 	void				OnUpdateData(const QVariantMap& Data, const QVariantMap& Params);
 	void				OnUpdateDataTmpl(const QVariantMap& Data, const QVariantMap& Params);
@@ -151,6 +152,8 @@ protected:
 
 	bool				HandleUserMessage(const QVariantMap& Data);
 	bool				HandleUpdate();
+
+	bool				HandleTweaks(const QVariantMap& Data);
 
 	QString				GetOnNewUpdateOption() const;
 	QString				GetOnNewReleaseOption() const;

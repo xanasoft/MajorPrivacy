@@ -201,6 +201,8 @@ private:
     QRadioButton* m_pStable;
     QRadioButton* m_pPreview;
     //QRadioButton* m_pInsider;
+    QCheckBox* m_pHotfixes;
+    QCheckBox* m_pTweaks;
     //QLabel* m_pUpdateInfo;
     //QLabel* m_pBottomLabel;
 };

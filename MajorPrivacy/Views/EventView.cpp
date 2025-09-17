@@ -3,9 +3,9 @@
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramItem.h"
 #include "../Core/Programs/ProgramManager.h"
-#include "../Core/EventLog.h"
 #include "../../Library/Helpers/NtUtil.h"
 #include "TweakView.h"
+#include "../MajorPrivacy.h"
 
 CEventView::CEventView(QWidget *parent)
 	:QWidget(parent)
@@ -35,6 +35,7 @@ CEventView::CEventView(QWidget *parent)
 	//m_pInfo->GetTree()->setIconSize(QSize(32, 32));
 	m_pMainLayout->addWidget(m_pInfo, 2, 0);
 
+	connect(theCore->EventLog(), SIGNAL(NewEntry(const CEventLogEntryPtr&)), this, SLOT(OnNewEntry(const CEventLogEntryPtr&)));
 
 	QByteArray Columns = theConf->GetBlob("MainWindow/ProgramEventView_Columns");
 	if (Columns.isEmpty()) {
@@ -86,4 +87,22 @@ void CEventView::Update()
 
 	foreach(QTreeWidgetItem* pItem, Old)
 		delete pItem;
+}
+
+void CEventView::OnNewEntry(const CEventLogEntryPtr& pEntry)
+{
+	switch (pEntry->GetEventType())
+	{
+	case eLogFwRuleGenerated:
+		if(theConf->GetBool("Options/NotifyFwRuleTemplates", true))
+			theGUI->ShowNotification(tr("Firewall Rule Created"), CEventLog::GetEventInfoStr(pEntry), QSystemTrayIcon::Information);
+		break;
+
+	case eLogFwRuleApproved:
+	case eLogFwRuleRestored:
+	case eLogFwRuleRejected:
+		if(theConf->GetBool("Options/NotifyFwGuardAction", true))
+			theGUI->ShowNotification(tr("Firewall Rule Guard"), CEventLog::GetEventInfoStr(pEntry), QSystemTrayIcon::Information);
+		break;
+	}
 }

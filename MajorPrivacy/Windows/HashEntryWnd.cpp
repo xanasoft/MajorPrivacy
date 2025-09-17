@@ -53,6 +53,13 @@ CHashEntryWnd::CHashEntryWnd(const CHashPtr& pEntry, QWidget* parent)
 
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
+	connect(ui.buttonBox->button(QDialogButtonBox::Apply), SIGNAL(clicked(bool)), this, SLOT(OnSave()));
+
+	ui.cmbType->setEnabled(bNew);
+	ui.cmbType->addItem(tr(""), (int)EHashType::eUnknown);
+	ui.cmbType->addItem(tr("File"), (int)EHashType::eFileHash);
+	ui.cmbType->addItem(tr("Certificate"), (int)EHashType::eCertHash);
+	if (!bNew) SetComboBoxValue(ui.cmbType, (int)pEntry->GetType());
 
 	ui.txtHash->setEnabled(bNew);
 	ui.txtHash->setText(pEntry->GetHash().toHex());
@@ -81,44 +88,71 @@ void CHashEntryWnd::closeEvent(QCloseEvent *e)
 	this->deleteLater();
 }
 
-void CHashEntryWnd::OnSaveAndClose()
+bool CHashEntryWnd::OnSave()
 {
 	if (!Save()) {
 		QApplication::beep();
-		return;
+		return false;
 	}
 
 	STATUS Status = theCore->HashDB()->SetHash(m_pEntry);	
 	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
-		return;
-	accept();
+		return false;
+	return true;
+}
+
+void CHashEntryWnd::OnSaveAndClose()
+{
+	if(OnSave())
+		accept();
 }
 
 bool CHashEntryWnd::Save()
 {
-	if (m_pEntry->m_Hash.isEmpty())
+	bool bNew = m_pEntry->m_Hash.isEmpty();
+	if (bNew) 
 	{
-		m_pEntry->m_Hash = QByteArray::fromHex(ui.txtHash->text().toUtf8());
-		if (m_pEntry->m_Hash.isEmpty())
-		{
-			QMessageBox::warning(this, "MajorPrivacy", tr("Please enter a valid hash value."));
+		EHashType Type = (EHashType)ui.cmbType->currentData().toInt();
+		if (Type == EHashType::eUnknown) {
+			QMessageBox::warning(this, "MajorPrivacy", tr("Please select a type."));
 			return false;
 		}
+
+		QString Hash = ui.txtHash->text();
+		Hash.remove(' ');
+		static const QRegularExpression re(QStringLiteral("^[0-9A-Fa-f]+$"));
+		if (!re.match(Hash).hasMatch() || Hash.length() < 2 || (Hash.length() % 2) != 0) {
+			QMessageBox::warning(this, "MajorPrivacy", tr("Please enter a valid hash value using hexadecimal notation."));
+			return false;
+		}
+
+		m_pEntry->m_Type = Type;
+		m_pEntry->m_Hash = QByteArray::fromHex(Hash.toUtf8());
 	}
 
 	m_pEntry->m_Name = ui.txtName->text();
 	m_pEntry->m_Description = ui.txtInfo->toPlainText();
 
+	int VolumeEnclaves = 0;
 	m_pEntry->m_Enclaves.clear();
 	foreach(QFlexGuid EnclaveId, m_pEnclaves->values()) {
-		if (!EnclaveId.IsNull() && !m_pEntry->m_Enclaves.contains(EnclaveId))
+		if (!EnclaveId.IsNull() && !m_pEntry->m_Enclaves.contains(EnclaveId)) {
 			m_pEntry->m_Enclaves.append(EnclaveId);
+			CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(EnclaveId);
+			if(!pEnclave->GetVolumeGuid().IsNull())
+				VolumeEnclaves++;
+		}
 	}
 
 	m_pEntry->m_Collections.clear();
 	foreach(QVariant Collection, m_pCollections->values()) {
 		if (!Collection.isNull() && !m_pEntry->m_Collections.contains(Collection.toString()))
 			m_pEntry->m_Collections.append(Collection.toString());
+	}
+
+	if (bNew) {
+		if(VolumeEnclaves > 0 && VolumeEnclaves == m_pEntry->m_Enclaves.count() && m_pEntry->m_Collections.isEmpty())
+			m_pEntry->m_bTemporary = true;
 	}
 
 	return true;

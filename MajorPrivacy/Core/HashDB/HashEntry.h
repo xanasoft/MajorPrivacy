@@ -21,11 +21,15 @@ public:
 	bool IsEnabled() const							{ return m_bEnabled; }
 	void SetEnabled(bool bEnabled)					{ m_bEnabled = bEnabled; }
 
+	bool IsTemporary() const						{ return m_bTemporary; }
+	void SetTemporary(bool bTemporary)				{ m_bTemporary = bTemporary; }
+
 	EHashType GetType() const						{ return m_Type; }
 
 	QByteArray GetHash() const						{ return m_Hash; }
 
 	void AddEnclave(const QFlexGuid& EnclaveId);
+	void RemoveEnclave(const QFlexGuid& EnclaveId);
 	bool HasEnclave(const QFlexGuid& EnclaveId) const;
 	void AddCollection(const QString& Collection);
 	QList<QString> GetCollections() const			{ return m_Collections; }
@@ -48,6 +52,7 @@ protected:
 	QString					m_Name; // Filename or Subject
 	QString					m_Description;
 	bool 					m_bEnabled = true;
+	bool 					m_bTemporary = false;
 	EHashType				m_Type = EHashType::eUnknown;
 	QByteArray				m_Hash;
 
