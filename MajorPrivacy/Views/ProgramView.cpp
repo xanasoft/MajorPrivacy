@@ -511,6 +511,11 @@ void CProgramView::Update()
 	}
 }
 
+void CProgramView::Clear()
+{
+	m_pProgramModel->Clear();
+}
+
 void CProgramView::OnProgramChanged(const QModelIndexList& Selection)
 {
 	m_CurPrograms.clear();

@@ -15,6 +15,7 @@ public:
 	virtual ~CTrafficView();
 
 	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services);
+	void					Clear();
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

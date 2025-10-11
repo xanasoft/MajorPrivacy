@@ -6,17 +6,20 @@ HEADERS += ./MiscHelpers.h \
     ./mischelpers_global.h \
     ./stdafx.h \
     ./Common/Common.h \
-    ./Common/OtherFunctions.h \
-    ./Common/DebugHelpers.h \
+    ./Common/CustomStyles.h \
+    ./Common/CustomTheme.h \
     ./Common/ExitDialog.h \
     ./Common/FlexError.h \
-    ./Common/FlowLayout.h \
     ./Common/HistoryGraph.h \
-    ./Common/qRC4.h \
+    ./Common/OtherFunctions.h \
     ./Common/Xml.h \
     ./Common/CheckableMessageBox.h \
     ./Common/ComboInputDialog.h \
+    ./Common/CheckList.h \
+    ./Common/AbstractTreeModel.h \
+    ./Common/CodeEdit.h \
     ./Common/Finder.h \
+    ./Common/FlowLayout.h \
     ./Common/ItemChooser.h \
     ./Common/KeyValueInputDialog.h \
     ./Common/ListItemModel.h \
@@ -32,36 +35,39 @@ HEADERS += ./MiscHelpers.h \
     ./Common/TreeItemModel.h \
     ./Common/TreeViewEx.h \
     ./Common/TreeWidgetEx.h \
-    ./Common/CheckList.h \
     ./Common/NeonEffect.h \
+    ./Common/MultiErrorDialog.h \
     ./Common/NetworkAccessManager.h \
+    ./Common/WinboxMultiCombo.h \
     ./Common/MT/ThreadLock.h \
     ./Archive/Archive.h \
     ./Archive/ArchiveExtractor.h \
+    ./Archive/ArchiveFS.h \
     ./Archive/ArchiveHelper.h \
     ./Archive/ArchiveInterface.h \
     ./Archive/ArchiveIO.h \
     ./Archive/ArchiveOpener.h \
-    ./Archive/ArchiveThread.h \
     ./Archive/ArchiveUpdater.h \
     ./Archive/CachedArchive.h \
+    ./Archive/ArchiveThread.h \
     ./Archive/SplitFile.h
-    
 SOURCES += ./MiscHelpers.cpp \
     ./stdafx.cpp \
+    ./Common/AbstractTreeModel.cpp \
     ./Common/CheckableMessageBox.cpp \
+    ./Common/CodeEdit.cpp \
     ./Common/ComboInputDialog.cpp \
     ./Common/Common.cpp \
-    ./Common/OtherFunctions.cpp \
-    ./Common/DebugHelpers.cpp \
+    ./Common/CustomTheme.cpp \
     ./Common/Finder.cpp \
     ./Common/FlowLayout.cpp \
     ./Common/ItemChooser.cpp \
     ./Common/KeyValueInputDialog.cpp \
     ./Common/ListItemModel.cpp \
+    ./Common/MultiErrorDialog.cpp \
     ./Common/MultiLineInputDialog.cpp \
+    ./Common/OtherFunctions.cpp \
     ./Common/PanelView.cpp \
-    ./Common/qRC4.cpp \
     ./Common/NetworkAccessManager.cpp \
     ./Common/Settings.cpp \
     ./Common/SettingsWidgets.cpp \
@@ -71,13 +77,8 @@ SOURCES += ./MiscHelpers.cpp \
     ./Common/TreeItemModel.cpp \
     ./Common/Xml.cpp \
     ./Common/MT/ThreadLock.cpp \
-    ./Archive/Archive.cpp \
-    ./Archive/ArchiveExtractor.cpp \
+    ./Archive/ArchiveFS.cpp \
     ./Archive/ArchiveHelper.cpp \
-    ./Archive/ArchiveInterface.cpp \
-    ./Archive/ArchiveOpener.cpp \
     ./Archive/ArchiveThread.cpp \
-    ./Archive/ArchiveUpdater.cpp \
     ./Archive/CachedArchive.cpp \
     ./Archive/SplitFile.cpp
-    

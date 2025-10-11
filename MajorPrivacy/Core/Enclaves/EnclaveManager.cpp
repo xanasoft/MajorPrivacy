@@ -17,6 +17,7 @@ CEnclaveManager::CEnclaveManager(QObject* parent)
 	AllowedSignatures.Windows = TRUE;
 	AllowedSignatures.Microsoft = TRUE;
 	AllowedSignatures.Antimalware = TRUE;
+	AllowedSignatures.EnclaveDB = TRUE;
 	pEnclave->SetAllowedSignatures(AllowedSignatures);
 	pEnclave->SetOnTrustedSpawn(EProgramOnSpawn::eAllow);
 	pEnclave->SetOnSpawn(EProgramOnSpawn::eEject);

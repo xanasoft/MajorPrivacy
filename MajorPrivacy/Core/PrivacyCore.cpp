@@ -204,21 +204,32 @@ STATUS CPrivacyCore::Uninstall()
 	return CPrivacyCore__RunAgent(L"-remove");
 }
 
-bool CPrivacyCore::IsInstalled()
+bool CPrivacyCore::IsSvcInstalled()
 {
 	SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
 	return ((SvcState & SVC_INSTALLED) == SVC_INSTALLED);
 }
 
-bool CPrivacyCore::SvcIsRunning()
+bool CPrivacyCore::IsSvcRunning()
 {
 	SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
 	return ((SvcState & SVC_RUNNING) == SVC_RUNNING);
 }
 
+bool CPrivacyCore::IsDrvInstalled()
+{
+	SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
+	return ((DrvState & SVC_INSTALLED) == SVC_INSTALLED);
+}
+
+bool CPrivacyCore::IsDrvRunning()
+{
+	SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
+	return ((DrvState & SVC_RUNNING) == SVC_RUNNING);
+}
+
 STATUS CPrivacyCore::Connect(bool bCanStart, bool bEngineMode)
 {
-	m_GuiSecState = 0;
 	m_SvcSecState = 0;
 
 	STATUS Status;
@@ -226,7 +237,7 @@ STATUS CPrivacyCore::Connect(bool bCanStart, bool bEngineMode)
 	{
 		if (bCanStart) 
 		{
-			if (bEngineMode && !IsInstalled())
+			if (bEngineMode && !IsSvcInstalled())
 				Status = m_Service.ConnectEngine(true);
 			else
 			{
@@ -259,7 +270,7 @@ STATUS CPrivacyCore::Connect(bool bCanStart, bool bEngineMode)
 			return Status;
 	}
 
-	m_bEngineMode = !IsInstalled();
+	m_bEngineMode = !IsSvcInstalled();
 
 	if(bEngineMode && !m_bEngineMode)
 		theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Service is installed, engine mod ignored");
@@ -282,13 +293,6 @@ STATUS CPrivacyCore::Connect(bool bCanStart, bool bEngineMode)
 			//m_Driver.RegisterForConfigEvents(EConfigGroup::eHashDB);
 			//m_Driver.RegisterForConfigEvents(EConfigGroup::eAccessRules);
 			//m_Driver.RegisterForConfigEvents(EConfigGroup::eProgramRules);
-
-			auto Result = m_Driver.GetProcessInfo(GetCurrentProcessId());
-			if (!Result.IsError())
-			{
-				auto Data = Result.GetValue();
-				m_GuiSecState = Data->SecState;
-			}
 		}
 	}
 
@@ -300,7 +304,14 @@ STATUS CPrivacyCore::Connect(bool bCanStart, bool bEngineMode)
 	}
 
 	std::wstring BinaryPath = GetServiceBinaryPath(API_DRIVER_NAME);
-	m_AppDir = NormalizePath(QString::fromStdWString(Split2(GetFileFromCommand(BinaryPath), L"\\", true).first));
+	BinaryPath = Split2(BinaryPath, L"\\", true).first; // strip file name
+	size_t pos = BinaryPath.find_last_of(L'\\');
+	if (pos != std::wstring::npos) { // strip sub folder name
+		if (BinaryPath.compare(pos, 4, L"\\x64") == 0 || BinaryPath.compare(pos, 6, L"\\AMD64") == 0
+		 || BinaryPath.compare(pos, 4, L"\\A64") == 0 || BinaryPath.compare(pos, 6, L"\\ARM64") == 0)
+			BinaryPath.resize(pos);
+	}
+	m_AppDir = NormalizePath(QString::fromStdWString(BinaryPath));
 
 	QtVariant Request(m_pMemPool);
 	auto ret = m_Service.Call(SVC_API_GET_EVENT_LOG, Request);
@@ -326,14 +337,9 @@ void CPrivacyCore::Disconnect(bool bKeepEngine)
 	m_DnsRulesUpToDate = false;
 }
 
-bool CPrivacyCore::IsGuiHighSecurity() const
+uint32 CPrivacyCore::GetServicePID() const
 {
-	return ((m_GuiSecState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH);
-}
-
-bool CPrivacyCore::IsGuiMaxSecurity() const
-{
-	return ((m_GuiSecState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM);
+	return m_Service.GetProcessId();
 }
 
 bool CPrivacyCore::IsSvcHighSecurity() const

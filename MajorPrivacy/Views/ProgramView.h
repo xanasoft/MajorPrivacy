@@ -27,6 +27,7 @@ signals:
 public slots:
 	void	FilterUpdate();
 	void	Update();
+	void	Clear();
 
 private slots:
 	void	OnProgramChanged(const QModelIndexList& Selection);

@@ -205,9 +205,14 @@ public:
 	bool IsConnected();
 	void Disconnect();
 
+	uint32 GetCurProcSecState() const { return m_CurProcSecState; }
+	bool IsCurProcHighSecurity() const;
+	bool IsCurProcMaxSecurity() const;
+
 	RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message, struct SCallParams* pParams = NULL);
 
 	uint32 GetABIVersion();
+	bool TestDevAuthority();
 
 	RESULT(std::shared_ptr<std::vector<uint64>>) EnumProcesses();
 	RESULT(SProcessInfoPtr) GetProcessInfo(uint64 pid);
@@ -314,5 +319,6 @@ protected:
 	EInterface m_Interface;
 	std::mutex m_CallMutex;
 	class CAbstractClient* m_pClient;
+	uint32 m_CurProcSecState;
 };
 

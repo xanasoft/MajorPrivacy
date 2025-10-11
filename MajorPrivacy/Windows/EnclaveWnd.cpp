@@ -59,8 +59,9 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 	if (bNew && m_pEnclave->m_Name.isEmpty()) {
 		m_pEnclave->m_Name = tr("New Secure Enclave");
 		m_pEnclave->m_AllowedSignatures.Windows = TRUE;
+		m_pEnclave->m_AllowedSignatures.Microsoft = TRUE;
 		m_pEnclave->m_AllowedSignatures.Antimalware = TRUE;
-		m_pEnclave->m_AllowedSignatures.Enclave = TRUE;
+		m_pEnclave->m_AllowedSignatures.EnclaveDB = TRUE;
 	}
 
 	connect(ui.txtName, SIGNAL(textChanged(const QString&)), this, SLOT(OnNameChanged(const QString&)));
@@ -110,14 +111,21 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 		ui.chkAllowMS->setCheckState(Qt::PartiallyChecked);
 	else
 		ui.chkAllowMS->setCheckState(Qt::Unchecked);
+	
 	//if(m_pEnclave->m_AllowedSignatures.Authenticode && m_pEnclave->m_AllowedSignatures.Store)
 	//	ui.chkAllowAC->setCheckState(Qt::Checked);
 	//else if(m_pEnclave->m_AllowedSignatures.Authenticode || m_pEnclave->m_AllowedSignatures.Store)
 	//	ui.chkAllowAC->setCheckState(Qt::PartiallyChecked);
 	//else
 	//	ui.chkAllowAC->setCheckState(Qt::Unchecked);
-	ui.chkAllowUser->setChecked(m_pEnclave->m_AllowedSignatures.User);
-	ui.chkAllowEnclave->setChecked(m_pEnclave->m_AllowedSignatures.Enclave);
+	
+	if(m_pEnclave->m_AllowedSignatures.UserDB && m_pEnclave->m_AllowedSignatures.UserSign)
+		ui.chkAllowUser->setCheckState(Qt::Checked);
+	else if (m_pEnclave->m_AllowedSignatures.UserDB || m_pEnclave->m_AllowedSignatures.UserSign)
+		ui.chkAllowUser->setCheckState(Qt::PartiallyChecked);
+	else
+		ui.chkAllowUser->setCheckState(Qt::Unchecked);
+	ui.chkAllowEnclave->setChecked(m_pEnclave->m_AllowedSignatures.EnclaveDB);
 
 	QList<QVariant> Collections;
 	foreach(const QString& Collection, m_pEnclave->m_AllowedCollections)
@@ -180,12 +188,17 @@ bool CEnclaveWnd::Save()
 		case Qt::Checked:	m_pEnclave->m_AllowedSignatures.Windows = TRUE; m_pEnclave->m_AllowedSignatures.Microsoft = TRUE; m_pEnclave->m_AllowedSignatures.Antimalware = TRUE; break;
 		case Qt::Unchecked:	m_pEnclave->m_AllowedSignatures.Windows = FALSE; m_pEnclave->m_AllowedSignatures.Microsoft = FALSE; m_pEnclave->m_AllowedSignatures.Antimalware = FALSE; break;
 	}
+
 	//switch(ui.chkAllowAC->checkState()) {
 	//case Qt::Checked:	m_pEnclave->m_AllowedSignatures.Authenticode = TRUE; m_pEnclave->m_AllowedSignatures.Store = TRUE; break;
 	//case Qt::Unchecked:	m_pEnclave->m_AllowedSignatures.Authenticode = FALSE; m_pEnclave->m_AllowedSignatures.Store = FALSE; break;
 	//}
-	m_pEnclave->m_AllowedSignatures.User = ui.chkAllowUser->isChecked();
-	m_pEnclave->m_AllowedSignatures.Enclave = ui.chkAllowEnclave->isChecked();
+
+	switch(ui.chkAllowUser->checkState()) {
+		case Qt::Checked:	m_pEnclave->m_AllowedSignatures.UserDB = TRUE; m_pEnclave->m_AllowedSignatures.UserSign = TRUE; break;
+		case Qt::Unchecked:	m_pEnclave->m_AllowedSignatures.UserDB = FALSE; m_pEnclave->m_AllowedSignatures.UserSign = FALSE; break;
+	}
+	m_pEnclave->m_AllowedSignatures.EnclaveDB = ui.chkAllowEnclave->isChecked();
 
 	m_pEnclave->m_AllowedCollections.clear();
 	foreach(QVariant Collection, m_pCollections->values()) {

@@ -68,7 +68,7 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 			pNode->Icon = pNode->pProg->GetIcon();
 			Changed = 1;
 		}
-		if (pNode->IsMissing != pNode->pProg->IsMissing()) {
+		if (pNode->pProg && pNode->IsMissing != pNode->pProg->IsMissing()) {
 			pNode->IsMissing = pNode->pProg->IsMissing();
 			pNode->TextColor = pNode->IsMissing ? QBrush(Qt::red) : QVariant();
 			Changed = 2; // set change for all columns

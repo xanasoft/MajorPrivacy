@@ -92,6 +92,8 @@ protected:
 
 	STATUS Init();
 
+	void ConfigInit();
+
 	STATUS InitHooks();
 
 	STATUS InitDriver();

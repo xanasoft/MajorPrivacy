@@ -362,6 +362,16 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 	}*/
 }
 
+void CAccessView::Clear()
+{
+	m_pItemModel->Clean();
+	m_CurPrograms.clear();
+	m_CurServices.clear();
+	m_CurRoot.clear();
+	m_CurItems.clear();
+	m_FullRefresh = true;
+}
+
 /*void CAccessView::OnDoubleClicked(const QModelIndex& index)
 {
 

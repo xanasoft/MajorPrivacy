@@ -15,6 +15,7 @@ public:
 	virtual ~CHandleView();
 
 	void					Sync(const QHash<quint64, CProcessPtr>& Processes, const QString& RootPath = QString());
+	void					Clear();
 	
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

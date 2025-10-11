@@ -13,6 +13,7 @@ public:
 	virtual ~CFwRuleView();
 
 	void					Sync(QList<CFwRulePtr> RuleList);
+	void					Clear();
 
 protected:
 	void					OnMenu(const QPoint& Point) override;

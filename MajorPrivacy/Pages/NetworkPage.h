@@ -18,6 +18,7 @@ public:
 	void SetMergePanels(bool bMerge);
 
 	void	Update();
+	void	Clear();
 
 private slots:
 

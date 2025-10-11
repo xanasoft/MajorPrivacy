@@ -125,6 +125,12 @@ void CDnsRuleView::Sync(QList<CDnsRulePtr> RuleList)
 	m_pItemModel->Sync(RuleList);
 }
 
+void CDnsRuleView::Clear()
+{
+	m_RuleList.clear();
+	m_pItemModel->Clear();
+}
+
 void CDnsRuleView::OnDoubleClicked(const QModelIndex& Index)
 {
 	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);

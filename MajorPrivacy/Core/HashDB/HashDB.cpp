@@ -163,7 +163,7 @@ STATUS CHashDB::AllowFile(QString FilePath, const QFlexGuid& EnclaveId, const QS
 	pHash->AddEnclave(EnclaveId);
 	pHash->AddCollection(Collection);
 
-	return theCore->SetHashEntry(pHash->ToVariant(SVarWriteOpt()));
+	return SetHash(pHash);
 }
 
 STATUS CHashDB::AllowCert(const QByteArray& HashValue, const QString& Subject, const QFlexGuid& EnclaveId, const QString& Collection)
@@ -185,7 +185,7 @@ STATUS CHashDB::AllowCert(const QByteArray& HashValue, const QString& Subject, c
 	pHash->AddEnclave(EnclaveId);
 	pHash->AddCollection(Collection);
 
-	return theCore->SetHashEntry(pHash->ToVariant(SVarWriteOpt()));
+	return SetHash(pHash);
 }
 
 STATUS CHashDB::ClearFile(QString FilePath, const QFlexGuid& EnclaveId)
@@ -204,7 +204,7 @@ STATUS CHashDB::ClearFile(QString FilePath, const QFlexGuid& EnclaveId)
 
 		pHash->RemoveEnclave(EnclaveId);
 
-		return theCore->SetHashEntry(pHash->ToVariant(SVarWriteOpt()));
+		return SetHash(pHash);
 	}
 
 	return theCore->DelHashEntry(HashValue);
@@ -219,7 +219,7 @@ STATUS CHashDB::ClearCert(const QByteArray& HashValue, const QFlexGuid& EnclaveI
 
 		pHash->RemoveEnclave(EnclaveId);
 
-		return theCore->SetHashEntry(pHash->ToVariant(SVarWriteOpt()));
+		return SetHash(pHash);
 	}
 
 	return theCore->DelHashEntry(HashValue);

@@ -149,6 +149,12 @@ void CFwRuleView::Sync(QList<CFwRulePtr> RuleList)
 	m_pItemModel->Sync(RuleList);
 }
 
+void CFwRuleView::Clear()
+{
+	m_RuleList.clear();
+	m_pItemModel->Clear();
+}
+
 void CFwRuleView::OnDoubleClicked(const QModelIndex& Index)
 {
 	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);

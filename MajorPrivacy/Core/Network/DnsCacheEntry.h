@@ -4,7 +4,7 @@
 class CDnsCacheEntry: public QObject
 {
 	Q_OBJECT
-
+	TRACK_OBJECT(CDnsCacheEntry)
 public:
 	enum EStatus
 	{

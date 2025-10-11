@@ -104,10 +104,10 @@ void CEnclave::ReadIValue(uint32 Index, const XVariant& Data)
 void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) const
 {
 #ifdef KERNEL_MODE
-	if(!IS_EMPTY(m_Guid))
+	if (!IS_EMPTY(m_Guid))
 		Enclave.Write(API_S_GUID, TO_STR(m_Guid));
 #else
-	if(!m_Guid.IsNull())
+	if (!m_Guid.IsNull())
 		Enclave.WriteVariant(API_S_GUID, m_Guid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Enclave.Allocator()));
 #endif
 	Enclave.Write(API_S_ENABLED, m_bEnabled);
@@ -119,10 +119,10 @@ void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 	Enclave.WriteEx(API_S_RULE_DESCR, TO_STR(m_Description));
 
 #ifdef KERNEL_MODE
-	if(!IS_EMPTY(m_VolumeGuid))
+	if (!IS_EMPTY(m_VolumeGuid))
 		Enclave.Write(API_S_VOLUME_GUID, TO_STR(m_VolumeGuid));
 #else
-	if(!m_VolumeGuid.IsNull())
+	if (!m_VolumeGuid.IsNull())
 		Enclave.WriteVariant(API_S_VOLUME_GUID, m_VolumeGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Enclave.Allocator()));
 #endif
 
@@ -131,21 +131,25 @@ void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 
 	VariantWriter Signers(Enclave.Allocator());
 	Signers.BeginList();
-	if(m_AllowedSignatures.Windows)
+	if (m_AllowedSignatures.Windows)
 		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_WINDOWS);
-	if(m_AllowedSignatures.Microsoft)
+	if (m_AllowedSignatures.Microsoft)
 		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_MICROSOFT);
-	if(m_AllowedSignatures.Antimalware)
+	if (m_AllowedSignatures.Antimalware)
 		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_ANTIMALWARE);
-	if(m_AllowedSignatures.Authenticode)
+	if (m_AllowedSignatures.Authenticode)
 		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_AUTHENTICODE);
 	if (m_AllowedSignatures.Store)
 		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_STORE);
-	if(m_AllowedSignatures.User)
+	if (m_AllowedSignatures.Developer)
+		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_DEVELOPER);
+	if (m_AllowedSignatures.UserSign)
+		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_USER_SIGN);
+	if (m_AllowedSignatures.UserDB)
 		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_USER);
-	if(m_AllowedSignatures.Enclave)
+	if (m_AllowedSignatures.EnclaveDB)
 		Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE);
-	for(const auto& Collection : m_AllowedCollections)
+	for (const auto& Collection : m_AllowedCollections)
 		Signers.WriteEx(TO_STR(Collection));
 	Enclave.WriteVariant(API_S_EXEC_ALLOWED_SIGNERS, Signers.Finish());
 
@@ -156,7 +160,7 @@ void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 	case EProgramOnSpawn::eEject:	Enclave.Write(API_S_EXEC_ON_TRUSTED_SPAWN, API_S_EXEC_ON_SPAWN_EJECT); break;
 	}
 
-	switch(m_OnSpawn)
+	switch (m_OnSpawn)
 	{
 	case EProgramOnSpawn::eAllow:	Enclave.Write(API_S_EXEC_ON_SPAWN, API_S_EXEC_ON_SPAWN_ALLOW); break;
 	case EProgramOnSpawn::eBlock:	Enclave.Write(API_S_EXEC_ON_SPAWN, API_S_EXEC_ON_SPAWN_BLOCK); break;
@@ -210,9 +214,9 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 	{
 		ASTR SignReq = Data;
 		if (SignReq == API_S_EXEC_SIGN_REQ_VERIFIED)
-			m_AllowedSignatures.User = TRUE;
+			m_AllowedSignatures.UserDB = m_AllowedSignatures.UserSign = TRUE;
 		else if (SignReq == API_S_EXEC_SIGN_REQ_MICROSOFT || SignReq == API_S_EXEC_SIGN_REQ_TRUSTED)
-			m_AllowedSignatures.User = m_AllowedSignatures.Windows = m_AllowedSignatures.Microsoft = m_AllowedSignatures.Antimalware = TRUE;
+			m_AllowedSignatures.UserDB = m_AllowedSignatures.UserSign = m_AllowedSignatures.Windows = m_AllowedSignatures.Microsoft = m_AllowedSignatures.Antimalware = TRUE;
 	}
 
 	else if (VAR_TEST_NAME(Name, API_S_EXEC_ALLOWED_SIGNERS))
@@ -226,8 +230,10 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_ANTIMALWARE)	m_AllowedSignatures.Antimalware = TRUE;
 			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_AUTHENTICODE)	m_AllowedSignatures.Authenticode = TRUE;
 			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_STORE)		m_AllowedSignatures.Store = TRUE;
-			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_USER)			m_AllowedSignatures.User = TRUE;
-			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE)		m_AllowedSignatures.Enclave = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_DEVELOPER)	m_AllowedSignatures.Developer = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_USER_SIGN)	m_AllowedSignatures.UserSign = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_USER)			m_AllowedSignatures.UserDB = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE)		m_AllowedSignatures.EnclaveDB = TRUE;
 			else
 				LIST_APPEND(m_AllowedCollections, AS_STR(Data[i]));
 		}

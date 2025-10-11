@@ -221,6 +221,15 @@ void CHashDBView::Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms,
 	}
 }
 
+void CHashDBView::Clear()
+{
+	m_pItemModel->Clear();
+	m_EntryMap.clear();
+	m_PathUIDs.clear();
+	m_CurEnclaveGuid = QFlexGuid();
+	m_CurPrograms.clear();
+}
+
 void CHashDBView::OnDoubleClicked(const QModelIndex& Index)
 {
 	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);

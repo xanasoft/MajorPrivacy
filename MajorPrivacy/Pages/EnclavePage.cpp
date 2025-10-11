@@ -51,3 +51,11 @@ void CEnclavePage::Update()
 
 	m_pProcessPage->Update(m_pEnclaveView->GetSelectedEnclave());
 }
+
+
+void CEnclavePage::Clear()
+{
+	m_pEnclaveView->Clear();
+
+	m_pProcessPage->Clear();
+}

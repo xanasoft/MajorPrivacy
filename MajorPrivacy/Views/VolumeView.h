@@ -15,6 +15,7 @@ public:
 	virtual ~CVolumeView();
 
 	void					Sync();
+	void					Clear();
 	
 	QString					GetSelectedVolumePath();
 	QString					GetSelectedVolumeImage();

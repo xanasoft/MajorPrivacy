@@ -75,6 +75,11 @@ void CHandleView::Sync(const QHash<quint64, CProcessPtr>& Processes, const QStri
 	m_pItemModel->Sync(HandleList);
 }
 
+void CHandleView::Clear()
+{
+	m_pItemModel->Clear();
+}
+
 /*void CHandleView::OnDoubleClicked(const QModelIndex& Index)
 {
 

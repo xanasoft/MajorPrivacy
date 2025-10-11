@@ -9,6 +9,7 @@
 class CProcess : public QObject
 {
 	Q_OBJECT
+	TRACK_OBJECT(CProcess)
 public:
 	CProcess(quint32 Pid, QObject* parent = NULL);
 
@@ -21,6 +22,7 @@ public:
 	QString GetNtPath() const { QReadLocker Lock(&m_Mutex); return m_NtFileName; }
 	QString GetCmdLine() const { QReadLocker Lock(&m_Mutex); return m_CmdLine; }
 
+	quint32 GetStatus() const { return m_Status; }
 	quint32 GetSecState() const { return m_SecState; }
 	quint32 GetFlags() const { return m_Flags; }
 	quint32 GetSecFlags() const { return m_SecFlags; }
@@ -35,7 +37,7 @@ public:
 
 	static QString GetSecStateStr(uint32 SecState);
 
-	QString GetStatus() const;
+	QString GetStatusStr() const;
 	QString GetImgStats() const;
 
 	QList<QString> GetServices() const { QReadLocker Lock(&m_Mutex); return m_ServiceList; }
@@ -70,6 +72,7 @@ protected:
 	QString m_NtFileName;
 	QIcon m_Icon;
 	QString m_CmdLine;
+	quint32 m_Status = 0;
 	quint32 m_SecState = 0;
 	quint32 m_Flags = 0;
 	quint32 m_SecFlags = 0;

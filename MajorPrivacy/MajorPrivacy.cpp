@@ -1,4 +1,6 @@
 #include "pch.h"
+#include <QTextBrowser>
+#include <QMimeData>
 #include "MajorPrivacy.h"
 #include "Core/PrivacyCore.h"
 #include "Core/Processes/ProcessList.h"
@@ -43,7 +45,7 @@
 #include "../MiscHelpers/Archive/ArchiveFS.h"
 #include "OnlineUpdater.h"
 #include "Wizards/SetupWizard.h"
-#include "../Core/IssueManager.h"
+#include "Core/IssueManager.h"
 
 #include <Windows.h>
 #include <ShellApi.h>
@@ -438,28 +440,33 @@ STATUS CMajorPrivacy::Connect()
 	if (!Status)
 	{
 		bool bEngineMode = false;
-		if (!theCore->IsInstalled())
+		if (!theCore->IsSvcInstalled())
 		{
-			int iEngineMode = theConf->GetInt("Options/AskAgentMode", -1);
-			if (iEngineMode == -1) {
-				bool State = false;
-				int ret = CCheckableMessageBox::question(this, "MajorPrivacy",
-					tr("The Privacy Agent is not currently installed as a service. Would you like to install it now (Yes), run it without installation (No), or abort the connection attempt (Cancel)?")
-					, tr("Remember this choice."), &State, QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel, QDialogButtonBox::No, QMessageBox::Question);
+			if (!theCore->IsDrvInstalled())
+			{
+				int iEngineMode = theConf->GetInt("Options/AskAgentMode", -1);
+				if (iEngineMode == -1) {
+					bool State = false;
+					int ret = CCheckableMessageBox::question(this, "MajorPrivacy",
+						tr("The Privacy Agent is not currently installed as a service. Would you like to install it now (Yes), run it without installation (No), or abort the connection attempt (Cancel)?")
+						, tr("Remember this choice."), &State, QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel, QDialogButtonBox::No, QMessageBox::Question);
 
-				if (ret == QMessageBox::Cancel)
-					return ERR(STATUS_OK_CNCELED);
+					if (ret == QMessageBox::Cancel)
+						return ERR(STATUS_OK_CNCELED);
 
-				bEngineMode = ret == QMessageBox::No;
+					bEngineMode = ret == QMessageBox::No;
 
-				if (State)
-					theConf->SetValue("Options/AskAgentMode", bEngineMode ? 1 : 0);
+					if (State)
+						theConf->SetValue("Options/AskAgentMode", bEngineMode ? 1 : 0);
+				}
+				else
+					bEngineMode = iEngineMode == 1;
 			}
 			else
-				bEngineMode = iEngineMode == 1;
+				bEngineMode = true;
 		}
 
-		if (!theCore->SvcIsRunning() && !IsRunningElevated())
+		if (!theCore->IsSvcRunning() && !IsRunningElevated())
 			QMessageBox::information(this, "MajorPrivacy", tr("MajorPrivacy will now attempt to start the Privacy Agent, please confirm the UAC prompt."));
 
 		Status = theCore->Connect(true, bEngineMode);
@@ -474,18 +481,29 @@ STATUS CMajorPrivacy::Connect()
 
 		statusBar()->showMessage(tr("Privacy Agent Ready %1/%2")
 			.arg(CProcess::GetSecStateStr(theCore->GetSvcSecState()))
-			.arg(CProcess::GetSecStateStr(theCore->GetGuiSecState())), 10000);
+			.arg(CProcess::GetSecStateStr(theCore->Driver()->GetCurProcSecState())), 10000);
 
 #ifndef _DEBUG
-		if (theCore->IsSvcMaxSecurity() && (!theCore->IsGuiMaxSecurity() && theCore->IsGuiHighSecurity()))
+		if (theCore->IsSvcMaxSecurity() && (!theCore->Driver()->IsCurProcMaxSecurity() && theCore->Driver()->IsCurProcHighSecurity()))
 		{
-			if (theCore->StartProcessBySvc(QCoreApplication::applicationFilePath().replace("/", "\\"))) {
+			((QtSingleApplication*)qApp->instance())->disableSingleApp();
+			QString CommandLine = "\"" + qApp->applicationFilePath().replace("/", "\\") + "\"";
+			for(int i = 1; i < qApp->arguments().size(); i++)
+				CommandLine += " \"" + QString(qApp->arguments().at(i)).replace("\"", "\"\"") + "\"";
+
+			STATUS Status = theCore->StartProcessBySvc(CommandLine);
+			if(Status.IsError())
+				QMessageBox::critical(this, "MajorPrivacy", tr("Failed to restart MajorPrivacy with maximum security, error: 0x%1!").arg(QString::number((uint32)Status.GetStatus(), 16)));
+			else {
 				theCore->Disconnect(true);
-				((QtSingleApplication*)QApplication::instance())->disableSingleApp();
 				PostQuitMessage(0);
+				return Status;
 			}
 		}
 #endif
+
+		if (!theCore->Driver()->TestDevAuthority()) 
+			QMessageBox::critical(this, "MajorPrivacy", tr("MajorPrivacy's UI is not recognized by the driver!!!"));
 
 		// Log all user config dirs in the global config file for cleanup during uninstall
 		theCore->SetConfig("Users/" + QString::fromLocal8Bit(qgetenv("USERNAME")), theConf->GetConfigDir());
@@ -499,8 +517,6 @@ STATUS CMajorPrivacy::Connect()
 		}
 
 		UpdateLockStatus(true);
-
-		OnProgramsAdded();
 	}
 	else 
 	{
@@ -602,6 +618,7 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 	}
 
 	// handle connection state change
+	bool bWasConnected = !!m_iWasConnected;
 	if (m_iWasConnected != (bConnected ? 1 : 0)) {
 		m_iWasConnected = (bConnected ? 1 : 0);
 
@@ -610,12 +627,12 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 		m_pConnect->setEnabled(!bConnected);
 		m_pDisconnect->setEnabled(bConnected);
 
-		bool bInstalled = theCore->IsInstalled();
-		bool bRunning = theCore->SvcIsRunning();
-		m_pStartService->setEnabled(!bConnected && !bRunning);
+		bool bSvcInstalled = theCore->IsSvcInstalled();
+		bool bSvcRunning = theCore->IsSvcRunning();
+		m_pStartService->setEnabled(!bConnected && !bSvcRunning);
 		m_pStopService->setEnabled(!bConnected);
-		m_pInstallService->setEnabled(!bConnected && !bInstalled);
-		m_pRemoveService->setEnabled(!bConnected && bInstalled);
+		m_pInstallService->setEnabled(!bConnected && !bSvcInstalled);
+		m_pRemoveService->setEnabled(!bConnected && bSvcInstalled);
 
 		if (!bConnected) {
 			theCore->Clear();
@@ -654,8 +671,20 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 
 		theCore->ProcessEvents();
 	}
-	else
+	else //if (bWasConnected)
+	{
 		m_pStatusLabel->setText(tr("Disconnected from privacy agent"));
+
+		m_HomePage->Clear();
+		m_EnclavePage->Clear();
+		m_pProgramView->Clear();
+		m_ProcessPage->Clear();
+		m_AccessPage->Clear();
+		m_NetworkPage->Clear();
+		m_DnsPage->Clear();
+		m_VolumePage->Clear();
+		m_TweakPage->Clear();
+	}
 
 
 	quint64 CurTime = QDateTime::currentSecsSinceEpoch();
@@ -684,6 +713,17 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 		if(!IsSilentMode() && CheckInternet()) // do not check for updates when in presentation/game mode
 			m_pUpdater->Process();
 	}
+
+#ifdef _DEBUG
+	static uint64 LastObjectDump = GetTickCount64();
+	if (LastObjectDump + 6 * 1000 < GetTickCount64()) {
+		LastObjectDump = GetTickCount64();
+		ObjectTrackerBase::PrintCounts();
+
+		//size_t memoryUsed = getHeapUsage();
+		//DbgPrint(L"USED MEMORY: %llu bytes\n", memoryUsed);
+	}
+#endif
 }
 
 bool CMajorPrivacy::IsSilentMode() const
@@ -840,17 +880,17 @@ void CMajorPrivacy::BuildMenu()
 	m_pCreateVolume = m_pVolumes->addAction(QIcon(":/Icons/MountVolume.png"), tr("Create Volume"), this, SIGNAL(OnCreateVolume()));
 
 	m_pSecurity = menuBar()->addMenu(tr("Security"));
-	//m_pSignFile = m_pSecurity->addAction(QIcon(":/Icons/Cert.png"), tr("Sign File"), this, SLOT(OnSignFile()));
-	//m_pSignDb  = m_pSecurity->addAction(QIcon(":/Icons/CertDB.png"), tr("Signature Database"), this, [this]() {
-	//	CSignatureDbWnd* pWnd = new CSignatureDbWnd();
-	//	pWnd->show();
-	//});
-	//m_pSecurity->addSeparator();
 	m_pUnloadProtection = m_pSecurity->addAction(QIcon(":/Icons/Shield15.png"), tr("Unload Protection"), this, SLOT(OnUnloadProtection()));
 	m_pUnloadProtection->setCheckable(true);
 	m_pSecurity->addSeparator();
 	m_pProtectConfig = m_pSecurity->addAction(QIcon(":/Icons/LockClosed.png"), tr("Enable Config Protection"), this, SLOT(OnProtectConfig()));
 	m_pUnprotectConfig = m_pSecurity->addAction(QIcon(":/Icons/LockOpen2.png"), tr("Disable Config Protection"), this, SLOT(OnUnprotectConfig()));
+	m_pSecurity->addSeparator();
+	m_pSignFile = m_pSecurity->addAction(QIcon(":/Icons/Cert.png"), tr("Sign File"), this, SLOT(OnSignFile()));
+	//m_pSignDb  = m_pSecurity->addAction(QIcon(":/Icons/CertDB.png"), tr("Signature Database"), this, [this]() {
+	//	CSignatureDbWnd* pWnd = new CSignatureDbWnd();
+	//	pWnd->show();
+	//});
 	m_pSecurity->addSeparator();
 	m_pMakeKeyPair = m_pSecurity->addAction(QIcon(":/Icons/AddKey.png"), tr("Setup User Key"), this, SLOT(OnMakeKeyPair()));
 	m_pClearKeys = m_pSecurity->addAction(QIcon(":/Icons/RemoveKey.png"), tr("Remove User Key"), this, SLOT(OnClearKeys()));
@@ -908,6 +948,7 @@ void CMajorPrivacy::BuildMenu()
 	m_pMenuHelp = menuBar()->addMenu(tr("&Help"));
 	m_pForum = m_pMenuHelp->addAction(QIcon(":/Icons/Forum.png"), tr("Visit Support Forum"), this, SLOT(OnHelp()));
 	m_pMenuHelp->addSeparator();
+	m_pDiagnose = m_pMenuHelp->addAction(QIcon(":/Icons/FirstAid.png"), tr("Diagnostics Information"), this, SLOT(OnDiagnostics()));
 	m_pUpdate = m_pMenuHelp->addAction(QIcon(":/Icons/Update.png"), tr("Check for Updates"), this, SLOT(CheckForUpdates()));
 	m_pMenuHelp->addSeparator();
 	m_pAboutQt = m_pMenuHelp->addAction(tr("About the Qt Framework"), this, SLOT(OnAbout()));
@@ -1438,7 +1479,7 @@ STATUS CMajorPrivacy::InitSigner(ESignerPurpose Purpose, class CPrivateKey& Priv
 	return Status;
 }
 
-/*void CMajorPrivacy::OnSignFile()
+void CMajorPrivacy::OnSignFile()
 {
 	QStringList Paths = QFileDialog::getOpenFileNames(this, tr("Select Files"), QString(), tr("All Files (*.*)"));
 	if (Paths.isEmpty())
@@ -1455,12 +1496,60 @@ STATUS CMajorPrivacy::SignFiles(const QStringList& Paths)
 	if (!PrivateKey.IsPrivateKeySet())
 		return Status;
 
-	Status = theCore->SignFiles(Paths, &PrivateKey);
+	//return theCore->SignFiles(Paths, &PrivateKey);
 
-	return Status;
+	foreach(const QString & Path, Paths)
+	{
+		QFile File(Path);
+		if (!File.open(QIODevice::ReadOnly))
+			continue;
+
+		CHashFunction HashFunction;
+		Status = HashFunction.InitHash();
+		if (Status.IsError()) continue;
+
+		CBuffer Buffer(0x1000);
+		for (;;) {
+			int Read = File.read((char*)Buffer.GetBuffer(), Buffer.GetCapacity());
+			if (Read <= 0) break;
+			Buffer.SetSize(Read);
+			Status = HashFunction.UpdateHash(Buffer);
+			if (Status.IsError()) break;
+		}
+		if (Status.IsError()) continue;
+
+		CBuffer Hash;
+		Status = HashFunction.FinalizeHash(Hash);
+		if (Status.IsError()) continue;
+
+		CBuffer Signature;
+		Status = PrivateKey.Sign(Hash, Signature);
+		if (Status.IsError()) continue;
+
+		QString TempPath = QDir::tempPath() + "/" + Split2(Path, "/", true).second + ".mpsig";
+		QFile SignatureFile(TempPath);
+		if (SignatureFile.open(QIODevice::WriteOnly)) 
+		{
+			QtVariant SigData;
+			// Note: the driver supportrs also teh V version
+			SigData[API_S_VERSION] = DEF_MP_SIG_VERSION;
+			SigData[API_S_SIGNATURE] = Signature;
+
+			CBuffer SigBuffer;
+			SigData.ToPacket(&SigBuffer);
+
+			SignatureFile.write((char*)SigBuffer.GetBuffer(), SigBuffer.GetSize());
+			SignatureFile.close();
+		}
+
+		QString SignaturePath = Path + ".mpsig";
+		WindowsMoveFile(TempPath.replace("/", "\\"), SignaturePath.replace("/", "\\"));
+	}
+
+	return OK;
 }
 
-STATUS CMajorPrivacy::SignCerts(const QMap<QByteArray, QString>& Certs)
+/*STATUS CMajorPrivacy::SignCerts(const QMap<QByteArray, QString>& Certs)
 {
 	CPrivateKey PrivateKey;
 	STATUS Status = InitSigner(ESignerPurpose::eSignCert, PrivateKey);
@@ -2934,6 +3023,99 @@ void CMajorPrivacy::OnHelp()
 		QDesktopServices::openUrl(QUrl("https://xanasoft.com/go.php?to=patreon"));
 }
 
+void CMajorPrivacy::OnDiagnostics()
+{
+	QString Text = tr(
+		"<h3>MajorPrivacy Diagnostics Information</h3>"
+		"<p>Current Version %1</p>"
+	).arg(theGUI->GetVersion());
+
+	auto formatEnabled = [&](bool bEnabled, const QString& text) -> QString {
+		const char* color = "gray";
+		if (bEnabled)
+			color = m_CustomTheme.IsDarkTheme() ? "white" : "black";
+		return QString("<span style=\"color:%1;\">%2</span>").arg(color, text);
+		};
+
+	auto getSecInfo = [&](uint32 SecState) -> QString {
+		QString info;
+
+		info += formatEnabled((SecState & KPH_PROCESS_SECURELY_CREATED),             tr(" Securely Created"));
+		info += formatEnabled((SecState & KPH_PROCESS_VERIFIED_PROCESS),             tr(" Verified Process"));
+		info += formatEnabled((SecState & KPH_PROCESS_PROTECTED_PROCESS),            tr(" Protected Process"));
+		info += formatEnabled((SecState & KPH_PROCESS_NO_UNTRUSTED_IMAGES),          tr(" No Untrusted Images"));
+		info += formatEnabled((SecState & KPH_PROCESS_HAS_FILE_OBJECT),              tr(" Has File Object"));
+		info += formatEnabled((SecState & KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS),  tr(" Has Section Object Pointers"));
+		info += formatEnabled((SecState & KPH_PROCESS_NO_USER_WRITABLE_REFERENCES),  tr(" No User Writable References"));
+		info += formatEnabled((SecState & KPH_PROCESS_NO_WRITABLE_FILE_OBJECT),      tr(" No Writable File Object"));
+		info += formatEnabled((SecState & KPH_PROCESS_NO_FILE_TRANSACTION),          tr(" No File Transaction"));
+		info += formatEnabled((SecState & KPH_PROCESS_NOT_BEING_DEBUGGED),           tr(" Not Being Debugged"));
+
+		return info;
+		};
+
+	Text += tr(
+		"<p>"
+		"User Config Dir: %1<br />"
+		"User Interface Level: %2 (PID: %3)<br />"
+		"User Interface Status: %4"
+		"</p>"
+	).arg(theConf->GetConfigDir().replace("/", "\\"))
+		.arg(CProcess::GetSecStateStr(theCore->Driver()->GetCurProcSecState())).arg(GetCurrentProcessId())
+		.arg(getSecInfo(theCore->Driver()->GetCurProcSecState()));
+
+	Text += tr(
+		"<p>"
+		"System Config Dir: %1<br />"
+		"System Service Level: %2 (PID: %3)<br />"
+		"System Service Status: %4"
+		"</p>"
+	).arg(theCore->GetConfigDir())
+		.arg(CProcess::GetSecStateStr(theCore->GetSvcSecState())).arg(theCore->GetServicePID())
+		.arg(getSecInfo(theCore->GetSvcSecState()));
+
+	// Build combined HTML (no forced wrapping in the viewer)
+	QString html = tr("<pre>%1</pre>").arg(Text);
+
+	// --- Custom dialog (no QLabel wrap) ---
+	QDialog dlg(this);
+	dlg.setWindowTitle(tr("MajorPrivacy Diagnostics Information"));
+	//dlg.setAttribute(Qt::WA_DeleteOnClose);
+
+	auto* layout = new QVBoxLayout(&dlg);
+
+	// Rich text viewer with wrapping disabled
+	auto* viewer = new QTextBrowser(&dlg);
+	viewer->setOpenExternalLinks(true);
+	viewer->setReadOnly(true);
+	viewer->setLineWrapMode(QTextEdit::NoWrap);   // <-- key: no forced line wrap
+	viewer->setHtml(html);
+	viewer->setMinimumSize(QSize(720, 420));      // sensible default size
+
+	QFont Font("Courier New");
+	Font.setPointSize(10);
+	viewer->document()->setDefaultFont(Font);
+
+	layout->addWidget(viewer);
+
+	// Buttons: Copy + Close
+	auto* btns = new QDialogButtonBox(QDialogButtonBox::Close, &dlg);
+	auto* copyBtn = new QPushButton(tr("Copy"), &dlg);
+	btns->addButton(copyBtn, QDialogButtonBox::ActionRole);
+	layout->addWidget(btns);
+
+	QObject::connect(copyBtn, &QPushButton::clicked, [&]() {
+		// Copy both an HTML and a plain-text flavor
+		QMimeData* mime = new QMimeData();
+		mime->setHtml(viewer->toHtml());
+		mime->setText(viewer->toPlainText());
+		QApplication::clipboard()->setMimeData(mime);
+		});
+	QObject::connect(btns, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+	dlg.exec();
+}
+
 void CMajorPrivacy::CheckForUpdates(bool bManual)
 {
 	m_pUpdater->CheckForUpdates(bManual);
@@ -2964,12 +3146,9 @@ void CMajorPrivacy::OnAbout()
 			"<p></p>"
 			"<p>%1</p>"
 			"<p></p>"
-			"<p>UI Config Dir: <br />%2<br />"
-			"Core Config Dir: <br />%3</p>"
-			"<p></p>"
 			"<p>Icons from <a href=\"https://icons8.com\">icons8.com</a></p>"
 			"<p></p>"
-		).arg(CertInfo).arg(theConf->GetConfigDir().replace("/","\\")).arg(theCore->GetConfigDir());
+		).arg(CertInfo);
 
 
 		QMessageBox *msgBox = new QMessageBox(this);

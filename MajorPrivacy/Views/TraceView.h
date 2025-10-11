@@ -14,6 +14,7 @@ public:
 	virtual ~CTraceView();
 
 	void						Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QFlexGuid& EnclaveGuid = QString());
+	void						Clear();
 
 public slots:
 	void						SetFilter(const QRegularExpression& RegExp, int iOptions = 0, int Column = -1);

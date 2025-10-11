@@ -43,3 +43,8 @@ void CTweakPage::OnCurrentChanged()
 	
 	m_pTweakInfo->ShowTweak(pTweak);
 }
+
+void CTweakPage::Clear()
+{
+	
+}

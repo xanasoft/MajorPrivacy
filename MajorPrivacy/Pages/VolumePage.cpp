@@ -51,3 +51,10 @@ void CVolumePage::Update()
 
 	m_pAccessPage->Update(m_pVolumeView->GetSelectedVolumePath(), m_pVolumeView->GetSelectedVolumeImage());
 }
+
+void CVolumePage::Clear()
+{
+	m_pVolumeView->Clear();
+
+	m_pAccessPage->Clear();
+}

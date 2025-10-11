@@ -13,6 +13,7 @@ public:
 	virtual ~CDnsRuleView();
 
 	void					Sync(QList<CDnsRulePtr> RuleList);
+	void					Clear();
 
 protected:
 	void					OnMenu(const QPoint& Point) override;

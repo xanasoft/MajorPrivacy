@@ -25,6 +25,7 @@ typedef enum {
 class CSocket : public QObject
 {
 	Q_OBJECT
+	TRACK_OBJECT(CSocket)
 public:
 	CSocket(QObject* parent = NULL);
 

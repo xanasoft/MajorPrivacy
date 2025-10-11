@@ -103,6 +103,11 @@ void CProcessView::Sync(QHash<quint64, CProcessPtr> ProcessMap)
 	}
 }
 
+void CProcessView::Clear()
+{
+	m_pItemModel->Clear();
+}
+
 /*void CProcessView::OnDoubleClicked(const QModelIndex& Index)
 {
 

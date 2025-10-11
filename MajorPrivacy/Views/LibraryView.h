@@ -15,6 +15,7 @@ public:
 	virtual ~CLibraryView();
 
 	void					Sync(const QSet<CProgramFilePtr>& Programs, const QFlexGuid& EnclaveGuid = QString());
+	void					Clear();
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

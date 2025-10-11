@@ -139,3 +139,12 @@ void CNetworkPage::Update()
 		m_pTraceView->Sync(ETraceLogs::eNetLog, Programs, Current.ServicesEx);
 	}
 }
+
+void CNetworkPage::Clear()
+{
+	m_pSocketView->Clear();
+
+	m_pTrafficView->Clear();
+
+	m_pTraceView->Clear();
+}

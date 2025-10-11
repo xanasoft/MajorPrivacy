@@ -174,6 +174,8 @@ protected:
 
 	bool			PrepareWrite(size_t uOffset, size_t uLength);
 
+	bool			ReAllocBuffer(size_t uCapacity);
+
 	SBuffer*		MakeData(size_t uCapacity);
 	void			AttachData(SBuffer* pBuffer);
 	void			DetachData();
@@ -184,11 +186,11 @@ protected:
 		uint32		m_uFlags;
 		struct {
 			uint32		
-					m_bDerived		: 1,	// Derived from External Buffer
-					m_bDetachable	: 1,	// Detachable Buffer
-					m_bFixed		: 1,	// No Auto Resize
-					m_bReadOnly		: 1,	// No Write
-					m_uReserved		: 28;
+				m_bDerived		: 1,	// Derived from External Buffer
+				m_bDetachable	: 1,	// Detachable Buffer
+				m_bFixed		: 1,	// No Auto Resize
+				m_bReadOnly		: 1,	// No Write
+				m_uReserved		: 28;
 		};
 	};
 	uint32			m_uPreAllocated; // used only when m_bDetachable is true

@@ -104,6 +104,10 @@ QSet<quint64> CProcessModel::Sync(QHash<quint64, CProcessPtr> ProcessList)
 				pNode->Bold.remove(0);
 			Changed = 1;
 		}
+		if (pNode->IsGray != (pProcess->GetStatus() & MP_PROCESS_FLAG_TERMINATED)) {
+			pNode->IsGray = (pProcess->GetStatus() & MP_PROCESS_FLAG_TERMINATED);
+			Changed = 2; // set change for all columns
+		}
 
 		for(int section = 0; section < columnCount(); section++)
 		{
@@ -121,7 +125,7 @@ QSet<quint64> CProcessModel::Sync(QHash<quint64, CProcessPtr> ProcessList)
 				case eEnclave:				Value = pProcess->GetEnclaveGuid().ToQV(); break;
 				case eTrustLevel:			Value = pProcess->GetSignInfo().GetUnion(); break;
 				case eSID:					Value = pProcess->GetUserName(); break;
-				case eStatus:				Value = pProcess->GetStatus(); break;
+				case eStatus:				Value = pProcess->GetStatusStr(); break;
 				case eImageStats:			Value = pProcess->GetImgStats(); break;
 				case eHandles:				Value = pProcess->GetHandleCount(); break;
 				case eSockets: 				Value = pProcess->GetSocketCount(); break;

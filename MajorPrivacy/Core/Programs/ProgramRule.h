@@ -6,6 +6,7 @@
 class CProgramRule : public CGenericRule
 {
 	Q_OBJECT
+	TRACK_OBJECT(CProgramRule)
 public:
 	CProgramRule(QObject* parent = NULL);
     CProgramRule(const CProgramID& ID, QObject* parent = NULL);

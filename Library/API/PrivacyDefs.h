@@ -35,9 +35,10 @@ union USignatures
 		uint32 Authenticode : 1; // 3rd party signed
 		uint32 Store : 1;		// 3rd from the windows store
 		uint32 Developer : 1;	// Developer signed part of MajorPrivacy
-		uint32 User : 1;		// Signet with User Key by User
-		uint32 Enclave : 1;		// Signet with User Key by User for Enclave
-		uint32 Reserved : 23;
+		uint32 UserSign : 1;	// User signed
+		uint32 UserDB : 1;		// Allowed in User Hash DB
+		uint32 EnclaveDB : 1;	// Allowed in User Hash DB for Enclave
+		uint32 Reserved : 22;
 		uint32 Collection : 1;	// for internal use indicates a collection tag match
 	};
 };
@@ -93,14 +94,14 @@ enum KPH_VERIFY_AUTHORITY // API_S_... TODO
 {
 	KphUntestedAuthority = 0,
 	KphNoAuthority = 1,
-	KphUnkAuthority = 2,
+	//KphUnkAuthority = 2,
 	// 3
 	// 4
-	KphMsCodeAuthority = 5,
+	//KphMsCodeAuthority = 5,
 	//KphStoreAuthority = 6,
 	// 7
-	KphAvAuthority = 8,
-	KphMsAuthority = 9,
+	//KphAvAuthority = 8,
+	//KphMsAuthority = 9,
 	// 10
 	// 11
 	// 12
@@ -149,9 +150,7 @@ union KPH_PROCESS_SFLAGS // API_S_... TODO
 		ULONG ProtectionLevel : 2;
 		ULONG EjectFromEnclave : 1;
 		ULONG UntrustedSpawn: 1;
-		//ULONG AuditEnabled : 1;
-		//ULONG HasVerdict : 1;
-		//ULONG WasTainted : 1;
+
 		ULONG SecReserved : 20;
 	};
 };
@@ -222,16 +221,20 @@ typedef enum _KPH_HASH_ALGORITHM
                                    KPH_PROCESS_NO_WRITABLE_FILE_OBJECT)
 
 #endif
-#define MP_VERIFY_FLAG_SA				0x00000001
-#define MP_VERIFY_FLAG_CI				0x00000002
-#define MP_VERIFY_FLAG_SL				0x00000004
-//#define MP_VERIFY_FLAG_...			0x00000008
+#define MP_VERIFY_FLAG_SA				0x00000001 // Signature Authority
+#define MP_VERIFY_FLAG_CI				0x00000002 // Code Integrity
+#define MP_VERIFY_FLAG_SL				0x00000004 // Signature Level
+//#define MP_VERIFY_FLAG_				0x00000008 // 
+
+#define MP_VERIFY_FLAG_INCOHERENT		0x00000100
 
 #define MP_VERIFY_FLAG_FILE_MISMATCH	0x00010000
 #define MP_VERIFY_FLAG_HASH_FILED		0x00020000
 #define MP_VERIFY_FLAG_COHERENCY_FAIL	0x00040000
 #define MP_VERIFY_FLAG_SIGNATURE_FAIL	0x00080000
 
+
+#define MP_PROCESS_FLAG_TERMINATED		0x00000001
 
 
 /////////////////////////////////////////////////////////////////////////////

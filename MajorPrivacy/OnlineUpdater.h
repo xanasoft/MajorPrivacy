@@ -3,7 +3,7 @@
 #include <QObject>
 #include "../MiscHelpers/Common/NetworkAccessManager.h"
 
-#include "../Common/StatusEx.h"
+#include "Common/StatusEx.h"
 
 #define UPDATE_INTERVAL (7 * 24 * 60 * 60)
 

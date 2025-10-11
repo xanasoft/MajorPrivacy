@@ -905,7 +905,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			CScopedHandle lpEnvironment((LPVOID)0, DestroyEnvironmentBlock);
 			if (!CreateEnvironmentBlock(&lpEnvironment, hDupToken, FALSE)) {
-				Status = ERR(STATUS_UNSUCCESSFUL);
+				Status = ERR(STATUS_VARIABLE_NOT_FOUND);
 				RETURN_STATUS(Status);
 			}
 
@@ -914,7 +914,12 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			si.dwFlags = STARTF_FORCEOFFFEEDBACK;
 			si.wShowWindow = SW_SHOWNORMAL;
 			PROCESS_INFORMATION pi = { 0 };
-			if (CreateProcessAsUserW(hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &si, &pi))
+
+			//
+			// Note: If we are running in engine mode, We are admin but not system and are missing SeAssignPrimaryTokenPrivilege
+			//
+
+			if (CreateProcessAsUserW(m_bEngineMode ? NULL : *&hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &si, &pi))
 			{
 				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pi.dwProcessId, true);
 				//ResumeThread(pi.hThread);
@@ -928,7 +933,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 					Status = ERR(STATUS_ERR_PROC_EJECTED);
 			}
 			else
-				Status = ERR(STATUS_UNSUCCESSFUL); // todo make a better error code
+				Status = ERR(GetLastWin32ErrorAsNtStatus());
 
 			RETURN_STATUS(Status);
 		}

@@ -13,6 +13,7 @@ public:
 	virtual ~CAccessRuleView();
 
 	void					Sync(QList<CAccessRulePtr> RuleList, const QString& VolumeRoot = QString(), const QString& VolumeImage = QString());
+	void					Clear();
 
 protected:
 	void					OnMenu(const QPoint& Point) override;

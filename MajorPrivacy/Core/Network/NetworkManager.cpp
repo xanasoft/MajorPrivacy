@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "NetworkManager.h"
 #include "../PrivacyCore.h"
-#include "../Library/API/PrivacyAPI.h"
-#include "./MiscHelpers/Common/Common.h"
+#include "../../Library/API/PrivacyAPI.h"
+#include "../../MiscHelpers/Common/Common.h"
 
 CNetworkManager::CNetworkManager(QObject *parent) 
     : QObject(parent)

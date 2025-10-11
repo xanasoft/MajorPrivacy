@@ -193,18 +193,58 @@ int WinMain(
             if (HANDLE hThread = theCore->GetThreadHandle())
                 WaitForSingleObject(hThread, INFINITE);
         }
+        else if (Status.GetStatus() == STATUS_SYNCHRONIZATION_REQUIRED && !HasFlag(arguments, L"sync"))
+        {
+            //
+            // We want to elevate our integrity level form High to Maximum,
+			// and need to restart while the driver is loaded.
+            //
+
+            wchar_t szPath[MAX_PATH];
+            GetModuleFileNameW(NULL, szPath, ARRAYSIZE(szPath));
+            
+		    std::wstring Command = L"\"" + std::wstring(szPath) + L"\" -engine -sync";
+
+		    STARTUPINFOW si = { sizeof(si) };
+		    PROCESS_INFORMATION pi = { 0 };
+		    if (CreateProcessW(NULL, (WCHAR*)Command.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+				WaitForSingleObject(pi.hProcess, 10000);
+			    CloseHandle(pi.hProcess);
+			    CloseHandle(pi.hThread);
+		    }
+        }
     }
     else if (HasFlag(arguments, L"startup"))
     {
+        std::wstring AppDir = CServiceCore::NormalizePath(GetApplicationDirectory());
+
+        SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
+        if ((DrvState & SVC_INSTALLED) == SVC_INSTALLED && (DrvState & SVC_RUNNING) != SVC_RUNNING)
+        {
+            std::wstring BinaryPath = GetServiceBinaryPath(API_DRIVER_NAME);
+            std::wstring ServicePath = CServiceCore::NormalizePath(BinaryPath);
+            if (ServicePath.length() < AppDir.length() || _wcsnicmp(ServicePath.c_str(), AppDir.c_str(), AppDir.length()) != 0)
+            {
+                theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Updated driver, old path: %s; new path: %s", ServicePath.c_str(), AppDir.c_str());
+                RemoveService(API_DRIVER_NAME);
+                DrvState = SVC_NOT_FOUND;
+            }
+        }
+
         SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
         if ((SvcState & SVC_INSTALLED) == SVC_INSTALLED && (SvcState & SVC_RUNNING) != SVC_RUNNING) 
         {
             std::wstring BinaryPath = GetServiceBinaryPath(API_SERVICE_NAME);
             std::wstring ServicePath = CServiceCore::NormalizePath(GetFileFromCommand(BinaryPath));
-            std::wstring AppDir = CServiceCore::NormalizePath(GetApplicationDirectory());
             if (ServicePath.length() < AppDir.length() || ServicePath.compare(0, AppDir.length(), AppDir) != 0)
                 RemoveService(API_SERVICE_NAME);
         }
+
+        DrvState = GetServiceState(API_DRIVER_NAME);
+        if ((DrvState & SVC_INSTALLED) == 0)
+            Status = CDriverAPI::InstallDrv(false);
+        if ((DrvState & SVC_RUNNING) == 0)
+            Status = RunService(API_DRIVER_NAME);
 
         SvcState = GetServiceState(API_SERVICE_NAME);
         if ((SvcState & SVC_INSTALLED) == 0)

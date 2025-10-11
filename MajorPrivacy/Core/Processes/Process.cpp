@@ -74,6 +74,8 @@ void CProcess::FromVariant(const class QtVariant& Process)
 		case API_V_APP_NAME:	m_AppContainerName = Data.AsQStr(); break;
 		case API_V_PACK_NAME:	m_AppPackageName = Data.AsQStr(); break;
 
+		case API_V_STATUS:		m_Status = Data; break;
+
 		case API_V_ENCLAVE:		m_EnclaveGuid.FromVariant(Data); break;
 		case API_V_KPP_STATE:	m_SecState = Data; break;
 
@@ -177,7 +179,7 @@ QString CProcess::GetSecStateStr(uint32 SecState)
 	return "Other";
 }
 
-QString CProcess::GetStatus() const
+QString CProcess::GetStatusStr() const
 {
 	QStringList Infos;
 

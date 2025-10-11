@@ -74,3 +74,8 @@ void CInfoView::Sync(const QList<CProgramItemPtr>& Items)
 		m_pInfo->GetTree()->expandAll();
 	}
 }
+
+void CInfoView::Clear()
+{
+	m_pInfo->GetTree()->clear();
+}

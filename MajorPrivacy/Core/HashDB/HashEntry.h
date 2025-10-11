@@ -9,6 +9,7 @@
 class CHash : public QObject
 {
 	Q_OBJECT
+	TRACK_OBJECT(CHash)
 public:
 	CHash(QObject* parent = NULL);
 	CHash(EHashType Type, const QByteArray& Hash, const QString& Name, QObject* parent = NULL);

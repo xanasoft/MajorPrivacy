@@ -120,5 +120,6 @@
 #define Min(a,b)            (((a) < (b)) ? (a) : (b))
 #endif
 
+#include "../Library/Common/ObjectTracker.h"
 
 #define USE_QEXTWIDGETS

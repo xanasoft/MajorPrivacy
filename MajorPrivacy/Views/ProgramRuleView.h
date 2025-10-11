@@ -13,6 +13,7 @@ public:
 	virtual ~CProgramRuleView();
 
 	void					Sync(QList<CProgramRulePtr> RuleList, const QFlexGuid& EnclaveGuid = QString());
+	void					Clear();
 
 protected:
 	void					OnMenu(const QPoint& Point) override;

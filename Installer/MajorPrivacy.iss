@@ -65,14 +65,16 @@ Name: "InstallImDisk"; Description: "{cm:InstallImDisk}"; MinVersion: 0.0,5.0; C
 
 
 [Files]
-Source: ".\Build\*"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: recursesubdirs ignoreversion;
+Source: ".\Release\MajorPrivacy\*"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: recursesubdirs ignoreversion;
 
 ; other files
 Source: "license.txt"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
+Source: "Certificate.dat"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
 ;Source: "changelog.txt"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
 
 ; Only if portable.
 Source: ".\MajorPrivacy.ini"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist; Check: IsPortable
+Source: ".\PrivacyAgent.ini"; DestDir: "{app}"; Flags: ignoreversion onlyifdoesntexist; Check: IsPortable
 
 ; ImDiskTK
 #if MyAppArch == "x64"
@@ -90,14 +92,16 @@ Name: "{userdesktop}\MajorPrivacy"; Filename: "{app}\MajorPrivacy.exe"; Tasks: d
 
 [INI]
 ; Set language.
-Filename: "{localappdata}\{#MyAppName}\{#MyAppName}.ini"; Section: "Options"; Key: "UiLanguage"; String: "{code:AppLanguage|{language}}"; Check: (not IsPortable) and (not IsUpgrade)
+Filename: "{localappdata}\Xanasoft\{#MyAppName}\{#MyAppName}.ini"; Section: "Options"; Key: "UiLanguage"; String: "{code:AppLanguage|{language}}"; Check: (not IsPortable) and (not IsUpgrade)
 Filename: "{app}\{#MyAppName}.ini"; Section: "Options"; Key: "UiLanguage"; String: "{code:AppLanguage|{language}}"; Check: IsPortable
 
 
 [InstallDelete]
 ; Remove deprecated files at install time.
 Type: filesandordirs; Name: "{app}\translations"
-
+; Best-effort removal of previous backup so rename can succeed
+Type: files; Name: "{app}\x64\ksi.old"
+Type: files; Name: "{app}\ARM64\ksi.old"
 
 [Registry]
 ; Autostart App.
@@ -459,10 +463,8 @@ begin
   Paths := TStringList.Create;
 
   // Append file paths to the list for removal.
-  Paths.Append('{localappdata}\{#MyAppName}\{#MyAppName}.ini');
-  Paths.Append('{win}\Sandboxie.ini');
+  Paths.Append('{localappdata}\Xanasoft\{#MyAppName}\{#MyAppName}.ini');
   Paths.Append('{app}\{#MyAppName}.ini');
-  Paths.Append('{app}\Sandboxie.ini');
 
   // Expand paths and detect if any file exist.
   for I := 0 to Paths.Count - 1 do begin
@@ -552,4 +554,74 @@ begin
     exit;
   end;
 
+end;
+
+
+//////////////////////////////////////////////////////
+// ksi.dll handling
+//
+
+procedure PrepareOneDllForUpdate(const FileName: String);
+var
+  AppDir, DllPath, OldPath: String;
+  DeletedOld, DeletedDll, Renamed: Boolean;
+begin
+  AppDir := ExpandConstant('{app}');
+  DllPath := AddBackslash(AppDir) + FileName;
+  OldPath := AddBackslash(AppDir) + ChangeFileExt(FileName, '.old');
+
+  try
+    { Step 1: try to delete existing *.old }
+    if FileExists(OldPath) then
+    begin
+      DeletedOld := DeleteFile(OldPath);
+      if DeletedOld then
+        Log('Deleted old backup: ' + OldPath)
+      else
+        Log('Could not delete old backup (will apply fallback): ' + OldPath);
+    end
+    else
+      DeletedOld := True; { nothing to delete = OK }
+
+    { Step 2: if *.old could NOT be deleted, delete live *.dll outright }
+    if not DeletedOld then
+    begin
+      if FileExists(DllPath) then
+      begin
+        DeletedDll := DeleteFile(DllPath);
+        if DeletedDll then
+          Log('Fallback: deleted live DLL because .old was locked: ' + DllPath)
+        else
+          Log('Fallback failed: could not delete live DLL: ' + DllPath);
+      end
+      else
+        DeletedDll := True; { already absent = OK }
+    end;
+
+    { Step 3: if *.dll still exists and *.old is gone, try rename dll -> old }
+    if FileExists(DllPath) then
+    begin
+      if not FileExists(OldPath) then
+      begin
+        Renamed := RenameFile(DllPath, OldPath);
+        if Renamed then
+          Log('Renamed "' + DllPath + '" to "' + OldPath + '"')
+        else
+          Log('Rename failed (DLL may be held without delete-share): "' + DllPath + '" -> "' + OldPath + '"');
+      end
+      else
+        Log('Cannot rename: backup still present: ' + OldPath);
+    end;
+
+  except
+    Log('Exception in PrepareOneDllForUpdate for "' + FileName + '" (continuing).');
+  end;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  { Handle both DLLs before file copy }
+  PrepareOneDllForUpdate('x64\ksi.dll');
+  PrepareOneDllForUpdate('ARM64\ksi.dll');
 end;

@@ -5,6 +5,7 @@
 class CVolume : public QObject
 {
 	Q_OBJECT
+	TRACK_OBJECT(CVolume)
 public:
 	CVolume(QObject* parent = NULL);
 

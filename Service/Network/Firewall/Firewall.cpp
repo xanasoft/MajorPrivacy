@@ -662,7 +662,7 @@ STATUS CFirewall::DelRule(const CFlexGuid& Guid)
 
 	CFirewallRulePtr pFwRule = UpdateFWRuleUnsafe(NULL, Guid);
 
-	if(pFwRule && pFwRule->IsBackup())
+	if(pFwRule)
 		EmitChangeEvent(pFwRule->GetGuidStr(), pFwRule->GetName(), EConfigEvent::eRemoved, true);
 
 	return OK;

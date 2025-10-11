@@ -130,6 +130,31 @@ bool CBuffer::CopyBuffer(const void* pBuffer, size_t uSize)
 	return true;
 }
 
+bool CBuffer::ReAllocBuffer(size_t uCapacity)
+{
+	if (m_bDetachable)
+	{
+		byte* pNewData = (byte*)MemAlloc(uCapacity);
+		if (!pNewData)
+			return false;
+		if (m_p.Data && pNewData)
+			MemCopy(pNewData, m_p.Data, m_uSize);
+		DetachData();
+		m_p.Data = pNewData;
+		m_bDetachable = true;
+	}
+	else
+	{
+		SBuffer* pNewBuffer = MakeData(uCapacity);
+		if (!pNewBuffer)
+			return false;
+		if (m_p.Buffer && pNewBuffer)
+			MemCopy(pNewBuffer->Data, GetBuffer(), m_uSize); // Use GetBuffer, can be m_bDerived
+		AttachData(pNewBuffer);
+	}
+	return true;
+}
+
 bool CBuffer::SetSize(size_t uSize, bool bExpend, size_t uPreAlloc)
 {
 	size_t uCapacity = GetCapacity();
@@ -145,43 +170,24 @@ bool CBuffer::SetSize(size_t uSize, bool bExpend, size_t uPreAlloc)
 		uCapacity = uSize;
 		if (uPreAlloc != -1)
 			uCapacity += uPreAlloc;
-		
-	ReAlloc:
-		if (m_bDetachable)
-		{
-			byte* pNewData = (byte*)MemAlloc(uCapacity);
-			if (!pNewData)
-				return false;
-			if (m_p.Data && pNewData)
-				MemCopy(pNewData, m_p.Data, m_uSize);
-			DetachData();
-			m_p.Data = pNewData;
-			m_bDetachable = true;
-		}
-		else
-		{
-			SBuffer* pNewBuffer = MakeData(uCapacity);
-			if (!pNewBuffer)
-				return false;
-			if (m_p.Buffer && pNewBuffer)
-				MemCopy(pNewBuffer->Data, GetBuffer(), m_uSize); // Use GetBuffer, can be m_bDerived
-			AttachData(pNewBuffer);
-		}
+
+		ReAllocBuffer(uCapacity);
 	}
+
+	m_uSize = uSize;
+	if(m_uSize < m_uPosition)
+		m_uPosition = m_uSize;
 
 	// check if we have to much unused space
 	if (uCapacity - uSize > BUFFER_MAX_PREALLOC && uPreAlloc < BUFFER_MAX_PREALLOC) {
 		uCapacity = BUFFER_MAX_PREALLOC + uSize;
-		goto ReAlloc;
+		ReAllocBuffer(uCapacity);
 	}
 	else if (m_bDetachable) {
 		ASSERT(uPreAlloc < 0xFFFFFFFFull);
 		m_uPreAllocated = (uint32)(uCapacity - uSize);
 	}
 
-	m_uSize = uSize;
-	if(m_uSize < m_uPosition)
-		m_uPosition = m_uSize;
 	return true;
 }
 
@@ -197,7 +203,7 @@ bool CBuffer::PrepareWrite(size_t uOffset, size_t uLength)
 	if(uEndOffset > uCapacity || (IsContainerized() && m_p.Buffer->Refs > 1))
 	{
 		size_t uPreAlloc = 0;
-		
+
 		if (m_bFixed)
 			return false; // fail if reallocation is not allowed
 
@@ -287,7 +293,7 @@ bool CBuffer::Unpack()
 		uAllocSize *= 2; // size for the next try if needed
 	} 
 	while (Ret == Z_BUF_ERROR && uAllocSize < Max(MB2B(16), m_uSize*100));	// do not allow the unzip buffer to grow infinetly, 
-																				// assume that no packetcould be originaly larger than the UnpackLimit nd those it must be damaged
+	// assume that no packetcould be originaly larger than the UnpackLimit nd those it must be damaged
 	if (Ret != Z_OK)
 	{
 		delete Buffer;
@@ -523,9 +529,9 @@ bool CBuffer::WriteString(const FW::StringW& String, EStrSet Set, EStrLen Len)
 	bool bOk = true;
 	switch(Len)
 	{
-		case e8Bit:		ASSERT(RawString.Length() < 0xFF);			bOk = WriteValue<uint8>((uint8)uLength);	break;
-		case e16Bit:	ASSERT(RawString.Length() < 0xFFFF);		bOk = WriteValue<uint16>((uint16)uLength);	break;
-		case e32Bit:	ASSERT(RawString.Length() < 0xFFFFFFFF);	bOk = WriteValue<uint32>((uint32)uLength);	break;
+	case e8Bit:		ASSERT(RawString.Length() < 0xFF);			bOk = WriteValue<uint8>((uint8)uLength);	break;
+	case e16Bit:	ASSERT(RawString.Length() < 0xFFFF);		bOk = WriteValue<uint16>((uint16)uLength);	break;
+	case e32Bit:	ASSERT(RawString.Length() < 0xFFFFFFFF);	bOk = WriteValue<uint32>((uint32)uLength);	break;
 	}
 
 	return bOk && WriteData(RawString.ConstData(), RawString.Length());
@@ -539,9 +545,9 @@ bool CBuffer::WriteString(const FW::StringA& String, EStrLen Len)
 	bool bOk = true;
 	switch(Len)
 	{
-		case e8Bit:		ASSERT(String.Length() < 0xFF);			bOk = WriteValue<uint8>((uint8)uLength);	break;
-		case e16Bit:	ASSERT(String.Length() < 0xFFFF);		bOk = WriteValue<uint16>((uint16)uLength);	break;
-		case e32Bit:	ASSERT(String.Length() < 0xFFFFFFFF);	bOk = WriteValue<uint32>((uint32)uLength);	break;
+	case e8Bit:		ASSERT(String.Length() < 0xFF);			bOk = WriteValue<uint8>((uint8)uLength);	break;
+	case e16Bit:	ASSERT(String.Length() < 0xFFFF);		bOk = WriteValue<uint16>((uint16)uLength);	break;
+	case e32Bit:	ASSERT(String.Length() < 0xFFFFFFFF);	bOk = WriteValue<uint32>((uint32)uLength);	break;
 	}
 
 	return bOk && WriteData(String.ConstData(), String.Length());
@@ -552,9 +558,9 @@ FW::StringW CBuffer::ReadString(EStrSet Set, EStrLen Len) const
 	size_t uRawLength = 0;
 	switch(Len)
 	{
-		case e8Bit:		uRawLength = ReadValue<uint8>();	break;
-		case e16Bit:	uRawLength = ReadValue<uint16>();	break;
-		case e32Bit:	uRawLength = ReadValue<uint32>();	break;
+	case e8Bit:		uRawLength = ReadValue<uint8>();	break;
+	case e16Bit:	uRawLength = ReadValue<uint16>();	break;
+	case e32Bit:	uRawLength = ReadValue<uint32>();	break;
 	}
 	return ReadString(Set, uRawLength);
 }
@@ -805,18 +811,18 @@ void ToHex(FW::StringW& dest, const byte* Data, size_t uSize)
 
 		buf[0] = (Data[i] >> 4) & 0xf;
 		if (buf[0] < 10)
-            buf[0] += '0';
-        else
-            buf[0] += 'A' - 10;
+			buf[0] += '0';
+		else
+			buf[0] += 'A' - 10;
 
 		buf[1] = (Data[i]) & 0xf;
 		if (buf[1] < 10)
-            buf[1] += '0';
-        else
-            buf[1] += 'A' - 10;
+			buf[1] += '0';
+		else
+			buf[1] += 'A' - 10;
 
 		buf[2] = 0;
-	
+
 		dest.Append(buf);
 	}
 }

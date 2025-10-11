@@ -16,20 +16,24 @@ void CProgramPattern::SetDosPattern(const std::wstring& Pattern)
 {
 	m_Pattern = Pattern; 
 
-    std::wstring regex = Pattern;
-    static const std::wregex specialChars(L"[.^$|()\\[\\]{}*+?\\\\]");
-    regex = std::regex_replace(regex, specialChars, L"\\$&");
-    static const std::wregex asterisk(L"\\\\\\*");
-    regex = std::regex_replace(regex, asterisk, L".*");
-    static const std::wregex questionMark(L"\\\\\\?");
-    regex = std::regex_replace(regex, questionMark, L".");
+    try 
+    {
+        std::wstring regex = Pattern;
+        static const std::wregex specialChars(L"[.^$|()\\[\\]{}*+?\\\\]");
+        regex = std::regex_replace(regex, specialChars, L"\\$&");
+        static const std::wregex asterisk(L"\\\\\\*");
+        regex = std::regex_replace(regex, asterisk, L".*");
+        static const std::wregex questionMark(L"\\\\\\?");
+        regex = std::regex_replace(regex, questionMark, L".");
 
-    m_RegExp = std::wregex(L"^" + regex + L"$", std::regex_constants::icase);
+        m_RegExp = std::wregex(L"^" + regex + L"$", std::regex_constants::icase);
 
-    size_t pos = Pattern.find(L'*');
-    if (pos == std::wstring::npos)
-        pos = Pattern.length();
-    //m_Specificity = (int)pos;
+        size_t pos = Pattern.find(L'*');
+        if (pos == std::wstring::npos)
+            pos = Pattern.length();
+        //m_Specificity = (int)pos;
+    } 
+    catch (...) { }
 }
 
 bool CProgramPattern::MatchFileName(const std::wstring& FileName) const
@@ -44,7 +48,11 @@ bool CProgramPattern::MatchFileName(const std::wstring& FileName) const
         return false;
 
     std::wcmatch matches;
-    if (std::regex_search(FileName.c_str(), matches, m_RegExp))
-        return true;
+    try 
+    {
+        if (std::regex_search(FileName.c_str(), matches, m_RegExp))
+            return true;
+    } 
+    catch (...) { }
     return false;
 }

@@ -59,6 +59,8 @@ int main(int argc, char *argv[])
 
 #endif
 
+	//MessageBoxW(NULL, L"MajorPrivacy is starting...", L"MajorPrivacy", MB_OK | MB_ICONINFORMATION);
+
 	QString AppDir = QString::fromStdWString(GetApplicationDirectory());
 	theConf = new CSettings(AppDir, "MajorPrivacy", "Xanasoft");
 

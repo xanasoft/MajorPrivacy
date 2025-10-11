@@ -4,8 +4,8 @@
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/API/PrivacyAPI.h"
-#include "./Common/QtVariant.h"
-#include "./MiscHelpers/Common/Common.h"
+#include "../../Common/QtVariant.h"
+#include "../../MiscHelpers/Common/Common.h"
 #include "../Programs/ProgramManager.h"
 
 CAccessManager::CAccessManager(QObject* parent)

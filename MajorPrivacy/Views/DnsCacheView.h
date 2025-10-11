@@ -15,6 +15,7 @@ public:
 	virtual ~CDnsCacheView();
 
 	void					Sync();
+	void					Clear();
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

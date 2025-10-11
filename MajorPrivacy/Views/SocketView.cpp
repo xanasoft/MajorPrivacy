@@ -89,6 +89,11 @@ void CSocketView::Sync(const QHash<quint64, CProcessPtr>& Processes, const QSet<
 	m_pItemModel->Sync(SocketList);
 }
 
+void CSocketView::Clear()
+{
+	m_pItemModel->Clear();
+}
+
 /*void CSocketView::OnDoubleClicked(const QModelIndex& Index)
 {
 

@@ -7,6 +7,7 @@
 class CDnsRule : public QObject
 {
 	Q_OBJECT
+	TRACK_OBJECT(CDnsRule)
 public:
 	enum EAction { eUndefined, eBlock, eAllow };
 

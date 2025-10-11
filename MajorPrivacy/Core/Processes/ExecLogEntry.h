@@ -17,6 +17,7 @@ enum class EProcAccessClass
 
 class CExecLogEntry: public CAbstractLogEntry
 {
+	TRACK_OBJECT(CExecLogEntry)
 public:
 	CExecLogEntry();
 

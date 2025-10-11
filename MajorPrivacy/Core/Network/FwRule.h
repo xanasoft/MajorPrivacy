@@ -5,6 +5,7 @@
 class CFwRule : public CGenericRule
 {
 	Q_OBJECT
+	TRACK_OBJECT(CFwRule)
 public:
 	CFwRule(const CProgramID& ID, QObject* parent = NULL);
 

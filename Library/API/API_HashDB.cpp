@@ -59,7 +59,7 @@ void CHash::ReadIValue(uint32 Index, const XVariant& Data)
 		LIST_CLEAR(m_Enclaves);
 		for (uint32 i = 0; i < Data.Count(); i++)
 #ifdef KERNEL_MODE
-			m_Enclaves[Data.ToStringW()] = SEnclaveInfo();
+			m_Enclaves[Data[i].ToStringW()] = SEnclaveInfo();
 #else
 			LIST_APPEND(m_Enclaves, AS_STR(Data[i]));
 #endif
@@ -141,7 +141,7 @@ void CHash::ReadMValue(const SVarName& Name, const XVariant& Data)
 		LIST_CLEAR(m_Enclaves);
 		for (uint32 i = 0; i < Data.Count(); i++)
 #ifdef KERNEL_MODE
-			m_Enclaves[Data.ToStringW()] = SEnclaveInfo();
+			m_Enclaves[Data[i].ToStringW()] = SEnclaveInfo();
 #else
 			LIST_APPEND(m_Enclaves, AS_STR(Data[i]));
 #endif

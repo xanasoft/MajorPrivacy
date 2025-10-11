@@ -13,6 +13,7 @@ public:
 	virtual ~CProcessView();
 
 	void					Sync(QHash<quint64, CProcessPtr> ProcessMap);
+	void					Clear();
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

@@ -54,10 +54,14 @@ EConfigGroup MsgTypeToConfigGroup(uint32 Type)
 sint32 CDriverAPI__EmitProcess(CDriverAPI* This, const SProcessEvent* pEvent)
 {
 	std::unique_lock<std::mutex> Lock(This->m_HandlersMutex);
-	
     NTSTATUS status = STATUS_SUCCESS;
-    for (auto Handler : This->m_ProcessHandlers)
-		status = Handler(pEvent);
+    for (size_t i = 0; i < This->m_ProcessHandlers.size(); i++)
+    {
+        auto Handler = This->m_ProcessHandlers[i];
+		Lock.unlock();
+        status = Handler(pEvent);
+		Lock.lock();
+    }
     return status;
 }
 
@@ -96,9 +100,8 @@ void SVerifierInfo::ReadFromEvent(const StVariant& Event)
 void CDriverAPI__EmitConfigEvent(CDriverAPI* This, EConfigGroup Config, const std::wstring& Guid, EConfigEvent Event, uint64 PID)
 {
     std::unique_lock<std::mutex> Lock(This->m_HandlersMutex);
-
-    NTSTATUS status = STATUS_SUCCESS;
     auto cb = This->m_ConfigEventHandlers[Config];
+	Lock.unlock();
     if(cb)
         cb(Guid, Event, Config, PID);
 }
@@ -334,13 +337,24 @@ CDriverAPI::~CDriverAPI()
 
 STATUS CDriverAPI::InstallDrv(bool bAutoStart, uint32 TraceLogLevel)
 {
-    std::wstring FileName = GetApplicationDirectory() + L"\\" API_DRIVER_BINARY;
+    std::wstring FileName = GetApplicationDirectory();
+    if(IsOnARM64())
+        FileName += L"\\ARM64";
+    else
+        FileName += L"\\x64";
+        //FileName += L"\\AMD64";
+    FileName += L"\\" API_DRIVER_BINARY;
     std::wstring DisplayName = L"MajorPrivacy Kernel Driver";
 
     StVariant Params;
     Params["Altitude"] = API_DRIVER_ALTITUDE;
     Params["PortName"] = API_DRIVER_PORT;
     Params["TraceLevel"] = TraceLogLevel;
+#ifdef _DEBUG
+    Params["AllowUserDev"] = TRUE;
+    Params["SignProbeAll"] = FALSE;
+    Params["AllowDebugging"] = TRUE;
+#endif
 
     uint32 uOptions = OPT_KERNEL_TYPE;
     if(bAutoStart)
@@ -380,8 +394,16 @@ STATUS CDriverAPI::ConnectDrv()
     case EInterface::eDevice: Status = m_pClient->Connect(API_DEVICE_NAME); break;
     default: Status = ERR(STATUS_NOINTERFACE);
     }
+    if (!Status)
+        return Status;
 
     //
+
+    auto Result = GetProcessInfo(GetCurrentProcessId());
+    if (!Result.IsError()) {
+        auto Data = Result.GetValue();
+        m_CurProcSecState = Data->SecState;
+    }
 
     return Status;
 }
@@ -393,7 +415,18 @@ bool CDriverAPI::IsConnected()
 
 void CDriverAPI::Disconnect()
 {
+    m_CurProcSecState = 0;
     m_pClient->Disconnect();
+}
+
+bool CDriverAPI::IsCurProcHighSecurity() const
+{
+    return ((m_CurProcSecState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH);
+}
+
+bool CDriverAPI::IsCurProcMaxSecurity() const
+{
+    return ((m_CurProcSecState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM);
 }
 
 RESULT(StVariant) CDriverAPI::Call(uint32 MessageId, const StVariant& Message, SCallParams* pParams)
@@ -734,4 +767,11 @@ uint32 CDriverAPI::GetABIVersion()
     StVariant Response = Ret.GetValue();
     uint32 version = Response.Get(API_V_VERSION).To<uint32>();
     return version;
+}
+
+bool CDriverAPI::TestDevAuthority()
+{
+    StVariant Request;
+    auto Ret = Call(API_TEST_DEV_AUTHORITY, Request);
+    return !Ret.IsError();
 }

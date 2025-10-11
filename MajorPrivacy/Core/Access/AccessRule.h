@@ -6,6 +6,7 @@
 class CAccessRule : public CGenericRule
 {
 	Q_OBJECT
+	TRACK_OBJECT(CAccessRule)
 public:
 	CAccessRule(QObject* parent = NULL);
     CAccessRule(const CProgramID& ID, QObject* parent = NULL);

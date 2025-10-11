@@ -311,6 +311,15 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 	}
 }
 
+void CTrafficView::Clear()
+{
+	m_CurPrograms.clear();
+	m_CurServices.clear();
+	m_ParentMap.clear();
+	m_TrafficMap.clear();
+	m_pItemModel->Clear();
+}
+
 /*void CTrafficView::OnDoubleClicked(const QModelIndex& Index)
 {
 	//QPair<CProgramItemPtr, CTrafficEntryPtr> pItem = m_pItemModel->GetItem(Index);

@@ -315,6 +315,14 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, const QFlexGuid& 
 	}
 }
 
+void CLibraryView::Clear()
+{
+	m_CurPrograms.clear();
+	m_LibraryMap.clear();
+	m_pItemModel->Clear();
+	m_RefreshCount++;
+}
+
 /*void CLibraryView::OnDoubleClicked(const QModelIndex& Index)
 {
 	//QPair<CProgramItemPtr, CTrafficEntryPtr> pItem = m_pItemModel->GetItem(Index);

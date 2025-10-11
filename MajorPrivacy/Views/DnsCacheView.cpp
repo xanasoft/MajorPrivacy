@@ -104,6 +104,11 @@ void CDnsCacheView::Sync()
 	m_pItemModel->Sync(EntryMap);
 }
 
+void CDnsCacheView::Clear()
+{
+	m_pItemModel->Clear();
+}
+
 /*void CDnsCacheView::OnDoubleClicked(const QModelIndex& Index)
 {
 

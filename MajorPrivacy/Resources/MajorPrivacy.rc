@@ -6,7 +6,7 @@
 
 #include "winres.h"
 
-#include "version.h"
+#include "../version.h"
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_DEA)
 LANGUAGE LANG_GERMAN, SUBLANG_GERMAN_AUSTRIAN
@@ -19,7 +19,7 @@ LANGUAGE LANG_GERMAN, SUBLANG_GERMAN_AUSTRIAN
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON1               ICON                    "./resources/MajorPrivacy.ico"
+IDI_ICON1               ICON                    "MajorPrivacy.ico"
 
 
 #ifdef APSTUDIO_INVOKED

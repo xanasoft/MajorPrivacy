@@ -254,6 +254,14 @@ void CExecutionView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWin
 	}
 }
 
+void CExecutionView::Clear()
+{
+	m_CurPrograms.clear();
+	m_CurServices.clear();
+	m_ExecutionMap.clear();
+	m_pItemModel->Clear();
+}
+
 /*void CExecutionView::OnDoubleClicked(const QModelIndex& Index)
 {
 	//QPair<CProgramItemPtr, CTrafficEntryPtr> pItem = m_pItemModel->GetItem(Index);

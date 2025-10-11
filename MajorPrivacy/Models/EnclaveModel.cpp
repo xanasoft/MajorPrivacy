@@ -99,10 +99,7 @@ QList<QVariant> CEnclaveModel::Sync(const QMap<QFlexGuid, CEnclavePtr>& EnclaveM
 		int Col = 0;
 		bool State = false;
 		int Changed = 0;
-		if (pNode->pProcess) {
-			pNode->Icon = pNode->pProcess->GetIcon();
-			Changed = 1;
-		} else if (pNode->Icon.isNull() || pNode->IconFile != pNode->pEnclave->GetIconFile()) {
+		if (pNode->Icon.isNull() || pNode->IconFile != pNode->pEnclave->GetIconFile()) {
 			pNode->IconFile = pNode->pEnclave->GetIconFile();
 			pNode->Icon = pNode->pEnclave->GetIcon();
 			Changed = 1;
@@ -214,6 +211,10 @@ bool CEnclaveModel::Sync(const CEnclavePtr& pEnclave, const QList<QVariant>& Pat
 		{
 			pNode->Icon = pProcess->GetIcon();
 			Changed = 1;
+		}
+		if (pNode->IsGray != (pNode->pProcess->GetStatus() & MP_PROCESS_FLAG_TERMINATED)) {
+			pNode->IsGray = (pNode->pProcess->GetStatus() & MP_PROCESS_FLAG_TERMINATED);
+			Changed = 2; // set change for all columns
 		}
 
 		for (int section = 0; section < columnCount(); section++)

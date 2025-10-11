@@ -30,7 +30,10 @@ protected:
 
 	struct SAbstractTreeNode
 	{
-		virtual ~SAbstractTreeNode() {}
+		virtual ~SAbstractTreeNode() 
+		{
+			qDeleteAll(childNodes);
+		}
 
 		QVariant key;
 

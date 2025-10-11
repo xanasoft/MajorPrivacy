@@ -180,6 +180,19 @@ void CAccessPage::Update(const QString& VolumeRoot, const QString& VolumeImage)
 	}
 }
 
+void CAccessPage::Clear()
+{
+	m_pRuleView->Clear();
+
+	m_pHandleView->Clear();
+
+	m_pAccessView->Clear();
+
+	m_pTraceView->Clear();
+
+	m_pAccessListView->Clear();
+}
+
 void CAccessPage::UpdateEnabled()
 {
 	m_pHandleView->setEnabled(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));

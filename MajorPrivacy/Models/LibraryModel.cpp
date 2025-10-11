@@ -131,7 +131,7 @@ QList<QModelIndex> CLibraryModel::Sync(const QMap<SLibraryKey, SLibraryItemPtr>&
 					if (SignInfo.IsComplete())
 					{
 						auto Signs = SignInfo.GetSignatures();
-						if (Signs.User || Signs.Developer)
+						if (Signs.Developer || Signs.UserSign ||Signs.UserDB)
 							ColValue.Color = QColor(144, 238, 144); // light green
 						else if (Signs.Windows || Signs.Antimalware || Signs.Microsoft)
 							ColValue.Color = QColor(173, 216, 230); // light blue

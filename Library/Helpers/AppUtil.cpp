@@ -458,3 +458,20 @@ NTSTATUS MyQuerySystemInformation(std::vector<BYTE>& Info, SYSTEM_INFORMATION_CL
 
     return status;
 }
+
+bool IsOnARM64()
+{
+    HMODULE Kernel32 = GetModuleHandleW(L"Kernel32.dll");
+    typedef BOOL(WINAPI* LPFN_ISWOW64PROCESS2)(HANDLE, PUSHORT, PUSHORT);
+    LPFN_ISWOW64PROCESS2 pIsWow64Process2 = (LPFN_ISWOW64PROCESS2)GetProcAddress(Kernel32, "IsWow64Process2");
+    if (pIsWow64Process2)
+    {
+        USHORT ProcessMachine = 0xFFFF;
+        USHORT NativeMachine = 0xFFFF;
+        BOOL ok = pIsWow64Process2(GetCurrentProcess(), &ProcessMachine, &NativeMachine);
+
+        if (NativeMachine == IMAGE_FILE_MACHINE_ARM64)
+            return true;
+    }
+    return false;
+}

@@ -74,3 +74,4 @@ protected:
 };
 
 typedef QSharedPointer<CWindowsService> CWindowsServicePtr;
+typedef QWeakPointer<CWindowsService> CWindowsServiceRef;

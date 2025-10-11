@@ -3,6 +3,8 @@
 
 struct SAccessStats
 {
+	TRACK_OBJECT(SAccessStats)
+
 	QString Path;
 	uint64	LastAccessTime = 0;
 	bool	bBlocked = false;

@@ -7,6 +7,9 @@
 
 struct SAccessItem
 {
+	TRACK_OBJECT(SAccessItem)
+	SAccessItem() {}
+	virtual ~SAccessItem() {}
 	QString Name;
 	quint64 LastAccess = 0;
 	uint32 AccessMask = 0;

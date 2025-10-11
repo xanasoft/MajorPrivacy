@@ -573,6 +573,7 @@ bool TryUnmountImDisk(const std::wstring& Device, HANDLE hProcess, int iMode)
 
     if (Device.size() <= IMDISK_DEVICE_LEN)
         return false; // not an imdisk path
+
     std::wstring cmd;
     switch (iMode)
     {
@@ -1049,12 +1050,16 @@ STATUS CVolumeManager::DismountVolume(const std::wstring& DevicePath)
 	if(F == m_Volumes.end())
 		return STATUS_NOT_FOUND;
 
-    STATUS Status = DismountVolume(F->second);
+    std::shared_ptr<CVolume> pMount = F->second;
+
+    Lock.unlock();
+
+    STATUS Status = DismountVolume(pMount);
     if (Status.IsError())
         return Status;
 
-    m_VolumesByGuid.erase(F->second->GetGuid());
-    m_Volumes.erase(F);
+    m_VolumesByGuid.erase(pMount->GetGuid());
+    m_Volumes.erase(MkLower(DevicePath));
 
     if (m_Volumes.empty() && m_NoHibernation)
     {

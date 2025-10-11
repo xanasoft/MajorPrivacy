@@ -15,6 +15,7 @@ public:
 
 public slots:
 	void					OnSelectionChanged(const QList<SAccessItemPtr>& Items);
+	void					Clear();
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

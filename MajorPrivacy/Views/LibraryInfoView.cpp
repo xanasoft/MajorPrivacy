@@ -179,3 +179,8 @@ void CLibraryInfoView::Sync()
 	foreach(QTreeWidgetItem* pItem, Old)
 		delete pItem;
 }
+
+void CLibraryInfoView::Clear()
+{
+	m_pInfo->GetTree()->clear();
+}

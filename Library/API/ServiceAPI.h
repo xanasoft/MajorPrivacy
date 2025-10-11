@@ -36,8 +36,6 @@ protected:
 	std::unordered_map<uint32, std::function<void(uint32 msgId, const CBuffer* pEvent)>> m_EventHandlers;
 	std::mutex m_EventHandlersMutex;
 
-	HANDLE m_hEngineProcess = NULL;
-
 private:
 	std::mutex m_CallMutex;
 	class CAbstractClient* m_pClient;

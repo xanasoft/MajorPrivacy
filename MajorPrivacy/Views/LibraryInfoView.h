@@ -14,6 +14,7 @@ public:
 	virtual ~CLibraryInfoView();
 
 	void Sync();
+	void Clear();
 
 	enum EColumns
 	{

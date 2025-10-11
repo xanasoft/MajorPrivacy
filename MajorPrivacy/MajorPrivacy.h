@@ -4,7 +4,7 @@
 //#include "ui_MajorPrivacy.h"
 #include "Core/Programs/WindowsService.h"
 #include "Core/TraceLogEntry.h"
-#include "../Common/StatusEx.h"
+#include "Common/StatusEx.h"
 #include "../MiscHelpers/Common/CustomTheme.h"
 #include "../MiscHelpers/Common/ProgressDialog.h"
 #include <QTranslator>
@@ -83,7 +83,7 @@ public:
 
 	void				UpdateTitle();
 
-	//STATUS				SignFiles(const QStringList& Paths);
+	STATUS				SignFiles(const QStringList& Paths);
 	//STATUS				SignCerts(const QMap<QByteArray, QString>& Certs);
 
 	void				IgnoreEvent(ERuleType Type, const CProgramFilePtr& pProgram, const QString& Path = QString());
@@ -149,6 +149,7 @@ private slots:
 	void				OnMaintenance();
 	void				OnExit();
 	void				OnHelp();
+	void				OnDiagnostics();
 	void				CheckForUpdates(bool bManual = true);
 	void				OnAbout();
 
@@ -172,7 +173,7 @@ private slots:
 	void				OnDiscardConfig();
 	void				OnMakeKeyPair();
 	void				OnClearKeys();
-	//void				OnSignFile();
+	void				OnSignFile();
 
 	void				OnToggleTree();
 	void				OnStackPanels();
@@ -308,7 +309,7 @@ private:
 	QAction*			m_pDiscardConfig = nullptr;
 	QAction*			m_pMakeKeyPair = nullptr;
 	QAction*			m_pClearKeys = nullptr;
-	//QAction*			m_pSignFile = nullptr;
+	QAction*			m_pSignFile = nullptr;
 	//QAction*			m_pSignDb = nullptr;
 
 	QMenu*				m_pTools = nullptr;
@@ -333,6 +334,7 @@ private:
 
 	QMenu*				m_pMenuHelp = nullptr;
 	QAction*			m_pForum = nullptr;
+	QAction*			m_pDiagnose = nullptr;
 	QAction*			m_pUpdate = nullptr;
 	QAction*			m_pAbout = nullptr;
 	QAction*			m_pAboutQt = nullptr;

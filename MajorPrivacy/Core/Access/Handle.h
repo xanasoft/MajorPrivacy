@@ -4,6 +4,7 @@
 class CHandle : public QObject
 {
 	Q_OBJECT
+	TRACK_OBJECT(CHandle)
 public:
 	CHandle(QObject* parent = NULL);
 

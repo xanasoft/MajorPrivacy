@@ -58,6 +58,31 @@ STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group
         
     KphSetServiceSecurity(serviceHandle);
 
+    if (Options & OPT_ENABLE_RECOVERY)
+    {
+        // Configure recovery options
+        SC_ACTION actions[3] = {
+            { SC_ACTION_RESTART,   500 },   // 1st failure: retry iminetly
+            { SC_ACTION_RESTART,  5000 },   // 2nd failure: retry after 5 seconds
+			{ SC_ACTION_NONE,        0 }    // Subsequent failures: do nothing
+        };
+
+        SERVICE_FAILURE_ACTIONS sfa = {};
+        sfa.dwResetPeriod = 5 * 60;         // reset failure count after 5 minutes
+        sfa.lpRebootMsg   = nullptr;
+        sfa.lpCommand     = nullptr;
+        sfa.cActions      = ARRAYSIZE(actions);
+        sfa.lpsaActions   = actions;
+
+        ChangeServiceConfig2W(serviceHandle, SERVICE_CONFIG_FAILURE_ACTIONS, &sfa);
+
+        // Ensure actions also apply when the service exits with an error code but without a crash
+        SERVICE_FAILURE_ACTIONS_FLAG sfaFlag = {};
+        sfaFlag.fFailureActionsOnNonCrashFailures = TRUE;
+
+        ChangeServiceConfig2W(serviceHandle, SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, &sfaFlag);
+    }
+
     if (Params.IsMap())
     {
         std::wstring KeyName = L"System\\CurrentControlSet\\Services\\" + std::wstring(Name) + L"\\Parameters";

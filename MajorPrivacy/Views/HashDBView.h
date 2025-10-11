@@ -14,6 +14,7 @@ public:
 	virtual ~CHashDBView();
 
 	void					Sync(const QSet<CProgramFilePtr>& Programs, bool bAllPrograms, const QFlexGuid& EnclaveGuid = QString());
+	void					Clear();
 
 protected:
 	void					OnMenu(const QPoint& Point) override;

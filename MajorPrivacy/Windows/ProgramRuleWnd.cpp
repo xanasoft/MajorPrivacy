@@ -135,8 +135,14 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	//	ui.chkAllowAC->setCheckState(Qt::PartiallyChecked);
 	//else
 	//	ui.chkAllowAC->setCheckState(Qt::Unchecked);
-	ui.chkAllowUser->setChecked(m_pRule->m_AllowedSignatures.User);
-	ui.chkAllowEnclave->setChecked(m_pRule->m_AllowedSignatures.Enclave);
+	
+	if(m_pRule->m_AllowedSignatures.UserDB && m_pRule->m_AllowedSignatures.UserSign)
+		ui.chkAllowUser->setCheckState(Qt::Checked);
+	else if (m_pRule->m_AllowedSignatures.UserDB || m_pRule->m_AllowedSignatures.UserSign)
+		ui.chkAllowUser->setCheckState(Qt::PartiallyChecked);
+	else
+		ui.chkAllowUser->setCheckState(Qt::Unchecked);
+	ui.chkAllowEnclave->setChecked(m_pRule->m_AllowedSignatures.EnclaveDB);
 
 	QList<QVariant> Collections;
 	foreach(const QString& Collection, m_pRule->m_AllowedCollections)
@@ -184,7 +190,7 @@ QColor CProgramRuleWnd::GetActionColor(EExecRuleType Action)
 	}
 }
 
-QColor CProgramRuleWnd::GetAuthorityColor(KPH_VERIFY_AUTHORITY Authority)
+/*QColor CProgramRuleWnd::GetAuthorityColor(KPH_VERIFY_AUTHORITY Authority)
 {
 	switch (Authority)
 	{
@@ -195,7 +201,7 @@ QColor CProgramRuleWnd::GetAuthorityColor(KPH_VERIFY_AUTHORITY Authority)
 	case KPH_VERIFY_AUTHORITY::KphNoAuthority: return QColor(255, 182, 193);
 	default: return QColor();
 	}
-}
+}*/
 
 QColor CProgramRuleWnd::GetRoleColor(EExecLogRole Role)
 {
@@ -272,12 +278,17 @@ bool CProgramRuleWnd::Save()
 		case Qt::Checked:	m_pRule->m_AllowedSignatures.Windows = TRUE; m_pRule->m_AllowedSignatures.Microsoft = TRUE; m_pRule->m_AllowedSignatures.Antimalware = TRUE; break;
 		case Qt::Unchecked:	m_pRule->m_AllowedSignatures.Windows = FALSE; m_pRule->m_AllowedSignatures.Microsoft = FALSE; m_pRule->m_AllowedSignatures.Antimalware = FALSE; break;
 		}
+
 		//switch(ui.chkAllowAC->checkState()) {
 		//case Qt::Checked:	m_pRule->m_AllowedSignatures.Authenticode = TRUE; m_pRule->m_AllowedSignatures.Store = TRUE; break;
 		//case Qt::Unchecked:	m_pRule->m_AllowedSignatures.Authenticode = FALSE; m_pRule->m_AllowedSignatures.Store = FALSE; break;
 		//}
-		m_pRule->m_AllowedSignatures.User = ui.chkAllowUser->isChecked();
-		m_pRule->m_AllowedSignatures.Enclave = ui.chkAllowEnclave->isChecked();
+
+		switch(ui.chkAllowUser->checkState()) {
+		case Qt::Checked:	m_pRule->m_AllowedSignatures.UserDB = TRUE; m_pRule->m_AllowedSignatures.UserSign = TRUE; break;
+		case Qt::Unchecked:	m_pRule->m_AllowedSignatures.UserDB = FALSE; m_pRule->m_AllowedSignatures.UserSign = FALSE; break;
+		}
+		m_pRule->m_AllowedSignatures.EnclaveDB = ui.chkAllowEnclave->isChecked();
 
 		m_pRule->m_AllowedCollections.clear();
 		foreach(QVariant Collection, m_pCollections->values()) {

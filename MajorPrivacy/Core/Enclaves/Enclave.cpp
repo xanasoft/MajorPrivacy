@@ -146,9 +146,11 @@ QStringList CEnclave::GetAllowedSigners(USignatures Signers, const QList<QString
 		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_STORE);
 	if(Signers.Developer)
 		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_DEVELOPER);
-	if(Signers.User)
+	if(Signers.UserSign)
+		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_USER_SIGN);
+	if(Signers.UserDB)
 		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_USER);
-	if(Signers.Enclave)
+	if(Signers.EnclaveDB)
 		SignerList.append(API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE);
 	SignerList.append(Collections);
 	return SignerList;

@@ -67,7 +67,7 @@ void CProgramRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 	case EExecRuleType::eProtect:	Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_PROTECT); break;
 	case EExecRuleType::eIsolate:	Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_ISOLATE); break;
 	case EExecRuleType::eAudit:		Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_AUDIT); break;
-	// todo other:
+		// todo other:
 	}
 
 
@@ -76,7 +76,7 @@ void CProgramRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 
 	Rule.WriteEx(API_S_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
-	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
+	if (Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
 		Rule.Write(API_S_FILE_NT_PATH, TO_STR(m_PathPattern.Get()));
 	}
 #endif
@@ -85,21 +85,25 @@ void CProgramRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 	{
 		VariantWriter Signers(Rule.Allocator());
 		Signers.BeginList();
-		if(m_AllowedSignatures.Windows)
+		if (m_AllowedSignatures.Windows)
 			Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_WINDOWS);
-		if(m_AllowedSignatures.Microsoft)
+		if (m_AllowedSignatures.Microsoft)
 			Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_MICROSOFT);
-		if(m_AllowedSignatures.Antimalware)
+		if (m_AllowedSignatures.Antimalware)
 			Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_ANTIMALWARE);
-		if(m_AllowedSignatures.Authenticode)
+		if (m_AllowedSignatures.Authenticode)
 			Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_AUTHENTICODE);
 		if (m_AllowedSignatures.Store)
 			Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_STORE);
-		if(m_AllowedSignatures.User)
+		if (m_AllowedSignatures.Developer)
+			Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_DEVELOPER);
+		if (m_AllowedSignatures.UserSign)
+			Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_USER_SIGN);
+		if (m_AllowedSignatures.UserDB)
 			Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_USER);
-		if(m_AllowedSignatures.Enclave)
+		if (m_AllowedSignatures.EnclaveDB)
 			Signers.Write(API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE);
-		for(const auto& Collection : m_AllowedCollections)
+		for (const auto& Collection : m_AllowedCollections)
 			Signers.WriteEx(TO_STR(Collection));
 		Rule.WriteVariant(API_S_EXEC_ALLOWED_SIGNERS, Signers.Finish());
 	}
@@ -142,9 +146,9 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 	{
 		ASTR SignReq = Data;
 		if (SignReq == API_S_EXEC_SIGN_REQ_VERIFIED)
-			m_AllowedSignatures.User = TRUE;
+			m_AllowedSignatures.UserDB = m_AllowedSignatures.UserSign = TRUE;
 		else if (SignReq == API_S_EXEC_SIGN_REQ_MICROSOFT || SignReq == API_S_EXEC_SIGN_REQ_TRUSTED)
-			m_AllowedSignatures.User = m_AllowedSignatures.Windows = m_AllowedSignatures.Microsoft = m_AllowedSignatures.Antimalware = TRUE;
+			m_AllowedSignatures.UserDB = m_AllowedSignatures.UserSign = m_AllowedSignatures.Windows = m_AllowedSignatures.Microsoft = m_AllowedSignatures.Antimalware = TRUE;
 	}
 
 	else if (VAR_TEST_NAME(Name, API_S_EXEC_ALLOWED_SIGNERS))
@@ -158,8 +162,10 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_ANTIMALWARE)	m_AllowedSignatures.Antimalware = TRUE;
 			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_AUTHENTICODE)	m_AllowedSignatures.Authenticode = TRUE;
 			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_STORE)		m_AllowedSignatures.Store = TRUE;
-			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_USER)			m_AllowedSignatures.User = TRUE;
-			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE)		m_AllowedSignatures.Enclave = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_DEVELOPER)	m_AllowedSignatures.Developer = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_USER_SIGN)	m_AllowedSignatures.UserSign = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_USER)			m_AllowedSignatures.UserDB = TRUE;
+			else if(SignReq == API_S_EXEC_ALLOWED_SIGNERS_ENCLAVE)		m_AllowedSignatures.EnclaveDB = TRUE;
 			else
 				LIST_APPEND(m_AllowedCollections, AS_STR(Data[i]));
 		}

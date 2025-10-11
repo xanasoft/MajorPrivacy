@@ -4,6 +4,8 @@
 
 class CResLogEntry: public CAbstractLogEntry
 {
+	TRACK_OBJECT(CResLogEntry)
+
 public:
 
 	CResLogEntry();

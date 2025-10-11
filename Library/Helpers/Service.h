@@ -10,7 +10,8 @@ enum SVC_OPTIONS {
     OPT_DEMAND_START    = 0x04,
     OPT_OWN_TYPE        = 0x08,
     OPT_KERNEL_TYPE     = 0x10,
-    OPT_START_NOW       = 0x20
+    OPT_START_NOW       = 0x20,
+	OPT_ENABLE_RECOVERY = 0x40
 };
 
 LIBRARY_EXPORT STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Display, PCWSTR Group, PCWSTR Dependencies, uint32 Options, const StVariant& Params = StVariant());

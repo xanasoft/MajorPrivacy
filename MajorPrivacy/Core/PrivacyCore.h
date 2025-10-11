@@ -77,17 +77,17 @@ public:
 	STATUS Stop();
 	STATUS Install();
 	STATUS Uninstall();
-	bool IsInstalled();
-	bool SvcIsRunning();
+	bool IsSvcInstalled();
+	bool IsSvcRunning();
+	bool IsDrvInstalled();
+	bool IsDrvRunning();
 
 	STATUS Connect(bool bCanStart = false, bool bEngineMode = false);
 	void Disconnect(bool bKeepEngine = false);
 
 	bool IsEngineMode() const					{ return m_bEngineMode; }
-
-	uint32 GetGuiSecState() const				{ return m_GuiSecState; }
-	bool IsGuiHighSecurity() const;
-	bool IsGuiMaxSecurity() const;
+	
+	uint32 GetServicePID() const;
 	uint32 GetSvcSecState() const				{ return m_SvcSecState; }
 	bool IsSvcHighSecurity() const;
 	bool IsSvcMaxSecurity() const;
@@ -217,7 +217,7 @@ public:
 	// HashDB
 	STATUS				SetAllHashes(const QtVariant& Enclaves);
 	RESULT(QtVariant)	GetAllHashes();
-	STATUS				SetHashEntry(const QtVariant& Enclave);
+	STATUS				SetHashEntry(const QtVariant& Hash);
 	RESULT(QtVariant)	GetHashEntry(const QByteArray& HashValue);
 	STATUS				DelHashEntry(const QByteArray& HashValue);
 
@@ -404,7 +404,6 @@ protected:
 	QString m_AppDir;
 	QString m_WinDir;
 
-	uint32 m_GuiSecState = 0;
 	uint32 m_SvcSecState = 0;
 
 	class CProcessList* m_pProcessList = NULL;

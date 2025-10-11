@@ -291,6 +291,15 @@ void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, con
 		m_pTreeView->scrollToBottom();
 }
 
+void CTraceView::Clear()
+{
+	m_Log.List.clear();
+	m_Log.States.clear();
+	m_Log.LastCount = 0;
+	m_Log.MergeSeqNr = 0;
+	m_pItemModel->Clear();
+}
+
 void CTraceView::ClearTraceLog(ETraceLogs Log)
 {
 	auto Current = theGUI->GetCurrentItems();

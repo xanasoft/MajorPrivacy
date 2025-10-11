@@ -13,7 +13,31 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.98.5] - 2025-08-17
+
+## [0.99.0] - 2025-10-11
+
+### Fixed
+- fixed UI failing to restart in maximum mode
+- fixed can't set hast db entry enclaves
+- fixed issue where allowed for enclaves were not applied correctly
+- fixed enclave script failed to update when applying changes
+- fixed an error adding new enclaves
+- fixed instaler failing with ksi.dll on update instalations
+- fixed major memory leak in the GUI
+
+### Changed
+- Terminated but still displayed processes are now rendered gray (like in TaskExplorer)
+- Armed safeguards enforcing usermode conponent integrity
+
+### Added
+- added ARM64 support
+- added driver option accept user signen self compiled major privacy user mode components
+- added Diagnostics Information in Help menu
+
+
+
+
+## [0.98.5] - 2025-09-17
 
 ### Added
 - added scripting options to program rules and secure enclaves

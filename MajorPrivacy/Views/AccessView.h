@@ -15,6 +15,7 @@ public:
 	virtual ~CAccessView();
 
 	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, QString RootPath = QString());
+	void					Clear();
 
 	QList<SAccessItemPtr>	GetSelectedItemsWithChildren() override
 	{

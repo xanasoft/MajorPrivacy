@@ -39,8 +39,10 @@ struct SProgramStats
 class CProgramItem: public QObject
 {
 	Q_OBJECT
+	TRACK_OBJECT(CProgramItem)
 public:
 	CProgramItem(QObject* parent = nullptr);
+	~CProgramItem() {}
 
 	virtual EProgramType GetType() const = 0;
 	virtual QString GetTypeStr() const;

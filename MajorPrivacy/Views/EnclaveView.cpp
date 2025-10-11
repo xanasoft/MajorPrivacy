@@ -94,6 +94,11 @@ void CEnclaveView::Sync()
 	}
 }
 
+void CEnclaveView::Clear()
+{
+	m_pItemModel->Clear();
+}
+
 QFlexGuid CEnclaveView::GetSelectedEnclave()
 {
 	auto Items = GetSelectedItems();

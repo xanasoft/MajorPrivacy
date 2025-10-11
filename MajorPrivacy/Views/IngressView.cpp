@@ -304,6 +304,14 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 	}
 }
 
+void CIngressView::Clear()
+{
+	m_CurPrograms.clear();
+	m_CurServices.clear();
+	m_IngressMap.clear();
+	m_pItemModel->Clear();
+}
+
 /*void CIngressView::OnDoubleClicked(const QModelIndex& Index)
 {
 	//QPair<CProgramItemPtr, CTrafficEntryPtr> pItem = m_pItemModel->GetItem(Index);

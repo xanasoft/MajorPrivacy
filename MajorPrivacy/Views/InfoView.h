@@ -13,6 +13,7 @@ public:
 	virtual ~CInfoView();
 
 	void Sync(const QList<CProgramItemPtr>& Items);
+	void Clear();
 
 protected:
 

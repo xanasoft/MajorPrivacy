@@ -85,6 +85,11 @@ void CVolumeView::Sync()
 	m_pItemModel->Sync(theCore->VolumeManager()->List());
 }
 
+void CVolumeView::Clear()
+{
+	m_pItemModel->Clear();
+}
+
 QString CVolumeView::GetSelectedVolumePath()
 {
 	// Note: This function must return an Empty but not a Null string when no volume is selected

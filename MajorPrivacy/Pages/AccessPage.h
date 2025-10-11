@@ -20,6 +20,7 @@ public:
 
 	void	Update();
 	void	Update(const QString& VolumeRoot, const QString& VolumeImage);
+	void	Clear();
 
 private:
 

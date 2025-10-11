@@ -13,6 +13,7 @@ public:
 	virtual ~CEnclaveView();
 
 	void					Sync();
+	void					Clear();
 
 	QFlexGuid				GetSelectedEnclave();
 

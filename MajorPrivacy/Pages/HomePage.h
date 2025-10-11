@@ -16,6 +16,7 @@ public:
 
 	void 				Refresh();
 	void 				Update();
+	void				Clear();
 
 private slots:
 

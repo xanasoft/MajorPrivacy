@@ -362,50 +362,7 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 	CServiceCore* This = (CServiceCore*)lpThreadParameter;
 
 	NTSTATUS status;
-	uint32 uDrvABI;
 	ULONGLONG End, Start;
-
-	//
-	// Setup required privileges
-	//
-	
-	HANDLE tokenHandle;
-	if (NT_SUCCESS(status = NtOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle)))
-	{
-		CHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * 3];
-		PTOKEN_PRIVILEGES privileges;
-		ULONG i;
-
-		privileges = (PTOKEN_PRIVILEGES)privilegesBuffer;
-		privileges->PrivilegeCount = 3;
-
-		for (i = 0; i < privileges->PrivilegeCount; i++)
-		{
-			privileges->Privileges[i].Attributes = SE_PRIVILEGE_ENABLED;
-			privileges->Privileges[i].Luid.HighPart = 0;
-		}
-
-		privileges->Privileges[0].Luid.LowPart = SE_DEBUG_PRIVILEGE;
-		privileges->Privileges[1].Luid.LowPart = SE_LOAD_DRIVER_PRIVILEGE;
-		privileges->Privileges[2].Luid.LowPart = SE_SECURITY_PRIVILEGE; // set audit policy
-
-		status = NtAdjustPrivilegesToken(tokenHandle, FALSE, privileges, 0, NULL, NULL);
-
-		NtClose(tokenHandle);
-	}
-
-	if(!NT_SUCCESS(status))
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to set privileges, error: 0x%08X", status);
-
-	//
-	// init hooks
-	//
-
-	This->m_InitStatus = This->InitHooks();
-	if (This->m_InitStatus.IsError()) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to initialize hooks, error: 0x%08X", This->m_InitStatus.GetStatus());
-		goto cleanup;
-	}
 
 	//
 	// init COM for this thread
@@ -420,31 +377,10 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 	This->m_pEventLog->Load();
 
 	//
-	// Initialize the driver
+	// Initialize the Components
 	//
 
 	Start = GetTickCount64();
-
-	This->m_InitStatus = This->InitDriver();
-	if (This->m_InitStatus.IsError()) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to connect to driver, error: 0x%08X", This->m_InitStatus.GetStatus());
-		goto cleanup;
-	}
-
-	uDrvABI = This->m_pDriver->GetABIVersion();
-	if(uDrvABI != MY_ABI_VERSION) {
-		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Driver ABI version mismatch, expected: %06X, got %06X", MY_ABI_VERSION, uDrvABI);
-		goto cleanup;
-	}
-
-	End = GetTickCount64();
-	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Driver init took %llu ms", End - Start);
-
-	//
-	// Initialize the rest of the components
-	//
-
-	Start = End;
 
 	This->m_InitStatus = This->m_pEnclaveManager->Init();
 	if (This->m_InitStatus.IsError()) {
@@ -611,44 +547,79 @@ STATUS CServiceCore::Init()
 
 	m_AppDir = GetApplicationDirectory();
 
-	// Initialize this variable here befor any threads are started and later access it without synchronisation for reading only
-	m_DataFolder = CConfigIni::GetAppDataFolder() + L"\\" + GROUP_NAME + L"\\" + APP_NAME;
-	if (!std::filesystem::exists(m_DataFolder)) 
+	ConfigInit();
+
+	//
+	// Setup required privileges
+	//
+
+	CScopedHandle tokenHandle = CScopedHandle((HANDLE)0, NtClose);
+	NTSTATUS status = NtOpenProcessToken(NtCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &tokenHandle);
+	if (NT_SUCCESS(status))
 	{
-		if (std::filesystem::create_directories(m_DataFolder)) 
+		CHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * 3];
+		PTOKEN_PRIVILEGES privileges;
+		ULONG i;
+
+		privileges = (PTOKEN_PRIVILEGES)privilegesBuffer;
+		privileges->PrivilegeCount = 3;
+
+		for (i = 0; i < privileges->PrivilegeCount; i++)
 		{
-			SetAdminFullControlAllowUsersRead(m_DataFolder);
-
-			//std::wofstream file(m_DataFolder + L"\\Readme.txt");
-			//if (file.is_open()) {
-			//	file << L"This folder contains data used by " << APP_NAME << std::endl;
-			//	file.close();
-			//}
+			privileges->Privileges[i].Attributes = SE_PRIVILEGE_ENABLED;
+			privileges->Privileges[i].Luid.HighPart = 0;
 		}
-	}
 
-	m_pConfig = new CConfigIni(m_DataFolder + L"\\" + API_SERVICE_NAME + L".ini");
+		privileges->Privileges[0].Luid.LowPart = SE_DEBUG_PRIVILEGE;
+		privileges->Privileges[1].Luid.LowPart = SE_LOAD_DRIVER_PRIVILEGE;
+		privileges->Privileges[2].Luid.LowPart = SE_SECURITY_PRIVILEGE; // set audit policy
+
+		status = NtAdjustPrivilegesToken(tokenHandle, FALSE, privileges, 0, NULL, NULL);
+	}
+	if(!NT_SUCCESS(status))
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to set privileges, error: 0x%08X", status);
 
 	//
-	// Update config
+	// init hooks
 	//
 
-	if (m_pConfig->GetInt("Service", "ConfigLevel", 0) < 1)
-	{
-		m_pConfig->SetInt("Service", "ConfigLevel", 1);
-		
-		m_pConfig->SetValue("Service", "DnsResolvers", L"8.8.8.8;1.1.1.1");
-		m_pConfig->SetValue("Service", "DnsTestHost", L"example.com");
-
-		std::vector<std::wstring> DnsBlockLists;
-		DnsBlockLists.push_back(L"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts");
-		DnsBlockLists.push_back(L"http://sysctl.org/cameleon/hosts");
-		DnsBlockLists.push_back(L"https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt");
-		DnsBlockLists.push_back(L"https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt");
-
-		m_pConfig->SetValue("Service", "DnsBlockLists", JoinStr(DnsBlockLists, L";"));
+	m_InitStatus = InitHooks();
+	if (m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to initialize hooks, error: 0x%08X", m_InitStatus.GetStatus());
+		return m_InitStatus;
 	}
 
+	//
+	// Initialize the driver
+	//
+
+	ULONGLONG Start = GetTickCount64();
+
+	m_InitStatus = InitDriver();
+	if (m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to connect to driver, error: 0x%08X", m_InitStatus.GetStatus());
+		return m_InitStatus;
+	}
+
+	ULONGLONG End = GetTickCount64();
+	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Driver init took %llu ms", End - Start);
+
+	uint32 uDrvABI = m_pDriver->GetABIVersion();
+	if (uDrvABI != MY_ABI_VERSION) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Driver ABI version mismatch, expected: %06X, got %06X", MY_ABI_VERSION, uDrvABI);
+		return m_InitStatus;
+	}
+
+#ifndef _DEBUG
+	if (!theCore->Driver()->IsCurProcMaxSecurity() && theCore->Driver()->IsCurProcHighSecurity())
+		return ERR(STATUS_SYNCHRONIZATION_REQUIRED);
+#endif
+
+	if (!m_pDriver->TestDevAuthority())
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"MajorPrivacy's Service (PrivacyAgent) is not being recognized by the driver (KernelIsolator)!!!");
+
+	//
+	// Start Engien Thread and initialize Components
 	//
 
 	m_LastStoreTime = GetTickCount64();
@@ -675,6 +646,47 @@ STATUS CServiceCore::Init()
 		m_InitStatus = m_pUserPort->Open(API_SERVICE_PORT);
 
 	return m_InitStatus;
+}
+
+void CServiceCore::ConfigInit()
+{
+	// Initialize this variable here befor any threads are started and later access it without synchronisation for reading only
+	m_DataFolder = CConfigIni::GetAppDataFolder() + L"\\" + GROUP_NAME + L"\\" + APP_NAME;
+	if (!std::filesystem::exists(m_DataFolder)) 
+	{
+		if (std::filesystem::create_directories(m_DataFolder)) 
+		{
+			SetAdminFullControlAllowUsersRead(m_DataFolder);
+
+			//std::wofstream file(m_DataFolder + L"\\Readme.txt");
+			//if (file.is_open()) {
+			//	file << L"This folder contains data used by " << APP_NAME << std::endl;
+			//	file.close();
+			//}
+		}
+	}
+
+	m_pConfig = new CConfigIni(m_DataFolder + L"\\" + API_SERVICE_NAME + L".ini");
+
+	//
+	// Update config
+	//
+
+	if (m_pConfig->GetInt("Service", "ConfigLevel", 0) < 1)
+	{
+		m_pConfig->SetInt("Service", "ConfigLevel", 1);
+
+		m_pConfig->SetValue("Service", "DnsResolvers", L"8.8.8.8;1.1.1.1");
+		m_pConfig->SetValue("Service", "DnsTestHost", L"example.com");
+
+		std::vector<std::wstring> DnsBlockLists;
+		DnsBlockLists.push_back(L"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts");
+		DnsBlockLists.push_back(L"http://sysctl.org/cameleon/hosts");
+		DnsBlockLists.push_back(L"https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt");
+		DnsBlockLists.push_back(L"https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt");
+
+		m_pConfig->SetValue("Service", "DnsBlockLists", JoinStr(DnsBlockLists, L";"));
+	}
 }
 
 void CServiceCore::Shutdown(EShutdownMode eMode)

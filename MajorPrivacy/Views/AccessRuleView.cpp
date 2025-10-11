@@ -143,6 +143,14 @@ void CAccessRuleView::Sync(QList<CAccessRulePtr> RuleList, const QString& Volume
 	m_pItemModel->Sync(RuleList);
 }
 
+void CAccessRuleView::Clear()
+{
+	m_RuleList.clear();
+	m_VolumeRoot.clear();
+	m_VolumeImage.clear();
+	m_pItemModel->Clear();
+}
+
 void CAccessRuleView::OnDoubleClicked(const QModelIndex& Index)
 {
 	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);

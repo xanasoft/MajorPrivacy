@@ -9,6 +9,7 @@
 class CEnclave : public QObject
 {
 	Q_OBJECT
+	TRACK_OBJECT(CEnclave)
 public:
 	CEnclave(QObject* parent = NULL);
 

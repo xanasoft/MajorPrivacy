@@ -105,3 +105,5 @@ LIBRARY_EXPORT std::wstring GetProcessImageFileNameByProcessId(HANDLE ProcessId)
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NumberOfThreads))
 
 LIBRARY_EXPORT NTSTATUS MyQuerySystemInformation(std::vector<BYTE>& Info, SYSTEM_INFORMATION_CLASS SystemInformationClass);
+
+LIBRARY_EXPORT bool IsOnARM64();

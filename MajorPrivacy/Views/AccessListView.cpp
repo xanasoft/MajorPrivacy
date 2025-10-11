@@ -94,6 +94,11 @@ void CAccessListView::OnSelectionChanged(const QList<SAccessItemPtr>& Items)
 	}
 }
 
+void CAccessListView::Clear()
+{
+	m_pItemModel->Clear();
+}
+
 /*void CAccessListView::OnDoubleClicked(const QModelIndex& Index)
 {
 

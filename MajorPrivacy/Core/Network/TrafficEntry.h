@@ -14,6 +14,7 @@ enum class ENetProtocols
 class CTrafficEntry : public QObject
 {
 	Q_OBJECT
+	TRACK_OBJECT(CTrafficEntry)
 public:
 	CTrafficEntry(QObject* parent = NULL);
 

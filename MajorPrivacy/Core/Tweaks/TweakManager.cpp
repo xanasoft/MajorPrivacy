@@ -2,7 +2,7 @@
 #include "TweakManager.h"
 #include "../PrivacyCore.h"
 #include "../../Library/API/PrivacyAPI.h"
-#include "../MajorPrivacy.h"
+#include "../../MajorPrivacy.h"
 
 CTweakManager::CTweakManager(QObject* parent)
 	: QObject(parent)

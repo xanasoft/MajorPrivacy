@@ -5,6 +5,7 @@
 
 class CNetLogEntry : public CAbstractLogEntry
 {
+	TRACK_OBJECT(CNetLogEntry)
 public:
 	CNetLogEntry() {}
 

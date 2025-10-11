@@ -172,6 +172,10 @@ void CHomePage::Update()
 	m_pEventView->Update();
 }
 
+void CHomePage::Clear()
+{
+}
+
 void CHomePage::OnClearEventLog()
 {
 	if (QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to clear the event log?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)

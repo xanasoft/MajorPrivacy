@@ -620,10 +620,12 @@ StVariant CProcess::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMe
 	Process.Write(API_V_CREATE_TIME, m_CreationTime);
 	Process.Write(API_V_PARENT_PID, m_ParentPid);
 	Process.Write(API_V_CREATOR_PID, m_CreatorPid);
-	
+
 	Process.WriteEx(API_V_NAME, m_Name);
 	Process.WriteEx(API_V_FILE_NT_PATH, m_NtFilePath);
 	Process.WriteEx(API_V_CMD_LINE, m_CommandLine);
+
+	Process.Write(API_V_STATUS, (m_RemoveTimeStamp != 0) ? MP_PROCESS_FLAG_TERMINATED : 0);
 
 	Process.WriteVariant(API_V_ENCLAVE, m_EnclaveGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, pMemPool));
 	Process.Write(API_V_KPP_STATE, m_SecState);

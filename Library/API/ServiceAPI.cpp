@@ -18,6 +18,7 @@ typedef long NTSTATUS;
 
 #include "../Helpers/AppUtil.h"
 #include "../Library/API/PrivacyAPI.h"
+#include "../Library/Helpers/Scoped.h"
 #include "../Common/StVariant.h"
 
 #include "../IPC/PipeClient.h"
@@ -52,8 +53,6 @@ CServiceAPI::CServiceAPI()
 
 CServiceAPI::~CServiceAPI()
 {
-	if(m_hEngineProcess)
-		CloseHandle(m_hEngineProcess);
 	delete m_pClient;
 }
 
@@ -62,10 +61,12 @@ STATUS CServiceAPI::InstallSvc(bool bAutoStart)
 	std::wstring FileName = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
 	std::wstring DisplayName = L"MajorPrivacy System Service";
 
+	// The Kernel Isolator driver must be started first
 	// The Windows Firewall must be started first
+	//const wchar_t* Dependencies = API_DRIVER_NAME L"\0MpsSvc\0\0";
 	const wchar_t* Dependencies = L"MpsSvc\0\0";
 
-	uint32 uOptions = OPT_OWN_TYPE;
+	uint32 uOptions = OPT_OWN_TYPE | OPT_ENABLE_RECOVERY;
 	if(bAutoStart)
 		uOptions |= OPT_AUTO_START;
 	else
@@ -115,38 +116,27 @@ STATUS CServiceAPI::ConnectEngine(bool bCanStart)
 
 	if(!bCanStart)
 		return ERR(STATUS_INVALID_SYSTEM_SERVICE);
-	
-	if (m_hEngineProcess) {
-		DWORD exitCode;
-		GetExitCodeProcess(m_hEngineProcess, &exitCode);
-		if (exitCode != STILL_ACTIVE) {
-			CloseHandle(m_hEngineProcess);
-			m_hEngineProcess = NULL;
-		}
-	}
 
-	if (!m_hEngineProcess) 
+	CScopedHandle hEngineProcess = CScopedHandle((HANDLE)0, CloseHandle);
+	/*if (IsRunningElevated())
 	{
-		/*if (IsRunningElevated())
-		{
-			std::wstring Command = L"\"" + GetApplicationDirectory() + L"\\" API_SERVICE_BINARY L"\" -engine";
+		std::wstring Command = L"\"" + GetApplicationDirectory() + L"\\" API_SERVICE_BINARY L"\" -engine";
 
-			STARTUPINFOW si = { sizeof(si) };
-			PROCESS_INFORMATION pi = { 0 };
-			if (CreateProcessW(NULL, (WCHAR*)Command.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-				m_hEngineProcess = pi.hProcess;
-				CloseHandle(pi.hThread);
-			} else
-				return ERR(PhGetLastWin32ErrorAsNtStatus());
-		}
-		else*/
-		{
-			std::wstring Path = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
+		STARTUPINFOW si = { sizeof(si) };
+		PROCESS_INFORMATION pi = { 0 };
+		if (CreateProcessW(NULL, (WCHAR*)Command.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+			hEngineProcess.Set(pi.hProcess);
+			CloseHandle(pi.hThread);
+		} else
+			return ERR(PhGetLastWin32ErrorAsNtStatus());
+	}
+	else*/
+	{
+		std::wstring Path = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
 
-			m_hEngineProcess = RunElevated(Path, L"-engine");
-			if (!m_hEngineProcess)
-				return ERR(PhGetLastWin32ErrorAsNtStatus());
-		}
+		hEngineProcess.Set(RunElevated(Path, L"-engine"));
+		if (!hEngineProcess)
+			return ERR(PhGetLastWin32ErrorAsNtStatus());
 	}
 
 
@@ -157,7 +147,7 @@ STATUS CServiceAPI::ConnectEngine(bool bCanStart)
 #endif
 	{
 		DWORD exitCode;
-		GetExitCodeProcess(m_hEngineProcess, &exitCode);
+		GetExitCodeProcess(hEngineProcess, &exitCode);
 		if (exitCode != STILL_ACTIVE) {
 			Status = ERR(PhDosErrorToNtStatus(exitCode));
 			break; // engine failed to start
@@ -173,9 +163,7 @@ STATUS CServiceAPI::ConnectEngine(bool bCanStart)
 		Sleep(1000 * i);
 	}
 
-	TerminateProcess(m_hEngineProcess, -1);
-	CloseHandle(m_hEngineProcess);
-	m_hEngineProcess = NULL;
+	TerminateProcess(hEngineProcess, -1);
 	return ERR(STATUS_INVALID_SYSTEM_SERVICE);
 }
 

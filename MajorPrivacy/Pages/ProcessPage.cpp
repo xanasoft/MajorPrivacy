@@ -213,3 +213,23 @@ void CProcessPage::Update(const QFlexGuid& EnclaveGuid)
 		m_pTraceView->Sync(ETraceLogs::eExecLog, theCore->ProgramManager()->GetPrograms(), theCore->ProgramManager()->GetServices(), EnclaveGuid);
 	}
 }
+
+void CProcessPage::Clear()
+{
+	m_pRuleView->Clear();
+
+	m_pHashDBView->Clear();
+
+	if(m_pProcessView)
+		m_pProcessView->Clear();
+
+	m_pLibraryView->Clear();
+
+	m_pLibraryInfoView->Clear();
+
+	m_pExecutionView->Clear();
+
+	m_pIngressView->Clear();
+
+	m_pTraceView->Clear();
+}

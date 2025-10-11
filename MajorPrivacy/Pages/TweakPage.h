@@ -12,6 +12,7 @@ public:
 	CTweakPage(QWidget* parent);
 
 	void	Update();
+	void	Clear();
 
 private slots:
 	void	OnCurrentChanged();

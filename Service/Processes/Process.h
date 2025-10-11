@@ -48,6 +48,7 @@ public:
 
 	std::wstring GetAppContainerSid() const { std::shared_lock Lock(m_Mutex); return m_AppContainerSid; }
 	std::wstring GetAppContainerName() const { std::shared_lock Lock(m_Mutex); return m_AppContainerName; }
+	std::wstring GetAppPackageName() const { std::shared_lock Lock(m_Mutex); return m_AppPackageName; }
 
 	void AddLibrary(const std::shared_ptr<class CProgramLibrary>& pLibrary) { std::unique_lock Lock(m_Mutex); m_Libraries.insert(pLibrary); }
 	void RemoveLibrary(const std::shared_ptr<class CProgramLibrary>& pLibrary) { std::unique_lock Lock(m_Mutex); m_Libraries.erase(pLibrary); }

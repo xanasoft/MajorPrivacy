@@ -83,3 +83,10 @@ void CDnsPage::Update()
 
 	m_pRuleView->Sync(theCore->NetworkManager()->GetDnsRules());
 }
+
+void CDnsPage::Clear()
+{
+	m_pDnsCacheView->Clear();
+
+	m_pRuleView->Clear();
+}

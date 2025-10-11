@@ -380,7 +380,7 @@ std::wstring CFlexGuid::ToWString() const
 {
     wchar_t GuidStr[39];
     if (ToWString(GuidStr))
-        return std::wstring(GuidStr, 38);
+        return std::wstring(GuidStr);
     if (m_Type == Unicode)
         return std::wstring((wchar_t*)m_String, m_Length);
     if (m_Type == Ascii)
@@ -392,7 +392,7 @@ std::string CFlexGuid::ToString() const
 {
     char GuidStr[39];
     if (ToAString(GuidStr))
-        return std::string(GuidStr, 38);
+        return std::string(GuidStr);
     if (m_Type == Ascii)
         return std::string((char*)m_String, m_Length);
     if (m_Type == Unicode)

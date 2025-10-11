@@ -14,6 +14,7 @@ public:
 	virtual ~CIngressView();
 
 	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QFlexGuid& EnclaveGuid = QString());
+	void					Clear();
 
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;

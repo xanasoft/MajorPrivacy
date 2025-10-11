@@ -462,8 +462,12 @@ QString CProgramFile::GetSignatureInfoStr(const CImageSignInfo& SignInfo)
 	QStringList Signs;
 	if(SignInfo.m_Signatures.Developer)
 		Signs += tr("Developer Signed");
-	else if(SignInfo.m_Signatures.User)
+	else if(SignInfo.m_Signatures.EnclaveDB)
+		Signs += tr("User Allowed for Enclave");
+	else if(SignInfo.m_Signatures.UserSign)
 		Signs += tr("User Signed");
+	else if(SignInfo.m_Signatures.UserDB)
+		Signs += tr("User Allowed");
 
 	//if (SignInfo.m_HashStatus == EHashStatus::eHashFail)
 	//	Signs.append(tr("Embedded Signature INVALID"));

@@ -15,7 +15,7 @@ public:
 	~CProgramRuleWnd();
 
 	static QColor GetActionColor(EExecRuleType Action);
-	static QColor GetAuthorityColor(KPH_VERIFY_AUTHORITY Authority);
+	//static QColor GetAuthorityColor(KPH_VERIFY_AUTHORITY Authority);
 	static QColor GetRoleColor(EExecLogRole Role);
 
 signals:

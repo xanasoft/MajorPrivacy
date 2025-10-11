@@ -6,8 +6,10 @@
 #include "../ServiceCore.h"
 #include "../../Library/API/PrivacyAPI.h"
 #include "../Processes/ProcessList.h"
+#include "../Programs/ProgramLibrary.h"
 #include "../../Library/Helpers/NtUtil.h"
 #include "../../Library/API/DriverAPI.h"
+#include <regex>
 
 struct SJSEngine
 {
@@ -165,6 +167,17 @@ struct SJSEngine
 
 	qjs::Runtime runtime;
 	qjs::Context context;
+
+    qjs::Value MakeString(const std::wstring& str) 
+    { 
+        auto utf8 = ToUtf8(nullptr, str.c_str());
+        qjs::Value jsStr{ context.ctx, JS_NewString(context.ctx, utf8.IsEmpty() ? "" : utf8.ConstData()) };
+        return jsStr;
+	}
+
+    qjs::Value MakeProcessList();
+    qjs::Value MakeLibrary(const CProgramLibraryPtr& pLibrary);
+    qjs::Value MakeProcess(const CProcessPtr& pProcess) ;
 };
 
 //
@@ -180,12 +193,12 @@ struct SJSEngine
 // Global Objects:
 //  processList             - the process list object
 //          getProcess(pid) - returns a process object for the given PID
+//  	    getList()       - returns an array of all processes PIDs
 // 
 // Objects:
 //  process 		        - the process object
 //          pid             - the PID of the process
 //          filePath        - the file path of the process
-//          serviceTag      - the service tag of the process
 //          enclaveGuid     - the enclave GUID of the process
 // 
 //
@@ -206,66 +219,39 @@ CJSEngine::CJSEngine(const std::string& Script, const CFlexGuid& Guid, EScriptTy
 
 	m = new SJSEngine();
     
-    /*
-    js_std_init_handlers(m->runtime.rt);
+    //auto ctx = context.ctx;
+    // 
+    //std::shared_ptr<STest> pTest = std::make_shared<STest>();
+    //
+    //obj["test"] = [ctx, pProcess, pTest]()-> qjs::Value {
+    //
+    //std::wstring test = pProcess->GetNtFilePath();
+    //test.empty();
+    //
+    //return qjs::Value {ctx, JS_NULL};
+    //};
+
+    //js_std_init_handlers(m->runtime.rt);
+    //
+    //JS_SetModuleLoaderFunc(m->runtime.rt, nullptr, js_module_loader, nullptr);
+    //js_std_add_helpers(m->context.ctx, 0, nullptr);
+    //
+    //js_init_module_std(m->context.ctx, "std");
+    //js_init_module_os(m->context.ctx, "os");
+    //
+    //m->context.eval(R"xxx(
+    //    import * as std from 'std';
+    //    import * as os from 'os';
+    //    globalThis.std = std;
+    //    globalThis.os = os;
+    //)xxx", "<input>", JS_EVAL_TYPE_MODULE);
     
-    JS_SetModuleLoaderFunc(m->runtime.rt, nullptr, js_module_loader, nullptr);
-    js_std_add_helpers(m->context.ctx, 0, nullptr);
-
-    js_init_module_std(m->context.ctx, "std");
-    js_init_module_os(m->context.ctx, "os");
-
-    m->context.eval(R"xxx(
-        import * as std from 'std';
-        import * as os from 'os';
-        globalThis.std = std;
-        globalThis.os = os;
-    )xxx", "<input>", JS_EVAL_TYPE_MODULE);
-    */
-
-    auto processList = m->context.newObject();
-
-    auto getProcess = [&](int PID) -> qjs::Value {
-
-        auto ctx = m->context.ctx;
-
-		CProcessPtr pProcess = theCore->ProcessList()->GetProcessEx(PID, CProcessList::eCanAdd);
-        if(!pProcess)
-            return qjs::Value {ctx, JS_NULL};
-
-        qjs::Value obj = m->context.newObject();
-
-		/*std::shared_ptr<STest> pTest = std::make_shared<STest>();
-
-        obj["test"] = [ctx, pProcess, pTest]()-> qjs::Value {
-
-            std::wstring test = pProcess->GetNtFilePath();
-            test.empty();
-
-            return qjs::Value {ctx, JS_NULL};
-        };*/
-
-        auto path = pProcess->GetNtFilePath();
-
-        obj["pid"]  = PID;
-        obj["ntPath"] = ToUtf8(nullptr, path.c_str()).ConstData();
-        obj["dosPath"] = ToUtf8(nullptr, theCore->NormalizePath(path).c_str()).ConstData();
-
-        //auto meta = m->context.newObject();
-        //meta["createdAt"] = std::time(nullptr);
-        //obj["meta"] = meta;
-
-        return obj;
-    };
-
-    processList["getProcess"] = getProcess;
-
-    m->context.global()["processList"] = processList;
-
     //m->context.global()["println"] = [](const std::string& s) 
     //{ 
     //    std::cout << s << std::endl; 
     //};
+
+    m->context.global()["processList"] = m->MakeProcessList();
 
     qjs::Value eSpawn = m->context.newObject();
     eSpawn["Undefined"] = EProgramOnSpawn::eUnknown;
@@ -479,10 +465,11 @@ StVariant CJSEngine__SumpSign(USignatures uSign)
 	Sign["microsoft"] = uSign.Microsoft != 0;
 	Sign["antimalware"] = uSign.Antimalware != 0;
 	Sign["authenticode"] = uSign.Authenticode != 0;
-	Sign["store"] = uSign.Store != 0;
-	Sign["developer"] = uSign.Developer != 0;
-	Sign["user"] = uSign.User != 0;
-	Sign["enclave"] = uSign.Enclave != 0;
+	Sign["ms_store"] = uSign.Store != 0;
+	Sign["mp_dev_sign"] = uSign.Developer != 0;
+    Sign["user_sign"] = uSign.UserSign != 0;
+	Sign["user"] = uSign.UserDB != 0;
+	Sign["enclave"] = uSign.EnclaveDB != 0;
     Sign["collection"] = uSign.Collection != 0;
 
 	return Sign;
@@ -499,10 +486,14 @@ StVariant CJSEngine__FillVerifierInfo(const struct SVerifierInfo* pVerifyInfo)
     Status["signAuthority"] = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_SA) != 0;
     Status["codeIntegrity"] = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_CI) != 0;
     Status["signLevel"]     = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_SL) != 0;
+
+    Status["imageIncoherent"] = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_INCOHERENT) != 0;
+
     Status["fileMismatch"]  = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_FILE_MISMATCH) != 0;
 	Status["hashFailed"]    = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_HASH_FILED) != 0;
     Status["coherencyFail"] = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_COHERENCY_FAIL) != 0;
     Status["signatureFail"] = (pVerifyInfo->StatusFlags & MP_VERIFY_FLAG_SIGNATURE_FAIL) != 0;
+
     Verifier["statusFlags"] = Status;
 
 	Verifier["signAuthority"] = (uint32)pVerifyInfo->PrivateAuthority;
@@ -526,6 +517,179 @@ StVariant CJSEngine__FillVerifierInfo(const struct SVerifierInfo* pVerifyInfo)
 	Verifier["allowedSignatures"] = CJSEngine__SumpSign(pVerifyInfo->AllowedSignatures);
 
     return Verifier;
+}
+
+qjs::Value SJSEngine::MakeLibrary(const CProgramLibraryPtr& pLibrary)
+{
+    qjs::Value obj = context.newObject();
+
+    auto path = pLibrary->GetPath();
+
+    obj["ntPath"] = MakeString(path.c_str());
+    obj["dosPath"] = MakeString(theCore->NormalizePath(path));
+
+    SVarWriteOpt Opts;
+    obj["signerInfo"] = Var2JS(pLibrary->GetSignInfo().ToVariant(Opts));
+
+    return obj;
+};
+
+qjs::Value SJSEngine::MakeProcess(const CProcessPtr& pProcess) 
+{
+    qjs::Value obj = context.newObject();
+
+    auto path = pProcess->GetNtFilePath();
+
+    obj["pid"] = (int64_t)pProcess->GetProcessId();
+    obj["parentPid"] = (int64_t)pProcess->GetParentId();
+    obj["creatorPid"] = (int64_t)pProcess->GetCreatorId();
+    obj["name"] = MakeString(pProcess->GetName());
+    obj["ntPath"] = MakeString(path);
+    obj["dosPath"] = MakeString(theCore->NormalizePath(path));
+    obj["workDir"] = MakeString(pProcess->GetWorkDir());
+
+    obj["enclaveGuid"] = pProcess->GetEnclave().ToString();
+
+    obj["appContainerSid"] = MakeString(pProcess->GetAppContainerSid());
+    obj["appContainerName"] = MakeString(pProcess->GetAppContainerName());
+    obj["appPackageFullName"] = MakeString(pProcess->GetAppPackageName());
+
+    auto Services = pProcess->GetServices();
+    if (!Services.empty())
+    {
+        qjs::Value arr{ context.ctx, JS_NewArray(context.ctx) };
+        uint32_t idx = 0;
+        for (auto& I : Services)
+        {
+            JS_SetPropertyUint32(context.ctx, arr.v, idx++, MakeString(I));
+        }
+        obj["services"] = arr;
+    }
+
+#if 0
+    auto Libraries = pProcess->GetLibraries();
+    if (!Libraries.empty())
+    {
+        qjs::Value arr{ context.ctx, JS_NewArray(context.ctx) };
+        uint32_t idx = 0;
+        for (auto& I : Libraries)
+        {
+            qjs::Value lib = MakeLibrary(I);
+            JS_SetPropertyUint32(context.ctx, arr.v, idx++, lib.release());
+        }
+        obj["libraries"] = arr;
+    }
+#else
+    auto getLibraries = [&]() -> qjs::Value {
+
+        auto Libraries = pProcess->GetLibraries();
+
+        qjs::Value arr = context.newObject();
+        uint32_t idx = 0;
+        for (auto& I : Libraries)
+        {
+            qjs::Value lib = MakeLibrary(I);
+            JS_SetPropertyUint32(context.ctx, arr.v, idx++, lib.release());
+        }
+
+        return arr;
+    };
+    obj["getLibraries"] = getLibraries;
+#endif
+
+    SVarWriteOpt Opts;
+    obj["signerInfo"] = Var2JS(pProcess->GetSignInfo().ToVariant(Opts));
+
+    //auto meta = context.newObject();
+    //meta["createdAt"] = std::time(nullptr);
+    //obj["meta"] = meta;
+
+    return obj;
+};
+
+qjs::Value SJSEngine::MakeProcessList()
+{
+    auto processList = context.newObject();
+
+    auto getList = [&]() -> qjs::Value {
+
+        qjs::Value arr{ context.ctx, JS_NewArray(context.ctx) };
+        uint32_t idx = 0;
+
+        for (auto& I : theCore->ProcessList()->List())
+        {
+            JS_SetPropertyUint32(context.ctx, arr.v, idx++, JS_NewInt64(context.ctx, (int64_t)I.second->GetProcessId()));
+        }
+
+        return arr;
+    };
+    processList["getList"] = getList;
+
+    auto getAll = [&]() -> qjs::Value {
+
+        qjs::Value arr{ context.ctx, JS_NewArray(context.ctx) };
+        uint32_t idx = 0;
+
+        for (auto& I : theCore->ProcessList()->List())
+        {
+            qjs::Value obj = MakeProcess(I.second);
+
+            JS_SetPropertyUint32(context.ctx, arr.v, idx++, obj.release());
+        }
+
+        return arr;
+    };
+    processList["getAll"] = getAll;
+
+    auto findByName = [&](const std::string& NameUtf8) -> qjs::Value {
+
+        qjs::Value arr{ context.ctx, JS_NewArray(context.ctx) };
+
+        // Build regex from DOS pattern (escape then translate * and ?)
+        std::wstring pattern = FromUtf8(nullptr, NameUtf8.c_str()).ConstData();
+
+        try {
+
+            std::wstring rx = pattern;
+            static const std::wregex specialChars(L"[.^$|()\\[\\]{}*+?\\\\]");
+            rx = std::regex_replace(rx, specialChars, L"\\$&");      // escape regex meta
+            static const std::wregex asterisk(L"\\\\\\*");
+            rx = std::regex_replace(rx, asterisk, L".*");            // * -> .*
+            static const std::wregex questionMark(L"\\\\\\?");
+            rx = std::regex_replace(rx, questionMark, L".");         // ? -> .
+
+            const std::wregex re(L"^" + rx + L"$", std::regex_constants::icase);
+
+            uint32_t idx = 0;
+            for (auto& it : theCore->ProcessList()->List()) {
+                const CProcessPtr& pProcess = it.second;
+                std::wstring DosPath = theCore->NormalizePath(pProcess->GetNtFilePath());
+                if (std::regex_search(DosPath, re)) {
+                    qjs::Value obj = MakeProcess(pProcess);
+                    JS_SetPropertyUint32(context.ctx, arr.v, idx++, obj.release());
+                    //JS_SetPropertyUint32(ctx, arr.v, idx++, JS_NewInt64(ctx, (int64_t)pProcess->GetProcessId()));
+                }
+            }
+        }
+        catch (...) {
+            // On any regex error, just return empty array
+        }
+
+        return arr;
+    };
+    processList["findByName"] = findByName;
+
+    auto getProcess = [&](int PID) -> qjs::Value {
+
+        CProcessPtr pProcess = theCore->ProcessList()->GetProcessEx(PID, CProcessList::eCanAdd);
+        if (!pProcess)
+            return qjs::Value{ context.ctx, JS_NULL };
+
+        return MakeProcess(pProcess);
+    };
+    processList["getProcess"] = getProcess;
+
+    return processList;
 }
 
 EProgramOnSpawn CJSEngine::RunStartScript(const std::wstring& NtPath, const std::wstring& CommandLine, uint64 ActorPid, const std::wstring& ActorServiceTag, const std::wstring& EnclaveId, bool bTrusted, const struct SVerifierInfo* pVerifierInfo)

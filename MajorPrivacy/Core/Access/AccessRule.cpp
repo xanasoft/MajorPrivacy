@@ -18,7 +18,7 @@ CAccessRule::CAccessRule(const CProgramID& ID, QObject* parent)
 bool CAccessRule::IsUnsafePath(const QString& Path)
 {
 	QString SystemVolume = theCore->GetWinDir();
-	if (Path.length() < SystemVolume.length() || SystemVolume.compare(Path.left(SystemVolume.length()), Qt::CaseInsensitive) == 0)
+	if (Path.length() < SystemVolume.length() || SystemVolume.compare(Path.left(SystemVolume.length()), Qt::CaseInsensitive) != 0)
 		return false;
 
 	// we are on C:\

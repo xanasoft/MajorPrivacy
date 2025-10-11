@@ -23,30 +23,31 @@ public:
 
 	void	Update();
 	void	Update(const class QFlexGuid& EnclaveGuid);
+	void	Clear();
 
 private slots:
 
 private:
 
-	bool					m_bEmbedded;
+	bool					m_bEmbedded = false;
 
-	QVBoxLayout*			m_pMainLayout;
+	QVBoxLayout*			m_pMainLayout = nullptr;
 
-	//QToolBar*				m_pToolBar;
+	//QToolBar*				m_pToolBar = nullptr;
 
-	QSplitter*				m_pVSplitter;
+	QSplitter*				m_pVSplitter = nullptr;
 
-	QTabWidget*				m_pRuleTabs;
-	CProgramRuleView*		m_pRuleView;
-	CHashDBView*			m_pHashDBView;
+	QTabWidget*				m_pRuleTabs = nullptr;
+	CProgramRuleView*		m_pRuleView = nullptr;
+	CHashDBView*			m_pHashDBView = nullptr;
 
-	QTabWidget*				m_pTabs;
-	CProcessView*			m_pProcessView;
-	QSplitter*				m_pLibrarySplitter;
-	CLibraryView*			m_pLibraryView;
-	CLibraryInfoView*		m_pLibraryInfoView;
-	CExecutionView*			m_pExecutionView;
-	CIngressView*			m_pIngressView;
-	CProcessTraceView*		m_pTraceView;
+	QTabWidget*				m_pTabs = nullptr;
+	CProcessView*			m_pProcessView = nullptr;
+	QSplitter*				m_pLibrarySplitter = nullptr;
+	CLibraryView*			m_pLibraryView = nullptr;
+	CLibraryInfoView*		m_pLibraryInfoView = nullptr;
+	CExecutionView*			m_pExecutionView = nullptr;
+	CIngressView*			m_pIngressView = nullptr;
+	CProcessTraceView*		m_pTraceView = nullptr;
 };
 

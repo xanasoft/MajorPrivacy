@@ -5,7 +5,6 @@
 #include <phnt_windows.h>
 #include <phnt.h>
 
-#if defined(_M_ARM64) || defined(_M_ARM64EC)
 #include "arm64_asm.h"
 
 void* Hook_GetXipTarget(void* ptr, int mode) 
@@ -247,5 +246,3 @@ ULONG Hook_GetSysCallFunc(ULONG* aCode, void** pHandleStubHijack)
 
     return svc.imm16;
 }
-
-#endif

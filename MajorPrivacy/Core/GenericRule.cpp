@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "GenericRule.h"
 #include "../../Library/API/PrivacyAPI.h"
-#include "./Library/Helpers/NtUtil.h"
+#include "../../Library/Helpers/NtUtil.h"
 
 CGenericRule::CGenericRule(QObject* parent)
 	: QObject(parent)
