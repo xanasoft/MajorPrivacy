@@ -10,8 +10,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [0.99.1] - 2025-11-04
 
-
+### Added
+- added option to configure dll injection mode
+- added option for sandboxie compatible high level dll injection
+- added mandatory warning page to the first start wizard, before its acknowledged user can not create driver rules
+- added action to create usefull initial windows firewall rules for the allow list mode of operation
+- added action to restore default windows firewall rules
+ 
 
 
 ## [0.99.0] - 2025-10-11
