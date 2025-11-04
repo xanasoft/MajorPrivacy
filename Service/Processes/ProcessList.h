@@ -68,7 +68,7 @@ protected:
 
 	void AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram, const CExecLogEntryPtr& pLogEntry);
 
-	NTSTATUS OnInjectionRequest(uint64 Pid);
+	NTSTATUS OnInjectionRequest(uint64 Pid, EExecDllMode DllMode, const CFlexGuid& EnclaveGuid, const CFlexGuid& RuleGuid);
 
 	mutable std::recursive_mutex m_Mutex;
 

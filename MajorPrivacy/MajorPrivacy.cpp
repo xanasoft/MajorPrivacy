@@ -302,7 +302,7 @@ STATUS CMajorPrivacy::ReloadCert(QWidget* pWidget)
 		default:												Info = QString("0x%1").arg((qint32)status, 8, 16, QChar('0'));
 		}
 
-		QMessageBox::critical(pWidget ? pWidget : this, "MajorPrivacy", tr("The support certificate is not valid.\nError: %1").arg(Info));
+		QMessageBox::critical(pWidget ? pWidget : this, "MajorPrivacy", tr("The License Certificate is not valid.\nError: %1").arg(Info));
 	}
 
 #ifdef _DEBUG
@@ -371,13 +371,13 @@ STATUS CMajorPrivacy::ReloadCert(QWidget* pWidget)
 	else
 	{
 		if (g_CertInfo.outdated)
-			OnLogMessage(tr("The supporter certificate is not valid for this build, please get an updated certificate"));
+			OnLogMessage(tr("The license is not valid for this build, please get an updated certificate"));
 		// outdated always implicates it is no longer valid
 		else if (g_CertInfo.expired) // may be still valid for the current and older builds
-			OnLogMessage(tr("The supporter certificate has expired%1, please get an updated certificate")
+			OnLogMessage(tr("The license has expired%1, please get an updated certificate")
 				.arg(!g_CertInfo.outdated ? tr(", but it remains valid for the current build") : ""));
 		else if (g_CertInfo.expirers_in_sec > 0 && g_CertInfo.expirers_in_sec < (60 * 60 * 24 * 30))
-			OnLogMessage(tr("The supporter certificate will expire in %1 days, please get an updated certificate").arg(g_CertInfo.expirers_in_sec / (60 * 60 * 24)));
+			OnLogMessage(tr("The license will expire in %1 days, please get an updated certificate").arg(g_CertInfo.expirers_in_sec / (60 * 60 * 24)));
 	}*/
 
 	emit CertUpdated();
@@ -671,7 +671,7 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 
 		theCore->ProcessEvents();
 	}
-	else //if (bWasConnected)
+	else if (bWasConnected)
 	{
 		m_pStatusLabel->setText(tr("Disconnected from privacy agent"));
 
@@ -902,6 +902,21 @@ void CMajorPrivacy::BuildMenu()
 	m_pReGroupProgs = m_pTools->addAction(QIcon(":/Icons/ReGroup.png"), tr("Re-Group all Programs"), this, SLOT(ReGroupPrograms()));
 
 	m_pTools->addSeparator();
+
+
+	m_pFwTools = m_pTools->addMenu(QIcon(":/Icons/Wall3.png"), tr("&Firewall Tools"));
+		m_pFwRestoreRules = m_pFwTools->addAction(QIcon(":/Icons/Refresh.png"), tr("Restore Default Windows Firewall Rules"), this, [this]() {
+			if(QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to remove ALL current Firewall Rules and restore the default Windows Firewall rules set?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+				return;
+			ShellExecuteW(nullptr, L"runas", L"netsh", L"advfirewall reset", nullptr, SW_HIDE);
+		});
+		m_pFwCreateRules = m_pFwTools->addAction(QIcon(":/Icons/Recover.png"), tr("Create Recommended Firewall Rules"), this, [this]() {
+			if(QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to create the recommended Firewall Rules?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+				return;
+			QList<STATUS> Result = theCore->NetworkManager()->CreateRecommendedFwRules();
+			CheckResults(Result, this);
+		});
+
 	m_pExpTools = m_pTools->addMenu(QIcon(":/Icons/Maintenance.png"), tr("&Advanced Tools"));
 		m_pMountMgr = m_pExpTools->addAction(QIcon(":/Icons/Disk.png"), tr("Mount Manager"), this, [this]() {
 			CMountMgrWnd* pWnd = new CMountMgrWnd();
@@ -2250,6 +2265,19 @@ int CMajorPrivacy::CheckResults(QList<STATUS> Results, QWidget* pParent, bool bA
 		Dialog.exec();
 	}
 	return Errors.count();
+}
+
+bool CMajorPrivacy::CheckAcknowledgement(const QString& Name)
+{
+	if(theConf->GetBool("Options/WarningAcknowledged", false))
+		return true;
+
+	if(QMessageBox::warning(this, "MajorPrivacy", tr("You cannot create any %1 until you have acknowledged the warning and reviewed the recovery instructions in the first-start wizard.\nYou can cancel the wizard after the acknowledgment page; then only your acknowledgment will be saved.\nWould you like to start the wizard now?").arg(Name), QMessageBox::Yes | QMessageBox::Cancel) != QMessageBox::Yes)
+		return false;
+
+	CSetupWizard::ShowWizard();
+
+	return theConf->GetBool("Options/WarningAcknowledged", false);
 }
 
 void CMajorPrivacy::ShowNotification(const QString& Title, const QString& Message, QSystemTrayIcon::MessageIcon Icon, int Timeout)

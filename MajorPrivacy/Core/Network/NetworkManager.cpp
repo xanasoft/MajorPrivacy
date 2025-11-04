@@ -188,6 +188,120 @@ STATUS CNetworkManager::DelFwRule(const CFwRulePtr& pRule)
 	return theCore->DelFwRule(pRule->GetGuid());
 }
 
+STATUS CNetworkManager::CreateFwRule(const QFlexGuid& Id, const QString& Name, const QString& Description, const CProgramID& ProgramID, EFwActions Action, EFwDirections Direction, EFwKnownProtocols Protocol, EFwProfiles Profile, const QStringList& LPort, const QStringList& RPort, const QStringList& RAddr)
+{
+	CFwRulePtr pRule = CFwRulePtr(new CFwRule(ProgramID));
+	pRule->m_Guid = Id;
+	pRule->m_Name = Name;
+	pRule->m_Description = Description;
+	pRule->m_Action = Action;
+	pRule->m_Direction = Direction;
+	pRule->m_Protocol = Protocol;
+	pRule->m_Profile = (int)Profile;
+	pRule->m_LocalPorts = LPort;
+	pRule->m_RemotePorts = RPort;
+	pRule->m_RemoteAddresses = RAddr;
+
+	pRule->SetApproved();
+	pRule->SetSource(EFwRuleSource::eMajorPrivacy);
+	return SetFwRule(pRule);
+}
+
+QList<STATUS> CNetworkManager::CreateRecommendedFwRules()
+{
+	CProgramID System = CProgramID::FromPath(theCore->NormalizePath("\\SystemRoot\\System32\\ntoskrnl.exe", true));
+
+	QList<STATUS> Results;
+
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-SSDP-In"), tr("Network Discovery (SSDP-In) - Default MajorPrivacy Rule"), tr(""), 
+		CProgramID::FromService(theCore->NormalizePath("\\SystemRoot\\System32\\svchost.exe", true), "SSDPSRV"), 
+		EFwActions::Allow, EFwDirections::Inbound, EFwKnownProtocols::UDP, EFwProfiles::PrivateAndDomain, 
+		QStringList() << "1900", QStringList(), QStringList() << "LocalSubnet");
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-SSDP-Out"), tr("Network Discovery (SSDP-Out) - Default MajorPrivacy Rule"), tr(""), 
+		CProgramID::FromService(theCore->NormalizePath("\\SystemRoot\\System32\\svchost.exe", true), "SSDPSRV"), 
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::UDP, EFwProfiles::PrivateAndDomain, 
+		QStringList(), QStringList() << "1900", QStringList() << "LocalSubnet");
+
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-NB-Name-In"), tr("Network Discovery (NB-Name-In) - Default MajorPrivacy Rule"), tr(""), 
+		System, EFwActions::Allow, EFwDirections::Inbound, EFwKnownProtocols::UDP, EFwProfiles::PrivateAndDomain, 
+		QStringList() << "137", QStringList(), QStringList() << "LocalSubnet");
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-NB-Name-Out"), tr("Network Discovery (NB-Name-Out) - Default MajorPrivacy Rule"), tr(""), 
+		System, EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::UDP, EFwProfiles::PrivateAndDomain, 
+		QStringList(), QStringList() << "137", QStringList() << "LocalSubnet");
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-NB-Session-Out"), tr("File and Printer Sharing (NB-Session-Out) - Default MajorPrivacy Rule"), tr(""), 
+		System, EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::TCP, EFwProfiles::PrivateAndDomain, 
+		QStringList(), QStringList() << "139", QStringList() << "LocalSubnet");
+
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-SMB-In"), tr("File and Printer Sharing (SMB-In) - Default MajorPrivacy Rule"), tr(""), 
+		System, EFwActions::Allow, EFwDirections::Inbound, EFwKnownProtocols::TCP, EFwProfiles::PrivateAndDomain, 
+		QStringList() << "445", QStringList(), QStringList() << "LocalSubnet");
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-SMB-Out"), tr("File and Printer Sharing (SMB-Out) - Default MajorPrivacy Rule"), tr(""), 
+		System, EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::TCP, EFwProfiles::PrivateAndDomain, 
+		QStringList(), QStringList() << "445", QStringList() << "LocalSubnet");
+
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-Spooler-Out"), tr("File and Printer Sharing (Spooler-Out) - Default MajorPrivacy Rule"), tr(""), 
+		CProgramID::FromPath(theCore->NormalizePath("\\SystemRoot\\System32\\spoolsv.exe", true)), 
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::Any, EFwProfiles::PrivateAndDomain, 
+		QStringList(), QStringList(), QStringList() << "LocalSubnet");
+
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-wuauserv"), tr("Windows Update - Default MajorPrivacy Rule"), tr(""), 
+		CProgramID::FromPath(theCore->NormalizePath("\\SystemRoot\\System32\\svchost.exe", true)), 
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::TCP, EFwProfiles::All, 
+		QStringList(), QStringList() << "80" << "443");
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-W32Time"), tr("Windows Time Service - Default MajorPrivacy Rule"), tr(""), 
+		CProgramID::FromService(theCore->NormalizePath("\\SystemRoot\\System32\\svchost.exe", true), "W32Time"),
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::UDP, EFwProfiles::All, 
+		QStringList(), QStringList() << "123");
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-wwahost"), tr("Microsoft WWA Host - Default MajorPrivacy Rule"), tr(""), 
+		CProgramID::FromPath(theCore->NormalizePath("\\SystemRoot\\System32\\wwahost.exe", true)), 
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::TCP, EFwProfiles::All, 
+		QStringList(), QStringList() << "443");
+	
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-DHCP-Out"), tr("Core Networking - Dynamic Host Configuration Protocol (DHCP-Out) - Default MajorPrivacy Rule"), tr(""), 
+		CProgramID::FromService(theCore->NormalizePath("\\SystemRoot\\System32\\svchost.exe", true), "Dhcp"), 
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::UDP, EFwProfiles::All, 
+		QStringList() << "68", QStringList() << "67");
+	
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-DNS-UDP-Out"), tr("Core Networking - Domain Name System (DNS-UDP-Out) - Default MajorPrivacy Rule"), tr(""), 
+		CProgramID::FromService(theCore->NormalizePath("\\SystemRoot\\System32\\svchost.exe", true), "Dnscache"), 
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::UDP, EFwProfiles::All, 
+		QStringList(), QStringList() << "53");
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-DNS-TCP-Out"), tr("Core Networking - Domain Name System (DNS-TCP-Out) - Default MajorPrivacy Rule"), tr(""),
+		CProgramID::FromService(theCore->NormalizePath("\\SystemRoot\\System32\\svchost.exe", true), "Dnscache"),
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::TCP, EFwProfiles::All,
+		QStringList(), QStringList() << "53");
+
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-ICMPv6-In"), tr("Internet Control Message Protocol (ICMPv6-In) - Default MajorPrivacy Rule"), tr(""), 
+		System, EFwActions::Allow, EFwDirections::Inbound, EFwKnownProtocols::ICMPv6, EFwProfiles::All);
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-ICMPv4-In"), tr("Internet Control Message Protocol (ICMPv4-In) - Default MajorPrivacy Rule"), tr(""), 
+		System, EFwActions::Allow, EFwDirections::Inbound, EFwKnownProtocols::ICMP, EFwProfiles::All);
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-ICMPv6-Out"), tr("Internet Control Message Protocol (ICMPv6-Out) - Default MajorPrivacy Rule"), tr(""), 
+		System, EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::ICMPv6, EFwProfiles::All);
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-ICMPv4-Out"), tr("Internet Control Message Protocol (ICMPv4-Out) - Default MajorPrivacy Rule"), tr(""), 
+		System, EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::ICMP, EFwProfiles::All);
+
+
+
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-GUI"), tr("MajorPrivacy Network Access (GUI) - Default MajorPrivacy Rule"), tr(""), 
+		CProgramID::FromPath(theCore->GetAppDir() + QString(("\\MajorPrivacy.exe"))), 
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::Any, EFwProfiles::All);
+
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-PrivacyAgent"), tr("MajorPrivacy Service Network Access (PrivacyAgent) - Default MajorPrivacy Rule"), tr(""),
+		CProgramID::FromPath(theCore->GetAppDir() + QString(("\\" API_SERVICE_NAME ".exe"))), 
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::Any, EFwProfiles::All);
+
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-DNS-Filter-Out"), tr("MajorPrivacy Local DNS Filter (DNS-Filter-Out) - Default MajorPrivacy Rule"), tr(""),
+		CProgramID::FromPath(theCore->GetAppDir() + QString(("\\" API_SERVICE_NAME ".exe"))), 
+		EFwActions::Allow, EFwDirections::Outbound, EFwKnownProtocols::UDP, EFwProfiles::All,
+		QStringList(), QStringList() << "53");
+	Results << CreateFwRule(QFlexGuid("MajorPrivacy-DNS-Filter-In"), tr("MajorPrivacy Local DNS Filter (DNS-Filter-In) - Default MajorPrivacy Rule"), tr(""),
+		CProgramID::FromPath(theCore->GetAppDir() + QString(("\\" API_SERVICE_NAME ".exe"))), 
+		EFwActions::Allow, EFwDirections::Inbound, EFwKnownProtocols::UDP, EFwProfiles::PrivateAndDomain,
+		QStringList() << "53");
+
+	return Results;
+}
+
 bool CNetworkManager::UpdateAllDnsRules()
 {
 	auto Ret = theCore->GetAllDnsRules();

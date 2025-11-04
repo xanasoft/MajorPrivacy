@@ -19,6 +19,9 @@ public:
 	EExecRuleType GetType() const					{std::shared_lock Lock(m_Mutex); return m_Type;}
 	bool IsBlock() const							{std::shared_lock Lock(m_Mutex); return m_Type == EExecRuleType::eBlock;}
 	bool IsProtect() const							{std::shared_lock Lock(m_Mutex); return m_Type == EExecRuleType::eProtect;}
+
+	EExecDllMode GetDllMode() const					{return m_DllMode;}
+	
 	USignatures GetAllowedSignatures() const {std::shared_lock Lock(m_Mutex); return m_AllowedSignatures;}
 	std::list<std::wstring> GetAllowedCollections() const {std::shared_lock Lock(m_Mutex); return m_AllowedCollections;}
 	bool GetImageLoadProtection() const				{std::shared_lock Lock(m_Mutex); return m_ImageLoadProtection;}
@@ -39,14 +42,17 @@ protected:
 
 	void UpdateScript_NoLock();
 
-	EExecRuleType m_Type = EExecRuleType::eUnknown;
-	bool m_bUseScript = false;
-	std::string m_Script;
-	std::wstring m_ProgramPath; // can be pattern
-	USignatures m_AllowedSignatures = { 0 };
+	EExecRuleType			m_Type = EExecRuleType::eUnknown;
+	bool					m_bUseScript = false;
+	std::string				m_Script;
+
+	EExecDllMode			m_DllMode = EExecDllMode::eDisabled;
+
+	std::wstring			m_ProgramPath; // can be pattern
+	USignatures				m_AllowedSignatures = { 0 };
 	std::list<std::wstring> m_AllowedCollections;
-	bool m_ImageLoadProtection = true;
-	bool m_ImageCoherencyChecking = true;
+	bool					m_ImageLoadProtection = true;
+	bool					m_ImageCoherencyChecking = true;
 
 	CJSEnginePtr m_pScript;
 };

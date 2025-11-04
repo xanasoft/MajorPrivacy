@@ -88,30 +88,32 @@ protected:
 
 	//bool m_bLockdown = true;
 
-	QString m_Name;
-	QIcon m_Icon;
-	//QString m_Grouping;
-	QString m_Description;
+	QString					m_Name;
+	QIcon					m_Icon;
+	//QString				m_Grouping;
+	QString					m_Description;
 
-	QFlexGuid m_VolumeGuid;
+	QFlexGuid				m_VolumeGuid;
 
-	bool m_bUseScript = false;
-	QString m_Script;
+	bool					m_bUseScript = false;
+	QString					m_Script;
 
-	USignatures m_AllowedSignatures = { 0 };
-	QList<QString> m_AllowedCollections;
-	bool m_ImageLoadProtection = true;
-	bool m_ImageCoherencyChecking = true;
+	EExecDllMode			m_DllMode = EExecDllMode::eDisabled;
 
-	EProgramOnSpawn m_OnTrustedSpawn = EProgramOnSpawn::eAllow;
-	EProgramOnSpawn m_OnSpawn = EProgramOnSpawn::eEject;
+	USignatures				m_AllowedSignatures = { 0 };
+	QList<QString>			m_AllowedCollections;
+	bool					m_ImageLoadProtection = true;
+	bool					m_ImageCoherencyChecking = true;
 
-	EIntegrityLevel	m_IntegrityLevel = EIntegrityLevel::eUnknown;
+	EProgramOnSpawn			m_OnTrustedSpawn = EProgramOnSpawn::eAllow;
+	EProgramOnSpawn			m_OnSpawn = EProgramOnSpawn::eEject;
 
-	bool m_AllowDebugging = false;
-	bool m_KeepAlive = false;
+	EIntegrityLevel			m_IntegrityLevel = EIntegrityLevel::eUnknown;
 
-	QtVariant m_Data;
+	bool					m_AllowDebugging = false;
+	bool					m_KeepAlive = false;
+
+	QtVariant				m_Data;
 
 	QMap<quint64, CProcessPtr> m_Processes;
 };

@@ -74,6 +74,7 @@ public:
 
 protected:
     friend class CFirewallRuleWnd;
+	friend class CNetworkManager;
 
     void WriteIVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const override;
     void WriteMVariant(QtVariantWriter& Rule, const SVarWriteOpt& Opts) const override;

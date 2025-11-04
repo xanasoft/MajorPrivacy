@@ -9,8 +9,12 @@ void CProgramRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 	CGenericRule::WriteIVariant(Rule, Opts);
 
 	Rule.Write(API_V_EXEC_RULE_ACTION, (uint32)m_Type);
+
 	Rule.Write(API_V_USE_SCRIPT, m_bUseScript);
 	Rule.WriteEx(API_V_SCRIPT, TO_STR_A(m_Script));
+
+	Rule.Write(API_V_DLL_INJECT_MODE, (uint32)m_DllMode);
+
 	Rule.WriteEx(API_V_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
 	if(Opts.Flags & SVarWriteOpt::eSaveNtPaths) {
@@ -36,8 +40,12 @@ void CProgramRule::ReadIValue(uint32 Index, const XVariant& Data)
 	switch (Index)
 	{
 	case API_V_EXEC_RULE_ACTION: m_Type = (EExecRuleType)Data.To<uint32>(); break;
+	
 	case API_V_USE_SCRIPT: m_bUseScript = Data.To<bool>(); break;
 	case API_V_SCRIPT: AS_STR_A(m_Script, Data); break;
+
+	case API_V_DLL_INJECT_MODE: m_DllMode = (EExecDllMode)Data.To<uint32>(); break;
+
 	case API_V_FILE_PATH: m_ProgramPath = AS_STR(Data); break;
 #ifdef LOAD_NT_PATHS
 	case API_V_FILE_NT_PATH: m_ProgramNtPath = AS_STR(Data); break;
@@ -73,6 +81,14 @@ void CProgramRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 
 	Rule.Write(API_S_USE_SCRIPT, m_bUseScript);
 	Rule.WriteEx(API_S_SCRIPT, TO_STR(m_Script));
+
+	switch (m_DllMode)
+	{
+	case EExecDllMode::eDefault:	Rule.Write(API_S_DLL_INJECT_MODE, API_S_EXEC_DLL_MODE_DEFAULT); break;
+	case EExecDllMode::eInjectLow:	Rule.Write(API_S_DLL_INJECT_MODE, API_S_EXEC_DLL_MODE_INJECT_LOW); break;
+	case EExecDllMode::eInjectHigh:	Rule.Write(API_S_DLL_INJECT_MODE, API_S_EXEC_DLL_MODE_INJECT_HIGH); break;
+	case EExecDllMode::eDisabled:	Rule.Write(API_S_DLL_INJECT_MODE, API_S_EXEC_DLL_MODE_DISABLED); break;
+	}
 
 	Rule.WriteEx(API_S_FILE_PATH, TO_STR(m_ProgramPath));
 #ifdef SAVE_NT_PATHS
@@ -133,6 +149,21 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 
 	else if (VAR_TEST_NAME(Name, API_S_USE_SCRIPT))		m_bUseScript = Data.To<bool>();
 	else if (VAR_TEST_NAME(Name, API_S_SCRIPT))			AS_STR_A(m_Script, Data);
+
+	else if (VAR_TEST_NAME(Name, API_S_DLL_INJECT_MODE))
+	{
+		ASTR DllMode = Data;
+		if (DllMode == API_S_EXEC_DLL_MODE_DEFAULT)
+			m_DllMode = EExecDllMode::eDefault;
+		else if (DllMode == API_S_EXEC_DLL_MODE_INJECT_LOW)
+			m_DllMode = EExecDllMode::eInjectLow;
+		else if (DllMode == API_S_EXEC_DLL_MODE_INJECT_HIGH)
+			m_DllMode = EExecDllMode::eInjectHigh;
+		else if (DllMode == API_S_EXEC_DLL_MODE_DISABLED)
+			m_DllMode = EExecDllMode::eDisabled;
+		//else // todo other
+		//	return STATUS_INVALID_PARAMETER;
+	}
 
 	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH))
 	{

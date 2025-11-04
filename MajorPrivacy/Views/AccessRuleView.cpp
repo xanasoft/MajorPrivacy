@@ -195,6 +195,9 @@ void CAccessRuleView::OnMenu(const QPoint& Point)
 
 void CAccessRuleView::OnAddRule()
 {
+	if(!theGUI->CheckAcknowledgement(tr("Resource Access Rule")))
+		return;
+
 	CAccessRulePtr pRule = CAccessRulePtr(new CAccessRule());
 	OpenRullDialog(pRule);
 }

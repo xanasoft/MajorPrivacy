@@ -19,6 +19,8 @@ public:
 	EExecRuleType GetType() const					{return m_Type;}
 	QString GetTypeStr() const;
 	
+	EExecDllMode GetDllMode() const					{return m_DllMode;}
+
 	USignatures GetAllowedSignatures() const {return m_AllowedSignatures;}
 	QList<QString> GetAllowedCollections() const		{return m_AllowedCollections;}
 	QList<QString> GetAllowedSignaturesEx() const;
@@ -36,16 +38,19 @@ protected:
 	void ReadIValue(uint32 Index, const QtVariant& Data) override;
 	void ReadMValue(const SVarName& Name, const QtVariant& Data) override;
 
-	EExecRuleType m_Type = EExecRuleType::eUnknown;
-	bool m_bUseScript = false;
-	QString m_Script;
-	QString m_ProgramPath;
-	QString m_ProgramNtPath;
+	EExecRuleType			m_Type = EExecRuleType::eUnknown;
+	bool					m_bUseScript = false;
+	QString					m_Script;
+
+	EExecDllMode			m_DllMode = EExecDllMode::eDisabled;
+
+	QString					m_ProgramPath;
+	QString					m_ProgramNtPath;
 	
-	USignatures m_AllowedSignatures = { 0 };
-	QList<QString> m_AllowedCollections;
-	bool m_ImageLoadProtection = true;
-	bool m_ImageCoherencyChecking = true; // not used yet, but will be in the future
+	USignatures				m_AllowedSignatures = { 0 };
+	QList<QString>			m_AllowedCollections;
+	bool					m_ImageLoadProtection = true;
+	bool					m_ImageCoherencyChecking = true; // not used yet, but will be in the future
 };
 
 typedef QSharedPointer<CProgramRule> CProgramRulePtr;

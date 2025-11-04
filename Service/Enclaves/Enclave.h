@@ -14,6 +14,8 @@ public:
 	bool IsEnabled() const					{ std::shared_lock Lock(m_Mutex); return m_bEnabled; }
 	void SetEnabled(bool bEnabled)			{ std::unique_lock Lock(m_Mutex); m_bEnabled = bEnabled; }
 
+	EExecDllMode GetDllMode() const			{ std::shared_lock Lock(m_Mutex); return m_DllMode; }
+
 	//bool IsLockdown() const					{ std::shared_lock Lock(m_Mutex); return m_bLockdown; }
 	//void SetLockdown(bool bLockdown)		{ std::unique_lock Lock(m_Mutex); m_bLockdown = bLockdown; }
 
@@ -61,6 +63,8 @@ protected:
 	bool					m_bUseScript = false;
 	std::string				m_Script;
 
+	EExecDllMode			m_DllMode = EExecDllMode::eDisabled;
+
 	USignatures				m_AllowedSignatures = { 0 };
 	std::list<std::wstring>	m_AllowedCollections;
 	bool					m_ImageLoadProtection = true;
@@ -74,7 +78,7 @@ protected:
 	bool					m_AllowDebugging = false;
 	bool					m_KeepAlive = false;
 
-	StVariant m_Data;
+	StVariant				m_Data;
 
 	CJSEnginePtr m_pScript;
 };

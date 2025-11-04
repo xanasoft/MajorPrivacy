@@ -54,6 +54,14 @@ enum class EExecRuleType // API_S_EXEC_RULE_ACTION
 	eMax
 };
 
+enum class EExecDllMode
+{
+	eDefault = 0,
+	eInjectLow,
+	eInjectHigh,
+	eDisabled
+};
+
 enum class EProgramOnSpawn // API_S_EXEC_ON_SPAWN
 {
 	eUnknown = 0,

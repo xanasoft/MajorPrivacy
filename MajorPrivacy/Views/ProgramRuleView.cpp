@@ -172,6 +172,9 @@ void CProgramRuleView::OnMenu(const QPoint& Point)
 
 void CProgramRuleView::OnAddRule()
 {
+	if(!theGUI->CheckAcknowledgement("Program Execution Rule"))
+		return;
+
 	CProgramRulePtr pRule = CProgramRulePtr(new CProgramRule());
 	pRule->SetEnclave(m_EnclaveGuid);
 	OpenRullDialog(pRule);

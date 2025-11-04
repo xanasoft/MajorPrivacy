@@ -64,7 +64,9 @@ STATUS CProcessList::Init()
 
     static bool bInitInject = true;
     if (bInitInject) {
-        InitInject(); // todo handle error
+        ULONG err = InitInject();
+        if (err)
+            theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Failed to initialize LowLevel Inject mechanism err %d.", err);
         bInitInject = false;
     }
 
@@ -894,21 +896,121 @@ void CProcessList::AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram
         theCore->BroadcastMessage(SVC_API_EVENT_EXEC_ACTIVITY, Event, pProgram);
 }
 
-NTSTATUS CProcessList::OnInjectionRequest(uint64 Pid)
+ULONG InjectDllLow(uint64 Pid, ULONG flags)
 {
-    const ULONG DesiredAccess =
+    const ULONG ProcessAccess =
         PROCESS_DUP_HANDLE | PROCESS_TERMINATE | PROCESS_SUSPEND_RESUME
         | PROCESS_SET_INFORMATION | PROCESS_QUERY_INFORMATION
         | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE;
 
-    CScopedHandle hProcess = CScopedHandle(OpenProcess(DesiredAccess, FALSE, (DWORD)Pid), CloseHandle);
+    CScopedHandle hProcess = CScopedHandle(OpenProcess(ProcessAccess, FALSE, (DWORD)Pid), CloseHandle);
 
-    /*CScopedHandle hHandle = CScopedHandle((HANDLE)0, CloseHandle);
-    if (NT_SUCCESS(NtOpenProcessToken(hProcess, TOKEN_QUERY | TOKEN_ADJUST_DEFAULT, &hHandle)))
-    { 
-    }*/
+    ULONG err = InjectLdr(hProcess, 0);
+    if (err)
+        theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"InjectDllLow failed err %d, for PID %d.", err, Pid);
 
-    ULONG errlvl = InjectLdr(hProcess, 0);
+    return err;
+}
+
+struct SInjectDllHigParams
+{
+    uint64 Pid;
+	CScopedHandle<HANDLE, BOOL (__stdcall*)(HANDLE)> hThread;
+    ULONG flags;
+};
+
+DWORD CALLBACK InjectDllHighFunc(LPVOID lpThreadParameter)
+{
+#ifdef _DEBUG
+MySetThreadDescription(GetCurrentThread(), L"InjectDllHighFunc");
+#endif
+ 
+    CScoped<SInjectDllHigParams> params = (SInjectDllHigParams*)lpThreadParameter;
+	
+    const ULONG ProcessAccess =
+        PROCESS_DUP_HANDLE | PROCESS_TERMINATE | PROCESS_SUSPEND_RESUME |
+        PROCESS_SET_INFORMATION | PROCESS_QUERY_INFORMATION |
+        PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE;
+
+    CScopedHandle hProcess = CScopedHandle(OpenProcess(ProcessAccess, FALSE, (DWORD)params->Pid), CloseHandle);
+
+    DWORD ret =  InjectDll(hProcess, params->hThread, params->flags);
+
+    if (ret)
+        theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"InjectDllHigh failed err %d, for PID %d.", ret, params->Pid);
+
+    ResumeThread(params->hThread);
+
+    return ret;
+}
+
+ULONG InjectDllHigh(uint64 Pid, ULONG flags)
+{
+    //
+	// Note: NtGetContextThread called here locks untill the driver callback finishes, so we need to suspend the thread and return
+	// we will resume the thread from a helper thread after we finished the injection process.
+	// As each thread has a suspend count, we are not at risk of the thread being resumed by the creating process before we are done.
+    // 
+    // Also note that we can not use our drivers thread tracking as it also only fires after the process creation callback finishes.
+    //
+
+    uint64 Tid = 0;
+
+    std::vector<BYTE> Processes;
+    NTSTATUS status = MyQuerySystemInformation(Processes, SystemProcessInformation);
+    if (NT_SUCCESS(status))
+    {
+        for (PSYSTEM_PROCESS_INFORMATION process = PH_FIRST_PROCESS(Processes.data()); process != NULL; process = PH_NEXT_PROCESS(process))
+        {
+            if (process->UniqueProcessId != (HANDLE)Pid)
+                continue;
+
+            ASSERT(process->NumberOfThreads == 1);
+            _SYSTEM_THREAD_INFORMATION* Thread = &process->Threads[0];
+            Tid = (uint64)Thread->ClientId.UniqueThread;
+            break;
+        }
+    }
+
+    const ULONG ThreadAccess =
+        THREAD_SUSPEND_RESUME |
+        THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | 
+        THREAD_QUERY_INFORMATION | THREAD_SET_INFORMATION;
+
+    HANDLE hThread = OpenThread(ThreadAccess, FALSE, (DWORD)Tid);
+    if (hThread == INVALID_HANDLE_VALUE) {
+        //DWORD err = GetLastError();
+        return -1;
+    }
+
+	SuspendThread(hThread);
+
+    SInjectDllHigParams* params = new SInjectDllHigParams();
+	params->Pid = Pid;
+	params->hThread.Set(hThread, CloseHandle);
+	params->flags = flags;
+
+    HANDLE hHelper = CreateThread(NULL, 0, InjectDllHighFunc, (void*)params, 0, NULL);
+    CloseHandle(hHelper);
+}
+
+NTSTATUS CProcessList::OnInjectionRequest(uint64 Pid, EExecDllMode DllMode, const CFlexGuid& EnclaveGuid, const CFlexGuid& RuleGuid)
+{
+    //CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(EnclaveGuid);
+    //if (!pEnclave) {
+    //    theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_RULE_NOT_FOUND, L"Enclave not found: %s", EnclaveGuid.ToString().c_str());
+    //    return STATUS_NOT_FOUND;
+    //}
+
+    //std::shared_ptr<std::vector<uint64>> ThreadIDs = theCore->Driver()->GetThreadIDs(Pid).GetValue();
+    //if(ThreadIDs->empty())
+    //return STATUS_PROCESS_IS_TERMINATING;
+    //uint64 Tid = ThreadIDs->front();
+
+    switch (DllMode) {
+    case EExecDllMode::eInjectLow:  InjectDllLow(Pid, 0);   break;
+    case EExecDllMode::eInjectHigh: InjectDllHigh(Pid, 0);  break;
+    }
 
 	return STATUS_SUCCESS;
 }
@@ -978,7 +1080,7 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
 		case SProcessEvent::EType::InjectionRequest:
 		{
 			const SInjectionRequest* pInjectEvent = (SInjectionRequest*)(pEvent);
-			return OnInjectionRequest(pInjectEvent->ProcessId);
+			return OnInjectionRequest(pInjectEvent->ProcessId, pInjectEvent->DllInject, pInjectEvent->EnclaveId, pInjectEvent->RuleGuid);
 		}
     }
 

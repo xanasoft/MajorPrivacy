@@ -5,6 +5,7 @@
 #include "../Windows/SettingsWindow.h"
 #include "../MajorPrivacy.h"
 #include "../Core/PrivacyCore.h"
+#include "../Core/Network/NetworkManager.h"
 #include "Helpers/WinAdmin.h"
 #include <QButtonGroup>
 #include "../OnlineUpdater.h"
@@ -19,6 +20,7 @@ CSetupWizard::CSetupWizard(int iOldLevel, QWidget *parent)
     if (iOldLevel < SETUP_LVL_1) {
         setPage(Page_Intro, new CIntroPage);
         setPage(Page_Certificate, new CCertificatePage(iOldLevel));
+        setPage(Page_Warning, new CWarningPage);
         setPage(Page_Exec, new CExecPage);
         setPage(Page_Res, new CResPage);
         setPage(Page_Net, new CNetPage);
@@ -27,6 +29,8 @@ CSetupWizard::CSetupWizard(int iOldLevel, QWidget *parent)
         setPage(Page_Update, new CUpdatePage);
     }
     setPage(Page_Finish, new CFinishPage);
+
+    this->setMinimumWidth(600);
 
     setWizardStyle(ModernStyle);
     //setOption(HaveHelpButton, true);
@@ -102,6 +106,9 @@ bool CSetupWizard::ShowWizard(int iOldLevel)
             theCore->SetFwProfile(FwFilteringModes::AllowList);
 
         theCore->SetConfig("Service/GuardFwRules", wizard.field("protectFw").toBool());
+
+        if(wizard.field("createFwRules").toBool())
+			theCore->NetworkManager()->CreateRecommendedFwRules();
 
         theCore->SetConfig("Service/NetTrace", wizard.field("collectNet").toBool());
         theCore->SetConfig("Service/SaveTrafficRecord", wizard.field("recordNet").toBool());
@@ -262,12 +269,7 @@ CIntroPage::CIntroPage(QWidget *parent)
 
 int CIntroPage::nextId() const
 {
-#ifndef _DEBUG
-    //if(!g_Certificate.isEmpty())
-    if(g_CertInfo.active)
-        return CSetupWizard::Page_Exec;
-#endif
-    return CSetupWizard::Page_Certificate;
+    return CSetupWizard::Page_Warning;
 }
 
 bool CIntroPage::isComplete() const 
@@ -278,22 +280,89 @@ bool CIntroPage::isComplete() const
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
+// CWarningPage
+// 
+
+CWarningPage::CWarningPage(QWidget *parent)
+    : QWizardPage(parent)
+{
+    setTitle(tr("Safety and Recovery instructions. <b>Please read carefully</b>"));
+    setSubTitle(tr("Major Privacy is a powerfull tool, improper operation may break the system."));
+
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->setContentsMargins(3,3,3,3);
+    layout->setSpacing(3);
+
+    QLabel* pTopLabel = new QLabel(tr("MajorPrivacy allows you to control file access, process execution, and enforce custom code-integrity rules. Incorrect or overly restrictive rules may prevent Windows from booting into the desktop.<br /><br />"
+        "To mitigate this risk, MajorPrivacy automatically disables rule enforcement when Windows starts in recovery mode. Additionally, if repeated boot failures are detected, MajorPrivacy will take corrective action: it will revert to the last known good rule set after the third failed boot, and completely disable all rules after the fifth.<br /><br />"
+        "If recovery fails, you can manually disable MajorPrivacy from the Windows Recovery Environment (WinRE). Open the command prompt, navigate to your installation directory (typically \"C:\\Program Files\\MajorPrivacy\"), and rename the driver file - for example, by appending .disabled to its name.<br /><br />"
+        "<b>Disclaimer:</b> Use of these features is at your own risk. We assume no responsibility for system instability or data loss resulting from user-defined rules."));
+    pTopLabel->setWordWrap(true);
+	//pTopLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+    layout->addWidget(pTopLabel);
+
+    layout->addItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Expanding));
+
+    m_pAcknowledge = new QCheckBox(tr("I acknowledge the risks and take full responsibility for teh rules I create."));
+    connect(m_pAcknowledge, &QCheckBox::toggled, this, &QWizardPage::completeChanged);
+
+    if(theConf->GetBool("Options/WarningAcknowledged", false)) {
+        m_pAcknowledge->setChecked(true);
+        m_pAcknowledge->setEnabled(false);
+		m_pAcknowledge->setText(m_pAcknowledge->text() + tr(" (already acknowledged)"));
+	}
+
+	layout->addWidget(m_pAcknowledge);
+
+    setLayout(layout);
+}
+
+void CWarningPage::initializePage()
+{
+}
+
+int CWarningPage::nextId() const
+{
+#ifndef _DEBUG
+    //if(!g_Certificate.isEmpty())
+    if(g_CertInfo.active)
+        return CSetupWizard::Page_Exec;
+#endif
+    return CSetupWizard::Page_Certificate;
+}
+
+bool CWarningPage::isComplete() const
+{
+    if (!m_pAcknowledge->isChecked())
+        return false;
+
+    return QWizardPage::isComplete();
+}
+
+bool CWarningPage::validatePage()
+{
+    if (m_pAcknowledge->isEnabled() && m_pAcknowledge->isChecked())
+		theConf->SetValue("Options/WarningAcknowledged", true);
+    
+    return true;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
 // CCertificatePage
 // 
 
 CCertificatePage::CCertificatePage(int iOldLevel, QWidget *parent)
     : QWizardPage(parent)
 {
-    setTitle(tr("Install your <b>MajorPrivacy</b> support certificate"));
-    setSubTitle(tr("To use most security features a support certificate must be installed."));
+    setTitle(tr("Install your <b>MajorPrivacy</b> License Certificate"));
+    setSubTitle(tr("To use most advanced protection features a License Certificate must be installed."));
    
     QGridLayout *layout = new QGridLayout;
     layout->setContentsMargins(3,3,3,3);
     layout->setSpacing(3);
 
-    m_pTopLabel = new QLabel(tr("<b>MajorPrivacy</b> provides strong features to protect your data exclusively to <u>project supporters</u>. "
-            "If you are not yet a supporter, then please consider <a href=\"https://xanasoft.com/go.php?to=priv-get-cert\">supporting the project</a> "
-            "to ensure further development of MajorPrivacy and to receive a <a href=\"https://xanasoft.com/go.php?to=priv-cert\">supporter certificate</a>."));
+    m_pTopLabel = new QLabel(tr("<b>MajorPrivacy</b> offers powerful features to safeguard your data. To unlock these features, you'll need a valid license."
+            "If you don't have one yet, please consider <a href=\"https://xanasoft.com/go.php?to=priv-get-cert\">getting a license</a>."));
     m_pTopLabel->setWordWrap(true);
     connect(m_pTopLabel, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
     layout->addWidget(m_pTopLabel);
@@ -311,7 +380,7 @@ CCertificatePage::CCertificatePage(int iOldLevel, QWidget *parent)
     connect(m_pCertificate, SIGNAL(textChanged()), this, SIGNAL(completeChanged()));
     registerField("useCertificate", m_pCertificate, "plainText");
     
-    layout->addWidget(new QLabel(tr("Retrieve certificate using Serial Number:")));
+    layout->addWidget(new QLabel(tr("Retrieve License Certificate using a Serial Number:")));
 
     m_pSerial = new QLineEdit();
     m_pSerial->setPlaceholderText("PRIV_-_____-_____-_____-_____");
@@ -368,7 +437,7 @@ bool CCertificatePage::isComplete() const
     //if (g_Certificate.isEmpty()) 
     if(!g_CertInfo.active)
     {
-        if (QMessageBox::warning((CCertificatePage*)this, "MajorPrivacy", tr("Without an active support certificate, MajorPrivacy runs in demo mode and does not enforce any rules. "
+        if (QMessageBox::warning((CCertificatePage*)this, "MajorPrivacy", tr("Without an active License Certificate, MajorPrivacy runs in demo mode and does not enforce any rules. "
             "You can get a free %1-day evaluation certificate to unlock all features. Are you sure you want to continue without one?").arg(EVAL_DAYS), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) == QMessageBox::No)
 			return false;
     }
@@ -566,6 +635,11 @@ CNetPage::CNetPage(QWidget *parent)
         m_pRestrict->setChecked(theCore->GetFwProfile().GetValue() == FwFilteringModes::AllowList);
         layout->addWidget(m_pRestrict, row++, 1);
         registerField("restrictFw", m_pRestrict);
+
+		m_pCreate = new QCheckBox(tr("Create recommended windows firewall rules"));
+		m_pCreate->setChecked(true);
+		layout->addWidget(m_pCreate, row++, 1);
+		registerField("createFwRules", m_pCreate);
 
         m_pProtect = new QCheckBox(tr("Automatically revert all unauthorized rule changes"));
         m_pProtect->setChecked(theCore->GetConfigBool("Service/GuardFwRules", false));
@@ -768,7 +842,7 @@ CUpdatePage::CUpdatePage(QWidget *parent)
     //    "or experimental changes that may not be ready for wider use."));
     //layout->addWidget(m_pInsider, row, 2, 1, 1);
     //registerField("channelInsider", m_pInsider);
-    //QLabel* pInsiderInfo = new QLabel(tr("More about the <a href=\"https://xanasoft.com/go.php?to=sbie-insider\">Insider Channel</a>"));
+    //QLabel* pInsiderInfo = new QLabel(tr("More about the <a href=\"https://xanasoft.com/go.php?to=priv-insider\">Insider Channel</a>"));
     //connect(pInsiderInfo, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
     //layout->addWidget(pInsiderInfo, row++, 3, 1, 1);
 

@@ -447,7 +447,7 @@ bool COnlineUpdater::ShowCertWarningIfNeeded()
 	if (!(g_CertInfo.active && g_CertInfo.expired))
 		return true;
 
-	QString Message = tr("Your MajorPrivacy supporter certificate is expired, however for the current build you are using it remains active, when you update to a newer build exclusive supporter features will be disabled.\n\n"
+	QString Message = tr("Your MajorPrivacy license is expired, however for the current build you are using it remains active, when you update to a newer build protection features will be disabled.\n\n"
 		"Do you still want to update?");
 	int Ret = QMessageBox("MajorPrivacy", Message, QMessageBox::Warning, QMessageBox::Yes, QMessageBox::No | QMessageBox::Escape | QMessageBox::Default, QMessageBox::Cancel, theGUI).exec();
 	if (Ret == QMessageBox::Cancel) {

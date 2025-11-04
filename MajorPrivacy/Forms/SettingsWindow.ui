@@ -1329,7 +1329,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>This supporter certificate has expired, please &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-renew-cert&quot;&gt;get an updated certificate&lt;/a&gt;.</string>
+                  <string>This license has expired, please &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-renew-cert&quot;&gt;get an updated license&lt;/a&gt;.</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1339,7 +1339,7 @@
                <item row="2" column="1" colspan="4">
                 <widget class="QLabel" name="lblSupportCert">
                  <property name="text">
-                  <string>Please enter your Supporter Certificate or License Serial Number:</string>
+                  <string>Please enter your License Data or Serial Number:</string>
                  </property>
                  <property name="wordWrap">
                   <bool>true</bool>
@@ -1355,7 +1355,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>&lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-use-cert&quot;&gt;Certificate usage guide&lt;/a&gt;</string>
+                  <string>&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-use-cert&quot;&gt;License usage guide&lt;/a&gt;</string>
                  </property>
                  <property name="alignment">
                   <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -1368,7 +1368,7 @@
                <item row="5" column="1" colspan="3">
                 <widget class="QLabel" name="lblSerial">
                  <property name="text">
-                  <string>Retrieve/Upgrade/Renew certificate using Serial Number</string>
+                  <string>Retrieve/Upgrade/Renew license using Serial Number</string>
                  </property>
                  <property name="openExternalLinks">
                   <bool>false</bool>
@@ -1391,7 +1391,7 @@
                <item row="13" column="0" colspan="3">
                 <widget class="QCheckBox" name="chkNoCheck">
                  <property name="text">
-                  <string>In the future, don't notify about certificate expiration</string>
+                  <string>In the future, don't notify about license expiration</string>
                  </property>
                 </widget>
                </item>
@@ -1404,7 +1404,7 @@
                   </size>
                  </property>
                  <property name="placeholderText">
-                  <string>Enter the support certificate here</string>
+                  <string>Enter the License Data here</string>
                  </property>
                 </widget>
                </item>
@@ -1463,7 +1463,7 @@
                   </sizepolicy>
                  </property>
                  <property name="text">
-                  <string>Maintaining and improving MajorPrivacy is an ongoing process focused on enhancing functionality, user experience, and privacy protection. Your support is essential to ensure continued development, long-term sustainability, and the addition of new features. You can support MajorPrivacy by &lt;a href=&quot;https://xanasoft.com/go.php?to=mp-contribute&quot;&gt;contributing directly to the project&lt;/a&gt;, showing your appreciation by &lt;a href=&quot;https://xanasoft.com/go.php?to=mp-obtain-cert&quot;&gt;purchasing a supporter certificate&lt;/a&gt;, becoming a patron by &lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;subscribing on Patreon&lt;/a&gt;, or through a &lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal donation&lt;/a&gt;. Your support helps drive innovation and ensures the continued availability of this privacy-focused tool.</string>
+                  <string>Maintaining and improving MajorPrivacy is an ongoing process focused on enhancing functionality, user experience, and privacy protection. Your support is essential to ensure continued development, long-term sustainability, and the addition of new features. You can support MajorPrivacy by &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-contribute&quot;&gt;contributing directly to the project&lt;/a&gt;, showing your appreciation by &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-obtain-cert&quot;&gt;purchasing a license&lt;/a&gt;, becoming a patron by &lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;subscribing on Patreon&lt;/a&gt;, or through a &lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal donation&lt;/a&gt;. Your support helps drive innovation and ensures the continued availability of this privacy-focused tool.</string>
                  </property>
                  <property name="textFormat">
                   <enum>Qt::TextFormat::RichText</enum>

@@ -72,6 +72,8 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	connect(ui.chkScript, SIGNAL(stateChanged(int)), this, SLOT(OnActionChanged()));
 	connect(ui.btnScript, SIGNAL(clicked()), this, SLOT(EditScript()));
 
+	//connect(ui.cmbDllMode, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
+
 	connect(ui.cmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
 
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
@@ -84,6 +86,11 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	//AddColoredComboBoxEntry(ui.cmbAction, tr("Isolate"), GetActionColor(EExecRuleType::eIsolate), (int)EExecRuleType::eIsolate); // todo
 	//AddColoredComboBoxEntry(ui.cmbAction, tr("Audit"), GetActionColor(EExecRuleType::eAudit), (int)EExecRuleType::eAudit);
 	ColorComboBox(ui.cmbAction);
+
+	ui.cmbDllMode->addItem(tr("Default"), (int)EExecDllMode::eDefault);
+	ui.cmbDllMode->addItem(tr("Inject Low (Exclusive)"), (int)EExecDllMode::eInjectLow);
+	ui.cmbDllMode->addItem(tr("Inject High (Sbie+ Compatible)"), (int)EExecDllMode::eInjectHigh);
+	ui.cmbDllMode->addItem(tr("Disabled"), (int)EExecDllMode::eDisabled);
 
 	//FixComboBoxEditing(ui.cmbGroup);
 
@@ -122,6 +129,8 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 		ui.btnScript->setIcon(QIcon(":/Icons/Script-Edit.png"));
 
 	SetComboBoxValue(ui.cmbAction, (int)m_pRule->m_Type);
+
+	SetComboBoxValue(ui.cmbDllMode, (int)m_pRule->m_DllMode);
 
 	if(m_pRule->m_AllowedSignatures.Windows && m_pRule->m_AllowedSignatures.Microsoft && m_pRule->m_AllowedSignatures.Antimalware)
 		ui.chkAllowMS->setCheckState(Qt::Checked);
@@ -270,6 +279,8 @@ bool CProgramRuleWnd::Save()
 	m_pRule->m_Script = m_Script;
 
 	m_pRule->m_bUseScript = ui.chkScript->isChecked();
+
+	m_pRule->m_DllMode = (EExecDllMode)GetComboBoxValue(ui.cmbDllMode).toInt();
 
 	m_pRule->m_Type = (EExecRuleType)GetComboBoxValue(ui.cmbAction).toInt();
 	if (m_pRule->m_Type == EExecRuleType::eAllow) {

@@ -16,7 +16,7 @@
 
 #pragma once
 
-#define MY_ABI_VERSION  0x009700
+#define MY_ABI_VERSION  0x009910
 
 /////////////////////////////////////////////////////////////////////////////
 // Driver
@@ -41,6 +41,7 @@ enum {
 	API_GET_PROCESS_INFO = 'PRCS',
 	API_SET_PROCESS_INFO = 'SPRC',
 	API_ENUM_PROCESSES = 'EPRC',
+	API_ENUM_THREADS = 'ETHD',
 	API_GET_HANDLE_INFO = 'HNDL',
 	API_REGISTER_FOR_EVENT = 'REVT',
 
@@ -420,6 +421,7 @@ API_V_VALUES : unsigned long
 	API_V_FILE_PATH = 'fpth',
 	API_V_USE_SCRIPT = 'uscr', // use script instead of file path
 	API_V_SCRIPT = 'scpt',
+	API_V_DLL_INJECT_MODE = 'dlim',
 	API_V_INTERACTIVE = 'intr', // used by access rules
 	API_V_FILE_NT_PATH = 'fnt',
 	API_V_SERVICE_TAG = 'svc',
@@ -530,6 +532,8 @@ API_V_VALUES : unsigned long
 
 	API_V_PID = 'pid',
 	API_V_PIDS = 'pids',
+	API_V_TID = 'tid',
+	API_V_TIDS = 'tids',
 	API_V_ENCLAVE = 'encl',
 
 	API_V_CREATE_TIME = 'ctim',

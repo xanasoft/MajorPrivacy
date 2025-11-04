@@ -295,6 +295,9 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
             SInjectionRequest Event;
             Event.Type = SProcessEvent::EType::InjectionRequest;
             Event.ProcessId = vEvent[API_V_PID].To<uint64>();
+            Event.DllInject = (EExecDllMode)vEvent[API_V_DLL_INJECT_MODE].To<sint32>();
+            Event.EnclaveId = vEvent.Get(API_V_ENCLAVE).AsStr();
+            Event.RuleGuid = vEvent.Get(API_V_RULE_REF_GUID).AsStr();
             
             NTSTATUS status = CDriverAPI__EmitProcess(This, &Event);
 
@@ -498,6 +501,27 @@ RESULT(SProcessInfoPtr) CDriverAPI::GetProcessInfo(uint64 pid)
 
 
     RETURN(Info);
+}
+
+RESULT(std::shared_ptr<std::vector<uint64>>) CDriverAPI::GetThreadIDs(uint64 pid)
+{
+    StVariant ReqVar;
+    ReqVar[API_V_PID] = pid;
+
+    auto Ret = Call(API_ENUM_THREADS, ReqVar, NULL);
+    if (Ret.IsError())
+        return Ret;
+
+    StVariant ResVar = Ret.GetValue();
+    StVariant vList = ResVar.Get(API_V_TIDS);
+
+    auto tids = std::make_shared<std::vector<uint64>>();
+
+    tids->reserve(vList.Count());
+    for(uint32 i=0; i < vList.Count(); i++)
+        tids->push_back(vList.At(i));
+
+    RETURN(tids);
 }
 
 RESULT(SHandleInfoPtr) CDriverAPI::GetHandleInfo(ULONG_PTR UniqueProcessId, ULONG_PTR HandleValue)

@@ -15,6 +15,23 @@ CProgramID::~CProgramID()
 {
 }
 
+CProgramID CProgramID::FromPath(const QString& FilePath)
+{
+	CProgramID ID;
+	ID.m_Type = EProgramType::eProgramFile;
+	ID.m_FilePath = FilePath;
+	return ID;
+}
+
+CProgramID CProgramID::FromService(const QString& FilePath, const QString& ServiceTag)
+{
+	CProgramID ID;
+	ID.m_Type = EProgramType::eWindowsService;
+	ID.m_FilePath = FilePath;
+	ID.m_ServiceTag = ServiceTag;
+	return ID;
+}
+
 void CProgramID::SetPath(const QString& FilePath)
 {
 	if(FilePath.isEmpty() || FilePath == "*")

@@ -1101,7 +1101,7 @@ void CSettingsWindow::UpdateCert()
 		ui.txtCertificate->setPlainText(truncatedCert);
 		//ui.lblSupport->setVisible(false);
 
-		QString ReNewUrl = "https://xanasoft.com/go.php?to=sbie-renew-cert";
+		QString ReNewUrl = "https://xanasoft.com/go.php?to=priv-renew-cert";
 		if (CERT_IS_TYPE(g_CertInfo, eCertPatreon))
 			ReNewUrl = "https://xanasoft.com/get-supporter-certificate/";
 
@@ -1110,7 +1110,7 @@ void CSettingsWindow::UpdateCert()
 			palette.setColor(QPalette::Text, Qt::black);
 		if (g_CertInfo.expired) {
 			palette.setColor(QPalette::Base, QColor(255, 255, 192));
-			QString infoMsg = tr("This supporter certificate has expired, please <a href=\"%1\">get an updated certificate</a>.").arg(ReNewUrl);
+			QString infoMsg = tr("This license has expired, please <a href=\"%1\">get new license</a>.").arg(ReNewUrl);
 			if (g_CertInfo.active) {
 				if (g_CertInfo.grace_period)
 					infoMsg.append(tr("<br /><font color='red'>Plus features will be disabled in %1 days.</font>").arg((g_CertInfo.expirers_in_sec + 30*60*60*24) / (60*60*24)));
@@ -1123,12 +1123,12 @@ void CSettingsWindow::UpdateCert()
 		}
 		else {
 			if (g_CertInfo.expirers_in_sec > 0 && g_CertInfo.expirers_in_sec < (60 * 60 * 24 * 30)) {
-				ui.lblCertExp->setText(tr("This supporter certificate will <font color='red'>expire in %1 days</font>, please <a href=\"%2\">get an updated certificate</a>.").arg(g_CertInfo.expirers_in_sec / (60*60*24)).arg(ReNewUrl));
+				ui.lblCertExp->setText(tr("This license will <font color='red'>expire in %1 days</font>, please <a href=\"%2\">get new license</a>.").arg(g_CertInfo.expirers_in_sec / (60*60*24)).arg(ReNewUrl));
 				ui.lblCertExp->setVisible(true);
 			}
 			/*#ifdef _DEBUG
 			else {
-			ui.lblCertExp->setText(tr("This supporter certificate is valid, <a href=\"%1\">check for an updated certificate</a>.").arg(ReNewUrl));
+			ui.lblCertExp->setText(tr("This license is valid, <a href=\"%1\">check for new license</a>.").arg(ReNewUrl));
 			ui.lblCertExp->setVisible(true);
 			}
 			#endif*/
@@ -1191,10 +1191,10 @@ void CSettingsWindow::UpdateCert()
 
 		int EvalCount = theConf->GetInt("User/EvalCount", 0);
 		if(EvalCount >= EVAL_MAX)
-			ui.lblEvalCert->setText(tr("<b>You have used %1/%2 evaluation certificates. No more free certificates can be generated.</b>").arg(EvalCount).arg(EVAL_MAX));
+			ui.lblEvalCert->setText(tr("<b>You have used %1/%2 evaluation licenses. No more free licenses can be generated.</b>").arg(EvalCount).arg(EVAL_MAX));
 		else
-			ui.lblEvalCert->setText(tr("<b><a href=\"_\">Get a free evaluation certificate</a> and enjoy all premium features for %1 days.</b>").arg(EVAL_DAYS));
-		ui.lblEvalCert->setToolTip(tr("You can request a free %1-day evaluation certificate up to %2 times per hardware ID.").arg(EVAL_DAYS).arg(EVAL_MAX));
+			ui.lblEvalCert->setText(tr("<b><a href=\"_\">Get a free evaluation license</a> and enjoy all premium features for %1 days.</b>").arg(EVAL_DAYS));
+		ui.lblEvalCert->setToolTip(tr("You can request a free %1-day evaluation license up to %2 times per hardware ID.").arg(EVAL_DAYS).arg(EVAL_MAX));
 	}
 }
 
@@ -1211,20 +1211,20 @@ void CSettingsWindow::OnGetCert()
 
 	if (Serial.length() < 4 || Serial.left(4).compare("SBIE", Qt::CaseInsensitive) != 0) {
 		Message = tr("This does not look like a MajorPrivacy Serial Number.<br />"
-			"If you have attempted to enter the UpdateKey or the Signature from a certificate, "
-			"that is not correct, please enter the entire certificate into the text area above instead.");
+			"If you have attempted to enter the UpdateKey or the Signature from license certificate, "
+			"that is not correct, please enter the entire license certificate into the text area above instead.");
 	}
 	else if(Certificate.isEmpty())
 	{
 		if (Serial.length() > 5 && Serial.at(4).toUpper() == 'U') {
-			Message = tr("You are attempting to use a feature Upgrade-Key without having entered a pre-existing supporter certificate. "
-				"Please note that this type of key (<b>as it is clearly stated in bold on the website</b) requires you to have a pre-existing valid supporter certificate; it is useless without one."
-				"<br />If you want to use the advanced features, you need to obtain both a standard certificate and the feature upgrade key to unlock advanced functionality.");
+			Message = tr("You are attempting to use a feature Upgrade-Key without having entered a pre-existing license. "
+				"Please note that this type of key (<b>as it is clearly stated in bold on the website</b) requires you to have a pre-existing valid base license; it is useless without one."
+				"<br />If you want to use the advanced features, you need to obtain both a base license and the feature upgrade key to unlock advanced functionality.");
 		}
 
 		else if (Serial.length() > 5 && Serial.at(4).toUpper() == 'R') {
-			Message = tr("You are attempting to use a Renew-Key without having entered a pre-existing supporter certificate. "
-				"Please note that this type of key (<b>as it is clearly stated in bold on the website</b) requires you to have a pre-existing valid supporter certificate; it is useless without one.");
+			Message = tr("You are attempting to use a Renew-Key without having entered a pre-existing license. "
+				"Please note that this type of key (<b>as it is clearly stated in bold on the website</b) requires you to have a pre-existing valid license; it is useless without one.");
 		}
 
 		if (!Message.isEmpty()) 
@@ -1243,7 +1243,7 @@ void CSettingsWindow::OnGetCert()
 	PROGRESS Status = theGUI->m_pUpdater->GetSupportCert(Serial, this, SLOT(OnCertData(const QByteArray&, const QVariantMap&)), Params);
 	if (Status.GetStatus() == OP_ASYNC) {
 		theGUI->AddAsyncOp(Status.GetValue());
-		Status.GetValue()->ShowMessage(tr("Retrieving certificate..."));
+		Status.GetValue()->ShowMessage(tr("Retrieving license certificate..."));
 	}
 }
 
@@ -1256,11 +1256,11 @@ void CSettingsWindow::StartEval(QWidget* parent, QObject* receiver, const char* 
 {
 	QString Name = theConf->GetString("User/Name", QString::fromLocal8Bit(qgetenv("USERNAME")));
 	//#ifdef _DEBUG
-	//	Name = QInputDialog::getText(parent, tr("MajorPrivacy - Get EVALUATION Certificate"), tr("Please enter your Name"), QLineEdit::Normal, Name);
+	//	Name = QInputDialog::getText(parent, tr("MajorPrivacy - Get EVALUATION License"), tr("Please enter your Name"), QLineEdit::Normal, Name);
 	//#endif
 
-	QString eMail = QInputDialog::getText(parent, tr("MajorPrivacy - Get EVALUATION Certificate"), tr("Please enter your email address to receive a free %1-day evaluation certificate, which will be issued to %2 and locked to the current hardware.\n"
-		"You can request up to %3 evaluation certificates for each unique hardware ID.").arg(EVAL_DAYS).arg(Name).arg(EVAL_MAX), QLineEdit::Normal, theConf->GetString("User/eMail"));
+	QString eMail = QInputDialog::getText(parent, tr("MajorPrivacy - Get EVALUATION License"), tr("Please enter your email address to receive a free %1-day evaluation license, which will be issued to %2 and locked to the current hardware.\n"
+		"You can request up to %3 evaluation licenses for each unique hardware ID.").arg(EVAL_DAYS).arg(Name).arg(EVAL_MAX), QLineEdit::Normal, theConf->GetString("User/eMail"));
 	if (eMail.isEmpty()) return;
 	theConf->SetValue("User/eMail", eMail);
 
@@ -1271,7 +1271,7 @@ void CSettingsWindow::StartEval(QWidget* parent, QObject* receiver, const char* 
 	PROGRESS Status = theGUI->m_pUpdater->GetSupportCert("", receiver, member, Params);
 	if (Status.GetStatus() == OP_ASYNC) {
 		theGUI->AddAsyncOp(Status.GetValue());
-		Status.GetValue()->ShowMessage(tr("Retrieving certificate..."));
+		Status.GetValue()->ShowMessage(tr("Retrieving License Certificate..."));
 	}
 }
 
@@ -1418,7 +1418,7 @@ bool CSettingsWindow::ApplyCertificate(const QByteArray &Certificate, QWidget* w
 		if (bLooksOk)
 			SetCertificate(Certificate);
 		else {
-			QMessageBox::critical(widget, "MajorPrivacy", tr("This does not look like a certificate. Please enter the entire certificate, not just a portion of it."));
+			QMessageBox::critical(widget, "MajorPrivacy", tr("This does not look like a license certificate. Please enter the entire data block, not just a portion of it."));
 			return false;
 		}
 		g_Certificate = Certificate;
@@ -1435,15 +1435,15 @@ bool CSettingsWindow::ApplyCertificate(const QByteArray &Certificate, QWidget* w
 	{
 		if (g_CertInfo.expired || g_CertInfo.outdated) {
 			if(g_CertInfo.outdated)
-				QMessageBox::information(widget, "MajorPrivacy", tr("This certificate is unfortunately not valid for the current build, you need to get a new certificate or downgrade to an earlier build."));
+				QMessageBox::information(widget, "MajorPrivacy", tr("This license is unfortunately not valid for the current build, you need to get a new license or downgrade to an earlier build."));
 			else if(g_CertInfo.active && !g_CertInfo.grace_period)
-				QMessageBox::information(widget, "MajorPrivacy", tr("Although this certificate has expired, for the currently installed version plus features remain enabled. However, you will no longer have access to updates."));
+				QMessageBox::information(widget, "MajorPrivacy", tr("Although this license has expired, for the currently installed version plus features remain enabled. However, you will no longer have access to updates."));
 			else
-				QMessageBox::information(widget, "MajorPrivacy", tr("This certificate has unfortunately expired, you need to get a new certificate."));
+				QMessageBox::information(widget, "MajorPrivacy", tr("This license has unfortunately expired, you need to get a new license."));
 		}
 		else {
 			if(CERT_IS_TYPE(g_CertInfo, eCertEvaluation))
-				QMessageBox::information(widget, "MajorPrivacy", tr("The evaluation certificate has been successfully applied. Enjoy your free trial!"));
+				QMessageBox::information(widget, "MajorPrivacy", tr("The evaluation license has been successfully applied. Enjoy your free trial!"));
 			else
 			{
 				QString Message = tr("Thank you for supporting the development of MajorPrivacy.");
@@ -1487,7 +1487,7 @@ bool CSettingsWindow::TryRefreshCert(QWidget* parent, QObject* receiver, const c
 	if (theConf->GetInt("Options/AskCertRefresh", -1) != 1)
 	{
 		bool State = false;
-		if(CCheckableMessageBox::question(parent, "MajorPrivacy", tr("A mandatory security update for your MajorPrivacy Supporter Certificate is required. Would you like to download the updated certificate now?")
+		if(CCheckableMessageBox::question(parent, "MajorPrivacy", tr("A mandatory security update for your MajorPrivacy License Certificate is required. Would you like to download the updated certificate now?")
 			, tr("Auto update in future"), &State, QDialogButtonBox::Yes | QDialogButtonBox::No, QDialogButtonBox::Yes, QMessageBox::Information) != QDialogButtonBox::Yes)
 			return false;
 
@@ -1501,7 +1501,7 @@ bool CSettingsWindow::TryRefreshCert(QWidget* parent, QObject* receiver, const c
 	PROGRESS Status = theGUI->m_pUpdater->GetSupportCert("", receiver, member, Params);
 	if (Status.GetStatus() == OP_ASYNC) {
 		theGUI->AddAsyncOp(Status.GetValue());
-		Status.GetValue()->ShowMessage(tr("Retrieving certificate..."));
+		Status.GetValue()->ShowMessage(tr("Retrieving license certificate..."));
 	}
 
 	return true;
@@ -1529,7 +1529,7 @@ void CSettingsWindow::UpdateUpdater()
 			ui.cmbUpdate->setEnabled(false);
 			ui.cmbUpdate->setCurrentIndex(ui.cmbUpdate->findData("ignore"));
 
-			ui.lblRevision->setText(tr("Supporter certificate required for access"));
+			ui.lblRevision->setText(tr("Valid License required for access"));
 			bAllowAuto = false;
 		} else {
 			ui.cmbUpdate->setEnabled(true);
@@ -1546,7 +1546,7 @@ void CSettingsWindow::UpdateUpdater()
 		}
 
 		if(!bAllowAuto)
-			ui.lblRelease->setText(tr("Supporter certificate required for automation"));
+			ui.lblRelease->setText(tr("Valid Lciense required for automation"));
 		else
 			ui.lblRelease->setText(QString());
 	}
@@ -1612,7 +1612,7 @@ void CSettingsWindow::OnUpdate(const QString& Channel)
 	{
 		QString InfoUrl = Release["infoUrl"].toString();
 		if (InfoUrl.isEmpty())
-			InfoUrl = "https://sandboxie-plus.com/go.php?to=sbie-get";
+			InfoUrl = "https://sandboxie-plus.com/go.php?to=priv-get";
 		QDesktopServices::openUrl(InfoUrl);
 	}
 }

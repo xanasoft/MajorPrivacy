@@ -32,6 +32,8 @@ void CEnclave::WriteIVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 	Enclave.Write(API_V_USE_SCRIPT, m_bUseScript);
 	Enclave.WriteEx(API_V_SCRIPT, TO_STR_A(m_Script));
 
+	Enclave.Write(API_V_DLL_INJECT_MODE, (uint32)m_DllMode);
+
 	Enclave.Write(API_V_EXEC_ALLOWED_SIGNERS, m_AllowedSignatures.Value);
 	VariantWriter Collections(Enclave.Allocator());
 	Collections.BeginList();
@@ -75,8 +77,10 @@ void CEnclave::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_VOLUME_GUID:	m_VolumeGuid.FromVariant(Data); break;
 #endif
 
-	case API_V_USE_SCRIPT: m_bUseScript = Data.To<bool>(); break;
-	case API_V_SCRIPT: AS_STR_A(m_Script, Data); break;
+	case API_V_USE_SCRIPT:	m_bUseScript = Data.To<bool>(); break;
+	case API_V_SCRIPT:		AS_STR_A(m_Script, Data); break;
+
+	case API_V_DLL_INJECT_MODE: m_DllMode = (EExecDllMode)Data.To<uint32>(); break;
 
 	case API_V_EXEC_ALLOWED_SIGNERS: m_AllowedSignatures.Value = Data.To<uint32>(); break;
 	case API_V_EXEC_ALLOWED_COLLECTIONS:
@@ -128,6 +132,14 @@ void CEnclave::WriteMVariant(VariantWriter& Enclave, const SVarWriteOpt& Opts) c
 
 	Enclave.Write(API_S_USE_SCRIPT, m_bUseScript);
 	Enclave.WriteEx(API_S_SCRIPT, TO_STR_A(m_Script));
+
+	switch (m_DllMode)
+	{
+	case EExecDllMode::eDefault:	Enclave.Write(API_S_DLL_INJECT_MODE, API_S_EXEC_DLL_MODE_DEFAULT); break;
+	case EExecDllMode::eInjectLow:	Enclave.Write(API_S_DLL_INJECT_MODE, API_S_EXEC_DLL_MODE_INJECT_LOW); break;
+	case EExecDllMode::eInjectHigh:	Enclave.Write(API_S_DLL_INJECT_MODE, API_S_EXEC_DLL_MODE_INJECT_HIGH); break;
+	case EExecDllMode::eDisabled:	Enclave.Write(API_S_DLL_INJECT_MODE, API_S_EXEC_DLL_MODE_DISABLED); break;
+	}
 
 	VariantWriter Signers(Enclave.Allocator());
 	Signers.BeginList();
@@ -209,6 +221,21 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 
 	else if (VAR_TEST_NAME(Name, API_S_USE_SCRIPT))		m_bUseScript = Data.To<bool>();
 	else if (VAR_TEST_NAME(Name, API_S_SCRIPT))			AS_STR_A(m_Script, Data);
+
+	else if (VAR_TEST_NAME(Name, API_S_DLL_INJECT_MODE))
+	{
+		ASTR DllMode = Data;
+		if (DllMode == API_S_EXEC_DLL_MODE_DEFAULT)
+			m_DllMode = EExecDllMode::eDefault;
+		else if (DllMode == API_S_EXEC_DLL_MODE_INJECT_LOW)
+			m_DllMode = EExecDllMode::eInjectLow;
+		else if (DllMode == API_S_EXEC_DLL_MODE_INJECT_HIGH)
+			m_DllMode = EExecDllMode::eInjectHigh;
+		else if (DllMode == API_S_EXEC_DLL_MODE_DISABLED)
+			m_DllMode = EExecDllMode::eDisabled;
+		//else // todo other
+		//	return STATUS_INVALID_PARAMETER;
+	}
 
 	else if (VAR_TEST_NAME(Name, API_S_EXEC_SIGN_REQ))
 	{

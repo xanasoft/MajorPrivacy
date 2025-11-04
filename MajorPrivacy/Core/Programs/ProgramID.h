@@ -9,6 +9,9 @@ public:
 	CProgramID(EProgramType Type);
 	~CProgramID();
 
+	static CProgramID FromPath(const QString& FilePath);
+	static CProgramID FromService(const QString& FilePath, const QString& ServiceTag);
+
 	void SetPath(const QString& FilePath);
 	void SetRegKey(const QString& RegKey)						{ m_Type = EProgramType::eAppInstallation; m_AuxValue = RegKey; }
 	void SetServiceTag(const QString& ServiceTag)				{ m_Type = EProgramType::eWindowsService; m_ServiceTag = ServiceTag; }

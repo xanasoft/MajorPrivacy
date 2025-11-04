@@ -18,7 +18,7 @@ class CSetupWizard : public QWizard
     Q_OBJECT
 
 public:
-    enum { Page_Intro, Page_Certificate, Page_Exec, Page_Res, Page_Net, Page_Config, Page_System, Page_Update, Page_Finish };
+    enum { Page_Intro, Page_Certificate, Page_Warning, Page_Exec, Page_Res, Page_Net, Page_Config, Page_System, Page_Update, Page_Finish };
 
     CSetupWizard(int iOldLevel = 0, QWidget *parent = nullptr);
     ~CSetupWizard();
@@ -51,6 +51,26 @@ private:
     //QLabel* m_pLabel;
     //QRadioButton *m_pPersonal;
     //QRadioButton *m_pBusiness;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// CWarningPage
+// 
+
+class CWarningPage : public QWizardPage
+{
+    Q_OBJECT
+
+public:
+    CWarningPage(QWidget *parent = nullptr);
+
+    void initializePage() override;
+    int nextId() const override;
+    bool isComplete() const override;
+    bool validatePage() override;
+
+private:
+    QCheckBox* m_pAcknowledge = nullptr;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -133,6 +153,7 @@ public:
 private:
     QCheckBox *m_pEnable;
     QCheckBox *m_pRestrict;
+    QCheckBox *m_pCreate;
     QCheckBox *m_pProtect;
     QCheckBox *m_pCollect;
     QCheckBox *m_pRecord;

@@ -166,6 +166,9 @@ void CEnclaveView::OnMenu(const QPoint& Point)
 
 void CEnclaveView::OnAddEnclave()
 {
+	//if(!theGUI->CheckAcknowledgement(tr("Secure Enclave"))) // enclaves shouldn't break anything without a protection rule
+	//	return;
+
 	CEnclavePtr pEnclave = CEnclavePtr(new CEnclave());
 	OpenEnclaveDialog(pEnclave);
 }

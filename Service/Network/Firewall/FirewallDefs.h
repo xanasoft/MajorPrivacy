@@ -20,6 +20,7 @@ enum class EFwProfiles // same as FW_PROFILE_TYPE
     Invalid = 0,
     Domain = 0x0001,
     Private = 0x0002,
+    PrivateAndDomain = 0x0003,
     Public = 0x0004,
     All = 0x7FFFFFFF
     //Current = 0x80000000

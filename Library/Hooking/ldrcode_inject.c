@@ -65,7 +65,6 @@ typedef BOOL (WINAPI *P_IsWow64Process2)(
 	USHORT* pProcessMachine,
 	USHORT* pNativeMachine
 	);
-P_IsWow64Process2 pIsWow64Process2 = NULL;
 
 typedef BOOL (WINAPI *P_GetProcessInformation)(
 	HANDLE hProcess,

@@ -68,6 +68,9 @@ struct SProcessEvent
 struct SInjectionRequest : public SProcessEvent
 {
 	uint64 ProcessId = 0;
+	EExecDllMode DllInject = EExecDllMode::eDefault;
+	std::wstring EnclaveId;
+	std::wstring RuleGuid;
 };
 
 
@@ -216,6 +219,7 @@ public:
 
 	RESULT(std::shared_ptr<std::vector<uint64>>) EnumProcesses();
 	RESULT(SProcessInfoPtr) GetProcessInfo(uint64 pid);
+	RESULT(std::shared_ptr<std::vector<uint64>>) GetThreadIDs(uint64 pid);
 
 	RESULT(SHandleInfoPtr) GetHandleInfo(ULONG_PTR UniqueProcessId, ULONG_PTR HandleValue);
 

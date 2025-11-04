@@ -69,9 +69,16 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 	connect(ui.chkScript, SIGNAL(stateChanged(int)), this, SLOT(OnActionChanged()));
 	connect(ui.btnScript, SIGNAL(clicked()), this, SLOT(EditScript()));
 
+	//connect(ui.cmbDllMode, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
+
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
 	connect(ui.buttonBox->button(QDialogButtonBox::Apply), SIGNAL(clicked(bool)), this, SLOT(OnSave()));
+
+	ui.cmbDllMode->addItem(tr("Default"), (int)EExecDllMode::eDefault);
+	ui.cmbDllMode->addItem(tr("Inject Low (Exclusive)"), (int)EExecDllMode::eInjectLow);
+	ui.cmbDllMode->addItem(tr("Inject High (Sbie+ Compatible)"), (int)EExecDllMode::eInjectHigh);
+	ui.cmbDllMode->addItem(tr("Disabled"), (int)EExecDllMode::eDisabled);
 
 	ui.cmbOnTrustedExec->addItem(tr("Allow Execution"), (int)EProgramOnSpawn::eAllow);
 	ui.cmbOnTrustedExec->addItem(tr("Eject from Secure Enclave"), (int)EProgramOnSpawn::eEject);
@@ -104,6 +111,8 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 		ui.btnScript->setIcon(QIcon(":/Icons/Script-Add.png"));
 	else
 		ui.btnScript->setIcon(QIcon(":/Icons/Script-Edit.png"));
+
+	SetComboBoxValue(ui.cmbDllMode, (int)m_pEnclave->m_DllMode);
 
 	if(m_pEnclave->m_AllowedSignatures.Windows && m_pEnclave->m_AllowedSignatures.Microsoft && m_pEnclave->m_AllowedSignatures.Antimalware)
 		ui.chkAllowMS->setCheckState(Qt::Checked);
@@ -183,6 +192,8 @@ bool CEnclaveWnd::Save()
 	m_pEnclave->m_Script = m_Script;
 
 	m_pEnclave->m_bUseScript = ui.chkScript->isChecked();
+
+	m_pEnclave->m_DllMode = (EExecDllMode)GetComboBoxValue(ui.cmbDllMode).toInt();
 
 	switch(ui.chkAllowMS->checkState()) {
 		case Qt::Checked:	m_pEnclave->m_AllowedSignatures.Windows = TRUE; m_pEnclave->m_AllowedSignatures.Microsoft = TRUE; m_pEnclave->m_AllowedSignatures.Antimalware = TRUE; break;

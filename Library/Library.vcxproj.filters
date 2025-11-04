@@ -306,6 +306,12 @@
     <ClInclude Include="Common\StVariant.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Hooking\injdll.h">
+      <Filter>Hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooking\myasm.h">
+      <Filter>Hooking</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -556,6 +562,15 @@
     </ClCompile>
     <ClCompile Include="API\API_HashDB.cpp">
       <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\injdll_a64.c">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\injdll_x64.c">
+      <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooking\injdll_x86.c">
+      <Filter>Hooking</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

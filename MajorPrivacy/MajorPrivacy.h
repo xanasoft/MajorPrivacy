@@ -59,7 +59,7 @@ public:
 		eClearUserKey,
 	};
 
-	STATUS					InitSigner(ESignerPurpose Purpose, class CPrivateKey& PrivateKey);
+	STATUS				InitSigner(ESignerPurpose Purpose, class CPrivateKey& PrivateKey);
 
 	bool				IsDrvConfigLocked() const { return m_DrvConfigLocked; }
 	STATUS				UnlockDrvConfig();
@@ -74,6 +74,8 @@ public:
 	STATUS				AddAsyncOp(const CAsyncProgressPtr& pProgress, bool bWait = false, const QString& InitialMsg = QString(), QWidget* pParent = NULL);
 	QString				FormatError(const STATUS& Error);
 	int 				CheckResults(QList<STATUS> Results, QWidget* pParent, bool bAsync = false);
+
+	bool				CheckAcknowledgement(const QString& Name);
 
 	void				UpdateTheme();
 
@@ -315,6 +317,9 @@ private:
 	QMenu*				m_pTools = nullptr;
 	QAction*			m_pCleanUpProgs = nullptr;
 	QAction*			m_pReGroupProgs = nullptr;
+	QMenu*				m_pFwTools = nullptr;
+	QAction*			m_pFwRestoreRules = nullptr;
+	QAction*			m_pFwCreateRules = nullptr;
 	QMenu*				m_pExpTools = nullptr;
 	QAction*			m_pMountMgr = nullptr;
 	QAction*			m_pImDiskCpl = nullptr;
