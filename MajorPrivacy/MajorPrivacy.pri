@@ -46,6 +46,8 @@ HEADERS += ./version.h \
     ./Core/Enclaves/EnclaveManager.h \
     ./Core/HashDB/HashDB.h \
     ./Core/HashDB/HashEntry.h \
+    ./Core/Presets/Preset.h \
+    ./Core/Presets/PresetManager.h \
     ./Models/TraceModel.h \
     ./Models/TrafficModel.h \
     ./Models/DnsCacheModel.h \
@@ -96,6 +98,7 @@ HEADERS += ./version.h \
     ./Views/VolumeView.h \
     ./Views/EnclaveView.h \
     ./Views/StatusView.h \
+    ./Views/PresetView.h \
     ./Views/IssueView.h \
     ./Views/EventView.h \
     ./Pages/VolumePage.h \
@@ -125,6 +128,8 @@ HEADERS += ./version.h \
     ./Windows/PopUpWindow.h \
     ./Windows/SettingsWindow.h \
     ./Windows/FirewallRuleWnd.h \
+    ./Windows/ItemPicker.h \
+    ./Windows/PresetWindow.h \
     ./Helpers/IconCache.h \
     ./Helpers/WinAdmin.h \
     ./Helpers/WinHelper.h \
@@ -179,6 +184,8 @@ SOURCES += ./main.cpp \
     ./Core/Enclaves/EnclaveManager.cpp \
     ./Core/HashDB/HashDB.cpp \
     ./Core/HashDB/HashEntry.cpp \
+    ./Core/Presets/Preset.cpp \
+    ./Core/Presets/PresetManager.cpp \
     ./Models/TraceModel.cpp \
     ./Models/DnsCacheModel.cpp \
     ./Models/DnsRuleModel.cpp \
@@ -231,6 +238,7 @@ SOURCES += ./main.cpp \
     ./Views/EventView.cpp \
     ./Views/IssueView.cpp \
     ./Views/StatusView.cpp \
+    ./Views/PresetView.cpp \
     ./Pages/DnsPage.cpp \
     ./Pages/EnclavePage.cpp \
     ./Pages/NetworkPage.cpp \
@@ -256,6 +264,8 @@ SOURCES += ./main.cpp \
     ./Windows/VariantEditorWnd.cpp \
     ./Windows/VolumeConfigWnd.cpp \
     ./Windows/VolumeWindow.cpp \
+    ./Windows/ItemPicker.cpp \
+    ./Windows/PresetWindow.cpp \
     ./Helpers/IconCache.cpp \
     ./Helpers/SidResolver.cpp \
     ./Helpers/WinAdmin.cpp \
@@ -277,7 +287,9 @@ FORMS += ./Forms/AccessRuleWnd.ui \
     ./Forms/ScriptWindow.ui \
     ./Forms/SettingsWindow.ui \
     ./Forms/VolumeConfigWnd.ui \
-    ./Forms/VolumeWindow.ui
+    ./Forms/VolumeWindow.ui \
+    ./Forms/PresetWindow.ui \
+    ./Forms/ItemPicker.ui
     
 TRANSLATIONS += MajorPrivacy_de.ts \
     MajorPrivacy_es.ts \
