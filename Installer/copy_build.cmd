@@ -93,8 +93,7 @@ copy /y %~dp07-Zip\7-Zip-%archPath%\7z.dll %instPath%\
 ECHO Copying translations
 
 mkdir %instPath%\translations\
-rem copy /y %~dp0..\MajorPrivacy\MajorPrivacy_*.qm %instPath%\translations\
-copy /y %~dp0..\Build\Release\MajorPrivacy_*.qm %instPath%\translations\
+copy /y %~dp0..\Build_MajorPrivacy_x64\Release\MajorPrivacy_*.qm %instPath%\translations\
 copy /y %~dp0\qttranslations\qm\qt_*.qm %instPath%\translations\
 copy /y %~dp0\qttranslations\qm\qtbase_*.qm %instPath%\translations\
 copy /y %~dp0\qttranslations\qm\qtmultimedia_*.qm %instPath%\translations\
@@ -109,8 +108,15 @@ copy /y %qtPath%\translations\qtxmlpatterns_*.qm %instPath%\translations\
 rmdir /S /Q %instPath%\translations\
 
 
+REM cleanup
 
+rmdir /S /Q %instPath%\x64\ksidll
+rmdir /S /Q %instPath%\x64\KernelIsolator
+rem del /Q %instPath%\x64\ksi.pdb
+rem del /Q %instPath%\x64\KernelIsolator.pdb
 
-
-
+rmdir /S /Q %instPath%\ARM64\ksidll
+rmdir /S /Q %instPath%\ARM64\KernelIsolator
+rem del /Q %instPath%\ARM64\ksi.pdb
+rem del /Q %instPath%\ARM64\KernelIsolator.pdb
 

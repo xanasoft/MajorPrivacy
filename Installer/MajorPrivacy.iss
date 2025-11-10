@@ -105,7 +105,7 @@ Type: files; Name: "{app}\ARM64\ksi.old"
 
 [Registry]
 ; Autostart App.
-;Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "MajorPrivacy_AutoRun"; ValueType: string; ValueData: """{app}\MajorPrivacy.exe"" -autorun"; Flags: uninsdeletevalue; Tasks: AutoStartEntry
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "MajorPrivacy_AutoRun"; ValueType: string; ValueData: """{app}\MajorPrivacy.exe"" -autorun"; Flags: uninsdeletevalue; Tasks: AutoStartEntry
 
 
 [Run]
