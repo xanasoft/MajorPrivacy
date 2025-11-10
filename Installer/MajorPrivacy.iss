@@ -57,7 +57,7 @@ PrivilegesRequiredOverridesAllowed=commandline
 
 [Tasks]
 Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; MinVersion: 0.0,5.0; Check: not IsPortable
-;Name: "AutoStartEntry"; Description: "{cm:AutoStartProgram,{#MyAppName}}"; MinVersion: 0.0,5.0; Check: not IsPortable
+Name: "AutoStartEntry"; Description: "{cm:AutoStartProgram,{#MyAppName}}"; MinVersion: 0.0,5.0; Check: not IsPortable
 ; todo make ARM64 ImDisk Package
 #if MyAppArch == "x64"
 Name: "InstallImDisk"; Description: "{cm:InstallImDisk}"; MinVersion: 0.0,5.0; Check: not IsPortable

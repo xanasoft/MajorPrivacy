@@ -103,6 +103,8 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 {
 	theGUI = this;
 
+	bool bAutoRun = QApplication::arguments().contains("-autorun");
+
 #if defined(Q_OS_WIN)
 	MainWndHandle = (HWND)winId();
 
@@ -158,7 +160,8 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 
 	LoadIgnoreList();
 
-	SafeShow(this);
+	if(!bAutoRun)
+		SafeShow(this);
 
 	STATUS Status = Connect();
 	if (Status.IsError())
