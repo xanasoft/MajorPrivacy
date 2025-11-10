@@ -266,6 +266,14 @@ void CPopUpWindow::Show()
 	SafeShow(this);
 }
 
+void CPopUpWindow::TryShow()
+{
+	if (m_FwPrograms.size() == 0 && m_ResPrograms.size() == 0 && m_ExecPrograms.size() == 0)
+		return;
+
+	Show();
+}
+
 void CPopUpWindow::Poke()
 {
 	if (!this->isVisible() || m_iTopMost <= -5) {
@@ -613,7 +621,7 @@ void CPopUpWindow::OnFwAction()
 	if(pSender == ui.btnFwIgnore || pSender == m_pFwAlwaysIgnoreApp)
 	{
 		if (pSender == m_pFwAlwaysIgnoreApp)
-			theGUI->IgnoreEvent(ERuleType::eFirewall, pProgram);
+			theGUI->IgnoreEvent(EItemType::eFwRule, pProgram);
 		PopFwEvent();
 		return;
 	}
@@ -633,7 +641,7 @@ void CPopUpWindow::OnFwAction()
 	pRule->SetApproved();
 	pRule->SetSource(EFwRuleSource::eMajorPrivacy);
 	pRule->SetEnabled(true);
-	pRule->SetName(tr("MajorPrivacy-Rule, %1").arg(pProgram->GetNameEx()));
+	pRule->SetName(QString("MajorPrivacy-Rule, %1").arg(pProgram->GetNameEx()));
 	//pRule->SetDirection(SVC_API_FW_BIDIRECTIONAL);
 	pRule->SetProfile((int)EFwProfiles::All);
 	pRule->SetProtocol(EFwKnownProtocols::Any);
@@ -698,19 +706,21 @@ void CPopUpWindow::OnFwRule()
 	QList<SFwRuleEvent>& List = m_FwRuleEvents[pProgram];
 
 	QList<QTreeWidgetItem*> Items;
-	if (pSender == m_pFwApproveAll || pSender == m_pFwRejectAll)
+	if (!(pSender == m_pFwApproveAll || pSender == m_pFwRejectAll))
 	{
-		for(int i = 0; i < ui.treeFwRules->topLevelItemCount(); i++) {
-			QTreeWidgetItem* pItem = ui.treeFwRules->topLevelItem(i);
-			Items.append(pItem);	
+		Items = ui.treeFwRules->selectedItems();
+		if (Items.isEmpty()) {
+			if(QMessageBox::question(this, "MajorPrivacy", tr("No rules selected, do you want to apply the action to all rules?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes) 
+				return;
 		}
 	}
-	else
-		Items = ui.treeFwRules->selectedItems();
 
-	if (Items.isEmpty()) {
-		QMessageBox::information(this, "MajorPrivacy", tr("Please select a rule."));
-		return;
+	if (Items.isEmpty())
+	{
+		for (int i = 0; i < ui.treeFwRules->topLevelItemCount(); i++) {
+			QTreeWidgetItem* pItem = ui.treeFwRules->topLevelItem(i);
+			Items.append(pItem);
+		}
 	}
 
 	QList<SFwRuleEvent> Events;
@@ -1002,7 +1012,7 @@ void CPopUpWindow::OnResAction()
 	if(pSender == ui.btnResIgnore || pSender == m_pResAlwaysIgnoreApp)
 	{
 		if (pSender == m_pResAlwaysIgnoreApp)
-			theGUI->IgnoreEvent(ERuleType::eAccess, pProgram);
+			theGUI->IgnoreEvent(EItemType::eResRule, pProgram);
 		PopResEvent("*", EAccessRuleType::eNone);
 		return;
 	}
@@ -1023,7 +1033,7 @@ void CPopUpWindow::OnResAction()
 
 	if(pSender == m_pResAlwaysIgnorePath)
 	{
-		theGUI->IgnoreEvent(ERuleType::eAccess, NULL, Path);
+		theGUI->IgnoreEvent(EItemType::eResRule, NULL, Path);
 		PopResEvent(NtPath, EAccessRuleType::eNone);
 		return;
 	}
@@ -1340,7 +1350,7 @@ void CPopUpWindow::OnExecAction()
 		{
 			QString Path = pItem->data(eExecPath, Qt::UserRole).toString();
 			if (pSender == m_pExecAlwaysIgnoreFile) {
-				theGUI->IgnoreEvent(ERuleType::eProgram, NULL, Path);
+				theGUI->IgnoreEvent(EItemType::eExecRule, NULL, Path);
 				Paths.append(Path);
 			}
 		}

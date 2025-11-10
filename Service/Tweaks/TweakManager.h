@@ -18,6 +18,7 @@ public:
 	void CheckTweaks();
 
 	StVariant GetTweaks(uint32 CallerPID, const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
+	CTweakPtr GetTweakById(const std::wstring& Id) const;
 
 	STATUS ApplyTweak(const std::wstring& Id, uint32 CallerPID, ETweakMode Mode = ETweakMode::eDefault);
 	STATUS UndoTweak(const std::wstring& Id, uint32 CallerPID, ETweakMode Mode = ETweakMode::eDefault);

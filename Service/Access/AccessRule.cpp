@@ -66,7 +66,7 @@ void CAccessRule::UpdateScript_NoLock()
 
 	if (!m_Script.empty()) 
 	{
-		m_pScript = std::make_shared<CJSEngine>(m_Script, m_Guid, EScriptTypes::eResRule);
+		m_pScript = std::make_shared<CJSEngine>(m_Script, m_Guid, EItemType::eResRule);
 		m_pScript->RunScript();
 	}
 }

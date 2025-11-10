@@ -12,7 +12,7 @@
 #define API_DNS_FILTER_FILE_NAME L"DnsFilter.dat"
 #define API_DNS_FILTER_FILE_VERSION 1
 
-static FW::StringW ReversePath(FW::AbstractMemPool* pMem, const char* pPath)
+FW::StringW ReversePath(FW::AbstractMemPool* pMem, const char* pPath)
 {
 	FW::Array<FW::StringW> Path(pMem);
 	if (pPath) {
@@ -25,35 +25,6 @@ static FW::StringW ReversePath(FW::AbstractMemPool* pMem, const char* pPath)
 		}
 	}
 	return FW::StringW::Join(Path, L".");
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// CDnsRule
-//
-
-StVariant CDnsRule::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
-{
-	StVariantWriter Rule(pMemPool);
-	if (Opts.Format == SVarWriteOpt::eIndex) {
-		Rule.BeginIndex();
-		WriteIVariant(Rule, Opts);
-	} else {  
-		Rule.BeginMap();
-		WriteMVariant(Rule, Opts);
-	}
-	return Rule.Finish();
-}
-
-STATUS CDnsRule::FromVariant(const class StVariant& Rule)
-{
-	if (Rule.GetType() == VAR_TYPE_MAP)         StVariantReader(Rule).ReadRawMap([&](const SVarName& Name, const StVariant& Data) { ReadMValue(Name, Data); });
-	else if (Rule.GetType() == VAR_TYPE_INDEX)  StVariantReader(Rule).ReadRawIndex([&](uint32 Index, const StVariant& Data) { ReadIValue(Index, Data); });
-	else
-		return STATUS_UNKNOWN_REVISION;
-
-	FW::StringW Path = ReversePath(Allocator(), m_HostName.c_str());
-	SetPath(Path);
-	return STATUS_SUCCESS;
 }
 
 /////////////////////////////////////////////////////////////////////////////

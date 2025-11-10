@@ -572,6 +572,9 @@
     <ClCompile Include="Hooking\injdll_x86.c">
       <Filter>Hooking</Filter>
     </ClCompile>
+    <ClCompile Include="API\API_Preset.cpp">
+      <Filter>API</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\Service.rc">

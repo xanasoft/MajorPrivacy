@@ -76,10 +76,14 @@ CHashEntryWnd::CHashEntryWnd(const CHashPtr& pEntry, QWidget* parent)
 	foreach(const QString& Collection, pEntry->m_Collections)
 		Collections.append(Collection);
 	m_pCollections->setValues(Collections);
+
+
+	restoreGeometry(theConf->GetBlob("HashEntryWindow/Window_Geometry"));
 }
 
 CHashEntryWnd::~CHashEntryWnd()
 {
+	theConf->SetBlob("HashEntryWindow/Window_Geometry", saveGeometry());
 }
 
 void CHashEntryWnd::closeEvent(QCloseEvent *e)

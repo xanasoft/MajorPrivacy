@@ -60,16 +60,16 @@ Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; MinVersion: 0.0,5.0;
 ;Name: "AutoStartEntry"; Description: "{cm:AutoStartProgram,{#MyAppName}}"; MinVersion: 0.0,5.0; Check: not IsPortable
 ; todo make ARM64 ImDisk Package
 #if MyAppArch == "x64"
-Name: "InstallImDisk"; Description: "{cm:InstallImDisk}"; MinVersion: 0.0,5.0; Check: IsWin64
+Name: "InstallImDisk"; Description: "{cm:InstallImDisk}"; MinVersion: 0.0,5.0; Check: not IsPortable
 #endif
 
 
 [Files]
-Source: ".\Release\MajorPrivacy\*"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: recursesubdirs ignoreversion;
+Source: ".\Release\MajorPrivacy\*"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags: recursesubdirs ignoreversion; Excludes: "*.pdb"
 
 ; other files
 Source: "license.txt"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
-Source: "Certificate.dat"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
+;Source: "Certificate.dat"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
 ;Source: "changelog.txt"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
 
 ; Only if portable.
@@ -109,6 +109,9 @@ Type: files; Name: "{app}\ARM64\ksi.old"
 
 
 [Run]
+; install services
+Filename: "{app}\PrivacyAgent.exe"; Parameters: "-install"; StatusMsg: "PrivacyAgent.exe -install"; Check: not IsPortable
+
 ; startup.
 Filename: "{app}\PrivacyAgent.exe"; Parameters: "-startup"; StatusMsg: "PrivacyAgent.exe -startup"; Check: not IsPortable
 

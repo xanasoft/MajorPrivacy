@@ -1,9 +1,11 @@
 #include "pch.h"
 
 #include <objbase.h>
+#include <userenv.h>
 
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Helpers/AppUtil.h"
+#include "../Library/Helpers/TokenUtil.h"
 #include "ServiceCore.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/IPC/PipeServer.h"
@@ -33,6 +35,7 @@
 #include "Common/EventLog.h"
 #include "../Library/Hooking/HookUtils.h"
 #include "../Library/Helpers/WinUtil.h"
+#include "Presets/PresetManager.h"
 
 CServiceCore* theCore = NULL;
 
@@ -69,6 +72,8 @@ CServiceCore::CServiceCore()
 
 	m_pTweakManager = new CTweakManager();
 
+	m_pPresetManager = new CPresetManager();
+
 	m_pDriver = new CDriverAPI();
 
 	m_pEtwEventMonitor = new CEtwEventMonitor();
@@ -86,6 +91,8 @@ CServiceCore::~CServiceCore()
 	delete m_pEtwEventMonitor;
 
 	delete m_pDriver;
+
+	delete m_pPresetManager;
 
 	delete m_pTweakManager;
 
@@ -361,7 +368,6 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 	CServiceCore* This = (CServiceCore*)lpThreadParameter;
 
-	NTSTATUS status;
 	ULONGLONG End, Start;
 
 	//
@@ -453,6 +459,12 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Tweak Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
 		goto cleanup;
 	}
+	
+	This->m_InitStatus = This->m_pPresetManager->Init();
+	if (This->m_InitStatus.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Preset Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
+		goto cleanup;
+	}
 
 	End = GetTickCount64();
 	theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"PrivacyAgent Tweak Manager init took %llu ms", End - Start);
@@ -540,7 +552,7 @@ STATUS CServiceCore::Init()
 		StVariant Var;
 		Var["x"] = "test";
 
-		auto Ret = JSEngine.CallFunc("func", 1, Var);
+		auto Ret = JSEngine.CallFunction("func", Var);
 		auto sRet = Ret.GetValue().AsStr();
 		sRet.clear();
 	}*/
@@ -766,6 +778,8 @@ STATUS CServiceCore::CommitConfig()
 
 	m_pTweakManager->Store();
 
+	m_pPresetManager->Store();
+
 	m_bConfigDirty = false;
 
 	return OK;
@@ -841,33 +855,29 @@ void CServiceCore::OnTimer()
 #endif
 }
 
-CJSEnginePtr CServiceCore::GetScript(const CFlexGuid& Guid, EScriptTypes Type)
+CJSEnginePtr CServiceCore::GetScript(const CFlexGuid& Guid, EItemType Type)
 {
 	switch (Type) {
-	case EScriptTypes::eEnclave: {
-		CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(Guid);
-		if(pEnclave)
+	case EItemType::eEnclave:
+		if(CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(Guid))
 			return pEnclave->GetScriptEngine();
 		break;
-	}
-	case EScriptTypes::eExecRule: {
-		CProgramRulePtr pRule = theCore->ProgramManager()->GetRule(Guid);
-		if(pRule)
+	case EItemType::eExecRule: 
+		if(CProgramRulePtr pRule = theCore->ProgramManager()->GetRule(Guid))
 			return pRule->GetScriptEngine();
 		break;
-	}
-	case EScriptTypes::eResRule: {
-		CAccessRulePtr pRule = theCore->AccessManager()->GetRule(Guid);
-		if (pRule)
+	case EItemType::eResRule: 
+		if (CAccessRulePtr pRule = theCore->AccessManager()->GetRule(Guid))
 			return pRule->GetScriptEngine();
 		break;
-	}
-	case EScriptTypes::eVolume: {
-		CVolumePtr pVolume = theCore->VolumeManager()->GetVolume(Guid);
-		if (pVolume)
+	case EItemType::eVolume:
+		if (CVolumePtr pVolume = theCore->VolumeManager()->GetVolume(Guid))
 			return pVolume->GetScriptEngine();
 		break;
-	}
+	case EItemType::ePreset: 
+		if (CPresetPtr pPreset = theCore->PresetManager()->GetPreset(Guid))
+			return pPreset->GetScriptEngine();
+		break;
 	}
 	return nullptr;
 }
@@ -985,6 +995,304 @@ std::wstring CServiceCore::GetCallerSID(uint32 CallerPID)
 	}
 	
 	return sidStringOut;
+}
+
+STATUS CServiceCore::CreateUserProcess(const std::wstring& CommandLine, uint32 CallerPID, uint32 Flags, const std::wstring& WorkingDir, uint32* pProcessId, HANDLE* pProcessHandle)
+{
+	if (CommandLine.empty())
+		return ERR(STATUS_INVALID_PARAMETER);
+
+	STATUS Status = STATUS_SUCCESS;
+	bool bIsServiceMode = !m_bEngineMode;
+	bool bAsSystem = (Flags & eExec_AsSystem) != 0;
+
+	CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hToken(NULL, CloseHandle);
+	CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hCallerToken(NULL, CloseHandle);
+	ULONG CallerSession = 0;
+
+	if (bAsSystem)
+	{
+		// Get the caller's session ID
+		DWORD dwCallerSession = 0;
+		if (ProcessIdToSessionId(CallerPID, &dwCallerSession))
+		{
+			CallerSession = dwCallerSession;
+		}
+
+		const ULONG TOKEN_RIGHTS = TOKEN_QUERY | TOKEN_DUPLICATE
+			| TOKEN_ADJUST_DEFAULT | TOKEN_ADJUST_SESSIONID
+			| TOKEN_ADJUST_GROUPS | TOKEN_ASSIGN_PRIMARY;
+
+		if (bIsServiceMode)
+		{
+			// We're already running as SYSTEM - use current process token
+			if (!OpenProcessToken(GetCurrentProcess(), TOKEN_RIGHTS, &hToken))
+				return ERR(GetLastWin32ErrorAsNtStatus());
+		}
+		else
+		{
+			// We're running as admin user - duplicate SYSTEM token from an existing SYSTEM process
+			// This requires SeDebugPrivilege which is available to administrators and we already have
+
+			// Try to find a SYSTEM process from our process list
+			auto processList = theCore->ProcessList()->List();
+			for (const auto& pair : processList)
+			{
+				CProcessPtr pProcess = pair.second;
+				std::wstring name = pProcess->GetName();
+
+				// Try winlogon.exe or services.exe
+				if (_wcsicmp(name.c_str(), L"winlogon.exe") == 0 || _wcsicmp(name.c_str(), L"services.exe") == 0)
+				{
+					DWORD pid = (DWORD)pProcess->GetProcessId();
+					HANDLE hSystemProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+					if (hSystemProcess)
+					{
+						HANDLE hSystemToken = NULL;
+						if (OpenProcessToken(hSystemProcess, TOKEN_DUPLICATE | TOKEN_QUERY, &hSystemToken))
+						{
+							// Verify it's actually a SYSTEM token
+							DWORD dwSize = 0;
+							if (GetTokenInformation(hSystemToken, TokenUser, NULL, 0, &dwSize) == FALSE && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+							{
+								BYTE* pTokenUser = new BYTE[dwSize];
+								if (GetTokenInformation(hSystemToken, TokenUser, pTokenUser, dwSize, &dwSize))
+								{
+									PTOKEN_USER pUser = (PTOKEN_USER)pTokenUser;
+									SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+									PSID pSystemSid = NULL;
+									if (AllocateAndInitializeSid(&ntAuthority, 1, SECURITY_LOCAL_SYSTEM_RID, 0, 0, 0, 0, 0, 0, 0, &pSystemSid))
+									{
+										if (EqualSid(pUser->User.Sid, pSystemSid))
+										{
+											// Found a SYSTEM token - duplicate it
+											hToken.Set(hSystemToken);
+											hSystemToken = NULL;
+										}
+										FreeSid(pSystemSid);
+									}
+								}
+								delete[] pTokenUser;
+							}
+
+							if (hSystemToken)
+								CloseHandle(hSystemToken);
+						}
+						CloseHandle(hSystemProcess);
+
+						if (hToken)
+							break;
+					}
+				}
+			}
+
+			if (!hToken)
+				return ERR(STATUS_PRIVILEGE_NOT_HELD);
+		}
+
+		// Duplicate the SYSTEM token
+		CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hNewToken(NULL, CloseHandle);
+		if (!DuplicateTokenEx(hToken, TOKEN_RIGHTS, NULL, SecurityAnonymous, TokenPrimary, &hNewToken))
+			return ERR(GetLastWin32ErrorAsNtStatus());
+
+		hToken.Set(hNewToken.Detach());
+
+		// Set the session ID to the caller's session
+		if (!SetTokenInformation(hToken, TokenSessionId, &CallerSession, sizeof(ULONG)))
+			return ERR(GetLastWin32ErrorAsNtStatus());
+	}
+	else
+	{
+		// Open the caller's process to get its token
+		CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hCallerProcess(
+			OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE, FALSE, CallerPID),
+			CloseHandle);
+		if (!hCallerProcess)
+			return ERR(GetLastWin32ErrorAsNtStatus());
+
+		// Get the caller's token
+		if (!OpenProcessToken(hCallerProcess, TOKEN_DUPLICATE | TOKEN_ASSIGN_PRIMARY | TOKEN_QUERY, &hCallerToken))
+			return ERR(GetLastWin32ErrorAsNtStatus());
+
+		// Duplicate the token for modification
+		if (!DuplicateTokenEx(hCallerToken, MAXIMUM_ALLOWED, NULL, SecurityAnonymous, TokenPrimary, &hToken))
+			return ERR(GetLastWin32ErrorAsNtStatus());
+	}
+
+	// Check if we need to modify the token privileges
+	bool bDropAdmin = (Flags & eExec_DropAdmin) != 0;
+	bool bLowPrivilege = (Flags & eExec_LowPrivilege) != 0;
+	bool bElevate = (Flags & eExec_Elevate) != 0;
+	bool bCallerIsAdmin = hCallerToken ? TokenIsAdmin(hCallerToken, false) : false;
+
+	CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hModifiedToken(NULL, CloseHandle);
+
+	// If caller is not admin and service is not running as SYSTEM, drop admin rights
+	if (!bAsSystem && bIsServiceMode && !bCallerIsAdmin)
+		bDropAdmin = true;
+
+	if (bLowPrivilege)
+	{
+		// Create a restricted token with low privileges
+		SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
+		SID_IDENTIFIER_AUTHORITY WorldAuthority = SECURITY_WORLD_SID_AUTHORITY;
+
+		// SIDs to disable
+		PSID pAdminSid = NULL, pUsersSid = NULL, pEveryoneSid = NULL;
+		AllocateAndInitializeSid(&NtAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &pAdminSid);
+		AllocateAndInitializeSid(&NtAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_USERS, 0, 0, 0, 0, 0, 0, &pUsersSid);
+		AllocateAndInitializeSid(&WorldAuthority, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, &pEveryoneSid);
+
+		SID_AND_ATTRIBUTES SidsToDisable[3];
+		DWORD dwSidCount = 0;
+
+		if (pAdminSid) {
+			SidsToDisable[dwSidCount].Sid = pAdminSid;
+			SidsToDisable[dwSidCount].Attributes = 0;
+			dwSidCount++;
+		}
+
+		// Create restricted token
+		HANDLE hRestrictedToken = NULL;
+		if (CreateRestrictedToken(hToken, DISABLE_MAX_PRIVILEGE, dwSidCount, SidsToDisable, 0, NULL, 0, NULL, &hRestrictedToken))
+		{
+			hModifiedToken.Set(hRestrictedToken);
+
+			// Set integrity level to Low
+			SID_IDENTIFIER_AUTHORITY MandatoryLabelAuthority = SECURITY_MANDATORY_LABEL_AUTHORITY;
+			PSID pIntegritySid = NULL;
+			if (AllocateAndInitializeSid(&MandatoryLabelAuthority, 1, SECURITY_MANDATORY_LOW_RID, 0, 0, 0, 0, 0, 0, 0, &pIntegritySid))
+			{
+				TOKEN_MANDATORY_LABEL tml = { 0 };
+				tml.Label.Attributes = SE_GROUP_INTEGRITY;
+				tml.Label.Sid = pIntegritySid;
+				SetTokenInformation(hModifiedToken, TokenIntegrityLevel, &tml, sizeof(tml) + GetLengthSid(pIntegritySid));
+				FreeSid(pIntegritySid);
+			}
+		}
+
+		if (pAdminSid) FreeSid(pAdminSid);
+		if (pUsersSid) FreeSid(pUsersSid);
+		if (pEveryoneSid) FreeSid(pEveryoneSid);
+
+		if (!hModifiedToken)
+			return ERR(GetLastWin32ErrorAsNtStatus());
+	}
+	else if (bElevate && !bAsSystem)
+	{
+		// Elevate to admin rights by using the linked token (UAC split token)
+		// This only works if the caller is in the Administrators group but running with a filtered token
+		TOKEN_ELEVATION_TYPE elevationType;
+		DWORD dwSize = 0;
+		if (GetTokenInformation(hToken, TokenElevationType, &elevationType, sizeof(elevationType), &dwSize))
+		{
+			if (elevationType == TokenElevationTypeLimited)
+			{
+				// The token is limited - get the linked elevated token
+				TOKEN_LINKED_TOKEN linkedToken = { 0 };
+				if (GetTokenInformation(hToken, TokenLinkedToken, &linkedToken, sizeof(linkedToken), &dwSize))
+				{
+					hModifiedToken.Set(linkedToken.LinkedToken);
+				}
+			}
+			else if (elevationType == TokenElevationTypeFull)
+			{
+				// Already elevated - use as is
+				hModifiedToken.Set(hToken.Detach());
+			}
+		}
+
+		// If we couldn't get linked token or not a split token, continue with original token
+		if (!hModifiedToken)
+			hModifiedToken.Set(hToken.Detach());
+	}
+	else if (bDropAdmin && bCallerIsAdmin)
+	{
+		// Drop admin rights by using the linked token (UAC split token)
+		TOKEN_ELEVATION_TYPE elevationType;
+		DWORD dwSize = 0;
+		if (GetTokenInformation(hToken, TokenElevationType, &elevationType, sizeof(elevationType), &dwSize))
+		{
+			if (elevationType == TokenElevationTypeFull)
+			{
+				// Get the linked token (limited token)
+				TOKEN_LINKED_TOKEN linkedToken = { 0 };
+				if (GetTokenInformation(hToken, TokenLinkedToken, &linkedToken, sizeof(linkedToken), &dwSize))
+				{
+					hModifiedToken.Set(linkedToken.LinkedToken);
+				}
+			}
+		}
+
+		// If we couldn't get linked token, continue with original token
+		if (!hModifiedToken)
+			hModifiedToken.Set(hToken.Detach());
+	}
+	else
+	{
+		// Use the original token
+		hModifiedToken.Set(hToken.Detach());
+	}
+
+	// Create environment block
+	CScopedHandle lpEnvironment((LPVOID)0, DestroyEnvironmentBlock);
+	if (!CreateEnvironmentBlock(&lpEnvironment, hModifiedToken, FALSE))
+		return ERR(STATUS_VARIABLE_NOT_FOUND);
+
+	// Setup process creation
+	STARTUPINFOW si = { 0 };
+	si.cb = sizeof(si);
+	si.dwFlags = STARTF_FORCEOFFFEEDBACK;
+
+	if (Flags & eExec_Hidden)
+	{
+		si.dwFlags |= STARTF_USESHOWWINDOW;
+		si.wShowWindow = SW_HIDE;
+	}
+	else
+	{
+		si.wShowWindow = SW_SHOWNORMAL;
+	}
+
+	PROCESS_INFORMATION pi = { 0 };
+
+	// Prepare command line (CreateProcess may modify it)
+	std::wstring cmdLine = CommandLine;
+
+	// Create the process
+	// Note: In engine mode, we don't have SeAssignPrimaryTokenPrivilege, so use NULL token
+	BOOL bSuccess = CreateProcessAsUserW(
+		bIsServiceMode ? *&hModifiedToken : NULL,
+		NULL,
+		(wchar_t*)cmdLine.c_str(),
+		NULL,
+		NULL,
+		FALSE,
+		CREATE_UNICODE_ENVIRONMENT,
+		lpEnvironment,
+		WorkingDir.empty() ? NULL : WorkingDir.c_str(),
+		&si,
+		&pi);
+
+	if (bSuccess)
+	{
+		// Return process info if requested
+		if (pProcessHandle)
+			*pProcessHandle = pi.hProcess;
+		else
+			CloseHandle(pi.hProcess);
+
+		if (pProcessId)
+			*pProcessId = pi.dwProcessId;
+
+		CloseHandle(pi.hThread);
+	}
+	else
+	{
+		Status = ERR(GetLastWin32ErrorAsNtStatus());
+	}
+
+	return Status;
 }
 
 void CServiceCore::EmitEvent(ELogLevels Level, int Type, const StVariant& Data)

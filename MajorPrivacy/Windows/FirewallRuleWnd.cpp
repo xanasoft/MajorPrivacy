@@ -197,10 +197,13 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	OnRemoteIPChanged();
 
 	m_NameHold = false;
+
+	restoreGeometry(theConf->GetBlob("FirewallRuleWindow/Window_Geometry"));
 }
 
 CFirewallRuleWnd::~CFirewallRuleWnd()
 {
+	theConf->SetBlob("FirewallRuleWindow/Window_Geometry", saveGeometry());
 }
 
 void CFirewallRuleWnd::SetReadOnly(bool bReadOnly)

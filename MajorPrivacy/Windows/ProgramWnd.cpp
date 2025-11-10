@@ -129,10 +129,14 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 		ui.cmbNetTrace->setEnabled(pFile || pService);
 		ui.cmbSaveTrace->setEnabled(pFile || pService);
 	}
+
+	restoreGeometry(theConf->GetBlob("ProgramWindow/Window_Geometry"));
 }
 
 CProgramWnd::~CProgramWnd()
 {
+
+	theConf->SetBlob("ProgramWindow/Window_Geometry", saveGeometry());
 }
 
 void CProgramWnd::closeEvent(QCloseEvent *e)

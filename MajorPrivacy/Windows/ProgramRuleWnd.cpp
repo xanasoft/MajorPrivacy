@@ -162,10 +162,14 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	ui.chkCoherencyChecking->setChecked(m_pRule->m_ImageCoherencyChecking);
 
 	m_NameHold = false;
+
+
+	restoreGeometry(theConf->GetBlob("ProgramRuleWindow/Window_Geometry"));
 }
 
 CProgramRuleWnd::~CProgramRuleWnd()
 {
+	theConf->SetBlob("ProgramRuleWindow/Window_Geometry", saveGeometry());
 }
 
 bool CProgramRuleWnd::AddProgramItem(const CProgramItemPtr& pItem)
@@ -424,7 +428,7 @@ void CProgramRuleWnd::OnAddCollection()
 
 void CProgramRuleWnd::EditScript()
 {
-	CScriptWindow* pScriptWnd = new CScriptWindow(m_pRule->GetGuid(), EScriptTypes::eExecRule, this);
+	CScriptWindow* pScriptWnd = new CScriptWindow(m_pRule->GetGuid(), EItemType::eExecRule, this);
 	pScriptWnd->SetScript(m_Script);
 	pScriptWnd->SetSaver([&](const QString& Script, bool bApply){
 		m_Script = Script;

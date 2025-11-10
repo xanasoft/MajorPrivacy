@@ -40,10 +40,10 @@ CSignatureDbWnd::CSignatureDbWnd(QWidget *parent)
 	m_pMainLayout->addWidget(m_pButtons);
 	
 	setWindowState(Qt::WindowNoState);
-	restoreGeometry(theConf->GetBlob("SignatureDbWnd/Window_Geometry"));
-	restoreState(theConf->GetBlob("SignatureDbWnd/Window_State"));
+	restoreGeometry(theConf->GetBlob("SignatureDbWindow/Window_Geometry"));
+	restoreState(theConf->GetBlob("SignatureDbWindow/Window_State"));
 
-	m_pTree->header()->restoreState(theConf->GetBlob("SignatureDbWnd/TreeView_Columns"));
+	m_pTree->header()->restoreState(theConf->GetBlob("SignatureDbWindow/TreeView_Columns"));
 
 	Load();
 
@@ -60,10 +60,10 @@ CSignatureDbWnd::CSignatureDbWnd(QWidget *parent)
 
 CSignatureDbWnd::~CSignatureDbWnd()
 {
-	theConf->SetBlob("SignatureDbWnd/TreeView_Columns",m_pTree->header()->saveState());
+	theConf->SetBlob("SignatureDbWindow/TreeView_Columns",m_pTree->header()->saveState());
 
-	theConf->SetBlob("SignatureDbWnd/Window_Geometry", saveGeometry());
-	theConf->SetBlob("SignatureDbWnd/Window_State", saveState());
+	theConf->SetBlob("SignatureDbWindow/Window_Geometry", saveGeometry());
+	theConf->SetBlob("SignatureDbWindow/Window_State", saveState());
 }
 
 void CSignatureDbWnd::OnClicked(QAbstractButton* pButton)

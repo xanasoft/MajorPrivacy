@@ -197,7 +197,7 @@
       <item row="1" column="0">
        <widget class="QLabel" name="label_8">
         <property name="text">
-         <string>On UN Trusted</string>
+         <string>On Untrusted</string>
         </property>
        </widget>
       </item>
@@ -251,7 +251,7 @@
       </sizepolicy>
      </property>
      <property name="title">
-      <string>Secure Enclave Identity</string>
+      <string>Secure Enclave</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
       <item row="0" column="1">

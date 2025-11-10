@@ -242,13 +242,13 @@ int CreateJunction(const std::wstring& TargetNtPath, const std::wstring& FileRoo
         ReparseBuffer.ReparseDataLength = 4 * sizeof(USHORT);
 
         ReparseBuffer.MountPointReparseBuffer.SubstituteNameOffset = 0;
-        ReparseBuffer.MountPointReparseBuffer.SubstituteNameLength = TargetNtPath.length() * sizeof(WCHAR);
+        ReparseBuffer.MountPointReparseBuffer.SubstituteNameLength = (USHORT)(TargetNtPath.length() * sizeof(WCHAR));
         USHORT SubstituteNameSize = ReparseBuffer.MountPointReparseBuffer.SubstituteNameLength + sizeof(WCHAR);
         memcpy(ReparseBuffer.MountPointReparseBuffer.PathBuffer, TargetNtPath.c_str(), SubstituteNameSize);
         ReparseBuffer.ReparseDataLength += SubstituteNameSize;
 
         ReparseBuffer.MountPointReparseBuffer.PrintNameOffset = SubstituteNameSize;
-        ReparseBuffer.MountPointReparseBuffer.PrintNameLength = TargetNtPath.length() * sizeof(WCHAR);
+        ReparseBuffer.MountPointReparseBuffer.PrintNameLength = (USHORT)(TargetNtPath.length() * sizeof(WCHAR));
         USHORT PrintNameSize = ReparseBuffer.MountPointReparseBuffer.PrintNameLength + sizeof(WCHAR);
         memcpy(ReparseBuffer.MountPointReparseBuffer.PathBuffer + SubstituteNameSize/sizeof(WCHAR), TargetNtPath.c_str(), PrintNameSize);
         ReparseBuffer.ReparseDataLength += PrintNameSize;

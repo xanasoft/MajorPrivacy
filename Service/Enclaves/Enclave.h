@@ -80,7 +80,7 @@ protected:
 
 	StVariant				m_Data;
 
-	CJSEnginePtr m_pScript;
+	CJSEnginePtr			m_pScript;
 };
 
 typedef std::shared_ptr<CEnclave> CEnclavePtr;

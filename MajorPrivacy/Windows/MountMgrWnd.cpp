@@ -32,10 +32,10 @@ CMountMgrWnd::CMountMgrWnd(QWidget *parent)
 	m_pMainLayout->addWidget(m_pButtons);
 	
 	setWindowState(Qt::WindowNoState);
-	restoreGeometry(theConf->GetBlob("MountManagerWnd/Window_Geometry"));
-	restoreState(theConf->GetBlob("MountManagerWnd/Window_State"));
+	restoreGeometry(theConf->GetBlob("MountManagerWindow/Window_Geometry"));
+	restoreState(theConf->GetBlob("MountManagerWindow/Window_State"));
 
-	m_pTree->header()->restoreState(theConf->GetBlob("MountManagerWnd/TreeView_Columns"));
+	m_pTree->header()->restoreState(theConf->GetBlob("MountManagerWindow/TreeView_Columns"));
 
 	Load();
 
@@ -52,10 +52,10 @@ CMountMgrWnd::CMountMgrWnd(QWidget *parent)
 
 CMountMgrWnd::~CMountMgrWnd()
 {
-	theConf->SetBlob("MountManagerWnd/TreeView_Columns",m_pTree->header()->saveState());
+	theConf->SetBlob("MountManagerWindow/TreeView_Columns",m_pTree->header()->saveState());
 
-	theConf->SetBlob("MountManagerWnd/Window_Geometry", saveGeometry());
-	theConf->SetBlob("MountManagerWnd/Window_State", saveState());
+	theConf->SetBlob("MountManagerWindow/Window_Geometry", saveGeometry());
+	theConf->SetBlob("MountManagerWindow/Window_State", saveState());
 }
 
 void CMountMgrWnd::OnClicked(QAbstractButton* pButton)

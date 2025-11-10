@@ -12,7 +12,7 @@ class CScriptWindow : public QDialog
 	Q_OBJECT
 
 public:
-	CScriptWindow(const QFlexGuid& Guid, EScriptTypes Type, QWidget *parent = Q_NULLPTR);
+	CScriptWindow(const QFlexGuid& Guid, EItemType Type, QWidget *parent = Q_NULLPTR);
 	~CScriptWindow();
 
 	template<typename T>
@@ -41,7 +41,7 @@ protected:
 	std::function<STATUS(const QString& Script, bool bApply)> m_Save;
 
 	QFlexGuid m_Guid; 
-	EScriptTypes m_Type = EScriptTypes::eNone;
+	EItemType m_Type = EItemType::eUnknown;
 	quint32 m_LastId = 0;
 
 private:

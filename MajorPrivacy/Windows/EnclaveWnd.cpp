@@ -150,10 +150,13 @@ CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 
 	ui.chkAllowDebugging->setChecked(m_pEnclave->m_AllowDebugging);
 	ui.chkKeepAlive->setChecked(m_pEnclave->m_KeepAlive);
+
+	restoreGeometry(theConf->GetBlob("EnclaveWindow/Window_Geometry"));
 }
 
 CEnclaveWnd::~CEnclaveWnd()
 {
+	theConf->SetBlob("EnclaveWindow/Window_Geometry", saveGeometry());
 }
 
 void CEnclaveWnd::closeEvent(QCloseEvent *e)
@@ -279,7 +282,7 @@ void CEnclaveWnd::OnAddCollection()
 
 void CEnclaveWnd::EditScript()
 {
-	CScriptWindow* pScriptWnd = new CScriptWindow(m_pEnclave->GetGuid(), EScriptTypes::eEnclave, this);
+	CScriptWindow* pScriptWnd = new CScriptWindow(m_pEnclave->GetGuid(), EItemType::eEnclave, this);
 	pScriptWnd->SetScript(m_Script);
 	pScriptWnd->SetSaver([&](const QString& Script, bool bApply){
 		m_Script = Script;

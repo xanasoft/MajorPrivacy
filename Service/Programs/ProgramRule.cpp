@@ -67,7 +67,7 @@ void CProgramRule::UpdateScript_NoLock()
 
 	if (!m_Script.empty()) 
 	{
-		m_pScript = std::make_shared<CJSEngine>(m_Script, m_Guid, EScriptTypes::eExecRule);
+		m_pScript = std::make_shared<CJSEngine>(m_Script, m_Guid, EItemType::eExecRule);
 		m_pScript->RunScript();
 	}
 }

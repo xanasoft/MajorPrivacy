@@ -216,6 +216,14 @@ enum {
 	SVC_API_UNDO_TWEAK = 'UTWK',
 	SVC_API_APPROVE_TWEAK = 'CTWK',
 
+	SVC_API_GET_PRESETS = 'GPRS',
+	SVC_API_SET_PRESETS = 'SPRS',
+	SVC_API_GET_PRESET = 'GPRT',
+	SVC_API_SET_PRESET = 'SPRT',
+	SVC_API_DEL_PRESET = 'DPRT',
+	SVC_API_ACTIVATE_PRESET = 'APRT',
+	SVC_API_DEACTIVATE_PRESET = 'UPRT',
+
 	SVC_API_SET_WATCHED_PROG = 'SWAT',
 
 	SVC_API_SET_DAT_FILE = 'SDAT',
@@ -232,6 +240,7 @@ enum {
 	SVC_API_EVENT_DNS_RULE_CHANGED = 'EDFR',
 	SVC_API_EVENT_EXEC_RULE_CHANGED = 'EEXR',
 	SVC_API_EVENT_RES_RULE_CHANGED = 'ERER',
+	SVC_API_EVENT_PRESET_CHANGED = 'EPST',
 
 	SVC_API_EVENT_NET_ACTIVITY = 'ENET',
 	SVC_API_EVENT_EXEC_ACTIVITY = 'EEXC',
@@ -341,6 +350,7 @@ API_V_VALUES : unsigned long
 	API_V_TIMEOUT = 'tmot',
 	API_V_TIME_STAMP = 'tmst',
 	API_V_LOCKDOWN = 'lckd',
+	API_V_FORCE = 'frce',
 
 	//
 	API_V_GUI_CONFIG = 'gcfg',
@@ -468,6 +478,10 @@ API_V_VALUES : unsigned long
 	// Generic Rules
 	API_V_RULE_REF_GUID = 'rgid',
 	API_V_RULE_HIT_COUNT = 'rhct',
+
+	API_V_ITEMS = 'itms',
+	API_V_ACTION = 'actn',
+		// ...
 
 	////////////////////////////
 	// Access Rules
@@ -744,6 +758,12 @@ API_V_VALUES : unsigned long
 	API_V_TWEAK_WIN_VER = 'twvw',
 	API_V_TWEAK_IS_SET = 'tset',
 	API_V_TWEAK_IS_APPLIED = 'tapp',
+
+	////////////////////////////
+	// Presets
+	API_V_PRESETS = 'psts',
+	API_V_PRESET = 'pset',
+	API_V_IS_ACTIVE = 'isac',
 
 
 	////////////////////////////

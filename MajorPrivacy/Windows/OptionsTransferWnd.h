@@ -27,8 +27,9 @@ public:
 		eService	= 0x0040,
 		eFwRules	= 0x0080,
 		ePrograms	= 0x0100,
-		eTraceLog	= 0x0200,
-		eAllPermanent = 0x07FF,
+		ePresets	= 0x0200,
+		eTraceLog	= 0x0800,
+		eAllPermanent = 0x0FFF,
 		eAll = 0xFFFF
 	};
 

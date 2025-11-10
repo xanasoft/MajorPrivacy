@@ -27,6 +27,7 @@ public:
 
 public slots:
 	void				Show();
+	void				TryShow();
 	void				Poke();
 
 private slots:

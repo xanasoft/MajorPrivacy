@@ -397,13 +397,38 @@ enum class ETweakType // API_S_TWEAK_TYPE
 // 
 //
 
-enum class ERuleType // API_S_... TODO
+enum class EItemType // API_S_... TODO
 {
 	eUnknown = 0,
-	eProgram,
-	eAccess,
-	eFirewall,
+
+	eExecRule,
+	eResRule,
+	eFwRule,
+	eDnsRule,
+
+	eEnclave,
+
+	eVolume,
+
+	eTweak,
+
+	ePreset,
+
 	eMax,
+};
+
+const char* ItemTypeToString(EItemType Type);
+EItemType ItemTypeFromString(const char* Str);
+
+struct SItemPreset
+{
+	EItemType		Type = EItemType::eUnknown; // Execution, Resource, Firewall, Tweak
+	enum EActivate
+	{
+		eUndefined = 0,
+		eEnable,
+		eDisable,
+	}				Activate = eUndefined;
 };
 
 enum class EFwRuleState
@@ -453,16 +478,6 @@ enum class ETraceLogs // API_S_... TODO
 	eNetLog,
 	eResLog,
 	eLogMax
-};
-
-enum class EScriptTypes // API_S_... TODO
-{
-	eNone = 0,
-	eExecRule,
-	eEnclave,
-	eResRule,
-	eVolume,
-	eMax
 };
 
 enum class ELogLevels // API_S_... TODO

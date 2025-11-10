@@ -88,8 +88,8 @@ public:
 	STATUS				SignFiles(const QStringList& Paths);
 	//STATUS				SignCerts(const QMap<QByteArray, QString>& Certs);
 
-	void				IgnoreEvent(ERuleType Type, const CProgramFilePtr& pProgram, const QString& Path = QString());
-	bool				IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry) const;
+	void				IgnoreEvent(EItemType Type, const CProgramFilePtr& pProgram, const QString& Path = QString());
+	bool				IsEventIgnored(EItemType Type, const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry) const;
 
 	void				LoadIgnoreList();
 	void				StoreIgnoreList();
@@ -149,6 +149,7 @@ public slots:
 
 private slots:
 	void				OnMaintenance();
+	void				OnRestartAsAdmin();
 	void				OnExit();
 	void				OnHelp();
 	void				OnDiagnostics();
@@ -181,6 +182,7 @@ private slots:
 	void				OnStackPanels();
 	void				OnMergePanels();
 
+	void				OnPreset();
 	void				OnPopUpPreset();
 	void				OnFwProfile();
 	void				OnDnsPreset();
@@ -222,8 +224,8 @@ protected:
 	int					m_iWasConnected = 2;
 	bool				m_bExit = false;
 
-	void				LoadIgnoreList(ERuleType Type);
-	void				StoreIgnoreList(ERuleType Type);
+	void				LoadIgnoreList(EItemType Type);
+	void				StoreIgnoreList(EItemType Type);
 
 	struct SIgnoreEvent
 	{
@@ -231,7 +233,7 @@ protected:
 		QSet<QString> Paths;
 	};
 
-	QMap<QString, SIgnoreEvent> m_IgnoreEvents[(int)ERuleType::eMax - 1];
+	QMap<QString, SIgnoreEvent> m_IgnoreEvents[(int)EItemType::eMax - 1];
 
 	QMap<CAsyncProgress*, QPair<CAsyncProgressPtr, QPointer<QWidget>>> m_pAsyncProgress;
 
@@ -286,6 +288,7 @@ private:
 	QAction*			m_pInstallService = nullptr;
 	QAction*			m_pRemoveService = nullptr;
 	QAction*			m_pSetupWizard = nullptr;
+	QAction*			m_pRestart = nullptr;
 	QAction*			m_pExit = nullptr;
 
 	QMenu*				m_pView = nullptr;
@@ -360,6 +363,7 @@ private:
 
 	QSystemTrayIcon*	m_pTrayIcon = nullptr;
 	QMenu*				m_pTrayMenu = nullptr;
+	QMenu*				m_pPresetMenu = nullptr;
 	QAction*			m_pExecShowPopUp = nullptr;
 	QAction*			m_pResShowPopUp = nullptr;
 	QAction*			m_pFwShowPopUp = nullptr;
@@ -404,8 +408,8 @@ public:
 };
 
 #define IGNORE_LIST_GROUP "IgnoreList"
-QString GetIgnoreTypeName(ERuleType Type);
-ERuleType GetIgnoreType(const QString& Key);
+QString GetIgnoreTypeName(EItemType Type);
+EItemType GetIgnoreType(const QString& Key);
 
 
 #define HIDDEN_ISSUES_GROUP "HiddenIssues"

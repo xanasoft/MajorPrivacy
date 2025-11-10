@@ -13,8 +13,10 @@ public:
 	STATUS ApplyTweak(const CTweakPtr& pTweak);
 	STATUS UndoTweak(const CTweakPtr& pTweak);
 
-	CTweakPtr GetRoot();
+	QSharedPointer<CTweakList> GetRoot();
 	QMap<QString, CTweakPtr> GetTweaks() const { return m_Map; }
+	CTweakPtr GetTweakById(const QString& Id) const { return m_Map.value(Id); }
+
 
 	uint32 GetRevision() const { return m_Revision; }
 

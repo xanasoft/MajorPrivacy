@@ -63,7 +63,7 @@ void CVolume::UpdateScript_NoLock()
 
     if (!m_Script.empty()) 
     {
-        m_pScript = std::make_shared<CJSEngine>(m_Script, m_Guid, EScriptTypes::eVolume);
+        m_pScript = std::make_shared<CJSEngine>(m_Script, m_Guid, EItemType::eVolume);
         m_pScript->RunScript();
     }
 }

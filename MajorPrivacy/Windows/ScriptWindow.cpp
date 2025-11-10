@@ -13,7 +13,7 @@
 #include "../Library/Helpers/NtUtil.h"
 #include "../MiscHelpers/Common/checkablemessagebox.h"
 
-CScriptWindow::CScriptWindow(const QFlexGuid& Guid, EScriptTypes Type, QWidget* parent)
+CScriptWindow::CScriptWindow(const QFlexGuid& Guid, EItemType Type, QWidget* parent)
 	: QDialog(parent)
 {
 	m_Guid = Guid; 

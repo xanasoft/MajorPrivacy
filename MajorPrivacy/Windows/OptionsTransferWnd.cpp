@@ -49,6 +49,9 @@ COptionsTransferWnd::COptionsTransferWnd(EAction Action, quint32 Options, QWidge
 	if (Options & ePrograms)
 		ui.chkPrograms->setChecked(true);
 
+	if (Options & ePresets)
+		ui.chkPresets->setChecked(true);
+
 	ui.chkTraceLog->setVisible(false);
 	//if (Options & eTraceLog)
 	//	ui.chkTraceLog->setChecked(true);
@@ -99,6 +102,9 @@ void COptionsTransferWnd::Disable(quint32 Options)
 	if (Options & ePrograms)
 		ui.chkPrograms->setEnabled(false);
 
+	if (Options & ePresets)
+		ui.chkPresets->setEnabled(false);
+
 	//if (Options & eTraceLog)
 	//	ui.chkTraceLog->setEnabled(false);
 }
@@ -136,6 +142,9 @@ quint32 COptionsTransferWnd::GetOptions() const
 
 	if (ui.chkPrograms->isChecked() && ui.chkPrograms->isEnabled())
 		Options |= ePrograms;
+
+	if (ui.chkPresets->isChecked() && ui.chkPresets->isEnabled())
+		Options |= ePresets;
 
 	//if (ui.chkTraceLog->isChecked() && ui.chkTraceLog->isEnabled())
 	//	Options |= eTraceLog;

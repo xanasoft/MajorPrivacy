@@ -9,6 +9,7 @@
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include "../OnlineUpdater.h"
 #include <QFontDialog>
+#include "Helpers/WinAdmin.h"
 
 void AddIconToLabel(QLabel* pLabel, const QPixmap& Pixmap)
 {
@@ -662,20 +663,22 @@ void CSettingsWindow::LoadSettings()
 {
 	m_HoldChange = true;
 
+	ui.chkAutoStart->setChecked(IsAutorunEnabled());
+
 	ui.uiLang->setCurrentIndex(ui.uiLang->findData(theConf->GetString("Options/UiLanguage")));
 
 	QStringList Keys = theConf->ListKeys(IGNORE_LIST_GROUP);
 	foreach(const QString & Key, Keys) {	
-		ERuleType Type = GetIgnoreType(Key);
-		if(Type == ERuleType::eUnknown)
+		EItemType Type = GetIgnoreType(Key);
+		if(Type == EItemType::eUnknown)
 			continue;
 		QString Value = theConf->GetString(IGNORE_LIST_GROUP "/" + Key);
 		
 		QTreeWidgetItem* pItem = new QTreeWidgetItem();
 		switch (Type) {
-		case ERuleType::eProgram:	pItem->setText(0, tr("Binary Image")); break;
-		case ERuleType::eAccess:	pItem->setText(0, tr("Resource Access")); break;
-		case ERuleType::eFirewall:	pItem->setText(0, tr("Network Access")); break;
+		case EItemType::eExecRule:	pItem->setText(0, tr("Binary Image")); break;
+		case EItemType::eResRule:	pItem->setText(0, tr("Resource Access")); break;
+		case EItemType::eFwRule:	pItem->setText(0, tr("Network Access")); break;
 		}
 		pItem->setData(0, Qt::UserRole, (int)Type);
 		pItem->setText(1, Value);
@@ -696,6 +699,7 @@ void CSettingsWindow::LoadSettings()
 
 	ui.chkFwPlus->setChecked(theCore->GetConfigBool("Service/UseFwRuleTemplates", true));
 	ui.chkFwPlusNotify->setChecked(theConf->GetBool("Options/NotifyFwRuleTemplates", true));
+	ui.chkFwAutoCleanup->setChecked(theCore->GetConfigBool("Service/AutoCleanUpFwTemplateRules", false));
 	ui.chkNetTrace->setChecked(theCore->GetConfigBool("Service/NetTrace", true));
 	ui.chkTrafficRecord->setChecked(theCore->GetConfigBool("Service/SaveTrafficRecord", false));
 	ui.chkFwLog->setChecked(theCore->GetConfigBool("Service/NetLog", false));
@@ -815,6 +819,8 @@ void CSettingsWindow::LoadSettings()
 
 void CSettingsWindow::SaveSettings()
 {
+	AutorunEnable(ui.chkAutoStart->isChecked());
+
 	theConf->SetValue("Options/UiLanguage", ui.uiLang->currentData());
 
 	if (m_IgnoreChanged) {
@@ -825,7 +831,7 @@ void CSettingsWindow::SaveSettings()
 
 		for (int i = 0; i < ui.treeIgnore->topLevelItemCount(); i++) {
 			QTreeWidgetItem* pItem = ui.treeIgnore->topLevelItem(i);
-			ERuleType Type = (ERuleType)pItem->data(0, Qt::UserRole).toUInt();
+			EItemType Type = (EItemType)pItem->data(0, Qt::UserRole).toUInt();
 			QString Value = pItem->text(1);
 			theConf->SetValue(IGNORE_LIST_GROUP "/" + GetIgnoreTypeName(Type) + "_" + QString::number(++i), Value);
 		}
@@ -847,6 +853,7 @@ void CSettingsWindow::SaveSettings()
 
 	theCore->SetConfig("Service/UseFwRuleTemplates", ui.chkFwPlus->isChecked());
 	theConf->SetValue("Options/NotifyFwRuleTemplates", ui.chkFwPlusNotify->isChecked());
+	theCore->SetConfig("Service/AutoCleanUpFwTemplateRules", ui.chkFwAutoCleanup->isChecked());
 	theCore->SetConfig("Service/NetTrace", ui.chkNetTrace->isChecked());
 	theCore->SetConfig("Service/SaveTrafficRecord", ui.chkTrafficRecord->isChecked());
 	theCore->SetConfig("Service/NetLog", ui.chkFwLog->isChecked());

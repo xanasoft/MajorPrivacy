@@ -234,6 +234,8 @@
     <ClCompile Include="Core\Processes\ExecLogEntry.cpp" />
     <ClCompile Include="Core\Processes\Process.cpp" />
     <ClCompile Include="Core\Processes\ProcessList.cpp" />
+    <ClCompile Include="Core\Presets\Preset.cpp" />
+    <ClCompile Include="Core\Presets\PresetManager.cpp" />
     <ClCompile Include="Core\Programs\AppInstallation.cpp" />
     <ClCompile Include="Core\Programs\AppPackage.cpp" />
     <ClCompile Include="Core\Programs\ImageSignInfo.cpp" />
@@ -327,6 +329,7 @@
     <ClCompile Include="Views\IssueView.cpp" />
     <ClCompile Include="Views\LibraryInfoView.cpp" />
     <ClCompile Include="Views\LibraryView.cpp" />
+    <ClCompile Include="Views\PresetView.cpp" />
     <ClCompile Include="Views\ProgramRuleView.cpp" />
     <ClCompile Include="Views\ProcessTraceView.cpp" />
     <ClCompile Include="Views\AccessRuleView.cpp" />
@@ -346,9 +349,11 @@
     <ClCompile Include="Windows\EnclaveWnd.cpp" />
     <ClCompile Include="Windows\FirewallRuleWnd.cpp" />
     <ClCompile Include="Windows\HashEntryWnd.cpp" />
+    <ClCompile Include="Windows\ItemPicker.cpp" />
     <ClCompile Include="Windows\MountMgrWnd.cpp" />
     <ClCompile Include="Windows\OptionsTransferWnd.cpp" />
     <ClCompile Include="Windows\PopUpWindow.cpp" />
+    <ClCompile Include="Windows\PresetWindow.cpp" />
     <ClCompile Include="Windows\ProgramPicker.cpp" />
     <ClCompile Include="Windows\ProgramRuleWnd.cpp" />
     <ClCompile Include="Windows\ProgramWnd.cpp" />
@@ -361,6 +366,9 @@
     <ClCompile Include="Wizards\SetupWizard.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Windows\ItemPicker.h" />
+    <QtMoc Include="Windows\PresetWindow.h" />
+    <QtMoc Include="Views\PresetView.h" />
     <QtMoc Include="Windows\VolumeConfigWnd.h" />
     <QtMoc Include="Windows\HashEntryWnd.h" />
     <QtMoc Include="Views\HashDBView.h" />
@@ -415,6 +423,8 @@
     <QtMoc Include="Core\Processes\Process.h" />
     <QtMoc Include="Core\Processes\ProcessList.h" />
     <QtMoc Include="Core\Programs\ProgramLibrary.h" />
+    <QtMoc Include="Core\Presets\Preset.h" />
+    <QtMoc Include="Core\Presets\PresetManager.h" />
     <ClInclude Include="Core\Programs\ImageSignInfo.h" />
     <ClInclude Include="Core\TraceLogEntry.h" />
     <QtMoc Include="Models\TrafficModel.h" />
@@ -499,8 +509,10 @@
     <QtUic Include="Forms\EnclaveWnd.ui" />
     <QtUic Include="Forms\FirewallRuleWnd.ui" />
     <QtUic Include="Forms\HashEntryWnd.ui" />
+    <QtUic Include="Forms\ItemPicker.ui" />
     <QtUic Include="Forms\OptionsTransferWnd.ui" />
     <QtUic Include="Forms\PopUpWindow.ui" />
+    <QtUic Include="Forms\PresetWindow.ui" />
     <QtUic Include="Forms\ProgramPicker.ui" />
     <QtUic Include="Forms\ProgramRuleWnd.ui" />
     <QtUic Include="Forms\ProgramWnd.ui" />

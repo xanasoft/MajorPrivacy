@@ -992,6 +992,8 @@ ULONG InjectDllHigh(uint64 Pid, ULONG flags)
 
     HANDLE hHelper = CreateThread(NULL, 0, InjectDllHighFunc, (void*)params, 0, NULL);
     CloseHandle(hHelper);
+
+    return 0;
 }
 
 NTSTATUS CProcessList::OnInjectionRequest(uint64 Pid, EExecDllMode DllMode, const CFlexGuid& EnclaveGuid, const CFlexGuid& RuleGuid)

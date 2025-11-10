@@ -71,7 +71,7 @@ void CEnclave::UpdateScript_NoLock()
 
 	if (!m_Script.empty()) 
 	{
-		m_pScript = std::make_shared<CJSEngine>(m_Script, m_Guid, EScriptTypes::eEnclave);
+		m_pScript = std::make_shared<CJSEngine>(m_Script, m_Guid, EItemType::eEnclave);
 		m_pScript->RunScript();
 	}
 }

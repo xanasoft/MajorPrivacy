@@ -14,17 +14,17 @@
 #include "..\Network\NetworkManager.h"
 #include "..\Network\Firewall\Firewall.h"
 #include "..\Network\Firewall\WindowsFirewall.h"
-
+#include <cwctype>
 
 std::wstring snakeToCamel(const std::wstring& snake) {
     std::wstring camel;
     bool capitalize = true;
 
-    for (char c : snake) {
-        if (c == '_') {
+    for (wchar_t c : snake) {
+        if (c == L'_') {
             capitalize = true;
         } else if (capitalize) {
-            camel += std::toupper(c);
+            camel += std::towupper(c);
             capitalize = false;
         } else {
             camel += c;
@@ -37,10 +37,10 @@ std::wstring snakeToCamel(const std::wstring& snake) {
 std::wstring camelToSnake(const std::wstring& camel) {
     std::wstring snake;
 
-    for (char c : camel) {
+    for (wchar_t c : camel) {
         if (std::isupper(c)) {
-            snake += '_';
-            snake += std::tolower(c);
+            snake += L'_';
+            snake += std::towlower(c);
         } else {
             snake += c;
         }
@@ -53,14 +53,14 @@ std::wstring spaceToCamel(const std::wstring& text) {
     std::wstring camel;
     bool capitalize = false;
 
-    for (char c : text) {
-        if (std::isspace(c)) {
+    for (wchar_t c : text) {
+        if (std::iswspace(c)) {
             capitalize = true;
         } else if (capitalize) {
-            camel += std::toupper(c);
+            camel += std::towupper(c);
             capitalize = false;
         } else {
-            camel += std::tolower(c);
+            camel += std::towlower(c);
         }
     }
 
@@ -70,11 +70,11 @@ std::wstring spaceToCamel(const std::wstring& text) {
 std::wstring spaceToSnake(const std::wstring& text) {
     std::wstring snake;
 
-    for (char c : text) {
-        if (std::isspace(c)) {
-            snake += '_';
+    for (wchar_t c : text) {
+        if (std::iswspace(c)) {
+            snake += L'_';
         } else {
-            snake += std::tolower(c);
+            snake += std::towlower(c);
         }
     }
 

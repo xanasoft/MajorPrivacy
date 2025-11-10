@@ -17,6 +17,7 @@ public:
 
 	QSet<QFlexGuid> GetAccessRuleIDs() const;
 	QList<CAccessRulePtr> GetAccessRules() const { return m_AccessRules.values(); }
+	CAccessRulePtr GetAccessRuleByGuid(const QFlexGuid& Guid) const { return m_AccessRules.value(Guid); }
 	//QList<CAccessRulePtr> GetAccessRulesFor(const QList<const class CAccessItem*>& Nodes);
 	QList<CAccessRulePtr> GetAccessRules(const QSet<QFlexGuid> &AccessRuleIDs);
 

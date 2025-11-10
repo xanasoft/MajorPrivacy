@@ -31,6 +31,7 @@
 #include "Enclaves/Enclave.h"
 #include "Common/EventLog.h"
 #include "HashDB/HashDB.h"
+#include "Presets/Preset.h"
 
 #define XVariant StVariant
 #define VariantWriter StVariantWriter
@@ -55,6 +56,7 @@
 #define LIST_CLEAR(l) l.clear()
 #define LIST_APPEND(l, e) l.push_back(e)
 #define CFwRule CFirewallRule
+#define QFlexGuid CFlexGuid
 
 #include "../../Library/API/API_GenericRule.cpp"
 
@@ -81,3 +83,6 @@
 
 #define TWEAK_SVC
 #include "../../Library/API/API_Tweak.cpp"
+
+#define PRESET_SVC
+#include "../../Library/API/API_Preset.cpp"

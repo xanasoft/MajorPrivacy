@@ -50,10 +50,14 @@ CVolumeConfigWnd::CVolumeConfigWnd(const CVolumePtr& pVolume, QWidget* parent)
 		ui.btnScript->setIcon(QIcon(":/Icons/Script-Add.png"));
 	else
 		ui.btnScript->setIcon(QIcon(":/Icons/Script-Edit.png"));
+
+
+	restoreGeometry(theConf->GetBlob("VolumeConfigWindow/Window_Geometry"));
 }
 
 CVolumeConfigWnd::~CVolumeConfigWnd()
 {
+	theConf->SetBlob("VolumeConfigWindow/Window_Geometry", saveGeometry());
 }
 
 void CVolumeConfigWnd::closeEvent(QCloseEvent *e)
@@ -93,7 +97,7 @@ bool CVolumeConfigWnd::Save()
 
 void CVolumeConfigWnd::EditScript()
 {
-	CScriptWindow* pScriptWnd = new CScriptWindow(m_pVolume->GetGuid(), EScriptTypes::eVolume, this);
+	CScriptWindow* pScriptWnd = new CScriptWindow(m_pVolume->GetGuid(), EItemType::eVolume, this);
 	pScriptWnd->SetScript(m_Script);
 	pScriptWnd->SetSaver([&](const QString& Script, bool bApply){
 		m_Script = Script;

@@ -304,6 +304,15 @@ STATUS CTweakManager::ApproveTweak(const std::wstring& Id, uint32 CallerPID)
 	return OK;
 }
 
+CTweakPtr CTweakManager::GetTweakById(const std::wstring& Id) const
+{
+	std::unique_lock Lock(m_Mutex);
+	auto F = m_Map.find(Id);
+	if (F == m_Map.end())
+		return nullptr;
+	return F->second;
+}
+
 CGPO* CTweakManager::GetLockedGPO()
 {
 	m_GPOMutex.lock();

@@ -111,7 +111,10 @@ int main(int argc, char *argv[])
 
 	QObject::connect(&App, SIGNAL(messageReceived(const QString&)), pWnd, SLOT(OnMessage(const QString&)), Qt::QueuedConnection);
 
-	pWnd->show();
+	bool bAutoRun = QApplication::arguments().contains("-autorun");
+	if(!bAutoRun)
+		pWnd->show();
+
 	int ret = App.exec();
 
 	delete pWnd;

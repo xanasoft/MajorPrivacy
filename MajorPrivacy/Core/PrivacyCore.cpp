@@ -19,6 +19,7 @@
 #include "EventLog.h"
 #include "../Library/Helpers/CertUtil.h"
 #include "../Library/Helpers/WinUtil.h"
+#include "Presets/PresetManager.h"
 
 #include <phnt_windows.h>
 #include <phnt.h>
@@ -95,6 +96,7 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 
 	m_pTweakManager = new CTweakManager(this);
 
+	m_pPresetManager = new CPresetManager(this);
 
 	m_pIssueManager = new CIssueManager(this);
 
@@ -370,8 +372,8 @@ STATUS CPrivacyCore::Update()
 void CPrivacyCore::ProcessEvents()
 {
 	QMutexLocker Lock(&m_EventQueueMutex);
-	//auto ProcRuleEvents = m_DrvEventQueue.take(ERuleType::eProgram);
-	//auto ResRuleEvents = m_DrvEventQueue.take(ERuleType::eAccess);
+	//auto ProcRuleEvents = m_DrvEventQueue.take(EItemType::eExecRule);
+	//auto ResRuleEvents = m_DrvEventQueue.take(EItemType::eResRule);
 	
 	auto LogEvents = m_SvcEventQueue.take(SVC_API_EVENT_LOG_ENTRY);
 
@@ -1534,7 +1536,7 @@ RESULT(QtVariant) CPrivacyCore::GetTrafficLog(const class CProgramID& ID, quint6
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_TRAFFIC, Request), API_V_TRAFFIC_LOG);
 }
 
-RESULT(QtVariant)  CPrivacyCore::GetAllDnsRules()
+RESULT(QtVariant) CPrivacyCore::GetAllDnsRules()
 {
 	QtVariant Request(m_pMemPool);
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_DNS_RULES, Request), API_V_RULES);
@@ -1788,6 +1790,59 @@ STATUS CPrivacyCore::ApproveTweak(const QString& Id)
 	return m_Service.Call(SVC_API_APPROVE_TWEAK, Request);
 }
 
+// Preset Manager
+
+RESULT(QtVariant) CPrivacyCore::GetAllPresets()
+{
+	QtVariant Request(m_pMemPool);
+
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_PRESETS, Request), API_V_PRESETS);
+}
+
+STATUS CPrivacyCore::SetAllPresets(const QtVariant& Presets)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_PRESETS] = Presets;
+	return m_Service.Call(SVC_API_SET_PRESETS, Request);
+}
+
+STATUS CPrivacyCore::SetPreset(const QtVariant& Preset)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_PRESET] = Preset;
+	return m_Service.Call(SVC_API_SET_PRESET, Request);
+}
+
+RESULT(QtVariant) CPrivacyCore::GetPreset(const QFlexGuid& Guid)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_PRESET, Request), API_V_PRESET);
+}
+
+STATUS CPrivacyCore::DelPreset(const QFlexGuid& Guid)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	return m_Service.Call(SVC_API_DEL_PRESET, Request);
+}
+
+STATUS CPrivacyCore::ActivatePreset(const QFlexGuid& Guid, bool bForce)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	if (bForce)
+		Request[API_V_FORCE] = true;
+	return m_Service.Call(SVC_API_ACTIVATE_PRESET, Request);
+}
+
+STATUS CPrivacyCore::DeactivatePreset(const QFlexGuid& Guid)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_GUID] = Guid.ToVariant(true);
+	return m_Service.Call(SVC_API_DEACTIVATE_PRESET, Request);
+}
+
 // Other
 
 void CPrivacyCore::ClearPrivacyLog()
@@ -1803,7 +1858,7 @@ RESULT(QtVariant) CPrivacyCore::GetServiceStats()
 	RET_AS_XVARIANT(m_Service.Call(SVC_API_GET_SVC_STATS, Request));
 }
 
-RESULT(QtVariant) CPrivacyCore::GetScriptLog(const QFlexGuid& Guid, EScriptTypes Type, quint32 LastID)
+RESULT(QtVariant) CPrivacyCore::GetScriptLog(const QFlexGuid& Guid, EItemType Type, quint32 LastID)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_GUID] = Guid.ToVariant(true);
@@ -1813,7 +1868,7 @@ RESULT(QtVariant) CPrivacyCore::GetScriptLog(const QFlexGuid& Guid, EScriptTypes
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_SCRIPT_LOG, Request), API_V_EVENT_LOG);
 }
 
-STATUS CPrivacyCore::ClearScriptLog(const QFlexGuid& Guid, EScriptTypes Type)
+STATUS CPrivacyCore::ClearScriptLog(const QFlexGuid& Guid, EItemType Type)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_GUID] = Guid.ToVariant(true);
@@ -1821,7 +1876,7 @@ STATUS CPrivacyCore::ClearScriptLog(const QFlexGuid& Guid, EScriptTypes Type)
 	return m_Service.Call(SVC_API_CLEAR_SCRIPT_LOG, Request);
 }
 
-RESULT(QtVariant) CPrivacyCore::CallScriptFunc(const QFlexGuid& Guid, EScriptTypes Type, const QString& Name, const QtVariant& Params)
+RESULT(QtVariant) CPrivacyCore::CallScriptFunc(const QFlexGuid& Guid, EItemType Type, const QString& Name, const QtVariant& Params)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_GUID] = Guid.ToVariant(true);

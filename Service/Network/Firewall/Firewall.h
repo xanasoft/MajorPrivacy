@@ -69,9 +69,13 @@ public:
 
 	void RevertChanges();
 
+	void CleanupOldTemplateRules();
+
 	std::map<CFlexGuid, CFirewallRulePtr> FindRules(const CProgramID& ID);
 
 	std::map<CFlexGuid, CFirewallRulePtr> GetAllRules();
+
+	std::vector<CFirewallRulePtr> GetRulesFromTemplate(const CFlexGuid& TemplateGuid);
 
 	STATUS SetRule(const CFirewallRulePtr& pRule);
 	CFirewallRulePtr GetRule(const CFlexGuid& Guid);

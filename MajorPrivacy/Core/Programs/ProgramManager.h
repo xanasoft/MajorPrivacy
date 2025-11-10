@@ -48,6 +48,7 @@ public:
 
 	QSet<QFlexGuid> GetProgramRuleIDs() const;
 	QList<CProgramRulePtr> GetProgramRules() const { QReadLocker Lock(&m_Mutex); return m_ProgramRules.values(); }
+	CProgramRulePtr GetProgramRuleByGuid(const QFlexGuid& Guid) const { QReadLocker Lock(&m_Mutex); return m_ProgramRules.value(Guid); }
 	//QList<CProgramRulePtr> GetProgramRulesFor(const QList<const class CProgramItem*>& Nodes);
 	QList<CProgramRulePtr> GetProgramRules(const QSet<QFlexGuid> &ProgramRuleIDs);
 

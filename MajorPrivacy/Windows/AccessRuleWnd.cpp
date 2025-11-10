@@ -198,10 +198,13 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 	ui.chkInteractive->setChecked(m_pRule->m_bInteractive);
 
 	m_NameHold = false;
+
+	restoreGeometry(theConf->GetBlob("AccessRuleWindow/Window_Geometry"));
 }
 
 CAccessRuleWnd::~CAccessRuleWnd()
 {
+	theConf->SetBlob("AccessRuleWindow/Window_Geometry", saveGeometry());
 }
 
 bool CAccessRuleWnd::AddProgramItem(const CProgramItemPtr& pItem)
@@ -489,7 +492,7 @@ void CAccessRuleWnd::TryMakeName()
 
 void CAccessRuleWnd::EditScript()
 {
-	CScriptWindow* pScriptWnd = new CScriptWindow(m_pRule->GetGuid(), EScriptTypes::eResRule, this);
+	CScriptWindow* pScriptWnd = new CScriptWindow(m_pRule->GetGuid(), EItemType::eResRule, this);
 	pScriptWnd->SetScript(m_Script);
 	pScriptWnd->SetSaver([&](const QString& Script, bool bApply){
 		m_Script = Script;

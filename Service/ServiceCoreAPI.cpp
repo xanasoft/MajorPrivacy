@@ -28,6 +28,7 @@
 #include "Common/EventLog.h"
 #include "../Library/Helpers/TokenUtil.h"
 #include "Enclaves/EnclaveManager.h"
+#include "Presets/PresetManager.h"
 
 void CServiceCore::RegisterUserAPI()
 {
@@ -130,6 +131,16 @@ void CServiceCore::RegisterUserAPI()
 	m_pUserPipe->RegisterHandler(SVC_API_APPLY_TWEAK, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_UNDO_TWEAK, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_APPROVE_TWEAK, &CServiceCore::OnRequest, this);
+
+	// PresetManager
+	m_pUserPipe->RegisterHandler(SVC_API_SET_PRESETS, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_GET_PRESETS, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_GET_PRESET, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_SET_PRESET, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_DEL_PRESET, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_ACTIVATE_PRESET, &CServiceCore::OnRequest, this);
+	m_pUserPipe->RegisterHandler(SVC_API_DEACTIVATE_PRESET, &CServiceCore::OnRequest, this);
+	
 
 	m_pUserPipe->RegisterHandler(SVC_API_SET_WATCHED_PROG, &CServiceCore::OnRequest, this);
 	
@@ -876,6 +887,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			std::wstring path = vReq[API_V_CMD_LINE];
 
+#if 1
 			/*WTSQueryUserToken(CallerSession, &PrimaryTokenHandle);
 
             if (req->elevate == 1) {
@@ -934,6 +946,22 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			}
 			else
 				Status = ERR(GetLastWin32ErrorAsNtStatus());
+				
+#else
+			
+			uint32 dwProcessId = 0;
+			Status = theCore->CreateUserProcess(path, pClient.PID, CServiceCore::eExec_AsCallerUser, L"", &dwProcessId);
+			if (Status.IsSuccess())
+			{
+				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(dwProcessId, true);
+
+				KPH_PROCESS_SFLAGS SecFlags;
+				SecFlags.SecFlags = pProcess->GetSecFlags();
+
+				if(SecFlags.EjectFromEnclave)
+					Status = ERR(STATUS_ERR_PROC_EJECTED);
+			}
+#endif
 
 			RETURN_STATUS(Status);
 		}
@@ -1455,6 +1483,94 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			RETURN_STATUS(Status);
 		}
 
+		case SVC_API_SET_PRESETS:
+		{
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+
+			std::set<CFlexGuid> ActivePresets = theCore->PresetManager()->GetActivePresets();
+			for (const auto& PresetGuid : ActivePresets)
+			{
+				STATUS Status = theCore->PresetManager()->DeactivatePreset(PresetGuid, pClient.PID);
+				if (Status.IsError())
+					theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG,
+						L"Failed to deactivate Preset %s before import", PresetGuid.ToWString().c_str());
+			}
+
+			STATUS Status = theCore->PresetManager()->SetPresets(vReq[API_V_PRESETS]);
+			if(Status)
+				theCore->SetConfigDirty(true);
+			RETURN_STATUS(Status);
+		}
+		case SVC_API_GET_PRESETS:
+		{
+			StVariant vRpl(m_pMemPool);
+			SVarWriteOpt Opts;
+			Opts.Flags |= SVarWriteOpt::eSaveAll;
+			vRpl[API_V_PRESETS] = theCore->PresetManager()->SaveEntries(Opts, m_pMemPool);
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
+		}
+		case SVC_API_GET_PRESET:
+		{
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+			auto Ret = theCore->PresetManager()->GetEntry(vReq[API_V_GUID].AsStr(), SVarWriteOpt(), m_pMemPool);
+			if (Ret.IsError()) {
+				RETURN_STATUS(Ret);
+			}
+
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_PRESET] = Ret.GetValue();
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
+		}
+		case SVC_API_SET_PRESET:
+		{
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+
+			auto Ret = theCore->PresetManager()->SetEntry(vReq[API_V_PRESET]);
+			if (Ret.IsError()) {
+				RETURN_STATUS(Ret);
+			}
+
+			theCore->SetConfigDirty(true);
+
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_GUID] = Ret.GetValue();
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
+		}
+		case SVC_API_DEL_PRESET:
+		{
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+			STATUS Status = theCore->PresetManager()->DelEntry(vReq[API_V_GUID].AsStr());
+			if(Status)
+				theCore->SetConfigDirty(true);
+			RETURN_STATUS(Status);
+		}
+		case SVC_API_ACTIVATE_PRESET:
+		{
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+			bool bForce = vReq.Get(API_V_FORCE).To<bool>(false);
+			STATUS Status = theCore->PresetManager()->ActivatePreset(vReq[API_V_GUID].AsStr(), pClient.PID, bForce);
+			if(Status)
+				theCore->SetConfigDirty(true);
+			RETURN_STATUS(Status);
+		}
+		case SVC_API_DEACTIVATE_PRESET:
+		{
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+			STATUS Status = theCore->PresetManager()->DeactivatePreset(vReq[API_V_GUID].AsStr(), pClient.PID);
+			if(Status)
+				theCore->SetConfigDirty(true);
+			RETURN_STATUS(Status);
+		}
+
 		case SVC_API_SET_WATCHED_PROG:
 		{
 			StVariant vReq(m_pMemPool);
@@ -1548,7 +1664,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			CFlexGuid Guid;
 			Guid.FromVariant(vReq[API_V_GUID]);
-			CJSEnginePtr pScript = theCore->GetScript(Guid, (EScriptTypes)vReq[API_V_TYPE].To<uint32>());
+			CJSEnginePtr pScript = theCore->GetScript(Guid, (EItemType)vReq[API_V_TYPE].To<uint32>());
 			if(!pScript)
 				return STATUS_INVALID_PARAMETER_1;
 
@@ -1564,7 +1680,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			CFlexGuid Guid;
 			Guid.FromVariant(vReq[API_V_GUID]);
-			CJSEnginePtr pScript = theCore->GetScript(Guid, (EScriptTypes)vReq[API_V_TYPE].To<uint32>());
+			CJSEnginePtr pScript = theCore->GetScript(Guid, (EItemType)vReq[API_V_TYPE].To<uint32>());
 			if(!pScript)
 				return STATUS_INVALID_PARAMETER_1;
 
@@ -1579,11 +1695,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			CFlexGuid Guid;
 			Guid.FromVariant(vReq[API_V_GUID]);
-			CJSEnginePtr pScript = theCore->GetScript(Guid, (EScriptTypes)vReq[API_V_TYPE].To<uint32>());
+			CJSEnginePtr pScript = theCore->GetScript(Guid, (EItemType)vReq[API_V_TYPE].To<uint32>());
 			if(!pScript)
 				return STATUS_INVALID_PARAMETER_1;
 
-			auto Ret = pScript->CallFunc(vReq[API_V_NAME].ToStringA().ConstData(), 1, vReq.Get(API_V_PARAMS));
+			auto Ret = pScript->CallFunction(vReq[API_V_NAME].ToStringA().ConstData(), vReq.Get(API_V_PARAMS), pClient.PID);
 			if (Ret.IsError()) {
 				RETURN_STATUS(Ret);
 			}

@@ -62,11 +62,13 @@ public:
 
 	class CTweakManager*	TweakManager()			{ return m_pTweakManager; }
 
+	class CPresetManager*	PresetManager()			{ return m_pPresetManager; }
+
 	class CDriverAPI*		Driver()				{ return m_pDriver; }
 
 	class CEtwEventMonitor*	EtwEventMonitor()		{ return m_pEtwEventMonitor; }
 
-	CJSEnginePtr			GetScript(const CFlexGuid& Guid, EScriptTypes Type);
+	CJSEnginePtr			GetScript(const CFlexGuid& Guid, EItemType Type);
 
 	int						BroadcastMessage(uint32 MessageID, const StVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram = NULL);
 
@@ -78,6 +80,19 @@ public:
 	static std::wstring		GetCallerSID(uint32 CallerPID);
 
 	CThreadPool*			ThreadPool()			{ return &m_Pool; }
+
+	enum EExecFlags
+	{
+		eExec_None = 0,
+		eExec_Hidden = 0x0001,			// Run without showing window
+		eExec_DropAdmin = 0x0002,		// Drop admin rights from token
+		eExec_LowPrivilege = 0x0004,	// Run with restricted low privilege token
+		eExec_AsCallerUser = 0x0008,	// Run as the calling user's token (default)
+		eExec_Elevate = 0x0010,			// Elevate to admin rights (get linked token if caller is in admin group)
+		eExec_AsSystem = 0x0020,		// Run as SYSTEM (requires service mode with appropriate privileges)
+	};
+
+	STATUS					CreateUserProcess(const std::wstring& CommandLine, uint32 CallerPID, uint32 Flags = eExec_AsCallerUser, const std::wstring& WorkingDir = L"", uint32* pProcessId = nullptr, HANDLE* pProcessHandle = nullptr);
 
 	static STATUS InstallDriver(bool bAutoStart);
 	static STATUS StopDriver();
@@ -144,6 +159,8 @@ protected:
 	class CVolumeManager*	m_pVolumeManager = NULL;
 
 	class CTweakManager*	m_pTweakManager = NULL;
+
+	class CPresetManager*	m_pPresetManager = NULL;
 
 	class CDriverAPI*		m_pDriver = NULL;
 

@@ -18,6 +18,7 @@ public:
 
 	QSet<QFlexGuid> GetFwRuleIDs() const;
 	QMap<QFlexGuid, CFwRulePtr> GetFwRules() const { return m_FwRules; }
+	CFwRulePtr GetFwRuleByGuid(const QFlexGuid& Guid) const { return m_FwRules.value(Guid); }
 	//QList<CFwRulePtr> GetFwRulesFor(const QList<const class CProgramItem*>& Nodes);
 	QList<CFwRulePtr> GetFwRules(const QSet<QFlexGuid> &FwRuleIDs);
 	CFwRulePtr GetFwRule(const QFlexGuid& Guid);
@@ -35,6 +36,7 @@ public:
 	void RemoveDnsRule(const QFlexGuid& Guid);
 
 	QList<CDnsRulePtr> GetDnsRules() const { return m_DnsRules.values(); }
+	CDnsRulePtr GetDnsRuleByGuid(const QFlexGuid& Guid) const { return m_DnsRules.value(Guid); }
 
 	STATUS SetDnsRule(const CDnsRulePtr& pRule);
 	//RESULT(CDnsRulePtr) GetFwRule(const QFlexGuid& Guid);

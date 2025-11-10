@@ -78,7 +78,7 @@
       <item row="3" column="1" colspan="3">
        <widget class="QCheckBox" name="chkInteractive">
         <property name="text">
-         <string>Hold the access atempt during prompt</string>
+         <string>Hold the access attempt during prompt</string>
         </property>
        </widget>
       </item>

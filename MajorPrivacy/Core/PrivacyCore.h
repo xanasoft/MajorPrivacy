@@ -105,7 +105,7 @@ public:
 	class CNetworkManager* NetworkManager()		{ return m_pNetworkManager; }
 	class CVolumeManager* VolumeManager()		{ return m_pVolumeManager; }
 	class CTweakManager* TweakManager()			{ return m_pTweakManager; }
-
+	class CPresetManager* PresetManager()		{ return m_pPresetManager; }
 	class CIssueManager* IssueManager()			{ return m_pIssueManager; }
 
 	CDriverAPI*		Driver() { return &m_Driver; }
@@ -313,14 +313,24 @@ public:
 	STATUS				UndoTweak(const QString& Name);
 	STATUS				ApproveTweak(const QString& Id);
 
+	// Preset Manager
+	RESULT(QtVariant)	GetAllPresets();
+	STATUS				SetAllPresets(const QtVariant& Presets);
+	STATUS				SetPreset(const QtVariant& Rule);
+	RESULT(QtVariant)	GetPreset(const QFlexGuid& Guid);
+	STATUS				DelPreset(const QFlexGuid& Guid);
+	STATUS				ActivatePreset(const QFlexGuid& Guid, bool bForce = false);
+	STATUS				DeactivatePreset(const QFlexGuid& Guid);
+
+
 	// Other
 	void				ClearPrivacyLog();
 
 	RESULT(QtVariant)	GetServiceStats();
 
-	RESULT(QtVariant)	GetScriptLog(const QFlexGuid& Guid, EScriptTypes Type, quint32 LastID = 0);
-	STATUS				ClearScriptLog(const QFlexGuid& Guid, EScriptTypes Type);
-	RESULT(QtVariant)	CallScriptFunc(const QFlexGuid& Guid, EScriptTypes Type, const QString& Name, const QtVariant& Params = QtVariant());
+	RESULT(QtVariant)	GetScriptLog(const QFlexGuid& Guid, EItemType Type, quint32 LastID = 0);
+	STATUS				ClearScriptLog(const QFlexGuid& Guid, EItemType Type);
+	RESULT(QtVariant)	CallScriptFunc(const QFlexGuid& Guid, EItemType Type, const QString& Name, const QtVariant& Params = QtVariant());
 
 	//
 	STATUS				SetWatchedPrograms(const QSet<CProgramItemPtr>& Programs);
@@ -414,7 +424,7 @@ protected:
 	class CNetworkManager* m_pNetworkManager = NULL;
 	class CVolumeManager* m_pVolumeManager = NULL;
 	class CTweakManager* m_pTweakManager = NULL;
-
+	class CPresetManager* m_pPresetManager = NULL;
 	class CIssueManager* m_pIssueManager = NULL;
 
 	bool m_EnclavesUpToDate = false;
@@ -432,10 +442,10 @@ protected:
 	//struct SDrvRuleEvent
 	//{
 	//	QString Guid;
-	//	ERuleType Type;
+	//	EItemType Type;
 	//	EConfigEvent Event;
 	//};
-	//QMap<ERuleType, QQueue<SDrvRuleEvent>> m_DrvEventQueue;
+	//QMap<EItemType, QQueue<SDrvRuleEvent>> m_DrvEventQueue;
 
 	CSidResolver* m_pSidResolver;
 

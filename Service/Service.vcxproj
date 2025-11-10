@@ -383,6 +383,7 @@
     <ClCompile Include="Network\Dns\DnsInspector.cpp" />
     <ClCompile Include="Network\Dns\DnsPacket.cpp" />
     <ClCompile Include="Network\Dns\DnsProcLog.cpp" />
+    <ClCompile Include="Network\Dns\DnsRule.cpp" />
     <ClCompile Include="Network\Dns\DnsServer.cpp" />
     <ClCompile Include="Network\Dns\DnsSocket.cpp" />
     <ClCompile Include="Network\Firewall\Firewall.cpp" />
@@ -408,6 +409,8 @@
     <ClCompile Include="Processes\ProcessList.cpp" />
     <ClCompile Include="Processes\ExecLogEntry.cpp" />
     <ClCompile Include="Processes\ServiceList.cpp" />
+    <ClCompile Include="Presets\Preset.cpp" />
+    <ClCompile Include="Presets\PresetManager.cpp" />
     <ClCompile Include="Programs\AppInstallation.cpp" />
     <ClCompile Include="Programs\AppPackage.cpp" />
     <ClCompile Include="Programs\ImageSignInfo.cpp" />
@@ -499,6 +502,7 @@
     <ClInclude Include="Network\Dns\DnsHostName.h" />
     <ClInclude Include="Network\Dns\DnsInspector.h" />
     <ClInclude Include="Network\Dns\DnsProcLog.h" />
+    <ClInclude Include="Network\Dns\DnsRule.h" />
     <ClInclude Include="Network\Dns\DnsServer.h" />
     <ClInclude Include="Network\Dns\DnsSocket.h" />
     <ClInclude Include="Network\Firewall\Firewall.h" />
@@ -519,6 +523,8 @@
     <ClInclude Include="Processes\ProcessList.h" />
     <ClInclude Include="Processes\ExecLogEntry.h" />
     <ClInclude Include="Processes\ServiceList.h" />
+    <ClInclude Include="Presets\Preset.h" />
+    <ClInclude Include="Presets\PresetManager.h" />
     <ClInclude Include="Programs\AppInstallation.h" />
     <ClInclude Include="Programs\AppPackage.h" />
     <ClInclude Include="Programs\ImageSignInfo.h" />

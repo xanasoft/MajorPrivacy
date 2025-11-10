@@ -73,6 +73,9 @@
     <Filter Include="HashDB">
       <UniqueIdentifier>{9902c790-92c8-43fe-9ad6-3deff94dec61}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Presets">
+      <UniqueIdentifier>{a7f4ea32-56a9-4d35-af3e-bc7838b188a5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -290,6 +293,15 @@
     </ClCompile>
     <ClCompile Include="HashDB\HashEntry.cpp">
       <Filter>HashDB</Filter>
+    </ClCompile>
+    <ClCompile Include="Presets\Preset.cpp">
+      <Filter>Presets</Filter>
+    </ClCompile>
+    <ClCompile Include="Presets\PresetManager.cpp">
+      <Filter>Presets</Filter>
+    </ClCompile>
+    <ClCompile Include="Network\Dns\DnsRule.cpp">
+      <Filter>Network\Dns\Filter</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -607,6 +619,15 @@
     </ClInclude>
     <ClInclude Include="HashDB\HashEntry.h">
       <Filter>HashDB</Filter>
+    </ClInclude>
+    <ClInclude Include="Presets\Preset.h">
+      <Filter>Presets</Filter>
+    </ClInclude>
+    <ClInclude Include="Presets\PresetManager.h">
+      <Filter>Presets</Filter>
+    </ClInclude>
+    <ClInclude Include="Network\Dns\DnsRule.h">
+      <Filter>Network\Dns\Filter</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

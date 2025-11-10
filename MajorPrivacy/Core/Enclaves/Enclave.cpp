@@ -5,7 +5,6 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../../Helpers/WinHelper.h"
-#include "../Library/API/PrivacyAPI.h"
 #include "../MiscHelpers/Common/Common.h"
 
 CEnclave::CEnclave(QObject* parent)

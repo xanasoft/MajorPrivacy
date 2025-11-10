@@ -31,6 +31,7 @@
 #include "Programs/ProgramPattern.h"
 #include "Programs/AppInstallation.h"
 #include "EventLog.h"
+#include "Presets/Preset.h"
 
 #define XVariant QtVariant
 #define VariantWriter QtVariantWriter
@@ -82,3 +83,5 @@
 
 #define TWEAK_GUI
 #include "../../Library/API/API_Tweak.cpp"
+
+#include "../../Library/API/API_Preset.cpp"

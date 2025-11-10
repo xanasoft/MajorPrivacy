@@ -17,8 +17,10 @@
 #include "../Library/Common/UIntX.h"
 #include "../Library/Common/Strings.h"
 #include "../Library/API/DriverAPI.h"
-#include "../../../Library/Common/FileIO.h"
-#include "../../Library/Helpers/AppUtil.h"
+#include "../Library/Common/FileIO.h"
+#include "../Library/Helpers/AppUtil.h"
+#include "../Library/Helpers/NtPathMgr.h"
+#include "../Library/Helpers/NtObj.h"
 
 
 #define API_FIREWALL_FILE_NAME L"Firewall.dat"
@@ -84,9 +86,12 @@ STATUS CFirewall::Init()
 
 	RevertChanges();
 
+	if(theCore->Config()->GetBool("Service", "AutoCleanUpFwTemplateRules", false))
+		CleanupOldTemplateRules();
+
 	if(theCore->Config()->GetBool("Service", "LoadWindowsFirewallLog", false))
 		LoadFwLog();
-		
+
 	return OK;
 }
 
@@ -358,6 +363,68 @@ void CFirewall::RevertChanges()
 	m_RulesToRevert.clear();
 }
 
+void CFirewall::CleanupOldTemplateRules()
+{
+	std::unique_lock Lock(m_RulesMutex);
+
+	std::vector<CFirewallRulePtr> RulesToRemove;
+	for (auto& [Guid, pFwRule] : m_FwRules)
+	{
+		if (pFwRule->GetSource() != EFwRuleSource::eAutoTemplate || pFwRule->IsTemplate())
+			continue;
+
+		std::wstring BinaryPath = pFwRule->GetBinaryPath();
+		if (BinaryPath.empty() || BinaryPath.substr(0, 2) == L"\\\\") // Skip network paths
+			continue;
+
+		// Check if the file exists
+		std::wstring NtPath = CNtPathMgr::Instance()->TranslateDosToNtPath(BinaryPath);
+		if (!NtPath.empty())
+		{
+			FILE_BASIC_INFORMATION FileInfo = { 0 };
+			if (!NT_SUCCESS(NtQueryAttributesFile(SNtObject(NtPath).Get(), &FileInfo)))
+			{
+				// File doesn't exist, mark for removal
+				RulesToRemove.push_back(pFwRule);
+			}
+		}
+	}
+
+	Lock.unlock();
+
+
+	for (auto& pFwRule : RulesToRemove)
+	{
+		std::wstring RuleName = pFwRule->GetName();
+		std::wstring BinaryPath = pFwRule->GetBinaryPath();
+		CFlexGuid RuleGuid = pFwRule->GetGuidStr();
+
+		STATUS Status = CWindowsFirewall::Instance()->RemoveRule(RuleGuid.ToWString());
+		if (Status.IsError())
+		{
+			theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Failed to remove obsolete template rule '%s' for '%s'", RuleName.c_str(), BinaryPath.c_str());
+		}
+		else
+		{
+			Lock.lock();
+			UpdateFWRuleUnsafe(NULL, RuleGuid);
+			Lock.unlock();
+
+			theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Removed obsolete template rule '%s' for '%s'", RuleName.c_str(), BinaryPath.c_str());
+
+			// Emit event for the action list
+			StVariant Data;
+			Data[API_V_GUID] = pFwRule->GetGuidStr();
+			Data[API_V_NAME] = RuleName;
+			Data[API_V_STATUS] = Status.GetStatus();
+			theCore->EmitEvent(ELogLevels::eInfo, eLogFwRuleRemoved, Data);
+		}
+	}
+
+	if (RulesToRemove.size() > 0)
+		theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Cleaned up %d obsolete template-generated firewall rule(s)", (int)RulesToRemove.size());
+}
+
 STATUS CFirewall::RestoreRule(const CFirewallRulePtr& pFwRuleBackup)
 {
 	SWindowsFwRulePtr pData = std::make_shared<SWindowsFwRule>(*pFwRuleBackup->GetFwRule());
@@ -544,6 +611,18 @@ std::map<CFlexGuid, CFirewallRulePtr> CFirewall::GetAllRules()
 {
 	std::unique_lock Lock(m_RulesMutex);
 	return m_FwRules;
+}
+
+std::vector<CFirewallRulePtr> CFirewall::GetRulesFromTemplate(const CFlexGuid& TemplateGuid)
+{
+	std::unique_lock Lock(m_RulesMutex);
+
+	std::vector<CFirewallRulePtr> DerivedRules;
+	for (const auto& [RuleGuid, pRule] : m_FwRules) {
+		if (!pRule->IsTemplate() && pRule->GetTemplateGuid() == TemplateGuid.ToWString())
+			DerivedRules.push_back(pRule);
+	}
+	return DerivedRules;
 }
 
 STATUS CFirewall::SetRule(const CFirewallRulePtr& pFwRule)

@@ -125,6 +125,9 @@
     <Filter Include="Helpers\Highliter">
       <UniqueIdentifier>{fad3803b-cdf0-4016-ad35-702339d5ae31}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Presets">
+      <UniqueIdentifier>{aa8f8615-3181-4a9c-991c-10858c5e2593}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -517,6 +520,21 @@
     <ClCompile Include="Windows\VolumeConfigWnd.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Views\PresetView.cpp">
+      <Filter>Views\Home</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\PresetWindow.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Presets\Preset.cpp">
+      <Filter>Core\Presets</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Presets\PresetManager.cpp">
+      <Filter>Core\Presets</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\ItemPicker.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -612,6 +630,12 @@
       <Filter>Form Files</Filter>
     </QtUic>
     <QtUic Include="Forms\VolumeConfigWnd.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\PresetWindow.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\ItemPicker.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>
@@ -956,6 +980,21 @@
       <Filter>Windows</Filter>
     </QtMoc>
     <QtMoc Include="Windows\VolumeConfigWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\PresetView.h">
+      <Filter>Views\Home</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\PresetWindow.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Presets\Preset.h">
+      <Filter>Core\Presets</Filter>
+    </QtMoc>
+    <QtMoc Include="Core\Presets\PresetManager.h">
+      <Filter>Core\Presets</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\ItemPicker.h">
       <Filter>Windows</Filter>
     </QtMoc>
   </ItemGroup>

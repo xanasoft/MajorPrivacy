@@ -46,6 +46,8 @@
 #include "OnlineUpdater.h"
 #include "Wizards/SetupWizard.h"
 #include "Core/IssueManager.h"
+#include "Core/Presets/PresetManager.h"
+#include "Helpers/WinAdmin.h"
 
 #include <Windows.h>
 #include <ShellApi.h>
@@ -841,6 +843,8 @@ void CMajorPrivacy::BuildMenu()
 		m_pMaintenance->addSeparator();
 		m_pSetupWizard = m_pMaintenance->addAction(QIcon(":/Icons/Wizard.png"), tr("Setup Wizard"), this, SLOT(OnMaintenance()));
 	m_pMain->addSeparator();
+	m_pRestart = m_pMain->addAction(QIcon(":/Icons/Shield9.png"), tr("Restart As Admin"), this, SLOT(OnRestartAsAdmin()));
+	m_pRestart->setEnabled(!IsElevated());
 	m_pExit = m_pMain->addAction(QIcon(":/Icons/Exit.png"), tr("Exit"), this, SLOT(OnExit()));
 
 
@@ -1333,8 +1337,10 @@ void CMajorPrivacy::CreateTrayMenu()
 	QFont f = pShowHide->font();
 	f.setBold(true);
 	pShowHide->setFont(f);
-	m_pTrayMenu->addSeparator();
 
+	m_pPresetMenu = m_pTrayMenu->addMenu(QIcon(":/Icons/Editor.png"), tr("Security Presets"));
+
+	m_pTrayMenu->addSeparator();
 	m_pExecShowPopUp = m_pTrayMenu->addAction(tr("Process Protection Popups"), this, SLOT(OnPopUpPreset()));
 	m_pExecShowPopUp->setCheckable(true);
 
@@ -1853,6 +1859,70 @@ void CMajorPrivacy::OnClearKeys()
 	UpdateTitle();
 }
 
+void CMajorPrivacy::OnPreset()
+{
+	QAction* pAction = (QAction*)sender();
+	QString Guid = pAction->data().toString();
+
+	STATUS Status;
+	if (pAction->isChecked())
+	{
+		// Activate the Preset - try without force first
+		Status = theCore->PresetManager()->ActivatePreset(Guid, false);
+
+		// If conflict detected, offer to force activate
+		if (!Status && Status.GetStatus() == STATUS_OBJECT_NAME_COLLISION)
+		{
+			CPresetPtr pPreset = theCore->PresetManager()->GetPreset(Guid);
+			QString PresetName = pPreset ? pPreset->GetName() : Guid;
+
+			QMessageBox msgBox(this);
+			msgBox.setWindowTitle(tr("Preset Activation Conflict"));
+			msgBox.setText(tr("Preset '%1' has conflicts with items managed by other active Presets.")
+				.arg(PresetName));
+			msgBox.setInformativeText(tr("Do you want to force activate this Preset and override the conflicts?"));
+			msgBox.setIcon(QMessageBox::Question);
+
+			QPushButton* pYesButton = msgBox.addButton(tr("Yes (Force)"), QMessageBox::YesRole);
+			QPushButton* pNoButton = msgBox.addButton(tr("No (Cancel)"), QMessageBox::NoRole);
+
+			msgBox.setDefaultButton(pNoButton);
+			msgBox.exec();
+
+			if (msgBox.clickedButton() == pYesButton)
+			{
+				// Retry with force
+				Status = theCore->PresetManager()->ActivatePreset(Guid, true);
+			}
+			else
+			{
+				// User cancelled - uncheck the action since activation failed
+				pAction->setChecked(false);
+				return;
+			}
+		}
+
+		// If still failed after potential retry, uncheck the action
+		if (!Status)
+		{
+			pAction->setChecked(false);
+		}
+	}
+	else
+	{
+		// Deactivate the Preset
+		Status = theCore->PresetManager()->DeactivatePreset(Guid);
+
+		// If deactivation failed, re-check the action since Preset is still active
+		if (!Status)
+		{
+			pAction->setChecked(true);
+		}
+	}
+
+	CheckResults(QList<STATUS>() << Status, this);
+}
+
 void CMajorPrivacy::OnPopUpPreset()
 {
 	QAction* pAction = (QAction*)sender();
@@ -1895,13 +1965,36 @@ void CMajorPrivacy::OnSysTray(QSystemTrayIcon::ActivationReason Reason)
 	switch(Reason)
 	{
 	case QSystemTrayIcon::Context:
-	{
+
+		{
+			m_pPresetMenu->clear();	
+
+			theCore->PresetManager()->Update();
+			auto Presets = theCore->PresetManager()->GetPresets();
+
+			foreach(const CPresetPtr & pPreset, Presets)
+			{
+				QString Guid = pPreset->GetGuid().ToQS();
+				bool bActive = pPreset->IsActive();
+
+				QAction* pAction = m_pPresetMenu->addAction(pPreset->GetIcon(), pPreset->GetName(), this, SLOT(OnPreset()));
+				pAction->setData(Guid);
+
+				//QFont fnt = pAction->font();
+				//fnt.setBold(bActive);
+				//pAction->setFont(fnt);
+
+				pAction->setCheckable(true);
+				pAction->setChecked(bActive);
+			}
+		}
+
 		m_pExecShowPopUp->setChecked(theConf->GetBool("ProcessProtection/ShowNotifications", true));
 		m_pResShowPopUp->setChecked(theConf->GetBool("ResourceAccess/ShowNotifications", true));
 		m_pFwShowPopUp->setChecked(theConf->GetBool("NetworkFirewall/ShowNotifications", false));
 
-		auto Result = theCore->GetFwProfile();
-		if(!Result.IsError()){
+		if(auto Result = theCore->GetFwProfile()) 
+		{
 			FwFilteringModes Profile = Result.GetValue();
 			//m_pFwBlockAll->setChecked(Profile == FwFilteringModes::BlockAll);
 			m_pFwAllowList->setChecked(Profile == FwFilteringModes::AllowList);
@@ -1914,38 +2007,52 @@ void CMajorPrivacy::OnSysTray(QSystemTrayIcon::ActivationReason Reason)
 
 		m_pTrayMenu->popup(QCursor::pos());	
 		break;
-	}
+
+	case QSystemTrayIcon::MiddleClick:
+		
+		break;
+
 	case QSystemTrayIcon::DoubleClick:
+	
+		if (TriggerSet)
+			NullifyTrigger = true;
+
 		if (isVisible())
 		{
-			if(TriggerSet)
-				NullifyTrigger = true;
-
 			StoreState();
 			hide();
-
-			//if (theAPI->GetGlobalSettings()->GetBool("ForgetPassword", false))
-			//	theAPI->ClearPassword();
-
-			break;
 		}
-		//CheckSupport();
-		show();
-	case QSystemTrayIcon::Trigger:
-		if (isVisible() && !TriggerSet)
+		else
 		{
-			TriggerSet = true;
-			QTimer::singleShot(100, [this]() { 
-				TriggerSet = false;
-				if (NullifyTrigger) {
-					NullifyTrigger = false;
-					return;
-				}
+			show();
+
+			QTimer::singleShot(100, [this]() {
 				this->setWindowState((this->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
 				SetForegroundWindow(MainWndHandle);
-				} );
+			});
 		}
-		m_pPopUpWindow->Poke();
+		break;
+
+	case QSystemTrayIcon::Trigger:
+
+		if (TriggerSet)
+			break;
+		TriggerSet = true;
+
+		QTimer::singleShot(250, [this]() { 
+
+			TriggerSet = false;
+			if (NullifyTrigger) {
+				NullifyTrigger = false;
+				return;
+			}
+		
+			if (!m_pPopUpWindow->isVisible())
+				m_pPopUpWindow->TryShow();
+			else
+				m_pPopUpWindow->hide();
+		});
+
 		break;
 	}
 }
@@ -2286,7 +2393,7 @@ void CMajorPrivacy::ShowNotification(const QString& Title, const QString& Messag
 	statusBar()->showMessage(Message, Timeout);
 }
 
-void CMajorPrivacy::IgnoreEvent(ERuleType Type, const CProgramFilePtr& pProgram, const QString& Path)
+void CMajorPrivacy::IgnoreEvent(EItemType Type, const CProgramFilePtr& pProgram, const QString& Path)
 {
 	if (Path.isEmpty()) {
 		ASSERT(!pProgram.isNull());
@@ -2297,7 +2404,7 @@ void CMajorPrivacy::IgnoreEvent(ERuleType Type, const CProgramFilePtr& pProgram,
 	StoreIgnoreList(Type);
 }
 
-bool CMajorPrivacy::IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry) const
+bool CMajorPrivacy::IsEventIgnored(EItemType Type, const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry) const
 {
 	const QMap<QString, SIgnoreEvent>& Map = m_IgnoreEvents[(int)Type - 1];
 	if (Map.isEmpty())
@@ -2310,7 +2417,7 @@ bool CMajorPrivacy::IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgr
 
 
 	QString Path;
-	if (Type == ERuleType::eProgram)
+	if (Type == EItemType::eExecRule)
 	{
 		const CExecLogEntry* pEntry = dynamic_cast<const CExecLogEntry*>(pLogEntry.constData());
 		if (pEntry->GetType() == EExecLogType::eImageLoad)
@@ -2328,7 +2435,7 @@ bool CMajorPrivacy::IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgr
 				Path = pExecutable->GetPath();
 		}
 	}
-	else if (Type == ERuleType::eAccess)
+	else if (Type == EItemType::eResRule)
 	{
 		const CResLogEntry* pEntry = dynamic_cast<const CResLogEntry*>(pLogEntry.constData());
 		QTreeWidgetItem* pItem = new QTreeWidgetItem();
@@ -2372,16 +2479,16 @@ bool CMajorPrivacy::IsEventIgnored(ERuleType Type, const CProgramFilePtr& pProgr
 
 void CMajorPrivacy::LoadIgnoreList()
 {
-	LoadIgnoreList(ERuleType::eProgram);
-	LoadIgnoreList(ERuleType::eAccess);
-	LoadIgnoreList(ERuleType::eFirewall);
+	LoadIgnoreList(EItemType::eExecRule);
+	LoadIgnoreList(EItemType::eResRule);
+	LoadIgnoreList(EItemType::eFwRule);
 }
 
 void CMajorPrivacy::StoreIgnoreList()
 {
-	StoreIgnoreList(ERuleType::eProgram);
-	StoreIgnoreList(ERuleType::eAccess);
-	StoreIgnoreList(ERuleType::eFirewall);
+	StoreIgnoreList(EItemType::eExecRule);
+	StoreIgnoreList(EItemType::eResRule);
+	StoreIgnoreList(EItemType::eFwRule);
 }
 
 void CMajorPrivacy::ClearTraceLogs()
@@ -2411,27 +2518,27 @@ void CMajorPrivacy::OnCleanUpProgress(quint64 Done, quint64 Total)
 	statusBar()->showMessage(tr("Cleanup %1/%2").arg(Done).arg(Total));
 }
 
-QString GetIgnoreTypeName(ERuleType Type)
+QString GetIgnoreTypeName(EItemType Type)
 {
 	switch (Type)
 	{
-	case ERuleType::eProgram: return "IgnorePrograms"; 
-	case ERuleType::eAccess: return "IgnoreAccess"; 
-	case ERuleType::eFirewall: return "IgnoreFirewall"; 
+	case EItemType::eExecRule: return "IgnorePrograms"; 
+	case EItemType::eResRule: return "IgnoreAccess"; 
+	case EItemType::eFwRule: return "IgnoreFirewall"; 
 	}
 	return "";
 }
 
-ERuleType GetIgnoreType(const QString& Key)
+EItemType GetIgnoreType(const QString& Key)
 {
 	QString Type = Split2(Key, "_").first;
-	if (Type == "IgnorePrograms") return ERuleType::eProgram;
-	if (Type == "IgnoreAccess") return ERuleType::eAccess;
-	if (Type == "IgnoreFirewall") return ERuleType::eFirewall;
-	return ERuleType::eUnknown;
+	if (Type == "IgnorePrograms") return EItemType::eExecRule;
+	if (Type == "IgnoreAccess") return EItemType::eResRule;
+	if (Type == "IgnoreFirewall") return EItemType::eFwRule;
+	return EItemType::eUnknown;
 }
 
-void CMajorPrivacy::LoadIgnoreList(ERuleType Type)
+void CMajorPrivacy::LoadIgnoreList(EItemType Type)
 {
 	QMap<QString, SIgnoreEvent>& Map = m_IgnoreEvents[(int)Type - 1];
 	Map.clear();
@@ -2455,7 +2562,7 @@ void CMajorPrivacy::LoadIgnoreList(ERuleType Type)
 	}
 }
 
-void CMajorPrivacy::StoreIgnoreList(ERuleType Type)
+void CMajorPrivacy::StoreIgnoreList(EItemType Type)
 {
 	const QMap<QString, SIgnoreEvent>& Map = m_IgnoreEvents[(int)Type - 1];
 
@@ -2486,7 +2593,7 @@ void CMajorPrivacy::OnProgramsAdded()
 void CMajorPrivacy::OnExecutionEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry)
 {
 	if (theConf->GetBool("ProcessProtection/ShowNotifications", true)) {
-		if (!IsEventIgnored(ERuleType::eProgram, pProgram, pLogEntry)) {
+		if (!IsEventIgnored(EItemType::eExecRule, pProgram, pLogEntry)) {
 			const CExecLogEntry* pExecEnrty = dynamic_cast<const CExecLogEntry*>(pLogEntry.constData());
 			if(pExecEnrty && pExecEnrty->GetType() == EExecLogType::eProcessStarted) {
 				//uint64 uID = pExecEnrty->GetMiscID();
@@ -2510,7 +2617,7 @@ void CMajorPrivacy::OnExecutionEvent(const CProgramFilePtr& pProgram, const CLog
 void CMajorPrivacy::OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry, uint32 TimeOut)
 {
 	if (theConf->GetBool("ResourceAccess/ShowNotifications", true)) {
-		if (!IsEventIgnored(ERuleType::eAccess, pProgram, pLogEntry)) {
+		if (!IsEventIgnored(EItemType::eResRule, pProgram, pLogEntry)) {
 			m_pPopUpWindow->PushResEvent(pProgram, pLogEntry, TimeOut);
 			return;
 		}
@@ -2527,7 +2634,7 @@ void CMajorPrivacy::OnUnruledFwEvent(const CProgramFilePtr& pProgram, const CLog
 		return;
 
 	if (theConf->GetBool("NetworkFirewall/ShowNotifications", false)) {
-		if (!IsEventIgnored(ERuleType::eFirewall, pProgram, pLogEntry))
+		if (!IsEventIgnored(EItemType::eFwRule, pProgram, pLogEntry))
 			m_pPopUpWindow->PushFwEvent(pProgram, pLogEntry);
 	}
 }
@@ -2616,9 +2723,9 @@ void CMajorPrivacy::ClearIgnoreLists()
 	if(QMessageBox::question(this, "MajorPrivacy", tr("Do you really want to clear the ignore list?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
 		return;
 
-	m_IgnoreEvents[(int)ERuleType::eProgram - 1].clear();
-	m_IgnoreEvents[(int)ERuleType::eAccess - 1].clear();
-	m_IgnoreEvents[(int)ERuleType::eFirewall - 1].clear();
+	m_IgnoreEvents[(int)EItemType::eExecRule - 1].clear();
+	m_IgnoreEvents[(int)EItemType::eResRule - 1].clear();
+	m_IgnoreEvents[(int)EItemType::eFwRule - 1].clear();
 
 	QStringList Keys = theConf->ListKeys(IGNORE_LIST_GROUP);
 	foreach(const QString & Key, Keys)
@@ -2680,6 +2787,8 @@ void CMajorPrivacy::OnMaintenance()
 			Selection |= COptionsTransferWnd::eFwRules;
 		if (Options.Has(API_S_PROGRAMS))
 			Selection |= COptionsTransferWnd::ePrograms;
+		if (Options.Has(API_S_PRESETS))
+			Selection |= COptionsTransferWnd::ePresets;
 
 		COptionsTransferWnd wnd(COptionsTransferWnd::eImport, Selection, this);
 		auto UserKey = theCore->Driver()->GetUserKey();
@@ -2731,6 +2840,10 @@ void CMajorPrivacy::OnMaintenance()
 
 		if (Selection & COptionsTransferWnd::eService) {
 			theCore->SetSvcConfig(Options[API_S_SERVICE_CONFIG]);
+		}
+
+		if (Selection & COptionsTransferWnd::ePresets) {
+			theCore->SetAllPresets(Options[API_S_PRESETS]);
 		}
 
 		/*if (Selection & COptionsTransferWnd::eFwRules) {
@@ -2841,6 +2954,14 @@ void CMajorPrivacy::OnMaintenance()
 			Options[API_S_PROGRAMS] = Programs;
 		}
 
+		if (Selection & COptionsTransferWnd::ePresets) {
+			QtVariant Presets;
+			for (auto pPreset : theCore->PresetManager()->GetPresets()) {
+				Presets.Append(pPreset->ToVariant(Ops));
+			}
+			Options[API_S_PRESETS] = Presets;
+		}
+
 		if(Options.Count() == 0)
 			return;
 
@@ -2880,6 +3001,25 @@ void CMajorPrivacy::OnMaintenance()
 	}
 
 	CheckResults(QList<STATUS>() << Status, this);
+}
+
+void CMajorPrivacy::OnRestartAsAdmin()
+{
+	theCore->Disconnect(true);
+	
+	WCHAR buf[255] = { 0 };
+	GetModuleFileNameW(NULL, buf, 255);
+	SHELLEXECUTEINFOW se;
+	memset(&se, 0, sizeof(se));
+	se.cbSize = sizeof(se);
+	se.lpVerb = L"runas";
+	se.lpFile = buf;
+	se.nShow = SW_SHOWNORMAL;
+	se.fMask = 0;
+	ShellExecuteExW(&se);
+
+	m_bExit = true;
+	close();
 }
 
 void CMajorPrivacy::OnExit()
@@ -2972,6 +3112,8 @@ QString CMajorPrivacy::GetResourceStr(const QString& Name)
 		return tr("%1 - MajorPrivacy Rule").arg(StrAux.second);
 	else if(StrAux.first == "MajorPrivacy-Template")
 		return tr("%1 - MajorPrivacy Rule Template").arg(StrAux.second);
+	else if(StrAux.first == "Default-Preset")
+		return tr("Default Preset");
 
 	//
 	// Convert Windows resource strings to full strings

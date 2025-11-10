@@ -176,6 +176,28 @@
 #define API_S_CA_NAME						"IssuerName"
 #define API_S_LIB_STATUS					"LoadStatus"
 
+////////////////////////////
+// Generic Rules
+
+#define API_S_ITEMS	"Items"
+
+//#define API_S_ITEM_TYPE	"ItemType"
+	#define API_S_ITEM_TYPE_UNKNOWN		"Unknown"
+	#define API_S_ITEM_TYPE_PROGRAM		"Program"
+	#define API_S_ITEM_TYPE_ACCESS		"AccessRule"
+	#define API_S_ITEM_TYPE_EXECUTION	"ExecutionRule"
+	#define API_S_ITEM_TYPE_FIREWALL	"FirewallRule"
+	#define API_S_ITEM_TYPE_DNS			"DnsRule"
+	#define API_S_ITEM_TYPE_ENCLAVE		"Enclave"
+	#define API_S_ITEM_TYPE_VOLUME		"Volume"
+	#define API_S_ITEM_TYPE_TWEAK 		"Tweak"
+	#define API_S_ITEM_TYPE_PRESET		"Preset"
+
+#define API_S_ACTION "Action"
+	#define API_S_ACTION_UNDEFINED	"Undefined"
+	#define API_S_ACTION_ENABLE 	"Enable"
+	#define API_S_ACTION_DISABLE 	"Disable"
+// ...
 
 ////////////////////////////
 // Rules
@@ -298,6 +320,16 @@
 #define API_S_DNS_RULE_ACTION				"Action"
 	#define API_S_DNS_RULE_ACTION_BLOCK			"Block"
 	#define API_S_DNS_RULE_ACTION_ALLOW			"Allow"	
+
+////////////////////////////
+// Presets
+#define API_S_PRESETS						"Presets"
+#define API_S_IS_ACTIVE						"IsActive"
+#define API_S_ITEM_OWNERSHIP				"ItemOwnership"
+#define API_S_PRESET_GUID					"PresetGuid"
+#define API_S_STATE_TYPE					"Type"
+#define API_S_STATE_WAS_ENABLED				"WasEnabled"
+#define API_S_STATE_EXISTED					"Existed"
 
 ////////////////////////////
 // Logs

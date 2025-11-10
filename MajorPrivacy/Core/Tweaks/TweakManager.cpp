@@ -9,7 +9,7 @@ CTweakManager::CTweakManager(QObject* parent)
 {
 }
 
-CTweakPtr CTweakManager::GetRoot() 
+QSharedPointer<CTweakList> CTweakManager::GetRoot() 
 {
 	if (!m_pRoot)
 		Update();

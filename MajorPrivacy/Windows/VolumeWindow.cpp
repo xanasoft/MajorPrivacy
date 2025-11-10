@@ -113,7 +113,7 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 		ui.chkLockdown->setVisible(false);
 	}
 
-	//restoreGeometry(theConf->GetBlob("VolumeWindow/Window_Geometry"));
+	restoreGeometry(theConf->GetBlob("VolumeWindow/Window_Geometry"));
 
 	// Adjust the size of the dialog
 	this->adjustSize();
@@ -121,7 +121,7 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 
 CVolumeWindow::~CVolumeWindow()
 {
-	//theConf->SetBlob("VolumeWindow/Window_Geometry", saveGeometry());
+	theConf->SetBlob("VolumeWindow/Window_Geometry", saveGeometry());
 }
 
 void CVolumeWindow::OnShowPassword()
