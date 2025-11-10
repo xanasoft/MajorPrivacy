@@ -7,7 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.99.2] - 2025-11-04
+## [0.99.2] - 2025-11-10
 
 ### Added
 - Added GUI autostart option
