@@ -7,6 +7,17 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [0.99.2] - 2025-11-04
+
+### Added
+- Added GUI autostart option
+- Added rule presets allowing to quickly enable/disable lists of rules and/or tweaks
+- Added mechanism to automatically clean up old windows firewall rules created form templates
+
+### Changed
+- improved fw rull change aprovel/rejection handling
+- improved notification window display
+
 
 
 
