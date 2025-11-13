@@ -86,7 +86,7 @@ int CSmartPattern::Set(const FW::StringW& Pattern)
 		if (cur == L'\"' || cur == L'<' || cur == L'>' || cur == L'|')
 			return -4; // Reject not allowed characters
 
-		// Check for ASCII control characters (1–31 and 127 (delete))
+		// Check for ASCII control characters (1-31 and 127 (delete))
 		if (cur < 32 || cur == 127)
 			return -4; // Reject invalid control characters
 
@@ -110,12 +110,12 @@ static bool CSmartPattern__MatchString(const wchar_t* pLStr, const wchar_t* pRSt
 	}
 }
 
-static size_t CSmartPattern__MatchSuffix(const wchar_t* pSuffix, size_t uSuffixLen, const wchar_t* pStr, size_t uStrLen, size_t uStrPos, wchar_t Seperator)
+static size_t CSmartPattern__MatchSuffix(const wchar_t* pSuffix, size_t uSuffixLen, const wchar_t* pStr, size_t uStrLen, size_t uStrPos, wchar_t Separator)
 {
 	const wchar_t* pStrEnd = pStr + uStrLen - uSuffixLen + 1;
 	for (const wchar_t* pPtr = pStr + uStrPos; pPtr < pStrEnd; pPtr++)
 	{
-		if (Seperator && pPtr[uSuffixLen] == Seperator)
+		if (Separator && pPtr[uSuffixLen] == Separator)
 			break;
 		if (CSmartPattern__MatchString(pSuffix, pPtr, uSuffixLen))
 			return (pPtr - pStr) - uStrPos; // Suffix matched
@@ -137,12 +137,12 @@ bool CSmartPattern::Match(FW::StringW String) const
 	if (uPos == uLen)
 		return true;
 
-	if (LastFragmentType == SFragment::eAsterisk || LastFragmentType == SFragment::eDblAsterisk) 
+	if (LastFragmentType == SFragment::eAsterisk || LastFragmentType == SFragment::eDblAsterisk)
 	{
-		if (m_Seperator && LastFragmentType == SFragment::eAsterisk)
+		if (m_Separator && LastFragmentType == SFragment::eAsterisk)
 		{
 			for (; uPos < uLen; uPos++) {
-				if (pString[uPos] == m_Seperator)
+				if (pString[uPos] == m_Separator)
 					return false;
 			}
 		}
@@ -167,9 +167,9 @@ size_t CSmartPattern::RawMatch(const wchar_t* pString, size_t uLen, SFragment::E
 			const wchar_t* pText = Fragment.Text.ConstData();
 			if (uTextLen > uLen - uPos)
 				return FW::StringW::NPos; // no match
-			if (LastFragmentType == SFragment::eAsterisk || LastFragmentType == SFragment::eDblAsterisk ) 
+			if (LastFragmentType == SFragment::eAsterisk || LastFragmentType == SFragment::eDblAsterisk)
 			{
-				size_t uOffset = CSmartPattern__MatchSuffix(pText, uTextLen, pString, uLen, uPos, LastFragmentType == SFragment::eAsterisk ? m_Seperator : 0);
+				size_t uOffset = CSmartPattern__MatchSuffix(pText, uTextLen, pString, uLen, uPos, LastFragmentType == SFragment::eAsterisk ? m_Separator : 0);
 				if (uOffset == FW::StringW::NPos)
 					return FW::StringW::NPos; // no match
 				uPos += uOffset + uTextLen;

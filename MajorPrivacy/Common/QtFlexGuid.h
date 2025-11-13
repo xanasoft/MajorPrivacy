@@ -10,6 +10,7 @@ public:
 	QFlexGuid(const char* pStr) { FromString(pStr); }
 	QFlexGuid(const QString& Str) { FromQS(Str); }
 	QFlexGuid(const QVariant& Var) { FromQV(Var); }
+	QFlexGuid(const FW::CVariant& Variant) { FromVariant(Variant); }
 
 	void FromQS(const QString& Str) { FromWString((wchar_t*)Str.utf16(), Str.length()); }
 	QString ToQS() const {

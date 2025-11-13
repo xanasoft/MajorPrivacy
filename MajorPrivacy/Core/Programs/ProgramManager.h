@@ -52,7 +52,7 @@ public:
 	//QList<CProgramRulePtr> GetProgramRulesFor(const QList<const class CProgramItem*>& Nodes);
 	QList<CProgramRulePtr> GetProgramRules(const QSet<QFlexGuid> &ProgramRuleIDs);
 
-	STATUS SetProgramRule(const CProgramRulePtr& pRule);
+	RESULT(QFlexGuid) SetProgramRule(const CProgramRulePtr& pRule);
 	RESULT(CProgramRulePtr) GetProgramRule(const QFlexGuid& Guid);
 	STATUS DelProgramRule(const CProgramRulePtr& pRule);
 

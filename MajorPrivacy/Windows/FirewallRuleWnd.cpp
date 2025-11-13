@@ -264,10 +264,12 @@ bool CFirewallRuleWnd::OnSave()
 		return false;
 	}
 
-	STATUS Status = theCore->NetworkManager()->SetFwRule(m_pRule);	
-	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
+	auto Ret = theCore->NetworkManager()->SetFwRule(m_pRule);	
+	if (theGUI->CheckResults(QList<STATUS>() << Ret, this))
 		return false;
-	return true;
+
+	if(m_pRule->m_Guid.IsNull())
+		m_pRule->m_Guid = Ret.GetValue();
 }
 
 void CFirewallRuleWnd::OnSaveAndClose()

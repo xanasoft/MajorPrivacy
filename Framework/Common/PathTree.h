@@ -38,7 +38,7 @@ class FRAMEWORK_EXPORT CPathTree : public FW::Object
 public:
 	CPathTree(FW::AbstractMemPool* pMem);
 
-	void SetSeparator(wchar_t Separator) { m_Seperator = Separator; }
+	void SetSeparator(wchar_t Separator) { m_Separator = Separator; }
 	void SetSimplePattern(bool bSimplePattern) { m_bSimplePattern = bSimplePattern; }
 
 	virtual int AddEntry(const CPathEntryPtr& pEntry);
@@ -100,7 +100,7 @@ protected:
 
 	void Enum(const FW::StringW& Path, const SPathNode* pParent, void(*pCallback)(const FW::StringW& Path, const CPathEntryPtr& pEntry, void* pContext), void* pContext) const;
 
-	wchar_t m_Seperator = L'\\';
+	wchar_t m_Separator = L'\\';
 	bool m_bSimplePattern = false;
 	SPathNode m_Root;
 	size_t m_uEntryCount = 0;

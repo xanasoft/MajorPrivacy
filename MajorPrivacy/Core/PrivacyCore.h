@@ -209,7 +209,7 @@ public:
 	// Secure Enclaves
 	STATUS				SetAllEnclaves(const QtVariant& Enclaves);
 	RESULT(QtVariant)	GetAllEnclaves();
-	STATUS				SetEnclave(const QtVariant& Enclave);
+	RESULT(QFlexGuid)	SetEnclave(const QtVariant& Enclave);
 	RESULT(QtVariant)	GetEnclave(const QFlexGuid& Guid);
 	STATUS				DelEnclave(const QFlexGuid& Guid);
 	STATUS				StartProcessInEnclave(const QString& Command, const QFlexGuid& Guid);
@@ -238,14 +238,14 @@ public:
 
 	STATUS				SetAllProgramRules(const QtVariant& Rules);
 	RESULT(QtVariant)	GetAllProgramRules();
-	STATUS				SetProgramRule(const QtVariant& Rule);
+	RESULT(QFlexGuid)	SetProgramRule(const QtVariant& Rule);
 	RESULT(QtVariant)	GetProgramRule(const QFlexGuid& Guid);
 	STATUS				DelProgramRule(const QFlexGuid& Guid);
 
 	// Access Manager
 	STATUS				SetAllAccessRules(const QtVariant& Rules);
 	RESULT(QtVariant)	GetAllAccessRules();
-	STATUS				SetAccessRule(const QtVariant& Rule);
+	RESULT(QFlexGuid)	SetAccessRule(const QtVariant& Rule);
 	RESULT(QtVariant)	GetAccessRule(const QFlexGuid& Guid);
 	STATUS				DelAccessRule(const QFlexGuid& Guid);
 	STATUS				SetAccessEventAction(uint64 EventId, EAccessRuleType Action);
@@ -253,7 +253,7 @@ public:
 	// Network Manager
 	RESULT(QtVariant)	GetFwRulesFor(const QList<const class CProgramItem*>& Nodes);
 	RESULT(QtVariant)	GetAllFwRules(bool bReLoad = false);
-	STATUS				SetFwRule(const QtVariant& Rule);
+	RESULT(QFlexGuid)	SetFwRule(const QtVariant& Rule);
 	RESULT(QtVariant)	GetFwRule(const QFlexGuid& Guid);
 	STATUS				DelFwRule(const QFlexGuid& Guid);
 
@@ -316,7 +316,7 @@ public:
 	// Preset Manager
 	RESULT(QtVariant)	GetAllPresets();
 	STATUS				SetAllPresets(const QtVariant& Presets);
-	STATUS				SetPreset(const QtVariant& Rule);
+	RESULT(QFlexGuid)	SetPreset(const QtVariant& Rule);
 	RESULT(QtVariant)	GetPreset(const QFlexGuid& Guid);
 	STATUS				DelPreset(const QFlexGuid& Guid);
 	STATUS				ActivatePreset(const QFlexGuid& Guid, bool bForce = false);

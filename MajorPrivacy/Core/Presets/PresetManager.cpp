@@ -50,7 +50,7 @@ void CPresetManager::Update()
 		m_Presets.remove(Guid);
 }
 
-STATUS CPresetManager::SetPreset(const CPresetPtr& pPreset)
+RESULT(QFlexGuid) CPresetManager::SetPreset(const CPresetPtr& pPreset)
 {
 	SVarWriteOpt Opts;
 	//Opts.Flags = SVarWriteOpt::eTextGuids;

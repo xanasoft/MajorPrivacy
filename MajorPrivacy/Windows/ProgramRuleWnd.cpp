@@ -240,10 +240,12 @@ bool CProgramRuleWnd::OnSave()
 		return false;
 	}
 
-	STATUS Status = theCore->ProgramManager()->SetProgramRule(m_pRule);	
-	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
+	auto Ret = theCore->ProgramManager()->SetProgramRule(m_pRule);	
+	if (theGUI->CheckResults(QList<STATUS>() << Ret, this))
 		return false;
-	return true;
+
+	if(m_pRule->m_Guid.IsNull())
+		m_pRule->m_Guid = Ret.GetValue();
 }
 
 void CProgramRuleWnd::OnSaveAndClose()
@@ -430,7 +432,7 @@ void CProgramRuleWnd::EditScript()
 {
 	CScriptWindow* pScriptWnd = new CScriptWindow(m_pRule->GetGuid(), EItemType::eExecRule, this);
 	pScriptWnd->SetScript(m_Script);
-	pScriptWnd->SetSaver([&](const QString& Script, bool bApply){
+	pScriptWnd->SetSaver([&](const QString& Script, bool bApply) -> STATUS{
 		m_Script = Script;
 		if (bApply) {
 			m_pRule->m_Script = Script;

@@ -57,7 +57,7 @@ public:
 	CSmartPattern(FW::AbstractMemPool* pMemPool, const wchar_t* pPattern = NULL);
 	CSmartPattern(FW::AbstractMemPool* pMemPool, const FW::StringW& Pattern);
 
-	void SetSeparator(wchar_t Separator) { m_Seperator = Separator; }
+	void SetSeparator(wchar_t Separator) { m_Separator = Separator; }
 
 	int Set(const FW::StringW& Pattern);
 	int Set(const wchar_t* pPattern) { return Set(FW::StringW(m_pMem, pPattern)); }
@@ -89,7 +89,7 @@ protected:
 	SPatternInfo m_Info;
 
 	FW::Array<SFragment> m_Fragments;
-	wchar_t m_Seperator = 0;
+	wchar_t m_Separator = 0;
 
 };
 

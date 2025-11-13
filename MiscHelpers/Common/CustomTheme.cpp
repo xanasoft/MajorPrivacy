@@ -25,7 +25,7 @@ CCustomTheme::CCustomTheme()//(QObject * pParent)
 	m_DarkPalett.setColor(QPalette::WindowText, Qt::white);
 	m_DarkPalett.setColor(QPalette::Base, QColor(25, 25, 25));
 	m_DarkPalett.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
-	m_DarkPalett.setColor(QPalette::ToolTipBase, Qt::lightGray);
+	m_DarkPalett.setColor(QPalette::ToolTipBase, QColor(53, 53, 53));
 	m_DarkPalett.setColor(QPalette::ToolTipText, Qt::white);
 	m_DarkPalett.setColor(QPalette::Text, Qt::white);
 	m_DarkPalett.setColor(QPalette::Button, QColor(53, 53, 53));

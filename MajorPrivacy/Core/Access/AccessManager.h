@@ -21,7 +21,7 @@ public:
 	//QList<CAccessRulePtr> GetAccessRulesFor(const QList<const class CAccessItem*>& Nodes);
 	QList<CAccessRulePtr> GetAccessRules(const QSet<QFlexGuid> &AccessRuleIDs);
 
-	STATUS SetAccessRule(const CAccessRulePtr& pRule);
+	RESULT(QFlexGuid) SetAccessRule(const CAccessRulePtr& pRule);
 	RESULT(CAccessRulePtr) GetAccessRule(const QFlexGuid& Guid);
 	STATUS DelAccessRule(const CAccessRulePtr& pRule);
 

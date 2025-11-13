@@ -12,7 +12,7 @@ public:
 
 	QMap<QFlexGuid, CPresetPtr> GetPresets() const { return m_Presets; }
 
-	STATUS SetPreset(const CPresetPtr& pPreset);
+	RESULT(QFlexGuid) SetPreset(const CPresetPtr& pPreset);
 	CPresetPtr GetPreset(const QFlexGuid& Guid) const;
 	//RESULT(CPresetPtr) GetPreset(const QFlexGuid& Guid);
 	STATUS DelPreset(const QFlexGuid& Guid);

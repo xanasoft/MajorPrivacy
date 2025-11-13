@@ -139,7 +139,7 @@ QList<CAccessRulePtr> CAccessManager::GetAccessRules(const QSet<QFlexGuid>& Acce
 	return List;
 }
 
-STATUS CAccessManager::SetAccessRule(const CAccessRulePtr& pRule)
+RESULT(QFlexGuid) CAccessManager::SetAccessRule(const CAccessRulePtr& pRule)
 {
 	SVarWriteOpt Opts;
 	Opts.Flags = SVarWriteOpt::eTextGuids;

@@ -1530,17 +1530,10 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
-			auto Ret = theCore->PresetManager()->SetEntry(vReq[API_V_PRESET]);
-			if (Ret.IsError()) {
-				RETURN_STATUS(Ret);
-			}
-
-			theCore->SetConfigDirty(true);
-
-			StVariant vRpl(m_pMemPool);
-			vRpl[API_V_GUID] = Ret.GetValue();
-			vRpl.ToPacket(rpl);
-			return STATUS_SUCCESS;
+			auto Status = theCore->PresetManager()->SetEntry(vReq[API_V_PRESET]);
+			if(Status)
+				theCore->SetConfigDirty(true);
+			RETURN_STATUS(Status);
 		}
 		case SVC_API_DEL_PRESET:
 		{

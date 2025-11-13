@@ -233,10 +233,12 @@ bool CPresetWindow::OnSave()
 		return false;
 	}
 
-	STATUS Status = theCore->PresetManager()->SetPreset(m_pPreset);	
-	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
+	auto Ret = theCore->PresetManager()->SetPreset(m_pPreset);	
+	if (theGUI->CheckResults(QList<STATUS>() << Ret, this))
 		return false;
-	return true;
+
+	if(m_pPreset->m_Guid.IsNull())
+		m_pPreset->m_Guid = Ret.GetValue();
 }
 
 void CPresetWindow::OnSaveAndClose()
@@ -308,7 +310,7 @@ void CPresetWindow::EditScript()
 {
 	CScriptWindow* pScriptWindow = new CScriptWindow(m_pPreset->GetGuid(), EItemType::ePreset, this);
 	pScriptWindow->SetScript(m_Script);
-	pScriptWindow->SetSaver([&](const QString& Script, bool bApply){
+	pScriptWindow->SetSaver([&](const QString& Script, bool bApply) -> STATUS {
 		m_Script = Script;
 		if (bApply) {
 			m_pPreset->m_Script = Script;

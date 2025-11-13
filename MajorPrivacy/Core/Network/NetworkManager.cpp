@@ -158,7 +158,7 @@ CFwRulePtr CNetworkManager::GetFwRule(const QFlexGuid& Guid)
 	return pFwRule;
 }
 
-STATUS CNetworkManager::SetFwRule(const CFwRulePtr& pRule)
+RESULT(QFlexGuid) CNetworkManager::SetFwRule(const CFwRulePtr& pRule)
 {
 	SVarWriteOpt Opts;
 	Opts.Flags = SVarWriteOpt::eTextGuids;

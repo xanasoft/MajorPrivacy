@@ -29,15 +29,32 @@ CBuffer::CBuffer(const CBuffer& Other)
 	Assign(Other); 
 }
 
-CBuffer::CBuffer(CBuffer&& Other) 
-	: FW::AbstractContainer(Other.Allocator()) 
-{ 
+CBuffer::CBuffer(CBuffer&& Other)
+	: FW::AbstractContainer(Other.Allocator())
+{
 	m_uFlags = Other.m_uFlags;
 	m_uPreAllocated = Other.m_uPreAllocated;
 	m_p.Void = Other.m_p.Void;
 	Other.m_p.Void = nullptr;
 	m_uSize = Other.m_uSize;
 	m_uPosition = Other.m_uPosition;
+}
+
+CBuffer& CBuffer::operator=(CBuffer&& Other)
+{
+	if (this == &Other)
+		return *this;
+	DetachData();
+	
+	m_pMem = Other.m_pMem;
+	m_uFlags = Other.m_uFlags;
+	m_uPreAllocated = Other.m_uPreAllocated;
+	m_p.Void = Other.m_p.Void;
+	Other.m_p.Void = nullptr;
+	m_uSize = Other.m_uSize;
+	m_uPosition = Other.m_uPosition;
+	
+	return *this;
 }
 
 CBuffer::~CBuffer()
@@ -54,6 +71,9 @@ void CBuffer::Clear()
 
 bool CBuffer::Assign(const CBuffer& Other)
 {
+	if (this == &Other)
+		return true;
+		
 	//if (!m_pMem)
 	//	m_pMem = Other.m_pMem;
 	if (m_pMem != Other.m_pMem || !Other.IsContainerized()) // if the containers use different memory pools, we need to make a copy of the data
@@ -123,7 +143,7 @@ bool CBuffer::SetBuffer(void* pBuffer, size_t uSize, bool bDerived, bool bFixed)
 
 bool CBuffer::CopyBuffer(const void* pBuffer, size_t uSize)
 {
-	ASSERT(!m_p.Void || GetBuffer() + m_uSize < (byte*)pBuffer || GetBuffer() > (byte*)pBuffer + m_uSize);
+	ASSERT(!m_p.Void || GetBuffer() + m_uSize < (byte*)pBuffer || GetBuffer() > (byte*)pBuffer + uSize);
 	if(!AllocBuffer(uSize, true))
 		return false;
 	MemCopy(GetBuffer(), pBuffer, uSize);
@@ -214,7 +234,7 @@ bool CBuffer::PrepareWrite(size_t uOffset, size_t uLength)
 		return SetSize(uEndOffset, true, uPreAlloc);
 	}
 
-	// check if we are overwriting data or adding data, if the later than increase teh size accordingly
+	// check if we are overwriting data or adding data, if the latter then increase the size accordingly
 	if (uEndOffset > m_uSize)
 	{
 		if (m_bDetachable)
@@ -421,7 +441,7 @@ bool CBuffer::AppendData(const void* pData, size_t uLength)
 	size_t uOffset = uSize; // append to the very end
 	if(!PrepareWrite(uOffset, uLength))
 	{
-		ASSERT(0); // appen must usually always success
+		ASSERT(0); // append must usually always succeed
 		return false;
 	}
 
@@ -460,7 +480,7 @@ bool CBuffer::RemoveData(size_t uOffset, size_t uLength)
 	else if(uOffset + uLength > uSize)
 		return false;
 
-	MemMove(GetBuffer() + uOffset, GetBuffer() + uOffset + uLength, uSize - uLength);
+	MemMove(GetBuffer() + uOffset, GetBuffer() + uOffset + uLength, uSize - uOffset - uLength);
 
 	m_uSize -= uLength;
 

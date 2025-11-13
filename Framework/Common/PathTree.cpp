@@ -25,12 +25,12 @@ int CPathTree::AddEntry(const CPathEntryPtr& pEntry)
 
 	//
 	// VALIDATE PATTERN:
-	// 
-	// The pattern is to be separeded by backsplash (by default) and it may contain wildcards 
-	// 
-	//		'?'  - any single charakter
-	//		"*"	 - any number of charakters withing one path segment
-	//		"**" - any number of charakters including path separators
+	//
+	// The pattern is to be separated by backslash (by default) and it may contain wildcards
+	//
+	//		'?'  - any single character
+	//		"*"	 - any number of characters within one path segment
+	//		"**" - any number of characters including path separators
 	// 
 	// Note: even when PATH_TREE_USE_SMARTPATTERN is defined, we do some of our own validation
 	//
@@ -42,7 +42,7 @@ int CPathTree::AddEntry(const CPathEntryPtr& pEntry)
 	for (size_t i = 0; i < uLen; i++)
 	{
 		wchar_t cur = pPath[i];
-		// Check for ASCII control characters (1–31 and 127 (delete))
+		// Check for ASCII control characters (1-31 and 127 (delete))
 		if (cur < 32 || cur == 127)
 			return -4; // Reject invalid control characters
 
@@ -58,7 +58,7 @@ int CPathTree::AddEntry(const CPathEntryPtr& pEntry)
 			{
 				// todo: two double asterisks within the same segment are not supported as well
 				if (pPath[i+2] == L'*')
-					return -2; // tripple (or more) asterisks are not supported
+					return -2; // triple (or more) asterisks are not supported
 
 				if (Info.FirstDblAsterisk == (ULONG)-1)
 					Info.FirstDblAsterisk = (ULONG)i;
@@ -89,7 +89,7 @@ int CPathTree::AddEntry(const CPathEntryPtr& pEntry)
 		return -1; // alloc failure
 
 	pPathEntry->Info = Info;
-	pPathEntry->EndsWithSeparator = Path.At(uLen - 1) == m_Seperator;
+	pPathEntry->EndsWithSeparator = Path.At(uLen - 1) == m_Separator;
 
 	return 0; // no error
 }
@@ -103,7 +103,7 @@ bool CPathTree::RemoveEntry(const CPathEntryPtr& pEntry)
 
 CPathTree::SPathEntry* CPathTree::Add(const CPathEntryPtr& pEntry, SPathNode* pParent, const FW::StringW& Path, size_t uOffset)
 {
-	while (Path.At(uOffset) == m_Seperator) { uOffset++; }
+	while (Path.At(uOffset) == m_Separator) { uOffset++; }
 	bool bAtEnd = uOffset == Path.Length();
 
 	if (bAtEnd)
@@ -112,7 +112,7 @@ CPathTree::SPathEntry* CPathTree::Add(const CPathEntryPtr& pEntry, SPathNode* pP
 		return pParent->Entries.Append(SPathEntry{ pEntry });
 	}
 
-	size_t uPos = Path.Find(m_Seperator, uOffset);
+	size_t uPos = Path.Find(m_Separator, uOffset);
 	if (uPos == -1 && uOffset < Path.Length())
 		uPos = Path.Length();
 
@@ -128,7 +128,7 @@ CPathTree::SPathEntry* CPathTree::Add(const CPathEntryPtr& pEntry, SPathNode* pP
 			pBranch = &pWildBranch->first;
 			pWildBranch->second = New<CSmartPattern>();
 			if (!m_bSimplePattern)
-				pWildBranch->second->SetSeparator(m_Seperator);
+				pWildBranch->second->SetSeparator(m_Separator);
 			if (pWildBranch->second->Set(Name) != 0) {
 #ifdef _DEBUG
 				DebugBreak();
@@ -140,7 +140,7 @@ CPathTree::SPathEntry* CPathTree::Add(const CPathEntryPtr& pEntry, SPathNode* pP
 		pBranch = pParent->WildBranches.GetValuePtr(Name, true);
 #endif
 	}
-	else // Rregular
+	else // Regular
 		pBranch = pParent->Branches.GetValuePtr(Name, true);
 	if (!pBranch)
 		return nullptr; // alloc failure
@@ -184,7 +184,7 @@ static size_t CPathTree__MatchSuffix(const wchar_t* pSuffix, const wchar_t* pNam
 			if(uCur >= uSuffixLen)
 				return uSuffixLen; // Suffix matched
 			if (pSuffix[uCur] != pName[(*pNamePos) + uCur] && pSuffix[uCur] != L'?')
-				break; // missmatch
+				break; // mismatch
 		}
 	}
 
@@ -194,8 +194,8 @@ static size_t CPathTree__MatchSuffix(const wchar_t* pSuffix, const wchar_t* pNam
 
 void CPathTree::GetEntries(FW::List<SFoundEntry>& Entries, const SPathNode* pParent, EMatchFlags Flags, const FW::StringW& Path, size_t uOffset) const
 {
-	bool bHasSeparator = Path.At(uOffset) == m_Seperator;
-	if (bHasSeparator) do { uOffset++; } while(Path.At(uOffset) == m_Seperator);		
+	bool bHasSeparator = Path.At(uOffset) == m_Separator;
+	if (bHasSeparator) do { uOffset++; } while(Path.At(uOffset) == m_Separator);
 	bool bAtEnd = uOffset == Path.Length();
 
 	if (bAtEnd)
@@ -240,7 +240,7 @@ void CPathTree::GetEntries(FW::List<SFoundEntry>& Entries, const SPathNode* pPar
 		}
 	}
 
-	size_t uPos = Path.Find(m_Seperator, uOffset);
+	size_t uPos = Path.Find(m_Separator, uOffset);
 	if (uPos == -1 && uOffset < Path.Length())
 		uPos = Path.Length();
 
@@ -283,13 +283,13 @@ void CPathTree::GetEntries(FW::List<SFoundEntry>& Entries, const SPathNode* pPar
 
 			for (; ; )
 			{
-				uPathPos = Path.Find(m_Seperator, uPathPos + 1);
+				uPathPos = Path.Find(m_Separator, uPathPos + 1);
 				if (uPathPos == FW::StringW::NPos)
 					break;
 				GetEntries(Entries, pBranch, Flags, Path, uPathPos);
 			}
 		}
-		else if (pPathLeft[uMatch] == 0 || pPathLeft[uMatch] == m_Seperator)
+		else if (pPathLeft[uMatch] == 0 || pPathLeft[uMatch] == m_Separator)
 		{
 			GetEntries(Entries, pBranch, Flags, Path, uPathPos);
 		}
@@ -459,10 +459,10 @@ CPathEntryPtr CPathTree::GetBestEntry(FW::StringW Path, EMatchFlags Flags) const
 
 bool CPathTree::Remove(const CPathEntryPtr& pEntry, SPathNode* pParent, const FW::StringW& Path, size_t uOffset)
 {
-	while (Path.At(uOffset) == m_Seperator)
+	while (Path.At(uOffset) == m_Separator)
 		uOffset++;
 
-	size_t uPos = Path.Find(m_Seperator, uOffset);
+	size_t uPos = Path.Find(m_Separator, uOffset);
 	if (uPos == -1 && uOffset < Path.Length())
 		uPos = Path.Length();
 

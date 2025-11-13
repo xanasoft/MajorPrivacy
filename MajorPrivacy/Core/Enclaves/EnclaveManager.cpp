@@ -105,7 +105,7 @@ void CEnclaveManager::RemoveEnclave(const QFlexGuid& Guid)
 		RemoveEnclave(pEnclave);
 }
 
-STATUS CEnclaveManager::SetEnclave(const CEnclavePtr& pEnclave)
+RESULT(QFlexGuid) CEnclaveManager::SetEnclave(const CEnclavePtr& pEnclave)
 {
 	SVarWriteOpt Opts;
 	Opts.Flags = SVarWriteOpt::eTextGuids;

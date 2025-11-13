@@ -23,7 +23,7 @@ public:
 	QList<CFwRulePtr> GetFwRules(const QSet<QFlexGuid> &FwRuleIDs);
 	CFwRulePtr GetFwRule(const QFlexGuid& Guid);
 
-	STATUS SetFwRule(const CFwRulePtr& pRule);
+	RESULT(QFlexGuid) SetFwRule(const CFwRulePtr& pRule);
 	//RESULT(CFwRulePtr) GetFwRule(const QFlexGuid& Guid);
 	STATUS DelFwRule(const CFwRulePtr& pRule);
 

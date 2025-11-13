@@ -7,6 +7,16 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [0.99.3] - 2025-11-??
+
+### Fixed
+- fixed issue with button localization
+- fixed issue with dark mode display
+- fixed issue with duplicates when creating new rules
+- fixed issue with first start wizard firewall configuration
+- 
+
+
 ## [0.99.2] - 2025-11-10
 
 ### Added

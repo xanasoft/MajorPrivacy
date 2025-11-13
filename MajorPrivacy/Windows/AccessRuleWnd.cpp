@@ -315,9 +315,12 @@ bool CAccessRuleWnd::OnSave()
 		}
 	}
 
-	STATUS Status = theCore->AccessManager()->SetAccessRule(m_pRule);
-	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
+	auto Ret = theCore->AccessManager()->SetAccessRule(m_pRule);
+	if (theGUI->CheckResults(QList<STATUS>() << Ret, this))
 		return false;
+
+	if(m_pRule->m_Guid.IsNull())
+		m_pRule->m_Guid = Ret.GetValue();
 
 	return true;
 }
@@ -494,7 +497,7 @@ void CAccessRuleWnd::EditScript()
 {
 	CScriptWindow* pScriptWnd = new CScriptWindow(m_pRule->GetGuid(), EItemType::eResRule, this);
 	pScriptWnd->SetScript(m_Script);
-	pScriptWnd->SetSaver([&](const QString& Script, bool bApply){
+	pScriptWnd->SetSaver([&](const QString& Script, bool bApply) -> STATUS {
 		m_Script = Script;
 		if (bApply) {
 			m_pRule->m_Script = Script;

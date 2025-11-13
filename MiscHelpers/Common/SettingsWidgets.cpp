@@ -88,6 +88,7 @@ void AddColoredComboBoxEntry(QComboBox* pBox, const QString& Text, const QColor&
 #else
 		qobject_cast<QStandardItemModel *>(pBox->model())->item(pBox->count() - 1)->setBackground(pBox->palette().window());
 #endif
+	qobject_cast<QStandardItemModel *>(pBox->model())->item(pBox->count() - 1)->setForeground(Qt::black);
 }
 
 void ColorComboBox(QComboBox* pBox)
@@ -97,6 +98,7 @@ void ColorComboBox(QComboBox* pBox)
 		if (auto pItem = pModel->item(pBox->currentIndex())) {
 			auto pal = pBox->palette();
 			pal.setColor(QPalette::Button, pItem->background().color());
+			pal.setColor(QPalette::ButtonText, pItem->foreground().color());
 			pBox->setPalette(pal);
 		}
 	};

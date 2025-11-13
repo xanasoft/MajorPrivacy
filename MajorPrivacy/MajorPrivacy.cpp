@@ -3128,6 +3128,16 @@ QString CMajorPrivacy::GetResourceStr(const QString& Name)
 	return Name;
 }
 
+// Make sure that QPlatformTheme strings won't be marked as vanished in all .ts files, even after running lupdate
+
+static const char* platform_strings[] = {
+	QT_TRANSLATE_NOOP("QPlatformTheme", "OK"),
+	QT_TRANSLATE_NOOP("QPlatformTheme", "Apply"),
+	QT_TRANSLATE_NOOP("QPlatformTheme", "Cancel"),
+	QT_TRANSLATE_NOOP("QPlatformTheme", "&Yes"),
+	QT_TRANSLATE_NOOP("QPlatformTheme", "&No"),
+};
+
 void CMajorPrivacy::LoadLanguage()
 {
 	m_Language = theConf->GetString("Options/UiLanguage");

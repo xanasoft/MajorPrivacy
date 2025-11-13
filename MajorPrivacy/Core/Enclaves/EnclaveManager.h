@@ -15,7 +15,7 @@ public:
 	void					RemoveEnclave(const QFlexGuid& Guid);
 
 	QMap<QFlexGuid, CEnclavePtr> GetAllEnclaves() { return m_Enclaves; }
-	STATUS					SetEnclave(const CEnclavePtr& pEnclave);
+	RESULT(QFlexGuid)		SetEnclave(const CEnclavePtr& pEnclave);
 	CEnclavePtr				GetEnclave(const QFlexGuid& Guid, bool bCanAdd = false);
 	STATUS					DelEnclave(const CEnclavePtr& pEnclave);
 

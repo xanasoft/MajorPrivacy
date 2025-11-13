@@ -172,10 +172,12 @@ bool CEnclaveWnd::OnSave()
 		return false;
 	}
 
-	STATUS Status = theCore->EnclaveManager()->SetEnclave(m_pEnclave);	
-	if (theGUI->CheckResults(QList<STATUS>() << Status, this))
+	auto Ret = theCore->EnclaveManager()->SetEnclave(m_pEnclave);	
+	if (theGUI->CheckResults(QList<STATUS>() << Ret, this))
 		return false;
-	return true;
+
+	if(m_pEnclave->m_Guid.IsNull())
+		m_pEnclave->m_Guid = Ret.GetValue();
 }
 
 void CEnclaveWnd::OnSaveAndClose()
@@ -284,7 +286,7 @@ void CEnclaveWnd::EditScript()
 {
 	CScriptWindow* pScriptWnd = new CScriptWindow(m_pEnclave->GetGuid(), EItemType::eEnclave, this);
 	pScriptWnd->SetScript(m_Script);
-	pScriptWnd->SetSaver([&](const QString& Script, bool bApply){
+	pScriptWnd->SetSaver([&](const QString& Script, bool bApply) -> STATUS {
 		m_Script = Script;
 		if (bApply) {
 			m_pEnclave->m_Script = Script;

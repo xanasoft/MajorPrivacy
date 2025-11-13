@@ -1203,11 +1203,14 @@ RESULT(QtVariant) CPrivacyCore::GetAllEnclaves()
 	RET_GET_XVARIANT(m_Driver.Call(API_GET_ENCLAVES, Request), API_V_ENCLAVES);
 }
 
-STATUS CPrivacyCore::SetEnclave(const QtVariant& Enclave)
+RESULT(QFlexGuid) CPrivacyCore::SetEnclave(const QtVariant& Enclave)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_ENCLAVE] = Enclave;
-	return m_Driver.Call(API_SET_ENCLAVE, Request);
+	auto Ret = m_Driver.Call(API_SET_ENCLAVE, Request);
+	if (Ret.IsError())
+		return Ret;
+	return QFlexGuid(Ret.GetValue());
 }
 
 RESULT(QtVariant) CPrivacyCore::GetEnclave(const QFlexGuid& Guid)
@@ -1377,11 +1380,14 @@ RESULT(QtVariant) CPrivacyCore::GetAllProgramRules()
 	RET_GET_XVARIANT(m_Driver.Call(API_GET_PROGRAM_RULES, Request), API_V_RULES);
 }
 
-STATUS CPrivacyCore::SetProgramRule(const QtVariant& Rule)
+RESULT(QFlexGuid) CPrivacyCore::SetProgramRule(const QtVariant& Rule)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_RULE] = Rule;
-	return m_Driver.Call(API_SET_PROGRAM_RULE, Request);
+	auto Ret = m_Driver.Call(API_SET_PROGRAM_RULE, Request);
+	if (Ret.IsError())
+		return Ret;
+	return QFlexGuid(Ret.GetValue());
 }
 
 RESULT(QtVariant) CPrivacyCore::GetProgramRule(const QFlexGuid& Guid)
@@ -1412,11 +1418,14 @@ RESULT(QtVariant) CPrivacyCore::GetAllAccessRules()
 	RET_GET_XVARIANT(m_Driver.Call(API_GET_ACCESS_RULES, Request), API_V_RULES);
 }
 
-STATUS CPrivacyCore::SetAccessRule(const QtVariant& Rule)
+RESULT(QFlexGuid) CPrivacyCore::SetAccessRule(const QtVariant& Rule)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_RULE] = Rule;
-	return m_Driver.Call(API_SET_ACCESS_RULE, Request);
+	auto Ret = m_Driver.Call(API_SET_ACCESS_RULE, Request);
+	if (Ret.IsError())
+		return Ret;
+	return QFlexGuid(Ret.GetValue());
 }
 
 RESULT(QtVariant) CPrivacyCore::GetAccessRule(const QFlexGuid& Guid)
@@ -1458,11 +1467,14 @@ RESULT(QtVariant) CPrivacyCore::GetAllFwRules(bool bReLoad)
 	RET_GET_XVARIANT(m_Service.Call(SVC_API_GET_FW_RULES, Request), API_V_RULES);
 }
 
-STATUS CPrivacyCore::SetFwRule(const QtVariant& FwRule)
+RESULT(QFlexGuid) CPrivacyCore::SetFwRule(const QtVariant& FwRule)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_RULE] = FwRule;
-	return m_Service.Call(SVC_API_SET_FW_RULE, Request);
+	auto Ret = m_Service.Call(SVC_API_SET_FW_RULE, Request);
+	if (Ret.IsError())
+		return Ret;
+	return QFlexGuid(Ret.GetValue());
 }
 
 RESULT(QtVariant) CPrivacyCore::GetFwRule(const QFlexGuid& Guid)
@@ -1806,11 +1818,14 @@ STATUS CPrivacyCore::SetAllPresets(const QtVariant& Presets)
 	return m_Service.Call(SVC_API_SET_PRESETS, Request);
 }
 
-STATUS CPrivacyCore::SetPreset(const QtVariant& Preset)
+RESULT(QFlexGuid) CPrivacyCore::SetPreset(const QtVariant& Preset)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_PRESET] = Preset;
-	return m_Service.Call(SVC_API_SET_PRESET, Request);
+	auto Ret = m_Service.Call(SVC_API_SET_PRESET, Request);
+	if (Ret.IsError())
+		return Ret;
+	return QFlexGuid(Ret.GetValue());
 }
 
 RESULT(QtVariant) CPrivacyCore::GetPreset(const QFlexGuid& Guid)

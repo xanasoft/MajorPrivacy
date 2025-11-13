@@ -38,6 +38,8 @@ public:
 	~CBuffer();
 
 	CBuffer& operator=(const CBuffer& Other)			{Assign(Other); return *this;}
+	CBuffer& operator=(CBuffer&& Other);
+
 
 	bool operator== (const CBuffer& Other) const		{ return Compare(Other) == 0; }
 	bool operator!= (const CBuffer& Other) const		{ return Compare(Other) != 0; }

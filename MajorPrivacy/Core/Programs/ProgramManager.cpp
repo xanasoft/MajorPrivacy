@@ -565,7 +565,7 @@ QList<CProgramRulePtr> CProgramManager::GetProgramRules(const QSet<QFlexGuid>& P
 	return List;
 }
 
-STATUS CProgramManager::SetProgramRule(const CProgramRulePtr& pRule)
+RESULT(QFlexGuid) CProgramManager::SetProgramRule(const CProgramRulePtr& pRule)
 {
 	SVarWriteOpt Opts;
 	Opts.Flags = SVarWriteOpt::eTextGuids;
