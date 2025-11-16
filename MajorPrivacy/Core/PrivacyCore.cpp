@@ -699,6 +699,29 @@ void CPrivacyCore::OnClearRecords(const CProgramItemPtr& pItem, ETraceLogs Log)
 	//m_DrvEventQueue[Type].enqueue(SDrvRuleEvent { QString::fromStdWString(Guid), Event });
 }*/
 
+bool CPrivacyCore::HasDriverRules() const
+{
+	QList<CGenericRulePtr> Rules;
+
+	if (m_pAccessManager->GetAccessRules().isEmpty())
+		m_pAccessManager->UpdateAllAccessRules();
+	for (const auto& pRule : m_pAccessManager->GetAccessRules()) 
+		Rules += pRule;
+
+	if (m_pProgramManager->GetProgramRules().isEmpty())
+		m_pProgramManager->UpdateAllProgramRules();
+	for (const auto& pRule : m_pProgramManager->GetProgramRules()) 
+		Rules += pRule;
+
+	bool bHasEnabledRules = false;
+	for (const auto& pRule : Rules) {
+		if (pRule->IsEnabled())
+			return true;
+	}
+
+	return false;
+}
+
 QString CPrivacyCore::NormalizePath(QString sPath, bool bForID)
 {
 	if(sPath.isEmpty() || sPath[0] == '*')

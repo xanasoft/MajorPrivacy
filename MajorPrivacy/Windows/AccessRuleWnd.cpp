@@ -14,6 +14,7 @@
 #include "../Library/Helpers/NtPathMgr.h"
 #include "../Windows/ProgramPicker.h"
 #include "../Windows/ScriptWindow.h"
+#include "../Windows/SettingsWindow.h"
 #include <Lm.h>
 #include <sddl.h>
 
@@ -293,6 +294,11 @@ bool CAccessRuleWnd::OnSave()
 		QApplication::beep();
 		return false;
 	}
+
+	if(!g_CertInfo.active && m_pRule->m_Guid.IsNull())
+		QMessageBox::warning(this, "MajorPrivacy", tr("This rule will be saved <b>but will NOT protect your system</b>.<br />"
+			"MajorPrivacy is running without a valid license, so driver rule enforcement is disabled.<br />"
+			"Activate a license to enable full protection."));
 
 	if (m_pRule->m_Guid.IsNull())
 	{

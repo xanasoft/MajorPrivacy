@@ -14,6 +14,7 @@
 #include "../Core/HashDB/HashDB.h"
 #include "../MiscHelpers/Common/WinboxMultiCombo.h"
 #include "../Windows/ScriptWindow.h"
+#include "../Windows/SettingsWindow.h"
 
 CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget* parent)
 	: QDialog(parent)
@@ -239,6 +240,11 @@ bool CProgramRuleWnd::OnSave()
 		QApplication::beep();
 		return false;
 	}
+
+	if(!g_CertInfo.active && m_pRule->m_Guid.IsNull())
+		QMessageBox::warning(this, "MajorPrivacy", tr("This rule will be saved <b>but will NOT protect your system</b>.<br />"
+			"MajorPrivacy is running without a valid license, so driver rule enforcement is disabled.<br />"
+			"Activate a license to enable full protection."));
 
 	auto Ret = theCore->ProgramManager()->SetProgramRule(m_pRule);	
 	if (theGUI->CheckResults(QList<STATUS>() << Ret, this))

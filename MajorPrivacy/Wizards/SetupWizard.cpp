@@ -355,14 +355,16 @@ CCertificatePage::CCertificatePage(int iOldLevel, QWidget *parent)
     : QWizardPage(parent)
 {
     setTitle(tr("Install your <b>MajorPrivacy</b> License Certificate"));
-    setSubTitle(tr("To use most advanced protection features a License Certificate must be installed."));
+    setSubTitle(tr("To use advanced protection features a License Certificate must be installed."));
    
     QGridLayout *layout = new QGridLayout;
     layout->setContentsMargins(3,3,3,3);
     layout->setSpacing(3);
 
-    m_pTopLabel = new QLabel(tr("<b>MajorPrivacy</b> offers powerful features to safeguard your data. To unlock these features, you'll need a valid license."
-            "If you don't have one yet, please consider <a href=\"https://xanasoft.com/go.php?to=priv-get-cert\">getting a license</a>."));
+    m_pTopLabel = new QLabel(tr("<b><span style=\"color:#ff0000;\">Important:</span></b> <b>MajorPrivacy</b> runs in <u>monitor-only mode</u> without a license. "
+        "HIPS rules will be shown, but <b><span style=\"color:#ff0000;\">they will NOT be enforced</span></b>. "
+        "To enable <b><span style=\"color:#009000;\">full protection and rule enforcement</span></b>, please enter valid license data. "
+        "If you don't have a license yet, you can <a href=\"https://xanasoft.com/go.php?to=priv-get-cert\"><b>get one here</b></a>."));
     m_pTopLabel->setWordWrap(true);
     connect(m_pTopLabel, SIGNAL(linkActivated(const QString&)), theGUI, SLOT(OpenUrl(const QString&)));
     layout->addWidget(m_pTopLabel);
@@ -434,14 +436,6 @@ bool CCertificatePage::isComplete() const
     //        return false;
     //}
 
-    //if (g_Certificate.isEmpty()) 
-    if(!g_CertInfo.active)
-    {
-        if (QMessageBox::warning((CCertificatePage*)this, "MajorPrivacy", tr("Without an active License Certificate, MajorPrivacy runs in demo mode and does not enforce any rules. "
-            "You can get a free %1-day evaluation certificate to unlock all features. Are you sure you want to continue without one?").arg(EVAL_DAYS), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) == QMessageBox::No)
-			return false;
-    }
-
     return QWizardPage::isComplete();
 }
 
@@ -492,6 +486,14 @@ bool CCertificatePage::validatePage()
             return false;
         }
     }
+
+    //if (g_Certificate.isEmpty()) 
+    /*if(!g_CertInfo.active)
+    {
+        if (QMessageBox::warning((CCertificatePage*)this, "MajorPrivacy", tr("Without an active License Certificate, MajorPrivacy runs in demo mode and does not enforce any rules. "
+           "You can get a free %1-day evaluation certificate to unlock all features. Are you sure you want to continue without one?").arg(EVAL_DAYS), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) == QMessageBox::No)
+        return false;
+    }*/
 
     return true;
 }

@@ -268,8 +268,10 @@ void CPopUpWindow::Show()
 
 void CPopUpWindow::TryShow()
 {
-	if (m_FwPrograms.size() == 0 && m_ResPrograms.size() == 0 && m_ExecPrograms.size() == 0)
+	if (m_FwPrograms.size() == 0 && m_ResPrograms.size() == 0 && m_ExecPrograms.size() == 0) {
+		QApplication::beep();
 		return;
+	}
 
 	Show();
 }

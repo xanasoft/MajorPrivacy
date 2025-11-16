@@ -8,16 +8,23 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
 ## [0.99.4] - 2025-11-??
+
+### Added
+- added warning dialig when driver rules are enabled but there is no valid license certificate installed
 
 ### Changed
 - MP components can now always browse protected ro blocked folders to allow the rule editor to function correctly
 - MP does not show a popup when a unsigned dll fails to be loaded by the MP UI like 3rd party shell extensions in the file picker dialogs.
 - MP has now the same single/double click behaviorue like sandboxie, Middle button single click open/hides notification window
+- switched software id string from MP-Beta to MP those the old certificates bundled with the installer will no longer be valid
+  - use the get trial certificate function to get 90 day valid certificates
 
 ### Fixed
 - fixed issue with first start wizard firewall configuration
 - added missing button localization strings to translation files
+
 
 
 
@@ -27,6 +34,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - fixed issue with button localization
 - fixed issue with dark mode display
 - fixed issue with duplicates when creating new rules
+
 
 
 
@@ -53,6 +61,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - added action to create usefull initial windows firewall rules for the allow list mode of operation
 - added action to restore default windows firewall rules
  
+
 
 
 ## [0.99.0] - 2025-10-11

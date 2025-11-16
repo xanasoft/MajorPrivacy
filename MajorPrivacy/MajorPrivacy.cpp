@@ -198,7 +198,12 @@ void CMajorPrivacy::UpdateTitle()
 	if (theCore->Driver()->IsConnected())
 	{
 		if (!g_CertInfo.active)
-			Title += "   -   !!! NOT ACTIVATED !!!";
+		{
+			if(theCore->HasDriverRules())
+				Title += "   -   !!! WARNING: Rules are NOT being enforced (no valid license found) !!!";
+			else
+				Title += "   -   Free Mode";
+		}
 		else
 		{
 			auto Ret = theCore->Driver()->GetUserKey();
@@ -522,6 +527,15 @@ STATUS CMajorPrivacy::Connect()
 		}
 
 		UpdateLockStatus(true);
+
+		// Check if rules are enabled without a valid license - Display warning if rules are enabled without a valid license
+		if (!g_CertInfo.active && theCore->HasDriverRules())
+		{
+			QMessageBox::warning(this, "MajorPrivacy",
+				tr("Warning: You have process or access rules enabled, but do not have a valid license.\n\n"
+					"Without a valid license, these rules will NOT be enforced by the driver.\n\n"
+					"Please obtain a valid license to ensure your privacy rules are actively protecting your system."));
+		}
 	}
 	else 
 	{
@@ -723,7 +737,7 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 	static uint64 LastObjectDump = GetTickCount64();
 	if (LastObjectDump + 6 * 1000 < GetTickCount64()) {
 		LastObjectDump = GetTickCount64();
-		ObjectTrackerBase::PrintCounts();
+//		ObjectTrackerBase::PrintCounts();
 
 		//size_t memoryUsed = getHeapUsage();
 		//DbgPrint(L"USED MEMORY: %llu bytes\n", memoryUsed);
@@ -833,6 +847,8 @@ void CMajorPrivacy::StoreState()
 
 void CMajorPrivacy::BuildMenu()
 {
+	menuBar()->clear();
+
 	m_pMain = menuBar()->addMenu(tr("Privacy"));
 	//m_pMain->addSeparator();
 	m_pMaintenance = m_pMain->addMenu(QIcon(":/Icons/Maintenance.png"), tr("&Maintenance"));
@@ -2706,6 +2722,8 @@ void CMajorPrivacy::UpdateSettings(bool bRebuildUI)
 		StoreState();
 
 		LoadLanguage();
+
+		BuildMenu();
 
 		BuildGUI();
 	}

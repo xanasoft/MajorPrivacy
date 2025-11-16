@@ -110,10 +110,11 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: 
 
 [Run]
 ; install services
-Filename: "{app}\PrivacyAgent.exe"; Parameters: "-install"; StatusMsg: "PrivacyAgent.exe -install"; Check: not IsPortable
+Filename: "{app}\PrivacyAgent.exe"; Parameters: "-install"; StatusMsg: "Installing MajorPrivacy Core Components"; Check: not IsPortable
 
 ; startup.
-Filename: "{app}\PrivacyAgent.exe"; Parameters: "-startup"; StatusMsg: "PrivacyAgent.exe -startup"; Check: not IsPortable
+;Filename: "{app}\PrivacyAgent.exe"; Parameters: "-startup"; StatusMsg: "PrivacyAgent.exe -startup"; Check: not IsPortable
+Filename: "net.exe"; Parameters: "start PrivacyAgent"; StatusMsg: "Starting MajorPrivacy Core Components"; Flags: runhidden; Check: not IsPortable
 
 ; install vc redist for imdisk
 #if MyAppArch == "x64"
@@ -122,7 +123,7 @@ Filename: "{tmp}\VC_redist.x64.exe"; Parameters: "/q /norestart"; StatusMsg: "In
 
 ; Install ImDisk 3.0 driver
 #if MyAppArch == "x64"
-Filename: "{app}\imdisk_install.bat"; Parameters: "7 /fullsilent /discutils:0 /shortcuts_desktop:0"; StatusMsg: "Installing ImDisk 3.0 Driver..."; Check: IsInstallImDisk
+Filename: "{app}\imdisk_install.bat"; Parameters: "7 /fullsilent /discutils:0 /shortcuts_desktop:0"; StatusMsg: "Installing ImDisk 3.0 Driver..."; Flags: runhidden; Check: IsInstallImDisk
 #endif
 
 ; Start MajorPrivacy.

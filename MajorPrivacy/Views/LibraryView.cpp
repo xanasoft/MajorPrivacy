@@ -20,7 +20,7 @@ CLibraryView::CLibraryView(QWidget *parent)
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 
-	connect(m_pItemModel, SIGNAL(CheckChanged(const QModelIndex&, bool)), this, SLOT(OnCheckChanged(const QModelIndex&, bool)));
+	//connect(m_pItemModel, SIGNAL(CheckChanged(const QModelIndex&, bool)), this, SLOT(OnCheckChanged(const QModelIndex&, bool)));
 
 	m_pSignFile = m_pMenu->addAction(QIcon(":/Icons/Cert.png"), tr("Sign File"), this, SLOT(OnFileAction()));
 	m_pRemoveSig = m_pMenu->addAction(QIcon(":/Icons/EmptyAll.png"), tr("Remove File Signature"), this, SLOT(OnFileAction()));

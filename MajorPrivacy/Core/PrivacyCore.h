@@ -114,6 +114,7 @@ public:
 	class CEventLogger*	Log()					{ return m_pSysLog; }
 	class CEventLog*	EventLog()				{ return m_pEventLog; }
 
+	bool				HasDriverRules() const;
 
 	static QString		NormalizePath(QString sFilePath, bool bForID = false);
 

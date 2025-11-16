@@ -18,7 +18,7 @@ CIngressView::CIngressView(QWidget *parent)
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 
-	connect(m_pItemModel, SIGNAL(CheckChanged(const QModelIndex&, bool)), this, SLOT(OnCheckChanged(const QModelIndex&, bool)));
+	//connect(m_pItemModel, SIGNAL(CheckChanged(const QModelIndex&, bool)), this, SLOT(OnCheckChanged(const QModelIndex&, bool)));
 
 	QByteArray Columns = theConf->GetBlob("MainWindow/IngressView_Columns");
 	if (Columns.isEmpty()) {

@@ -167,7 +167,10 @@ void CGetUpdatesJob::Finish(QNetworkReply* pReply)
 	{
 		//m_pProgress->Finish(ERR(OtherError, QVariantList() << tr("Updater Error: %1").arg(err), err));
 		Data["error"] = true;
-		Data["errorMsg"] = tr("%1").arg(err);
+		if(err == 99)
+			Data["errorMsg"] = tr("Network Error");
+		else
+			Data["errorMsg"] = tr("Code %1").arg(err);
 	}
 	else
 	{
@@ -353,8 +356,16 @@ void CGetCertJob::Finish(QNetworkReply* pReply)
 
 	m_pProgress->Finish(OK);
 
-	if (Reply.left(1) == "{") { // error
-
+	auto err = pReply->error();
+	if (err != QNetworkReply::NoError) 
+	{
+		if(err == 99)
+			m_Params["error"] = tr("Network Error");
+		else
+			m_Params["error"] = tr("Code %1").arg(err);
+	}
+	else if (Reply.left(1) == "{")
+	{
 		QVariantMap Data = QJsonDocument::fromJson(Reply).toVariant().toMap();
 		Reply.clear();
 
