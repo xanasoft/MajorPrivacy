@@ -2410,15 +2410,13 @@ void CMajorPrivacy::IgnoreEvent(EItemType Type, const CProgramFilePtr& pProgram,
 bool CMajorPrivacy::IsEventIgnored(EItemType Type, const CProgramFilePtr& pProgram, const CLogEntryPtr& pLogEntry) const
 {
 	const QMap<QString, SIgnoreEvent>& Map = m_IgnoreEvents[(int)Type - 1];
-	if (Map.isEmpty())
-		return false;
 
 	SIgnoreEvent Ignore = Map.value(pProgram->GetPath().toLower());
 
 	if (Ignore.bAllPaths)
 		return true;
 
-
+	bool bIsImageLoad = false;
 	QString Path;
 	if (Type == EItemType::eExecRule)
 	{
@@ -2429,6 +2427,7 @@ bool CMajorPrivacy::IsEventIgnored(EItemType Type, const CProgramFilePtr& pProgr
 			CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibraryByUID(uLibRef, true);
 			if (pLibrary)
 				Path = pLibrary->GetPath();
+			bIsImageLoad = true;
 		}
 		else if (pEntry->GetType() == EExecLogType::eProcessStarted)
 		{
@@ -2446,6 +2445,8 @@ bool CMajorPrivacy::IsEventIgnored(EItemType Type, const CProgramFilePtr& pProgr
 			Path = theCore->NormalizePath(pEntry->GetNtPath());
 	}
 
+	if (bIsImageLoad && pProgram->GetPath().startsWith(theCore->GetAppDir(), Qt::CaseInsensitive))
+		return true; // silently fail image load for MP as the user cant permit it anyways, casued shell extension in sfile picker
 
 	// Test Current Program
 

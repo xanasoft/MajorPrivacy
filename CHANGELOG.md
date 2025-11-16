@@ -7,14 +7,24 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
+## [0.99.4] - 2025-11-??
+
+### Changed
+- MP components can now always browse protected ro blocked folders to allow the rule editor to function correctly
+- MP does not show a popup when a unsigned dll fails to be loaded by the MP UI like 3rd party shell extensions in the file picker dialogs.
+
+### Fixed
+- fixed issue with first start wizard firewall configuration
+- added missing button localization strings to translation files
+
+
 ## [0.99.3] - 2025-11-??
 
 ### Fixed
 - fixed issue with button localization
 - fixed issue with dark mode display
 - fixed issue with duplicates when creating new rules
-- fixed issue with first start wizard firewall configuration
-- 
 
 
 ## [0.99.2] - 2025-11-10

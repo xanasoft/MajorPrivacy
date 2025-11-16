@@ -663,6 +663,7 @@ CNetPage::CNetPage(QWidget *parent)
 
     connect(m_pEnable, &QCheckBox::toggled, this, [&] {
         m_pRestrict->setEnabled(m_pEnable->isChecked());
+        m_pCreate->setEnabled(m_pEnable->isChecked());
         m_pProtect->setEnabled(m_pEnable->isChecked());
 		m_pCollect->setEnabled(m_pEnable->isChecked());
 		m_pRecord->setEnabled(m_pEnable->isChecked());
