@@ -5,11 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-
-
-
-
-## [0.99.4] - 2025-11-??
+## [0.99.4] - 2025-11-16
 
 ### Added
 - added warning dialig when driver rules are enabled but there is no valid license certificate installed
