@@ -6,8 +6,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-
-
 ## [0.99.4] - 2025-11-??
 
 ### Changed
@@ -19,12 +17,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - added missing button localization strings to translation files
 
 
-## [0.99.3] - 2025-11-??
+
+## [0.99.3] - 2025-11-13
 
 ### Fixed
 - fixed issue with button localization
 - fixed issue with dark mode display
 - fixed issue with duplicates when creating new rules
+
 
 
 ## [0.99.2] - 2025-11-10
