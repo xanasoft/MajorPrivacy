@@ -2012,50 +2012,39 @@ void CMajorPrivacy::OnSysTray(QSystemTrayIcon::ActivationReason Reason)
 		break;
 
 	case QSystemTrayIcon::MiddleClick:
-		
+		if (!m_pPopUpWindow->isVisible())
+			m_pPopUpWindow->TryShow();
+		else
+			m_pPopUpWindow->hide();
 		break;
 
 	case QSystemTrayIcon::DoubleClick:
-	
-		if (TriggerSet)
-			NullifyTrigger = true;
-
 		if (isVisible())
 		{
+			if(TriggerSet)
+				NullifyTrigger = true;
+
 			StoreState();
 			hide();
-		}
-		else
-		{
-			show();
 
-			QTimer::singleShot(100, [this]() {
+			break;
+		}
+		show();
+	case QSystemTrayIcon::Trigger:
+		if (isVisible() && !TriggerSet)
+		{
+			TriggerSet = true;
+			QTimer::singleShot(100, [this]() { 
+				TriggerSet = false;
+				if (NullifyTrigger) {
+					NullifyTrigger = false;
+					return;
+				}
 				this->setWindowState((this->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
 				SetForegroundWindow(MainWndHandle);
-			});
+			} );
 		}
-		break;
-
-	case QSystemTrayIcon::Trigger:
-
-		if (TriggerSet)
-			break;
-		TriggerSet = true;
-
-		QTimer::singleShot(250, [this]() { 
-
-			TriggerSet = false;
-			if (NullifyTrigger) {
-				NullifyTrigger = false;
-				return;
-			}
-		
-			if (!m_pPopUpWindow->isVisible())
-				m_pPopUpWindow->TryShow();
-			else
-				m_pPopUpWindow->hide();
-		});
-
+		m_pPopUpWindow->Poke();
 		break;
 	}
 }

@@ -6,11 +6,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
+
 ## [0.99.4] - 2025-11-??
 
 ### Changed
 - MP components can now always browse protected ro blocked folders to allow the rule editor to function correctly
 - MP does not show a popup when a unsigned dll fails to be loaded by the MP UI like 3rd party shell extensions in the file picker dialogs.
+- MP has now the same single/double click behaviorue like sandboxie, Middle button single click open/hides notification window
 
 ### Fixed
 - fixed issue with first start wizard firewall configuration
