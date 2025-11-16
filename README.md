@@ -35,6 +35,33 @@ If you want to publicly distribute self-compiled binaries, please review the LIC
 * Integrity level control - set the integrity level of processes in a secure enclave to "Protected" to isolate user objects, including their windows, from other processes.
 
 
+## 📸 Screenshots
+
+### Main Interface
+![Major Privacy Home](Screenshots/MP-Home.png)
+
+### Program Rules (Software Restriction)
+![Program Rules](Screenshots/Program-Rules.png)
+
+### Secure Enclaves (Process Protection)
+![Secure Enclaves](Screenshots/Secure-Enclaves.png)
+
+### Access Rules (File/Folder Protection)
+![Access Rules](Screenshots/Access-Rules.png)
+
+### Secure Volumes
+![Secure Volumes](Screenshots/Secure-Volumes.png)
+
+### Firewall Rules
+![Firewall Rules](Screenshots/Firewall-Rules.png)
+
+### DNS Filter
+![DNS Filter](Screenshots/DNS-Filter.png)
+
+### Privacy Tweaks
+![Privacy Tweaks](Screenshots/Privacy-Tweaks.png)
+
+
 ## 📌 Project support / sponsorship
 
 [<img align="left" height="64" width="64" src="https://github.com/sandboxie-plus/Sandboxie/raw/master/.github/images/Icons8_logo.png">](https://icons8.de/)Thank you [Icons8](https://icons8.de/) for providing icons for this project.
