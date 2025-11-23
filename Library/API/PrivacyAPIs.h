@@ -275,6 +275,10 @@
 	#define API_S_INTEGRITY_LEVEL_SYSTEM		"System"
 #define API_S_IMAGE_LOAD_PROTECTION			"ImageLoadProtection"
 #define API_S_IMAGE_COHERENCY_CHECKING		"ImageCoherencyChecking"
+#define API_S_EXEC_ALLOWED_CHILDREN			"AllowedChildren"
+#define API_S_EXEC_ALLOWED_PARENTS			"AllowedParents"
+#define API_S_EXEC_BLOCKED_CHILDREN			"BlockedChildren"
+#define API_S_EXEC_BLOCKED_PARENTS			"BlockedParents"
 #define API_S_ALLOW_DEBUGGING 				"AllowDebugging"
 #define API_S_KEEP_ALIVE 					"KeepAlive"
 

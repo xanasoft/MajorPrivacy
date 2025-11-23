@@ -214,12 +214,12 @@ public:
 	SafeRef<V> FindValue(const K& Key) { return GetContrPtr(Key); }
 	SafeRef<V> GetOrAddValue(const K& Key) { return SetValuePtr(Key, nullptr).first; }
 
-	Pair<V*, bool> SetValuePtr(const K& Key, const V* pValue) 
+	Pair<V*, bool> SetValuePtr(const K& Key, const V* pValue)
 	{
-		if(!MakeExclusive(nullptr)) 
+		if(!MakeExclusive(nullptr))
 			return MakePair((V*)nullptr, false);
 
-		if (!m_ptr) return nullptr;
+		if (!m_ptr) return MakePair((V*)nullptr, false);
 		SBucketEntry* pEntry = FindEntry(m_ptr->Buckets, m_ptr->BucketCount, Key);
 		if (pEntry) {
 			if (pValue) pEntry->Value = *pValue;
@@ -313,6 +313,101 @@ public:
 		return Value;
 	}
 
+#if 0
+
+	// Template-based iterator supporting const iteration (hash tables don't have reverse)
+	template <typename KeyType, typename ValueType>
+	class TableIterator {
+	public:
+		using iterator_category = std::forward_iterator_tag;
+		using value_type = ValueType;
+		using difference_type = ptrdiff_t;
+		using pointer = ValueType*;
+		using reference = ValueType&;
+
+		TableIterator(SBucketEntry** Buckets = nullptr, uint32 Count = 0)
+			: pBuckets(Buckets), uRemBuckets(Count > 1 ? Count - 1 : 0) {
+			if (pBuckets) SetNext(pBuckets[0]);
+		}
+
+		TableIterator(const KeyType& Key, SBucketEntry** Buckets, uint32 BucketCount)
+		{
+			size_t Index = MapBucketIndex(BucketCount, Hash(Key));
+			pEntry = Buckets[Index];
+			while (pEntry != nullptr) {
+				if (pEntry->Key == Key)
+					break;
+				pEntry = pEntry->Next;
+			}
+			pBuckets = Buckets + Index;
+			uRemBuckets = BucketCount - (uint32)Index;
+			if(uRemBuckets) uRemBuckets--;
+		}
+
+		reference operator*() const { return pEntry->Value; }
+		pointer operator->() const { return &pEntry->Value; }
+		reference Value() const { return pEntry->Value; }
+		const KeyType& Key() const { return pEntry->Key; }
+
+		TableIterator& operator++() {
+			if (pEntry) SetNext(pEntry->Next);
+			return *this;
+		}
+
+		TableIterator operator++(int) {
+			TableIterator tmp = *this;
+			++(*this);
+			return tmp;
+		}
+
+		bool operator==(const TableIterator& other) const { return pEntry == other.pEntry; }
+		bool operator!=(const TableIterator& other) const { return pEntry != other.pEntry; }
+
+	protected:
+		friend Table;
+
+		void SetNext(SBucketEntry* pNext)
+		{
+			pEntry = pNext;
+
+			while (pEntry == nullptr && uRemBuckets > 0) {
+				--uRemBuckets;
+				pEntry = *++pBuckets;
+			}
+		}
+
+		SBucketEntry* pEntry = nullptr;
+		SBucketEntry** pBuckets = nullptr;
+		uint32 uRemBuckets = 0;
+	};
+
+	// Legacy type for compatibility
+	using Iterator = TableIterator<K, V>;
+
+	// STL-compatible type aliases (no reverse for hash tables)
+	using iterator = TableIterator<K, V>;
+	using const_iterator = TableIterator<const K, const V>;
+
+	// Forward iteration
+	iterator begin() { return m_ptr ? iterator(m_ptr->Buckets, m_ptr->BucketCount) : end(); }
+	const_iterator begin() const { return m_ptr ? const_iterator(m_ptr->Buckets, m_ptr->BucketCount) : end(); }
+	const_iterator cbegin() const { return m_ptr ? const_iterator(m_ptr->Buckets, m_ptr->BucketCount) : cend(); }
+
+	iterator end() { return iterator(); }
+	const_iterator end() const { return const_iterator(); }
+	const_iterator cend() const { return const_iterator(); }
+
+	iterator find(const K& Key) { return m_ptr ? iterator(Key, m_ptr->Buckets, m_ptr->BucketCount) : end(); }
+	const_iterator find(const K& Key) const { return m_ptr ? const_iterator(Key, m_ptr->Buckets, m_ptr->BucketCount) : end(); }
+
+	bool contains(const K& Key) const
+	{
+		if (!m_ptr) return false;
+		return FindEntry(m_ptr->Buckets, m_ptr->BucketCount, Key) != nullptr;
+	}
+	
+#else
+
 	// Support for range-based for loops
 	class Iterator {
 	public:
@@ -369,6 +464,8 @@ public:
 	Iterator begin() const							{ return m_ptr ? Iterator(m_ptr->Buckets, m_ptr->BucketCount) : end(); }
 	Iterator end() const							{ return Iterator(); }
 	Iterator find(const K& Key) const				{ return m_ptr ? Iterator(Key, m_ptr->Buckets, m_ptr->BucketCount) : end(); }
+
+#endif
 
 	Iterator erase(Iterator I)
 	{
@@ -436,11 +533,15 @@ protected:
 			if (!ptr) return false;
 
 			SBucketEntry* pHead = nullptr;
+			bool bSuccess = true;
 
 			for(uint32 i = 0; i < m_ptr->BucketCount; i++) {
 				for (SBucketEntry* pEntry = m_ptr->Buckets[i]; pEntry != nullptr; pEntry = pEntry->Next) {
 					SBucketEntry* New = (SBucketEntry*)MemAlloc(sizeof(SBucketEntry));
-					if (!New) break; // todo
+					if (!New) {
+						bSuccess = false;
+						break;
+					}
 					new (New) SBucketEntry(pEntry->Key, pEntry->Value);
 					New->Hash = pEntry->Hash;
 					New->Next = pHead;
@@ -451,6 +552,19 @@ protected:
 						pI->uRemBuckets = 0;
 					}
 				}
+				if (!bSuccess) break;
+			}
+
+			if (!bSuccess) {
+				// Clean up partial allocation
+				while (pHead != nullptr) {
+					SBucketEntry* pNext = pHead->Next;
+					pHead->~SBucketEntry();
+					MemFree(pHead);
+					pHead = pNext;
+				}
+				MemFree(ptr);
+				return false;
 			}
 
 			ptr->Count = m_ptr->Count;

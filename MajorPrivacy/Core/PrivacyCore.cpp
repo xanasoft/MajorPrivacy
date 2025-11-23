@@ -162,7 +162,7 @@ STATUS CPrivacyCore__RunAgent(const std::wstring& params, bool bWait = true)
 {
 	std::wstring Path = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
 
-	HANDLE hEngineProcess = RunElevated(Path, params);
+	HANDLE hEngineProcess = RunElevatedEx(Path, params, 30 * 1000);
 	if (!hEngineProcess)
 		return ERR(STATUS_UNSUCCESSFUL);
 
@@ -206,28 +206,30 @@ STATUS CPrivacyCore::Uninstall()
 	return CPrivacyCore__RunAgent(L"-remove");
 }
 
-bool CPrivacyCore::IsSvcInstalled()
+BOOL CPrivacyCore::IsSvcInstalled()
 {
 	SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
-	return ((SvcState & SVC_INSTALLED) == SVC_INSTALLED);
+	if(SvcState == SVC_SCM_ERROR) return -1;
+	return ((SvcState & SVC_INSTALLED) == SVC_INSTALLED) ? TRUE : FALSE;
 }
 
-bool CPrivacyCore::IsSvcRunning()
+BOOL CPrivacyCore::IsSvcRunning()
 {
 	SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
-	return ((SvcState & SVC_RUNNING) == SVC_RUNNING);
+	return ((SvcState & SVC_RUNNING) == SVC_RUNNING) ? TRUE : FALSE;
 }
 
-bool CPrivacyCore::IsDrvInstalled()
+BOOL CPrivacyCore::IsDrvInstalled()
 {
 	SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
-	return ((DrvState & SVC_INSTALLED) == SVC_INSTALLED);
+	if(DrvState == SVC_SCM_ERROR) return -1;
+	return ((DrvState & SVC_INSTALLED) == SVC_INSTALLED) ? TRUE : FALSE;
 }
 
-bool CPrivacyCore::IsDrvRunning()
+BOOL CPrivacyCore::IsDrvRunning()
 {
 	SVC_STATE DrvState = GetServiceState(API_DRIVER_NAME);
-	return ((DrvState & SVC_RUNNING) == SVC_RUNNING);
+	return ((DrvState & SVC_RUNNING) == SVC_RUNNING) ? TRUE : FALSE;
 }
 
 STATUS CPrivacyCore::Connect(bool bCanStart, bool bEngineMode)
@@ -247,20 +249,16 @@ STATUS CPrivacyCore::Connect(bool bCanStart, bool bEngineMode)
 				if ((SvcState & SVC_RUNNING) == 0)
 					Status = CPrivacyCore__RunAgent(L"-startup");
 
-				if (Status)
-				{
-					for (int i = 0; i < 10; i++)
-					{
-						Status = m_Service.ConnectSvc();
-						if (Status)
-							break;
-						QThread::sleep(1 + i);
-					}
-				}
+				Status = m_Service.ConnectSvc();
 			}
 		}
 		else
-			Status = m_Service.ConnectEngine();
+		{
+			if (!IsSvcInstalled())
+				Status = m_Service.ConnectEngine();
+			else
+				Status = m_Service.ConnectSvc();
+		}
 
 		if (Status) {
 			uint32 ServiceABI = m_Service.GetABIVersion();
@@ -1512,6 +1510,12 @@ STATUS CPrivacyCore::DelFwRule(const QFlexGuid& Guid)
 	QtVariant Request(m_pMemPool);
 	Request[API_V_GUID] = Guid.ToVariant(true);
 	return m_Service.Call(SVC_API_DEL_FW_RULE, Request);
+}
+
+STATUS CPrivacyCore::RestoreDefaultFwRules()
+{
+	QtVariant Request(m_pMemPool);
+	return m_Service.Call(SVC_API_RESET_FW_RULE, Request);
 }
 
 RESULT(FwFilteringModes) CPrivacyCore::GetFwProfile()

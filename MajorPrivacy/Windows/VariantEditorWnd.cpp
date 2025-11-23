@@ -410,6 +410,16 @@ QString VariantIndexToName(uint32 Index)
 		return "Folder";
 	case API_V_ENTRY:
 		return "Entry";
+	case API_V_ENTRIES:
+		return "Entries";
+	case API_V_RULE:
+		return "Rule";
+	case API_V_RULES:
+		return "Rules";
+	case API_V_LIST:
+		return "List";
+	case API_V_FILES:
+		return "Files";
 
 		//
 	case API_V_GUI_CONFIG:
@@ -430,6 +440,16 @@ QString VariantIndexToName(uint32 Index)
 		return "Programs";
 	case API_V_LIBRARIES:
 		return "Libraries";
+	case API_V_ENCLAVES:
+		return "Enclaves";
+	case API_V_COLLECTIONS:
+		return "Collections";
+	case API_V_TOKEN:
+		return "Token";
+	case API_V_PRESETS:
+		return "Presets";
+	case API_V_PRESET:
+		return "Preset";
 
 
 		////////////////////////////
@@ -467,6 +487,26 @@ QString VariantIndexToName(uint32 Index)
 		return "Rule Description";
 	case API_V_CMD_LINE:
 		return "Command Line";
+	case API_V_EXEC_TRACE:
+		return "Execution Trace";
+	case API_V_RES_TRACE:
+		return "Resource Trace";
+	case API_V_NET_TRACE:
+		return "Network Trace";
+	case API_V_SAVE_TRACE:
+		return "Save Trace";
+	case API_V_RULE_STATE:
+		return "Rule State";
+	case API_V_ORIGINAL_GUID:
+		return "Original GUID";
+	case API_V_SOURCE:
+		return "Source";
+	case API_V_TEMPLATE_GUID:
+		return "Template GUID";
+	case API_V_VOLUME_GUID:
+		return "Volume GUID";
+	case API_V_SHUTDOWN:
+		return "Shutdown";
 
 
 		////////////////////////////
@@ -479,6 +519,32 @@ QString VariantIndexToName(uint32 Index)
 		return "Reload";
 	case API_V_GET_DATA:
 		return "Get Data";
+	case API_V_URL:
+		return "URL";
+	case API_V_REFRESH:
+		return "Refresh";
+	case API_V_VERIFY:
+		return "Verify";
+	case API_V_BLOCKING:
+		return "Blocking";
+	case API_V_PARAMS:
+		return "Parameters";
+	case API_V_WAIT:
+		return "Wait";
+	case API_V_ELEVATE:
+		return "Elevate";
+	case API_V_REVISION:
+		return "Revision";
+	case API_V_TEMP:
+		return "Temporary";
+	case API_V_TIMEOUT:
+		return "Timeout";
+	case API_V_TIME_STAMP:
+		return "Time Stamp";
+	case API_V_LOCKDOWN:
+		return "Lockdown";
+	case API_V_FORCE:
+		return "Force";
 
 
 		////////////////////////////
@@ -490,12 +556,22 @@ QString VariantIndexToName(uint32 Index)
 
 	case API_V_PROG_TYPE:
 		return "Program Type";
+	case API_V_PARENT:
+		return "Parent";
 		// ...
 
 	case API_V_FILE_PATH:
 		return "File Path";
 	case API_V_FILE_NT_PATH:
 		return "File NT Path";
+	case API_V_USE_SCRIPT:
+		return "Use Script";
+	case API_V_SCRIPT:
+		return "Script";
+	case API_V_DLL_INJECT_MODE:
+		return "DLL Inject Mode";
+	case API_V_INTERACTIVE:
+		return "Interactive";
 	case API_V_SERVICE_TAG:
 		return "Service Tag";
 	case API_V_APP_SID:
@@ -525,12 +601,16 @@ QString VariantIndexToName(uint32 Index)
 		// Status
 	case API_V_PROG_ACCESS_COUNT:
 		return "Program Access Count";
+	case API_V_PROG_HANDLE_COUNT:
+		return "Program Handle Count";
 	case API_V_PROG_SOCKET_REFS:
 		return "Program Socket References";
 	case API_V_PROG_LAST_EXEC:
 		return "Program Last Execution";
 	case API_V_PROG_ITEM_MISSING:
 		return "Program Item Missing";
+	case API_V_MEM_USED:
+		return "Memory Used";
 
 		// Mgmt Fields
 	case API_V_PROG_PARENT:
@@ -539,6 +619,8 @@ QString VariantIndexToName(uint32 Index)
 		return "Purge Rules";
 	case API_V_DEL_WITH_RULES:
 		return "Delete with Rules";
+	case API_V_KEEP_ONE:
+		return "Keep One";
 
 
 		////////////////////////////
@@ -549,6 +631,8 @@ QString VariantIndexToName(uint32 Index)
 		return "Library Load Time";
 	case API_V_LIB_LOAD_COUNT:
 		return "Library Load Count";
+	case API_V_LIB_LOAD_LOG:
+		return "Library Load Log";
 	case API_V_LIB_STATUS:
 		return "Library Status";
 
@@ -569,6 +653,10 @@ QString VariantIndexToName(uint32 Index)
 		return "Rule Reference GUID";
 	case API_V_RULE_HIT_COUNT:
 		return "Rule Hit Count";
+	case API_V_ITEMS:
+		return "Items";
+	case API_V_ACTION:
+		return "Action";
 
 
 		////////////////////////////
@@ -590,6 +678,10 @@ QString VariantIndexToName(uint32 Index)
 		// ...
 	case API_V_EXEC_SIGN_REQ:
 		return "Execution Sign Requirement";
+	case API_V_EXEC_ALLOWED_SIGNERS:
+		return "Execution Allowed Signers";
+	case API_V_EXEC_ALLOWED_COLLECTIONS:
+		return "Execution Allowed Collections";
 		// ...
 	case API_V_EXEC_ON_TRUSTED_SPAWN:
 		return "Execution on Trusted Spawn";
@@ -599,6 +691,22 @@ QString VariantIndexToName(uint32 Index)
 		// ...
 	case API_V_IMAGE_LOAD_PROTECTION:
 		return "Image Load Protection";
+	case API_V_IMAGE_COHERENCY_CHECKING:
+		return "Image Coherency Checking";
+	case API_V_EXEC_ALLOWED_CHILDREN:
+		return "Execution Allowed Children";
+	case API_V_EXEC_ALLOWED_PARENTS:
+		return "Execution Allowed Parents";
+	case API_V_EXEC_BLOCKED_CHILDREN:
+		return "Execution Blocked Children";
+	case API_V_EXEC_BLOCKED_PARENTS:
+		return "Execution Blocked Parents";
+	case API_V_INTEGRITY_LEVEL:
+		return "Integrity Level";
+	case API_V_ALLOW_DEBUGGING:
+		return "Allow Debugging";
+	case API_V_KEEP_ALIVE:
+		return "Keep Alive";
 		//API_V_PATH_PREFIX,
 		//API_V_DEVICE_PATH,
 
@@ -657,6 +765,10 @@ QString VariantIndexToName(uint32 Index)
 		return "PID";
 	case API_V_PIDS:
 		return "PIDs";
+	case API_V_TID:
+		return "TID";
+	case API_V_TIDS:
+		return "TIDs";
 
 	case API_V_CREATE_TIME:
 		return "Create Time";
@@ -685,6 +797,8 @@ QString VariantIndexToName(uint32 Index)
 	case API_V_SOCKETS:
 		return "Sockets";
 
+	case API_V_USER:
+		return "User";
 	case API_V_USER_SID:
 		return "User SID";
 
@@ -715,6 +829,8 @@ QString VariantIndexToName(uint32 Index)
 
 		////////////////////////////
 		// Event Logging
+	case API_V_EVENT_LOG:
+		return "Event Log";
 
 		// Program Access Log
 	case API_V_ACCESS_LOG:
@@ -722,6 +838,8 @@ QString VariantIndexToName(uint32 Index)
 
 	case API_V_PROG_RESOURCE_ACCESS:
 		return "Program Resource Access";
+	case API_V_PROG_PROCESS_ACCESS:
+		return "Program Process Access";
 	case API_V_PROG_EXEC_PARENTS:
 		return "Program Execution Actors";
 	case API_V_PROG_EXEC_CHILDREN:
@@ -789,10 +907,18 @@ QString VariantIndexToName(uint32 Index)
 		// Event Info
 	case API_V_EVENT_REF:
 		return "Event Reference";
+	case API_V_EVENT_LEVEL:
+		return "Event Level";
 	case API_V_EVENT_TYPE:
 		return "Event Type";
+	case API_V_EVENT_SUB_TYPE:
+		return "Event Sub Type";
+	case API_V_EVENT_EXPECTED:
+		return "Event Expected";
 	case API_V_EVENT_INDEX:
 		return "Event Index";
+	case API_V_EVENT_TIMEOUT:
+		return "Event Timeout";
 	case API_V_EVENT_DATA:
 		return "Event Data";
 
@@ -817,10 +943,14 @@ QString VariantIndexToName(uint32 Index)
 		return "Operation";
 	case API_V_ACCESS_MASK:
 		return "Access Mask";  // desired access
+	case API_V_STATUS:
+		return "Status";
 	case API_V_NT_STATUS:
 		return "NT Status"; // NTSTATUS
 	case API_V_EVENT_STATUS:
 		return "Event Status"; // EEventStatus
+	case API_V_EVENT_ACTION:
+		return "Event Action"; // EEventAction
 	case API_V_IS_DIRECTORY:
 		return "Is Directory";
 	case API_V_WAS_BLOCKED:
@@ -838,6 +968,8 @@ QString VariantIndexToName(uint32 Index)
 		return "Event Role"; // EExecLogRole
 	case API_V_PROC_MISC_ID:
 		return "Process Misc ID"; // Program UID or Library UID
+	case API_V_PROC_MISC_ENCLAVE:
+		return "Process Misc Enclave"; // Enclave UID
 	case API_V_THREAD_ACCESS_MASK:
 		return "Thread Access Mask"; // desired access
 	case API_V_PROCESS_ACCESS_MASK:
@@ -848,6 +980,8 @@ QString VariantIndexToName(uint32 Index)
 		return "Event Image Base";
 	case API_V_EVENT_NO_PROTECT:
 		return "Event No Protect";
+	case API_V_EVENT_CREATING:
+		return "Event Creating";
 	case API_V_EVENT_IMG_PROPS:
 		return "Event Image Properties";
 	case API_V_EVENT_IMG_SEL:
@@ -885,6 +1019,8 @@ QString VariantIndexToName(uint32 Index)
 		return "Sign Flags"; // --> API_V_CERT_STATUS
 	case API_V_IMG_SIGN_AUTH:
 		return "Image Sign Authority";
+	case API_V_IMG_SIGN_BITS:
+		return "Image Sign Bits";
 	case API_V_IMG_SIGN_LEVEL:
 		return "Image Sign Level";
 	case API_V_IMG_SIGN_POLICY:
@@ -893,6 +1029,10 @@ QString VariantIndexToName(uint32 Index)
 		return "File Hash";
 	case API_V_FILE_HASH_ALG:
 		return "File Hash Algorithm";
+	case API_V_FILE_TMBP:
+		return "File TMBP";
+	case API_V_FILE_TMBP_ALG:
+		return "File TMBP Algorithm";
 	case API_V_CERT_STATUS:
 		return "Certificate Status";
 	case API_V_IMG_SIGN_NAME:
@@ -901,6 +1041,12 @@ QString VariantIndexToName(uint32 Index)
 		return "Image Certificate Algorithm";
 	case API_V_IMG_CERT_HASH:
 		return "Image Certificate Hash";
+	case API_V_IMG_CA_NAME:
+		return "Image CA Name";
+	case API_V_IMG_CA_ALG:
+		return "Image CA Algorithm";
+	case API_V_IMG_CA_HASH:
+		return "Image CA Hash";
 
 
 		////////////////////////////
@@ -925,6 +1071,8 @@ QString VariantIndexToName(uint32 Index)
 		return "DNS Query Count";
 	case API_V_DNS_RULE_ACTION:
 		return "DNS Rule Action";
+	case API_V_DNS_LIST_INFO:
+		return "DNS List Info";
 
 
 		////////////////////////////
@@ -945,6 +1093,8 @@ QString VariantIndexToName(uint32 Index)
 		return "Volume Password";
 	case API_V_VOL_PROTECT:
 		return "Volume Protect";
+	case API_V_VOL_LOCKDOWN:
+		return "Volume Lockdown";
 	case API_V_VOL_CIPHER:
 		return "Volume Cipher";
 	case API_V_VOL_OLD_PASS:
@@ -967,15 +1117,27 @@ QString VariantIndexToName(uint32 Index)
 		return "Tweak List";
 	case API_V_TWEAK_TYPE:
 		return "Tweak Type";
+	case API_V_TWEAK_ID:
+		return "Tweak ID";
+	case API_V_TWEAK_NAME:
+		return "Tweak Name";
+	case API_V_TWEAK_INDEX:
+		return "Tweak Index";
 		// ...
+	case API_V_TWEAK_WIN_VER:
+		return "Tweak Windows Version";
 	case API_V_TWEAK_IS_SET:
 		return "Tweak Is Set";
+	case API_V_TWEAK_IS_APPLIED:
+		return "Tweak Is Applied";
 
 
 		////////////////////////////
 		// Support
 	case API_V_SUPPORT_NAME:
 		return "Support Name";
+	case API_V_SUPPORT_STATE:
+		return "Support State";
 	case API_V_SUPPORT_STATUS:
 		return "Support Status";
 	case API_V_SUPPORT_HWID:

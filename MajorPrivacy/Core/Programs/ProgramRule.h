@@ -21,8 +21,8 @@ public:
 	
 	EExecDllMode GetDllMode() const					{return m_DllMode;}
 
-	USignatures GetAllowedSignatures() const {return m_AllowedSignatures;}
-	QList<QString> GetAllowedCollections() const		{return m_AllowedCollections;}
+	USignatures GetAllowedSignatures() const		{return m_AllowedSignatures;}
+	QList<QString> GetAllowedCollections() const	{return m_AllowedCollections;}
 	QList<QString> GetAllowedSignaturesEx() const;
 
 	bool GetImageLoadProtection() const				{return m_ImageLoadProtection;}
@@ -51,6 +51,11 @@ protected:
 	QList<QString>			m_AllowedCollections;
 	bool					m_ImageLoadProtection = true;
 	bool					m_ImageCoherencyChecking = true; // not used yet, but will be in the future
+
+	QList<QString>			m_AllowedChildren;
+	QList<QString>			m_AllowedParents;
+	QList<QString>			m_BlockedChildren;
+	QList<QString>			m_BlockedParents;
 };
 
 typedef QSharedPointer<CProgramRule> CProgramRulePtr;

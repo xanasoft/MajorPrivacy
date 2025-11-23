@@ -30,16 +30,15 @@ public:
 	Array(Array&& Other) : AbstractContainer(nullptr)	{ Move(Other); }
 	~Array()										{ DetachData(); }
 
-	Array& operator=(const Array& Other)			{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) return *this; Assign(Other); return *this; }
-	Array& operator=(Array&& Other)					{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) return *this; Move(Other); return *this; }
+	Array& operator=(const Array& Other)			{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Assign(Other); return *this; }
+	Array& operator=(Array&& Other)					{ if(m_ptr != Other.m_ptr || m_pMem != Other.m_pMem) Move(Other); return *this; }
 	Array& operator+=(const Array& Other)			{ if (!m_pMem) m_pMem = Other.m_pMem; Append(Other.Data(), Other.Count()); return *this; } 
 	Array& operator+=(const V& Value)				{ Append(&Value, 1); return *this; }
 	Array operator+(const Array& Other) const		{ Array str(*this); str.Append(Other.Data(), Other.Count()); return str; }
 	Array operator+(const V& Value) const			{ Array str(*this); str.Append(&Value, 1); return str; }
 
-	// todo check bounds!!!
-	const V& operator[](size_t Index) const			{ return m_ptr->Data[Index]; }
-	V& operator[](size_t Index)						{ MakeExclusive(); return m_ptr->Data[Index]; }
+	const V& operator[](size_t Index) const			{ ASSERT(m_ptr && Index < m_ptr->Count); return m_ptr->Data[Index]; }
+	V& operator[](size_t Index)						{ MakeExclusive(); ASSERT(m_ptr && Index < m_ptr->Count); return m_ptr->Data[Index]; }
 
 	const V* Data() const							{ return m_ptr ? m_ptr->Data : nullptr; }
 	size_t Count() const							{ return m_ptr ? m_ptr->Count : 0; }
@@ -59,7 +58,7 @@ public:
 		{
 			size_t ExtraCapacity = Capacity / 2;
 			if (ExtraCapacity > 1000)
-				ExtraCapacity = ExtraCapacity;
+				ExtraCapacity = 1000;
 			return ReAlloc(Capacity + ExtraCapacity);
 		}
 		else // we already have exclusive access to the data and the capacity is sufficient
@@ -113,20 +112,196 @@ public:
 		return true;
 	}
 
-	// todo make this check the bounds
-	const V& GetValue(size_t Index) const			{ return m_ptr->Data[Index]; }
-	V& GetValue(size_t Index)						{ MakeExclusive(); return m_ptr->Data[Index]; }
+	const V& GetValue(size_t Index) const			{ ASSERT(m_ptr && Index < m_ptr->Count); return m_ptr->Data[Index]; }
+	V& GetValue(size_t Index)						{ MakeExclusive(); ASSERT(m_ptr && Index < m_ptr->Count); return m_ptr->Data[Index]; }
 
-	// find
-	// mid
-	// remove
-	// insert
+	const V& at(size_t Index) const					{ ASSERT(m_ptr && Index < m_ptr->Count); return m_ptr->Data[Index]; }
+	V& at(size_t Index)								{ MakeExclusive(); ASSERT(m_ptr && Index < m_ptr->Count); return m_ptr->Data[Index]; }
+
+	size_t Find(const V& Value, size_t Start = 0) const
+	{
+		if (!m_ptr) return (size_t)-1;
+		for (size_t i = Start; i < m_ptr->Count; i++) {
+			if (m_ptr->Data[i] == Value)
+				return i;
+		}
+		return (size_t)-1;
+	}
+
+	bool Contains(const V& Value) const				{ return Find(Value) != (size_t)-1; }
+
+	bool Insert(size_t Index, const V& Value)
+	{
+		if (Index > Count()) Index = Count();
+		if (!Reserve(Count() + 1)) return false;
+		MakeExclusive();
+		for (size_t i = m_ptr->Count; i > Index; i--)
+			m_ptr->Data[i] = m_ptr->Data[i - 1];
+		new (m_ptr->Data + Index) V(Value);
+		m_ptr->Count++;
+		return true;
+	}
+
+	bool Remove(size_t Index)
+	{
+		if (!m_ptr || Index >= m_ptr->Count) return false;
+		MakeExclusive();
+		m_ptr->Data[Index].~V();
+		for (size_t i = Index; i < m_ptr->Count - 1; i++)
+			m_ptr->Data[i] = m_ptr->Data[i + 1];
+		m_ptr->Count--;
+		return true;
+	}
+
+	bool RemoveValue(const V& Value)
+	{
+		size_t Index = Find(Value);
+		if (Index == (size_t)-1) return false;
+		return Remove(Index);
+	}
+
+	V Mid(size_t Index, size_t Count = 1) const
+	{
+		if (!m_ptr || Index >= m_ptr->Count) return V();
+		if (Index + Count > m_ptr->Count) Count = m_ptr->Count - Index;
+		Array result(m_pMem);
+		result.Reserve(Count);
+		for (size_t i = 0; i < Count; i++)
+			result.Append(m_ptr->Data[Index + i]);
+		return result;
+	}
 
 	const V* LastPtr() const						{ return m_ptr ? m_ptr->Data + m_ptr->Count - 1 : nullptr; }
 	V* LastPtr()									{ return m_ptr ? m_ptr->Data + m_ptr->Count - 1 : nullptr; }
 	const V* FirstPtr() const						{ return m_ptr ? m_ptr->Data : nullptr; }
 	V* FirstPtr()									{ return m_ptr ? m_ptr->Data : nullptr; }
 
+
+#if 0
+
+	// Template-based iterator supporting const and reverse iteration
+	template <typename T, bool IsReverse = false>
+	class ArrayIterator {
+	public:
+		using iterator_category = std::random_access_iterator_tag;
+		using value_type = typename std::remove_const<T>::type;
+		using difference_type = ptrdiff_t;
+		using pointer = T*;
+		using reference = T&;
+
+		ArrayIterator(T* pData = nullptr, size_t uCount = 0) : pData(pData), uRemCount(uCount) {}
+
+		reference operator*() const { return *pData; }
+		pointer operator->() const { return pData; }
+		reference operator[](difference_type offset) const {
+			return pData[IsReverse ? -offset : offset];
+		}
+
+		ArrayIterator& operator++() {
+			if (uRemCount > 0) {
+				uRemCount--;
+				pData += IsReverse ? -1 : 1;
+			}
+			return *this;
+		}
+
+		ArrayIterator operator++(int) {
+			ArrayIterator tmp = *this;
+			++(*this);
+			return tmp;
+		}
+
+		ArrayIterator& operator--() {
+			uRemCount++;
+			pData += IsReverse ? 1 : -1;
+			return *this;
+		}
+
+		ArrayIterator operator--(int) {
+			ArrayIterator tmp = *this;
+			--(*this);
+			return tmp;
+		}
+
+		ArrayIterator& operator+=(difference_type n) {
+			if ((size_t)n > uRemCount) n = (difference_type)uRemCount;
+			uRemCount -= n;
+			pData += IsReverse ? -n : n;
+			return *this;
+		}
+
+		ArrayIterator& operator-=(difference_type n) {
+			uRemCount += n;
+			pData += IsReverse ? n : -n;
+			return *this;
+		}
+
+		ArrayIterator operator+(difference_type n) const {
+			if ((size_t)n > uRemCount) n = (difference_type)uRemCount;
+			return ArrayIterator(pData + (IsReverse ? -n : n), uRemCount - n);
+		}
+
+		ArrayIterator operator-(difference_type n) const {
+			return ArrayIterator(pData + (IsReverse ? n : -n), uRemCount + n);
+		}
+
+		difference_type operator-(const ArrayIterator& other) const {
+			return IsReverse ? (other.pData - pData) : (pData - other.pData);
+		}
+
+		bool operator==(const ArrayIterator& other) const { return pData == other.pData; }
+		bool operator!=(const ArrayIterator& other) const { return pData != other.pData; }
+		bool operator<(const ArrayIterator& other) const {
+			return IsReverse ? pData > other.pData : pData < other.pData;
+		}
+		bool operator<=(const ArrayIterator& other) const {
+			return IsReverse ? pData >= other.pData : pData <= other.pData;
+		}
+		bool operator>(const ArrayIterator& other) const {
+			return IsReverse ? pData < other.pData : pData > other.pData;
+		}
+		bool operator>=(const ArrayIterator& other) const {
+			return IsReverse ? pData <= other.pData : pData >= other.pData;
+		}
+
+		friend ArrayIterator operator+(difference_type n, const ArrayIterator& it) {
+			return it + n;
+		}
+
+	protected:
+		friend Array;
+		T* pData = nullptr;
+		size_t uRemCount = 0;
+	};
+
+	// Legacy type for compatibility
+	using Iterator = ArrayIterator<V, false>;
+
+	// STL-compatible type aliases
+	using iterator = ArrayIterator<V, false>;
+	using const_iterator = ArrayIterator<const V, false>;
+	using reverse_iterator = ArrayIterator<V, true>;
+	using const_reverse_iterator = ArrayIterator<const V, true>;
+
+	// Forward iteration
+	iterator begin() { return m_ptr ? iterator(m_ptr->Data, m_ptr->Count) : end(); }
+	const_iterator begin() const { return m_ptr ? const_iterator(m_ptr->Data, m_ptr->Count) : end(); }
+	const_iterator cbegin() const { return m_ptr ? const_iterator(m_ptr->Data, m_ptr->Count) : cend(); }
+
+	iterator end() { return iterator(m_ptr ? m_ptr->Data + m_ptr->Count : nullptr, 0); }
+	const_iterator end() const { return const_iterator(m_ptr ? m_ptr->Data + m_ptr->Count : nullptr, 0); }
+	const_iterator cend() const { return const_iterator(m_ptr ? m_ptr->Data + m_ptr->Count : nullptr, 0); }
+
+	// Reverse iteration
+	reverse_iterator rbegin() { return m_ptr && m_ptr->Count > 0 ? reverse_iterator(m_ptr->Data + m_ptr->Count - 1, m_ptr->Count) : rend(); }
+	const_reverse_iterator rbegin() const { return m_ptr && m_ptr->Count > 0 ? const_reverse_iterator(m_ptr->Data + m_ptr->Count - 1, m_ptr->Count) : rend(); }
+	const_reverse_iterator crbegin() const { return m_ptr && m_ptr->Count > 0 ? const_reverse_iterator(m_ptr->Data + m_ptr->Count - 1, m_ptr->Count) : crend(); }
+
+	reverse_iterator rend() { return reverse_iterator(m_ptr && m_ptr->Count > 0 ? m_ptr->Data - 1 : nullptr, 0); }
+	const_reverse_iterator rend() const { return const_reverse_iterator(m_ptr && m_ptr->Count > 0 ? m_ptr->Data - 1 : nullptr, 0); }
+	const_reverse_iterator crend() const { return const_reverse_iterator(m_ptr && m_ptr->Count > 0 ? m_ptr->Data - 1 : nullptr, 0); }
+
+#else
 
 	// Support for range-based for loops
 	class Iterator {
@@ -173,6 +348,9 @@ public:
 
 	Iterator begin() const							{ return m_ptr ? Iterator(m_ptr->Data, m_ptr->Count) : end(); }
 	Iterator end() const							{ return Iterator(m_ptr ? m_ptr->Data + m_ptr->Count : nullptr, 0); }
+
+#endif
+
 
 	Iterator erase(Iterator I)
 	{

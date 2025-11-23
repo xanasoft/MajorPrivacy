@@ -17,6 +17,7 @@
 #include <windows.h>
 #include <QRandomGenerator>
 #include "Core/Tweaks/TweakManager.h"
+#include "../Library/Helpers/AppUtil.h"
 
 #ifdef QT_NO_SSL
 #error Qt requires Open SSL support for the updater to work
@@ -1029,7 +1030,7 @@ RESULT(int) COnlineUpdater::RunUpdater(const QStringList& Params, bool bSilent, 
 		wParams += L"\"" + Param.toStdWString() + L"\"";
 	}
 
-	int ExitCode = RunElevated(wFile, wParams, Wait ? INFINITE : 0);
+	int ExitCode = RunElevated(wFile, wParams, Wait ? 15*60*1000 : 0);
 	if (ExitCode == STATUS_PENDING && !Wait)
 		ExitCode = 0;
 	return CResult<int>(0, ExitCode);
@@ -1195,7 +1196,7 @@ bool COnlineUpdater::RunInstaller2(const QString& FilePath, bool bSilent)
 	wParams = L"/SILENT";
 #endif
 
-	return RunElevated(wFile, wParams) == 0;
+	return RunElevated(wFile, wParams, 15*60*1000) == 0;
 }
 
 bool COnlineUpdater::HandleUserMessage(const QVariantMap& Data)

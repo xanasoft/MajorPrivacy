@@ -37,6 +37,7 @@ HEADERS += ./MiscHelpers.h \
     ./Common/TreeWidgetEx.h \
     ./Common/NeonEffect.h \
     ./Common/MultiErrorDialog.h \
+    ./Common/CheckListDialog.h \
     ./Common/NetworkAccessManager.h \
     ./Common/WinboxMultiCombo.h \
     ./Common/MT/ThreadLock.h \
@@ -65,6 +66,7 @@ SOURCES += ./MiscHelpers.cpp \
     ./Common/KeyValueInputDialog.cpp \
     ./Common/ListItemModel.cpp \
     ./Common/MultiErrorDialog.cpp \
+    ./Common/CheckListDialog.cpp \
     ./Common/MultiLineInputDialog.cpp \
     ./Common/OtherFunctions.cpp \
     ./Common/PanelView.cpp \

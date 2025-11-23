@@ -77,6 +77,31 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 
 	connect(ui.cmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
 
+
+
+	ui.btnAddParentAllow->setIcon(QIcon(":/Icons/Enable.png"));
+	ui.btnAddParentBlock->setIcon(QIcon(":/Icons/Disable.png"));
+	ui.btnDelParent->setIcon(QIcon(":/Icons/Remove.png"));
+	connect(ui.btnAddParentAllow, SIGNAL(clicked(bool)), this, SLOT(OnAddParentAllow()));
+	connect(ui.btnAddParentBlock, SIGNAL(clicked(bool)), this, SLOT(OnAddParentBlock()));
+	connect(ui.btnDelParent, SIGNAL(clicked(bool)), this, SLOT(OnDelParent()));
+
+	ui.treeParents->setIndentation(0);
+	ui.treeParents->setSelectionMode(QAbstractItemView::ExtendedSelection);
+
+	ui.btnAddChildAllow->setIcon(QIcon(":/Icons/Enable.png"));
+	ui.btnAddChildBlock->setIcon(QIcon(":/Icons/Disable.png"));
+	ui.btnDelChild->setIcon(QIcon(":/Icons/Remove.png"));
+	connect(ui.btnAddChildAllow, SIGNAL(clicked(bool)), this, SLOT(OnAddChildAllow()));
+	connect(ui.btnAddChildBlock, SIGNAL(clicked(bool)), this, SLOT(OnAddChildBlock()));
+	connect(ui.btnDelChild, SIGNAL(clicked(bool)), this, SLOT(OnDelChild()));
+
+	ui.treeChildren->setIndentation(0);
+	ui.treeChildren->setSelectionMode(QAbstractItemView::ExtendedSelection);
+
+	LoadParentsList();
+	LoadChildrenList();
+
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
 	connect(ui.buttonBox->button(QDialogButtonBox::Apply), SIGNAL(clicked(bool)), this, SLOT(OnSave()));
@@ -252,6 +277,7 @@ bool CProgramRuleWnd::OnSave()
 
 	if(m_pRule->m_Guid.IsNull())
 		m_pRule->m_Guid = Ret.GetValue();
+	return true;
 }
 
 void CProgramRuleWnd::OnSaveAndClose()
@@ -332,6 +358,36 @@ bool CProgramRuleWnd::Save()
 	if (m_pRule->m_Type == EExecRuleType::eProtect && m_pRule->m_Enclave.IsNull()) {
 		QMessageBox::warning(this, tr("Error"), tr("Please select an enclave for a protection rule."));
 		return false;
+	}
+
+	// Save allowed and blocked parents
+	m_pRule->m_AllowedParents.clear();
+	m_pRule->m_BlockedParents.clear();
+	for (int i = 0; i < ui.treeParents->topLevelItemCount(); i++) {
+		QTreeWidgetItem* pTreeItem = ui.treeParents->topLevelItem(i);
+		QString Path = pTreeItem->data(0, Qt::UserRole).toString();
+		bool bAllow = pTreeItem->data(1, Qt::UserRole).toBool();
+		if (!Path.isEmpty()) {
+			if (bAllow)
+				m_pRule->m_AllowedParents.append(Path);
+			else
+				m_pRule->m_BlockedParents.append(Path);
+		}
+	}
+
+	// Save allowed and blocked children
+	m_pRule->m_AllowedChildren.clear();
+	m_pRule->m_BlockedChildren.clear();
+	for (int i = 0; i < ui.treeChildren->topLevelItemCount(); i++) {
+		QTreeWidgetItem* pTreeItem = ui.treeChildren->topLevelItem(i);
+		QString Path = pTreeItem->data(0, Qt::UserRole).toString();
+		bool bAllow = pTreeItem->data(1, Qt::UserRole).toBool();
+		if (!Path.isEmpty()) {
+			if (bAllow)
+				m_pRule->m_AllowedChildren.append(Path);
+			else
+				m_pRule->m_BlockedChildren.append(Path);
+		}
 	}
 
 	return true;
@@ -447,4 +503,166 @@ void CProgramRuleWnd::EditScript()
 		return OK;
 	});
 	SafeShow(pScriptWnd);
+}
+
+void CProgramRuleWnd::LoadParentsList()
+{
+	ui.treeParents->clear();
+
+	// Load allowed parents
+	foreach(const QString& Path, m_pRule->m_AllowedParents)
+	{
+		CProgramID ProgID = CProgramID::FromPath(Path);
+		CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ProgID);
+		if (!pItem)
+			continue;
+
+		QTreeWidgetItem* pTreeItem = new QTreeWidgetItem();
+		pTreeItem->setText(0, pItem->GetNameEx());
+		pTreeItem->setIcon(0, pItem->GetIcon());
+		pTreeItem->setText(1, tr("Allow"));
+		pTreeItem->setText(2, pItem->GetPath());
+		pTreeItem->setData(0, Qt::UserRole, Path);
+		pTreeItem->setData(1, Qt::UserRole, true); // true = allow
+
+		ui.treeParents->addTopLevelItem(pTreeItem);
+	}
+
+	// Load blocked parents
+	foreach(const QString& Path, m_pRule->m_BlockedParents)
+	{
+		CProgramID ProgID = CProgramID::FromPath(Path);
+		CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ProgID);
+		if (!pItem)
+			continue;
+
+		QTreeWidgetItem* pTreeItem = new QTreeWidgetItem();
+		pTreeItem->setText(0, pItem->GetNameEx());
+		pTreeItem->setIcon(0, pItem->GetIcon());
+		pTreeItem->setText(1, tr("Block"));
+		pTreeItem->setText(2, pItem->GetPath());
+		pTreeItem->setData(0, Qt::UserRole, Path);
+		pTreeItem->setData(1, Qt::UserRole, false); // false = block
+
+		ui.treeParents->addTopLevelItem(pTreeItem);
+	}
+}
+
+void CProgramRuleWnd::LoadChildrenList()
+{
+	ui.treeChildren->clear();
+
+	// Load allowed children
+	foreach(const QString& Path, m_pRule->m_AllowedChildren)
+	{
+		CProgramID ProgID = CProgramID::FromPath(Path);
+		CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ProgID);
+		if (!pItem)
+			continue;
+
+		QTreeWidgetItem* pTreeItem = new QTreeWidgetItem();
+		pTreeItem->setText(0, pItem->GetNameEx());
+		pTreeItem->setIcon(0, pItem->GetIcon());
+		pTreeItem->setText(1, tr("Allow"));
+		pTreeItem->setText(2, pItem->GetPath());
+		pTreeItem->setData(0, Qt::UserRole, Path);
+		pTreeItem->setData(1, Qt::UserRole, true); // true = allow
+
+		ui.treeChildren->addTopLevelItem(pTreeItem);
+	}
+
+	// Load blocked children
+	foreach(const QString& Path, m_pRule->m_BlockedChildren)
+	{
+		CProgramID ProgID = CProgramID::FromPath(Path);
+		CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ProgID);
+		if (!pItem)
+			continue;
+
+		QTreeWidgetItem* pTreeItem = new QTreeWidgetItem();
+		pTreeItem->setText(0, pItem->GetNameEx());
+		pTreeItem->setIcon(0, pItem->GetIcon());
+		pTreeItem->setText(1, tr("Block"));
+		pTreeItem->setText(2, pItem->GetPath());
+		pTreeItem->setData(0, Qt::UserRole, Path);
+		pTreeItem->setData(1, Qt::UserRole, false); // false = block
+
+		ui.treeChildren->addTopLevelItem(pTreeItem);
+	}
+}
+
+void CProgramRuleWnd::AddProgramToTree(QTreeWidget* pTree, bool bAllow)
+{
+	// Filter items to only include file and pattern types
+	QList<CProgramItemPtr> FilteredItems;
+	foreach(const CProgramItemPtr& pItem, m_Items) {
+		EProgramType Type = pItem->GetID().GetType();
+		if (Type == EProgramType::eProgramFile || Type == EProgramType::eFilePattern || Type == EProgramType::eAllPrograms) {
+			FilteredItems.append(pItem);
+		}
+	}
+
+	CProgramPicker Picker(nullptr, FilteredItems, this);
+	if (theGUI->SafeExec(&Picker)) {
+		CProgramItemPtr pItem = Picker.GetProgram();
+		if (!pItem)
+			return;
+
+		QString Path = pItem->GetPath();
+
+		// Check if already exists with same action
+		for (int i = 0; i < pTree->topLevelItemCount(); i++) {
+			QTreeWidgetItem* pTreeItem = pTree->topLevelItem(i);
+			QString ExistingPath = pTreeItem->data(0, Qt::UserRole).toString();
+			bool ExistingAllow = pTreeItem->data(1, Qt::UserRole).toBool();
+			if (ExistingPath.compare(Path, Qt::CaseInsensitive) == 0 && ExistingAllow == bAllow)
+				return; // Already in list with same action
+		}
+
+		QTreeWidgetItem* pTreeItem = new QTreeWidgetItem();
+		pTreeItem->setText(0, pItem->GetNameEx());
+		pTreeItem->setIcon(0, pItem->GetIcon());
+		pTreeItem->setText(1, bAllow ? tr("Allow") : tr("Block"));
+		pTreeItem->setText(2, Path);
+		pTreeItem->setData(0, Qt::UserRole, Path);
+		pTreeItem->setData(1, Qt::UserRole, bAllow);
+
+		pTree->addTopLevelItem(pTreeItem);
+	}
+}
+
+void CProgramRuleWnd::OnAddParentAllow()
+{
+	AddProgramToTree(ui.treeParents, true);
+}
+
+void CProgramRuleWnd::OnAddParentBlock()
+{
+	AddProgramToTree(ui.treeParents, false);
+}
+
+void CProgramRuleWnd::OnDelParent()
+{
+	QList<QTreeWidgetItem*> SelectedItems = ui.treeParents->selectedItems();
+	foreach(QTreeWidgetItem* pItem, SelectedItems) {
+		delete pItem;
+	}
+}
+
+void CProgramRuleWnd::OnAddChildAllow()
+{
+	AddProgramToTree(ui.treeChildren, true);
+}
+
+void CProgramRuleWnd::OnAddChildBlock()
+{
+	AddProgramToTree(ui.treeChildren, false);
+}
+
+void CProgramRuleWnd::OnDelChild()
+{
+	QList<QTreeWidgetItem*> SelectedItems = ui.treeChildren->selectedItems();
+	foreach(QTreeWidgetItem* pItem, SelectedItems) {
+		delete pItem;
+	}
 }

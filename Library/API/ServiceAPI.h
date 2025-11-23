@@ -13,6 +13,8 @@ public:
 	static STATUS InstallSvc(bool bAutoStart);
 	STATUS ConnectSvc();
 	STATUS ConnectEngine(bool bCanStart = false);
+	STATUS ReConnect();
+	STATUS Connect();
 	void Disconnect();
 	bool IsConnected();
 

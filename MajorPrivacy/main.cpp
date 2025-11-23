@@ -17,6 +17,8 @@
 //#include "./Common/QtFlexGuid.h"
 #endif
 
+#include "../Library/Helpers/Service.h"
+
 int main(int argc, char *argv[])
 {
 	srand(QDateTime::currentDateTimeUtc().toSecsSinceEpoch());
@@ -60,6 +62,24 @@ int main(int argc, char *argv[])
 #endif
 
 	//MessageBoxW(NULL, L"MajorPrivacy is starting...", L"MajorPrivacy", MB_OK | MB_ICONINFORMATION);
+
+
+	SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+	if (SvcState == SVC_SCM_ERROR) 
+	{
+		//MessageBoxW(NULL, L"MajorPrivacy will restart...", L"MajorPrivacy", MB_OK | MB_ICONINFORMATION);
+
+		//
+		// BUG: When MP restarts itself after creating the service somehow somethign is broken the restarted instance can not access scm,
+		// shellexecuteex fails, and atempting to connect to driver results in device not ready. Restarting the process resolves the issue.
+		//
+
+		LPWSTR cmd = _wcsdup(GetCommandLineW());
+		STARTUPINFOW si = { sizeof(si) };
+		PROCESS_INFORMATION pi = {};
+		CreateProcessW(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+		return 0;
+	}
 
 	QString AppDir = QString::fromStdWString(GetApplicationDirectory());
 	theConf = new CSettings(AppDir, "MajorPrivacy", "Xanasoft");

@@ -49,7 +49,7 @@ public:
 	SharedPtr<T> Acquire() {
 		if(!m_ptr || !m_ptr->AddRefSafe())
 			return SharedPtr<T>();
-		SharedPtr<T> p(m_ptr); // this adds an otehr strong ref
+		SharedPtr<T> p(m_ptr); // this adds another strong ref
 		m_ptr->RemoveRef();
 		return p;
 	}

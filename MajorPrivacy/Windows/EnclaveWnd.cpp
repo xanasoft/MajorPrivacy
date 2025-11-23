@@ -178,6 +178,7 @@ bool CEnclaveWnd::OnSave()
 
 	if(m_pEnclave->m_Guid.IsNull())
 		m_pEnclave->m_Guid = Ret.GetValue();
+	return true;
 }
 
 void CEnclaveWnd::OnSaveAndClose()

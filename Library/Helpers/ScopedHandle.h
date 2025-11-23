@@ -31,7 +31,7 @@ public:
 	}
 
 	inline operator T& ()		{ return m_handle; }
-	inline T* operator&()		{ ASSERT(!m_handle); return &m_handle;}
+	inline T* operator&()		{ return &m_handle;}
 
 	inline T operator->()		{ ASSERT(m_handle); return m_handle; }
 

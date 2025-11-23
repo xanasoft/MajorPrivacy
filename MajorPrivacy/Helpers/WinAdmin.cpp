@@ -22,7 +22,7 @@ bool IsElevated()
     return fRet;
 }
 
-int RunElevated(const std::wstring& Params, bool bGetCode)
+/*int RunElevated(const std::wstring& Params, bool bGetCode)
 {
 	// Launch itself as admin
 	wchar_t szPath[MAX_PATH];
@@ -72,7 +72,7 @@ int RestartElevated(int &argc, char **argv)
 		Params.append(L"\"" + std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(argv[i]) + L"\"");
 	}
 	return RunElevated(Params);
-}
+}*/
 
 bool IsAdminUser(bool OnlyFull)
 {

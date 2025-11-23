@@ -33,6 +33,30 @@ void CProgramRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 	Rule.Write(API_V_IMAGE_LOAD_PROTECTION, m_ImageLoadProtection);
 	Rule.Write(API_V_IMAGE_COHERENCY_CHECKING, m_ImageCoherencyChecking);
 
+	VariantWriter Children(Rule.Allocator());
+	Children.BeginList();
+	for(const auto& Child : m_AllowedChildren)
+		Children.WriteEx(TO_STR(Child));
+	Rule.WriteVariant(API_V_EXEC_ALLOWED_CHILDREN, Children.Finish());
+
+	VariantWriter Parents(Rule.Allocator());
+	Parents.BeginList();
+	for(const auto& Parent : m_AllowedParents)
+		Parents.WriteEx(TO_STR(Parent));
+	Rule.WriteVariant(API_V_EXEC_ALLOWED_PARENTS, Parents.Finish());
+
+	VariantWriter BlockedChildren(Rule.Allocator());
+	BlockedChildren.BeginList();
+	for(const auto& Child : m_BlockedChildren)
+		BlockedChildren.WriteEx(TO_STR(Child));
+	Rule.WriteVariant(API_V_EXEC_BLOCKED_CHILDREN, BlockedChildren.Finish());
+
+	VariantWriter BlockedParents(Rule.Allocator());
+	BlockedParents.BeginList();
+	for(const auto& Parent : m_BlockedParents)
+		BlockedParents.WriteEx(TO_STR(Parent));
+	Rule.WriteVariant(API_V_EXEC_BLOCKED_PARENTS, BlockedParents.Finish());
+
 }
 
 void CProgramRule::ReadIValue(uint32 Index, const XVariant& Data)
@@ -58,6 +82,26 @@ void CProgramRule::ReadIValue(uint32 Index, const XVariant& Data)
 		break;
 	case API_V_IMAGE_LOAD_PROTECTION: m_ImageLoadProtection = Data.To<bool>(); break;
 	case API_V_IMAGE_COHERENCY_CHECKING: m_ImageCoherencyChecking = Data.To<bool>(); break;
+	case API_V_EXEC_ALLOWED_CHILDREN:
+		LIST_CLEAR(m_AllowedChildren);
+		for (uint32 i = 0; i < Data.Count(); i++)
+			LIST_APPEND(m_AllowedChildren, AS_STR(Data[i]));
+		break;
+	case API_V_EXEC_ALLOWED_PARENTS:
+		LIST_CLEAR(m_AllowedParents);
+		for (uint32 i = 0; i < Data.Count(); i++)
+			LIST_APPEND(m_AllowedParents, AS_STR(Data[i]));
+		break;
+	case API_V_EXEC_BLOCKED_CHILDREN:
+		LIST_CLEAR(m_BlockedChildren);
+		for (uint32 i = 0; i < Data.Count(); i++)
+			LIST_APPEND(m_BlockedChildren, AS_STR(Data[i]));
+		break;
+	case API_V_EXEC_BLOCKED_PARENTS:
+		LIST_CLEAR(m_BlockedParents);
+		for (uint32 i = 0; i < Data.Count(); i++)
+			LIST_APPEND(m_BlockedParents, AS_STR(Data[i]));
+		break;
 	default: CGenericRule::ReadIValue(Index, Data);
 	}
 }
@@ -126,6 +170,30 @@ void CProgramRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 
 	Rule.Write(API_S_IMAGE_LOAD_PROTECTION, m_ImageLoadProtection);
 	Rule.Write(API_S_IMAGE_COHERENCY_CHECKING, m_ImageCoherencyChecking);
+
+	VariantWriter Children(Rule.Allocator());
+	Children.BeginList();
+	for(const auto& Child : m_AllowedChildren)
+		Children.WriteEx(TO_STR(Child));
+	Rule.WriteVariant(API_S_EXEC_ALLOWED_CHILDREN, Children.Finish());
+
+	VariantWriter Parents(Rule.Allocator());
+	Parents.BeginList();
+	for(const auto& Parent : m_AllowedParents)
+		Parents.WriteEx(TO_STR(Parent));
+	Rule.WriteVariant(API_S_EXEC_ALLOWED_PARENTS, Parents.Finish());
+
+	VariantWriter BlockedChildren(Rule.Allocator());
+	BlockedChildren.BeginList();
+	for(const auto& Child : m_BlockedChildren)
+		BlockedChildren.WriteEx(TO_STR(Child));
+	Rule.WriteVariant(API_S_EXEC_BLOCKED_CHILDREN, BlockedChildren.Finish());
+
+	VariantWriter BlockedParents(Rule.Allocator());
+	BlockedParents.BeginList();
+	for(const auto& Parent : m_BlockedParents)
+		BlockedParents.WriteEx(TO_STR(Parent));
+	Rule.WriteVariant(API_S_EXEC_BLOCKED_PARENTS, BlockedParents.Finish());
 }
 
 void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
@@ -205,6 +273,34 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 	else if (VAR_TEST_NAME(Name, API_S_IMAGE_LOAD_PROTECTION))	m_ImageLoadProtection = Data.To<bool>();
 	else if (VAR_TEST_NAME(Name, API_S_IMAGE_COHERENCY_CHECKING))	m_ImageCoherencyChecking = Data.To<bool>();
 
-	else 
+	else if (VAR_TEST_NAME(Name, API_S_EXEC_ALLOWED_CHILDREN))
+	{
+		LIST_CLEAR(m_AllowedChildren);
+		for (uint32 i = 0; i < Data.Count(); i++)
+			LIST_APPEND(m_AllowedChildren, AS_STR(Data[i]));
+	}
+
+	else if (VAR_TEST_NAME(Name, API_S_EXEC_ALLOWED_PARENTS))
+	{
+		LIST_CLEAR(m_AllowedParents);
+		for (uint32 i = 0; i < Data.Count(); i++)
+			LIST_APPEND(m_AllowedParents, AS_STR(Data[i]));
+	}
+
+	else if (VAR_TEST_NAME(Name, API_S_EXEC_BLOCKED_CHILDREN))
+	{
+		LIST_CLEAR(m_BlockedChildren);
+		for (uint32 i = 0; i < Data.Count(); i++)
+			LIST_APPEND(m_BlockedChildren, AS_STR(Data[i]));
+	}
+
+	else if (VAR_TEST_NAME(Name, API_S_EXEC_BLOCKED_PARENTS))
+	{
+		LIST_CLEAR(m_BlockedParents);
+		for (uint32 i = 0; i < Data.Count(); i++)
+			LIST_APPEND(m_BlockedParents, AS_STR(Data[i]));
+	}
+
+	else
 		CGenericRule::ReadMValue(Name, Data);
 }

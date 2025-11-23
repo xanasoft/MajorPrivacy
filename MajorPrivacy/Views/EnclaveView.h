@@ -39,6 +39,8 @@ private:
 	QAction*				m_pRemoveEnclave;
 	QAction*				m_pEditEnclave;
 	QAction*				m_pCloneEnclave;
+	QAction*				m_pImportEnclave;
+	QAction*				m_pExportEnclave;
 
 	QMenu*					m_pMenuProcess;
 	QAction*				m_pTerminate;

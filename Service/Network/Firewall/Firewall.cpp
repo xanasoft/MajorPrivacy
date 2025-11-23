@@ -2214,3 +2214,11 @@ bool CFirewall::IsWindowsStoreRule(const CFirewallRulePtr& pFwRule) const
 
 	return false;
 }
+
+#include <ShellApi.h>
+
+STATUS CFirewall::RestoreDefaultFwRules()
+{
+	ShellExecuteW(nullptr, NULL, L"netsh", L"advfirewall reset", nullptr, SW_HIDE);
+	return OK;
+}

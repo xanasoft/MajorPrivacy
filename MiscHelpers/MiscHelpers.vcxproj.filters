@@ -138,6 +138,9 @@
     <ClCompile Include="Common\CodeEdit.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Common\CheckListDialog.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MiscHelpers.h">
@@ -289,6 +292,9 @@
       <Filter>Common</Filter>
     </QtMoc>
     <QtMoc Include="Common\CodeEdit.h">
+      <Filter>Common</Filter>
+    </QtMoc>
+    <QtMoc Include="Common\CheckListDialog.h">
       <Filter>Common</Filter>
     </QtMoc>
   </ItemGroup>

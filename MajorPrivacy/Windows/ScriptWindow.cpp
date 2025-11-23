@@ -39,8 +39,8 @@ CScriptWindow::CScriptWindow(const QFlexGuid& Guid, EItemType Type, QWidget* par
 	this->setWindowTitle(tr("MajorPrivacy - Script Editor"));
 
 	m_pToolBar = new QToolBar(this);
-	m_pToolBar->addAction(QIcon(":/Icons/Import.png"), tr("Load from File"), this, SLOT(OnImport()));
-	m_pToolBar->addAction(QIcon(":/Icons/Export.png"), tr("Save to File"), this, SLOT(OnExport()));
+	m_pToolBar->addAction(QIcon(":/Icons/Entry.png"), tr("Load from File"), this, SLOT(OnImport()));
+	m_pToolBar->addAction(QIcon(":/Icons/Exit.png"), tr("Save to File"), this, SLOT(OnExport()));
 	m_pToolBar->addSeparator();
 	m_pToolBar->addAction(QIcon(":/Icons/Run.png"), tr("Run onTest Function"), this, SLOT(OnTest()));
 	m_pToolBar->addAction(QIcon(":/Icons/Clean.png"), tr("CleanUp Log"), this, SLOT(OnCleanUp()));

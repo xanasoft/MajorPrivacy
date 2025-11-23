@@ -71,9 +71,8 @@ public:
 	bool operator> (const C* pStr) const			{ return Compare(pStr) > 0; }
 	bool operator< (const C* pStr) const			{ return Compare(pStr) < 0; }
 
-	// todo check bounds!!!!!!
-	const C& operator[](size_t Index) const			{ return m_ptr->Data[Index]; }
-	C& operator[](size_t Index)						{ MakeExclusive(); return m_ptr->Data[Index]; }
+	const C& operator[](size_t Index) const			{ ASSERT(m_ptr && Index < m_ptr->Length); return m_ptr->Data[Index]; }
+	C& operator[](size_t Index)						{ MakeExclusive(); ASSERT(m_ptr && Index < m_ptr->Length); return m_ptr->Data[Index]; }
 
 	C* Data()										{ MakeExclusive(); return m_ptr ? m_ptr->Data : nullptr; }
 	const C* ConstData() const						{ return m_ptr ? m_ptr->Data : nullptr; }
@@ -332,7 +331,7 @@ public:
 			if (pos == NPos)
 				break;
 			Remove(pos, whatLen);
-			Insert(with, pos);
+			Insert(pos, with);
 			count++;
 			pos += withLen;
 		}
@@ -501,10 +500,169 @@ public:
 		return String(m_pMem, ConstData() + uStart, uLength);
 	}
 
+	const C& at(size_t Index) const					{ ASSERT(m_ptr && Index < m_ptr->Length); return m_ptr->Data[Index]; }
+	C& at(size_t Index)								{ MakeExclusive(); ASSERT(m_ptr && Index < m_ptr->Length); return m_ptr->Data[Index]; }
+
 	C At(size_t Index) const
 	{
 		return Index < Length() ? m_ptr->Data[Index] : 0;
 	}
+
+	bool StartsWith(const String& Str, bool bCaseInsensitive = false) const
+	{
+		return StartsWith(Str.ConstData(), Str.Length(), bCaseInsensitive);
+	}
+
+	bool StartsWith(const C* pStr, size_t uLength = NPos, bool bCaseInsensitive = false) const
+	{
+		if (!m_ptr || !pStr) return false;
+		if (uLength == NPos) uLength = StrLen(pStr);
+		if (m_ptr->Length < uLength) return false;
+		if (bCaseInsensitive)
+			return CompareI(pStr, uLength, true) == 0;
+		return MemCmp(m_ptr->Data, pStr, uLength * sizeof(C)) == 0;
+	}
+
+	bool EndsWith(const String& Str, bool bCaseInsensitive = false) const
+	{
+		return EndsWith(Str.ConstData(), Str.Length(), bCaseInsensitive);
+	}
+
+	bool EndsWith(const C* pStr, size_t uLength = NPos, bool bCaseInsensitive = false) const
+	{
+		if (!m_ptr || !pStr) return false;
+		if (uLength == NPos) uLength = StrLen(pStr);
+		if (m_ptr->Length < uLength) return false;
+		size_t offset = m_ptr->Length - uLength;
+		if (bCaseInsensitive) {
+			for (size_t i = 0; i < uLength; ++i) {
+				C c1 = m_ptr->Data[offset + i];
+				if ((c1 >= (C)'A') && (c1 <= (C)'Z')) c1 += 32;
+				C c2 = pStr[i];
+				if ((c2 >= (C)'A') && (c2 <= (C)'Z')) c2 += 32;
+				if (c1 != c2) return false;
+			}
+			return true;
+		}
+		return MemCmp(m_ptr->Data + offset, pStr, uLength * sizeof(C)) == 0;
+	}
+
+	bool Contains(const String& Str) const			{ return Find(Str) != NPos; }
+	bool Contains(const C* pStr) const				{ return Find(pStr) != NPos; }
+	bool Contains(const C Char) const				{ return Find(Char) != NPos; }
+
+#if 0
+
+	// Template-based iterator supporting const and reverse iteration
+	template <typename T, bool IsReverse = false>
+	class StringIterator {
+	public:
+		using iterator_category = std::random_access_iterator_tag;
+		using value_type = typename std::remove_const<T>::type;
+		using difference_type = ptrdiff_t;
+		using pointer = T*;
+		using reference = T&;
+
+		StringIterator(T* ptr = nullptr) : m_ptr(ptr) {}
+
+		reference operator*() const { return *m_ptr; }
+		pointer operator->() const { return m_ptr; }
+		reference operator[](difference_type offset) const {
+			return m_ptr[IsReverse ? -offset : offset];
+		}
+
+		StringIterator& operator++() {
+			m_ptr += IsReverse ? -1 : 1;
+			return *this;
+		}
+
+		StringIterator operator++(int) {
+			StringIterator tmp = *this;
+			++(*this);
+			return tmp;
+		}
+
+		StringIterator& operator--() {
+			m_ptr += IsReverse ? 1 : -1;
+			return *this;
+		}
+
+		StringIterator operator--(int) {
+			StringIterator tmp = *this;
+			--(*this);
+			return tmp;
+		}
+
+		StringIterator& operator+=(difference_type n) {
+			m_ptr += IsReverse ? -n : n;
+			return *this;
+		}
+
+		StringIterator& operator-=(difference_type n) {
+			m_ptr += IsReverse ? n : -n;
+			return *this;
+		}
+
+		StringIterator operator+(difference_type n) const {
+			return StringIterator(m_ptr + (IsReverse ? -n : n));
+		}
+
+		StringIterator operator-(difference_type n) const {
+			return StringIterator(m_ptr + (IsReverse ? n : -n));
+		}
+
+		difference_type operator-(const StringIterator& other) const {
+			return IsReverse ? (other.m_ptr - m_ptr) : (m_ptr - other.m_ptr);
+		}
+
+		bool operator==(const StringIterator& other) const { return m_ptr == other.m_ptr; }
+		bool operator!=(const StringIterator& other) const { return m_ptr != other.m_ptr; }
+		bool operator<(const StringIterator& other) const {
+			return IsReverse ? m_ptr > other.m_ptr : m_ptr < other.m_ptr;
+		}
+		bool operator<=(const StringIterator& other) const {
+			return IsReverse ? m_ptr >= other.m_ptr : m_ptr <= other.m_ptr;
+		}
+		bool operator>(const StringIterator& other) const {
+			return IsReverse ? m_ptr < other.m_ptr : m_ptr > other.m_ptr;
+		}
+		bool operator>=(const StringIterator& other) const {
+			return IsReverse ? m_ptr <= other.m_ptr : m_ptr >= other.m_ptr;
+		}
+
+		friend StringIterator operator+(difference_type n, const StringIterator& it) {
+			return it + n;
+		}
+
+	private:
+		T* m_ptr;
+	};
+
+	// STL-compatible type aliases
+	using iterator = StringIterator<C, false>;
+	using const_iterator = StringIterator<const C, false>;
+	using reverse_iterator = StringIterator<C, true>;
+	using const_reverse_iterator = StringIterator<const C, true>;
+
+	// Forward iteration
+	iterator begin() { return iterator(m_ptr ? m_ptr->Data : nullptr); }
+	const_iterator begin() const { return const_iterator(m_ptr ? m_ptr->Data : nullptr); }
+	const_iterator cbegin() const { return const_iterator(m_ptr ? m_ptr->Data : nullptr); }
+
+	iterator end() { return iterator(m_ptr ? m_ptr->Data + m_ptr->Length : nullptr); }
+	const_iterator end() const { return const_iterator(m_ptr ? m_ptr->Data + m_ptr->Length : nullptr); }
+	const_iterator cend() const { return const_iterator(m_ptr ? m_ptr->Data + m_ptr->Length : nullptr); }
+
+	// Reverse iteration
+	reverse_iterator rbegin() { return m_ptr && m_ptr->Length > 0 ? reverse_iterator(m_ptr->Data + m_ptr->Length - 1) : rend(); }
+	const_reverse_iterator rbegin() const { return m_ptr && m_ptr->Length > 0 ? const_reverse_iterator(m_ptr->Data + m_ptr->Length - 1) : rend(); }
+	const_reverse_iterator crbegin() const { return m_ptr && m_ptr->Length > 0 ? const_reverse_iterator(m_ptr->Data + m_ptr->Length - 1) : crend(); }
+
+	reverse_iterator rend() { return m_ptr && m_ptr->Length > 0 ? reverse_iterator(m_ptr->Data - 1) : reverse_iterator(nullptr); }
+	const_reverse_iterator rend() const { return m_ptr && m_ptr->Length > 0 ? const_reverse_iterator(m_ptr->Data - 1) : const_reverse_iterator(nullptr); }
+	const_reverse_iterator crend() const { return m_ptr && m_ptr->Length > 0 ? const_reverse_iterator(m_ptr->Data - 1) : const_reverse_iterator(nullptr); }
+
+#endif
 
 	// String View
 

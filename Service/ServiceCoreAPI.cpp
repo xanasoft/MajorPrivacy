@@ -56,6 +56,8 @@ void CServiceCore::RegisterUserAPI()
 	m_pUserPipe->RegisterHandler(SVC_API_GET_FW_RULE, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_DEL_FW_RULE, &CServiceCore::OnRequest, this);
 
+	m_pUserPipe->RegisterHandler(SVC_API_RESET_FW_RULE, &CServiceCore::OnRequest, this);
+
 	m_pUserPipe->RegisterHandler(SVC_API_GET_FW_PROFILE, &CServiceCore::OnRequest, this);
 	m_pUserPipe->RegisterHandler(SVC_API_SET_FW_PROFILE, &CServiceCore::OnRequest, this);
 
@@ -504,6 +506,12 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				theCore->SetConfigDirty(true);
 			RETURN_STATUS(Status);
 		}
+		case SVC_API_RESET_FW_RULE:
+		{
+			STATUS Status = m_pNetworkManager->Firewall()->RestoreDefaultFwRules();
+			RETURN_STATUS(Status);
+		}
+
 
 		case SVC_API_GET_FW_PROFILE:
 		{

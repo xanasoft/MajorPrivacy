@@ -34,7 +34,7 @@ typedef	unsigned int		UINT;
 #define KB2B(kb)	(kb*1024)
 #define MB2B(mb)	KB2B(mb*1024)
 #define GB2B(gb)	MB2B(gb*1024)
-#define TB2B(tb)	GB2B(mb*1024)
+#define TB2B(tb)	GB2B(tb*1024)
 #define PB2B(pb)	TB2B(pb*1024)
 
 #define MAX_FLOAT	0x001FFFFFFFFFFFFF

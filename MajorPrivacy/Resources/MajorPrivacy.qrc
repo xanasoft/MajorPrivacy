@@ -294,5 +294,6 @@
         <file>Icons/Warning2.png</file>
         <file>Icons/DataBase.png</file>
         <file>Icons/Server.png</file>
+        <file>Icons/Quit.png</file>
     </qresource>
 </RCC>

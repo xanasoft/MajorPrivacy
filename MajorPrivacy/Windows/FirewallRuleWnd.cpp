@@ -270,6 +270,7 @@ bool CFirewallRuleWnd::OnSave()
 
 	if(m_pRule->m_Guid.IsNull())
 		m_pRule->m_Guid = Ret.GetValue();
+	return true;
 }
 
 void CFirewallRuleWnd::OnSaveAndClose()

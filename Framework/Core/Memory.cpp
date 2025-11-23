@@ -79,14 +79,21 @@ void DefaultMemPool::Free(void* ptr, uint32 flags)
 void* StackedMem::Alloc(size_t size, uint32 flags)
 {
 	size_t uTotalSize = sizeof(SMemHeader) + size;
-	if ((m_pPtr - m_pMem) + uTotalSize <= m_uSize)
+
+	// Calculate where the next block will be placed
+	uint8* pNextBlock = m_pPtr ? ((uint8*)m_pPtr + sizeof(SMemHeader) + m_pPtr->uSize) : m_pMem;
+
+	// Check if we have enough space
+	if ((pNextBlock - m_pMem) + uTotalSize <= m_uSize)
 	{
-		SMemHeader* pHeader = ((SMemHeader*)m_pPtr);
+		SMemHeader* pHeader = (SMemHeader*)pNextBlock;
 		pHeader->uSize = size;
 		pHeader->bFreed = false;
-		void* pPtr = m_pPtr + sizeof(SMemHeader);
-		m_pPtr += uTotalSize;
-		return pPtr;
+		pHeader->pPrev = m_pPtr;
+
+		m_pPtr = pHeader;
+
+		return pNextBlock + sizeof(SMemHeader);
 	}
 #ifndef KERNEL_MODE
 	DebugBreak();
@@ -96,17 +103,15 @@ void* StackedMem::Alloc(size_t size, uint32 flags)
 
 void StackedMem::Free(void* ptr, uint32 flags)
 {
-	SMemHeader* pHeader = ((SMemHeader*)((uint8*)ptr)) - sizeof(SMemHeader);
+	if (!ptr) return;
+
+	SMemHeader* pHeader = (SMemHeader*)((uint8*)ptr - sizeof(SMemHeader));
 	pHeader->bFreed = true;
 
-	uint8* blockEnd = ((uint8*)ptr) + pHeader->uSize;
-	while (m_pPtr == blockEnd && m_pPtr != m_pMem)
+	// Walk backward from the top of the stack, reclaiming consecutive freed blocks
+	while (m_pPtr && m_pPtr->bFreed)
 	{
-		m_pPtr -= (sizeof(SMemHeader) + pHeader->uSize);
-		if (m_pPtr == m_pMem)
-			break;
-		pHeader = ((SMemHeader*)m_pPtr);
-		blockEnd = ((uint8*)m_pPtr) + pHeader->uSize;
+		m_pPtr = m_pPtr->pPrev;
 	}
 }
 

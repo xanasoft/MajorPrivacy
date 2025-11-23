@@ -6,6 +6,8 @@
 #include "../Core/Programs/ProgramManager.h"
 #include "../Library/API/PrivacyAPI.h" // todo
 #include "../MiscHelpers/Common/CustomStyles.h"
+#include "../MiscHelpers/Common/OtherFunctions.h"
+#include "../MiscHelpers/Common/CheckListDialog.h"
 
 CAccessRuleView::CAccessRuleView(QWidget *parent)
 	:CPanelViewEx<CAccessRuleModel>(parent)
@@ -35,6 +37,9 @@ CAccessRuleView::CAccessRuleView(QWidget *parent)
 	this->addAction(m_pRemoveRule);
 	m_pEditRule = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Edit Rule"), this, SLOT(OnRuleAction()));
 	m_pCloneRule = m_pMenu->addAction(QIcon(":/Icons/Duplicate.png"), tr("Duplicate Rule"), this, SLOT(OnRuleAction()));
+	m_pMenu->addSeparator();
+	m_pExportRules = m_pMenu->addAction(QIcon(":/Icons/Exit.png"), tr("Export Rules"), this, SLOT(OnRuleAction()));
+	m_pImportRules = m_pMenu->addAction(QIcon(":/Icons/Entry.png"), tr("Import Rules"), this, SLOT(OnRuleAction()));
 	m_pMenu->addSeparator();
 	m_pCreateRule = m_pMenu->addAction(QIcon(":/Icons/Add.png"), tr("Create Rule"), this, SLOT(OnAddRule()));
 
@@ -189,6 +194,7 @@ void CAccessRuleView::OnMenu(const QPoint& Point)
 	m_pRemoveRule->setEnabled(iSelectedCount > 0 && iTempCount == 0);
 	m_pEditRule->setEnabled(iSelectedCount == 1 && iTempCount == 0);
 	m_pCloneRule->setEnabled(iSelectedCount > 0 && iTempCount == 0);
+	m_pExportRules->setEnabled(iSelectedCount > 0 && iTempCount == 0);
 
 	CPanelView::OnMenu(Point);
 }
@@ -253,6 +259,88 @@ void CAccessRuleView::OnRuleAction()
 			CAccessRulePtr pClone = CAccessRulePtr(pRule->Clone());
 			Results << theCore->AccessManager()->SetAccessRule(pClone);
 		}
+	}
+	else if (pAction == m_pImportRules)
+	{
+		QString FileName = QFileDialog::getOpenFileName(this, tr("Import Access Rules"), "", tr("Rule Files (*.xml)"));
+		if (FileName.isEmpty())
+			return;
+
+		QString Xml = ReadFileAsString(FileName);
+
+		QtVariant RulesData;
+		bool bOk = RulesData.ParseXml(Xml);
+		if (!bOk) {
+			QMessageBox::warning(this, "MajorPrivacy", tr("Failed to parse XML data!"));
+			return;
+		}
+
+		SVarWriteOpt Ops;
+		Ops.Format = SVarWriteOpt::eMap;
+		Ops.Flags = SVarWriteOpt::eSaveToFile | SVarWriteOpt::eTextGuids;
+
+		// Parse rules to get names for selection dialog
+		QList<CAccessRulePtr> RulesToImport;
+		for (uint32 i = 0; i < RulesData.Count(); i++) {
+			CAccessRulePtr pRule = CAccessRulePtr(new CAccessRule());
+			pRule->FromVariant(RulesData[i]);
+			RulesToImport.append(pRule);
+		}
+
+		// Show selection dialog if there are multiple rules
+		QList<int> selectedIndices;
+		if (RulesToImport.count() > 1) {
+			CCheckListDialog dialog(this);
+			dialog.setWindowTitle(tr("Select Rules to Import"));
+			dialog.setText(tr("Select which access rules you want to import:"));
+
+			for (int i = 0; i < RulesToImport.count(); i++) {
+				QString ruleName = RulesToImport[i]->GetName();
+				if (ruleName.isEmpty())
+					ruleName = tr("Rule %1").arg(i + 1);
+				dialog.addItem(ruleName, i, true);
+			}
+
+			if (dialog.exec() != QDialog::Accepted)
+				return;
+
+			selectedIndices = dialog.getCheckedIndices();
+			if (selectedIndices.isEmpty()) {
+				QMessageBox::information(this, "MajorPrivacy", tr("No rules selected for import."));
+				return;
+			}
+		} else {
+			// Import all if only one rule
+			selectedIndices.append(0);
+		}
+
+		// Import selected rules
+		for (int idx : selectedIndices) {
+			Results << theCore->AccessManager()->SetAccessRule(RulesToImport[idx]);
+		}
+
+		if (Results.isEmpty() || !Results.last().IsError())
+			QMessageBox::information(this, "MajorPrivacy", tr("Successfully imported %1 rule(s).").arg(selectedIndices.count()));
+	}
+	else if (pAction == m_pExportRules)
+	{
+		SVarWriteOpt Ops;
+		Ops.Format = SVarWriteOpt::eMap;
+		Ops.Flags = SVarWriteOpt::eSaveToFile | SVarWriteOpt::eTextGuids;
+
+		QtVariant RulesData;
+		foreach(const CAccessRulePtr & pRule, m_SelectedItems) {
+			RulesData.Append(pRule->ToVariant(Ops));
+		}
+
+		QString Xml = RulesData.SerializeXml();
+
+		QString FileName = QFileDialog::getSaveFileName(this, tr("Export Access Rules"), "", tr("Rule Files (*.xml)"));
+		if (FileName.isEmpty())
+			return;
+
+		WriteStringToFile(FileName, Xml);
+		QMessageBox::information(this, "MajorPrivacy", tr("Successfully exported %1 rule(s).").arg(m_SelectedItems.count()));
 	}
 
 	theGUI->CheckResults(Results, this);

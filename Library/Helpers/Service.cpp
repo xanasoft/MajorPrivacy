@@ -152,7 +152,7 @@ SVC_STATE GetServiceState(PCWSTR Name)
 {
     CScopedHandle scmHandle(OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE), CloseServiceHandle);
     if (!scmHandle)
-        return SVC_NOT_FOUND;
+        return SVC_SCM_ERROR;
 
     CScopedHandle serviceHandle(OpenService(scmHandle, Name, SERVICE_INTERROGATE), CloseServiceHandle);
     if (!serviceHandle)
@@ -173,7 +173,6 @@ SVC_STATE GetServiceState(PCWSTR Name)
     }
     
     return svcStatus.dwCurrentState == SERVICE_RUNNING ? SVC_RUNNING : SVC_INSTALLED;
-
 }
 
 STATUS RunService(PCWSTR Name)

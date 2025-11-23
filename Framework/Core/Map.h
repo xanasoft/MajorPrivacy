@@ -1,8 +1,8 @@
 ﻿/*
-* CopypRight (c) 2023-2025 David Xanatos, xanasoft.com
-* All pRights reserved.
+* Copyright (c) 2023-2025 David Xanatos, xanasoft.com
+* All rights reserved.
 *
-* This file is part of MajopPivacy.
+* This file is part of MajorPrivacy.
 * 
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
@@ -226,6 +226,91 @@ public:
 		return Value;
 	}
 
+#if 0
+
+	// Support for range-based for loops
+	// Template-based iterator supporting const and reverse iteration
+	template <typename KeyType, typename ValueType, bool IsReverse = false>
+	class MapIterator {
+	public:
+		using iterator_category = std::bidirectional_iterator_tag;
+		using value_type = ValueType;
+		using difference_type = ptrdiff_t;
+		using pointer = ValueType*;
+		using reference = ValueType&;
+
+		MapIterator(const Map* pMap, SRBTreeNode* pNode) : pMap(pMap), pNode(pNode) {}
+
+		reference operator*() const { return pNode->Value; }
+		pointer operator->() const { return &pNode->Value; }
+		reference Value() const { return pNode->Value; }
+		const KeyType& Key() const { return pNode->key; }
+
+		MapIterator& operator++() {
+			if (pNode != &pMap->m_ptr->NullNode)
+				pNode = IsReverse ? pMap->rbtree_previous(pMap->m_ptr, pNode) : pMap->rbtree_next(pMap->m_ptr, pNode);
+			return *this;
+		}
+
+		MapIterator operator++(int) {
+			MapIterator tmp = *this;
+			++(*this);
+			return tmp;
+		}
+
+		MapIterator& operator--() {
+			if (pNode != &pMap->m_ptr->NullNode)
+				pNode = IsReverse ? pMap->rbtree_next(pMap->m_ptr, pNode) : pMap->rbtree_previous(pMap->m_ptr, pNode);
+			return *this;
+		}
+
+		MapIterator operator--(int) {
+			MapIterator tmp = *this;
+			--(*this);
+			return tmp;
+		}
+
+		bool operator==(const MapIterator& other) const { return pNode == other.pNode; }
+		bool operator!=(const MapIterator& other) const { return pNode != other.pNode; }
+
+	protected:
+		friend Map;
+		const Map* pMap;
+		SRBTreeNode* pNode;
+	};
+
+	// Legacy type for compatibility
+	using Iterator = MapIterator<K, V, false>;
+
+	// STL-compatible type aliases
+	using iterator = MapIterator<K, V, false>;
+	using const_iterator = MapIterator<const K, const V, false>;
+	using reverse_iterator = MapIterator<K, V, true>;
+	using const_reverse_iterator = MapIterator<const K, const V, true>;
+
+	// Forward iteration
+	iterator begin() { return m_ptr ? iterator(this, rbtree_first(m_ptr)) : end(); }
+	const_iterator begin() const { return m_ptr ? const_iterator(this, rbtree_first(m_ptr)) : end(); }
+	const_iterator cbegin() const { return m_ptr ? const_iterator(this, rbtree_first(m_ptr)) : cend(); }
+
+	iterator end() { return iterator(this, &m_ptr->NullNode); }
+	const_iterator end() const { return const_iterator(this, &m_ptr->NullNode); }
+	const_iterator cend() const { return const_iterator(this, &m_ptr->NullNode); }
+
+	// Reverse iteration
+	reverse_iterator rbegin() { return m_ptr ? reverse_iterator(this, rbtree_last(m_ptr)) : rend(); }
+	const_reverse_iterator rbegin() const { return m_ptr ? const_reverse_iterator(this, rbtree_last(m_ptr)) : rend(); }
+	const_reverse_iterator crbegin() const { return m_ptr ? const_reverse_iterator(this, rbtree_last(m_ptr)) : crend(); }
+
+	reverse_iterator rend() { return reverse_iterator(this, &m_ptr->NullNode); }
+	const_reverse_iterator rend() const { return const_reverse_iterator(this, &m_ptr->NullNode); }
+	const_reverse_iterator crend() const { return const_reverse_iterator(this, &m_ptr->NullNode); }
+
+	// Legacy method for backwards compatibility
+	Iterator begin(bool bReverse) const { return bReverse ? Iterator(this, m_ptr ? rbtree_last(m_ptr) : &m_ptr->NullNode) : Iterator(this, m_ptr ? rbtree_first(m_ptr) : &m_ptr->NullNode); }
+
+#else
+
 	// Support for range-based for loops
 	class Iterator {
 	public:
@@ -252,6 +337,8 @@ public:
 	Iterator begin(bool bReverse = false) const		{ return m_ptr ? Iterator(this, bReverse ? rbtree_last(m_ptr) : rbtree_first(m_ptr), bReverse) : end(); }
 	Iterator end() const							{ return Iterator(this, &m_ptr->NullNode); }
 
+#endif
+
 	Iterator find(const K& Key) const
 	{
 		if(!m_ptr) return end();
@@ -259,6 +346,12 @@ public:
 		if (pNode)
 			return Iterator(this, pNode);
 		return end();
+	}
+
+	bool contains(const K& Key) const
+	{
+		if(!m_ptr) return false;
+		return rbtree_search(m_ptr, Key) != nullptr;
 	}
 
 	Iterator find_le(const K& Key, bool bOrEqual = true) const
@@ -273,7 +366,7 @@ public:
 		return end();
 	}
 
-	Iterator fing_ge(const K& Key, bool bOrEqual = true) const
+	Iterator find_ge(const K& Key, bool bOrEqual = true) const
 	{
 		if(!m_ptr) return end();
 
@@ -285,9 +378,9 @@ public:
 		return end();
 	}
 
-	// liek in stl
-	Iterator lower_bound(const K& Key) const		{ return fing_ge(Key); }
-	Iterator upper_bound(const K& Key) const		{ return fing_ge(Key, false); }
+	// like in stl
+	Iterator lower_bound(const K& Key) const		{ return find_ge(Key); }
+	Iterator upper_bound(const K& Key) const		{ return find_ge(Key, false); }
 
 	Iterator erase(Iterator I)
 	{
@@ -325,9 +418,13 @@ protected:
 		{
 			SMapData* ptr = MakeData();
 			if (!ptr) return false;
+			bool bSuccess = true;
 			for (SRBTreeNode* pNode = rbtree_first(m_ptr); pNode != &m_ptr->NullNode; pNode = rbtree_next(m_ptr, pNode)) {
 				SRBTreeNode* pNew = (SRBTreeNode*)MemAlloc(sizeof(SRBTreeNode));
-				if (!pNew) break; // todo
+				if (!pNew) {
+					bSuccess = false;
+					break;
+				}
 				new (pNew) SRBTreeNode(pNode->key, pNode->Value);
 				rbtree_insert(ptr, pNew);
 				// we need to update the iterator if it points to the current entry
@@ -335,6 +432,25 @@ protected:
 					pI->pNode = pNew;
 					pI = nullptr;
 				}
+			}
+			if (!bSuccess) {
+				// Clean up partial allocation
+				for (SRBTreeNode* node = ptr->root; node != &ptr->NullNode;) {
+					if (node->right != &ptr->NullNode) {
+						SRBTreeNode* tmpNode = node->right;
+						node->right = tmpNode->left;
+						tmpNode->left = node;
+						node = tmpNode;
+					}
+					else {
+						SRBTreeNode* tmpNode = node->left;
+						node->~SRBTreeNode();
+						MemFree(node);
+						node = tmpNode;
+					}
+				}
+				MemFree(ptr);
+				return false;
 			}
 			AttachData(ptr);
 		}

@@ -118,7 +118,7 @@ public:
 	bool Prepand(const List& Other)
 	{
 		for (auto I = Other.begin(true); I != Other.end(); ++I) {
-			if (!Prepent(*I)) return false;
+			if (!Prepand(*I)) return false;
 		}
 		return true;
 	}
@@ -134,6 +134,86 @@ public:
 		}
 		return false;
 	}
+
+
+#if 0
+
+	// Template-based iterator supporting const and reverse iteration
+	template <typename T, bool IsReverse = false>
+	class ListIterator {
+	public:
+		using iterator_category = std::bidirectional_iterator_tag;
+		using value_type = typename std::remove_const<T>::type;
+		using difference_type = ptrdiff_t;
+		using pointer = T*;
+		using reference = T&;
+
+		ListIterator(SListEntry* pEntry = nullptr) : pEntry(pEntry) {}
+
+		reference operator*() const { return pEntry->Data; }
+		pointer operator->() const { return &pEntry->Data; }
+
+		ListIterator& operator++() {
+			if (pEntry) pEntry = IsReverse ? pEntry->Prev : pEntry->Next;
+			return *this;
+		}
+
+		ListIterator operator++(int) {
+			ListIterator tmp = *this;
+			++(*this);
+			return tmp;
+		}
+
+		ListIterator& operator--() {
+			if (pEntry) pEntry = IsReverse ? pEntry->Next : pEntry->Prev;
+			return *this;
+		}
+
+		ListIterator operator--(int) {
+			ListIterator tmp = *this;
+			--(*this);
+			return tmp;
+		}
+
+		bool operator==(const ListIterator& other) const { return pEntry == other.pEntry; }
+		bool operator!=(const ListIterator& other) const { return pEntry != other.pEntry; }
+
+	protected:
+		friend List;
+		SListEntry* pEntry = nullptr;
+	};
+
+	// Legacy type for compatibility
+	using Iterator = ListIterator<V, false>;
+
+	// STL-compatible type aliases
+	using iterator = ListIterator<V, false>;
+	using const_iterator = ListIterator<const V, false>;
+	using reverse_iterator = ListIterator<V, true>;
+	using const_reverse_iterator = ListIterator<const V, true>;
+
+	// Forward iteration
+	iterator begin() { return m_ptr ? iterator(m_ptr->Head) : end(); }
+	const_iterator begin() const { return m_ptr ? const_iterator(m_ptr->Head) : end(); }
+	const_iterator cbegin() const { return m_ptr ? const_iterator(m_ptr->Head) : cend(); }
+
+	iterator end() { return iterator(); }
+	const_iterator end() const { return const_iterator(); }
+	const_iterator cend() const { return const_iterator(); }
+
+	// Reverse iteration
+	reverse_iterator rbegin() { return m_ptr ? reverse_iterator(m_ptr->Tail) : rend(); }
+	const_reverse_iterator rbegin() const { return m_ptr ? const_reverse_iterator(m_ptr->Tail) : rend(); }
+	const_reverse_iterator crbegin() const { return m_ptr ? const_reverse_iterator(m_ptr->Tail) : crend(); }
+
+	reverse_iterator rend() { return reverse_iterator(); }
+	const_reverse_iterator rend() const { return const_reverse_iterator(); }
+	const_reverse_iterator crend() const { return const_reverse_iterator(); }
+
+	// Legacy method for backwards compatibility
+	Iterator begin(bool bReverse) const { return bReverse ? Iterator(m_ptr ? m_ptr->Tail : nullptr) : Iterator(m_ptr ? m_ptr->Head : nullptr); }
+
+#else
 
 	// Support for range-based for loops
 	class Iterator {
@@ -159,6 +239,8 @@ public:
 
 	Iterator begin(bool bReverse = false) const		{ return m_ptr ? Iterator(m_ptr->Head, bReverse) : end(); }
 	Iterator end() const							{ return Iterator(); }
+
+#endif
 
 	Iterator erase(Iterator I)
 	{
@@ -209,9 +291,13 @@ protected:
 		{
 			SListData* ptr = MakeData();
 			if (!ptr) return false;
+			bool bSuccess = true;
 			for(SListEntry* Curr = m_ptr->Head; Curr != nullptr; Curr = Curr->Next) {
 				SListEntry* New = (SListEntry*)MemAlloc(sizeof(SListEntry));
-				if (!New) break; // todo
+				if (!New) {
+					bSuccess = false;
+					break;
+				}
 				new (New) SListEntry(Curr->Data);
 				InsertAfter(ptr, ptr->Tail, New);
 				// we need to update the iterator if it points to the current entry
@@ -219,6 +305,17 @@ protected:
 					pI->pEntry = New;
 					pI = nullptr;
 				}
+			}
+			if (!bSuccess) {
+				// Clean up partial allocation
+				for(SListEntry* Curr = ptr->Head; Curr != nullptr; ) {
+					SListEntry* Next = Curr->Next;
+					Curr->~SListEntry();
+					MemFree(Curr);
+					Curr = Next;
+				}
+				MemFree(ptr);
+				return false;
 			}
 			AttachData(ptr);
 		}

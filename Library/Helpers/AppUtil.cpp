@@ -190,7 +190,129 @@ bool IsRunningElevated()
     return !!PhGetOwnTokenAttributes().Elevated;
 }
 
-HANDLE RunElevated(const std::wstring& path, const std::wstring& params)
+#if 1
+
+static LPWSTR GetArgumentW(LPWSTR* pCmdLine)
+{
+    LPWSTR cmdLine = *pCmdLine;
+    while (*cmdLine == L' ') cmdLine++;
+    LPWSTR arg = NULL;
+    if (*cmdLine == L'\"') {
+        cmdLine++;
+        arg = cmdLine;
+        cmdLine = wcschr(cmdLine, L'\"');
+    } else {
+        arg = cmdLine;
+        cmdLine = wcschr(cmdLine, L' ');
+    }
+    if (cmdLine) {
+        *cmdLine++ = L'\0';
+        while (*cmdLine == L' ') cmdLine++;
+    }
+    *pCmdLine = cmdLine;
+    return arg;
+}
+
+extern "C" LIBRARY_EXPORT VOID RunElevatedW(HWND hwnd, HINSTANCE hinst, LPWSTR pszCmdLine, int nCmdShow)
+{
+	LPWSTR path = GetArgumentW(&pszCmdLine);
+
+	DWORD dwTimeOut = 0;
+
+    while (path && (path[0] == L'-' || path[0] == L'/'))
+    {
+		LPWSTR arg = path;
+        path = GetArgumentW(&pszCmdLine);
+
+        if(wcsnicmp(arg+1, L"timeout", 7) == 0 && (arg[8] == L':' || arg[8] == L'='))
+			dwTimeOut = _wtoi(arg + 9);
+    }
+
+	LPWSTR params = pszCmdLine;
+
+    SHELLEXECUTEINFO shex;
+    memset(&shex, 0, sizeof(SHELLEXECUTEINFOW));
+    shex.cbSize = sizeof(SHELLEXECUTEINFO);
+    shex.fMask = SEE_MASK_NOCLOSEPROCESS;
+    shex.hwnd = NULL;
+    shex.lpFile = path;
+    shex.lpParameters = params;
+    shex.nShow = SW_SHOWNORMAL;
+    shex.lpVerb = L"runas";
+
+	DWORD dwExitCode = -1;
+
+    if (ShellExecuteEx(&shex)) {
+        if (dwTimeOut) {
+            if (WaitForSingleObject(shex.hProcess, dwTimeOut) == WAIT_OBJECT_0)
+				GetExitCodeProcess(shex.hProcess, &dwExitCode);
+            else
+                dwExitCode = STILL_ACTIVE;
+        }
+        CloseHandle(shex.hProcess);
+    }
+    else
+		dwExitCode = GetLastError();
+
+    ExitProcess(dwExitCode);
+}
+
+//
+// When ShellExecuteEx with the "runas" verb the appinfo service is used to create the process, and give us back a handle to it.
+// KernelIsolator driver blocks this at two levels:
+// 1. appinfo won't be able to duplicate a driver into the calling process
+// 2. appinfo fails to create a process which is created with protection
+// 
+// As a workaround we use rundll32.exe to call back into our own DLL which will create the elevated process for us.
+// And the driver when it sees that a dev signed process is not being created by its parent (creatorPID != parentPID) will not enable any protection
+// The driver will those also not trust the process, hence after elevation the process will need to restart irself to get protection and trust.
+//
+
+HANDLE RunElevatedEx(const std::wstring& path, const std::wstring& params, DWORD dwTimeOut, int nCmdShow)
+{
+    // rundll32.exe GeneralLibrary.dll,RunElevated "C:\WIndows\system32\cmd.exe" /c ping.exe
+	std::wstring command = L"\"" + GetApplicationDirectory() + L"\\GeneralLibrary.dll\",RunElevated ";
+    
+    if (dwTimeOut) {
+        command += L"-timeout:";
+        command += std::to_wstring(dwTimeOut);
+		command += L" ";
+    }
+
+    command += L"\"" + path + L"\" " + params;
+
+    SHELLEXECUTEINFO shex;
+    memset(&shex, 0, sizeof(SHELLEXECUTEINFOW));
+    shex.cbSize = sizeof(SHELLEXECUTEINFO);
+    shex.fMask = SEE_MASK_NOCLOSEPROCESS;
+    shex.hwnd = NULL;
+    shex.lpFile = L"rundll32.exe";
+    shex.lpParameters = command.c_str();
+    shex.nShow = nCmdShow;
+
+    if(ShellExecuteEx(&shex))
+        return shex.hProcess;
+    return NULL;
+}
+
+DWORD RunElevated(const std::wstring& path, const std::wstring& params, DWORD dwTimeOut, int nCmdShow)
+{
+    DWORD dwExitCode = -1;
+
+	HANDLE hProcess = RunElevatedEx(path, params, dwTimeOut, nCmdShow);
+
+    if (hProcess) {
+        if (WaitForSingleObject(hProcess, dwTimeOut + 30 * 1000) == WAIT_OBJECT_0) //  alwais wait extra 30 seconds for the user to approve the UAC prompt
+            GetExitCodeProcess(hProcess, &dwExitCode);
+        CloseHandle(hProcess);
+    }
+
+    return dwExitCode;
+}
+
+#else
+
+HANDLE RunElevated(const std::wstring& path, const std::wstring& params, int nCmdShow)
 {
     SHELLEXECUTEINFO shex;
     memset(&shex, 0, sizeof(SHELLEXECUTEINFOW));
@@ -199,13 +321,15 @@ HANDLE RunElevated(const std::wstring& path, const std::wstring& params)
     shex.hwnd = NULL;
     shex.lpFile = path.c_str();
     shex.lpParameters = params.c_str();
-    shex.nShow = SW_SHOWNORMAL;
+    shex.nShow = nCmdShow;
     shex.lpVerb = L"runas";
 
     if(ShellExecuteEx(&shex))
         return shex.hProcess;
     return NULL;
 }
+
+#endif
 
 std::wstring ExpandEnvironmentVariablesInPath(const std::wstring& path) 
 {

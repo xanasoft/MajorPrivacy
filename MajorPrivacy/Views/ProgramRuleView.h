@@ -50,4 +50,6 @@ private:
 	QAction*				m_pRemoveRule;
 	QAction*				m_pEditRule;
 	QAction*				m_pCloneRule;
+	QAction*				m_pImportRules;
+	QAction*				m_pExportRules;
 };

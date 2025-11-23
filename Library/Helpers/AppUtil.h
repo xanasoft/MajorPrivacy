@@ -50,7 +50,11 @@ LIBRARY_EXPORT VOID GetAppPackageInfos(void* AppPackage, void* AppPackage2,
 
 LIBRARY_EXPORT bool IsRunningElevated();
 
-LIBRARY_EXPORT HANDLE RunElevated(const std::wstring& path, const std::wstring& params);
+extern "C" LIBRARY_EXPORT VOID RunElevatedW(HWND hwnd, HINSTANCE hinst, LPWSTR pszCmdLine, int nCmdShow);
+
+LIBRARY_EXPORT HANDLE RunElevatedEx(const std::wstring& path, const std::wstring& params = L"", DWORD dwTimeOut = 0, int nCmdShow = SW_SHOWNORMAL);
+
+LIBRARY_EXPORT DWORD RunElevated(const std::wstring& path, const std::wstring& params = L"", DWORD dwTimeOut = 0, int nCmdShow = SW_SHOWNORMAL);
 
 LIBRARY_EXPORT std::wstring ExpandEnvironmentVariablesInPath(const std::wstring& path);
 

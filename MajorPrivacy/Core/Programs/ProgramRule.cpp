@@ -62,6 +62,12 @@ CProgramRule* CProgramRule::Clone() const
 	pRule->m_AllowedSignatures = m_AllowedSignatures;
 	pRule->m_AllowedCollections = m_AllowedCollections;
 
+	pRule->m_AllowedChildren = m_AllowedChildren;
+	pRule->m_AllowedParents = m_AllowedParents;
+	pRule->m_BlockedChildren = m_BlockedChildren;
+	pRule->m_BlockedParents = m_BlockedParents;
+
+
 	pRule->m_Data = m_Data;
 
 	return pRule;

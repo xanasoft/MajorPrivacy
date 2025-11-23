@@ -32,6 +32,11 @@ std::shared_ptr<CProgramRule> CProgramRule::Clone(bool CloneGuid) const
 	pRule->m_AllowedCollections = m_AllowedCollections;
 	pRule->m_ImageLoadProtection = m_ImageLoadProtection;
 
+	pRule->m_AllowedChildren = m_AllowedChildren;
+	pRule->m_AllowedParents = m_AllowedParents;
+	pRule->m_BlockedChildren = m_BlockedChildren;
+	pRule->m_BlockedParents = m_BlockedParents;
+
 	return pRule;
 }
 
@@ -51,6 +56,11 @@ void CProgramRule::Update(const std::shared_ptr<CProgramRule>& Rule)
 	m_AllowedSignatures = Rule->m_AllowedSignatures;
 	m_AllowedCollections = Rule->m_AllowedCollections;
 	m_ImageLoadProtection = Rule->m_ImageLoadProtection;
+
+	m_AllowedChildren = Rule->m_AllowedChildren;
+	m_AllowedParents = Rule->m_AllowedParents;
+	m_BlockedChildren = Rule->m_BlockedChildren;
+	m_BlockedParents = Rule->m_BlockedParents;
 }
 
 NTSTATUS CProgramRule::FromVariant(const StVariant& Rule)

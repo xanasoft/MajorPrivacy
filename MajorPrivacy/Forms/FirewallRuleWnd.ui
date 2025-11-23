@@ -601,9 +601,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="radRemoteIP"/>
-  <buttongroup name="radLocalIP"/>
   <buttongroup name="radProfiles"/>
   <buttongroup name="radNICs"/>
+  <buttongroup name="radLocalIP"/>
+  <buttongroup name="radRemoteIP"/>
  </buttongroups>
 </ui>

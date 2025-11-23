@@ -236,6 +236,7 @@
     <ClCompile Include="Archive\SplitFile.cpp" />
     <ClCompile Include="Common\AbstractTreeModel.cpp" />
     <ClCompile Include="Common\CheckableMessageBox.cpp" />
+    <ClCompile Include="Common\CheckListDialog.cpp" />
     <ClCompile Include="Common\CodeEdit.cpp" />
     <ClCompile Include="Common\ComboInputDialog.cpp" />
     <ClCompile Include="Common\Common.cpp" />
@@ -283,6 +284,7 @@
     <ClInclude Include="Archive\CachedArchive.h" />
     <QtMoc Include="Archive\SplitFile.h" />
     <QtMoc Include="Common\CodeEdit.h" />
+    <QtMoc Include="Common\CheckListDialog.h" />
     <ClInclude Include="Common\Common.h" />
     <ClInclude Include="Common\CustomStyles.h" />
     <ClInclude Include="Common\CustomTheme.h" />

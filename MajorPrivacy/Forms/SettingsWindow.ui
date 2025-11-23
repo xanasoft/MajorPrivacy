@@ -48,7 +48,7 @@
         <enum>QTabWidget::TabPosition::North</enum>
        </property>
        <property name="currentIndex">
-        <number>5</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="tabGeneral">
         <attribute name="title">
@@ -174,20 +174,27 @@
         <layout class="QGridLayout" name="gridLayout_17">
          <item row="0" column="0">
           <layout class="QGridLayout" name="gridLayout">
-           <item row="4" column="0">
-            <widget class="QLabel" name="lblDisplay">
-             <property name="font">
-              <font>
-               <bold>true</bold>
-               <kerning>true</kerning>
-              </font>
-             </property>
+           <item row="9" column="1">
+            <widget class="QLabel" name="label_24">
              <property name="text">
-              <string>Graphic Options</string>
+              <string>Font Scaling</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             </property>
+             <property name="buddy">
+              <cstring>cmbFontScale</cstring>
              </property>
             </widget>
            </item>
-           <item row="6" column="3">
+           <item row="9" column="3">
+            <widget class="QLabel" name="label_13">
+             <property name="text">
+              <string>%</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="3">
             <layout class="QHBoxLayout" name="horizontalLayout_7">
              <item>
               <widget class="QPushButton" name="btnSelectUiFont">
@@ -224,62 +231,6 @@
              </item>
             </layout>
            </item>
-           <item row="5" column="1">
-            <widget class="QLabel" name="label_23">
-             <property name="text">
-              <string>High DPI Scaling</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-             </property>
-             <property name="buddy">
-              <cstring>cmbDPI</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="2">
-            <widget class="QComboBox" name="cmbDPI"/>
-           </item>
-           <item row="8" column="3">
-            <spacer name="horizontalSpacer_12">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="6" column="1">
-            <widget class="QLabel" name="label_33">
-             <property name="text">
-              <string>UI Font</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-             </property>
-             <property name="buddy">
-              <cstring>lblUiFont</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="3">
-            <widget class="QLabel" name="label_8">
-             <property name="text">
-              <string>(Restart required)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkUseW11Style">
-             <property name="text">
-              <string>Use the new SandMan style on Windows 11</string>
-             </property>
-            </widget>
-           </item>
            <item row="0" column="0">
             <widget class="QLabel" name="lblInterface">
              <property name="font">
@@ -293,18 +244,11 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="4">
-            <widget class="QCheckBox" name="chkFusionTheme">
-             <property name="text">
-              <string>Use Fusion Theme</string>
-             </property>
-             <property name="tristate">
-              <bool>true</bool>
-             </property>
-            </widget>
+           <item row="7" column="2">
+            <widget class="QComboBox" name="cmbDPI"/>
            </item>
-           <item row="8" column="2">
-            <spacer name="horizontalSpacer_11">
+           <item row="10" column="3">
+            <spacer name="horizontalSpacer_12">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
              </property>
@@ -316,17 +260,73 @@
              </property>
             </spacer>
            </item>
-           <item row="1" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkDarkTheme">
-             <property name="text">
-              <string>Use Dark Theme</string>
+           <item row="4" column="0">
+            <widget class="QLabel" name="lblSysTray">
+             <property name="font">
+              <font>
+               <bold>true</bold>
+               <kerning>true</kerning>
+              </font>
              </property>
-             <property name="tristate">
-              <bool>true</bool>
+             <property name="text">
+              <string>Systray options</string>
              </property>
             </widget>
            </item>
-           <item row="8" column="4">
+           <item row="7" column="1">
+            <widget class="QLabel" name="label_23">
+             <property name="text">
+              <string>High DPI Scaling</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             </property>
+             <property name="buddy">
+              <cstring>cmbDPI</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="3">
+            <widget class="QLabel" name="label_8">
+             <property name="text">
+              <string>(Restart required)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="lblDisplay">
+             <property name="font">
+              <font>
+               <bold>true</bold>
+               <kerning>true</kerning>
+              </font>
+             </property>
+             <property name="text">
+              <string>Graphic Options</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1">
+            <widget class="QLabel" name="label_33">
+             <property name="text">
+              <string>UI Font</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             </property>
+             <property name="buddy">
+              <cstring>lblUiFont</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1" colspan="3">
+            <widget class="QCheckBox" name="chkAltRows">
+             <property name="text">
+              <string>Alternate row background in lists</string>
+             </property>
+            </widget>
+           </item>
+           <item row="10" column="4">
             <spacer name="horizontalSpacer_13">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
@@ -339,14 +339,21 @@
              </property>
             </spacer>
            </item>
-           <item row="3" column="1" colspan="3">
-            <widget class="QCheckBox" name="chkAltRows">
+           <item row="8" column="2">
+            <widget class="QLabel" name="lblUiFont">
              <property name="text">
-              <string>Alternate row background in lists</string>
+              <string>#</string>
              </property>
             </widget>
            </item>
-           <item row="8" column="0">
+           <item row="9" column="2">
+            <widget class="QComboBox" name="cmbFontScale">
+             <property name="editable">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="10" column="0">
             <spacer name="verticalSpacer">
              <property name="orientation">
               <enum>Qt::Orientation::Vertical</enum>
@@ -359,37 +366,57 @@
              </property>
             </spacer>
            </item>
-           <item row="6" column="2">
-            <widget class="QLabel" name="lblUiFont">
+           <item row="10" column="2">
+            <spacer name="horizontalSpacer_11">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="2" column="1" colspan="3">
+            <widget class="QCheckBox" name="chkUseW11Style">
              <property name="text">
-              <string>#</string>
+              <string>Use the new SandMan style on Windows 11</string>
              </property>
             </widget>
            </item>
-           <item row="7" column="1">
-            <widget class="QLabel" name="label_24">
+           <item row="5" column="3" colspan="2">
+            <widget class="QCheckBox" name="chkSingleShow">
              <property name="text">
-              <string>Font Scaling</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-             </property>
-             <property name="buddy">
-              <cstring>cmbFontScale</cstring>
+              <string>Open/Close from/to tray with a single click</string>
              </property>
             </widget>
            </item>
-           <item row="7" column="2">
-            <widget class="QComboBox" name="cmbFontScale">
-             <property name="editable">
+           <item row="5" column="1" colspan="2">
+            <widget class="QCheckBox" name="chkMinimize">
+             <property name="text">
+              <string>Minimize to tray</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1" colspan="2">
+            <widget class="QCheckBox" name="chkDarkTheme">
+             <property name="text">
+              <string>Use Dark Theme</string>
+             </property>
+             <property name="tristate">
               <bool>true</bool>
              </property>
             </widget>
            </item>
-           <item row="7" column="3">
-            <widget class="QLabel" name="label_13">
+           <item row="1" column="3" colspan="2">
+            <widget class="QCheckBox" name="chkFusionTheme">
              <property name="text">
-              <string>%</string>
+              <string>Use Fusion Theme</string>
+             </property>
+             <property name="tristate">
+              <bool>true</bool>
              </property>
             </widget>
            </item>

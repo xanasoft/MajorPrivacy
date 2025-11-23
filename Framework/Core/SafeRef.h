@@ -52,13 +52,26 @@ public:
 	}
 
 	template <typename U>
-	operator U() const { 
+	operator U() const {
 		if (m_ptr)
 			return (U)*m_ptr;
 		return U();
 	}
 
 	T* operator&() {
+		return m_ptr;
+	}
+
+	const T* operator&() const {
+		return m_ptr;
+	}
+
+	// Explicit method to get the underlying pointer
+	T* GetPtr() {
+		return m_ptr;
+	}
+
+	const T* GetPtr() const {
 		return m_ptr;
 	}
 

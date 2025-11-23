@@ -623,7 +623,7 @@ STATUS CServiceCore::Init()
 	}
 
 #ifndef _DEBUG
-	if (!theCore->Driver()->IsCurProcMaxSecurity() && theCore->Driver()->IsCurProcHighSecurity())
+	if (!theCore->Driver()->IsCurProcMaxSecurity() && (theCore->Driver()->IsCurProcHighSecurity() || theCore->Driver()->IsCurProcLowSecurity()))
 		return ERR(STATUS_SYNCHRONIZATION_REQUIRED);
 #endif
 
@@ -847,7 +847,7 @@ void CServiceCore::OnTimer()
 	static uint64 LastObjectDump = GetTickCount64();
 	if (LastObjectDump + 60 * 1000 < GetTickCount64()) {
 		LastObjectDump = GetTickCount64();
-		ObjectTrackerBase::PrintCounts();
+//		ObjectTrackerBase::PrintCounts();
 
 		//size_t memoryUsed = getHeapUsage();
 		//DbgPrint(L"USED MEMORY: %llu bytes\n", memoryUsed);

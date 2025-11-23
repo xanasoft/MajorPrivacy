@@ -18,6 +18,11 @@ CProgramID::~CProgramID()
 CProgramID CProgramID::FromPath(const QString& FilePath)
 {
 	CProgramID ID;
+	if(FilePath.isEmpty() || FilePath == "*") {
+		ID.m_Type = EProgramType::eAllPrograms;
+		return ID;
+	}
+
 	ID.m_Type = EProgramType::eProgramFile;
 	ID.m_FilePath = FilePath;
 	return ID;

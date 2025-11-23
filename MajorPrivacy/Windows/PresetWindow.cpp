@@ -35,17 +35,11 @@ CPresetWindow::CPresetWindow(const CPresetPtr& pPreset, QWidget* parent)
 	ui.setupUi(this);
 
 	ui.btnAddExec->setIcon(QIcon(":/Icons/Process.png"));
-	ui.btnAddExec->setToolTip(tr("Add Execution Rule"));
 	ui.btnAddRes->setIcon(QIcon(":/Icons/Ampel.png"));
-	ui.btnAddRes->setToolTip(tr("Add Resource Access Rule"));
 	ui.btnAddFw->setIcon(QIcon(":/Icons/Wall3.png"));
-	ui.btnAddFw->setToolTip(tr("Add Firewall Rule"));
 	ui.btnAddDns->setIcon(QIcon(":/Icons/Network2.png"));
-	ui.btnAddDns->setToolTip(tr("Add DNS Rule"));
 	ui.btnAddCfg->setIcon(QIcon(":/Icons/Tweaks.png"));
-	ui.btnAddCfg->setToolTip(tr("Add Tweak"));
 	ui.btnRemove->setIcon(QIcon(":/Icons/Remove.png"));
-	ui.btnRemove->setToolTip(tr("Remove Selected Items"));
 
 	connect(ui.btnAddExec, SIGNAL(clicked(bool)), this, SLOT(AddExecRule()));
 	connect(ui.btnAddRes, SIGNAL(clicked(bool)), this, SLOT(AddResRule()));
@@ -239,6 +233,7 @@ bool CPresetWindow::OnSave()
 
 	if(m_pPreset->m_Guid.IsNull())
 		m_pPreset->m_Guid = Ret.GetValue();
+	return true;
 }
 
 void CPresetWindow::OnSaveAndClose()

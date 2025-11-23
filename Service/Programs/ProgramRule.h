@@ -54,6 +54,11 @@ protected:
 	bool					m_ImageLoadProtection = true;
 	bool					m_ImageCoherencyChecking = true;
 
+	std::list<std::wstring>	m_AllowedChildren;
+	std::list<std::wstring>	m_AllowedParents;
+	std::list<std::wstring>	m_BlockedChildren;
+	std::list<std::wstring>	m_BlockedParents;
+
 	CJSEnginePtr m_pScript;
 };
 

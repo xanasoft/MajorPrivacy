@@ -36,12 +36,23 @@ private slots:
 
 	void EditScript();
 
+	void OnAddParentAllow();
+	void OnAddParentBlock();
+	void OnDelParent();
+	void OnAddChildAllow();
+	void OnAddChildBlock();
+	void OnDelChild();
+
 protected:
 	void closeEvent(QCloseEvent* e);
 
 	bool AddProgramItem(const CProgramItemPtr& pItem);
 
 	bool Save();
+
+	void LoadParentsList();
+	void LoadChildrenList();
+	void AddProgramToTree(QTreeWidget* pTree, bool bAllow);
 
 	CProgramRulePtr m_pRule;
 	QList<CProgramItemPtr> m_Items;

@@ -210,6 +210,9 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	QOperatingSystemVersion current = QOperatingSystemVersion::current();
 	ui.chkUseW11Style->setEnabled(current.majorVersion() == 10 && current.microVersion() >= 22000); // Windows 10 22000+ (Windows 11)
 	connect(ui.chkAltRows, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
+
+	connect(ui.chkMinimize, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkSingleShow, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	
 	connect(ui.cmbDPI, SIGNAL(currentIndexChanged(int)), this, SLOT(OnChangeGUI()));
 	connect(ui.cmbFontScale, SIGNAL(currentIndexChanged(int)), this, SLOT(OnChangeGUI()));
@@ -711,6 +714,9 @@ void CSettingsWindow::LoadSettings()
 	ui.chkUseW11Style->setChecked(theConf->GetBool("Options/UseW11Style", false));
 	ui.chkAltRows->setChecked(theConf->GetBool("Options/AltRowColors", false));
 
+	ui.chkMinimize->setChecked(theConf->GetBool("Options/MinimizeToTray", false));
+	ui.chkSingleShow->setChecked(theConf->GetBool("Options/TraySingleClick", false));
+
 	ui.cmbDPI->setCurrentIndex(theConf->GetInt("Options/DPIScaling", 1));
 	//ui.cmbFontScale->setCurrentIndex(ui.cmbFontScale->findData(theConf->GetInt("Options/FontScaling", 100)));
 	ui.cmbFontScale->setCurrentText(QString::number(theConf->GetInt("Options/FontScaling", 100)));
@@ -864,6 +870,9 @@ void CSettingsWindow::SaveSettings()
 	theConf->SetValue("Options/UseFusionTheme", CSettingsWindow__Chk2Int(ui.chkFusionTheme->checkState()));
 	theConf->SetValue("Options/UseW11Style", ui.chkUseW11Style->isChecked());
 	theConf->SetValue("Options/AltRowColors", ui.chkAltRows->isChecked());
+
+	theConf->SetValue("Options/MinimizeToTray", ui.chkMinimize->isChecked());
+	theConf->SetValue("Options/TraySingleClick", ui.chkSingleShow->isChecked());
 
 	theConf->SetValue("UIConfig/UIFont", ui.lblUiFont->text());
 	theConf->SetValue("Options/DPIScaling", ui.cmbDPI->currentData());

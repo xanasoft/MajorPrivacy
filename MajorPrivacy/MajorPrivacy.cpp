@@ -450,9 +450,12 @@ STATUS CMajorPrivacy::Connect()
 	if (!Status)
 	{
 		bool bEngineMode = false;
-		if (!theCore->IsSvcInstalled())
+
+		BOOL bSvcInstalled = theCore->IsSvcInstalled();
+		if (bSvcInstalled == FALSE)
 		{
-			if (!theCore->IsDrvInstalled())
+			BOOL bDrvInstalled = theCore->IsDrvInstalled();
+			if (bDrvInstalled == FALSE)
 			{
 				int iEngineMode = theConf->GetInt("Options/AskAgentMode", -1);
 				if (iEngineMode == -1) {
@@ -476,8 +479,15 @@ STATUS CMajorPrivacy::Connect()
 				bEngineMode = true;
 		}
 
-		if (!theCore->IsSvcRunning() && !IsRunningElevated())
-			QMessageBox::information(this, "MajorPrivacy", tr("MajorPrivacy will now attempt to start the Privacy Agent, please confirm the UAC prompt."));
+		if (!theCore->IsSvcRunning() && !IsRunningElevated() && theConf->GetBool("Options/NotifyUAC", true)) 
+		{
+			bool State = false;
+			CCheckableMessageBox::question(this, "MajorPrivacy",
+				tr("MajorPrivacy will now attempt to start the Privacy Agent, please confirm the UAC prompt if one is shown.")
+				, tr("Don't show this message again."), &State, QDialogButtonBox::Ok, QDialogButtonBox::Ok, QMessageBox::Information);
+			if (State)
+				theConf->SetValue("Options/NotifyUAC", false);
+		}
 
 		Status = theCore->Connect(true, bEngineMode);
 	}
@@ -491,10 +501,10 @@ STATUS CMajorPrivacy::Connect()
 
 		statusBar()->showMessage(tr("Privacy Agent Ready %1/%2")
 			.arg(CProcess::GetSecStateStr(theCore->GetSvcSecState()))
-			.arg(CProcess::GetSecStateStr(theCore->Driver()->GetCurProcSecState())), 10000);
+			.arg(CProcess::GetSecStateStr(theCore->Driver()->GetCurProcSecState())), 30000);
 
 #ifndef _DEBUG
-		if (theCore->IsSvcMaxSecurity() && (!theCore->Driver()->IsCurProcMaxSecurity() && theCore->Driver()->IsCurProcHighSecurity()))
+		if (theCore->IsSvcMaxSecurity() && (!theCore->Driver()->IsCurProcMaxSecurity() && (theCore->Driver()->IsCurProcHighSecurity() || theCore->Driver()->IsCurProcLowSecurity())))
 		{
 			((QtSingleApplication*)qApp->instance())->disableSingleApp();
 			QString CommandLine = "\"" + qApp->applicationFilePath().replace("/", "\\") + "\"";
@@ -864,7 +874,7 @@ void CMajorPrivacy::BuildMenu()
 	m_pMain->addSeparator();
 	m_pRestart = m_pMain->addAction(QIcon(":/Icons/Shield9.png"), tr("Restart As Admin"), this, SLOT(OnRestartAsAdmin()));
 	m_pRestart->setEnabled(!IsElevated());
-	m_pExit = m_pMain->addAction(QIcon(":/Icons/Exit.png"), tr("Exit"), this, SLOT(OnExit()));
+	m_pExit = m_pMain->addAction(QIcon(":/Icons/Quit.png"), tr("Exit"), this, SLOT(OnExit()));
 
 
 	m_pView = menuBar()->addMenu(tr("View"));
@@ -931,7 +941,7 @@ void CMajorPrivacy::BuildMenu()
 		m_pFwRestoreRules = m_pFwTools->addAction(QIcon(":/Icons/Refresh.png"), tr("Restore Default Windows Firewall Rules"), this, [this]() {
 			if(QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to remove ALL current Firewall Rules and restore the default Windows Firewall rules set?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
 				return;
-			ShellExecuteW(nullptr, L"runas", L"netsh", L"advfirewall reset", nullptr, SW_HIDE);
+			theCore->NetworkManager()->RestoreDefaultFwRules();
 		});
 		m_pFwCreateRules = m_pFwTools->addAction(QIcon(":/Icons/Recover.png"), tr("Create Recommended Firewall Rules"), this, [this]() {
 			if(QMessageBox::question(this, "MajorPrivacy", tr("Are you sure you want to create the recommended Firewall Rules?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
@@ -952,12 +962,7 @@ void CMajorPrivacy::BuildMenu()
 			//m_pExpTools->addSeparator();
 			m_pImDiskCpl = m_pExpTools->addAction(LoadWindowsIcon(ImDiskCpl, 0), tr("Virtual Disks"), this, [ImDiskCpl]() {
 				std::wstring imDiskCpl = ImDiskCpl.toStdWString();
-				SHELLEXECUTEINFOW si = { 0 };
-				si.cbSize = sizeof(si);
-				si.lpVerb = L"runas";
-				si.lpFile = imDiskCpl.c_str();
-				si.nShow = SW_SHOW;
-				ShellExecuteExW(&si);
+				RunElevated(imDiskCpl);
 			});
 			//QMessageBox::critical(this, "MajorPrivacy", tr("ImDisk Control Panel not found!"));
 		}
@@ -2748,6 +2753,7 @@ void CMajorPrivacy::ResetPrompts()
 	if(QMessageBox::question(this, "MajorPrivacy", tr("Do you also want to reset all hidden message boxes?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
 		return;
 
+	theConf->DelValue("Options/NotifyUAC");
 	theConf->DelValue("Options/AskAgentMode");
 	theConf->DelValue("Options/WarnBoxCrypto");
 	theConf->DelValue("Options/WarnFolderProtection");
@@ -3020,16 +3026,15 @@ void CMajorPrivacy::OnRestartAsAdmin()
 	
 	WCHAR buf[255] = { 0 };
 	GetModuleFileNameW(NULL, buf, 255);
-	SHELLEXECUTEINFOW se;
-	memset(&se, 0, sizeof(se));
-	se.cbSize = sizeof(se);
-	se.lpVerb = L"runas";
-	se.lpFile = buf;
-	se.nShow = SW_SHOWNORMAL;
-	se.fMask = 0;
-	ShellExecuteExW(&se);
+
+	DWORD dwExitCode = RunElevated(buf);
+
+	if(dwExitCode == ERROR_CANCELLED)
+		return;
 
 	m_bExit = true;
+
+	theCore->Disconnect(true);
 	close();
 }
 

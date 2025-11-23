@@ -5,7 +5,29 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.99.4] - 2025-11-16
+
+
+
+
+
+## [0.99.5] - 2025-11-??
+
+### Added
+- added checkbox for the MinimizeToTray to the settings
+- added checkbox for the TraySingleClick to the settings
+- added parent/child enforcement to process rules
+- added import/export single rules and enclaves with rules
+
+### Changed
+- moved firewall reset action to service
+
+### Fixed
+- fix run MajorPrivacy as Admin failed due to process protection
+
+
+
+
+## [0.99.4] - 2025-11-17
 
 ### Added
 - added warning dialig when driver rules are enabled but there is no valid license certificate installed

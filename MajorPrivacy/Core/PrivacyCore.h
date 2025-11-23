@@ -77,10 +77,10 @@ public:
 	STATUS Stop();
 	STATUS Install();
 	STATUS Uninstall();
-	bool IsSvcInstalled();
-	bool IsSvcRunning();
-	bool IsDrvInstalled();
-	bool IsDrvRunning();
+	BOOL IsSvcInstalled();
+	BOOL IsSvcRunning();
+	BOOL IsDrvInstalled();
+	BOOL IsDrvRunning();
 
 	STATUS Connect(bool bCanStart = false, bool bEngineMode = false);
 	void Disconnect(bool bKeepEngine = false);
@@ -257,6 +257,8 @@ public:
 	RESULT(QFlexGuid)	SetFwRule(const QtVariant& Rule);
 	RESULT(QtVariant)	GetFwRule(const QFlexGuid& Guid);
 	STATUS				DelFwRule(const QFlexGuid& Guid);
+
+	STATUS				RestoreDefaultFwRules();
 
 	RESULT(FwFilteringModes) GetFwProfile();
 	STATUS				SetFwProfile(FwFilteringModes Profile);

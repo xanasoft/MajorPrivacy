@@ -75,42 +75,47 @@ STATUS CServiceAPI::InstallSvc(bool bAutoStart)
 	return InstallService(API_SERVICE_NAME, FileName.c_str(), DisplayName.c_str(), NULL, Dependencies, uOptions);
 }
 
-STATUS CServiceAPI::ConnectSvc()
+STATUS CServiceAPI::ReConnect()
 {
-    if (m_pClient->IsConnected())
+	if (m_pClient->IsConnected())
 		m_pClient->Disconnect();
 
-	STATUS Status;
+	return Connect();
+}
+
+STATUS CServiceAPI::ConnectSvc()
+{
+	STATUS Status = ReConnect();
+	if (Status)
+		return Status;
+
     SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
 	if ((SvcState & SVC_INSTALLED) != SVC_INSTALLED) {
 		return ERR(STATUS_DEVICE_NOT_READY);
 		//Status = InstallSvc();
 		//if (!Status) return Status;
 	}
-    if ((SvcState & SVC_RUNNING) != SVC_RUNNING)
-        Status = RunService(API_SERVICE_NAME);
-    if (!Status)
-        return Status;
+	if ((SvcState & SVC_RUNNING) != SVC_RUNNING)
+	{
+		Status = RunService(API_SERVICE_NAME);
+		if (!Status)
+			return Status;
+	}
 
-#ifdef USE_ALPC
-	Status = m_pClient->Connect(API_SERVICE_PORT);
-#else
-	Status = m_pClient->Connect(API_SERVICE_PIPE);
-#endif
+	for (int i = 0; i < 10; i++)
+	{
+		Status = Connect();
+		if (Status)
+			break;
+		Sleep(1000 * (1 + i));
+	}
 
 	return Status;
 }
 
 STATUS CServiceAPI::ConnectEngine(bool bCanStart)
 {
-	if(m_pClient->IsConnected())
-		m_pClient->Disconnect();
-
-#ifdef USE_ALPC
-	STATUS Status = m_pClient->Connect(API_SERVICE_PORT);
-#else
-	STATUS Status = m_pClient->Connect(API_SERVICE_PIPE);
-#endif
+	STATUS Status = ReConnect();
 	if (Status)
 		return Status;
 
@@ -134,14 +139,14 @@ STATUS CServiceAPI::ConnectEngine(bool bCanStart)
 	{
 		std::wstring Path = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
 
-		hEngineProcess.Set(RunElevated(Path, L"-engine"));
+		hEngineProcess.Set(RunElevatedEx(Path, L"-engine", 30*1000));
 		if (!hEngineProcess)
 			return ERR(PhGetLastWin32ErrorAsNtStatus());
 	}
 
 
 #ifdef _DEBUG
-	for(int i = 1;;)
+	for(int i = 3;;)
 #else
 	for (int i = 1; i < 10; i++)
 #endif
@@ -153,11 +158,7 @@ STATUS CServiceAPI::ConnectEngine(bool bCanStart)
 			break; // engine failed to start
 		}
 
-#ifdef USE_ALPC
-		Status = m_pClient->Connect(API_SERVICE_PORT);
-#else
-		Status = m_pClient->Connect(API_SERVICE_PIPE);
-#endif
+		Status = Connect();
 		if (Status)
 			return OK;
 		Sleep(1000 * i);
@@ -165,6 +166,15 @@ STATUS CServiceAPI::ConnectEngine(bool bCanStart)
 
 	TerminateProcess(hEngineProcess, -1);
 	return ERR(STATUS_INVALID_SYSTEM_SERVICE);
+}
+
+STATUS CServiceAPI::Connect()
+{
+#ifdef USE_ALPC
+	return m_pClient->Connect(API_SERVICE_PORT);
+#else
+	return m_pClient->Connect(API_SERVICE_PIPE);
+#endif
 }
 
 void CServiceAPI::Disconnect()

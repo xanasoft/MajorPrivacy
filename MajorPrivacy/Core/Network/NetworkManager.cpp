@@ -188,6 +188,11 @@ STATUS CNetworkManager::DelFwRule(const CFwRulePtr& pRule)
 	return theCore->DelFwRule(pRule->GetGuid());
 }
 
+STATUS CNetworkManager::RestoreDefaultFwRules()
+{
+	return theCore->RestoreDefaultFwRules();
+}
+
 STATUS CNetworkManager::CreateFwRule(const QFlexGuid& Id, const QString& Name, const QString& Description, const CProgramID& ProgramID, EFwActions Action, EFwDirections Direction, EFwKnownProtocols Protocol, EFwProfiles Profile, const QStringList& LPort, const QStringList& RPort, const QStringList& RAddr)
 {
 	CFwRulePtr pRule = CFwRulePtr(new CFwRule(ProgramID));

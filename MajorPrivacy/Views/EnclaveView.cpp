@@ -8,6 +8,10 @@
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include "../Core/Processes/ProcessList.h"
 #include "Helpers/WinHelper.h"
+#include "../MiscHelpers/Common/OtherFunctions.h"
+#include "../Core/Programs/ProgramManager.h"
+#include "../Core/Access/AccessManager.h"
+#include "../MiscHelpers/Common/CheckListDialog.h"
 
 QString ShowRunDialog(const QString& EnclaveName);
 
@@ -40,6 +44,9 @@ CEnclaveView::CEnclaveView(QWidget *parent)
 	this->addAction(m_pRemoveEnclave);
 	m_pEditEnclave = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Edit Enclave"), this, SLOT(OnEnclaveAction()));
 	m_pCloneEnclave = m_pMenu->addAction(QIcon(":/Icons/Duplicate.png"), tr("Duplicate Enclave"), this, SLOT(OnEnclaveAction()));
+	m_pMenu->addSeparator();
+	m_pExportEnclave = m_pMenu->addAction(QIcon(":/Icons/Exit.png"), tr("Export Enclave"), this, SLOT(OnEnclaveAction()));
+	m_pImportEnclave = m_pMenu->addAction(QIcon(":/Icons/Entry.png"), tr("Import Enclave"), this, SLOT(OnEnclaveAction()));
 	m_pMenu->addSeparator();
 	m_pCreateEnclave = m_pMenu->addAction(QIcon(":/Icons/Add.png"), tr("Create Enclave"), this, SLOT(OnAddEnclave()));
 
@@ -159,6 +166,7 @@ void CEnclaveView::OnMenu(const QPoint& Point)
 		m_pRemoveEnclave->setEnabled(!bSystem);
 		m_pEditEnclave->setEnabled(!bSystem && Enclaves.count() == 1);
 		m_pCloneEnclave->setEnabled(!bSystem);
+		m_pExportEnclave->setEnabled(!bSystem && Enclaves.count() == 1);
 
 		CPanelView::OnMenu(Point);
 	}
@@ -239,6 +247,187 @@ void CEnclaveView::OnEnclaveAction()
 			CEnclavePtr pClone = CEnclavePtr(pEnclave->Clone());
 			Results << theCore->EnclaveManager()->SetEnclave(pClone);
 		}
+	}
+	else if (pAction == m_pImportEnclave)
+	{
+		QString FileName = QFileDialog::getOpenFileName(this, tr("Import Enclave"), "", tr("Enclave Files (*.xml)"));
+		if (FileName.isEmpty())
+			return;
+
+		QString Xml = ReadFileAsString(FileName);
+
+		QtVariant EnclaveData;
+		bool bOk = EnclaveData.ParseXml(Xml);
+		if (!bOk) {
+			QMessageBox::warning(this, "MajorPrivacy", tr("Failed to parse XML data!"));
+			return;
+		}
+
+		SVarWriteOpt Ops;
+		Ops.Format = SVarWriteOpt::eMap;
+		Ops.Flags = SVarWriteOpt::eSaveToFile | SVarWriteOpt::eTextGuids;
+
+		// Structure to hold enclave data for import
+		struct EnclaveImportData {
+			CEnclavePtr pEnclave;
+			QtVariant ProgramRules;
+			QtVariant AccessRules;
+			QString name;
+		};
+		QList<EnclaveImportData> EnclavesToImport;
+
+		// Check if it's a list of enclaves or a single enclave
+		if (EnclaveData.IsList()) {
+			// Multiple enclaves in a list
+			for (uint32 i = 0; i < EnclaveData.Count(); i++) {
+				QtVariant EnclaveItem = EnclaveData[i];
+				if (EnclaveItem.Has(API_S_ENCLAVE)) {
+					EnclaveImportData data;
+					data.pEnclave = CEnclavePtr(new CEnclave());
+					data.pEnclave->FromVariant(EnclaveItem[API_S_ENCLAVE]);
+					data.name = data.pEnclave->GetName();
+					if (EnclaveItem.Has(API_S_PROGRAM_RULES))
+						data.ProgramRules = EnclaveItem[API_S_PROGRAM_RULES];
+					if (EnclaveItem.Has(API_S_ACCESS_RULES))
+						data.AccessRules = EnclaveItem[API_S_ACCESS_RULES];
+					EnclavesToImport.append(data);
+				}
+			}
+		} else if (EnclaveData.Has(API_S_ENCLAVE)) {
+			// Single enclave
+			EnclaveImportData data;
+			data.pEnclave = CEnclavePtr(new CEnclave());
+			data.pEnclave->FromVariant(EnclaveData[API_S_ENCLAVE]);
+			data.name = data.pEnclave->GetName();
+			if (EnclaveData.Has(API_S_PROGRAM_RULES))
+				data.ProgramRules = EnclaveData[API_S_PROGRAM_RULES];
+			if (EnclaveData.Has(API_S_ACCESS_RULES))
+				data.AccessRules = EnclaveData[API_S_ACCESS_RULES];
+			EnclavesToImport.append(data);
+		} else {
+			QMessageBox::warning(this, "MajorPrivacy", tr("Invalid enclave file format!"));
+			return;
+		}
+
+		// Show selection dialog if there are multiple enclaves
+		QList<int> selectedIndices;
+		if (EnclavesToImport.count() > 1) {
+			CCheckListDialog dialog(this);
+			dialog.setWindowTitle(tr("Select Enclaves to Import"));
+			dialog.setText(tr("Select which enclaves you want to import (including all their associated rules):"));
+
+			for (int i = 0; i < EnclavesToImport.count(); i++) {
+				QString enclaveName = EnclavesToImport[i].name;
+				if (enclaveName.isEmpty())
+					enclaveName = tr("Enclave %1").arg(i + 1);
+
+				int programRuleCount = EnclavesToImport[i].ProgramRules.IsValid() ? EnclavesToImport[i].ProgramRules.Count() : 0;
+				int accessRuleCount = EnclavesToImport[i].AccessRules.IsValid() ? EnclavesToImport[i].AccessRules.Count() : 0;
+				int totalRules = programRuleCount + accessRuleCount;
+
+				QString displayText = enclaveName;
+				if (totalRules > 0)
+					displayText += tr(" (%1 rule(s))").arg(totalRules);
+
+				dialog.addItem(displayText, i, true);
+			}
+
+			if (dialog.exec() != QDialog::Accepted)
+				return;
+
+			selectedIndices = dialog.getCheckedIndices();
+			if (selectedIndices.isEmpty()) {
+				QMessageBox::information(this, "MajorPrivacy", tr("No enclaves selected for import."));
+				return;
+			}
+		} else {
+			// Import all if only one enclave
+			selectedIndices.append(0);
+		}
+
+		// Import selected enclaves
+		int totalImported = 0;
+		for (int idx : selectedIndices) {
+			EnclaveImportData& data = EnclavesToImport[idx];
+
+			// Import the enclave
+			Results << theCore->EnclaveManager()->SetEnclave(data.pEnclave);
+
+			// Import program rules for this enclave
+			if (data.ProgramRules.IsValid()) {
+				for (uint32 i = 0; i < data.ProgramRules.Count(); i++) {
+					CProgramRulePtr pRule = CProgramRulePtr(new CProgramRule());
+					pRule->FromVariant(data.ProgramRules[i]);
+					Results << theCore->ProgramManager()->SetProgramRule(pRule);
+				}
+			}
+
+			// Import access rules for this enclave
+			if (data.AccessRules.IsValid()) {
+				for (uint32 i = 0; i < data.AccessRules.Count(); i++) {
+					CAccessRulePtr pRule = CAccessRulePtr(new CAccessRule());
+					pRule->FromVariant(data.AccessRules[i]);
+					Results << theCore->AccessManager()->SetAccessRule(pRule);
+				}
+			}
+
+			totalImported++;
+		}
+
+		if (Results.isEmpty() || !Results.last().IsError()) {
+			if (totalImported == 1)
+				QMessageBox::information(this, "MajorPrivacy", tr("Successfully imported enclave with all associated rules."));
+			else
+				QMessageBox::information(this, "MajorPrivacy", tr("Successfully imported %1 enclave(s) with all associated rules.").arg(totalImported));
+		}
+	}
+	else if (pAction == m_pExportEnclave)
+	{
+		if (Enclaves.count() != 1)
+			return;
+
+		CEnclavePtr pEnclave = Enclaves.first();
+		QFlexGuid EnclaveGuid = pEnclave->GetGuid();
+
+		SVarWriteOpt Ops;
+		Ops.Format = SVarWriteOpt::eMap;
+		Ops.Flags = SVarWriteOpt::eSaveToFile | SVarWriteOpt::eTextGuids;
+
+		QtVariant EnclaveData;
+
+		// Export the enclave itself
+		EnclaveData[API_S_ENCLAVE] = pEnclave->ToVariant(Ops);
+
+		// Export all program rules for this enclave
+		QtVariant ProgramRules;
+		for (auto pRule : theCore->ProgramManager()->GetProgramRules()) {
+			if (pRule->GetEnclave() == EnclaveGuid && !pRule->IsTemporary()) {
+				ProgramRules.Append(pRule->ToVariant(Ops));
+			}
+		}
+		if (ProgramRules.Count() > 0)
+			EnclaveData[API_S_PROGRAM_RULES] = ProgramRules;
+
+		// Export all access rules for this enclave
+		QtVariant AccessRules;
+		for (auto pRule : theCore->AccessManager()->GetAccessRules()) {
+			if (pRule->GetEnclave() == EnclaveGuid && !pRule->IsTemporary()) {
+				AccessRules.Append(pRule->ToVariant(Ops));
+			}
+		}
+		if (AccessRules.Count() > 0)
+			EnclaveData[API_S_ACCESS_RULES] = AccessRules;
+
+		QString Xml = EnclaveData.SerializeXml();
+
+		QString FileName = QFileDialog::getSaveFileName(this, tr("Export Enclave"), pEnclave->GetName() + ".xml", tr("Enclave Files (*.xml)"));
+		if (FileName.isEmpty())
+			return;
+
+		WriteStringToFile(FileName, Xml);
+
+		int ruleCount = ProgramRules.Count() + AccessRules.Count();
+		QMessageBox::information(this, "MajorPrivacy", tr("Successfully exported enclave with %1 associated rule(s).").arg(ruleCount));
 	}
 
 	theGUI->CheckResults(Results, this);

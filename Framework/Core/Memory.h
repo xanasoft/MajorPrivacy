@@ -103,7 +103,7 @@ public:
 class FRAMEWORK_EXPORT StackedMem : public AbstractMemPool
 {
 public:
-	StackedMem(void* pMem, size_t uSize) { m_pMem = (uint8*)pMem; m_uSize = uSize; m_pPtr = m_pMem;}
+	StackedMem(void* pMem, size_t uSize) { m_pMem = (uint8*)pMem; m_uSize = uSize; m_pPtr = nullptr; }
 
 	virtual void* Alloc(size_t size, uint32 flags = 0);
 	virtual void Free(void* ptr, uint32 flags = 0);
@@ -112,11 +112,12 @@ protected:
 	struct SMemHeader {
 		size_t uSize;
 		bool bFreed;
+		SMemHeader* pPrev;
 	};
 
 	uint8* m_pMem;
 	size_t m_uSize;
-	uint8* m_pPtr;
+	SMemHeader* m_pPtr;
 };
 
 FW_NAMESPACE_END

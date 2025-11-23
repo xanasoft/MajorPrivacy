@@ -209,6 +209,7 @@ public:
 	void Disconnect();
 
 	uint32 GetCurProcSecState() const { return m_CurProcSecState; }
+	bool IsCurProcLowSecurity() const;
 	bool IsCurProcHighSecurity() const;
 	bool IsCurProcMaxSecurity() const;
 

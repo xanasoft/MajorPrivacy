@@ -27,6 +27,7 @@ public:
 	//RESULT(CFwRulePtr) GetFwRule(const QFlexGuid& Guid);
 	STATUS DelFwRule(const CFwRulePtr& pRule);
 
+	STATUS RestoreDefaultFwRules();
 	STATUS CreateFwRule(const QFlexGuid& Id, const QString& Name, const QString& Description, const CProgramID& ProgramID, EFwActions Action, EFwDirections Direction, EFwKnownProtocols Protocol, EFwProfiles Profile, const QStringList& LPort = QStringList(), const QStringList& RPort = QStringList(), const QStringList& RAddr = QStringList());
 	QList<STATUS> CreateRecommendedFwRules();
 

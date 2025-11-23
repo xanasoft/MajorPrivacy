@@ -422,6 +422,11 @@ void CDriverAPI::Disconnect()
     m_pClient->Disconnect();
 }
 
+bool CDriverAPI::IsCurProcLowSecurity() const
+{
+    return ((m_CurProcSecState & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW);
+}
+
 bool CDriverAPI::IsCurProcHighSecurity() const
 {
     return ((m_CurProcSecState & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH);

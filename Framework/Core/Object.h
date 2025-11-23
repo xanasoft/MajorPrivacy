@@ -46,7 +46,7 @@ public:
 	void RemoveRef(bool bStrong = true) {
 		if (bStrong) {
 			if (InterlockedDecrement(&m_Refs) == 0) {
-				if (m_pDestroyCallback != nullptr) { // in ~Object() it may be to late as most of the object would be already toren down
+				if (m_pDestroyCallback != nullptr) { // in ~Object() it may be too late as most of the object would be already torn down
 					InterlockedIncrement(&m_WeakRefs); // to prevent the object from being freed by the callback
 					m_pDestroyCallback(this, m_pDestroyParam);
 					InterlockedDecrement(&m_WeakRefs);
