@@ -8,6 +8,7 @@ QT += core network widgets
 DEFINES += QT_LARGEFILE_SUPPORT QTSERVICE_LIB QT_WIDGETS_LIB QT_QTSINGLEAPPLICATION_EXPORT
 !mac:unix:QMAKE_LFLAGS += -Wl,-rpath,'\$\$ORIGIN'
 mac:QMAKE_CXXFLAGS += -std=c++11
+win32:LIBS += lAdvapi32
 
 !win32:QMAKE_LFLAGS +=-rdynamic
 
