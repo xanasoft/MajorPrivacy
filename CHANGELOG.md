@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.99.5] - 2025-11-??
+## [0.99.5] - 2025-11-24
 
 ### Added
 - added checkbox for the MinimizeToTray to the settings
@@ -23,6 +23,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - fix run MajorPrivacy as Admin failed due to process protection
+- Fixes issuw with QtSingleApplication causing multiple instances to run when started from elevated context
 
 
 

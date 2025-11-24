@@ -233,7 +233,7 @@ void QtSingleApplication::disableSingleApp()
 {
     if (!peer)
         return;
-    peer->deleteLater();
+    delete peer;
     peer = NULL;
 }
 

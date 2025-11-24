@@ -48,6 +48,8 @@
 #if defined(Q_OS_WIN)
 #include <QLibrary>
 #include <qt_windows.h>
+#include <sddl.h>
+#include <aclapi.h>
 typedef BOOL(WINAPI*PProcessIdToSessionId)(DWORD,DWORD*);
 static PProcessIdToSessionId pProcessIdToSessionId = 0;
 #endif
@@ -67,6 +69,64 @@ static PProcessIdToSessionId pProcessIdToSessionId = 0;
 //}
 
 const char* QtLocalPeer::ack = "ack";
+
+#if defined(Q_OS_WIN)
+// Helper function to make the named pipe accessible from lower integrity levels
+// This allows normal user instances to connect to elevated (admin) instances
+static void allowLowIntegrityClients(const QString& serverName)
+{
+    // Construct the full pipe path
+    QString pipePath = QString("\\\\.\\pipe\\") + serverName;
+    std::wstring widePipePath = pipePath.toStdWString();
+
+    // Open the existing named pipe
+    HANDLE hPipe = CreateFileW(widePipePath.c_str(),
+                               WRITE_DAC | WRITE_OWNER,
+                               0,
+                               NULL,
+                               OPEN_EXISTING,
+                               0,
+                               NULL);
+
+    if (hPipe != INVALID_HANDLE_VALUE) {
+        // Create a security descriptor that allows Everyone and Low Integrity access
+        // SDDL string: D:(A;;GA;;;WD) - DACL allowing Generic All to Everyone (World)
+        //              D:(A;;GA;;;AN) - DACL allowing Generic All to Anonymous
+        //              S:(ML;;NW;;;LW) - Mandatory Label for Low Integrity with No-Write-Up
+        LPCWSTR sddl = L"D:(A;;GA;;;WD)(A;;GA;;;AN)S:(ML;;NW;;;LW)";
+
+        PSECURITY_DESCRIPTOR pSD = NULL;
+        if (ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl, SDDL_REVISION_1, &pSD, NULL)) {
+            // Extract the DACL from the security descriptor
+            PACL pDacl = NULL;
+            BOOL bDaclPresent = FALSE;
+            BOOL bDaclDefaulted = FALSE;
+            GetSecurityDescriptorDacl(pSD, &bDaclPresent, &pDacl, &bDaclDefaulted);
+
+            // Extract the SACL (for mandatory label)
+            PACL pSacl = NULL;
+            BOOL bSaclPresent = FALSE;
+            BOOL bSaclDefaulted = FALSE;
+            GetSecurityDescriptorSacl(pSD, &bSaclPresent, &pSacl, &bSaclDefaulted);
+
+            // Apply the security descriptor to the pipe
+            if (bDaclPresent) {
+                SetSecurityInfo(hPipe, SE_KERNEL_OBJECT,
+                               DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                               NULL, NULL, pDacl, NULL);
+            }
+            if (bSaclPresent) {
+                SetSecurityInfo(hPipe, SE_KERNEL_OBJECT,
+                               LABEL_SECURITY_INFORMATION,
+                               NULL, NULL, NULL, pSacl);
+            }
+
+            LocalFree(pSD);
+        }
+        CloseHandle(hPipe);
+    }
+}
+#endif
 
 QtLocalPeer::QtLocalPeer(const QString &appId, QObject* parent)
     : QObject(parent), id(appId)
@@ -134,6 +194,13 @@ bool QtLocalPeer::isClient()
 #endif
     if (!res)
         qWarning("QtSingleCoreApplication: listen on local socket failed, %s", qPrintable(server->errorString()));
+#if defined(Q_OS_WIN)
+    else {
+        // Allow lower integrity level processes to connect to this server
+        // This enables normal user instances to communicate with elevated instances
+        allowLowIntegrityClients(socketName);
+    }
+#endif
     QObject::connect(server, SIGNAL(newConnection()), SLOT(receiveConnection()));
     return false;
 }
