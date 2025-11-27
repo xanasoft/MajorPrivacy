@@ -1225,7 +1225,7 @@ void CSettingsWindow::OnGetCert()
 
 	QString Message;
 
-	if (Serial.length() < 4 || Serial.left(4).compare("SBIE", Qt::CaseInsensitive) != 0) {
+	if (Serial.length() < 4 || Serial.left(4).compare("PRIVS", Qt::CaseInsensitive) != 0) {
 		Message = tr("This does not look like a MajorPrivacy Serial Number.<br />"
 			"If you have attempted to enter the UpdateKey or the Signature from license certificate, "
 			"that is not correct, please enter the entire license certificate into the text area above instead.");

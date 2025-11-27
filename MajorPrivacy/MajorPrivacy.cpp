@@ -788,6 +788,15 @@ void CMajorPrivacy::UpdateViews()
 
 void CMajorPrivacy::OnMessage(const QString& MsgData)
 {
+	QStringList Messages = MsgData.split("\n");
+	QString Message = Messages[0];
+	if (Message == "ShowWnd")
+	{
+		if (!isVisible())
+			show();
+		setWindowState(Qt::WindowActive);
+		SetForegroundWindow(MainWndHandle);
+	}
 }
 
 void CMajorPrivacy::ShowMessageBox(QWidget* Widget, QMessageBox::Icon Icon, const QString& Message)

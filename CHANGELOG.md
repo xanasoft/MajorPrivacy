@@ -8,6 +8,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [0.99.5b] - 2025-11-27
+
+### Fixed
+- fixed issue with seriel number validation
+- fixed issue with QtSingleApp
+
 
 
 ## [0.99.5] - 2025-11-24
