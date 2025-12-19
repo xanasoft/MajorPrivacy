@@ -136,6 +136,7 @@ extern QByteArray g_Certificate;
 
 //#include "..\Driver\Isolator\Support.h"
 
+extern bool g_CertInfoValid;
 extern SCertInfo g_CertInfo;
 extern QString g_CertName;
 extern QString g_SystemHwid;

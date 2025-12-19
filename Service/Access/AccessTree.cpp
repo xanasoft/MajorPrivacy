@@ -96,7 +96,7 @@ void CAccessTree::Clear()
 {
 	std::unique_lock lock(m_Mutex); 
 
-	m_Root.reset();
+	m_Root.Clear();
 }
 
 StVariant CAccessTree::StoreTree(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const

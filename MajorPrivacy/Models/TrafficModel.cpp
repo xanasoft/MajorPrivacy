@@ -19,7 +19,7 @@ CTrafficModel::~CTrafficModel()
 	m_Root = NULL;
 }
 
-QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& List)
+QList<QModelIndex> CTrafficModel::Sync(const QMap<QVariant, STrafficItemPtr>& List)
 {
 #pragma warning(push)
 #pragma warning(disable : 4996)
@@ -31,7 +31,7 @@ QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& Lis
 	static QIcon EthetNetIcon(":/Icons/EthSocket2.png");
 	static QIcon LocalHostIcon(":/Icons/Monitor.png");
 
-	for(auto X = List.begin(); X != List.end(); ++X)
+	for (auto X = List.begin(); X != List.end(); ++X)
 	{
 		QVariant ID = X.key();
 
@@ -44,9 +44,32 @@ QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& Lis
 			pNode = static_cast<STrafficNode*>(MkNode(ID));
 			pNode->Values.resize(columnCount());
 			pNode->pItem = X.value();
+
+			// Build full path from root to parent
 			QList<QVariant> Path;
-			if(pNode->pItem->Parent.isValid())
+			if (pNode->pItem->Parent.isValid())
+			{
+				// Find parent item and get its path
+				auto ParentIt = List.find(pNode->pItem->Parent);
+				if (ParentIt != List.end() && ParentIt.value()->Parent.isValid())
+				{
+					// Parent has a parent, need to build full path recursively
+					QVariant CurrentParent = ParentIt.value()->Parent;
+					QList<QVariant> ParentChain;
+					while (CurrentParent.isValid())
+					{
+						ParentChain.prepend(CurrentParent);
+						auto AncestorIt = List.find(CurrentParent);
+						if (AncestorIt != List.end())
+							CurrentParent = AncestorIt.value()->Parent;
+						else
+							break;
+					}
+					Path = ParentChain;
+				}
 				Path.append(pNode->pItem->Parent);
+			}
+
 			pNode->Path = Path;
 			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
@@ -128,21 +151,19 @@ QList<QModelIndex> CTrafficModel::Sync(const QMap<quint64, STrafficItemPtr>& Lis
 		}
 		if (State && Index.isValid())
 			emit dataChanged(createIndex(Index.row(), Col, pNode), createIndex(Index.row(), columnCount() - 1, pNode));
-
 	}
 
-	QList<QModelIndex>	NewBranches;
+	QList<QModelIndex> NewBranches;
 	CTreeItemModel::Sync(New, Old, &NewBranches);
 	return NewBranches;
 }
 
 CTrafficModel::STreeNode* CTrafficModel::MkVirtualNode(const QVariant& Id, STreeNode* pParent)
-{ 
+{
 	STreeNode* pNode = CTreeItemModel::MkVirtualNode(Id, pParent);
 
 	if (!pNode->Values[0].Raw.isValid()) {
-		QStringList Paths = Id.toString().split("\\");
-		pNode->Values[0].Raw = Paths.last();
+		pNode->Values[0].Raw = Id.toString();
 	}
 
 	return pNode;
@@ -151,7 +172,7 @@ CTrafficModel::STreeNode* CTrafficModel::MkVirtualNode(const QVariant& Id, STree
 STrafficItemPtr CTrafficModel::GetItem(const QModelIndex& index)
 {
 	if (!index.isValid())
-        return STrafficItemPtr();
+		return STrafficItemPtr();
 
 	STrafficNode* pNode = static_cast<STrafficNode*>(index.internalPointer());
 	ASSERT(pNode);

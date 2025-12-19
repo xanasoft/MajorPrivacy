@@ -79,7 +79,20 @@ CLibraryView::CLibraryView(QWidget *parent)
 	m_pToolBar->addWidget(m_pBtnHideWin);
 
 	m_pToolBar->addSeparator();
+	m_pBtnExpand = new QToolButton();
+	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
+	m_pBtnExpand->setCheckable(true);
+	m_pBtnExpand->setToolTip(tr("Auto Expand"));
+	m_pBtnExpand->setMaximumHeight(22);
+	connect(m_pBtnExpand, &QToolButton::toggled, this, [&](bool checked) {
+		if(checked)
+			m_pTreeView->expandAll();
+		else
+			m_pTreeView->collapseAll();
+		});
+	m_pToolBar->addWidget(m_pBtnExpand);
 
+	m_pToolBar->addSeparator();
 	m_pBtnHold = new QToolButton();
 	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
 	m_pBtnHold->setCheckable(true);
@@ -102,20 +115,6 @@ CLibraryView::CLibraryView(QWidget *parent)
 	m_pBtnCleanUp->setFixedHeight(22);
 	connect(m_pBtnCleanUp, SIGNAL(clicked()), this, SLOT(OnCleanUpLibraries()));
 	m_pToolBar->addWidget(m_pBtnCleanUp);
-
-	m_pToolBar->addSeparator();
-	m_pBtnExpand = new QToolButton();
-	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
-	m_pBtnExpand->setCheckable(true);
-	m_pBtnExpand->setToolTip(tr("Auto Expand"));
-	m_pBtnExpand->setMaximumHeight(22);
-	connect(m_pBtnExpand, &QToolButton::toggled, this, [&](bool checked) {
-		if(checked)
-			m_pTreeView->expandAll();
-		else
-			m_pTreeView->collapseAll();
-	});
-	m_pToolBar->addWidget(m_pBtnExpand);
 
 	m_pBtnInfo = new QToolButton();
 	m_pBtnInfo->setIcon(QIcon(":/Icons/Cert.png"));
@@ -263,7 +262,7 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, const QFlexGuid& 
 		}
 	};
 
-	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Programs.count());
+	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Programs.count(), theGUI);
 
 	foreach(const CProgramFilePtr& pProgram, Programs) {
 

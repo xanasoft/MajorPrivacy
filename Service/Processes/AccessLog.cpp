@@ -538,7 +538,7 @@ void CAccessLog::Clear()
 {
 	std::unique_lock lock(m_Mutex);
 
-	m_Data.reset();
+	m_Data.Clear();
 }
 
 void CAccessLog::Truncate()

@@ -127,10 +127,12 @@ void CProcessPage::Update()
 
 	auto Current = theGUI->GetCurrentItems();
 
+	bool bShowPrivate = theGUI->GetShowPrivate();
+
 	QSet<CProgramFilePtr> Programs = Current.ProgramsEx;
 	if ( m_pTraceView->isVisible()) {
 		for (auto& pProgram : Current.ProgramsIm) {
-			if(pProgram->GetResTrace() != ETracePreset::ePrivate)
+			if(bShowPrivate || pProgram->GetResTrace() != ETracePreset::ePrivate)
 				Programs.insert(pProgram);
 		}
 	}

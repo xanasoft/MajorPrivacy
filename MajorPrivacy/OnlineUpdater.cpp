@@ -11,13 +11,16 @@
 #include <QJsonObject>
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include <QMessageBox>
-#include "../UpdUtil/UpdUtil.h"
+#include "../UpdUtil/UpdDefines.h"
 #include <QCryptographicHash>
 #include "Helpers/WinAdmin.h"
+#include "Helpers/WinHelper.h"
 #include <windows.h>
 #include <QRandomGenerator>
 #include "Core/Tweaks/TweakManager.h"
 #include "../Library/Helpers/AppUtil.h"
+
+#define RELEASE_FILE			"release.json"
 
 #ifdef QT_NO_SSL
 #error Qt requires Open SSL support for the updater to work
@@ -30,89 +33,42 @@
 #undef VERSION_MJR
 #define VERSION_MJR		0
 #undef VERSION_MIN
-#define VERSION_MIN 	98
+#define VERSION_MIN 	99
 #undef VERSION_REV
 #define VERSION_REV 	5
 #undef VERSION_UPD
-#define VERSION_UPD 	0
+#define VERSION_UPD 	-1
 
-#define DUMMY_PATH "C:\\Projects\\MajorPrivacy\\x64\\Test"
-
-#undef INSIDER_BUILD
+#define DUMMY_PATH "C:\\Projects\\MajorPrivacy\\Build\\Test_0.99.5"
 
 #endif
-
-DWORD GetIdleTime() // in seconds
-{
-	LASTINPUTINFO lastInPut;
-	GetLastInputInfo(&lastInPut);
-    return (GetTickCount() - lastInPut.dwTime) / 1000;
-}
 
 COnlineUpdater::COnlineUpdater(QObject* parent) : QObject(parent)
 {
 	m_IgnoredUpdates = theConf->GetStringList("Options/IgnoredUpdates");
 
-	m_RequestManager = NULL;
-	m_pUpdaterUtil = NULL;
-
 	LoadState();
 }
 
-void COnlineUpdater::StartJob(CUpdatesJob* pJob, const QUrl& Url)
+void COnlineUpdater::StartNetworkJob(CNetworkJob* pJob, const QUrl& Url)
 {
-	if (m_RequestManager == NULL) 
+	if (!m_RequestManager) 
 		m_RequestManager = new CNetworkAccessManager(30 * 1000, this);
 
 	QNetworkRequest Request = QNetworkRequest(Url);
 	//Request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
 	Request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
 	//Request.setRawHeader("Accept-Encoding", "gzip");
-	QNetworkReply* pReply = m_RequestManager->get(Request);
-	connect(pReply, SIGNAL(finished()), this, SLOT(OnRequestFinished()));
-	connect(pReply, SIGNAL(downloadProgress(qint64, qint64)), pJob, SLOT(OnDownloadProgress(qint64, qint64)));
-
-	connect(pJob->m_pProgress.data(), &CAsyncProgress::Canceled, pReply, &QNetworkReply::abort);
-	m_JobQueue.insert(pReply, pJob);
+	pJob->SetReply(m_RequestManager->get(Request));
 }
 
-void COnlineUpdater::OnRequestFinished()
-{
-	QNetworkReply* pReply = qobject_cast<QNetworkReply*>(sender());
-	CUpdatesJob* pJob = m_JobQueue.take(pReply);
-	if (pJob) {
-		pJob->Finish(pReply);
-		pJob->deleteLater();
-	}
-	pReply->deleteLater();
-}
-
-quint64 COnlineUpdater::GetRandID()
-{
-	quint64 RandID = 0;
-	theCore->GetSecureParam("RandID", &RandID, sizeof(RandID));
-	if (!RandID) {
-		RandID = QRandomGenerator64::global()->generate();
-		theCore->SetSecureParam("RandID", &RandID, sizeof(RandID));
-	}
-	return RandID;
-}
-
-PROGRESS COnlineUpdater::GetUpdates(QObject* receiver, const char* member, const QVariantMap& Params)
+void COnlineUpdater::GetUpdates(QObject* receiver, const char* member, const QVariantMap& Params, const CProgressDialogPtr& pDialog)
 {
 	QUrlQuery Query;
 	Query.addQueryItem("action", "update");
 	Query.addQueryItem("software", "major-privacy");
-	//QString Branch = theConf->GetString("Options/ReleaseBranch");
-	//if (!Branch.isEmpty())
-	//	Query.addQueryItem("branch", Branch);
-	//Query.addQueryItem("version", theGUI->GetVersion());
 	//Query.addQueryItem("version", QString::number(VERSION_MJR) + "." + QString::number(VERSION_MIN) + "." + QString::number(VERSION_REV) + "." + QString::number(VERSION_UPD));
-#ifdef INSIDER_BUILD
-	Query.addQueryItem("version", QString(__DATE__));
-#else
 	Query.addQueryItem("version", QString::number(VERSION_MJR) + "." + QString::number(VERSION_MIN) + "." + QString::number(VERSION_REV));
-#endif
 	Query.addQueryItem("system", "windows-" + QSysInfo::kernelVersion() + "-" + QSysInfo::currentCpuArchitecture());
 	Query.addQueryItem("language", QLocale::system().name());
 #ifdef _DEBUG
@@ -153,10 +109,10 @@ PROGRESS COnlineUpdater::GetUpdates(QObject* receiver, const char* member, const
 	QUrl Url("https://xanasoft.com/update.php");
 	Url.setQuery(Query);
 
-	CUpdatesJob* pJob = new CGetUpdatesJob(Params, this);
-	StartJob(pJob, Url);
+	CNetworkJob* pJob = new CGetUpdatesJob(Params, this);
+	pJob->SetProgressDialog(pDialog);
+	StartNetworkJob(pJob, Url);
 	QObject::connect(pJob, SIGNAL(UpdateData(const QVariantMap&, const QVariantMap&)), receiver, member, Qt::QueuedConnection);
-	return PROGRESS(OP_ASYNC, pJob->m_pProgress);
 }
 
 void CGetUpdatesJob::Finish(QNetworkReply* pReply)
@@ -178,80 +134,28 @@ void CGetUpdatesJob::Finish(QNetworkReply* pReply)
 		QByteArray Reply = pReply->readAll();
 
 		Data = QJsonDocument::fromJson(Reply).toVariant().toMap();
-
-		if (Data.contains("cbl"))
-		{
-			QVariantMap CertBL = Data["cbl"].toMap();
-			QByteArray BlockList0 = CertBL["list"].toByteArray();
-			QByteArray BlockListSig0 = QByteArray::fromHex(CertBL["sig"].toByteArray());
-
-			if (theCore->TestSignature(BlockList0, BlockListSig0))
-			{
-				std::string BlockList;
-				BlockList.resize(qMax(0x10000, BlockList0.size()), 0); // 64 kb should be enough
-				static quint32 BlockListLen = 0;
-				if (BlockListLen == 0) {
-					STATUS Status = theCore->GetSecureParam("CertBlockList", (void*)BlockList.c_str(), BlockList.size(), &BlockListLen, true);
-					//BlockList.resize(BlockListLen);
-					if (Status.IsError()) // error
-						BlockListLen = 0;
-				}
-
-				if (BlockListLen < BlockList0.size())
-				{
-					theCore->SetSecureParam("CertBlockList", BlockList0, BlockList0.size());
-					theCore->SetSecureParam("CertBlockListSig", BlockListSig0, BlockListSig0.size());
-					BlockListLen = BlockList0.size();
-					//BlockList = BlockList0;
-
-					theGUI->ReloadCert();
-				}
-			}
-			else
-			{
-				Q_ASSERT(0);
-			}
-		}
-
-		time_t CurrentDate = QDateTime::currentDateTimeUtc().toSecsSinceEpoch();
-		theCore->SetSecureParam("LastUpdate", &CurrentDate, sizeof(CurrentDate));
-
-		QString LabelMsg = Data["labelMsg"].toString();
-		theConf->SetValue("Updater/LabelMessage", LabelMsg);
 	}
 
-	m_pProgress->Finish(OK);
+	if(m_pProgress)
+		m_pProgress->OnFinished();
 
 	emit UpdateData(Data, m_Params);
 }
 
-QDateTime COnlineUpdater::GetLastUpdateDate()
+void COnlineUpdater::DownloadFile(const QString& Url, QObject* receiver, const char* member, const QVariantMap& Params, const CProgressDialogPtr& pDialog)
 {
-	time_t UpdateDate = 0;
-	theCore->GetSecureParam("LastUpdate", &UpdateDate, sizeof(UpdateDate));
-
-	time_t CurrentDate = QDateTime::currentDateTimeUtc().toSecsSinceEpoch();
-	if (UpdateDate > CurrentDate) { // can't be in the future
-		UpdateDate = 0;
-		theCore->SetSecureParam("LastUpdate", &UpdateDate, sizeof(UpdateDate));
-	}
-
-	return QDateTime::fromSecsSinceEpoch(UpdateDate);
-}
-
-PROGRESS COnlineUpdater::DownloadFile(const QString& Url, QObject* receiver, const char* member, const QVariantMap& Params)
-{
-	CUpdatesJob* pJob = new CGetFileJob(Params, this);
-	StartJob(pJob, Url);
+	CNetworkJob* pJob = new CGetFileJob(Params, this);
+	pJob->SetProgressDialog(pDialog);
+	StartNetworkJob(pJob, Url);
 	QObject::connect(pJob, SIGNAL(Download(const QString&, const QVariantMap&)), receiver, member, Qt::QueuedConnection);
-	return PROGRESS(OP_ASYNC, pJob->m_pProgress);
 }
 
 void CGetFileJob::Finish(QNetworkReply* pReply)
 {
 	quint64 Size = pReply->bytesAvailable();
 
-	m_pProgress->SetProgress(-1);
+	if(m_pProgress)
+		m_pProgress->ShowProgress("");
 
 	QString FilePath = m_Params["path"].toString();
 	if (FilePath.isEmpty()) {
@@ -272,7 +176,8 @@ void CGetFileJob::Finish(QNetworkReply* pReply)
 		File.close();
 	}
 
-	m_pProgress->Finish(OK);
+	if(m_pProgress)
+		m_pProgress->OnFinished();
 
 	if (File.size() != Size) {
 		QMessageBox::critical(theGUI, "MajorPrivacy", tr("Failed to download file from: %1").arg(pReply->request().url().toString()));
@@ -282,7 +187,983 @@ void CGetFileJob::Finish(QNetworkReply* pReply)
 	emit Download(FilePath, m_Params);
 }
 
-PROGRESS COnlineUpdater::GetSupportCert(const QString& Serial, QObject* receiver, const char* member, const QVariantMap& Params)
+// Update Handling
+
+QStringList COnlineUpdater::ScanUpdateFiles(const QVariantMap& Update)
+{
+	QString AppDir = QApplication::applicationDirPath();
+#ifdef DUMMY_PATH
+	AppDir = DUMMY_PATH;
+#endif
+
+	QStringList Files;
+
+	foreach(const QVariant vFile, Update["files"].toList()) {
+		QVariantMap File = vFile.toMap();
+		QCryptographicHash qHash(QCryptographicHash::Sha256);
+		QFile qFile(AppDir + "\\" + File["path"].toString());
+		if (qFile.open(QFile::ReadOnly)) {
+			qHash.addData(&qFile);
+			qFile.close();
+		}
+		if (qHash.result() != QByteArray::fromHex(File["hash"].toByteArray()))
+			Files.append(File["path"].toString());
+	}
+
+	return Files;
+}
+
+void COnlineUpdater::LoadState()
+{
+	m_UpdateVersion = ParseVersionStr(theConf->GetString("Updater/UpdateVersion"), &m_UpdateNumber);
+	if (VersionToInt(m_UpdateVersion) < GetCurrentVersionInt() || (m_UpdateVersion == GetCurrentVersion() && m_UpdateNumber <= GetCurrentUpdate())) // it seems update has been applied or has been superseded
+		ClearUpdate();
+	else
+	{
+		QVariantMap UpdateData = QJsonDocument::fromJson(ReadFileAsString(GetUpdateDir() + "/" UPDATE_FILE).toUtf8()).toVariant().toMap();
+		if (UpdateData.isEmpty() || UpdateData["version"].toString() != m_UpdateVersion || UpdateData["update"].toInt() != m_UpdateNumber)
+			ClearUpdate(); // update data is missing or invalid
+		else
+		{
+			QStringList ChangedFiles = ScanUpdateFiles(UpdateData);
+			if (ChangedFiles.isEmpty()) // check if this update has already been applied
+				ClearUpdate();
+			else
+			{
+				m_UpdatePrepared = true;
+				for (const QString& file : ChangedFiles) {
+					if (!QFile::exists(GetUpdateDir() + "/" + file)) {
+						m_UpdatePrepared = false;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	m_InstallerVersion = ParseVersionStr(theConf->GetString("Updater/InstallerVersion"));
+	m_InstallerPath = theConf->GetString("Updater/InstallerPath");
+	if (!IsVersionNewer(m_InstallerVersion))
+		ClearRelease();
+	else
+	{
+		if (!QFile::exists(m_InstallerPath)) {
+			m_InstallerPath.clear();
+			theConf->DelValue("Updater/InstallerPath");
+		}
+	}
+
+	UpdateState();
+}
+
+void COnlineUpdater::UpdateState()
+{
+	QString OnNewUpdate = GetOnNewUpdateOption();
+	bool bCanApplyUpdate = (OnNewUpdate == "install");
+	bool bCanDownloadUpdate = bCanApplyUpdate || (OnNewUpdate == "download");
+
+	QString OnNewRelease = GetOnNewReleaseOption();
+	bool bCanRunInstaller = (OnNewRelease == "install");
+	bool bCanDownloadInstaller = bCanRunInstaller || (OnNewRelease == "download");
+
+	if (!m_InstallerPath.isEmpty() && bCanRunInstaller)
+		m_CheckState = eRunInstall;
+	else if (m_UpdatePrepared && bCanApplyUpdate)
+		m_CheckState = eApplyUpdate;
+
+	else if (!m_InstallerVersion.isEmpty() && bCanDownloadInstaller)
+		m_CheckState = eDownloadInstall;
+	else if (!m_UpdateVersion.isEmpty() && bCanDownloadUpdate)
+		m_CheckState = eDownloadUpdate;
+
+	emit StateChanged();
+}
+
+void COnlineUpdater::ClearUpdate()
+{
+	QFile::remove(GetUpdateDir() + "/" UPDATE_FILE);
+
+	m_UpdateVersion.clear();
+	m_UpdateNumber = 0;
+	m_UpdatePrepared = false;
+	theConf->DelValue("Updater/UpdateVersion");
+}
+
+void COnlineUpdater::ClearRelease()
+{
+	if (!m_InstallerPath.isEmpty()) {
+		QFile::remove(m_InstallerPath);
+		QFile::remove(m_InstallerPath + ".sig");
+	}
+	QFile::remove(GetUpdateDir() + "/" RELEASE_FILE);
+
+	m_InstallerVersion.clear();
+	m_InstallerPath.clear();
+	theConf->DelValue("Updater/InstallerVersion");
+	theConf->DelValue("Updater/InstallerPath");
+}
+
+void COnlineUpdater::Process() 
+{
+	int UpdateInterval = theConf->GetInt("Options/UpdateInterval", UPDATE_INTERVAL); // in seconds
+	QDateTime CurretnDate = QDateTime::currentDateTime();
+	time_t NextUpdateCheck = theConf->GetUInt64("Options/NextCheckForUpdates", 0);
+	if (NextUpdateCheck == 0 || NextUpdateCheck > CurretnDate.addDays(31).toSecsSinceEpoch()) { // no check made yet or invalid value
+		NextUpdateCheck = CurretnDate.addSecs(UpdateInterval).toSecsSinceEpoch();
+		theConf->SetValue("Options/NextCheckForUpdates", NextUpdateCheck);
+	}
+
+	int iCheckUpdates = theConf->GetInt("Options/CheckForUpdates", 2);
+	int iCheckTweaks = theConf->GetInt("Options/UpdateTweaks", 2);
+	if (m_CheckState == eIdle && (iCheckUpdates != 0 || iCheckTweaks != 0) && CheckInternet())
+	{
+		if(CurretnDate.toSecsSinceEpoch() >= NextUpdateCheck)
+		{
+			if (iCheckUpdates == 2)
+			{
+				bool bCheck = false;
+				iCheckUpdates = CCheckableMessageBox::question(theGUI, "MajorPrivacy", tr("Do you want to check if there is a new version of MajorPrivacy?")
+					, tr("Don't show this message again."), &bCheck, QDialogButtonBox::Yes | QDialogButtonBox::No, QDialogButtonBox::Yes, QMessageBox::Information) == QDialogButtonBox::Ok ? 1 : 0;
+
+				if (bCheck) {
+					theConf->SetValue("Options/CheckForUpdates", iCheckUpdates);
+				}
+			}
+
+			if (iCheckUpdates != 0 || iCheckTweaks == 1)
+			{
+				// schedule next check in 12 h in case this one fails
+				theConf->SetValue("Options/NextCheckForUpdates", CurretnDate.addSecs(12 * 60 * 60).toSecsSinceEpoch());
+		
+				CheckForUpdates(false);
+			}
+			else
+				theConf->SetValue("Options/NextCheckForUpdates", CurretnDate.addSecs(UpdateInterval).toSecsSinceEpoch());
+		}
+	}
+
+	if (m_CheckState == eDownloadInstall || m_CheckState == eDownloadUpdate)
+	{
+		if (CheckInternet())
+		{
+			if (m_CheckState == eDownloadInstall)
+			{
+				QVariantMap ReleaseData = QJsonDocument::fromJson(ReadFileAsString(GetUpdateDir() + "/" RELEASE_FILE).toUtf8()).toVariant().toMap();
+				DownloadInstaller(ReleaseData);
+			}
+			else if (m_CheckState == eDownloadUpdate)
+			{
+				QVariantMap UpdateData = QJsonDocument::fromJson(ReadFileAsString(GetUpdateDir() + "/" UPDATE_FILE).toUtf8()).toVariant().toMap();
+				QStringList ChangedFiles = ScanUpdateFiles(UpdateData);
+				DownloadUpdate(UpdateData, ChangedFiles);
+			}
+			m_CheckState = eIdle;
+		}
+	}
+	else if (m_CheckState == eApplyUpdate || m_CheckState == eRunInstall)
+	{
+		// When auto install/apply is active wait for the user to be idle
+#ifndef _DEBUG
+		LASTINPUTINFO lastInput;
+		GetLastInputInfo(&lastInput);
+		DWORD dwIdleTime= (GetTickCount() - lastInput.dwTime) / 1000;
+
+		if(dwIdleTime > theConf->GetInt("Options/UpdateIdleTime", 30*60)) // default 30 minutes
+#endif
+		{
+			if (m_CheckState == eApplyUpdate)
+				ApplyUpdate(true);
+			else if (m_CheckState == eRunInstall)
+				RunInstaller(true);
+			m_CheckState = eIdle;
+		}
+	}
+}
+
+void COnlineUpdater::CheckForUpdates(bool bManual)
+{
+#ifdef _DEBUG
+	if (QApplication::keyboardModifiers() & Qt::ControlModifier)
+		bManual = false;
+#endif
+
+	m_CheckState = bManual ? eManual : eAuto;
+
+	CProgressDialogPtr pProgress;
+	if (bManual) {
+		pProgress = CProgressDialogPtr(new CProgressDialog(tr("Checking for updates..."), theGUI));
+		pProgress->Show();
+	}
+
+	QVariantMap Params;
+    GetUpdates(this, SLOT(OnUpdateData(const QVariantMap&, const QVariantMap&)), Params, pProgress);
+}
+
+void COnlineUpdater::OnUpdateData(const QVariantMap& Data, const QVariantMap& Params)
+{
+	if (Data.isEmpty() || Data["error"].toBool()) {
+		QString Error = Data.isEmpty() ? tr("server not reachable") : Data["errorMsg"].toString();
+		//theGUI->OnLogMessage(tr("Failed to check for updates, error: %1").arg(Error), m_CheckMode != eManual); // todo
+		if (m_CheckState == eManual)
+			QMessageBox::critical(theGUI, "MajorPrivacy", tr("Failed to check for updates, error: %1").arg(Error));
+		m_CheckState = eIdle;
+		return;
+	}
+
+	bool bNothing = true;
+	bool bAuto = m_CheckState != eManual;
+
+	if (Data.contains("cbl"))
+		HandleCertBL(Data["cbl"].toMap());
+	
+	QString LabelMsg = Data["labelMsg"].toString();
+	theConf->SetValue("Updater/LabelMessage", LabelMsg);
+
+	if (HandleUserMessage(Data))
+		bNothing = false;
+
+	m_LastUpdate = QDateTime::currentDateTime();
+	
+	if (HandleUpdate(Data))
+		bNothing = false;
+
+	int iCheckTweaks = theConf->GetInt("Options/UpdateTweaks", 2);
+	if (bNothing && iCheckTweaks != 0) 
+	{
+		QVariantMap Tweaks = Data["tweaks"].toMap();
+		uint32 uRevision = Tweaks["revision"].toUInt();
+		
+		if (uRevision > theCore->TweakManager()->GetRevision())
+		{
+			QString DownloadUrl = Tweaks["downloadUrl"].toString();
+
+			CProgressDialogPtr pProgress;
+			if (!bAuto) {
+				pProgress = CProgressDialogPtr(new CProgressDialog(tr("Downloading installer..."), theGUI));
+				pProgress->Show();
+			}
+
+			QVariantMap Params;
+			DownloadFile(DownloadUrl, this, SLOT(OnTweaksDownload(const QString&, const QVariantMap&)), Params, pProgress);
+		}
+	}
+
+	if (bAuto) {
+		int UpdateInterval = theConf->GetInt("Options/UpdateInterval", UPDATE_INTERVAL); // in seconds
+		theConf->SetValue("Options/NextCheckForUpdates", QDateTime::currentDateTime().addSecs(UpdateInterval).toSecsSinceEpoch());
+	}
+	else if (bNothing)  {
+		QMessageBox::information(theGUI, "MajorPrivacy", tr("No new updates found, your MajorPrivacy is up-to-date.\n"
+			"\nNote: The update check is often behind the latest GitHub release to ensure that only tested updates are offered."));
+	}
+
+	emit StateChanged();
+}
+
+bool COnlineUpdater::HandleUpdate(const QVariantMap& Data)
+{
+	bool Ret = false;
+
+	bool bManual = m_CheckState == eManual;
+	bool bAllowAuto = g_CertInfo.active && !g_CertInfo.expired; // To use automatic updates a valid certificate is required
+
+	QString OnNewUpdate = GetOnNewUpdateOption();
+	bool bIgnoreUpdate = !bManual && OnNewUpdate == "ignore";
+	bool bCanApplyUpdate = (OnNewUpdate == "install");
+	bool bCanDownloadUpdate = bCanApplyUpdate || (OnNewUpdate == "download");
+
+	QString OnNewRelease = GetOnNewReleaseOption();
+	bool bIgnoreInstaller = !bManual && OnNewRelease == "ignore";
+	bool bCanRunInstaller = (OnNewRelease == "install");
+	bool bCanDownloadInstaller = bCanRunInstaller || (OnNewRelease == "download");
+
+	QVariantMap ReleaseData = Data["release"].toMap();
+	QString ReleaseStr = ReleaseData["version"].toString();
+	if (VersionToInt(ReleaseStr) > VersionToInt(m_InstallerVersion))
+		ClearRelease(); // current installer is outdated, clear it
+	if (IsVersionNewer(ReleaseStr)) 
+	{
+		if (bManual || (!bIgnoreInstaller && !m_IgnoredUpdates.contains(ReleaseStr))) 
+		{
+			Ret = true;
+
+			m_InstallerVersion = ReleaseStr;
+			theConf->SetValue("Updater/InstallerVersion", ReleaseStr);
+
+			QJsonDocument doc(QJsonValue::fromVariant(ReleaseData).toObject());
+			WriteStringToFile(GetUpdateDir(true) + "/" RELEASE_FILE, doc.toJson());
+		}
+	}
+
+	QVariantMap UpdateData = Data["update"].toMap();
+	QString UpdateStr = UpdateData["version"].toString();
+	int iUpdateNumber = UpdateData["update"].toInt();
+	bool bNewerVersion;
+	if (VersionToInt(UpdateStr) > VersionToInt(m_UpdateVersion) || (UpdateStr == m_UpdateVersion && iUpdateNumber > m_UpdateNumber))
+		ClearUpdate(); // current update is outdated, clear it
+	QStringList ChangedFiles;
+	if ((bNewerVersion = IsVersionNewer(UpdateStr)) || (UpdateStr == GetCurrentVersion()))
+	{
+		if (iUpdateNumber) UpdateStr += QChar('a' + (iUpdateNumber - 1));
+		if (bNewerVersion || iUpdateNumber > GetCurrentUpdate()) 
+		{
+			ChangedFiles = ScanUpdateFiles(UpdateData);
+			if (ChangedFiles.isEmpty()) // check if this update has already been applied
+				theConf->SetValue("Updater/CurrentUpdate", MakeVersionStr(UpdateData)); // cache result
+			else if (!bIgnoreUpdate)
+			{
+				if (bManual || !m_IgnoredUpdates.contains(UpdateStr))
+				{
+					Ret = true;
+
+					m_UpdateVersion = UpdateStr;
+					theConf->SetValue("Updater/UpdateVersion", MakeVersionStr(UpdateData)); // cache result
+
+					QJsonDocument doc(QJsonValue::fromVariant(UpdateData).toObject());
+					WriteStringToFile(GetUpdateDir(true) + "/" UPDATE_FILE, doc.toJson());
+				}
+			}
+		}
+	}
+
+	
+	if (!m_InstallerVersion.isEmpty()) 
+	{
+		if (m_InstallerPath.isEmpty())
+		{
+			int Download = 1;
+			if ((!bManual && bCanDownloadInstaller) || (Download = AskDownload(ReleaseData, bAllowAuto)))
+			{
+				if (Download == 1)
+				{
+					if (bManual)
+						DownloadInstaller(ReleaseData);
+					else
+						m_CheckState = eDownloadInstall;
+				}
+				else if (Download == -1)
+					ClearRelease();
+			}
+		}
+		else
+		{
+			if (bManual) 
+				RunInstaller(false);
+			else if(bCanRunInstaller)
+				m_CheckState = eRunInstall;
+		}
+	}
+	else if (!m_UpdateVersion.isEmpty())
+	{
+		if (!m_UpdatePrepared)
+		{
+			int Download = 1;
+			if ((!bManual && bCanDownloadUpdate) || (Download = AskDownload(UpdateData, true)))
+			{
+				if (Download == 1)
+				{
+					if (bManual)
+						DownloadUpdate(UpdateData, ChangedFiles);
+					else
+						m_CheckState = eDownloadUpdate;
+				}
+				else if (Download == -1)
+					ClearUpdate();
+			}
+		}
+		else
+		{
+			if (bManual) 
+				ApplyUpdate(ChangedFiles, false);
+			else if (bCanApplyUpdate)
+				m_CheckState = eApplyUpdate;
+		}
+	}
+
+	emit StateChanged();
+	return Ret;
+}
+
+int COnlineUpdater::AskDownload(const QVariantMap& Data, bool bAuto)
+{
+	bool bManual = m_CheckState == eManual;
+
+	QString VersionStr = MakeVersionStr(Data);
+
+	QString UpdateMsg = Data["infoMsg"].toString();
+	QString UpdateUrl = Data["infoUrl"].toString();
+	
+	QString FullMessage = !UpdateMsg.isEmpty() ? UpdateMsg : 
+		tr("<p>There is a new version of MajorPrivacy available.<br /><font color='red'><b>New version:</b></font> <b>%1</b></p>").arg(VersionStr);
+
+	QVariantMap Installer = Data["installer"].toMap();
+	QString DownloadUrl = Installer["downloadUrl"].toString();
+
+	enum EAction
+	{
+		eNone = 0,
+		eDownload,
+		eNotify,
+	} Action = eNone;
+
+	if (bAuto && !DownloadUrl.isEmpty()) {
+		Action = eDownload;
+		FullMessage += tr("<p>Do you want to download the installer?</p>");
+	}
+	else if (bAuto && Data.contains("files")) {
+		Action = eDownload;
+		FullMessage += tr("<p>Do you want to download the updates?</p>");
+	}
+	else if (!UpdateUrl.isEmpty()) {
+		Action = eNotify;
+		FullMessage += tr("<p>Do you want to go to the <a href=\"%1\">download page</a>?</p>").arg(UpdateUrl);
+	}
+
+	CCheckableMessageBox mb(theGUI);
+	mb.setWindowTitle("MajorPrivacy");
+	QIcon ico(QLatin1String(":/MajorPrivacy.png"));
+	mb.setIconPixmap(ico.pixmap(64, 64));
+	//mb.setTextFormat(Qt::RichText);
+	mb.setText(FullMessage);
+	mb.setCheckBoxText(tr("Don't show this update anymore."));
+	mb.setCheckBoxVisible(!bManual);
+
+	if (Action != eNone) {
+		mb.setStandardButtons(QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel);
+		mb.setDefaultButton(QDialogButtonBox::Yes);
+	} else
+		mb.setStandardButtons(QDialogButtonBox::Ok);
+
+	mb.exec();
+
+	if (mb.clickedStandardButton() == QDialogButtonBox::Yes)
+	{
+		if (Action == eDownload) 
+			return 1; // download
+		else
+			QDesktopServices::openUrl(UpdateUrl);
+	}
+	else 
+	{
+		if (mb.isChecked())
+		{
+			theConf->SetValue("Options/IgnoredUpdates", m_IgnoredUpdates << VersionStr);
+			return -1; // ignore and remember
+		}
+
+		if (mb.clickedStandardButton() == QDialogButtonBox::Cancel) 
+			return -1; // ignore only once
+	}
+
+	return 0; // do nothing
+}
+
+bool COnlineUpdater::DownloadInstaller(const QVariantMap& Release)
+{
+	bool bManual = m_CheckState == eManual;
+
+	QVariantMap Installer = Release["installer"].toMap();
+	QString DownloadUrl = Installer["downloadUrl"].toString();
+	if (DownloadUrl.isEmpty())
+		return false;
+
+	CProgressDialogPtr pProgress;
+	if (bManual) {
+		pProgress = CProgressDialogPtr(new CProgressDialog(tr("Downloading installer..."), theGUI));
+		pProgress->Show();
+	}
+
+	QVariantMap Params;
+	Params["version"] = MakeVersionStr(Release);
+	Params["signature"] = Installer["signature"];
+    DownloadFile(DownloadUrl, this, SLOT(OnInstallerDownload(const QString&, const QVariantMap&)), Params, pProgress);
+
+	return true;
+}
+
+void COnlineUpdater::OnInstallerDownload(const QString& Path, const QVariantMap& Params)
+{
+	bool bManual = m_CheckState == eManual;
+
+	QString VersionStr = Params["version"].toString();
+	QByteArray Signature = Params["signature"].toByteArray();
+
+	QFile SigFile(Path + ".sig");
+	if (SigFile.open(QFile::WriteOnly)) {
+		SigFile.write(QByteArray::fromBase64(Signature));
+		SigFile.close();
+	}
+
+	m_InstallerPath = Path;
+	theConf->SetValue("Updater/InstallerPath", Path);
+
+	if (bManual)
+		RunInstaller(false);
+	else
+	{
+		QString OnNewRelease = GetOnNewReleaseOption();
+		bool bCanRunInstaller = (OnNewRelease == "install");
+		RunInstaller(bCanRunInstaller);
+	}
+}
+
+void COnlineUpdater::OnTweaksDownload(const QString& Path, const QVariantMap& Params)
+{
+	bool bManual = m_CheckState == eManual;
+
+	QFile File(Path);
+	if (File.open(QFile::ReadOnly)) 
+	{
+		QByteArray TweakIni = File.readAll();
+		File.close();
+
+		if (!TweakIni.isEmpty())
+		{
+			theCore->WriteConfigFile("\\Tweaks.ini", TweakIni);
+
+			if (bManual)
+				QMessageBox::information(theGUI, "MajorPrivacy", tr("Tweaks have been updated."));
+		}
+	}
+	File.remove();
+}
+
+bool COnlineUpdater::RunInstaller(bool bSilent)
+{
+	if (!ShowCertWarningIfNeeded())
+		return false;
+
+	QString FilePath = theConf->GetString("Updater/InstallerPath");
+	if (FilePath.isEmpty() || !QFile::exists(FilePath)) {
+		theConf->DelValue("Updater/InstallerPath");
+		theConf->DelValue("Updater/InstallerVersion");
+		return false;
+	}
+
+	if (!bSilent) {
+		QString Message = tr("<p>A new MajorPrivacy installer has been downloaded to the following location:</p><p><a href=\"%2\">%1</a></p><p>Do you want to begin the installation? If any programs are running in secure enclaves, they will be terminated!</p>")
+			.arg(FilePath).arg("File:///" + Split2(FilePath, "/", true).first);
+		int Ret = QMessageBox("MajorPrivacy", Message, QMessageBox::Information, QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape, QMessageBox::Cancel, theGUI).exec();
+		if (Ret == QMessageBox::Cancel) {
+			ClearRelease();
+			UpdateState();
+		}
+		if (Ret != QMessageBox::Yes)
+			return false;
+	}
+
+	if (RunInstaller2(FilePath, true)) {
+		if (bSilent)
+			theConf->DelValue("Updater/InstallerVersion");
+		QApplication::quit();
+		return true;
+	}
+
+	return false;
+}
+
+bool COnlineUpdater::RunInstaller2(const QString& FilePath, bool bSilent)
+{
+	if (bSilent) 
+	{
+		QStringList Params;
+		Params.append("run_setup");
+		Params.append(QString(FilePath).replace("/", "\\"));
+#ifndef _DEBUG
+		Params.append("/embedded");
+#else
+		Params.append("/pause");
+#endif
+
+		RESULT(int) Result = theCore->RunUpdateUtility(Params, 1);
+		if (!Result.IsError())
+			return true;
+		// else fallback to ShellExecuteEx
+		if (theConf->GetBool("Options/UpdateNoFallback", false))
+			return false;
+	}
+
+	std::wstring wFile = QString(FilePath).replace("/", "\\").toStdWString();
+	std::wstring wParams;
+#ifndef _DEBUG
+	wParams = L"/SILENT";
+#endif
+
+	return RunElevated(wFile, wParams, 15*60*1000) == 0;
+}
+
+bool COnlineUpdater::HandleUserMessage(const QVariantMap& Data)
+{
+	QString UserMsg = Data["userMsg"].toString();
+	if (UserMsg.isEmpty())
+		return false;
+	
+	QString MsgHash = QCryptographicHash::hash(Data["userMsg"].toByteArray(), QCryptographicHash::Md5).toHex().left(8);
+	if (!m_IgnoredUpdates.contains(MsgHash))
+	{
+		QString FullMessage = UserMsg;
+		QString InfoUrl = Data["infoUrl"].toString();
+		if (!InfoUrl.isEmpty())
+			FullMessage += tr("<p>Do you want to go to the <a href=\"%1\">info page</a>?</p>").arg(InfoUrl);
+
+		CCheckableMessageBox mb(theGUI);
+		mb.setWindowTitle("MajorPrivacy");
+			
+		QByteArray MsgIcon = QByteArray::fromBase64(Data["msgIcon"].toByteArray());
+		if (!MsgIcon.isEmpty())
+		{
+			QPixmap pixmap;
+			pixmap.loadFromData(MsgIcon, "PNG");
+			mb.setIconPixmap(pixmap);
+		}
+		else
+		{
+			QIcon ico(QLatin1String(":/MajorPrivacy.png"));
+			mb.setIconPixmap(ico.pixmap(64, 64));
+		}
+			
+		//mb.setTextFormat(Qt::RichText);
+		mb.setText(UserMsg);
+		mb.setCheckBoxText(tr("Don't show this announcement in the future."));
+			
+		if (!InfoUrl.isEmpty()) {
+			mb.setStandardButtons(QDialogButtonBox::Yes | QDialogButtonBox::No);
+			mb.setDefaultButton(QDialogButtonBox::Yes);
+		}
+		else
+			mb.setStandardButtons(QDialogButtonBox::Ok);
+
+		mb.exec();
+
+		if (mb.isChecked())
+			theConf->SetValue("Options/IgnoredUpdates", m_IgnoredUpdates << MsgHash);
+
+		if (mb.clickedStandardButton() == QDialogButtonBox::Yes)
+		{
+			QDesktopServices::openUrl(InfoUrl);
+		}
+
+		return true;
+	}
+	
+	return false;
+}
+
+// Incremental updating
+
+bool COnlineUpdater::DownloadUpdate(const QVariantMap& Update, const QStringList& ChangedFiles)
+{
+	bool bManual = m_CheckState == eManual;
+
+	QStringList Args;
+	Args.append("update");
+	Args.append("/step:prepare");
+	if (!ChangedFiles.isEmpty())
+		Args.append("/files:" + ChangedFiles.join(";").replace("/", "\\"));
+#ifndef _DEBUG
+	Args.append("/embedded");
+#else
+	Args.append("/pause");
+#endif
+	Args.append("/temp:" + GetUpdateDir().replace("/", "\\"));
+#ifdef DUMMY_PATH
+	Args.append("/path:" DUMMY_PATH);
+#endif
+
+	CProgressDialogPtr pProgress;
+	if (bManual) {
+		pProgress = CProgressDialogPtr(new CProgressDialog(tr("Downloading updates..."), theGUI));
+		pProgress->Show();
+	}
+
+	QVariantMap Params;
+	Params["files"] = ChangedFiles;
+	Params["version"] = MakeVersionStr(Update);
+	CUtilityJob* pJob = new CUtilityJob(Params, this);
+	pJob->SetProgressDialog(pProgress);
+	QObject::connect(pJob, &CUtilityJob::Finished, this, &COnlineUpdater::OnUpdateDownload, Qt::QueuedConnection);
+	if(!pJob->Run(Args))
+		return false;
+
+	return true;
+}
+
+void COnlineUpdater::OnUpdateDownload(int exitCode, const QVariantMap& Params)
+{
+	bool bManual = m_CheckState == eManual;
+
+	if (exitCode < 0) {
+		QMessageBox::critical(theGUI, "MajorPrivacy", tr("Failed to download updates from server, error %1").arg(GetUpdErrorStr(exitCode)));
+		return; // failed
+	}
+
+	QStringList ChangedFiles = Params["files"].toStringList();
+	m_UpdatePrepared = true;
+
+	if (bManual)
+		ApplyUpdate(ChangedFiles, false);
+	else
+	{
+		QString OnNewRelease = GetOnNewReleaseOption();
+		bool bCanRunInstaller = (OnNewRelease == "install");
+		ApplyUpdate(ChangedFiles, bCanRunInstaller);
+	}
+}
+
+QString COnlineUpdater::GetUpdErrorStr(int exitCode)
+{
+	switch (exitCode)
+	{
+	case UPD_ERROR_INVALID:		return tr("invalid parameter");
+	case UPD_ERROR_GET:			return tr("failed to download updated information");
+	case UPD_ERROR_LOAD:		return tr("failed to load updated json file");
+	case UPD_ERROR_DOWNLOAD:	return tr("failed to download a particular file");
+	case UPD_ERROR_SCAN:		return tr("failed to scan existing installation");
+	case UPD_ERROR_SIGN:		return tr("updated signature is invalid !!!");
+	case UPD_ERROR_HASH:		return tr("downloaded file is corrupted");
+	case UPD_ERROR_INTERNAL:	return tr("internal error");
+	default:					return tr("unknown error");
+	}
+}
+
+bool COnlineUpdater::OnlyMetaDataChanged(const QStringList& Files)
+{
+#ifdef _DEBUG
+	return true;
+#endif
+	if(Files.isEmpty())
+		return false; // empty list means all files
+
+	foreach(const QString& File, Files) {
+		if (File.compare("Translations.7z", Qt::CaseInsensitive) != 0 &&
+			File.compare("Tweaks.ini", Qt::CaseInsensitive) != 0 &&
+			File.compare("MajorWallpaper.png", Qt::CaseInsensitive) != 0 &&
+			File.compare("License.txt", Qt::CaseInsensitive) != 0)
+			return false;
+	}
+	return true;
+}
+
+bool COnlineUpdater::ApplyUpdate(bool bSilent)
+{
+	QVariantMap UpdateData = QJsonDocument::fromJson(ReadFileAsString(GetUpdateDir() + "/" UPDATE_FILE).toUtf8()).toVariant().toMap();
+	QStringList ChangedFiles = ScanUpdateFiles(UpdateData);
+
+	return ApplyUpdate(ChangedFiles, bSilent);
+}
+
+bool COnlineUpdater::ApplyUpdate(const QStringList& Files, bool bSilent)
+{
+	bool bIsMetaOnly = OnlyMetaDataChanged(Files);
+
+	if (!bSilent)
+	{
+		QString Message = tr("<p>Updates for MajorPrivacy have been downloaded.</p><p>Do you want to apply these updates? If any programs are running in secure enclaves, they will be terminated.</p>");
+		int Ret = QMessageBox("MajorPrivacy", Message, QMessageBox::Information, QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape, QMessageBox::Cancel, theGUI).exec();
+		if (Ret == QMessageBox::Cancel) {
+			ClearUpdate();
+			UpdateState();
+		}
+		if (Ret != QMessageBox::Yes)
+			return false;
+	}
+
+	//if(bIsMetaOnly)
+	//	theAPI->TerminateAll();
+
+	QStringList Params;
+	Params.append("update");
+	Params.append("/step:apply");
+	if (!Files.isEmpty()) 
+		Params.append("/files:" + Files.join(";").replace("/", "\\"));
+#ifndef _DEBUG
+	Params.append("/embedded");
+#else
+	Params.append("/pause");
+#endif
+	Params.append("/temp:" + GetUpdateDir().replace("/", "\\"));
+#ifdef DUMMY_PATH
+	Params.append("/path:" DUMMY_PATH);
+#endif
+	if (!bIsMetaOnly)
+		Params.append("/restart");
+
+	RESULT(int) status = RunUpdater(Params, true, bIsMetaOnly);
+	if (!status.IsError()) {
+		if (!bIsMetaOnly)
+			QApplication::quit();
+		return true;
+	}
+	return false;
+}
+
+RESULT(int) COnlineUpdater::RunUpdater(const QStringList& Params, bool bSilent, bool Wait)
+{
+	if (bSilent) {
+		RESULT(int) Result = theCore->RunUpdateUtility(Params, 2, Wait);
+		if (!Result.IsError())
+			return Result;
+		// else fallback to ShellExecuteEx
+		if (theConf->GetBool("Options/UpdateNoFallback", false))
+			return Result;
+	}
+
+	std::wstring wFile = QString(QApplication::applicationDirPath() + "/UpdUtil.exe").replace("/", "\\").toStdWString();
+	std::wstring wParams;
+	foreach(const QString & Param, Params) {
+		if (!wParams.empty()) wParams.push_back(L' ');
+		wParams += L"\"" + Param.toStdWString() + L"\"";
+	}
+
+	int ExitCode = RunElevated(wFile, wParams, Wait ? 15*60*1000 : 0);
+	if (ExitCode == STATUS_PENDING && !Wait)
+		ExitCode = 0;
+	return CResult<int>(0, ExitCode);
+}
+
+// Helpers
+
+QString COnlineUpdater::GetUpdateDir(bool bCreate)
+{
+	QString TempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+	if (TempDir.right(1) != "/")
+		TempDir += "/";
+	TempDir += "MajorPrivacy-Updater";
+	// Note: must not end with a /
+	if(bCreate)
+		QDir().mkpath(TempDir);
+	return TempDir;
+}
+
+QString COnlineUpdater::MakeVersionStr(const QVariantMap& Data)
+{
+	QString Str = Data["version"].toString();
+	int iUpdate = Data["update"].toInt();
+	if (iUpdate) Str += QChar('a' + (iUpdate - 1));
+	return Str;
+}
+
+QString COnlineUpdater::ParseVersionStr(const QString& Str, int* pUpdate)
+{
+	int pos = Str.indexOf(QRegularExpression("[a-zA-Z]"));
+	if (pos == -1)
+		return Str;
+	QString Ver = Str.left(pos);
+	if (pUpdate) {
+		QString Tmp = Str.mid(pos);
+		*pUpdate = Tmp[0].toLatin1() - 'a' + 1;
+	}
+	return Ver;
+}
+
+QString COnlineUpdater::GetCurrentVersion()
+{
+	return QString::number(VERSION_MJR) + "." + QString::number(VERSION_MIN) + "." + QString::number(VERSION_REV);
+}
+
+int COnlineUpdater::GetCurrentUpdate()
+{
+#ifdef _DEBUG
+	return VERSION_UPD;
+#endif
+	int iUpdate = 0;
+	QString Version = ParseVersionStr(theConf->GetString("Updater/CurrentUpdate", 0), &iUpdate);
+	if(Version != GetCurrentVersion() || iUpdate < VERSION_UPD)
+		iUpdate = VERSION_UPD;
+	return iUpdate;
+}
+
+quint32 COnlineUpdater::GetCurrentVersionInt()
+{
+	//quint8 myVersion[4] = { VERSION_UPD, VERSION_REV, VERSION_MIN, VERSION_MJR }; // ntohl
+	quint8 myVersion[4] = { 0, VERSION_REV, VERSION_MIN, VERSION_MJR }; // ntohl
+	quint32 MyVersion = *(quint32*)&myVersion;
+	return MyVersion;
+}
+
+quint32 COnlineUpdater::VersionToInt(const QString& VersionStr)
+{
+	quint32 Version = 0;
+	QStringList Nums = VersionStr.split(".");
+	for (int i = 0, Bits = 24; i < Nums.count() && Bits >= 0; i++, Bits -= 8)
+		Version |= (Nums[i].toInt() & 0xFF) << Bits;
+	return Version;
+}
+
+bool COnlineUpdater::IsVersionNewer(const QString& VersionStr)
+{
+	if (VersionStr.isEmpty())
+		return false;
+	return VersionToInt(VersionStr) > GetCurrentVersionInt();
+}
+
+quint64 COnlineUpdater::GetRandID()
+{
+	quint64 RandID = 0;
+	theCore->GetSecureParam("RandID", &RandID, sizeof(RandID));
+	if (!RandID) {
+		RandID = QRandomGenerator64::global()->generate();
+		theCore->SetSecureParam("RandID", &RandID, sizeof(RandID));
+	}
+	return RandID;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Cert Stuff
+
+QString COnlineUpdater::GetOnNewUpdateOption() const
+{
+	int iCheckUpdates = theConf->GetInt("Options/CheckForUpdates", 2);
+	if(iCheckUpdates == 0)
+		return "ignore"; // user disabled update checks
+
+	QString OnNewUpdate = theConf->GetString("Options/OnNewUpdate", "ignore");
+
+	QString ReleaseChannel = theConf->GetString("Options/ReleaseChannel", "stable");
+	if (ReleaseChannel != "preview" && g_CertInfoValid && (!g_CertInfo.active || g_CertInfo.expired)) // without active cert, allow revisions for preview channel
+		return "ignore"; // this service requires a valid certificate
+
+	return OnNewUpdate;
+}
+
+QString COnlineUpdater::GetOnNewReleaseOption() const
+{
+	int iCheckUpdates = theConf->GetInt("Options/CheckForUpdates", 2);
+	if(iCheckUpdates == 0)
+		return "ignore"; // user disabled update checks
+
+	QString OnNewRelease = theConf->GetString("Options/OnNewRelease", "download");
+
+	if (OnNewRelease == "install" || OnNewRelease == "download") {
+		QString ReleaseChannel = theConf->GetString("Options/ReleaseChannel", "stable");
+		if (ReleaseChannel != "preview" && g_CertInfoValid && (!g_CertInfo.active || g_CertInfo.expired)) // without active cert, allow automated updates only for preview channel
+			return "notify"; // this service requires a valid certificate
+	}
+
+	//if ((g_CertInfo.active && g_CertInfo.expired) && OnNewRelease == "install")
+	//	return "download"; // disable auto update on an active but expired personal certificate
+	return OnNewRelease;
+}
+
+bool COnlineUpdater::ShowCertWarningIfNeeded()
+{
+	//
+	// This function checks if this installation uses a expired personal
+	// certificate which is active for the current build
+	// in which case it shows a warning that updating to the latest build 
+	// will deactivate the certificate
+	//
+
+	if (!(g_CertInfo.active && g_CertInfo.expired))
+		return true;
+
+	QString Message = tr("Your MajorPrivacy license is expired, however for the current build you are using it remains active, when you update to a newer build protection features will be disabled.\n\n"
+		"Do you still want to update?");
+	int Ret = QMessageBox("MajorPrivacy", Message, QMessageBox::Warning, QMessageBox::Yes, QMessageBox::No | QMessageBox::Escape | QMessageBox::Default, QMessageBox::NoButton, theGUI).exec();
+	return Ret == QMessageBox::Yes;
+}
+
+void COnlineUpdater::GetSupportCert(const QString& Serial, QObject* receiver, const char* member, const QVariantMap& Params, const CProgressDialogPtr& pDialog)
 {
 	QString UpdateKey = Params["key"].toString();
 
@@ -327,10 +1208,10 @@ PROGRESS COnlineUpdater::GetSupportCert(const QString& Serial, QObject* receiver
 	QUrl Url("https://xanasoft.com/get_cert.php?");
 	Url.setQuery(Query);
 
-	CUpdatesJob* pJob = new CGetCertJob(Params, this);
-	StartJob(pJob, Url);
+	CNetworkJob* pJob = new CGetCertJob(Params, this);
+	pJob->SetProgressDialog(pDialog);
+	StartNetworkJob(pJob, Url);
 	QObject::connect(pJob, SIGNAL(Certificate(const QByteArray&, const QVariantMap&)), receiver, member, Qt::QueuedConnection);
-	return PROGRESS(OP_ASYNC, pJob->m_pProgress);
 }
 
 bool COnlineUpdater::IsLockRequired()
@@ -355,7 +1236,8 @@ void CGetCertJob::Finish(QNetworkReply* pReply)
 {
 	QByteArray Reply = pReply->readAll();
 
-	m_pProgress->Finish(OK);
+	if(m_pProgress)
+		m_pProgress->OnFinished();
 
 	auto err = pReply->error();
 	if (err != QNetworkReply::NoError) 
@@ -372,1008 +1254,39 @@ void CGetCertJob::Finish(QNetworkReply* pReply)
 
 		m_Params["error"] = Data["errorMsg"].toString();
 	}
-	
+
 	emit Certificate(Reply, m_Params);
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-// Update Handling
-//
-
-void COnlineUpdater::LoadState()
+void COnlineUpdater::HandleCertBL(const QVariantMap& CertBL)
 {
-	m_CheckMode = eInit;
+	QByteArray BlockList0 = CertBL["list"].toByteArray();
+	QByteArray BlockListSig0 = QByteArray::fromHex(CertBL["sig"].toByteArray());
 
-	int iUpdate = 0;
-	QString UpdateStr = ParseVersionStr(theConf->GetString("Updater/PendingUpdate"), &iUpdate);
-	if (!IsVersionNewer(UpdateStr) && (UpdateStr != GetCurrentVersion() || iUpdate <= GetCurrentUpdate()))
-		theConf->SetValue("Updater/PendingUpdate", ""); // it seems update has been applied
-
-	bool bIsInstallerReady = false;
-	QString FilePath = theConf->GetString("Updater/InstallerPath");
-	if (!FilePath.isEmpty() && QFile::exists(FilePath)) {
-		QString ReleaseStr = ParseVersionStr(theConf->GetString("Updater/InstallerVersion"));
-		if (IsVersionNewer(ReleaseStr)) {
-			bIsInstallerReady = true;
-		}
-	}
-	QString OnNewRelease = GetOnNewReleaseOption();
-	bool bCanRunInstaller = OnNewRelease == "install";
-
-	bool bIsUpdateReady = false;
-	QVariantMap Update = QJsonDocument::fromJson(ReadFileAsString(GetUpdateDir() + "/" UPDATE_FILE).toUtf8()).toVariant().toMap();
-	if (!Update.isEmpty()) {
-		int iUpdate = 0;
-		QString UpdateStr = ParseVersionStr(theConf->GetString("Updater/UpdateVersion"), &iUpdate);
-		if (IsVersionNewer(UpdateStr) || (UpdateStr == GetCurrentVersion() && iUpdate > GetCurrentUpdate())) {
-			if (ScanUpdateFiles(Update) == eNone) // check if this update has already been applied
-				theConf->SetValue("Updater/CurrentUpdate", MakeVersionStr(Update)); // cache result
-			else
-				bIsUpdateReady = true;
-		}
-	}
-	QString OnNewUpdate = GetOnNewUpdateOption();
-	bool bCanApplyUpdate = OnNewUpdate == "install";
-
-	if (bIsInstallerReady && bCanRunInstaller)
-		m_CheckMode = ePendingInstall;
-	else if (bIsUpdateReady && bCanApplyUpdate)
-		m_CheckMode = ePendingUpdate;
-}
-
-QString COnlineUpdater::GetOnNewUpdateOption() const
-{
-	QString OnNewUpdate = theConf->GetString("Options/OnNewUpdate", "ignore");
-
-	QString ReleaseChannel = theConf->GetString("Options/ReleaseChannel", "stable");
-	if (ReleaseChannel != "preview" && (!g_CertInfo.active || g_CertInfo.expired)) // without active cert, allow revisions for preview channel
-		return "ignore"; // this service requires a valid certificate
-
-	return OnNewUpdate;
-}
-
-QString COnlineUpdater::GetOnNewReleaseOption() const
-{
-	QString OnNewRelease = theConf->GetString("Options/OnNewRelease", "download");
-
-	if (OnNewRelease == "install" || OnNewRelease == "download") {
-		QString ReleaseChannel = theConf->GetString("Options/ReleaseChannel", "stable");
-		if (ReleaseChannel != "preview" && (!g_CertInfo.active || g_CertInfo.expired)) // without active cert, allow automated updates only for preview channel
-			return "notify"; // this service requires a valid certificate
-	}
-
-	//if ((g_CertInfo.active && g_CertInfo.expired) && OnNewRelease == "install")
-	//	return "download"; // disable auto update on an active but expired personal certificate
-	return OnNewRelease;
-}
-
-bool COnlineUpdater::ShowCertWarningIfNeeded()
-{
-	//
-	// This function checks if this installation uses a expired personal
-	// certificate which is active for the current build
-	// in which case it shows a warning that updating to the latest build 
-	// will deactivate the certificate
-	//
-
-	if (!(g_CertInfo.active && g_CertInfo.expired))
-		return true;
-
-	QString Message = tr("Your MajorPrivacy license is expired, however for the current build you are using it remains active, when you update to a newer build protection features will be disabled.\n\n"
-		"Do you still want to update?");
-	int Ret = QMessageBox("MajorPrivacy", Message, QMessageBox::Warning, QMessageBox::Yes, QMessageBox::No | QMessageBox::Escape | QMessageBox::Default, QMessageBox::Cancel, theGUI).exec();
-	if (Ret == QMessageBox::Cancel) {
-		QTimer::singleShot(10, this, [=] {
-			theConf->DelValue("Updater/InstallerPath");
-			theConf->DelValue("Updater/UpdateVersion");
-			theGUI->UpdateLabel();
-		});
-	}
-	return Ret == QMessageBox::Yes;
-}
-
-void COnlineUpdater::Process() 
-{
-	int UpdateInterval = theConf->GetInt("Options/UpdateInterval", UPDATE_INTERVAL); // in seconds
-	QDateTime CurretnDate = QDateTime::currentDateTime();
-	time_t NextUpdateCheck = theConf->GetUInt64("Options/NextCheckForUpdates", 0);
-	if (NextUpdateCheck == 0 || NextUpdateCheck > CurretnDate.addDays(31).toSecsSinceEpoch()) { // no check made yet or invalid value
-		NextUpdateCheck = CurretnDate.addSecs(UpdateInterval).toSecsSinceEpoch();
-		theConf->SetValue("Options/NextCheckForUpdates", NextUpdateCheck);
-	}
-
-	int iCheckUpdates = theConf->GetInt("Options/CheckForUpdates", 2);
-	if (iCheckUpdates != 0)
+	if (theCore->TestSignature(BlockList0, BlockListSig0))
 	{
-		if(CurretnDate.toSecsSinceEpoch() >= NextUpdateCheck)
+		std::string BlockList;
+		BlockList.resize(qMax(0x10000, BlockList0.size()), 0); // 64 kb should be enough
+		static quint32 BlockListLen = 0;
+		if (BlockListLen == 0) {
+			STATUS Status = theCore->GetSecureParam("CertBlockList", (void*)BlockList.c_str(), BlockList.size(), &BlockListLen, true);
+			//BlockList.resize(BlockListLen);
+			if (Status.IsError()) // error
+				BlockListLen = 0;
+		}
+
+		if (BlockListLen < BlockList0.size())
 		{
-			if (iCheckUpdates == 2)
-			{
-				bool bCheck = false;
-				iCheckUpdates = CCheckableMessageBox::question(theGUI, "MajorPrivacy", tr("Do you want to check if there is a new version of MajorPrivacy?")
-					, tr("Don't show this message again."), &bCheck, QDialogButtonBox::Yes | QDialogButtonBox::No, QDialogButtonBox::Yes, QMessageBox::Information) == QDialogButtonBox::Ok ? 1 : 0;
+			theCore->SetSecureParam("CertBlockList", BlockList0, BlockList0.size());
+			theCore->SetSecureParam("CertBlockListSig", BlockListSig0, BlockListSig0.size());
+			BlockListLen = BlockList0.size();
+			//BlockList = BlockList0;
 
-				if (bCheck)
-					theConf->SetValue("Options/CheckForUpdates", iCheckUpdates);
-			}
-
-			if (iCheckUpdates == 0) // no clicked on prompt
-				theConf->SetValue("Options/NextCheckForUpdates", CurretnDate.addSecs(UpdateInterval).toSecsSinceEpoch());
-			else
-			{
-				// schedule next check in 12 h in case this one fails
-				theConf->SetValue("Options/NextCheckForUpdates", CurretnDate.addSecs(12 * 60 * 60).toSecsSinceEpoch());
-				
-				CheckForUpdates(false);
-			}
+			theGUI->ReloadCert();
 		}
 	}
 	else
-
-	if (m_CheckMode == ePendingUpdate || m_CheckMode == ePendingInstall)
 	{
-		// When auto install/apply is active wait for the user to be idle
-#ifndef _DEBUG
-		if(GetIdleTime() > theConf->GetInt("Options/UpdateIdleTime", 30*60)) // default 30 minutes
-#endif
-		// and wait for no processes running in the boxes
-		//if (theAPI->IsConnected() && theAPI->GetAllProcesses().isEmpty())
-		{
-			if (m_CheckMode == ePendingUpdate)
-				ApplyUpdate(eFull, true);
-			else if (m_CheckMode == ePendingInstall)
-				RunInstaller(true);
-			m_CheckMode = eInit;
-		}
+		Q_ASSERT(0);
 	}
-}
-
-void COnlineUpdater::CheckForUpdates(bool bManual)
-{
-	if (m_CheckMode == eManual || m_CheckMode == eAuto)
-		return; // already in progress
-
-#ifdef _DEBUG
-	if (QApplication::keyboardModifiers() & Qt::ControlModifier)
-		bManual = false;
-#endif
-
-	// clean up old check result
-	m_UpdateData.clear();
-
-	m_CheckMode = bManual ? eManual : eAuto;
-
-	QVariantMap Params;
-    PROGRESS Status = GetUpdates(this, SLOT(OnUpdateData(const QVariantMap&, const QVariantMap&)), Params);
-	if (bManual && Status.GetStatus() == OP_ASYNC) {
-		theGUI->AddAsyncOp(Status.GetValue());
-		Status.GetValue()->ShowMessage(tr("Checking for updates..."));
-	}
-}
-
-void COnlineUpdater::OnUpdateData(const QVariantMap& Data, const QVariantMap& Params)
-{
-	if (Data.isEmpty() || Data["error"].toBool()) {
-		QString Error = Data.isEmpty() ? tr("server not reachable") : Data["errorMsg"].toString();
-		//theGUI->OnLogMessage(tr("Failed to check for updates, error: %1").arg(Error), m_CheckMode != eManual); // todo
-		if (m_CheckMode == eManual)
-			QMessageBox::critical(theGUI, "MajorPrivacy", tr("Failed to check for updates, error: %1").arg(Error));
-		m_CheckMode = eInit;
-		return;
-	}
-
-	bool bNothing = true;
-	bool bAuto = m_CheckMode != eManual;
-
-	if (HandleUserMessage(Data))
-		bNothing = false;
-
-	m_UpdateData = Data;
-	m_LastUpdate = QDateTime::currentDateTime();
-	
-	bool PendingUpdate = HandleUpdate();
-	theGUI->UpdateLabel();
-
-	if (PendingUpdate) {
-		bNothing = false;
-	}
-
-	if (bNothing && HandleTweaks(Data)) {
-		bNothing = false;
-	}
-
-	if (bAuto) {
-		int UpdateInterval = theConf->GetInt("Options/UpdateInterval", UPDATE_INTERVAL); // in seconds
-		theConf->SetValue("Options/NextCheckForUpdates", QDateTime::currentDateTime().addSecs(UpdateInterval).toSecsSinceEpoch());
-	}
-	else if (bNothing)  {
-		QMessageBox::information(theGUI, "MajorPrivacy", tr("No new updates found, your MajorPrivacy is up-to-date.\n"
-			"\nNote: The update check is often behind the latest GitHub release to ensure that only tested updates are offered."));
-	}
-}
-
-bool COnlineUpdater::HandleUpdate()
-{
-	QString PendingUpdate;
-
-	QString OnNewRelease = GetOnNewReleaseOption();
-	bool bNewRelease = false;
-	QVariantMap Release = m_UpdateData["release"].toMap();
-	QString ReleaseStr = Release["version"].toString();
-	if (IsVersionNewer(ReleaseStr)) {
-		if (m_CheckMode == eManual || !m_IgnoredUpdates.contains(ReleaseStr)) {
-			PendingUpdate = ReleaseStr;
-			bNewRelease = true;
-		}
-	}
-
-	QString OnNewUpdate = GetOnNewUpdateOption();
-	bool bNewUpdate = false;
-	QVariantMap Update = m_UpdateData["update"].toMap();
-	QString UpdateStr = Update["version"].toString();
-	bool bNewer;
-	if ((bNewer = IsVersionNewer(UpdateStr)) || UpdateStr == GetCurrentVersion()) {
-		int iUpdate = Update["update"].toInt();
-		if (iUpdate) UpdateStr += QChar('a' + (iUpdate - 1));
-		if (bNewer || iUpdate > GetCurrentUpdate()) {
-			if (ScanUpdateFiles(Update) == eNone) // check if this update has already been applied
-				theConf->SetValue("Updater/CurrentUpdate", MakeVersionStr(Update)); // cache result
-			else if (OnNewUpdate != "ignore")
-			{
-				if(PendingUpdate.isEmpty())
-					PendingUpdate = UpdateStr;
-				if (m_CheckMode == eManual || !m_IgnoredUpdates.contains(UpdateStr)) {
-					bNewUpdate = true;
-				}
-			}
-		}
-	}
-
-	theConf->SetValue("Updater/PendingUpdate", PendingUpdate);
-
-	//
-	// special case: updates allowed be to installed, but releases only allowed to be downloaded
-	// solution: apply updates silently, then prompt to install new release, else prioritize installing new releases over updating the existing one
-	//
-
-	bool bAllowAuto = g_CertInfo.active && !g_CertInfo.expired; // To use automatic updates a valid certificate is required
-
-	bool bCanRunInstaller = (m_CheckMode == eAuto && OnNewRelease == "install");
-	bool bIsInstallerReady = false;
-	if (bNewRelease) 
-	{
-		if (theConf->GetString("Updater/InstallerVersion") == MakeVersionStr(Release))
-		{
-			QString FilePath = theConf->GetString("Updater/InstallerPath");
-			bIsInstallerReady = (!FilePath.isEmpty() && QFile::exists(FilePath));
-		}
-
-		if (!bIsInstallerReady)
-		{
-			// clear when not up to date
-			theConf->DelValue("Updater/InstallerVersion");
-
-			if ((bCanRunInstaller || (m_CheckMode == eAuto && OnNewRelease == "download")) || AskDownload(Release, bAllowAuto))
-			{
-				if (DownloadInstaller(Release, m_CheckMode == eManual))
-					return true;
-			}
-		}
-	}
-
-	bool bCanApplyUpdate = (m_CheckMode == eAuto && OnNewUpdate == "install");
-	if (bNewUpdate)
-	{
-		if ((!bNewRelease || (bCanApplyUpdate && !bCanRunInstaller)))
-		{
-			bool bIsUpdateReady = false;
-			if (theConf->GetString("Updater/UpdateVersion") == MakeVersionStr(Update))
-				bIsUpdateReady = QFile::exists(GetUpdateDir() + "/" UPDATE_FILE);
-
-			if (!bIsUpdateReady)
-			{
-				// clear when not up to date
-				theConf->DelValue("Updater/UpdateVersion");
-
-				if ((bCanApplyUpdate || (m_CheckMode == eAuto && OnNewUpdate == "download")) || AskDownload(Update, true))
-				{
-					if (DownloadUpdate(Update, eFull, m_CheckMode == eManual))
-						return true;
-				}
-			}
-			else if (m_CheckMode == eManual) {
-				if (ApplyUpdate(eFull, false))
-					return true;
-			}
-			else if (bCanApplyUpdate)
-				m_CheckMode = ePendingUpdate;
-		}
-	}
-
-	if (bIsInstallerReady)
-	{
-		if (m_CheckMode == eManual) {
-			if (RunInstaller(false))
-				return true;
-		}
-		else if(bCanRunInstaller)
-			m_CheckMode = ePendingInstall;
-	}
-
-	if (m_CheckMode != ePendingUpdate && m_CheckMode != ePendingInstall)
-		m_CheckMode = eInit;
-
-	return bNewRelease || bNewUpdate;
-}
-
-bool COnlineUpdater::AskDownload(const QVariantMap& Data, bool bAuto)
-{
-	QString VersionStr = MakeVersionStr(Data);
-
-	QString UpdateMsg = Data["infoMsg"].toString();
-	QString UpdateUrl = Data["infoUrl"].toString();
-	
-	QString FullMessage = !UpdateMsg.isEmpty() ? UpdateMsg : 
-		tr("<p>There is a new version of MajorPrivacy available.<br /><font color='red'><b>New version:</b></font> <b>%1</b></p>").arg(VersionStr);
-
-	QVariantMap Installer = Data["installer"].toMap();
-	QString DownloadUrl = Installer["downloadUrl"].toString();
-
-	enum EAction
-	{
-		eNone = 0,
-		eDownload,
-		eNotify,
-	} Action = eNone;
-
-	if (bAuto && !DownloadUrl.isEmpty()) {
-		Action = eDownload;
-		FullMessage += tr("<p>Do you want to download the installer?</p>");
-	}
-	else if (bAuto && Data.contains("files")) {
-		Action = eDownload;
-		FullMessage += tr("<p>Do you want to download the updates?</p>");
-	}
-	else if (!UpdateUrl.isEmpty()) {
-		Action = eNotify;
-		FullMessage += tr("<p>Do you want to go to the <a href=\"%1\">download page</a>?</p>").arg(UpdateUrl);
-	}
-
-	CCheckableMessageBox mb(theGUI);
-	mb.setWindowTitle("MajorPrivacy");
-	QIcon ico(QLatin1String(":/SandMan.png"));
-	mb.setIconPixmap(ico.pixmap(64, 64));
-	//mb.setTextFormat(Qt::RichText);
-	mb.setText(FullMessage);
-	mb.setCheckBoxText(tr("Don't show this update anymore."));
-	mb.setCheckBoxVisible(m_CheckMode != eManual);
-
-	if (Action != eNone) {
-		mb.setStandardButtons(QDialogButtonBox::Yes | QDialogButtonBox::No | QDialogButtonBox::Cancel);
-		mb.setDefaultButton(QDialogButtonBox::Yes);
-	} else
-		mb.setStandardButtons(QDialogButtonBox::Ok);
-
-	mb.exec();
-
-	if (mb.clickedStandardButton() == QDialogButtonBox::Yes)
-	{
-		if (Action == eDownload) 
-		{
-			m_CheckMode = eManual;
-			return true;
-		}
-		else
-			QDesktopServices::openUrl(UpdateUrl);
-	}
-	else 
-	{
-		if (mb.clickedStandardButton() == QDialogButtonBox::Cancel) 
-		{
-			theConf->SetValue("Updater/PendingUpdate", ""); 
-			theGUI->UpdateLabel();
-		}
-
-		if (mb.isChecked())
-			theConf->SetValue("Options/IgnoredUpdates", m_IgnoredUpdates << VersionStr);
-	}
-	return false;
-}
-
-COnlineUpdater::EUpdateScope COnlineUpdater::GetFileScope(const QString& Path)
-{
-	static const WCHAR CoreFiles[] = SCOPE_CORE_FILES;
-	static const WCHAR LangFiles[] = SCOPE_LANG_FILES;
-	static const WCHAR TmplFiles[] = SCOPE_TMPL_FILES;
-
-	auto WildMatch = [Path](const WCHAR* pFiles) {
-		for (const WCHAR* pFile = pFiles; *pFile; pFile += wcslen(pFile) + 1) {
-			QString WC = QRegularExpression::wildcardToRegularExpression(QString::fromWCharArray(pFile));
-			QRegularExpression RegExp(WC, QRegularExpression::CaseInsensitiveOption);
-			if (RegExp.match(Path).hasMatch())
-				return true;
-		}
-		return false;
-	};
-
-	if (WildMatch(CoreFiles))
-		return eCore;
-	if (WildMatch(TmplFiles) || WildMatch(LangFiles))
-		return eMeta;
-	// unknown files are handled the same as known Plus files
-	return eFull;
-}
-
-COnlineUpdater::EUpdateScope COnlineUpdater::ScanUpdateFiles(const QVariantMap& Update)
-{
-	QString AppDir = QApplication::applicationDirPath();
-#ifdef DUMMY_PATH
-	AppDir = DUMMY_PATH;
-#endif
-
-	EUpdateScope Scope = eNone;
-
-	foreach(const QVariant vFile, Update["files"].toList()) {
-		QVariantMap File = vFile.toMap();
-		QCryptographicHash qHash(QCryptographicHash::Sha256);
-		QFile qFile(AppDir + "\\" + File["path"].toString());
-		if (qFile.open(QFile::ReadOnly)) {
-			qHash.addData(&qFile);
-			qFile.close();
-		}
-		if (qHash.result() == QByteArray::fromHex(File["hash"].toByteArray()))
-			continue; // file did not change
-		
-		EUpdateScope CurScope = GetFileScope(File["path"].toString());
-		if (Scope < CurScope)
-			Scope = CurScope;
-	}
-
-	return Scope;
-}
-
-bool COnlineUpdater::DownloadUpdate(const QVariantMap& Update, EUpdateScope Scope, bool bAndApply)
-{
-	QJsonDocument doc(QJsonValue::fromVariant(Update).toObject());			
-	WriteStringToFile(GetUpdateDir(true) + "/" UPDATE_FILE, doc.toJson());
-	
-	theConf->DelValue("Updater/UpdateVersion");
-
-	QStringList Params;
-	Params.append("update");
-	Params.append("majorprivacy");
-	Params.append("/step:prepare");
-	if(Scope == eTmpl)
-		Params.append("/scope:tmpl");
-	else if(Scope == eMeta)
-		Params.append("/scope:meta");
-	Params.append("/embedded");
-	Params.append("/temp:" + GetUpdateDir().replace("/", "\\"));
-#ifdef DUMMY_PATH
-	Params.append("/path:" DUMMY_PATH);
-#endif
-
-	m_pUpdaterUtil = new QProcess(this);
-	m_pUpdaterUtil->setProperty("apply", bAndApply);
-	m_pUpdaterUtil->setProperty("tmpl", Scope == eTmpl);
-	m_pUpdaterUtil->setProperty("version", MakeVersionStr(Update));
-	m_pUpdaterUtil->setProgram(QApplication::applicationDirPath() + "/UpdUtil.exe");
-	m_pUpdaterUtil->setArguments(Params);
-	connect(m_pUpdaterUtil, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(OnPrepareFinished(int, QProcess::ExitStatus)));
-	connect(m_pUpdaterUtil, SIGNAL(readyReadStandardOutput()), this, SLOT(OnPrepareOutput()));
-	connect(m_pUpdaterUtil, SIGNAL(readyReadStandardError()), this, SLOT(OnPrepareError()));
-	m_pUpdaterUtil->start();
-
-	if (m_pUpdaterUtil->state() != QProcess::Running)
-		return false;
-
-	m_pUpdateProgress = CAsyncProgressPtr(new CAsyncProgress());
-	connect(m_pUpdateProgress.data(), &CAsyncProgress::Canceled, this, [&]() {
-		if (m_pUpdaterUtil && m_pUpdaterUtil->state() == QProcess::Running)
-				m_pUpdaterUtil->terminate();
-	});
-	theGUI->AddAsyncOp(m_pUpdateProgress);
-	m_pUpdateProgress->ShowMessage(tr("Downloading updates..."));
-
-	return true;
-}
-
-void COnlineUpdater::OnPrepareOutput()
-{
-	QProcess* pProcess = (QProcess*)sender();
-	QByteArray Text = pProcess->readAllStandardOutput();
-	qDebug() << "UPD-OUT:\t" << Text;
-
-	if (!m_pUpdateProgress.isNull())
-		m_pUpdateProgress->ShowMessage(Text.trimmed());
-}
-
-void COnlineUpdater::OnPrepareError()
-{
-	QProcess* pProcess = (QProcess*)sender();
-	QByteArray Text = pProcess->readAllStandardOutput();
-	qDebug() << "UPD-ERR:\t" << Text;
-}
-
-QString GetUpdErrorStr(int exitCode)
-{
-	switch (exitCode)
-	{
-	case ERROR_INVALID: return COnlineUpdater::tr("invalid parameter");
-	case ERROR_GET: return COnlineUpdater::tr("failed to download updated information");
-	case ERROR_LOAD: return COnlineUpdater::tr("failed to load updated json file");
-	case ERROR_DOWNLOAD: return COnlineUpdater::tr("failed to download a particular file");
-	case ERROR_SCAN: return COnlineUpdater::tr("failed to scan existing installation");
-	case ERROR_SIGN: return COnlineUpdater::tr("updated signature is invalid !!!");
-	case ERROR_HASH: return COnlineUpdater::tr("downloaded file is corrupted");
-	case ERROR_INTERNAL: return COnlineUpdater::tr("internal error");
-	default: return COnlineUpdater::tr("unknown error");
-	}
-}
-
-void COnlineUpdater::OnPrepareFinished(int exitCode, QProcess::ExitStatus exitStatus)
-{
-	QProcess* pProcess = (QProcess*)sender();
-	if (pProcess != m_pUpdaterUtil) {
-		pProcess->deleteLater();
-		return;
-	}
-	bool bAndApply = pProcess->property("apply").toBool();
-	bool bTmplOnly = pProcess->property("tmpl").toBool();
-	QString VersionStr = pProcess->property("version").toString();
-
-	m_pUpdaterUtil->deleteLater();
-	m_pUpdaterUtil = NULL;
-
-	if (m_pUpdateProgress.isNull())
-		return; // canceled
-
-	m_pUpdateProgress->Finish(OK);
-	m_pUpdateProgress.clear();
-
-	if (exitCode < 0) {
-		QMessageBox::critical(theGUI, "MajorPrivacy", tr("Failed to download updates from server, error %1").arg(GetUpdErrorStr(exitCode)));
-		return; // failed
-	}
-
-	theConf->SetValue("Updater/UpdateVersion", VersionStr);
-
-	if (bAndApply)
-		ApplyUpdate(bTmplOnly ? eTmpl : eFull, false);
-	else 
-	{
-		HandleUpdate();
-		theGUI->UpdateLabel();
-	}
-}
-
-bool COnlineUpdater::ApplyUpdate(EUpdateScope Scope, bool bSilent)
-{
-	if (Scope != eTmpl)
-	{
-		if (!ShowCertWarningIfNeeded())
-			return false;
-
-		if (!bSilent)
-		{
-			QString Message = tr("<p>Updates for MajorPrivacy have been downloaded.</p><p>Do you want to apply these updates? If any programs are running in secure enclaves, they will be terminated.</p>");
-			int Ret = QMessageBox("MajorPrivacy", Message, QMessageBox::Information, QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape, QMessageBox::Cancel, theGUI).exec();
-			if (Ret == QMessageBox::Cancel) {
-				theConf->DelValue("Updater/UpdateVersion");
-				theGUI->UpdateLabel();
-			}
-			if (Ret != QMessageBox::Yes)
-				return false;
-		}
-
-		QVariantMap Update = QJsonDocument::fromJson(ReadFileAsString(GetUpdateDir() + "/" UPDATE_FILE).toUtf8()).toVariant().toMap();
-		Scope = ScanUpdateFiles(Update);
-		if (Scope == eNone)
-			return true; // nothing to do
-	}
-
-	//if(Scope != eMeta) // todo
-	//	theAPI->TerminateAll();
-
-	QStringList Params;
-	Params.append("update");
-	Params.append("majorprivacy");
-	Params.append("/step:apply");
-	if(Scope == eTmpl)
-		Params.append("/scope:tmpl");
-	else if(Scope == eMeta)
-		Params.append("/scope:meta");
-	else
-		Params.append("/restart");
-#ifndef _DEBUG
-	Params.append("/embedded");
-#else
-	Params.append("/pause");
-#endif
-	Params.append("/temp:" + GetUpdateDir().replace("/", "\\"));
-#ifdef DUMMY_PATH
-	Params.append("/path:" DUMMY_PATH);
-#endif
-	if (Scope == eFull)
-		Params.append("/open:sandman.exe");
-
-	RESULT(int) status = RunUpdater(Params, true, Scope != eFull);
-	if (!status.IsError()) {
-		if(bSilent)
-			theConf->DelValue("Updater/UpdateVersion");
-		/*if (Scope == eTmpl || Scope == eMeta)
-			theAPI->ReloadConfig();
-		else*/ if (Scope == eFull)
-			QApplication::quit();
-		else
-			theCore->Connect(false);
-		return true;
-	}
-	return false;
-}
-
-RESULT(int) COnlineUpdater::RunUpdater(const QStringList& Params, bool bSilent, bool Wait)
-{
-	if (bSilent) {
-		RESULT(int) Result = theCore->RunUpdateUtility(Params, 2, Wait);
-		if (!Result.IsError())
-			return Result;
-		// else fallback to ShellExecuteEx
-		if (theConf->GetBool("Options/UpdateNoFallback", false))
-			return Result;
-	}
-
-	std::wstring wFile = QString(QApplication::applicationDirPath() + "/UpdUtil.exe").replace("/", "\\").toStdWString();
-	std::wstring wParams;
-	foreach(const QString & Param, Params) {
-		if (!wParams.empty()) wParams.push_back(L' ');
-		wParams += L"\"" + Param.toStdWString() + L"\"";
-	}
-
-	int ExitCode = RunElevated(wFile, wParams, Wait ? 15*60*1000 : 0);
-	if (ExitCode == STATUS_PENDING && !Wait)
-		ExitCode = 0;
-	return CResult<int>(0, ExitCode);
-}
-
-bool COnlineUpdater::DownloadInstaller(const QVariantMap& Release, bool bAndRun)
-{
-	if (m_RequestManager == NULL) 
-		m_RequestManager = new CNetworkAccessManager(30 * 1000, this);
-
-	QVariantMap Installer = Release["installer"].toMap();
-	QString DownloadUrl = Installer["downloadUrl"].toString();
-	if (DownloadUrl.isEmpty())
-		return false;
-
-	// clean up old installer if present
-	QString FilePath = theConf->GetString("Updater/InstallerPath");
-	if (!FilePath.isEmpty()) {
-		QFile::remove(FilePath);
-		QFile::remove(FilePath + ".sig");
-		theConf->DelValue("Updater/InstallerPath");
-	}
-
-	QVariantMap Params;
-	Params["run"] = bAndRun;
-	Params["version"] = MakeVersionStr(Release);
-	Params["signature"] = Installer["signature"];
-    PROGRESS Status = DownloadFile(DownloadUrl, this, SLOT(OnInstallerDownload(const QString&, const QVariantMap&)), Params);
-	if (Status.GetStatus() == OP_ASYNC) {
-		theGUI->AddAsyncOp(Status.GetValue());
-		Status.GetValue()->ShowMessage(tr("Downloading installer..."));
-	}
-
-	return true;
-}
-
-void COnlineUpdater::OnInstallerDownload(const QString& Path, const QVariantMap& Params)
-{
-	bool bAndRun = Params["run"].toBool();
-	QString VersionStr = Params["version"].toString();
-	QByteArray Signature = Params["signature"].toByteArray();
-
-	QFile SigFile(Path + ".sig");
-	if (SigFile.open(QFile::WriteOnly)) {
-		SigFile.write(QByteArray::fromBase64(Signature));
-		SigFile.close();
-	}
-
-	theConf->SetValue("Updater/InstallerVersion", VersionStr);
-	theConf->SetValue("Updater/InstallerPath", Path);
-
-	if (bAndRun)
-		RunInstaller(false);
-	else 
-	{
-		HandleUpdate();
-		theGUI->UpdateLabel();
-	}
-}
-
-bool COnlineUpdater::RunInstaller(bool bSilent)
-{
-	if (!ShowCertWarningIfNeeded())
-		return false;
-
-	QString FilePath = theConf->GetString("Updater/InstallerPath");
-	if (FilePath.isEmpty() || !QFile::exists(FilePath)) {
-		theConf->DelValue("Updater/InstallerPath");
-		theConf->DelValue("Updater/InstallerVersion");
-		return false;
-	}
-
-	if (!bSilent) {
-		QString Message = tr("<p>A new MajorPrivacy installer has been downloaded to the following location:</p><p><a href=\"%2\">%1</a></p><p>Do you want to begin the installation? If any programs are running in secure enclaves, they will be terminated!</p>")
-			.arg(FilePath).arg("File:///" + Split2(FilePath, "/", true).first);
-		int Ret = QMessageBox("MajorPrivacy", Message, QMessageBox::Information, QMessageBox::Yes | QMessageBox::Default, QMessageBox::No | QMessageBox::Escape, QMessageBox::Cancel, theGUI).exec();
-		if (Ret == QMessageBox::Cancel) {
-			QFile::remove(FilePath);
-			QFile::remove(FilePath + ".sig");
-			theConf->DelValue("Updater/InstallerPath");
-			theGUI->UpdateLabel();
-		}
-		if (Ret != QMessageBox::Yes)
-			return false;
-	}
-
-	if (RunInstaller2(FilePath, true)) {
-		if (bSilent)
-			theConf->DelValue("Updater/InstallerVersion");
-		QApplication::quit();
-		return true;
-	}
-	return false;
-}
-
-void COnlineUpdater::UpdateTemplates()
-{
-	QVariantMap Params;
-    PROGRESS Status = GetUpdates(this, SLOT(OnUpdateDataTmpl(const QVariantMap&, const QVariantMap&)), Params);
-	//if (Status.GetStatus() == OP_ASYNC) {
-	//	theGUI->AddAsyncOp(Status.GetValue());
-	//	Status.GetValue()->ShowMessage(tr("Checking for updates..."));
-	//}
-}
-
-void COnlineUpdater::OnUpdateDataTmpl(const QVariantMap& Data, const QVariantMap& Params)
-{
-	QVariantMap Release = Data["release"].toMap();
-
-	QByteArray TemplatesHash;
-	foreach(const QVariant vFile, Release["files"].toList()) {
-		QVariantMap File = vFile.toMap();
-		if (File["path"].toString() == "Templates.ini")
-			TemplatesHash = QByteArray::fromHex(File["hash"].toByteArray());
-	}
-	if (TemplatesHash.isEmpty())
-		return; // fine not found
-
-	QString AppDir = QApplication::applicationDirPath();
-#ifdef DUMMY_PATH
-	AppDir = DUMMY_PATH;
-#endif
-
-	QCryptographicHash qHash(QCryptographicHash::Sha256);
-	QFile qFile(QApplication::applicationDirPath() + "\\Templates.ini");
-	if (qFile.open(QFile::ReadOnly)) {
-		qHash.addData(&qFile);
-		qFile.close();
-	}
-	if (qHash.result() == TemplatesHash)
-		return; // no update
-
-	if (QMessageBox::question(theGUI, "MajorPrivacy", tr("There is a new Templates.ini available, do you want to download it?"), QMessageBox::Yes, QMessageBox::No) != QMessageBox::Yes)
-		return;
-
-	DownloadUpdate(Release, eTmpl, true);
-}
-
-bool COnlineUpdater::RunInstaller2(const QString& FilePath, bool bSilent)
-{
-	if (bSilent) 
-	{
-		QStringList Params;
-		Params.append("run_setup");
-		Params.append(QString(FilePath).replace("/", "\\"));
-#ifndef _DEBUG_
-		Params.append("/embedded");
-#else
-		Params.append("/pause");
-#endif
-
-		RESULT(int) Result = theCore->RunUpdateUtility(Params, 1);
-		if (!Result.IsError())
-			return true;
-		// else fallback to ShellExecuteEx
-		if (theConf->GetBool("Options/UpdateNoFallback", false))
-			return false;
-	}
-
-	std::wstring wFile = QString(FilePath).replace("/", "\\").toStdWString();
-	std::wstring wParams;
-#ifndef _DEBUG
-	wParams = L"/SILENT";
-#endif
-
-	return RunElevated(wFile, wParams, 15*60*1000) == 0;
-}
-
-bool COnlineUpdater::HandleUserMessage(const QVariantMap& Data)
-{
-	QString UserMsg = Data["userMsg"].toString();
-	if (!UserMsg.isEmpty())
-	{
-		QString MsgHash = QCryptographicHash::hash(Data["userMsg"].toByteArray(), QCryptographicHash::Md5).toHex().left(8);
-		if (!m_IgnoredUpdates.contains(MsgHash))
-		{
-			QString FullMessage = UserMsg;
-			QString InfoUrl = Data["infoUrl"].toString();
-			if (!InfoUrl.isEmpty())
-				FullMessage += tr("<p>Do you want to go to the <a href=\"%1\">info page</a>?</p>").arg(InfoUrl);
-
-			CCheckableMessageBox mb(theGUI);
-			mb.setWindowTitle("MajorPrivacy");
-			
-			QByteArray MsgIcon = QByteArray::fromBase64(Data["msgIcon"].toByteArray());
-			if (!MsgIcon.isEmpty())
-			{
-				QPixmap pixmap;
-				pixmap.loadFromData(MsgIcon, "PNG");
-				mb.setIconPixmap(pixmap);
-			}
-			else
-			{
-				QIcon ico(QLatin1String(":/SandMan.png"));
-				mb.setIconPixmap(ico.pixmap(64, 64));
-			}
-			
-			//mb.setTextFormat(Qt::RichText);
-			mb.setText(UserMsg);
-			mb.setCheckBoxText(tr("Don't show this announcement in the future."));
-			
-			if (!InfoUrl.isEmpty()) {
-				mb.setStandardButtons(QDialogButtonBox::Yes | QDialogButtonBox::No);
-				mb.setDefaultButton(QDialogButtonBox::Yes);
-			}
-			else
-				mb.setStandardButtons(QDialogButtonBox::Ok);
-
-			mb.exec();
-
-			if (mb.isChecked())
-				theConf->SetValue("Options/IgnoredUpdates", m_IgnoredUpdates << MsgHash);
-
-			if (mb.clickedStandardButton() == QDialogButtonBox::Yes)
-			{
-				QDesktopServices::openUrl(InfoUrl);
-			}
-
-			return true;
-		}
-	}
-	return false;
-}
-
-bool COnlineUpdater::HandleTweaks(const QVariantMap& Data)
-{
-	QVariantMap Tweaks = Data["tweaks"].toMap();
-	uint32 uRevision = Tweaks["revision"].toUInt();
-
-	if (theConf->GetInt("Options/UpdateTweaks", 2) != 1)
-		return false;
-	
-	if (uRevision <= theCore->TweakManager()->GetRevision())
-		return false;
-
-	QString DownloadUrl = Tweaks["download"].toString();
-
-	QVariantMap Params;
-	PROGRESS Status = DownloadFile(DownloadUrl, this, SLOT(OnTweaksDownload(const QString&, const QVariantMap&)), Params);
-	if (Status.GetStatus() == OP_ASYNC) {
-		theGUI->AddAsyncOp(Status.GetValue());
-		Status.GetValue()->ShowMessage(tr("Downloading tweaks..."));
-	}
-
-	return true;
-}
-
-void COnlineUpdater::OnTweaksDownload(const QString& Path, const QVariantMap& Params)
-{
-	QFile File(Path);
-	if (File.open(QFile::ReadOnly)) 
-	{
-		QByteArray TweakIni = File.readAll();
-		File.close();
-
-		if (!TweakIni.isEmpty())
-		{
-			theCore->WriteConfigFile("\\Tweaks.ini", TweakIni);
-		}
-	}
-	File.remove();
-}
-
-QString COnlineUpdater::GetUpdateDir(bool bCreate)
-{
-	QString TempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-	if (TempDir.right(1) != "/")
-		TempDir += "/";
-	TempDir += "MajorPrivacy-Updater";
-	// Note: must not end with a /
-	if(bCreate)
-		QDir().mkpath(TempDir);
-	return TempDir;
-}
-
-QString COnlineUpdater::MakeVersionStr(const QVariantMap& Data)
-{
-	QString Str = Data["version"].toString();
-	int iUpdate = Data["update"].toInt();
-	if (iUpdate) Str += QChar('a' + (iUpdate - 1));
-	return Str;
-}
-
-QString COnlineUpdater::ParseVersionStr(const QString& Str, int* pUpdate)
-{
-	int pos = Str.indexOf(QRegularExpression("[a-zA-Z]"));
-	if (pos == -1)
-		return Str;
-	QString Ver = Str.left(pos);
-	if (pUpdate) {
-		QString Tmp = Str.mid(pos);
-		*pUpdate = Tmp[0].toLatin1() - 'a' + 1;
-	}
-	return Ver;
-}
-
-QString COnlineUpdater::GetCurrentVersion()
-{
-	return QString::number(VERSION_MJR) + "." + QString::number(VERSION_MIN) + "." + QString::number(VERSION_REV);
-}
-
-int COnlineUpdater::GetCurrentUpdate()
-{
-	int iUpdate = 0;
-	QString Version = ParseVersionStr(theConf->GetString("Updater/CurrentUpdate", 0), &iUpdate);
-	if(Version != GetCurrentVersion() || iUpdate < VERSION_UPD)
-		iUpdate = VERSION_UPD;
-	return iUpdate;
-}
-
-quint32 COnlineUpdater::CurrentVersion()
-{
-	//quint8 myVersion[4] = { VERSION_UPD, VERSION_REV, VERSION_MIN, VERSION_MJR }; // ntohl
-	quint8 myVersion[4] = { 0, VERSION_REV, VERSION_MIN, VERSION_MJR }; // ntohl
-	quint32 MyVersion = *(quint32*)&myVersion;
-	return MyVersion;
-}
-
-quint32 COnlineUpdater::VersionToInt(const QString& VersionStr)
-{
-	quint32 Version = 0;
-	QStringList Nums = VersionStr.split(".");
-	for (int i = 0, Bits = 24; i < Nums.count() && Bits >= 0; i++, Bits -= 8)
-		Version |= (Nums[i].toInt() & 0xFF) << Bits;
-	return Version;
-}
-
-bool COnlineUpdater::IsVersionNewer(const QString& VersionStr)
-{
-	if (VersionStr.isEmpty())
-		return false;
-
-#ifdef INSIDER_BUILD
-	QString sVersion = VersionStr;
-	if (sVersion[4] == ' ') sVersion[4] = '0';
-	QDateTime VersionDate = QDateTime::fromString(sVersion, "MMM dd yyyy");
-	
-	sVersion = QString(__DATE__);
-	if (sVersion[4] == ' ') sVersion[4] = '0';
-	QDateTime BuildDate = QDateTime::fromString(sVersion, "MMM dd yyyy");
-
-	return (VersionDate > BuildDate);
-#else
-	return VersionToInt(VersionStr) > CurrentVersion();
-#endif
 }

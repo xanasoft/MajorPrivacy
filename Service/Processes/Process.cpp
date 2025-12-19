@@ -103,16 +103,14 @@ CProcess::~CProcess()
 	//ASSERT(m_SocketList.empty()); // todo
 }
 
-bool CProcess::Init()
+bool CProcess::Init(const struct SProcessInfo* Data)
 {
 	// init once before enlisting -> no lock needed
 
 	//m_ServiceList = theCore->ProcessList()->Services()->GetServicesByPid(m_Pid);
 
-	auto Result = theCore->Driver()->GetProcessInfo(m_Pid);
-	if (!Result.IsError())
+	if (Data)
 	{
-		auto Data = Result.GetValue();
 		SetRawCreationTime(Data->CreateTime);
 
 		m_ParentPid = Data->ParentPid;
@@ -147,6 +145,8 @@ bool CProcess::Init()
 			return false;
 		}
 		m_Name = GetFileNameFromPath(m_NtFilePath);
+
+		// InitOther will SetRawCreationTime
 	}
 
 	if(m_NtFilePath == L"MemCompression")
@@ -478,18 +478,6 @@ bool CProcess::FillVerifyInfo(const std::wstring& ModulePath, SVerifierInfo& Ver
 	return true;
 }
 
-bool CProcess::Update()
-{
-	if (m_ParentPid == -1) {
-		std::unique_lock Lock(m_Mutex);
-		Init();
-	}
-
-	UpdateMisc();
-
-	return true;
-}
-
 bool CProcess::Update(PSYSTEM_PROCESS_INFORMATION process, bool bFullProcessInfo)
 {
 	if (m_ParentPid == -1) {
@@ -497,18 +485,21 @@ bool CProcess::Update(PSYSTEM_PROCESS_INFORMATION process, bool bFullProcessInfo
 		Init(process, bFullProcessInfo);
 	}
 
-	UpdateMisc();
+	Update();
 
 	return true;
 }
 
-void CProcess::UpdateMisc()
+void CProcess::Update()
 {
 	auto Result = theCore->Driver()->GetProcessInfo(m_Pid);
-	if (!Result.IsError())
-	{
-		auto Data = Result.GetValue();
+	Update(Result.GetValue().get());
+}
 
+void CProcess::Update(const struct SProcessInfo* Data)
+{
+	if (Data)
+	{
 		// driver specific fields
 		if (m_EnclaveGuid.IsNull() && !Data->Enclave.empty()) {
 

@@ -1,83 +1,171 @@
 #pragma once
-
-#include <QObject>
+#include "../../Library/Status.h"
 #include "../MiscHelpers/Common/NetworkAccessManager.h"
-
-#include "Common/StatusEx.h"
+#include "../MiscHelpers/Common/ProgressDialog.h"
 
 #define UPDATE_INTERVAL (7 * 24 * 60 * 60)
 
-class CUpdatesJob : public QObject
+/////////////////////////////////////////////////////////////////////////////////////////
+// Updater Jobs
+
+class CUpdaterJob : public QObject
 {
 	Q_OBJECT
 
 protected:
 	friend class COnlineUpdater;
 
-	CUpdatesJob(const QVariantMap& Params, QObject* parent = nullptr) : QObject(parent) 
+	CUpdaterJob(const QVariantMap& Params, QObject* parent = nullptr) : QObject(parent)
 	{
-		m_Params = Params; 
-		m_pProgress = CAsyncProgressPtr(new CAsyncProgress());
+		m_Params = Params;
 	}
-	virtual ~CUpdatesJob() {}
+
+	void SetProgressDialog(const CProgressDialogPtr& pDialog) { m_pProgress = pDialog; }
+
+	QVariantMap			m_Params;
+	CProgressDialogPtr	m_pProgress;
+	bool				m_bCanceled = false;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Network Jobs
+
+class CNetworkJob : public CUpdaterJob
+{
+	Q_OBJECT
+
+protected:
+	friend class COnlineUpdater;
+
+	CNetworkJob(const QVariantMap& Params, QObject* parent = nullptr) : CUpdaterJob(Params, parent) {}
+
+	void SetReply(QNetworkReply* pReply)
+	{
+		m_pReply = pReply;
+		connect(m_pReply, SIGNAL(finished()), this, SLOT(OnRequestFinished()));
+		connect(m_pReply, SIGNAL(downloadProgress(qint64, qint64)), this, SLOT(OnDownloadProgress(qint64, qint64)));
+		if (m_pProgress) connect(m_pProgress.data(), &CProgressDialog::Cancel, this, [&]() { 
+			m_bCanceled = true;
+			m_pReply->abort();
+		});
+	}
 
 	virtual void Finish(QNetworkReply* pReply) = 0;
 
-	QVariantMap			m_Params;
-	CAsyncProgressPtr	m_pProgress;
+	QNetworkReply* m_pReply = nullptr;
 
 private slots:
 	void OnDownloadProgress(qint64 bytes, qint64 bytesTotal)
 	{
 		if (bytesTotal != 0 && !m_pProgress.isNull())
-			m_pProgress->Progress(100 * bytes / bytesTotal);
+			m_pProgress->ShowProgress("", 100 * bytes / bytesTotal);
+	}
+
+	void OnRequestFinished()
+	{
+		QNetworkReply* pReply = qobject_cast<QNetworkReply*>(sender());
+		Finish(pReply);
+		pReply->deleteLater();
+		deleteLater();
 	}
 };
 
-class CGetUpdatesJob : public CUpdatesJob
+class CGetUpdatesJob : public CNetworkJob
 {
 	Q_OBJECT
 
 protected:
 	friend class COnlineUpdater;
 
-	CGetUpdatesJob(const QVariantMap& Params, QObject* parent = nullptr) : CUpdatesJob(Params, parent) {}
+	CGetUpdatesJob(const QVariantMap& Params, QObject* parent = nullptr) : CNetworkJob(Params, parent) {}
 
-	virtual void Finish(QNetworkReply* pReply);
+	void Finish(QNetworkReply* pReply) override;
 
 signals:
 	void				UpdateData(const QVariantMap& Data, const QVariantMap& Params);
 };
 
-class CGetFileJob : public CUpdatesJob
+class CGetFileJob : public CNetworkJob
 {
 	Q_OBJECT
 
 protected:
 	friend class COnlineUpdater;
 
-	CGetFileJob(const QVariantMap& Params, QObject* parent = nullptr) : CUpdatesJob(Params, parent) {}
+	CGetFileJob(const QVariantMap& Params, QObject* parent = nullptr) : CNetworkJob(Params, parent) {}
 
-	virtual void Finish(QNetworkReply* pReply);
+	void Finish(QNetworkReply* pReply) override;
 
 signals:
 	void				Download(const QString& Path, const QVariantMap& Params);
 };
 
-class CGetCertJob : public CUpdatesJob
+/////////////////////////////////////////////////////////////////////////////////////////
+// Utility Jobs
+
+class CUtilityJob : public CUpdaterJob
 {
 	Q_OBJECT
 
 protected:
 	friend class COnlineUpdater;
 
-	CGetCertJob(const QVariantMap& Params, QObject* parent = nullptr) : CUpdatesJob(Params, parent) {}
+	CUtilityJob(const QVariantMap& Params, QObject* parent = nullptr) : CUpdaterJob(Params, parent) {}
 
-	virtual void Finish(QNetworkReply* pReply);
+	bool Run(const QStringList Args)
+	{
+		m_pUpdUtil = new QProcess(this);
+		m_pUpdUtil->setProgram(QApplication::applicationDirPath() + "/UpdUtil.exe");
+		m_pUpdUtil->setArguments(Args);
+		connect(m_pUpdUtil, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(OnPrepareFinished(int, QProcess::ExitStatus)));
+		connect(m_pUpdUtil, SIGNAL(readyReadStandardOutput()), this, SLOT(OnPrepareOutput()));
+		connect(m_pUpdUtil, SIGNAL(readyReadStandardError()), this, SLOT(OnPrepareError()));
+		m_pUpdUtil->start();
+
+		if (m_pUpdUtil->state() != QProcess::Running)
+			return false;
+
+		if (m_pProgress) {
+			connect(m_pProgress.data(), &CProgressDialog::Cancel, this, [&]() {
+				m_bCanceled = true;
+				m_pUpdUtil->terminate();
+			});
+		}
+		return true;
+	}
+
+	virtual void Finish(int exitCode) { emit Finished(exitCode, m_Params); }
+
+	QProcess*			m_pUpdUtil = nullptr;
+
+private slots:
+	void OnPrepareOutput() {
+		QByteArray Text = m_pUpdUtil->readAllStandardOutput();
+		qDebug() << "UPD-OUT:\t" << Text;
+		if (m_pProgress)
+			m_pProgress->ShowStatus(Text.trimmed());
+	}
+
+	void OnPrepareError() {
+		QByteArray Text = m_pUpdUtil->readAllStandardOutput();
+		qDebug() << "UPD-ERR:\t" << Text;
+	}
+
+	void OnPrepareFinished(int exitCode, QProcess::ExitStatus exitStatus) {
+		if (m_pProgress)
+			m_pProgress->OnFinished();
+		if (!m_bCanceled)
+			Finish(exitCode);
+		deleteLater();
+	}
 
 signals:
-	void				Certificate(const QByteArray& Certificate, const QVariantMap& Params);
+	void				Finished(int exitCode, const QVariantMap& Params);
 };
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Online Updater
 
 class COnlineUpdater : public QObject
 {
@@ -85,102 +173,130 @@ class COnlineUpdater : public QObject
 public:
 	COnlineUpdater(QObject* parent);
 
-	PROGRESS			GetUpdates(QObject* receiver, const char* member, const QVariantMap& Params = QVariantMap());
-	PROGRESS			DownloadFile(const QString& Url, QObject* receiver, const char* member, const QVariantMap& Params = QVariantMap());
-	PROGRESS			GetSupportCert(const QString& Serial, QObject* receiver, const char* member, const QVariantMap& Params = QVariantMap());
+	void				GetUpdates(QObject* receiver, const char* member, const QVariantMap& Params = QVariantMap(), const CProgressDialogPtr& pDialog = CProgressDialogPtr());
+	void				DownloadFile(const QString& Url, QObject* receiver, const char* member, const QVariantMap& Params = QVariantMap(), const CProgressDialogPtr& pDialog = CProgressDialogPtr());
 
-	static bool			IsLockRequired();
-
-	static RESULT(int)	RunUpdater(const QStringList& Params, bool bSilent, bool Wait = false);
-
+	// Update Handling
 	void				Process();
 
-	QVariantMap			GetUpdateData() { return m_UpdateData; }
-	QDateTime			GetLastUpdateTime() { return m_LastUpdate; }
+	void				CheckForUpdates(bool bManual);
+	QDateTime			GetLastUpdateTime()		{ return m_LastUpdate; }
+	bool 				HasUpdates()			{ return !m_UpdateVersion.isEmpty() || !m_InstallerVersion.isEmpty(); }
+	QString				GetUpdateVersion()		{ return m_UpdateVersion + (m_UpdateNumber ? QString() + QChar('a' + (m_UpdateNumber - 1)) : QString()); }
+	QString 			GetInstallerVersion()	{ return m_InstallerVersion; }
+	bool				IsUpdateReady()			{ return m_UpdatePrepared; }
+	bool				IsInstallerReady()		{ return !m_InstallerPath.isEmpty(); }
 
-	void				CheckForUpdates(bool bManual = false);
-
-	enum EUpdateScope
-	{
-		eNone = 0,	// No files updated
-		eTmpl,		// Only Tweaks.ini
-		eMeta,		// Only Tweaks.ini and/or translations changed
-		eCore,		// Core Components Changed
-		eFull		// Plus components changed
-	};
-	bool				DownloadUpdate(const QVariantMap& Update, EUpdateScope Scope, bool bAndApply = false);
-	bool				ApplyUpdate(EUpdateScope Scope, bool bSilent);
-
-	bool				DownloadInstaller(const QVariantMap& Release, bool bAndRun = false);
 	bool				RunInstaller(bool bSilent);
 
-	void				UpdateTemplates();
+	// Incremental updating
+	bool				ApplyUpdate(bool bSilent);
 
-	static QString		MakeVersionStr(const QVariantMap& Data);
-	static QString		ParseVersionStr(const QString& Str, int* pUpdate = NULL);
+	// Helpers
 	static QString		GetCurrentVersion();
 	static int			GetCurrentUpdate();
-	static bool			IsVersionNewer(const QString& VersionStr);
 
 	static QString		GetUpdateDir(bool bCreate = false);
 
-	static quint32		CurrentVersion();
-	static quint32		VersionToInt(const QString& VersionStr);
+	// Cert Stuff
+	void				GetSupportCert(const QString& Serial, QObject* receiver, const char* member, const QVariantMap& Params = QVariantMap(), const CProgressDialogPtr& pDialog = CProgressDialogPtr());
+	static bool			IsLockRequired();
 
-	static quint64		GetRandID();
-
-	static QDateTime	GetLastUpdateDate();
+signals:
+	void				StateChanged();
 
 private slots:
-	void				OnRequestFinished();
+
+	// Update Handling
+	void				OnUpdateData(const QVariantMap& Data, const QVariantMap& Params);
 
 	void				OnInstallerDownload(const QString& Path, const QVariantMap& Params);
+
 	void				OnTweaksDownload(const QString& Path, const QVariantMap& Params);
 
-	void				OnUpdateData(const QVariantMap& Data, const QVariantMap& Params);
-	void				OnUpdateDataTmpl(const QVariantMap& Data, const QVariantMap& Params);
-
-	void				OnPrepareOutput();
-	void				OnPrepareError();
-	void				OnPrepareFinished(int exitCode, QProcess::ExitStatus exitStatus);
+	// Incremental updating
+	void				OnUpdateDownload(int exitCode, const QVariantMap& Params);
 
 protected:
 
-	void				StartJob(CUpdatesJob* pJob, const QUrl& Url);
+	void				StartNetworkJob(CNetworkJob* pJob, const QUrl& Url);
 
+	// Update Handling
+	QStringList			ScanUpdateFiles(const QVariantMap& Update);
 	void				LoadState();
+	void				UpdateState();
+	void				ClearUpdate();
+	void				ClearRelease();
+	bool				HandleUpdate(const QVariantMap& Data);
 
-	bool				HandleUserMessage(const QVariantMap& Data);
-	bool				HandleUpdate();
+	int					AskDownload(const QVariantMap& Update, bool bAuto);
 
-	bool				HandleTweaks(const QVariantMap& Data);
-
-	QString				GetOnNewUpdateOption() const;
-	QString				GetOnNewReleaseOption() const;
-	bool				ShowCertWarningIfNeeded();
-
-	EUpdateScope		ScanUpdateFiles(const QVariantMap& Update);
-	EUpdateScope		GetFileScope(const QString& Path);
-
-	bool				AskDownload(const QVariantMap& Update, bool bAuto);
-
+	bool				DownloadInstaller(const QVariantMap& Release);
 	static bool			RunInstaller2(const QString& FilePath, bool bSilent);
 
-	CNetworkAccessManager*	m_RequestManager;
-	QMap<QNetworkReply*, CUpdatesJob*> m_JobQueue;
+	bool				HandleUserMessage(const QVariantMap& Data);
+
+	// Incremental updating
+	bool				DownloadUpdate(const QVariantMap& Update, const QStringList& Files);
+	QString				GetUpdErrorStr(int exitCode);
+	bool				OnlyMetaDataChanged(const QStringList& Files);
+	bool				ApplyUpdate(const QStringList& Files, bool bSilent);
+	static RESULT(int)	RunUpdater(const QStringList& Params, bool bSilent, bool Wait = false);
+
+
+	// Helpers
+	static QString		MakeVersionStr(const QVariantMap& Data);
+	static QString		ParseVersionStr(const QString& Str, int* pUpdate = NULL);
+
+	static quint32		GetCurrentVersionInt();
+	static quint32		VersionToInt(const QString& VersionStr);
+	static bool			IsVersionNewer(const QString& VersionStr);
+
+	static quint64		GetRandID();
+
+	// Cert Stuff
+	QString				GetOnNewUpdateOption() const; // Incremental update
+	QString				GetOnNewReleaseOption() const; // Release with installer
+	bool				ShowCertWarningIfNeeded();
+	void				HandleCertBL(const QVariantMap& CertBL);
+
+	CNetworkAccessManager*	m_RequestManager = nullptr;
 
 	QStringList			m_IgnoredUpdates;
-	enum ECHeckMode
+
+	QDateTime			m_LastUpdate;				// time of last update check
+	enum ECheckState
 	{
-		eInit = 0,
+		eIdle = 0,
 		eAuto,
 		eManual,
-		ePendingUpdate,
-		ePendingInstall
-	}					m_CheckMode;
-	QVariantMap			m_UpdateData;
-	QDateTime			m_LastUpdate;
+		// pending actions
+		eDownloadUpdate,
+		eDownloadInstall,
+		eApplyUpdate,
+		eRunInstall,
+	}					m_CheckState = eIdle;		// current operation or pending action
+	QString				m_UpdateVersion;			// version of incremental update
+	int					m_UpdateNumber = 0;			// index of incremental update	
+	bool				m_UpdatePrepared = false;	// true if update files are ready to be applied
+	QString				m_InstallerVersion;			// version of full upgrade
+	QString				m_InstallerPath;			// path to downloaded installer
+};
 
-	QProcess*			m_pUpdaterUtil;
-	CAsyncProgressPtr	m_pUpdateProgress;
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Cert Stuff
+class CGetCertJob : public CNetworkJob
+{
+	Q_OBJECT
+
+protected:
+	friend class COnlineUpdater;
+
+	CGetCertJob(const QVariantMap& Params, QObject* parent = nullptr) : CNetworkJob(Params, parent) {}
+
+	void Finish(QNetworkReply* pReply) override;
+
+signals:
+	void				Certificate(const QByteArray& Certificate, const QVariantMap& Params);
 };

@@ -160,6 +160,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <SupportJustMyCode>false</SupportJustMyCode>
+      <AdditionalIncludeDirectories>.</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -222,23 +223,34 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="common\dirent.h" />
-    <ClInclude Include="common\helpers.h" />
-    <ClInclude Include="common\json\JSON.h" />
-    <ClInclude Include="common\json\JSONValue.h" />
-    <ClInclude Include="common\WebUtils.h" />
+    <ClInclude Include="AppUtil.h" />
+    <ClInclude Include="Helpers\dirent.h" />
+    <ClInclude Include="Helpers\helpers.h" />
+    <ClInclude Include="Helpers\json\JSON.h" />
+    <ClInclude Include="Helpers\json\JSONValue.h" />
+    <ClInclude Include="Helpers\WebUtils.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="UpdDefines.h" />
     <ClInclude Include="UpdUtil.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="common\base64.c" />
-    <ClCompile Include="common\helpers.cpp" />
-    <ClCompile Include="common\json\JSON.cpp" />
-    <ClCompile Include="common\json\JSONValue.cpp" />
-    <ClCompile Include="common\verify.c" />
-    <ClCompile Include="common\WebUtils.cpp" />
+    <ClCompile Include="AppUtil.cpp" />
+    <ClCompile Include="Helpers\base64.c" />
+    <ClCompile Include="Helpers\helpers.cpp" />
+    <ClCompile Include="Helpers\json\JSON.cpp" />
+    <ClCompile Include="Helpers\json\JSONValue.cpp" />
+    <ClCompile Include="Helpers\verify.c" />
+    <ClCompile Include="Helpers\WebUtils.cpp" />
+    <ClCompile Include="UpdServ.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="UpdUtilWnd.cpp" />
     <ClCompile Include="UpdUtil.cpp" />
   </ItemGroup>

@@ -75,7 +75,8 @@ void CTrafficLog::CommitTraffic(const CSocketPtr& pSocket, const STrafficLogEntr
 
 	if (Host.empty())
 	{
-		Host = L"[" + pSocket->GetRemoteAddress().ToWString() + L"]";
+		Host = pSocket->GetRemoteAddress().ToWString();
+		//Host = L"[" + pSocket->GetRemoteAddress().ToWString() + L"]";
 #ifdef _DEBUG
 		//if (!bTemp)
 		//	DbgPrint(L"DNS: Commiting traffic for UNResolved Hostname %s\n", Host.c_str());
@@ -97,7 +98,7 @@ void CTrafficLog::Clear()
 {
 	std::unique_lock Lock(m_Mutex);
 
-	m_Data.reset();
+	m_Data.Clear();
 
 	m_LastActivity = 0;
 	m_Uploaded = 0;

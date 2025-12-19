@@ -93,6 +93,8 @@ bool CProgramModel::TestFilter(EProgramType Type, const SProgramStats* pStats, b
 			if ((bTree && pStats->GroupCount > 0) || (Type == EProgramType::eFilePattern || Type == EProgramType::eAppInstallation || Type == EProgramType::eProgramGroup))
 				bPass = true;
 		}
+		if(Type == EProgramType::eAllPrograms)
+			bPass = true;
 
 		if(!bPass)
 			return false;

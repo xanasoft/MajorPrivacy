@@ -108,17 +108,19 @@ void CAccessPage::Update()
 
 	auto Current = theGUI->GetCurrentItems();
 
+	bool bShowPrivate = theGUI->GetShowPrivate();
+
 	QSet<CProgramFilePtr> Programs = Current.ProgramsEx;
 	if (m_pAccessView->isVisible() || m_pTraceView->isVisible()) {
 		for (auto& pProgram : Current.ProgramsIm) {
-			if(pProgram->GetResTrace() != ETracePreset::ePrivate)
+			if(bShowPrivate || pProgram->GetResTrace() != ETracePreset::ePrivate)
 				Programs.insert(pProgram);
 		}
 	}
 	QSet<CWindowsServicePtr> Services = Current.ServicesEx;
 	if (m_pAccessView->isVisible()) {
 		for (auto& pService : Current.ServicesIm) {
-			if (pService->GetResTrace() != ETracePreset::ePrivate)
+			if (bShowPrivate || pService->GetResTrace() != ETracePreset::ePrivate)
 				Services.insert(pService);
 		}
 	}

@@ -16,7 +16,10 @@
     <Filter Include="Common">
       <UniqueIdentifier>{c02de970-2045-42d0-90ce-d24b53eafcd7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common\json">
+    <Filter Include="Helpers">
+      <UniqueIdentifier>{b9956e98-3c8d-406c-aaac-37813bbc8e5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Helpers\json">
       <UniqueIdentifier>{d915ebf9-2af1-477d-ba12-9fce23ed215f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -33,20 +36,27 @@
     <ClInclude Include="UpdUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="common\json\JSON.h">
-      <Filter>Common\json</Filter>
+    <ClInclude Include="Helpers\json\JSON.h">
+      <Filter>Helpers\json</Filter>
     </ClInclude>
-    <ClInclude Include="common\json\JSONValue.h">
-      <Filter>Common\json</Filter>
+    <ClInclude Include="Helpers\json\JSONValue.h">
+      <Filter>Helpers\json</Filter>
     </ClInclude>
-    <ClInclude Include="common\dirent.h">
-      <Filter>Common</Filter>
+    <ClInclude Include="AppUtil.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="common\helpers.h">
-      <Filter>Common</Filter>
+
+    <ClInclude Include="Helpers\WebUtils.h">
+      <Filter>Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="common\WebUtils.h">
-      <Filter>Common</Filter>
+    <ClInclude Include="Helpers\dirent.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\helpers.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="UpdDefines.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -56,23 +66,29 @@
     <ClCompile Include="UpdUtilWnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="common\json\JSON.cpp">
-      <Filter>Common\json</Filter>
+    <ClCompile Include="Helpers\json\JSON.cpp">
+      <Filter>Helpers\json</Filter>
     </ClCompile>
-    <ClCompile Include="common\json\JSONValue.cpp">
-      <Filter>Common\json</Filter>
+    <ClCompile Include="Helpers\json\JSONValue.cpp">
+      <Filter>Helpers\json</Filter>
     </ClCompile>
-    <ClCompile Include="common\base64.c">
-      <Filter>Common</Filter>
+    <ClCompile Include="AppUtil.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="common\helpers.cpp">
-      <Filter>Common</Filter>
+    <ClCompile Include="Helpers\base64.c">
+      <Filter>Helpers</Filter>
     </ClCompile>
-    <ClCompile Include="common\verify.c">
-      <Filter>Common</Filter>
+    <ClCompile Include="Helpers\helpers.cpp">
+      <Filter>Helpers</Filter>
     </ClCompile>
-    <ClCompile Include="common\WebUtils.cpp">
-      <Filter>Common</Filter>
+    <ClCompile Include="Helpers\verify.c">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\WebUtils.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="UpdServ.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

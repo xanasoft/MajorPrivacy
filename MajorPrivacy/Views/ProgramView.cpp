@@ -93,6 +93,14 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pToolBar->setFixedHeight(30);
 	m_pMainLayout->insertWidget(0, m_pToolBar);
 
+	m_pBtnAdd = new QToolButton();
+	m_pBtnAdd->setIcon(QIcon(":/Icons/Add.png"));
+	m_pBtnAdd->setToolTip(tr("Add Program Item"));
+	m_pBtnAdd->setMaximumHeight(22);
+	connect(m_pBtnAdd, SIGNAL(clicked()), this, SLOT(OnAddProgram()));
+	m_pToolBar->addWidget(m_pBtnAdd);
+	m_pToolBar->addSeparator();
+
 	m_pTypeFilter = new QToolButton();
 	m_pTypeFilter->setIcon(QIcon(":/Icons/ProgFilter.png"));
 	m_pTypeFilter->setToolTip(tr("Type Filters"));
@@ -111,6 +119,11 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pTypeFilter->setPopupMode(QToolButton::MenuButtonPopup);
 	m_pTypeFilter->setMenu(m_pTypeMenu);
 	m_pToolBar->addWidget(m_pTypeFilter);
+	m_pTypeFilter->setChecked(theConf->GetBool("MainWindow/ProgramView_TypeFilter", false));
+	m_pPrograms->setChecked(theConf->GetBool("MainWindow/ProgramView_TypeFilter_Programs", true));
+	m_pApps->setChecked(theConf->GetBool("MainWindow/ProgramView_TypeFilter_Apps", false));
+	m_pSystem->setChecked(theConf->GetBool("MainWindow/ProgramView_TypeFilter_System", false));
+	m_pGroups->setChecked(theConf->GetBool("MainWindow/ProgramView_TypeFilter_Groups", true));
 
 	m_pRunFilter = new QToolButton();
 	m_pRunFilter->setIcon(QIcon(":/Icons/RunFilter.png"));
@@ -124,6 +137,8 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pRunFilter->setPopupMode(QToolButton::MenuButtonPopup);
 	m_pRunFilter->setMenu(m_pRunMenu);
 	m_pToolBar->addWidget(m_pRunFilter);
+	//m_pRunFilter->setChecked(theConf->GetBool("MainWindow/ProgramView_RunFilter", false));
+	//m_pRanRecently->setChecked(theConf->GetBool("MainWindow/ProgramView_RunFilter_RanRecently", false));
 
 	m_pRulesFilter = new QToolButton();
 	m_pRulesFilter->setIcon(QIcon(":/Icons/RuleFilter.png"));
@@ -141,6 +156,10 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pRulesFilter->setPopupMode(QToolButton::MenuButtonPopup);
 	m_pRulesFilter->setMenu(m_pRulesMenu);
 	m_pToolBar->addWidget(m_pRulesFilter);
+	//m_pRulesFilter->setChecked(theConf->GetBool("MainWindow/ProgramView_RulesFilter", false));
+	//m_pExecRules->setChecked(theConf->GetBool("MainWindow/ProgramView_RulesFilter_Exec", true));
+	//m_pAccessRules->setChecked(theConf->GetBool("MainWindow/ProgramView_RulesFilter_Access", true));
+	//m_pFwRules->setChecked(theConf->GetBool("MainWindow/ProgramView_RulesFilter_Fw", true));
 
 	m_pTrafficFilter = new QToolButton();
 	m_pTrafficFilter->setIcon(QIcon(":/Icons/ActivityFilter.png"));
@@ -162,6 +181,14 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pTrafficFilter->setPopupMode(QToolButton::MenuButtonPopup);
 	m_pTrafficFilter->setMenu(m_pTrafficMenu);
 	m_pToolBar->addWidget(m_pTrafficFilter);
+	//m_pTrafficFilter->setChecked(theConf->GetBool("MainWindow/ProgramView_TrafficFilter", false));
+	//int trafficFilterMode = theConf->GetInt("MainWindow/ProgramView_TrafficFilter_Mode", 0);
+	//if (trafficFilterMode == 1)
+	//	m_pTrafficBlocked->setChecked(true);
+	//else if (trafficFilterMode == 2)
+	//	m_pTrafficAllowed->setChecked(true);
+	//else
+	//	m_pTrafficRecent->setChecked(true);
 
 	m_pSocketFilter = new QToolButton();
 	m_pSocketFilter->setIcon(QIcon(":/Icons/SocketFilter.png"));
@@ -185,6 +212,7 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pSocketFilter->setPopupMode(QToolButton::MenuButtonPopup);
 	m_pSocketFilter->setMenu(m_pSocketMenu);*/
 	m_pToolBar->addWidget(m_pSocketFilter);
+	//m_pSocketFilter->setChecked(theConf->GetBool("MainWindow/ProgramView_SocketFilter", false));
 
 	m_pToolBar->addSeparator();
 
@@ -205,13 +233,6 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pBtnCleanUp->setPopupMode(QToolButton::MenuButtonPopup);
 	m_pBtnCleanUp->setMenu(m_pCleanUpMenu);
 	m_pToolBar->addWidget(m_pBtnCleanUp);
-
-	m_pBtnAdd = new QToolButton();
-	m_pBtnAdd->setIcon(QIcon(":/Icons/Add.png"));
-	m_pBtnAdd->setToolTip(tr("Add Program Item"));
-	m_pBtnAdd->setMaximumHeight(22);
-	connect(m_pBtnAdd, SIGNAL(clicked()), this, SLOT(OnAddProgram()));
-	m_pToolBar->addWidget(m_pBtnAdd);
 
 	m_pToolBar->addSeparator();
 	m_pBtnTree = new QToolButton();
@@ -365,6 +386,12 @@ void CProgramView::OnTypeFilter()
 			m_pTypeFilter->setChecked(true);
 	}
 
+	theConf->SetValue("MainWindow/ProgramView_TypeFilter", m_pTypeFilter->isChecked());
+	theConf->SetValue("MainWindow/ProgramView_TypeFilter_Programs", m_pPrograms->isChecked());
+	theConf->SetValue("MainWindow/ProgramView_TypeFilter_Apps", m_pApps->isChecked());
+	theConf->SetValue("MainWindow/ProgramView_TypeFilter_System", m_pSystem->isChecked());
+	theConf->SetValue("MainWindow/ProgramView_TypeFilter_Groups", m_pGroups->isChecked());
+
 	FilterUpdate();
 }
 
@@ -377,6 +404,9 @@ void CProgramView::OnRunFilter()
 		if (!m_pRunFilter->isChecked())
 			m_pRunFilter->setChecked(true);
 	}
+
+	//theConf->SetValue("MainWindow/ProgramView_RunFilter", m_pRunFilter->isChecked());
+	//theConf->SetValue("MainWindow/ProgramView_RunFilter_RanRecently", m_pRanRecently->isChecked());
 
 	FilterUpdate();
 }
@@ -397,12 +427,17 @@ void CProgramView::OnRulesFilter()
 			m_pRulesFilter->setChecked(true);
 	}
 
+	//theConf->SetValue("MainWindow/ProgramView_RulesFilter", m_pRulesFilter->isChecked());
+	//theConf->SetValue("MainWindow/ProgramView_RulesFilter_Exec", m_pExecRules->isChecked());
+	//theConf->SetValue("MainWindow/ProgramView_RulesFilter_Access", m_pAccessRules->isChecked());
+	//theConf->SetValue("MainWindow/ProgramView_RulesFilter_Fw", m_pFwRules->isChecked());
+
 	FilterUpdate();
 }
 
 void CProgramView::OnTrafficFilter()
 {
-	if (sender() == m_pTrafficFilter) 
+	if (sender() == m_pTrafficFilter)
 	{
 		if (m_pActionGroup->checkedAction() == nullptr)
 			m_pTrafficRecent->setChecked(true);
@@ -413,11 +448,21 @@ void CProgramView::OnTrafficFilter()
 			m_pTrafficFilter->setChecked(true);
 	}
 
+	//theConf->SetValue("MainWindow/ProgramView_TrafficFilter", m_pTrafficFilter->isChecked());
+	//int mode = 0;
+	//if (m_pTrafficBlocked->isChecked())
+	//	mode = 1;
+	//else if (m_pTrafficAllowed->isChecked())
+	//	mode = 2;
+	//theConf->SetValue("MainWindow/ProgramView_TrafficFilter_Mode", mode);
+
 	FilterUpdate();
 }
 
 void CProgramView::OnSocketFilter()
 {
+	//theConf->SetValue("MainWindow/ProgramView_SocketFilter", m_pSocketFilter->isChecked());
+
 	FilterUpdate();
 }
 

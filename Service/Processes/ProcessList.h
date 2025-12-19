@@ -25,7 +25,7 @@ public:
 
 	STATUS EnumProcesses();
 
-	std::map<uint64, CProcessPtr> List() { std::unique_lock Lock(m_Mutex); return m_List; }
+	std::map<SProcessUID, CProcessPtr> List() { std::unique_lock Lock(m_Mutex); return m_ProcessMap; }
 	enum EGetMode
 	{
 		eCanNotAdd = 0, // if process is not listed return null
@@ -35,7 +35,7 @@ public:
 	CProcessPtr GetProcessEx(uint64 Pid, EGetMode Mode);
 	CProcessPtr GetProcess(uint64 Pid, bool bCanAdd = false) { return GetProcessEx(Pid, bCanAdd ? eMustAdd : eCanNotAdd); }
 
-	std::map<uint64, CProcessPtr> FindProcesses(const CProgramID& ID);
+	std::map<SProcessUID, CProcessPtr> FindProcesses(const CProgramID& ID);
 
 	class CServiceList* Services() { return m_Services; }
 
@@ -78,7 +78,8 @@ protected:
 
 	class CServiceList* m_Services;
 
-	std::map<uint64, CProcessPtr> m_List;
+	std::map<SProcessUID, CProcessPtr> m_ProcessMap;
+	std::map<uint64, CProcessPtr> m_ProcessByPID;
 	std::multimap<std::wstring, CProcessPtr> m_Apps;
 	std::multimap<std::wstring, CProcessPtr> m_ByPath;
 

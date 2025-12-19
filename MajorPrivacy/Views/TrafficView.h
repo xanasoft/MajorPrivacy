@@ -37,14 +37,16 @@ protected:
 
 	QSet<CProgramFilePtr>			m_CurPrograms;
 	QSet<CWindowsServicePtr>		m_CurServices;
-	QMap<QString, STrafficItemPtr>	m_ParentMap;
-	QMap<quint64, STrafficItemPtr>	m_TrafficMap;
+
+	QMap<QVariant, STrafficItemPtr>	m_CachedTrafficMap;
+	QHash<QString, quint64>			m_TrafficLogTimestamps; // hostname -> last timestamp
 
 private:
 
-	QToolBar*				m_pToolBar;
-	QToolButton*			m_pBtnExpand;
-	QComboBox*				m_pCmbGrouping;
+	QToolBar*				m_pToolBar = nullptr;
+	QToolButton*			m_pBtnExpand = nullptr;
+	QToolButton*			m_pBtnTree = nullptr;
+	QComboBox*				m_pCmbGrouping = nullptr;
 	QToolButton*			m_pAreaFilter = nullptr;
 	QMenu*					m_pAreaMenu = nullptr;
 	QAction*				m_pInternet = nullptr;
@@ -54,10 +56,11 @@ private:
 	QToolButton*			m_pBtnRefresh = nullptr;
 	QToolButton*			m_pBtnClear = nullptr;
 
-	QAction*				m_pFilterDNS;
-	QAction*				m_pBlockFW;
+	QAction*				m_pFilterDNS = nullptr;
+	QAction*				m_pBlockFW = nullptr;
 
 	bool					m_bGroupByProgram = false;
+	bool					m_bTreeDomains = true;
 	quint64					m_RecentLimit = 0;
 	int						m_AreaFilter = 0;
 

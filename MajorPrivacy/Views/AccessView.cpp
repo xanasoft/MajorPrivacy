@@ -39,8 +39,13 @@ CAccessView::CAccessView(QWidget *parent)
 	//connect(m_pCmbAccess, SIGNAL(currentIndexChanged(int)), this, SLOT(UpdateFilter()));
 	m_pToolBar->addWidget(m_pCmbAccess);
 
-	m_pToolBar->addSeparator();
+	m_pCmbAction = new QComboBox();
+	m_pCmbAction->addItem(QIcon(":/Icons/NoAccess.png"), tr("Any Status"), (qint32)EEventStatus::eUndefined);
+	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)EEventStatus::eAllowed);
+	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
+	m_pToolBar->addWidget(m_pCmbAction);
 
+	m_pToolBar->addSeparator();
 	m_pBtnHold = new QToolButton();
 	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
 	m_pBtnHold->setCheckable(true);
@@ -100,13 +105,17 @@ void CAccessView::OnRefresh()
 
 void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, QString RootPath)
 {
-	if (m_CurPrograms != Programs || m_CurServices != Services || m_FullRefresh || m_iAccessFilter != m_pCmbAccess->currentData().toInt() || m_RecentLimit != theGUI->GetRecentLimit() || m_RootPath != RootPath) 
+	if (m_CurPrograms != Programs || m_CurServices != Services || m_FullRefresh 
+		|| m_iAccessFilter != m_pCmbAccess->currentData().toInt() 
+		|| m_iStatusFilter != m_pCmbAction->currentData().toInt() 
+		|| m_RecentLimit != theGUI->GetRecentLimit() || m_RootPath != RootPath) 
 	{
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
 		m_CurRoot.clear();
 		m_CurItems.clear();
 		m_iAccessFilter = m_pCmbAccess->currentData().toInt();
+		m_iStatusFilter = m_pCmbAction->currentData().toInt();
 		m_RecentLimit = theGUI->GetRecentLimit();
 		m_RootPath = RootPath;
 		m_pItemModel->Clean();
@@ -227,6 +236,12 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 				return;
 		}
 
+		if (m_iStatusFilter != -1) {
+			EEventStatus Status = (pStats->bBlocked) ? EEventStatus::eBlocked : EEventStatus::eAllowed;
+			if ((qint32)Status != m_iStatusFilter)
+				return;
+		}
+
 		if (uRecentLimit) {
 			if (FILETIME2ms(pStats->LastAccessTime) < uRecentLimit)
 				return;
@@ -285,7 +300,7 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 	quint64 start = GetUSTickCount();
 #endif
 
-	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Programs.count() + Services.count());
+	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Programs.count() + Services.count(), theGUI);
 
 	foreach(const CProgramFilePtr& pProgram, Programs) 
 	{

@@ -29,3 +29,11 @@
 #include <locale>
 #include <codecvt>
 #include <algorithm>
+#include <functional>
+#include <iostream>
+#include <atomic>
+#include <thread>
+#include <mutex>
+
+//#include "../MiscHelpers/Common/DebugHelpers.h"
+#define ASSERT(x)

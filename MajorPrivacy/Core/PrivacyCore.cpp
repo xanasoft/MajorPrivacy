@@ -1264,16 +1264,21 @@ STATUS CPrivacyCore::StartProcessInEnclave(const QString& Command, const QFlexGu
 		CloseHandle(pi.hThread);
 
 		if(!pProcess)
-			return ERR(STATUS_UNSUCCESSFUL);
-
-		KPH_PROCESS_SFLAGS SecFlags;
-		SecFlags.SecFlags = pProcess->GetSecFlags();
-		if (SecFlags.EjectFromEnclave)
-			return ERR(STATUS_ERR_PROC_EJECTED);
+			Status = ERR(STATUS_UNSUCCESSFUL);
+		else
+		{
+			KPH_PROCESS_SFLAGS SecFlags;
+			SecFlags.SecFlags = pProcess->GetSecFlags();
+			if (SecFlags.EjectFromEnclave)
+				Status = ERR(STATUS_ERR_PROC_EJECTED);
+		}
 	} 
 	else
-		return ERR(STATUS_UNSUCCESSFUL); // todo make a better error code
-	return OK;
+		Status = ERR(STATUS_UNSUCCESSFUL); // todo make a better error code
+
+	m_Driver.FinishEnclave();
+
+	return Status;
 }
 
 // HashDB

@@ -66,9 +66,10 @@ public:
 			m_ptr->RemoveRef();
 		m_ptr = nullptr;
 	}
-	void reset() { Clear(); } // for STL compatibility
+	//void reset() { Clear(); } // for STL compatibility
 
-	explicit operator bool() const		{ return m_ptr != nullptr; }
+	explicit operator bool() const	{ return m_ptr != nullptr; }
+	bool IsEmpty() const			{ return m_ptr == nullptr; }
 
 protected:
 	void Set(T* ptr) {

@@ -97,10 +97,16 @@ public slots:
 		//	QMessageBox::warning(NULL, this->windowTitle(), Message); 
 	}
 
-	void		OnFinished()
+	void		OnFinished(int CountDown = 0)
 	{
-		m_pButtonBox->button(QDialogButtonBox::Cancel)->setEnabled(false);
-		m_CountDown = 3;
+		m_Finished = true;
+		if(!CountDown)
+			close();
+		else
+		{
+			m_pButtonBox->button(QDialogButtonBox::Cancel)->setEnabled(false);
+			m_CountDown = CountDown;
+		}
 	}
 
 private slots:
@@ -139,13 +145,15 @@ protected:
 
 	void closeEvent(QCloseEvent *e)
 	{
-		emit Cancel();
+		if(!m_Finished)
+			OnCancel();
 	}
 
 	int					m_TimerId = 0;
 	int					m_CountDown = 0;
 	bool				m_bWatchEsc = false;
 	bool				m_Cancelled = false;
+	bool				m_Finished = false;
 
 	QWidget*			m_pMainWidget = nullptr;
 	QGridLayout*		m_pMainLayout = nullptr;
@@ -154,12 +162,14 @@ protected:
 	QDialogButtonBox*	m_pButtonBox = nullptr;
 };
 
+typedef QSharedPointer<CProgressDialog> CProgressDialogPtr;
+
 class MISCHELPERS_EXPORT CProgressDialogHelper
 {
 public:
-	CProgressDialogHelper(CProgressDialog* pDialog, const QString& Prompt, int TotalCount)
+	CProgressDialogHelper(const QString& Prompt, int TotalCount, QWidget* parent = nullptr)
 	{
-		m_pDialog = pDialog;
+		m_pDialog = CProgressDialogPtr(new CProgressDialog("", parent));
 		m_pDialog->ResetCanceled();
 		m_Prompt = Prompt;
 		m_LastTime = GetCurTick();
@@ -191,7 +201,7 @@ public:
 	}
 
 protected:
-	CProgressDialog* m_pDialog;
+	CProgressDialogPtr m_pDialog;
 	QString m_Prompt;
 	quint64 m_LastTime = 0;
 	int m_TotalCount = 0;

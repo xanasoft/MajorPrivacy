@@ -8,6 +8,28 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
+## [0.99.6] - 2025-12-20
+
+### Added
+- improved traffic view now grouping by primary domain
+- Progam view now saves primary filter
+- added status filter to access view
+- added view option to show private entries in global view
+
+### Changed
+- improved process map handling
+- improved process protection
+- reworked online updater
+
+### fixed
+- fixed driver based process protection on arm64 systems caused crash with non native binaries
+- fixed protected process audio [#8](https://github.com/xanasoft/MajorPrivacy/issues/8)
+
+ 
+
+
+
 ## [0.99.5b] - 2025-11-27
 
 ### Fixed

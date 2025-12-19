@@ -10,10 +10,18 @@
 
 struct SProcessUID
 {
+	SProcessUID() {}
 	SProcessUID(uint64 uPid, uint64 msTime);
 	__inline uint64 Get() const { return PUID; }
 	__inline void Set(uint64 UID) { PUID = UID; }
 	uint64 PUID = 0;
+
+	bool operator==(const SProcessUID& other) const { return PUID == other.PUID; }
+	bool operator!=(const SProcessUID& other) const { return PUID != other.PUID; }
+	bool operator<(const SProcessUID& other) const { return PUID < other.PUID; }
+	bool operator<=(const SProcessUID& other) const { return PUID <= other.PUID; }
+	bool operator>(const SProcessUID& other) const { return PUID > other.PUID; }
+	bool operator>=(const SProcessUID& other) const { return PUID >= other.PUID; }
 };
 
 class CProcess: public CAbstractInfoEx
@@ -90,13 +98,11 @@ protected:
 	void AddService(const std::wstring& Key) { std::unique_lock Lock(m_Mutex); m_ServiceList.insert(Key); }
 	void RemoveService(const std::wstring& Key) { std::unique_lock Lock(m_Mutex); m_ServiceList.erase(Key); }
 
-	bool Init();
-	bool Update();
-
+	bool Init(const struct SProcessInfo* Data);
 	bool Init(PSYSTEM_PROCESS_INFORMATION process, bool bFullProcessInfo);
 	bool Update(PSYSTEM_PROCESS_INFORMATION process, bool bFullProcessInfo);
-
-	void UpdateMisc();
+	void Update();
+	void Update(const struct SProcessInfo* Data);
 
 	void SetRawCreationTime(uint64 TimeStamp);
 	bool InitOther();

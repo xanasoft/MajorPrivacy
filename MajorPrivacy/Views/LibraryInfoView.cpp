@@ -90,7 +90,7 @@ void CLibraryInfoView::Sync()
 		Old.insert(Path, pItem);
 	}	
 
-	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Items.count());
+	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Items.count(), theGUI);
 
 	QSet<QString> Paths;
 	for (auto pInfo : Items)

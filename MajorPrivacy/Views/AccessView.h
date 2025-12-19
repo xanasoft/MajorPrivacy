@@ -60,6 +60,7 @@ protected:
 
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbAccess;
+	QComboBox*				m_pCmbAction;
 
 	QToolButton*			m_pBtnHold;
 	QToolButton*			m_pBtnRefresh;
@@ -80,6 +81,7 @@ protected:
 	QHash<quint64, SItem>			m_CurItems;
 
 	int						m_iAccessFilter = 0;
+	int						m_iStatusFilter = 0;
 	quint64					m_RecentLimit = 0;
 	QString					m_RootPath;
 

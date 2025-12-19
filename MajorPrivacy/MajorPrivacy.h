@@ -99,6 +99,7 @@ public:
 	static QString		GetResourceStr(const QString& Name);
 
 	quint64				GetRecentLimit() const { return m_pBtnTime->isChecked() ? m_pCmbRecent->currentData().toULongLong() : 0; }
+	bool				GetShowPrivate() const { return m_pBtnPrivate->isChecked(); }	
 
 	QString				GetLanguage() const { return m_Language; }
 
@@ -153,7 +154,7 @@ private slots:
 	void				OnExit();
 	void				OnHelp();
 	void				OnDiagnostics();
-	void				CheckForUpdates(bool bManual = true);
+	void				OnCheckForUpdates();
 	void				OnAbout();
 
 	void				BuildMenu();
@@ -274,6 +275,8 @@ private:
 	//QToolButton*		m_pBtnClear = nullptr;
 	QToolButton*		m_pBtnTime = nullptr;
 	QComboBox*			m_pCmbRecent = nullptr;
+
+	QToolButton*		m_pBtnPrivate = nullptr;
 
 	QSplitter*			m_pProgramSplitter = nullptr;
 	QWidget*			m_pPageSubWidget = nullptr;

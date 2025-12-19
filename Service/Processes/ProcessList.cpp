@@ -152,7 +152,7 @@ STATUS CProcessList::EnumProcesses()
 
     std::unique_lock Lock(m_Mutex);
 
-    std::map<uint64, CProcessPtr> OldList(m_List);
+    std::map<SProcessUID, CProcessPtr> OldList(m_ProcessMap);
 
     if (theCore->Driver()->IsConnected())
     {
@@ -165,24 +165,29 @@ STATUS CProcessList::EnumProcesses()
             if (Pid == 0)
                 continue; // skip Idle Process
 
-            bool bAdd = false;
-            auto F = OldList.find(Pid);
+            auto Result = theCore->Driver()->GetProcessInfo(Pid);
+            if(Result.IsError())
+				continue; // process already terminated
+
+            SProcessUID UID(Pid, FILETIME2ms(Result.GetValue()->CreateTime));
+
+            auto F = OldList.find(UID);
             CProcessPtr pProcess;
-            if (F != OldList.end()) {
+            if (F != OldList.end()) 
+            {
                 pProcess = F->second;
                 OldList.erase(F);
+                if(pProcess->GetParentId() == -1) // reinitialize process info if we had a partial init before
+					pProcess->Init(Result.GetValue().get());
             }
             else
             {
                 pProcess = CProcessPtr(new CProcess(Pid));
-                pProcess->Init();
-                bAdd = true;
+                pProcess->Init(Result.GetValue().get());
+                AddProcessImpl(pProcess);
             }
 
-            pProcess->Update();
-
-            if (bAdd) 
-				AddProcessImpl(pProcess);
+            pProcess->Update(Result.GetValue().get());	
         }
     }
     else
@@ -205,7 +210,9 @@ STATUS CProcessList::EnumProcesses()
             if (Pid == 0)
                 continue; // skip Idle Process
 
-            auto F = OldList.find(Pid);
+            SProcessUID UID(Pid, FILETIME2ms(process->CreateTime.QuadPart));
+
+            auto F = OldList.find(UID);
             CProcessPtr pProcess;
             if (F != OldList.end()) {
                 pProcess = F->second;
@@ -277,15 +284,16 @@ CProcessPtr CProcessList::GetProcessEx(uint64 Pid, EGetMode Mode)
 {
 	std::unique_lock Lock(m_Mutex);
 
-	auto F = m_List.find(Pid); 
-    if (F != m_List.end())
+	auto F = m_ProcessByPID.find(Pid); 
+    if (F != m_ProcessByPID.end())
         return F->second;
 
     if (Mode == eCanNotAdd)
         return NULL;
 
     CProcessPtr pProcess = CProcessPtr(new CProcess(Pid));
-    if (pProcess->Init()) 
+    auto Result = theCore->Driver()->GetProcessInfo(Pid);
+    if (pProcess->Init(Result.GetValue().get()))
     {
         AddProcessUnsafe(pProcess);
         theCore->ProgramManager()->AddProcess(pProcess);
@@ -293,7 +301,7 @@ CProcessPtr CProcessList::GetProcessEx(uint64 Pid, EGetMode Mode)
         //if (!theCore->AppIsolator()->AllowProcessStart(pProcess))
         //    TerminateProcess(Pid, pProcess->GetFileName());
 
-        pProcess->Update();
+        pProcess->Update(Result.GetValue().get());
     }
     else 
     {
@@ -301,7 +309,8 @@ CProcessPtr CProcessList::GetProcessEx(uint64 Pid, EGetMode Mode)
         if (Mode != eMustAdd)
             return nullptr;
 
-        m_List.insert(std::make_pair(pProcess->GetProcessId(), pProcess));
+		m_ProcessMap.insert(std::make_pair(pProcess->GetProcessUID(), pProcess));
+        m_ProcessByPID.insert(std::make_pair(pProcess->GetProcessId(), pProcess));
     }
     
 	return pProcess; 
@@ -309,7 +318,9 @@ CProcessPtr CProcessList::GetProcessEx(uint64 Pid, EGetMode Mode)
 
 void CProcessList::AddProcessUnsafe(const CProcessPtr& pProcess)
 {
-    m_List.insert(std::make_pair(pProcess->GetProcessId(), pProcess));
+    m_ProcessMap.insert(std::make_pair(pProcess->GetProcessUID(), pProcess));
+    m_ProcessByPID.insert(std::make_pair(pProcess->GetProcessId(), pProcess));
+
     std::wstring AppContainerSID = pProcess->GetAppContainerSid();
     if (!AppContainerSID.empty())
         m_Apps.insert(std::make_pair(MkLower(AppContainerSID), pProcess));
@@ -320,7 +331,12 @@ void CProcessList::AddProcessUnsafe(const CProcessPtr& pProcess)
 
 void CProcessList::RemoveProcessUnsafe(const CProcessPtr& pProcess)
 {
-    m_List.erase(pProcess->GetProcessId());
+    m_ProcessMap.erase(pProcess->GetProcessUID());
+
+	auto F = m_ProcessByPID.find(pProcess->GetProcessId());
+    if(F != m_ProcessByPID.end() && F->second == pProcess)
+		m_ProcessByPID.erase(F);
+
     std::wstring AppContainerSID = pProcess->GetAppContainerSid();
     if (!AppContainerSID.empty())
         mmap_erase(m_Apps, MkLower(AppContainerSID), pProcess);
@@ -329,22 +345,22 @@ void CProcessList::RemoveProcessUnsafe(const CProcessPtr& pProcess)
     mmap_erase(m_ByPath, theCore->NormalizePath(FilePath), pProcess);
 }
 
-std::map<uint64, CProcessPtr> CProcessList::FindProcesses(const CProgramID& ID)
+std::map<SProcessUID, CProcessPtr> CProcessList::FindProcesses(const CProgramID& ID)
 {
 	std::unique_lock Lock(m_Mutex);
 
-	std::map<uint64, CProcessPtr> Found;
+	std::map<SProcessUID, CProcessPtr> Found;
 
 	switch (ID.GetType())
 	{
-	case EProgramType::eProgramFile:
+	    case EProgramType::eProgramFile:
         {
             for (auto I = m_ByPath.find(ID.GetFilePath()); I != m_ByPath.end() && I->first == ID.GetFilePath(); ++I) {
-                Found.insert(std::make_pair(I->second->GetProcessId(), I->second));
+                Found.insert(std::make_pair(I->second->GetProcessUID(), I->second));
             }
+            break;
         }
-		break;
-	case EProgramType::eWindowsService:
+	    case EProgramType::eWindowsService:
         {
             auto pService = m_Services->GetService(ID.GetServiceTag());
             if (!pService || !pService->ProcessId)
@@ -353,18 +369,18 @@ std::map<uint64, CProcessPtr> CProcessList::FindProcesses(const CProgramID& ID)
             if (!pProcess)
                 break;
             
-            Found.insert(std::make_pair(pProcess->GetProcessId(), pProcess));
+            Found.insert(std::make_pair(pProcess->GetProcessUID(), pProcess));
+            break;
         }
-		break;
-	case EProgramType::eAppPackage:
+	    case EProgramType::eAppPackage:
         {
             for (auto I = m_Apps.find(ID.GetAppContainerSid()); I != m_Apps.end() && I->first == ID.GetAppContainerSid(); ++I) {
-                Found.insert(std::make_pair(I->second->GetProcessId(), I->second));
+                Found.insert(std::make_pair(I->second->GetProcessUID(), I->second));
             }
+            break;
         }
-		break;
-	case EProgramType::eAllPrograms:
-		return m_List;
+	    case EProgramType::eAllPrograms:
+		    return m_ProcessMap;
 	}
 	return Found;
 }
@@ -426,8 +442,8 @@ std::wstring CProcessList::GetPathFromCmd(const std::wstring &CommandLine, const
 
     // check relative paths based on the parrent process working directory
     std::wstring workingDir;
-	auto F = m_List.find(ParentID); 
-    if (F != m_List.end())
+	auto F = m_ProcessByPID.find(ParentID); 
+    if (F != m_ProcessByPID.end())
         workingDir = F->second->GetWorkDir();
     if (!workingDir.empty())
     {
@@ -492,7 +508,7 @@ bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPi
     //
     // This situation can occur, for instance, if a task manager detects the process and opens it before the process creation is fully completed.
     //
-    pChildProcess->UpdateMisc();
+    pChildProcess->Update();
 
     if (!pChildProcess->IsInitDone()) {
 
@@ -602,8 +618,8 @@ void CProcessList::OnProcessStopped(uint64 Pid, uint32 ExitCode)
 {
 	std::unique_lock Lock(m_Mutex);
 
-    auto F = m_List.find(Pid);
-    if (F == m_List.end())
+    auto F = m_ProcessByPID.find(Pid);
+    if (F == m_ProcessByPID.end())
         return;
     CProcessPtr pProcess = F->second;
 

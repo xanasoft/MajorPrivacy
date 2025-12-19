@@ -225,6 +225,7 @@ public:
 	RESULT(SHandleInfoPtr) GetHandleInfo(ULONG_PTR UniqueProcessId, ULONG_PTR HandleValue);
 
 	STATUS PrepareEnclave(const CFlexGuid& EnclaveGuid);
+	STATUS FinishEnclave();
 
 	RESULT(StVariant) GetConfig(const char* Name);
 
@@ -325,5 +326,7 @@ protected:
 	std::mutex m_CallMutex;
 	class CAbstractClient* m_pClient;
 	uint32 m_CurProcSecState;
+
+	std::timed_mutex m_EnclaveMutex;
 };
 

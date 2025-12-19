@@ -21,12 +21,12 @@ class CTrafficModel : public CTreeItemModel
 public:
 	CTrafficModel(QObject* parent = 0);
 	~CTrafficModel();
-	
+
 	typedef STrafficItemPtr ItemType;
 
-	QList<QModelIndex>	Sync(const QMap<quint64, STrafficItemPtr>& List);
-	
-	STrafficItemPtr	GetItem(const QModelIndex& index);
+	QList<QModelIndex>	Sync(const QMap<QVariant, STrafficItemPtr>& List);
+
+	STrafficItemPtr		GetItem(const QModelIndex& index);
 
 	int				columnCount(const QModelIndex& parent = QModelIndex()) const;
 	QVariant		headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;

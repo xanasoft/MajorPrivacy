@@ -9,6 +9,8 @@
 CTrafficView::CTrafficView(QWidget *parent)
 	:CPanelViewEx<CTrafficModel>(parent)
 {
+	((CSortFilterProxyModel*)m_pSortProxy)->SetShowFilteredHierarchy(true);
+
 	m_pTreeView->setColumnReset(2);
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pTreeView->setStyle(pStyle);
@@ -55,10 +57,42 @@ CTrafficView::CTrafficView(QWidget *parent)
 	m_pAreaFilter->setPopupMode(QToolButton::MenuButtonPopup);
 	m_pAreaFilter->setMenu(m_pAreaMenu);
 	m_pAreaFilter->setMaximumHeight(22);
+	m_AreaFilter = theConf->GetInt("Options/TrafficAreaFilter", 0);
+	if (m_AreaFilter)
+	{
+		m_pAreaFilter->setChecked(true);
+		m_pInternet->setChecked((m_AreaFilter & CTrafficEntry::eInternet) != 0);
+		m_pLocalArea->setChecked((m_AreaFilter & CTrafficEntry::eLocalAreaEx) == CTrafficEntry::eLocalAreaEx);
+		m_pLocalHost->setChecked((m_AreaFilter & CTrafficEntry::eLocalHost) != 0);
+	}
 	m_pToolBar->addWidget(m_pAreaFilter);
 
 	m_pToolBar->addSeparator();
+	m_pBtnTree = new QToolButton();
+	m_pBtnTree->setIcon(QIcon(":/Icons/Tree.png"));
+	m_pBtnTree->setCheckable(true);
+	m_pBtnTree->setToolTip(tr("Break Domains into Sub-Branches"));
+	m_pBtnTree->setMaximumHeight(22);
+	m_pBtnTree->setChecked(theConf->GetBool("Options/SubdomainTree", true));
+	connect(m_pBtnTree, &QToolButton::toggled, this, [&](bool checked) {
+		theConf->SetValue("Options/SubdomainTree", checked);
+		});
+	m_pToolBar->addWidget(m_pBtnTree);
 
+	m_pBtnExpand = new QToolButton();
+	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
+	m_pBtnExpand->setCheckable(true);
+	m_pBtnExpand->setToolTip(tr("Auto Expand"));
+	m_pBtnExpand->setMaximumHeight(22);
+	connect(m_pBtnExpand, &QToolButton::toggled, this, [&](bool checked) {
+		if(checked)
+			m_pTreeView->expandAll();
+		else
+			m_pTreeView->collapseAll();
+		});
+	m_pToolBar->addWidget(m_pBtnExpand);
+
+	m_pToolBar->addSeparator();
 	m_pBtnHold = new QToolButton();
 	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
 	m_pBtnHold->setCheckable(true);
@@ -81,20 +115,6 @@ CTrafficView::CTrafficView(QWidget *parent)
 	m_pBtnClear->setFixedHeight(22);
 	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearRecords()));
 	m_pToolBar->addWidget(m_pBtnClear);
-
-	m_pToolBar->addSeparator();
-	m_pBtnExpand = new QToolButton();
-	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
-	m_pBtnExpand->setCheckable(true);
-	m_pBtnExpand->setToolTip(tr("Auto Expand"));
-	m_pBtnExpand->setMaximumHeight(22);
-	connect(m_pBtnExpand, &QToolButton::toggled, this, [&](bool checked) {
-		if(checked)
-			m_pTreeView->expandAll();
-		else
-			m_pTreeView->collapseAll();
-		});
-	m_pToolBar->addWidget(m_pBtnExpand);
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -148,8 +168,12 @@ void CTrafficView::OnAreaFilter()
 		m_pAreaFilter->setChecked(m_AreaFilter != 0);
 	}
 
+	theConf->SetValue("Options/TrafficAreaFilter", m_AreaFilter);
+
 	m_CurPrograms.clear();
 	m_CurServices.clear();
+	m_CachedTrafficMap.clear();
+	m_TrafficLogTimestamps.clear();
 }
 
 void CTrafficView::OnRefresh()
@@ -160,92 +184,298 @@ void CTrafficView::OnRefresh()
 	foreach(const CWindowsServicePtr& pService, m_CurServices)
 		pService->ClearTrafficLog();
 
+	m_CachedTrafficMap.clear();
+	m_TrafficLogTimestamps.clear();
 	m_FullRefresh = true;
 }
 
 void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services)
 {
 	bool bGroupByProgram = m_pCmbGrouping->currentIndex() == 1;
+	bool bTreeDomains = m_pBtnTree->isChecked();
 
-	if (m_CurPrograms != Programs || m_CurServices != Services || m_FullRefresh || bGroupByProgram != m_bGroupByProgram || m_RecentLimit != theGUI->GetRecentLimit()) {
+	// Check if we need to clear cache and force full rebuild
+	if (m_CurPrograms != Programs || m_CurServices != Services || m_FullRefresh || bGroupByProgram != m_bGroupByProgram || bTreeDomains != m_bTreeDomains || m_RecentLimit != theGUI->GetRecentLimit()) {
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
 		m_RecentLimit = theGUI->GetRecentLimit();
-		m_ParentMap.clear();
-		m_TrafficMap.clear();
 		m_pTreeView->collapseAll();
 		m_pItemModel->Clear();
 		m_FullRefresh = false;
 		m_RefreshCount++;
+		m_CachedTrafficMap.clear();
+		m_TrafficLogTimestamps.clear();
 	}
-	else if(m_pBtnHold->isChecked() /*&& !theGUI->m_IgnoreHold*/)
+	else if(m_pBtnHold->isChecked())
 		return;
 
+	//uint64 uStart = GetTickCount64();
+
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
-
 	m_bGroupByProgram = bGroupByProgram;
+	m_bTreeDomains = bTreeDomains;
 
-	auto OldTraffic = m_TrafficMap;
+	QMap<QVariant, CTrafficEntryPtr> AggregatedEntries; // For aggregating stats
+	QMap<QVariant, CTrafficEntry::ENetType> AggregatedNetTypes; // Track network types
 
-	foreach(auto& pItem, m_ParentMap)
-		pItem->pEntry->Reset();
+	// Helper to extract multiple hostnames from a single entry
+	// Handles cases like "(host1 | host2)" or "host1, host2"
+	auto ExtractHostNames = [](const QString& hostName) -> QStringList {
+		QStringList result;
+		QString cleaned = hostName.trimmed();
 
-	std::function<void(const CProgramItemPtr&, const CTrafficEntryPtr&)> AddByDomain = [&](const CProgramItemPtr& pProg, const CTrafficEntryPtr& pEntry) {
+		// Handle "(host1 | host2 | host3)" format
+		if (cleaned.startsWith("(") && cleaned.contains("|")) {
+			// Remove parentheses
+			cleaned = cleaned.mid(1);
+			if (cleaned.endsWith(")"))
+				cleaned.chop(1);
 
-		STrafficItemPtr& pItem = m_ParentMap[pEntry->GetHostName()];
-		if(pItem.isNull())
-		{
-			pItem = STrafficItemPtr(new STrafficItem());
-			pItem->pEntry = CTrafficEntryPtr(new CTrafficEntry());
-			pItem->pEntry->SetHostName(pEntry->GetHostName());
-			pItem->pEntry->SetIpAddress(pEntry->GetIpAddress());
-			m_TrafficMap.insert((uint64)pItem->pEntry.get(), pItem);
+			// Split by |
+			QStringList parts = cleaned.split("|", Qt::SkipEmptyParts);
+			for (const QString& part : parts) {
+				QString trimmed = part.trimmed();
+				if (!trimmed.isEmpty())
+					result.append(trimmed);
+			}
 		}
-		else
-			OldTraffic.remove((uint64)pItem->pEntry.get());
-
-		STrafficItemPtr pSubItem = OldTraffic.take((uint64)pEntry.get());
-		if (!pSubItem) {
-			pSubItem = STrafficItemPtr(new STrafficItem());
-			pSubItem->pEntry = pEntry;	
-			pSubItem->pProg = pProg;
-			pSubItem->Parent = (uint64)pItem->pEntry.get();
-			m_TrafficMap.insert((uint64)pSubItem->pEntry.get(), pSubItem);
+		// Handle "host1, host2, host3" format
+		else if (cleaned.contains(", ")) {
+			QStringList parts = cleaned.split(", ", Qt::SkipEmptyParts);
+			for (const QString& part : parts) {
+				QString trimmed = part.trimmed();
+				if (!trimmed.isEmpty())
+					result.append(trimmed);
+			}
+		}
+		// Single hostname
+		else {
+			result.append(cleaned);
 		}
 
-		pItem->pEntry->Merge(pEntry);
+		return result;
 	};
 
-	std::function<void(const CProgramItemPtr&, const CTrafficEntryPtr&)> AddByProgram = [&](const CProgramItemPtr& pProg, const CTrafficEntryPtr& pEntry) {
-
-		STrafficItemPtr& pItem = m_ParentMap[QString::number((quint64)pProg.get())];
-		if(pItem.isNull())
-		{
-			pItem = STrafficItemPtr(new STrafficItem());
-			pItem->pEntry = CTrafficEntryPtr(new CTrafficEntry());
-			pItem->pProg = pProg;
-			pItem->pEntry->SetHostName(pEntry->GetHostName());
-			pItem->pEntry->SetIpAddress(pEntry->GetIpAddress());
-			m_TrafficMap.insert((uint64)pItem->pEntry.get(), pItem);
+	// Helper to get or create aggregated traffic entry
+	auto GetOrCreateAggregatedEntry = [&](const QVariant& id) -> CTrafficEntryPtr {
+		if (!AggregatedEntries.contains(id)) {
+			AggregatedEntries[id] = CTrafficEntryPtr(new CTrafficEntry());
 		}
-		else
-			OldTraffic.remove((uint64)pItem->pEntry.get());
-
-		STrafficItemPtr pSubItem = OldTraffic.take((uint64)pEntry.get());
-		if (!pSubItem) {
-			pSubItem = STrafficItemPtr(new STrafficItem());
-			pSubItem->pEntry = pEntry;	
-			pSubItem->Parent = (uint64)pItem->pEntry.get();
-			m_TrafficMap.insert((uint64)pSubItem->pEntry.get(), pSubItem);
-		}
-
-		pItem->pEntry->Merge(pEntry);
+		return AggregatedEntries[id];
 	};
 
-	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Programs.count() + Services.count());
+	// Helper to merge entry and track network type
+	auto MergeEntryWithNetType = [&](const QVariant& id, const CTrafficEntryPtr& aggregated, const CTrafficEntryPtr& source) {
+		aggregated->Merge(source);
+
+		// Track the most restrictive network type
+		// Priority: LocalHost > LocalArea > Internet
+		CTrafficEntry::ENetType sourceType = source->GetNetType();
+		if (!AggregatedNetTypes.contains(id)) {
+			AggregatedNetTypes[id] = sourceType;
+		} else {
+			CTrafficEntry::ENetType currentType = AggregatedNetTypes[id];
+			// LocalHost is most restrictive
+			if (sourceType == CTrafficEntry::eLocalHost) {
+				AggregatedNetTypes[id] = CTrafficEntry::eLocalHost;
+			}
+			// LocalArea types are next
+			else if ((sourceType & CTrafficEntry::eLocalAreaEx) && currentType == CTrafficEntry::eInternet) {
+				AggregatedNetTypes[id] = sourceType;
+			}
+		}
+
+		// Set the IP address from the source to ensure NetType is properly set
+		if (aggregated->GetIpAddress().isEmpty() && !source->GetIpAddress().isEmpty()) {
+			aggregated->SetIpAddress(source->GetIpAddress());
+		}
+	};
+
+	// Helper to split hostname into domain parts in reverse order
+	// For "123.abc.www.domain.com" returns ["domain.com", "www", "abc", "123"]
+	auto SplitHostName = [](const QString& hostName) -> QStringList {
+		QStringList parts;
+		QString name = hostName;
+
+		// Skip if it's an IP address or starts with '['
+		if (name.startsWith("["))
+			return parts;
+
+		// Simple check for IPv4 address - all segments are numeric
+		QStringList segments = name.split(".");
+		if (segments.count() == 4) {
+			bool isIPv4 = true;
+			for (const QString& seg : segments) {
+				bool ok;
+				seg.toInt(&ok);
+				if (!ok) {
+					isIPv4 = false;
+					break;
+				}
+			}
+			if (isIPv4)
+				return parts;
+		}
+
+		// Remove port if present
+		int portIdx = name.indexOf(":");
+		if (portIdx != -1)
+			name = name.left(portIdx);
+
+		segments = name.split(".", Qt::SkipEmptyParts);
+		if (segments.count() < 2)
+			return parts;
+
+		// Build domain parts in reverse order
+		// Start with "domain.com"
+		if (segments.count() >= 2) {
+			parts.append(segments[segments.count() - 2] + "." + segments[segments.count() - 1]);
+		}
+		// Add subdomain parts in order: www, abc, 123
+		for (int i = segments.count() - 3; i >= 0; i--) {
+			parts.append(segments[i]);
+		}
+
+		return parts;
+	};
+
+	// Build hierarchy for Domain-First view
+	// Root: domain.com -> www -> abc -> 123 -> programs
+	auto BuildDomainHierarchy = [&](const CProgramItemPtr& pProg, const CTrafficEntryPtr& pEntry) {
+		QString hostName = pEntry->GetHostName();
+		QStringList domainParts = m_bTreeDomains ? SplitHostName(hostName) : QStringList();
+
+		if (domainParts.isEmpty()) {
+			// Use raw hostname for IPs or unparseable names
+			QString rootID = QString("domain_%1").arg(hostName);
+
+			// Create domain entry and merge stats
+			STrafficItemPtr& pDomainItem = m_CachedTrafficMap[rootID];
+			if (pDomainItem.isNull()) {
+				pDomainItem = STrafficItemPtr(new STrafficItem());
+				pDomainItem->pEntry = GetOrCreateAggregatedEntry(rootID);
+				pDomainItem->pEntry->SetHostName(hostName);
+				pDomainItem->Parent = QVariant();
+			}
+			MergeEntryWithNetType(rootID, pDomainItem->pEntry, pEntry);
+
+			// Create program leaf
+			QString progID = QString("domain_%1_prog_%2").arg(hostName).arg((quint64)pProg.data());
+			STrafficItemPtr& pProgItem = m_CachedTrafficMap[progID];
+			if (pProgItem.isNull()) {
+				pProgItem = STrafficItemPtr(new STrafficItem());
+				pProgItem->pProg = pProg;
+				pProgItem->pEntry = pEntry;
+				pProgItem->Parent = rootID;
+			}
+		}
+		else {
+			// Build domain hierarchy
+			QVariant parentID;
+			QString pathSoFar;
+			QString fullDomainSoFar;
+
+			for (int i = 0; i < domainParts.count(); i++) {
+				if (i == 0) {
+					pathSoFar = domainParts[i];
+					fullDomainSoFar = domainParts[i]; // "domain.com"
+				}
+				else {
+					pathSoFar = pathSoFar + "_" + domainParts[i];
+					// Build full domain: "www.domain.com", "abc.www.domain.com", etc.
+					fullDomainSoFar = domainParts[i] + "." + fullDomainSoFar;
+				}
+
+				QString nodeID = QString("domain_%1").arg(pathSoFar);
+
+				STrafficItemPtr& pDomainItem = m_CachedTrafficMap[nodeID];
+				if (pDomainItem.isNull()) {
+					pDomainItem = STrafficItemPtr(new STrafficItem());
+					pDomainItem->pEntry = GetOrCreateAggregatedEntry(nodeID);
+					pDomainItem->pEntry->SetHostName(fullDomainSoFar);
+					pDomainItem->Parent = parentID;
+				}
+				MergeEntryWithNetType(nodeID, pDomainItem->pEntry, pEntry);
+
+				parentID = nodeID;
+			}
+
+			// Add program as leaf node
+			QString progID = QString("domain_%1_prog_%2").arg(pathSoFar).arg((quint64)pProg.data());
+			STrafficItemPtr& pProgItem = m_CachedTrafficMap[progID];
+			if (pProgItem.isNull()) {
+				pProgItem = STrafficItemPtr(new STrafficItem());
+				pProgItem->pProg = pProg;
+				pProgItem->pEntry = pEntry;
+				pProgItem->Parent = parentID;
+			}
+		}
+	};
+
+	// Build hierarchy for Program-First view
+	// Root: program -> domain.com -> www -> abc -> 123
+	auto BuildProgramHierarchy = [&](const CProgramItemPtr& pProg, const CTrafficEntryPtr& pEntry) {
+		// Create program root node
+		QString progID = QString("prog_%1").arg((quint64)pProg.data());
+		STrafficItemPtr& pProgItem = m_CachedTrafficMap[progID];
+		if (pProgItem.isNull()) {
+			pProgItem = STrafficItemPtr(new STrafficItem());
+			pProgItem->pProg = pProg;
+			pProgItem->pEntry = GetOrCreateAggregatedEntry(progID);
+			pProgItem->Parent = QVariant();
+		}
+		MergeEntryWithNetType(progID, pProgItem->pEntry, pEntry);
+
+		QString hostName = pEntry->GetHostName();
+		QStringList domainParts = m_bTreeDomains ? SplitHostName(hostName) : QStringList();
+
+		if (domainParts.isEmpty()) {
+			// Use raw hostname for IPs
+			QString entryID = QString("prog_%1_domain_%2").arg((quint64)pProg.data()).arg(hostName);
+			STrafficItemPtr& pDomainItem = m_CachedTrafficMap[entryID];
+			if (pDomainItem.isNull()) {
+				pDomainItem = STrafficItemPtr(new STrafficItem());
+				pDomainItem->pEntry = pEntry;
+				pDomainItem->Parent = progID;
+			}
+		}
+		else {
+			// Build domain hierarchy under program
+			QVariant parentID = progID;
+			QString pathSoFar;
+			QString fullDomainSoFar;
+
+			for (int i = 0; i < domainParts.count(); i++) {
+				if (i == 0) {
+					pathSoFar = domainParts[i];
+					fullDomainSoFar = domainParts[i]; // "domain.com"
+				}
+				else {
+					pathSoFar = pathSoFar + "_" + domainParts[i];
+					// Build full domain: "www.domain.com", "abc.www.domain.com", etc.
+					fullDomainSoFar = domainParts[i] + "." + fullDomainSoFar;
+				}
+
+				QString nodeID = QString("prog_%1_domain_%2").arg((quint64)pProg.data()).arg(pathSoFar);
+
+				STrafficItemPtr& pDomainItem = m_CachedTrafficMap[nodeID];
+				if (pDomainItem.isNull()) {
+					pDomainItem = STrafficItemPtr(new STrafficItem());
+					pDomainItem->pEntry = GetOrCreateAggregatedEntry(nodeID);
+					pDomainItem->pEntry->SetHostName(fullDomainSoFar);
+					pDomainItem->Parent = parentID;
+				}
+				MergeEntryWithNetType(nodeID, pDomainItem->pEntry, pEntry);
+
+				parentID = nodeID;
+			}
+		}
+	};
+
+	// Process all programs and services
+	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Programs.count() + Services.count(), theGUI);
 
 	foreach(const CProgramFilePtr& pProgram, Programs) {
-
 		if (!ProgressHelper.Next(pProgram->GetName())) {
 			m_pBtnHold->setChecked(true);
 			break;
@@ -257,14 +487,40 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 				continue;
 			if (m_AreaFilter && (m_AreaFilter & I.value()->GetNetType()) == 0)
 				continue;
-			if (m_bGroupByProgram)
-				AddByProgram(pProgram, I.value());
-			else
-				AddByDomain(pProgram, I.value());
+
+			// Check if this entry has changed using timestamp
+			QString cacheKey = QString("%1_%2").arg((quint64)pProgram.data()).arg(I.key());
+			quint64 lastActivity = I.value()->GetLastActivity();
+
+			if (m_TrafficLogTimestamps.contains(cacheKey) &&
+				m_TrafficLogTimestamps[cacheKey] == lastActivity) {
+				// Entry hasn't changed, skip rebuilding
+				continue;
+			}
+
+			// Update timestamp
+			m_TrafficLogTimestamps[cacheKey] = lastActivity;
+
+			// Extract individual hostnames from the entry
+			QStringList hostNames = ExtractHostNames(I.value()->GetHostName());
+
+			// Create entries for each individual hostname
+			for (const QString& individualHost : hostNames) {
+				// Create a copy of the entry with the individual hostname
+				CTrafficEntryPtr pIndividualEntry = CTrafficEntryPtr(new CTrafficEntry());
+				pIndividualEntry->SetHostName(individualHost);
+				pIndividualEntry->SetIpAddress(I.value()->GetIpAddress()); // Copy IP to preserve network type
+				pIndividualEntry->Merge(I.value());
+
+				if (m_bGroupByProgram)
+					BuildProgramHierarchy(pProgram, pIndividualEntry);
+				else
+					BuildDomainHierarchy(pProgram, pIndividualEntry);
+			}
 		}
 	}
-	foreach(const CWindowsServicePtr& pService, Services) {
 
+	foreach(const CWindowsServicePtr& pService, Services) {
 		if (!ProgressHelper.Next(pService->GetName())) {
 			m_pBtnHold->setChecked(true);
 			break;
@@ -276,35 +532,60 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 				continue;
 			if (m_AreaFilter && (m_AreaFilter & I.value()->GetNetType()) == 0)
 				continue;
-			if (m_bGroupByProgram)
-				AddByProgram(pService, I.value());
-			else
-				AddByDomain(pService, I.value());
+
+			// Check if this entry has changed using timestamp
+			QString cacheKey = QString("%1_%2").arg((quint64)pService.data()).arg(I.key());
+			quint64 lastActivity = I.value()->GetLastActivity();
+
+			if (m_TrafficLogTimestamps.contains(cacheKey) &&
+				m_TrafficLogTimestamps[cacheKey] == lastActivity) {
+				// Entry hasn't changed, skip rebuilding
+				continue;
+			}
+
+			// Update timestamp
+			m_TrafficLogTimestamps[cacheKey] = lastActivity;
+
+			// Extract individual hostnames from the entry
+			QStringList hostNames = ExtractHostNames(I.value()->GetHostName());
+
+			// Create entries for each individual hostname
+			for (const QString& individualHost : hostNames) {
+				// Create a copy of the entry with the individual hostname
+				CTrafficEntryPtr pIndividualEntry = CTrafficEntryPtr(new CTrafficEntry());
+				pIndividualEntry->SetHostName(individualHost);
+				pIndividualEntry->SetIpAddress(I.value()->GetIpAddress()); // Copy IP to preserve network type
+				pIndividualEntry->Merge(I.value());
+
+				if (m_bGroupByProgram)
+					BuildProgramHierarchy(pService, pIndividualEntry);
+				else
+					BuildDomainHierarchy(pService, pIndividualEntry);
+			}
 		}
 	}
 
 	if (ProgressHelper.Done()) {
-		if (/*!theGUI->m_IgnoreHold &&*/ ++m_SlowCount == 3) {
+		if (++m_SlowCount == 3) {
 			m_SlowCount = 0;
 			m_pBtnHold->setChecked(true);
 		}
 	} else
 		m_SlowCount = 0;
 
-	foreach(quint64 Key, OldTraffic.keys()) {
-		STrafficItemPtr pOld = m_TrafficMap.take(Key);
-		if(pOld->pProg.isNull())
-			m_ParentMap.remove(pOld->pEntry->GetHostName());
-	}
+	//uint64 uNow = GetTickCount64();
+	//if(uNow - uStart > 100)
+	//	DbgPrint("CTrafficView::Sync took %llu ms\n", uNow - uStart);
 
-	QList<QModelIndex> Added = m_pItemModel->Sync(m_TrafficMap);
+	// Update model with built hierarchy (using cached map directly)
+	QList<QModelIndex> Added = m_pItemModel->Sync(m_CachedTrafficMap);
 
-	if (m_pBtnExpand->isChecked()) 
-	{
+	// Auto-expand new branches if enabled
+	if (m_pBtnExpand->isChecked()) {
 		int CurCount = m_RefreshCount;
 		QTimer::singleShot(10, this, [this, Added, CurCount]() {
 			if(CurCount != m_RefreshCount)
-				return; // ignore if refresh was called again
+				return;
 			foreach(const QModelIndex & Index, Added)
 				m_pTreeView->expand(m_pSortProxy->mapFromSource(Index));
 		});
@@ -315,8 +596,8 @@ void CTrafficView::Clear()
 {
 	m_CurPrograms.clear();
 	m_CurServices.clear();
-	m_ParentMap.clear();
-	m_TrafficMap.clear();
+	m_CachedTrafficMap.clear();
+	m_TrafficLogTimestamps.clear();
 	m_pItemModel->Clear();
 }
 
@@ -430,6 +711,8 @@ void CTrafficView::OnCleanUpDone()
 	// refresh
 	m_CurPrograms.clear();
 	m_CurServices.clear();
+	m_CachedTrafficMap.clear();
+	m_TrafficLogTimestamps.clear();
 	m_FullRefresh = true;
 }
 

@@ -924,52 +924,55 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, NULL, SecurityAnonymous, TokenPrimary, &hDupToken);
 
 			CScopedHandle lpEnvironment((LPVOID)0, DestroyEnvironmentBlock);
-			if (!CreateEnvironmentBlock(&lpEnvironment, hDupToken, FALSE)) {
+			if (!CreateEnvironmentBlock(&lpEnvironment, hDupToken, FALSE))
 				Status = ERR(STATUS_VARIABLE_NOT_FOUND);
-				RETURN_STATUS(Status);
-			}
-
-			STARTUPINFOW si = { 0 };
-			si.cb = sizeof(si);
-			si.dwFlags = STARTF_FORCEOFFFEEDBACK;
-			si.wShowWindow = SW_SHOWNORMAL;
-			PROCESS_INFORMATION pi = { 0 };
-
-			//
-			// Note: If we are running in engine mode, We are admin but not system and are missing SeAssignPrimaryTokenPrivilege
-			//
-
-			if (CreateProcessAsUserW(m_bEngineMode ? NULL : *&hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &si, &pi))
-			{
-				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pi.dwProcessId, true);
-				//ResumeThread(pi.hThread);
-				CloseHandle(pi.hProcess);
-				CloseHandle(pi.hThread);
-
-				KPH_PROCESS_SFLAGS SecFlags;
-				SecFlags.SecFlags = pProcess->GetSecFlags();
-
-				if(SecFlags.EjectFromEnclave)
-					Status = ERR(STATUS_ERR_PROC_EJECTED);
-			}
 			else
-				Status = ERR(GetLastWin32ErrorAsNtStatus());
+			{
+
+				STARTUPINFOW si = { 0 };
+				si.cb = sizeof(si);
+				si.dwFlags = STARTF_FORCEOFFFEEDBACK;
+				si.wShowWindow = SW_SHOWNORMAL;
+				PROCESS_INFORMATION pi = { 0 };
+
+				//
+				// Note: If we are running in engine mode, We are admin but not system and are missing SeAssignPrimaryTokenPrivilege
+				//
+
+				if (CreateProcessAsUserW(m_bEngineMode ? NULL : *&hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &si, &pi))
+				{
+					CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pi.dwProcessId, true);
+					//ResumeThread(pi.hThread);
+					CloseHandle(pi.hProcess);
+					CloseHandle(pi.hThread);
+
+					KPH_PROCESS_SFLAGS SecFlags;
+					SecFlags.SecFlags = pProcess->GetSecFlags();
+
+					if(SecFlags.EjectFromEnclave)
+						Status = ERR(STATUS_ERR_PROC_EJECTED);
+				}
+				else
+					Status = ERR(GetLastWin32ErrorAsNtStatus());
 				
 #else
 			
-			uint32 dwProcessId = 0;
-			Status = theCore->CreateUserProcess(path, pClient.PID, CServiceCore::eExec_AsCallerUser, L"", &dwProcessId);
-			if (Status.IsSuccess())
-			{
-				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(dwProcessId, true);
+				uint32 dwProcessId = 0;
+				Status = theCore->CreateUserProcess(path, pClient.PID, CServiceCore::eExec_AsCallerUser, L"", &dwProcessId);
+				if (Status.IsSuccess())
+				{
+					CProcessPtr pProcess = theCore->ProcessList()->GetProcess(dwProcessId, true);
 
-				KPH_PROCESS_SFLAGS SecFlags;
-				SecFlags.SecFlags = pProcess->GetSecFlags();
+					KPH_PROCESS_SFLAGS SecFlags;
+					SecFlags.SecFlags = pProcess->GetSecFlags();
 
-				if(SecFlags.EjectFromEnclave)
-					Status = ERR(STATUS_ERR_PROC_EJECTED);
-			}
+					if(SecFlags.EjectFromEnclave)
+						Status = ERR(STATUS_ERR_PROC_EJECTED);
+				}
 #endif
+			}
+
+			theCore->Driver()->FinishEnclave();
 
 			RETURN_STATUS(Status);
 		}

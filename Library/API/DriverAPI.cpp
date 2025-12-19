@@ -549,9 +549,25 @@ RESULT(SHandleInfoPtr) CDriverAPI::GetHandleInfo(ULONG_PTR UniqueProcessId, ULON
 
 STATUS CDriverAPI::PrepareEnclave(const CFlexGuid& EnclaveGuid)
 {
+	if(!m_EnclaveMutex.try_lock_for(std::chrono::seconds(1)))
+		return ERR(STATUS_TIMEOUT);
+
     StVariant ReqVar;
     ReqVar[API_V_GUID] = EnclaveGuid.ToVariant(true);
-	return Call(API_PREP_ENCLAVE, ReqVar, NULL);
+    STATUS Status = Call(API_PREP_ENCLAVE, ReqVar, NULL);
+
+    if(!Status)
+		m_EnclaveMutex.unlock();
+    return Status;
+}
+
+STATUS CDriverAPI::FinishEnclave()
+{
+    StVariant ReqVar;
+    STATUS Status = Call(API_FIN_ENCLAVE, ReqVar, NULL);
+
+    m_EnclaveMutex.unlock();
+    return Status;
 }
 
 RESULT(StVariant) CDriverAPI::GetConfig(const char* Name)

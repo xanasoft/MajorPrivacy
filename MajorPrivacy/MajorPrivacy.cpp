@@ -133,6 +133,7 @@ CMajorPrivacy::CMajorPrivacy(QWidget *parent)
 	LoadLanguage();
 
 	m_pUpdater = new COnlineUpdater(this);
+	connect(m_pUpdater, SIGNAL(StateChanged()), this, SLOT(UpdateLabel()));
 
 	statusBar()->showMessage(tr("Starting ..."), 10000);
 
@@ -268,6 +269,7 @@ STATUS CMajorPrivacy::ReloadCert(QWidget* pWidget)
 	if (!Res)
 		return Res.GetStatus();
 
+	g_CertInfoValid = true;
 	QtVariant Info = Res.GetValue();
 	g_CertName = Info[API_V_SUPPORT_NAME].AsQStr();
 	g_SystemHwid = Info[API_V_SUPPORT_HWID].AsQStr();
@@ -504,7 +506,7 @@ STATUS CMajorPrivacy::Connect()
 			.arg(CProcess::GetSecStateStr(theCore->Driver()->GetCurProcSecState())), 30000);
 
 #ifndef _DEBUG
-		if (theCore->IsSvcMaxSecurity() && (!theCore->Driver()->IsCurProcMaxSecurity() && (theCore->Driver()->IsCurProcHighSecurity() || theCore->Driver()->IsCurProcLowSecurity())))
+		if (theCore->IsSvcHighSecurity() && (!theCore->Driver()->IsCurProcMaxSecurity() && (theCore->Driver()->IsCurProcHighSecurity() || theCore->Driver()->IsCurProcLowSecurity())))
 		{
 			((QtSingleApplication*)qApp->instance())->disableSingleApp();
 			QString CommandLine = "\"" + qApp->applicationFilePath().replace("/", "\\") + "\"";
@@ -739,7 +741,7 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 
 		UpdateViews();
 
-		if(!IsSilentMode() && CheckInternet()) // do not check for updates when in presentation/game mode
+		if(!IsSilentMode()) // do not check for updates when in presentation/game mode
 			m_pUpdater->Process();
 	}
 
@@ -828,7 +830,7 @@ void CMajorPrivacy::OpenUrl(QUrl url)
 		else if (path == "/installer")
 			m_pUpdater->RunInstaller(false);
 		else if (path == "/apply")
-			m_pUpdater->ApplyUpdate(COnlineUpdater::eFull, false);
+			m_pUpdater->ApplyUpdate(false);
 		return;
 	}
 
@@ -999,9 +1001,9 @@ void CMajorPrivacy::BuildMenu()
 
 	m_pMenuHelp = menuBar()->addMenu(tr("&Help"));
 	m_pForum = m_pMenuHelp->addAction(QIcon(":/Icons/Forum.png"), tr("Visit Support Forum"), this, SLOT(OnHelp()));
-	m_pMenuHelp->addSeparator();
 	m_pDiagnose = m_pMenuHelp->addAction(QIcon(":/Icons/FirstAid.png"), tr("Diagnostics Information"), this, SLOT(OnDiagnostics()));
-	m_pUpdate = m_pMenuHelp->addAction(QIcon(":/Icons/Update.png"), tr("Check for Updates"), this, SLOT(CheckForUpdates()));
+	m_pMenuHelp->addSeparator();
+	m_pUpdate = m_pMenuHelp->addAction(QIcon(":/Icons/Update.png"), tr("Check for Updates"), this, SLOT(OnCheckForUpdates()));
 	m_pMenuHelp->addSeparator();
 	m_pAboutQt = m_pMenuHelp->addAction(tr("About the Qt Framework"), this, SLOT(OnAbout()));
 	m_pAbout = m_pMenuHelp->addAction(QIcon(":/MajorPrivacy.png"), tr("About MajorPrivacy"), this, SLOT(OnAbout()));
@@ -1021,7 +1023,7 @@ void CMajorPrivacy::UpdateTheme()
 void CMajorPrivacy::SetUITheme()
 {
 	int iDark = theConf->GetInt("Options/UseDarkTheme", 2);
-	int iFusion = theConf->GetInt("Options/UseFusionTheme", 1);
+	int iFusion = theConf->GetInt("Options/UseFusionTheme", 2);
 	bool bDark = iDark == 2 ? m_CustomTheme.IsSystemDark() : (iDark == 1);
 	m_CustomTheme.SetUITheme(bDark, iFusion);
 	//CPopUpWindow::SetDarkMode(bDark);
@@ -1166,6 +1168,13 @@ void CMajorPrivacy::BuildGUI()
 	font.setPointSizeF(font.pointSizeF() * 1.5);
 	m_pCmbRecent->setFont(font);
 
+	m_pBtnPrivate = new QToolButton();
+	m_pBtnPrivate->setIcon(QIcon(":/Icons/Invisible.png"));
+	m_pBtnPrivate->setCheckable(true);
+	m_pBtnPrivate->setToolTip(tr("Show Private Entries"));
+	//connect(m_pBtnPrivate, SIGNAL(clicked()), this, SLOT(OnRefresh()));
+	m_pToolBar->addWidget(m_pBtnPrivate);
+
 	QWidget* pSpacer4 = new QWidget();
 	pSpacer4->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	pSpacer4->setMaximumWidth(50);
@@ -1232,8 +1241,8 @@ void CMajorPrivacy::BuildGUI()
 
 void CMajorPrivacy::CreateLabel()
 {
-	m_pSupportLabel = new QLabel(m_pMainWidget);
 	m_pSupportLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
+	m_pSupportLabel->disconnect();
 	connect(m_pSupportLabel, SIGNAL(linkActivated(const QString&)), this, SLOT(OpenUrl(const QString&)));
 
 	m_pSupportLabel->setAlignment(Qt::AlignCenter);
@@ -1250,20 +1259,23 @@ void CMajorPrivacy::UpdateLabel()
 	QString LabelText;
 	QString LabelTip;
 
-	if (!theConf->GetString("Updater/PendingUpdate").isEmpty())
+	if (m_pUpdater->HasUpdates())
 	{
-		QString FilePath = theConf->GetString("Updater/InstallerPath");
-		if (!FilePath.isEmpty() && QFile::exists(FilePath)) {
-			LabelText = tr("<a href=\"app://update/installer\" style=\"color: red;\">There is a new MajorPrivacy release %1 ready</a>").arg(theConf->GetString("Updater/InstallerVersion"));
+		if (m_pUpdater->IsInstallerReady()) {
+			LabelText = tr("<a href=\"app://update/installer\" style=\"color: red;\">There is a new MajorPrivacy release %1 ready</a>").arg(m_pUpdater->GetInstallerVersion());
 			LabelTip = tr("Click to run installer");
 		}
-		else if (!theConf->GetString("Updater/UpdateVersion").isEmpty()){
-			LabelText = tr("<a href=\"app://update/apply\" style=\"color: red;\">There is a new MajorPrivacy update %1 ready</a>").arg(theConf->GetString("Updater/UpdateVersion"));
+		else if (m_pUpdater->IsUpdateReady()){
+			LabelText = tr("<a href=\"app://update/apply\" style=\"color: red;\">There is a new MajorPrivacy update %1 ready</a>").arg(m_pUpdater->GetUpdateVersion());
 			LabelTip = tr("Click to apply update");
 		}
-		else {
-			LabelText = tr("<a href=\"app://update/check\" style=\"color: red;\">There is a new MajorPrivacy update v%1 available</a>").arg(theConf->GetString("Updater/PendingUpdate"));
-			LabelTip = tr("Click to download update");
+		else if(!m_pUpdater->GetInstallerVersion().isEmpty()){
+			LabelText = tr("<a href=\"app://update/check\" style=\"color: red;\">There is a new MajorPrivacy release v%1 available</a>").arg(m_pUpdater->GetInstallerVersion());
+			LabelTip = tr("Click to download");
+		}
+		else if(!m_pUpdater->GetUpdateVersion().isEmpty()){
+			LabelText = tr("<a href=\"app://update/check\" style=\"color: red;\">There is a new MajorPrivacy update v%1 available</a>").arg(m_pUpdater->GetUpdateVersion());
+			LabelTip = tr("Click to download");
 		}
 
 		//auto neon = new CNeonEffect(10, 4, 180); // 140
@@ -3321,9 +3333,9 @@ void CMajorPrivacy::OnDiagnostics()
 	dlg.exec();
 }
 
-void CMajorPrivacy::CheckForUpdates(bool bManual)
+void CMajorPrivacy::OnCheckForUpdates()
 {
-	m_pUpdater->CheckForUpdates(bManual);
+	m_pUpdater->CheckForUpdates(true);
 }
 
 void CMajorPrivacy::OnAbout()

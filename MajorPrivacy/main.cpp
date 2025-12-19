@@ -117,15 +117,15 @@ int main(int argc, char *argv[])
 	QtSingleApplication App(argc, argv);
 	App.setQuitOnLastWindowClosed(false);
 
-	if (App.sendMessage("ShowWnd"))
-		return 0;
-
-	theCore = new CPrivacyCore();
-
 #if QT_VERSION > QT_VERSION_CHECK(6, 7, 0)
 	if (App.style()->name() == "windows11" && !theConf->GetBool("Options/UseW11Style", false))
 		App.setStyle("windowsvista");
 #endif
+
+	if (App.sendMessage("ShowWnd"))
+		return 0;
+
+	theCore = new CPrivacyCore();
 
 	CMajorPrivacy* pWnd = new CMajorPrivacy;
 

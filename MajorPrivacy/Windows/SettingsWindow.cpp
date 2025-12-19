@@ -710,7 +710,7 @@ void CSettingsWindow::LoadSettings()
 	ui.chkSimpleDomains->setChecked(theCore->GetConfigBool("Service/UseSimpleDomains", true));
 
 	ui.chkDarkTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseDarkTheme", 2)));
-	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseFusionTheme", 1)));
+	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseFusionTheme", 2)));
 	ui.chkUseW11Style->setChecked(theConf->GetBool("Options/UseW11Style", false));
 	ui.chkAltRows->setChecked(theConf->GetBool("Options/AltRowColors", false));
 
@@ -1005,6 +1005,7 @@ void CSettingsWindow::OnResetUiFont()
 // Support
 //
 
+bool g_CertInfoValid = false;
 SCertInfo g_CertInfo = {0};
 QString g_CertName;
 QString g_SystemHwid;
@@ -1206,9 +1207,11 @@ void CSettingsWindow::UpdateCert()
 		ui.lblCertOpt->clear();
 
 		int EvalCount = theConf->GetInt("User/EvalCount", 0);
+#ifndef _DEBUG
 		if(EvalCount >= EVAL_MAX)
 			ui.lblEvalCert->setText(tr("<b>You have used %1/%2 evaluation licenses. No more free licenses can be generated.</b>").arg(EvalCount).arg(EVAL_MAX));
 		else
+#endif
 			ui.lblEvalCert->setText(tr("<b><a href=\"_\">Get a free evaluation license</a> and enjoy all premium features for %1 days.</b>").arg(EVAL_DAYS));
 		ui.lblEvalCert->setToolTip(tr("You can request a free %1-day evaluation license up to %2 times per hardware ID.").arg(EVAL_DAYS).arg(EVAL_MAX));
 	}
@@ -1256,11 +1259,9 @@ void CSettingsWindow::OnGetCert()
 	if(!Certificate.isEmpty())
 		Params["key"] = GetArguments(Certificate, L'\n', L':').value("UPDATEKEY");
 
-	PROGRESS Status = theGUI->m_pUpdater->GetSupportCert(Serial, this, SLOT(OnCertData(const QByteArray&, const QVariantMap&)), Params);
-	if (Status.GetStatus() == OP_ASYNC) {
-		theGUI->AddAsyncOp(Status.GetValue());
-		Status.GetValue()->ShowMessage(tr("Retrieving license certificate..."));
-	}
+	CProgressDialogPtr pProgress = CProgressDialogPtr(new CProgressDialog(tr("Retrieving certificate..."), this));
+	theGUI->m_pUpdater->GetSupportCert(Serial, this, SLOT(OnCertData(const QByteArray&, const QVariantMap&)), Params, pProgress);
+	pProgress->exec();
 }
 
 void CSettingsWindow::OnStartEval()
@@ -1284,11 +1285,9 @@ void CSettingsWindow::StartEval(QWidget* parent, QObject* receiver, const char* 
 	Params["eMail"] = eMail;
 	Params["Name"] = Name;
 
-	PROGRESS Status = theGUI->m_pUpdater->GetSupportCert("", receiver, member, Params);
-	if (Status.GetStatus() == OP_ASYNC) {
-		theGUI->AddAsyncOp(Status.GetValue());
-		Status.GetValue()->ShowMessage(tr("Retrieving License Certificate..."));
-	}
+	CProgressDialogPtr pProgress = CProgressDialogPtr(new CProgressDialog(tr("Retrieving certificate..."), parent));
+	theGUI->m_pUpdater->GetSupportCert("", receiver, member, Params, pProgress);
+	pProgress->exec();
 }
 
 void CSettingsWindow::OnCertData(const QByteArray& Certificate, const QVariantMap& Params)
@@ -1514,11 +1513,9 @@ bool CSettingsWindow::TryRefreshCert(QWidget* parent, QObject* receiver, const c
 	QVariantMap Params;
 	Params["key"] = GetArguments(g_Certificate, L'\n', L':').value("UPDATEKEY");
 
-	PROGRESS Status = theGUI->m_pUpdater->GetSupportCert("", receiver, member, Params);
-	if (Status.GetStatus() == OP_ASYNC) {
-		theGUI->AddAsyncOp(Status.GetValue());
-		Status.GetValue()->ShowMessage(tr("Retrieving license certificate..."));
-	}
+	CProgressDialogPtr pProgress = CProgressDialogPtr(new CProgressDialog(tr("Retrieving certificate..."), parent));
+	theGUI->m_pUpdater->GetSupportCert("", receiver, member, Params, pProgress);
+	pProgress->exec();
 
 	return true;
 }

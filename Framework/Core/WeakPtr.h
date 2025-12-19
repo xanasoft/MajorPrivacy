@@ -47,10 +47,10 @@ public:
 	}
 
 	SharedPtr<T> Acquire() {
-		if(!m_ptr || !m_ptr->AddRefSafe())
+		if (!m_ptr || !m_ptr->AddRefSafe()) // this adds a strong ref
 			return SharedPtr<T>();
 		SharedPtr<T> p(m_ptr); // this adds another strong ref
-		m_ptr->RemoveRef();
+		m_ptr->RemoveRef(); // remove the extra strong ref
 		return p;
 	}
 
@@ -59,7 +59,7 @@ public:
 			m_ptr->RemoveRef(false);
 		m_ptr = nullptr;
 	}
-	void reset() { Clear(); } // for STL compatibility
+	//void reset() { Clear(); } // for STL compatibility
 
 	bool IsEmpty() const		{ return m_ptr == nullptr; }
 

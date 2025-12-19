@@ -375,7 +375,7 @@ void* Variant_InsertRaw(PVARIANT var, const char* name, uint8 type, const void* 
 		var->bError |= VAR_ERR_BAD_TYPE;
 		return NULL;
 	}
-	if (var->uMaxSize - var->uSize < 1 + name_len + 1 + size) {
+	if (var->uMaxSize - var->uSize < 1 + name_len + 1 + 4 + size) {
 		var->bError |= VAR_ERR_BAD_SIZE;
 		return NULL;
 	}
@@ -387,7 +387,7 @@ void* Variant_InsertRaw(PVARIANT var, const char* name, uint8 type, const void* 
 	var->uSize += 1 + (uint32)name_len;
 	
 	if (in) {
-		size_t len = Variant_WriteRaw(ptr, type, in, size);;
+		size_t len = Variant_WriteRaw(ptr, type, in, size);
 		var->uSize += (uint32)len;
 		ptr += len - size;
 	}
@@ -418,7 +418,7 @@ void* Variant_AddRaw(PVARIANT var, uint32 index, uint8 type, const void* in, siz
 		var->bError |= VAR_ERR_BAD_TYPE;
 		return NULL;
 	}
-	if (var->uMaxSize - var->uSize < 4 + size) {
+	if (var->uMaxSize - var->uSize < 4 + 1 + 4 + size) {
 		var->bError |= VAR_ERR_BAD_SIZE;
 		return NULL;
 	}
@@ -460,7 +460,7 @@ void* Variant_AppendRaw(PVARIANT var, uint8 type, const void* in, size_t size)
 		var->bError |= VAR_ERR_BAD_TYPE;
 		return NULL;
 	}
-	if (var->uMaxSize - var->uSize < +size) {
+	if (var->uMaxSize - var->uSize < 1 + 4 + size) {
 		var->bError |= VAR_ERR_BAD_SIZE;
 		return NULL;
 	}

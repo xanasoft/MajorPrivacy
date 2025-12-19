@@ -97,17 +97,19 @@ void CNetworkPage::Update()
 
 	auto Current = theGUI->GetCurrentItems();
 
+	bool bShowPrivate = theGUI->GetShowPrivate();
+
 	QSet<CProgramFilePtr> Programs = Current.ProgramsEx;
 	if (m_pTrafficView->isVisible() ||m_pTraceView->isVisible()) {
 		for (auto& pProgram : Current.ProgramsIm) {
-			if(pProgram->GetNetTrace() != ETracePreset::ePrivate)
+			if(bShowPrivate || pProgram->GetNetTrace() != ETracePreset::ePrivate)
 				Programs.insert(pProgram);
 		}
 	}
 	QSet<CWindowsServicePtr> Services = Current.ServicesEx;
 	if (m_pTrafficView->isVisible()) {
 		for (auto& pService : Current.ServicesIm) {
-			if (pService->GetNetTrace() != ETracePreset::ePrivate)
+			if (bShowPrivate || pService->GetNetTrace() != ETracePreset::ePrivate)
 				Services.insert(pService);
 		}
 	}

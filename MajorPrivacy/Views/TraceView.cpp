@@ -102,7 +102,7 @@ void CTraceView::Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, con
 	uint64 start = GetUSTickCount();
 #endif
 
-	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Programs.count() + Services.count());
+	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Programs.count() + Services.count(), theGUI);
 
 	foreach(const CProgramFilePtr& pProgram, Programs) 
 	{

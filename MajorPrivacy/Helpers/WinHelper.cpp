@@ -399,7 +399,8 @@ static bool IsFullScreenConsoleMode()
     return (modes & (CONSOLE_FULLSCREEN | CONSOLE_FULLSCREEN_HARDWARE)) != 0;
 }
 
-bool IsFullScreenMode() {
+bool IsFullScreenMode()
+{
     return IsPlatformFullScreenMode()
         //|| IsFullScreenConsoleMode()
         || IsFullScreenWindowMode();

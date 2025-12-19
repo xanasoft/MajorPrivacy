@@ -64,7 +64,7 @@ CAccessListView::~CAccessListView()
 
 void CAccessListView::OnSelectionChanged(const QList<SAccessItemPtr>& Items)
 {
-	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Items.count());
+	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Items.count(), theGUI);
 
 	QMap<CProgramItemPtr, QPair<quint64,QList<QPair<SAccessStatsPtr,SAccessItem::EType>>>> Map;
 	for (auto pItem : Items) {

@@ -72,7 +72,20 @@ CIngressView::CIngressView(QWidget *parent)
 	m_pToolBar->addWidget(m_pBtnAll);
 
 	m_pToolBar->addSeparator();
+	m_pBtnExpand = new QToolButton();
+	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
+	m_pBtnExpand->setCheckable(true);
+	m_pBtnExpand->setToolTip(tr("Auto Expand"));
+	m_pBtnExpand->setMaximumHeight(22);
+	connect(m_pBtnExpand, &QToolButton::toggled, this, [&](bool checked) {
+		if(checked)
+			m_pTreeView->expandAll();
+		else
+			m_pTreeView->collapseAll();
+		});
+	m_pToolBar->addWidget(m_pBtnExpand);
 
+	m_pToolBar->addSeparator();
 	m_pBtnHold = new QToolButton();
 	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
 	m_pBtnHold->setCheckable(true);
@@ -95,20 +108,6 @@ CIngressView::CIngressView(QWidget *parent)
 	m_pBtnClear->setFixedHeight(22);
 	connect(m_pBtnClear, SIGNAL(clicked()), this, SLOT(OnClearRecords()));
 	m_pToolBar->addWidget(m_pBtnClear);
-
-	m_pToolBar->addSeparator();
-	m_pBtnExpand = new QToolButton();
-	m_pBtnExpand->setIcon(QIcon(":/Icons/Expand.png"));
-	m_pBtnExpand->setCheckable(true);
-	m_pBtnExpand->setToolTip(tr("Auto Expand"));
-	m_pBtnExpand->setMaximumHeight(22);
-	connect(m_pBtnExpand, &QToolButton::toggled, this, [&](bool checked) {
-		if(checked)
-			m_pTreeView->expandAll();
-		else
-			m_pTreeView->collapseAll();
-	});
-	m_pToolBar->addWidget(m_pBtnExpand);
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -238,7 +237,7 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		return true;
 	};
 
-	CProgressDialogHelper ProgressHelper(theGUI->m_pProgressDialog, tr("Loading %1"), Programs.count() + Services.count());
+	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Programs.count() + Services.count(), theGUI);
 
 	foreach(const CProgramFilePtr & pProgram, Programs) {
 
