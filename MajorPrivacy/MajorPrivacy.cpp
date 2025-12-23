@@ -1241,6 +1241,7 @@ void CMajorPrivacy::BuildGUI()
 
 void CMajorPrivacy::CreateLabel()
 {
+	m_pSupportLabel = new QLabel(m_pMainWidget);
 	m_pSupportLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
 	m_pSupportLabel->disconnect();
 	connect(m_pSupportLabel, SIGNAL(linkActivated(const QString&)), this, SLOT(OpenUrl(const QString&)));

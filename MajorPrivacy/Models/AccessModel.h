@@ -27,6 +27,8 @@ struct SAccessItem
 	} Type = eDevice;
 	QHash<CProgramItemPtr, SAccessStatsPtr> Stats;
 	QHash<QString, QSharedPointer<SAccessItem>> Branches;
+
+	mutable int FilterMatch = -1;
 };
 
 typedef QSharedPointer<SAccessItem> SAccessItemPtr;

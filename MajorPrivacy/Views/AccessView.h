@@ -54,6 +54,10 @@ private slots:
 
 	void					OnMenuAction();
 
+	void					SetFilter(const QRegularExpression& Exp, int iOptions, int Column);
+
+	SAccessItemPtr			ApplyTreeFilter(const SAccessItemPtr& pItem);
+
 protected:
 
 	QAction*				m_pCopyPath;
@@ -89,4 +93,9 @@ protected:
 	int 					m_RefreshCount = 0;
 
 	int 					m_SlowCount = 0;
+
+	QRegularExpression		m_FilterExp;
+	bool					m_bHighLight = false;
+	//QTimer*					m_pFilterTimer = nullptr;
+	bool					m_FilterChanged = false;
 };

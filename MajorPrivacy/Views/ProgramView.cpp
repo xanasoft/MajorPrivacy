@@ -79,12 +79,6 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pInfoSplitter->setSizes(Sizes);*/
 	m_pInfoView->setVisible(false);
 
-	QAction* pToggleInfo = new QAction(m_pInfoSplitter);
-	pToggleInfo->setShortcut(QKeySequence("Ctrl+I"));
-	pToggleInfo->setShortcutContext(Qt::WidgetWithChildrenShortcut);
-	addAction(pToggleInfo);
-	connect(pToggleInfo, &QAction::triggered, m_pInfoSplitter, [&]() { m_pInfoView->setVisible(!m_pInfoView->isVisible()); });
-
 	m_pMainLayout->addWidget(m_pInfoSplitter);
 
 	m_pMainLayout->setSpacing(1);
@@ -169,7 +163,7 @@ CProgramView::CProgramView(QWidget* parent)
 	connect(m_pTrafficFilter, SIGNAL(clicked()), this, SLOT(OnTrafficFilter()));
 	m_pTrafficMenu = new QMenu();
 		m_pActionGroup = new QActionGroup(this);
-		m_pTrafficRecent = m_pTrafficMenu->addAction(tr("Recent Traffic"), this, SLOT(OnTrafficFilter()));
+		m_pTrafficRecent = m_pTrafficMenu->addAction(tr("Recent Traffic (or open sockets)"), this, SLOT(OnTrafficFilter()));
 		m_pTrafficRecent->setCheckable(true);
 		m_pActionGroup->addAction(m_pTrafficRecent);
 		m_pTrafficBlocked = m_pTrafficMenu->addAction(tr("Blocked Traffic"), this, SLOT(OnTrafficFilter()));
@@ -190,29 +184,29 @@ CProgramView::CProgramView(QWidget* parent)
 	//else
 	//	m_pTrafficRecent->setChecked(true);
 
-	m_pSocketFilter = new QToolButton();
-	m_pSocketFilter->setIcon(QIcon(":/Icons/SocketFilter.png"));
-	m_pSocketFilter->setToolTip(tr("Socket Filters"));
-	//m_pSocketFilter->setText(tr(""));
-	m_pSocketFilter->setCheckable(true);
-	connect(m_pSocketFilter, SIGNAL(clicked()), this, SLOT(OnSocketFilter()));
-	/*m_pSocketMenu = new QMenu();
-		m_pAnySockets = m_pSocketMenu->addAction(tr("Any Sockets"), this, SLOT(OnSocketFilter()));
-		m_pAnySockets->setCheckable(true);
-		m_pWebSockets = m_pSocketMenu->addAction(tr("Web Sockets"), this, SLOT(OnSocketFilter()));
-		m_pWebSockets->setCheckable(true);
-		m_pTcpSockets = m_pSocketMenu->addAction(tr("TCP Sockets"), this, SLOT(OnSocketFilter()));
-		m_pTcpSockets->setCheckable(true);
-		m_pTcpClients = m_pSocketMenu->addAction(tr("TCP Clients"), this, SLOT(OnSocketFilter()));
-		m_pTcpClients->setCheckable(true);
-		m_pTcpServers = m_pSocketMenu->addAction(tr("TCP Servers"), this, SLOT(OnSocketFilter()));
-		m_pTcpServers->setCheckable(true);
-		m_pUdpSockets = m_pSocketMenu->addAction(tr("UDP Sockets"), this, SLOT(OnSocketFilter()));
-		m_pUdpSockets->setCheckable(true);
-	m_pSocketFilter->setPopupMode(QToolButton::MenuButtonPopup);
-	m_pSocketFilter->setMenu(m_pSocketMenu);*/
-	m_pToolBar->addWidget(m_pSocketFilter);
-	//m_pSocketFilter->setChecked(theConf->GetBool("MainWindow/ProgramView_SocketFilter", false));
+	//m_pSocketFilter = new QToolButton();
+	//m_pSocketFilter->setIcon(QIcon(":/Icons/SocketFilter.png"));
+	//m_pSocketFilter->setToolTip(tr("Socket Filters"));
+	////m_pSocketFilter->setText(tr(""));
+	//m_pSocketFilter->setCheckable(true);
+	//connect(m_pSocketFilter, SIGNAL(clicked()), this, SLOT(OnSocketFilter()));
+	///*m_pSocketMenu = new QMenu();
+	//	m_pAnySockets = m_pSocketMenu->addAction(tr("Any Sockets"), this, SLOT(OnSocketFilter()));
+	//	m_pAnySockets->setCheckable(true);
+	//	m_pWebSockets = m_pSocketMenu->addAction(tr("Web Sockets"), this, SLOT(OnSocketFilter()));
+	//	m_pWebSockets->setCheckable(true);
+	//	m_pTcpSockets = m_pSocketMenu->addAction(tr("TCP Sockets"), this, SLOT(OnSocketFilter()));
+	//	m_pTcpSockets->setCheckable(true);
+	//	m_pTcpClients = m_pSocketMenu->addAction(tr("TCP Clients"), this, SLOT(OnSocketFilter()));
+	//	m_pTcpClients->setCheckable(true);
+	//	m_pTcpServers = m_pSocketMenu->addAction(tr("TCP Servers"), this, SLOT(OnSocketFilter()));
+	//	m_pTcpServers->setCheckable(true);
+	//	m_pUdpSockets = m_pSocketMenu->addAction(tr("UDP Sockets"), this, SLOT(OnSocketFilter()));
+	//	m_pUdpSockets->setCheckable(true);
+	//m_pSocketFilter->setPopupMode(QToolButton::MenuButtonPopup);
+	//m_pSocketFilter->setMenu(m_pSocketMenu);*/
+	//m_pToolBar->addWidget(m_pSocketFilter);
+	////m_pSocketFilter->setChecked(theConf->GetBool("MainWindow/ProgramView_SocketFilter", false));
 
 	m_pToolBar->addSeparator();
 
@@ -223,16 +217,19 @@ CProgramView::CProgramView(QWidget* parent)
 	connect(m_pBtnRefresh, SIGNAL(clicked()), this, SLOT(OnRefresh()));
 	m_pToolBar->addWidget(m_pBtnRefresh);
 
-	m_pBtnCleanUp = new QToolButton();
-	m_pBtnCleanUp->setIcon(QIcon(":/Icons/Clean.png"));
-	m_pBtnCleanUp->setToolTip(tr("CleanUp Program List"));
-	m_pBtnCleanUp->setFixedHeight(22);
-	connect(m_pBtnCleanUp, SIGNAL(clicked()), theGUI, SLOT(CleanUpPrograms()));
+	//m_pBtnCleanUp = new QToolButton();
+	//m_pBtnCleanUp->setIcon(QIcon(":/Icons/Clean.png"));
+	//m_pBtnCleanUp->setToolTip(tr("CleanUp Program List"));
+	//m_pBtnCleanUp->setFixedHeight(22);
+	//connect(m_pBtnCleanUp, SIGNAL(clicked()), theGUI, SLOT(CleanUpPrograms()));
 	m_pCleanUpMenu = new QMenu();
+	m_pCleanUp = m_pCleanUpMenu->addAction(QIcon(":/Icons/Clean.png"), tr("CleanUp Program List"), theGUI, SLOT(CleanUpPrograms()));
 	m_pReGroup = m_pCleanUpMenu->addAction(QIcon(":/Icons/ReGroup.png"), tr("Re-Group all Programs"), theGUI, SLOT(ReGroupPrograms()));
-	m_pBtnCleanUp->setPopupMode(QToolButton::MenuButtonPopup);
-	m_pBtnCleanUp->setMenu(m_pCleanUpMenu);
-	m_pToolBar->addWidget(m_pBtnCleanUp);
+	//m_pBtnCleanUp->setPopupMode(QToolButton::MenuButtonPopup);
+	//m_pBtnCleanUp->setMenu(m_pCleanUpMenu);
+	//m_pToolBar->addWidget(m_pBtnCleanUp);
+	m_pBtnRefresh->setPopupMode(QToolButton::MenuButtonPopup);
+	m_pBtnRefresh->setMenu(m_pCleanUpMenu);
 
 	m_pToolBar->addSeparator();
 	m_pBtnTree = new QToolButton();
@@ -264,6 +261,19 @@ CProgramView::CProgramView(QWidget* parent)
 	});
 	m_pToolBar->addWidget(m_pBtnExpand);
 
+	m_pBtnInfo = new QToolButton();
+	m_pBtnInfo->setIcon(QIcon(":/Icons/Info.png"));
+	m_pBtnInfo->setCheckable(true);
+	m_pBtnInfo->setToolTip(tr("Show Program Info"));
+	m_pBtnInfo->setMaximumHeight(22);
+	m_pBtnInfo->setChecked(theConf->GetBool("Options/ProgramsShowInfo", false));
+	m_pInfoView->setVisible(theConf->GetBool("Options/ProgramsShowInfo", false));
+	connect(m_pBtnInfo, &QToolButton::toggled, this, [&](bool checked) {
+		theConf->SetValue("Options/ProgramsShowInfo", checked);
+		m_pInfoView->setVisible(checked);
+	});
+	m_pToolBar->addWidget(m_pBtnInfo);
+	m_pInfoView->Sync(QList<CProgramItemPtr>() << theCore->ProgramManager()->GetAll());
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -295,6 +305,9 @@ CProgramView::CProgramView(QWidget* parent)
 #endif
 	else
 		m_pTreeList->restoreState(ProgColumns);
+
+
+	m_pInfoSplitter->restoreState(theConf->GetBlob("MainWindow/ProgramInfoSplitter"));
 
 	m_pEditProgram = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Edit Program"), this, SLOT(OnProgramAction()));
 	
@@ -346,6 +359,7 @@ CProgramView::~CProgramView()
 {	
 	SetColumnSet("");
 	theConf->SetBlob("MainWindow/ProgramView_Columns", m_pTreeList->saveState());
+	theConf->SetBlob("MainWindow/ProgramInfoSplitter", m_pInfoSplitter->saveState());
 }
 
 bool CProgramView::HasFinder() const
@@ -509,16 +523,18 @@ void CProgramView::Update()
 
 	if (m_pTrafficFilter->isChecked())
 	{
-		if (m_pTrafficRecent->isChecked())
+		if (m_pTrafficRecent->isChecked()) {
+			Filter |= CProgramModel::EFilters::eWithSockets;
 			Filter |= CProgramModel::EFilters::eRecentTraffic;
+		}
 		if (m_pTrafficBlocked->isChecked())
 			Filter |= CProgramModel::EFilters::eBlockedTraffic;
 		if (m_pTrafficAllowed->isChecked())
 			Filter |= CProgramModel::EFilters::eAllowedTraffic;
 	}
 
-	if (m_pSocketFilter->isChecked())
-		Filter |= CProgramModel::EFilters::eWithSockets;
+	//if (m_pSocketFilter->isChecked())
+	//	Filter |= CProgramModel::EFilters::eWithSockets;
 
 	quint64 RecentLimit = theGUI->GetRecentLimit();
 	if (Filter != m_pProgramModel->GetFilter() || RecentLimit != m_pProgramModel->GetRecentLimit()) {

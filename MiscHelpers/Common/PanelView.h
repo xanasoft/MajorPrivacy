@@ -219,7 +219,11 @@ template <typename M, class T = QTreeViewEx>
 class CPanelViewEx: public CPanelViewX
 {
 public:
-	CPanelViewEx(QWidget *parent = 0) : CPanelViewX(parent)
+	CPanelViewEx(QWidget* parent = 0) : CPanelViewEx(true, parent)
+	{
+	}
+
+	CPanelViewEx(bool bFinder = true, QWidget *parent = 0) : CPanelViewX(parent)
 	{
 		m_pMainLayout = new QVBoxLayout();
 		m_pMainLayout->setContentsMargins(0, 0, 0, 0);
@@ -255,8 +259,10 @@ public:
 		connect(m_pTreeView->selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)), this, SLOT(OnCurrentChanged(QModelIndex,QModelIndex)));
 		connect(m_pTreeView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(OnSelectionChanged(QItemSelection,QItemSelection)));
 
-		m_pFinder = new CFinder(m_pSortProxy, this);
-		m_pMainLayout->addWidget(m_pFinder);
+		if (bFinder) {
+			m_pFinder = new CFinder(m_pSortProxy, this);
+			m_pMainLayout->addWidget(m_pFinder);
+		}
 	}
 
 	virtual typename M::ItemType		GetCurrentItem()	{ return m_CurrentItem; }
@@ -342,14 +348,14 @@ protected:
 		ExpandRecursively(index, !m_pTreeView->isExpanded(index));
 	}
 
-	QVBoxLayout*				m_pMainLayout;
+	QVBoxLayout*				m_pMainLayout = nullptr;
 
-	T*							m_pTreeView;
-	M*							m_pItemModel;
-	QSortFilterProxyModel*		m_pSortProxy;
+	T*							m_pTreeView = nullptr;
+	M*							m_pItemModel = nullptr;
+	QSortFilterProxyModel*		m_pSortProxy = nullptr;
 
 	typename M::ItemType		m_CurrentItem;
 	QList<typename M::ItemType>	m_SelectedItems;
 
-	CFinder*					m_pFinder;
+	CFinder*					m_pFinder = nullptr;
 };

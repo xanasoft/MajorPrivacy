@@ -8,7 +8,7 @@
 #include "../Library/Common/DbgHelp.h"
 
 CAccessView::CAccessView(QWidget *parent)
-	:CPanelViewEx<CAccessModel>(parent)
+	:CPanelViewEx<CAccessModel>(false, parent)
 {
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pTreeView->setStyle(pStyle);
@@ -26,6 +26,16 @@ CAccessView::CAccessView(QWidget *parent)
 		m_pTreeView->setColumnWidth(0, 300);
 	} else
 		m_pTreeView->restoreState(Columns);
+
+	m_pFinder = new CFinder(this, this);
+	m_pMainLayout->addWidget(m_pFinder);
+
+	//m_pFilterTimer = new QTimer(this);
+	//m_pFilterTimer->setSingleShot(true);
+	//m_pFilterTimer->setInterval(1500); // 1.5 second delay after user stops typing
+	//connect(m_pFilterTimer, &QTimer::timeout, this, [this]() {
+	//	m_FilterChanged = true;
+	//});
 
 	m_pMainLayout->setSpacing(1);
 
@@ -103,12 +113,67 @@ void CAccessView::OnRefresh()
 	m_FullRefresh = true;
 }
 
+SAccessItemPtr CAccessView::ApplyTreeFilter(const SAccessItemPtr& pItem)
+{
+	if (!pItem)
+		return SAccessItemPtr();
+
+	// Helper function to check if this item or any descendant matches the filter
+	std::function<bool(const SAccessItemPtr&)> HasMatch = [&](const SAccessItemPtr& pNode) -> bool {
+
+		if (pNode->FilterMatch == -1 || m_FilterChanged) 
+		{
+			pNode->FilterMatch = 0;
+			if (!pNode->Name.isEmpty() && pNode->Name.contains(m_FilterExp))
+				pNode->FilterMatch = 1;
+			else for (auto it = pNode->Branches.constBegin(); it != pNode->Branches.constEnd(); ++it) 
+			{
+				if (HasMatch(it.value())) {
+					pNode->FilterMatch = 1;
+					break;
+				}
+			}
+		}
+
+		return pNode->FilterMatch == 1;
+	};
+
+	// Helper function to create a filtered copy of the tree
+	std::function<SAccessItemPtr(const SAccessItemPtr&)> FilterNode = [&](const SAccessItemPtr& pNode) -> SAccessItemPtr {
+
+		// Create a copy of the current node
+		SAccessItemPtr pFiltered = SAccessItemPtr(new SAccessItem());
+		pFiltered->Name = pNode->Name;
+		pFiltered->Type = pNode->Type;
+		pFiltered->Path = pNode->Path;
+		pFiltered->LastAccess = pNode->LastAccess;
+		pFiltered->AccessMask = pNode->AccessMask;
+		pFiltered->Stats = pNode->Stats;
+
+		// Process children - only include branches that have matches
+		for (auto it = pNode->Branches.constBegin(); it != pNode->Branches.constEnd(); ++it) {
+			if (HasMatch(it.value())) {
+				SAccessItemPtr pFilteredChild = FilterNode(it.value());
+				if (pFilteredChild)
+					pFiltered->Branches.insert(it.key(), pFilteredChild);
+			}
+		}
+
+		return pFiltered;
+	};
+
+	return FilterNode(pItem);
+}
+
 void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, QString RootPath)
 {
-	if (m_CurPrograms != Programs || m_CurServices != Services || m_FullRefresh 
-		|| m_iAccessFilter != m_pCmbAccess->currentData().toInt() 
-		|| m_iStatusFilter != m_pCmbAction->currentData().toInt() 
-		|| m_RecentLimit != theGUI->GetRecentLimit() || m_RootPath != RootPath) 
+	// Handle filter-only changes without rebuilding the tree
+
+
+	if (m_CurPrograms != Programs || m_CurServices != Services || m_FullRefresh
+		|| m_iAccessFilter != m_pCmbAccess->currentData().toInt()
+		|| m_iStatusFilter != m_pCmbAction->currentData().toInt()
+		|| m_RecentLimit != theGUI->GetRecentLimit() || m_RootPath != RootPath)
 	{
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
@@ -120,9 +185,22 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		m_RootPath = RootPath;
 		m_pItemModel->Clean();
 		m_FullRefresh = false;
+		//m_FilterChanged = false;  // Clear filter changed flag on full refresh
 		m_RefreshCount++;
 	}
-	else if(m_pBtnHold->isChecked() /*&& !theGUI->m_IgnoreHold*/)
+	/*else if (m_FilterChanged)
+	{
+	m_FilterChanged = false;
+
+	// Apply filtering and update model only
+	SAccessItemPtr pFilteredRoot = m_CurRoot;
+	if (m_FilterExp.isValid() && !m_FilterExp.pattern().isEmpty()) {
+	pFilteredRoot = ApplyTreeFilter(m_CurRoot);
+	}
+	m_pItemModel->Update(pFilteredRoot);
+	return;
+	}*/
+	else if(m_pBtnHold->isChecked() /*&& !theGUI->m_IgnoreHold*/ && !m_FilterChanged)
 		return;
 
 	RootPath = theCore->NormalizePath(RootPath);
@@ -139,7 +217,7 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			pItem->Type = type;
 			root->Branches.insert(name, pItem);
 			return pItem;
-		};
+			};
 
 		auto Computer = addAccessItem(m_CurRoot, "computer", tr("My Computer"), SAccessItem::eComputer);
 		//addAccessItem(Computer, "nt_kernel", tr("Nt Namespace"), SAccessItem::eObjects);
@@ -190,7 +268,7 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		if(pParent->LastAccess < pBranch->LastAccess)
 			pParent->LastAccess = pBranch->LastAccess;
 		pParent->AccessMask |= pBranch->AccessMask;
-	};
+		};
 
 	std::function<void(const CProgramItemPtr&, const SAccessStatsPtr&)> AddEntry = 
 		[&](const CProgramItemPtr& pProg, const SAccessStatsPtr& pStats) {
@@ -201,7 +279,7 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		if (m_iAccessFilter) {
 
 			uint32 uAccessMask = pStats->AccessMask;
-			
+
 			bool bWriteAccess = false;
 			bool bReadAccess = false;
 
@@ -292,9 +370,9 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			//Path = "computer\\nt_kernel" + Path;
 			Path = "computer\\devices" + Path.mid(7);
 		}
-		
+
 		AddTreeEntry(m_CurRoot, Type, Path, 0, pProg, pStats);
-	};
+		};
 
 #ifdef _DEBUG
 	quint64 start = GetUSTickCount();
@@ -364,16 +442,23 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 	//foreach(QString Key, OldMap.keys())
 	//	m_CurAccess.remove(Key);
 
+	// Apply filtering if a filter is set
+	SAccessItemPtr pFilteredRoot = m_CurRoot;
+	if (m_FilterExp.isValid() && !m_FilterExp.pattern().isEmpty()) {
+		pFilteredRoot = ApplyTreeFilter(m_CurRoot);
+	}
+	m_FilterChanged = false;
+
 	//start = GetUSTickCount();
-	m_pItemModel->Update(m_CurRoot);
+	m_pItemModel->Update(pFilteredRoot);
 	//qDebug() << "Access Tree Update took" << (GetUSTickCount() - start) / 1000000.0 << "s";
 
 	/*if (m_CurPrograms.count() + m_CurServices.count() > 1)
 	{
-		QTimer::singleShot(10, this, [this, Added]() {
-			foreach(const QModelIndex & Index, Added)
-				m_pTreeView->expand(m_pSortProxy->mapFromSource(Index));
-		});
+	QTimer::singleShot(10, this, [this, Added]() {
+	foreach(const QModelIndex & Index, Added)
+	m_pTreeView->expand(m_pSortProxy->mapFromSource(Index));
+	});
 	}*/
 }
 
@@ -400,10 +485,10 @@ void CAccessView::OnMenu(const QPoint& Point)
 void CAccessView::CleanUpTree()
 {
 	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to clean up the Access Tree? This will remove all Files and folders which are no longer present on the System. "
-	  "It will also remove all references to files and folders existing but contained in not currently mounted volumes. "
-	  "The operation will have to attempt to access all logged locations and will take some time, once done the view will refresh."), QMessageBox::Yes, QMessageBox::Cancel) != QMessageBox::Yes)
+		"It will also remove all references to files and folders existing but contained in not currently mounted volumes. "
+		"The operation will have to attempt to access all logged locations and will take some time, once done the view will refresh."), QMessageBox::Yes, QMessageBox::Cancel) != QMessageBox::Yes)
 		return;
-	
+
 	QList<STATUS> Results = QList<STATUS>() << theCore->CleanUpAccessTree();
 	theGUI->CheckResults(Results, this);
 }
@@ -459,4 +544,50 @@ void CAccessView::OnClearRecords()
 	}
 
 	OnCleanUpDone();
+}
+
+void CAccessView::SetFilter(const QRegularExpression& Exp, int iOptions, int Column)
+{
+	QString Pattern = Exp.pattern();
+	QString FilterText;
+	if (Pattern.length() > 4) {
+		FilterText = Pattern.mid(2, Pattern.length() - 4); // remove leading and tailing ".*" from the pattern
+		// unescape, remove backslashes but not double backslashes
+		for (int i = 0; i < FilterText.length(); i++) {
+			if (FilterText.at(i) == '\\' && (i + 1 >= FilterText.length() || FilterText.at(i + 1) != '\\'))
+				FilterText.remove(i, 1);
+		}
+	}
+
+	//bool bChanged = m_FilterExp.pattern() != FilterText
+	//	|| m_bHighLight != ((iOptions & CFinder::eHighLight) != 0)
+	//	|| m_FilterColumn != Column;
+
+	//m_bHighLight = (iOptions & CFinder::eHighLight) != 0;
+	//m_FilterColumn = Column;
+
+	// Create the regular expression for filtering
+	if (!FilterText.isEmpty()) {
+		QRegularExpression::PatternOptions options = QRegularExpression::NoPatternOption;
+		if ((iOptions & CFinder::eCaseSens) == 0)
+			options = QRegularExpression::CaseInsensitiveOption;
+
+		if ((iOptions & CFinder::eRegExp) != 0)
+			m_FilterExp = QRegularExpression(FilterText, options);
+		else
+			m_FilterExp = QRegularExpression(QRegularExpression::escape(FilterText), options);
+	}
+	else {
+		m_FilterExp = QRegularExpression();
+	}
+
+	//if (bChanged) {
+	//	// Stop any pending timer
+	//	m_pFilterTimer->stop();
+	//
+	//	// Start the debounce timer - filter will be applied when it expires
+	//	m_pFilterTimer->start();
+	//}
+
+	m_FilterChanged = true;
 }

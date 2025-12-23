@@ -9,23 +9,30 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.99.6] - 2025-12-20
+
+
+## [0.99.6] - 2025-12-23
 
 ### Added
 - improved traffic view now grouping by primary domain
 - Progam view now saves primary filter
 - added status filter to access view
 - added view option to show private entries in global view
+- added extended program info panel
 
 ### Changed
 - improved process map handling
 - improved process protection
 - reworked online updater
+- merged program view cleanup button with refresh button
 
 ### fixed
 - fixed driver based process protection on arm64 systems caused crash with non native binaries
 - fixed protected process audio [#8](https://github.com/xanasoft/MajorPrivacy/issues/8)
+- fixed file search in access view window
 
+### Removed
+- removed socket filter button from program view, Recent Traffic Filter now incluses "or has sockets"
  
 
 

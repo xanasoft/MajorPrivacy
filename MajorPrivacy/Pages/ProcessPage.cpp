@@ -58,7 +58,9 @@ CProcessPage::CProcessPage(bool bEmbedded, QWidget* parent)
 	pToggleInfo->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	addAction(pToggleInfo);
 	connect(pToggleInfo, &QAction::triggered, m_pLibrarySplitter, [&]() { m_pLibraryInfoView->setVisible(!m_pLibraryInfoView->isVisible()); m_pLibraryView->m_pBtnInfo->setChecked(m_pLibraryInfoView->isVisible());});*/
-	connect(m_pLibraryView->m_pBtnInfo, &QToolButton::toggled, this, [&](bool checked) { m_pLibraryInfoView->setVisible(checked); });
+	connect(m_pLibraryView->m_pBtnInfo, &QToolButton::toggled, this, [&](bool checked) { 
+		m_pLibraryInfoView->setVisible(checked); 
+	});
 
 	connect(m_pLibraryView, &CLibraryView::SelectionChanged, m_pLibraryInfoView, &CLibraryInfoView::Sync);
 

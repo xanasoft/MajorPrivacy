@@ -27,7 +27,9 @@
 class CPathLabel : public QLabel 
 {
 public:
-	CPathLabel(QWidget* parent = nullptr) : QLabel(parent) {}
+	CPathLabel(QWidget* parent = nullptr) : QLabel(parent) {
+		setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::LinksAccessibleByMouse);
+	}
 
 	void setPath(const QString& path) {
 		m_FullPath = path;
@@ -488,8 +490,7 @@ void CPopUpWindow::LoadFwEntry(bool bUpdate)
 	if (!bUpdate) 
 	{
 		QString Title = pProgram->GetName();
-		QString Name = QFileInfo(pProgram->GetPath()).fileName();
-		if(Title.isEmpty()) Title = Name;
+		if(Title.isEmpty()) Title = QFileInfo(pProgram->GetPath()).fileName();
 		ui.grpFw->setTitle(Title);
 		ui.lblFwProc->setText(pProgram->GetNameEx());
 		ui.lblFwAux->setText(pProgram->GetPublisher());
@@ -961,8 +962,7 @@ void CPopUpWindow::LoadResEntry(bool bUpdate)
 	if (!bUpdate) 
 	{
 		QString Title = pProgram->GetName();
-		QString Name = QFileInfo(pProgram->GetPath()).fileName();
-		if(Title.isEmpty()) Title = Name;
+		if(Title.isEmpty()) Title = QFileInfo(pProgram->GetPath()).fileName();
 		ui.grpRes->setTitle(Title);
 		ui.lblResProc->setText(pProgram->GetNameEx());
 		ui.lblResAux->setText(pProgram->GetPublisher());
@@ -1234,8 +1234,7 @@ void CPopUpWindow::LoadExecEntry(bool bUpdate)
 	if (!bUpdate) 
 	{
 		QString Title = pProgram->GetName();
-		QString Name = QFileInfo(pProgram->GetPath()).fileName();
-		if(Title.isEmpty()) Title = Name;
+		if(Title.isEmpty()) Title = QFileInfo(pProgram->GetPath()).fileName();
 		ui.grpExec->setTitle(Title);
 		ui.lblExecProc->setText(pProgram->GetNameEx());
 		ui.lblExecAux->setText(pProgram->GetPublisher());

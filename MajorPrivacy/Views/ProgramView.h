@@ -81,6 +81,7 @@ private:
 	QToolButton*				m_pBtnAdd;
 	QToolButton*				m_pBtnTree;
 	QToolButton*				m_pBtnExpand;
+	QToolButton*				m_pBtnInfo;
 
 	QToolButton*				m_pTypeFilter = nullptr;
 	QMenu*						m_pTypeMenu = nullptr;
@@ -106,7 +107,7 @@ private:
 	QAction*						m_pTrafficBlocked = nullptr;
 	QAction*						m_pTrafficAllowed = nullptr;
 
-	QToolButton*				m_pSocketFilter = nullptr;
+	//QToolButton*				m_pSocketFilter = nullptr;
 	/*QMenu*						m_pSocketMenu = nullptr;
 	QAction*						m_pAnySockets = nullptr;
 	QAction*						m_pWebSockets = nullptr;
@@ -116,8 +117,9 @@ private:
 	QAction*						m_pUdpSockets = nullptr;*/
 
 	QToolButton*				m_pBtnRefresh = nullptr;
-	QToolButton*				m_pBtnCleanUp = nullptr;
+	//QToolButton*				m_pBtnCleanUp = nullptr;
 	QMenu*						m_pCleanUpMenu = nullptr;
+	QAction*						m_pCleanUp = nullptr;
 	QAction*						m_pReGroup = nullptr;
 
 	QAction*					m_pCreateProgram = nullptr;

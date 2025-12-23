@@ -12,6 +12,10 @@ CProgramManager::CProgramManager(QObject* parent)
 	m_Root = CProgramSetPtr(new CProgramList());
 	m_Root->m_UID = 1;
 	m_Items.insert(m_Root->GetUID(), m_Root);
+
+	m_pAll = CProgramSetPtr(new CAllPrograms());
+	m_pAll->m_UID = 2;
+	m_Items.insert(m_pAll->GetUID(), m_pAll);
 }
 
 //void CProgramManager::UpdateGroup(const CProgramGroupPtr& Group, const class QtVariant& Root)
@@ -100,18 +104,22 @@ STATUS CProgramManager::Update()
 			ID.FromVariant(Reader.Find(API_V_ID));
 
 			EProgramType Type = (EProgramType)Reader.Find(API_V_PROG_TYPE).To<uint32>();
-			pItem = MakeProgram(Type);
-			if(!pItem)
-				return;
-
 			if(Type == EProgramType::eAllPrograms)
-				m_pAll = pItem.objectCast<CProgramSet>();
-			pItem->SetID(ID);
-			pItem->SetUID(uId);
-			m_Items.insert(uId, pItem);
-			if (ID.GetType() != EProgramType::eUnknown) {
-				AddProgramUnsafe(pItem);
-				iAdded++;
+				pItem = m_pAll;
+			else
+			{
+				pItem = MakeProgram(Type);
+				if (!pItem)
+					return;
+
+				pItem->SetUID(uId);
+				pItem->SetID(ID);
+
+				m_Items.insert(pItem->GetUID(), pItem);
+				if (ID.GetType() != EProgramType::eUnknown) {
+					AddProgramUnsafe(pItem);
+					iAdded++;
+				}
 			}
 		}
 
@@ -152,6 +160,8 @@ STATUS CProgramManager::Update()
 			if (pNode) pNode->m_Groups.removeOne(pItem);
 		}
 	}
+
+	OldMap.remove(m_pAll->GetUID()); // just in case
 
 	foreach(const CProgramItemPtr & pItem, OldMap) {
 		for (auto Group : pItem->m_Groups) {
@@ -254,7 +264,7 @@ void CProgramManager::AddProgramUnsafe(const CProgramItemPtr& pItem)
 	case EProgramType::eAppPackage:				m_PackageMap.insert(ID.GetAppContainerSid(), pItem.objectCast<CAppPackage>()); break;
 	case EProgramType::eAppInstallation:		break;
 	case EProgramType::eProgramGroup:			m_Groups.insert(ID.GetGuid(), pItem.objectCast<CProgramGroup>()); break;
-	case EProgramType::eAllPrograms:			m_pAll = pItem.objectCast<CProgramSet>(); break;
+	//case EProgramType::eAllPrograms:			m_pAll = pItem.objectCast<CProgramSet>(); break;
 	default: Q_ASSERT(0);
 	}
 }

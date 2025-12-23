@@ -12,7 +12,7 @@
 
 CProgramItem::CProgramItem()
 {
-	static volatile LONG64 VolatileIdCounter = 0;
+	static volatile LONG64 VolatileIdCounter = 0x10;
 	
 	m_UID = InterlockedIncrement64(&VolatileIdCounter);
 }

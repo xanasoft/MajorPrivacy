@@ -122,6 +122,7 @@ STATUS CProgramManager::Init()
 	m_Items.insert(std::make_pair(m_Root->GetUID(), m_Root));
 
 	m_pAll = CProgramSetPtr(new CAllPrograms());
+	m_pAll->m_UID = 2;
 	m_pAll->SetName(L"All Programs");
 	AddItemToRoot(m_pAll);
 	m_Items.insert(std::make_pair(m_pAll->GetUID(), m_pAll));

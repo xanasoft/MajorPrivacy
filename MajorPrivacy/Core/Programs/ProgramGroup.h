@@ -39,7 +39,7 @@ class CAllPrograms : public CProgramSet
 {
 	Q_OBJECT
 public:
-	CAllPrograms(QObject* parent = nullptr) : CProgramSet(parent) {}
+	CAllPrograms(QObject* parent = nullptr) : CProgramSet(parent) { m_ID = CProgramID(EProgramType::eAllPrograms); }
 
 	virtual QString GetPath() const					{ return "*"; }
 	virtual EProgramType GetType() const {return EProgramType::eAllPrograms; }
