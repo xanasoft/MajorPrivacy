@@ -34,6 +34,34 @@ MajorPrivacy 具有自由（freedom）的开放性，但不等同于免费。这
 - 调优引擎 —— 通过禁用不需的遥测和云端功能，强化 Windows 配置  
 - 完整性级别控制 —— 可将进程在安全隔离区内的完整性级别设置为“Protected”，从而隔离用户对象（包括窗口）与其他进程
 
+
+## 📸 截图
+
+### 主界面
+![Major Privacy Home](Screenshots/MP-Home.png)
+
+### 程序规则（软件限制）
+![Program Rules](Screenshots/Program-Rules.png)
+
+### 安全飞地（进程保护）
+![Secure Enclaves](Screenshots/Secure-Enclaves.png)
+
+### 访问规则（文件/文件夹保护）
+![Access Rules](Screenshots/Access-Rules.png)
+
+### 安全卷
+![Secure Volumes](Screenshots/Secure-Volumes.png)
+
+### 防火墙规则
+![Firewall Rules](Screenshots/Firewall-Rules.png)
+
+### DNS 过滤
+![DNS Filter](Screenshots/DNS-Filter.png)
+
+### 隐私优化
+![Privacy Tweaks](Screenshots/Privacy-Tweaks.png)
+
+
 ## 📌 项目支持 / 赞助
 
 [<img align="left" height="64" width="64" src="https://github.com/sandboxie-plus/Sandboxie/raw/master/.github/images/Icons8_logo.png">](https://icons8.de/)特别感谢 [Icons8](https://icons8.de/) 为本项目提供图标  
@@ -45,10 +73,10 @@ MajorPrivacy 具有自由（freedom）的开放性，但不等同于免费。这
 
 1. 订阅 [Patreon](https://www.patreon.com/DavidXanatos)  
 2. 通过 [PayPal 或信用卡](https://sandboxie-plus.com/go.php?to=donate) 捐助  
-3. 使用加密货币捐助  
+3. 使用加密货币捐助  <br>
 
-BTC: bc1qwnnacet3x3569w8hcns2dwh42jxa73sar4cwe5
-ETH: 0xBf08c3c47C5175015cEF4E32fB2315c9111F5305
-BNB on BCS: 0xBf08c3c47C5175015cEF4E32fB2315c9111F5305
-LTC: LTqXK1UEri1FCv7fNn9bcFhsrh78SaNdSM
-BCH: qpkjwn82pz3uj2jdzhv43tmaej2ftzyp8qe0er6ld4
+BTC: bc1qwnnacet3x3569w8hcns2dwh42jxa73sar4cwe5 <br>
+ETH: 0xBf08c3c47C5175015cEF4E32fB2315c9111F5305 <br>
+BNB on BCS: 0xBf08c3c47C5175015cEF4E32fB2315c9111F5305 <br>
+LTC: LTqXK1UEri1FCv7fNn9bcFhsrh78SaNdSM <br>
+BCH: qpkjwn82pz3uj2jdzhv43tmaej2ftzyp8qe0er6ld4 <br>
