@@ -98,7 +98,7 @@ enum class EHashType {
 
 
 #ifndef KERNEL_MODE // todo
-enum KPH_VERIFY_AUTHORITY // API_S_... TODO
+enum KPH_VERIFY_AUTHORITY
 {
 	KphUntestedAuthority = 0,
 	KphNoAuthority = 1,
@@ -119,7 +119,7 @@ enum KPH_VERIFY_AUTHORITY // API_S_... TODO
 	// inly 4 bit max is 15
 };
 
-enum KPH_PROTECTION_LEVEL // API_S_... TODO
+enum KPH_PROTECTION_LEVEL
 {
 	KphNoProtection = 0,
 	KphFullProtection,
@@ -127,7 +127,7 @@ enum KPH_PROTECTION_LEVEL // API_S_... TODO
 	// max is 3
 };
 
-union KPH_PROCESS_FLAGS // API_S_... TODO
+union KPH_PROCESS_FLAGS
 {
 	ULONG Flags;
 	struct
@@ -145,7 +145,7 @@ union KPH_PROCESS_FLAGS // API_S_... TODO
 	};
 };
 
-union KPH_PROCESS_SFLAGS // API_S_... TODO
+union KPH_PROCESS_SFLAGS
 {
 	ULONG SecFlags;
 	struct
@@ -271,7 +271,7 @@ enum class EAccessProtectType
 // ExecLog
 //
 
-enum class EExecLogRole // API_S_... TODO
+enum class EExecLogRole
 {
 	eUndefined = 0,
 	eActor,
@@ -279,7 +279,7 @@ enum class EExecLogRole // API_S_... TODO
 	eBoth,
 };
 
-enum class EExecLogType // API_S_... TODO
+enum class EExecLogType
 {
 	eUnknown = 0,
 	eProcessStarted = 0x01,
@@ -292,7 +292,7 @@ enum class EExecLogType // API_S_... TODO
 // Event Status
 //
 
-enum class EEventStatus // API_S_... TODO
+enum class EEventStatus
 {
 	eUndefined = -1,
 	eAllowed = 0,
@@ -306,7 +306,7 @@ enum class EEventStatus // API_S_... TODO
 // Program Info
 //
 
-//enum class EHashStatus // API_S_... TODO
+//enum class EHashStatus
 //{
 //	eHashUnknown = 0,
 //	eHashOk,
@@ -365,7 +365,7 @@ enum class ETweakHint // API_S_TWEAK_HINT
 	eMax
 };
 
-enum class ETweakMode // API_S_... TODO
+enum class ETweakMode
 {
 	eDefault    = 0,
 	eAll        = 1,
@@ -397,7 +397,7 @@ enum class ETweakType // API_S_TWEAK_TYPE
 // 
 //
 
-enum class EItemType // API_S_... TODO
+enum class EItemType
 {
 	eUnknown = 0,
 
@@ -451,28 +451,18 @@ enum class EFwRuleSource
 	eMax,
 };
 
-enum class EConfigEvent // API_S_... TODO
+enum class EConfigEvent
 {
 	eUnknown = 0,
 	eAdded,
 	eModified,
 	eRemoved,
 	eAllChanged,
+	eStored,
+	eDiscarded,
 };
 
-enum class EPrivacyEvent
-{
-	eUnknown = 0,
-	eFwRuleAltered, // created changed or removed
-	eFwTemplateApplied,
-	eTweakBroken,
-	eExecBlocked,
-	eAccessBlocked, // when auditing for said resource is enabled
-
-	eMax
-};
-
-enum class ETraceLogs // API_S_... TODO
+enum class ETraceLogs
 {
 	eExecLog = 0,
 	eNetLog,
@@ -480,7 +470,7 @@ enum class ETraceLogs // API_S_... TODO
 	eLogMax
 };
 
-enum class ELogLevels // API_S_... TODO
+enum class ELogLevels
 {
 	eNone = 0,
 	eInfo,
@@ -495,36 +485,60 @@ enum ELogEventType
 {
 	eLogUnknown = 0,
 
-	eLogFwModeChanged = 'fwmc',		// FireWall Mode Changed
-	eLogFwRuleAdded = 'fwra',		// FireWall Rule Added
-	eLogFwRuleModified = 'fwrm',	// FireWall Rule Modified
-	eLogFwRuleRemoved = 'fwrd',		// FireWall Rule Deleted
-	eLogFwRuleGenerated = 'fwrg',	// FireWall Rule Generated
-	eLogFwRuleApproved = 'fwrc',	// FireWall Rule Confirmed
-	eLogFwRuleRestored = 'fwrf',	// FireWall Rule Fixed
-	eLogFwRuleRejected = 'fwrr',	// FireWall Rule Rejected
+	eLogFwModeChanged = 'fwmc',			// FireWall Mode Changed
+	eLogFwRuleAdded = 'fwra',			// FireWall Rule Added
+	eLogFwRuleModified = 'fwrm',		// FireWall Rule Modified
+	eLogFwRuleRemoved = 'fwrd',			// FireWall Rule Deleted
+	eLogFwRuleGenerated = 'fwrg',		// FireWall Rule Generated
+	eLogFwRuleApproved = 'fwrc',		// FireWall Rule Confirmed
+	eLogFwRuleRestored = 'fwrf',		// FireWall Rule Fixed
+	eLogFwRuleRejected = 'fwrr',		// FireWall Rule Rejected
 	//eLogFwRuleScriptEvent = 'fwse',	// FireWall rule Script Event
 
-	eLogResRuleAdded = 'rara',		// Resource Access Rule Added
-	eLogResRuleModified = 'rarm',	// Resource Access Rule Modified
-	eLogResRuleRemoved = 'rard',	// Resource Access Rule Deleted
-	//eLogResRuleScriptEvent = 'rase',// Resource Access rule Script Event
+	eLogDnsRuleAdded = 'dfra',			// Dns Filter Rule Added
+	eLogDnsRuleModified = 'dfrm',		// Dns Filter Rule Modified
+	eLogDnsRuleRemoved = 'dfrd',		// Dns Filter Rule Deleted
 
-	eLogExecRuleAdded = 'exra',		// EXecution Rule Added
-	eLogExecRuleModified = 'exrm',	// EXecution Rule Modified
-	eLogExecRuleRemoved = 'exrd',	// EXecution Rule Deleted
-	eLogExecStartBlocked = 'exbl',	// EXecution Start Blocked
-	//eLogExecRuleScriptEvent = 'exse',// EXecution rule Script Event
+	eLogResRuleAdded = 'rara',			// Resource Access Rule Added
+	eLogResRuleModified = 'rarm',		// Resource Access Rule Modified
+	eLogResRuleRemoved = 'rard',		// Resource Access Rule Deleted
+	//eLogResRuleScriptEvent = 'rase',	// Resource Access rule Script Event
 
-	//eLogEnclaveScriptEvent = 'ense',// ENclave Script Event
-	eLogScriptEvent = 'lsce',		// Log SCript Event
+	eLogSecureEnclaveAdded = 'seea',	// Secure Enclave Entry Added
+	eLogSecureEnclaveModified = 'seem',	// Secure Enclave Entry Modified
+	eLogSecureEnclaveRemoved = 'seed',	// Secure Enclave Entry Removed
 
-	eLogProgramAdded = 'prea',		// PRogram Entry Added
-	eLogProgramModified = 'prem',	// PRogram Entry Modified
-	eLogProgramRemoved = 'pred',	// PRogram Entry Removed
-	eLogProgramMissing = 'prim',	// PRogram Item Missing
-	eLogProgramCleanedUp = 'prec',	// PRogram Entry Cleaned
-	eLogProgramBlocked = 'prbl',	// PRogram BLocked
+	eLogExecRuleAdded = 'exra',			// EXecution Rule Added
+	eLogExecRuleModified = 'exrm',		// EXecution Rule Modified
+	eLogExecRuleRemoved = 'exrd',		// EXecution Rule Deleted
+	eLogExecStartBlocked = 'exbl',		// EXecution Start Blocked
+	//eLogExecRuleScriptEvent = 'exse',	// EXecution rule Script Event
+
+	eLogHashDbEntryAdded = 'hdea',		// Hash Db Entry Added
+	eLogHashDbEntryModified = 'hdem',	// Hash Db Entry Modified
+	eLogHashDbEntryRemoved = 'hded',	// Hash Db Entry Deleted
+
+	eLogProgramAdded = 'prea',			// PRogram Entry Added
+	eLogProgramModified = 'prem',		// PRogram Entry Modified
+	eLogProgramRemoved = 'pred',		// PRogram Entry Removed
+	eLogProgramMissing = 'prim',		// PRogram Item Missing
+	eLogProgramCleanedUp = 'prec',		// PRogram Entry Cleaned
+	eLogProgramBlocked = 'prbl',		// PRogram BLocked
+
+	eLogConfigPresetAdded = 'cpea',		// Config Preset Entry Added
+	eLogConfigPresetModified = 'cpem',	// Config Preset Entry Mofidued
+	eLogConfigPresetRemoved = 'cprd',	// Config Preset Entry Deleted
+
+	eLogSvcConfigSaved = 'scfs',		// Service ConFig Saved
+	eLogSvcConfigDiscarded = 'scfd',	// Service ConFig Discarded
+	eLogDrvConfigSaved = 'dcfs',		// Driver ConFig Saved
+	eLogDrvConfigDiscarded = 'dcfd',	// Driver ConFig Discarded
+
+	eLogSvcStarted = 'pass',			// Privacy Agent Service Started
+	eLogDrvStarted = 'kids',			// Kernel Isolator Driver Started
+
+	//eLogEnclaveScriptEvent = 'ense',	// ENclave Script Event
+	eLogScriptEvent = 'lsce',			// Log SCript Event
 };
 
 enum ELogEventSubType

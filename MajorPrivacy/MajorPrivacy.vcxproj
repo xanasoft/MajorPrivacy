@@ -277,6 +277,7 @@
     <ClCompile Include="Helpers\WinHelper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MajorPrivacy.cpp" />
+    <ClCompile Include="MajorPrivacyConfig.cpp" />
     <ClCompile Include="Models\AccessListModel.cpp" />
     <ClCompile Include="Models\AccessModel.cpp" />
     <ClCompile Include="Models\DnsCacheModel.cpp" />
@@ -364,6 +365,7 @@
     <ClCompile Include="Windows\VolumeConfigWnd.cpp" />
     <ClCompile Include="Windows\VolumeWindow.cpp" />
     <ClCompile Include="Wizards\SetupWizard.cpp" />
+    <ClCompile Include="Wizards\VolumeWizard.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="Windows\ItemPicker.h" />
@@ -377,6 +379,7 @@
     <QtMoc Include="Views\EventView.h" />
     <QtMoc Include="Windows\ScriptWindow.h" />
     <QtMoc Include="Wizards\SetupWizard.h" />
+    <QtMoc Include="Wizards\VolumeWizard.h" />
     <QtMoc Include="Views\DnsRuleView.h" />
     <QtMoc Include="Windows\SignatureDbWnd.h" />
     <QtMoc Include="Windows\EnclaveWnd.h" />

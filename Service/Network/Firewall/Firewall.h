@@ -52,7 +52,7 @@ public:
 
 	STATUS Init();
 
-	STATUS Load();
+	STATUS ReLoad();
 	STATUS Store();
 
 	STATUS LoadRules(const StVariant& Entries);
@@ -96,6 +96,8 @@ public:
 	STATUS RestoreDefaultFwRules();
 
 protected:
+	STATUS Load();
+
 	bool MatchProgramID(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule);
 
 	CFirewallRulePtr UpdateFWRuleUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFlexGuid& Guid);
@@ -117,7 +119,7 @@ protected:
 	uint32 OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent);
 	uint32 OnFwLogEvent(const struct SWinFwLogEvent* pEvent);
 
-	void EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event, bool bExpected);
+	void EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event, bool bExpected, bool bNoConfig = false);
 
 	void ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocket* pSocket);
 

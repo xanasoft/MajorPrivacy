@@ -34,6 +34,7 @@ uint32 ConfigGroupToMsgType(EConfigGroup Config)
     case EConfigGroup::eProgramRules:   return KphMsgProgramRules;
     case EConfigGroup::eAccessRules:    return KphMsgAccessRules;
 	case EConfigGroup::eFirewallRules:  return KphMsgFirewallRules;
+    case EConfigGroup::eDriverConfig:   return KphMsgConfig;
 	}
 	return 0;
 }
@@ -47,6 +48,7 @@ EConfigGroup MsgTypeToConfigGroup(uint32 Type)
 	case KphMsgProgramRules:    return EConfigGroup::eProgramRules;
 	case KphMsgAccessRules:     return EConfigGroup::eAccessRules;
 	case KphMsgFirewallRules:   return EConfigGroup::eFirewallRules;
+    case KphMsgConfig:          return EConfigGroup::eDriverConfig;
 	}
 	return EConfigGroup::eUndefined;
 }
@@ -309,6 +311,7 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
         }
 
 
+        case KphMsgConfig:
         case KphMsgSecureEnclave:
 		case KphMsgHashDB:
         case KphMsgProgramRules:
@@ -316,8 +319,8 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
 		{
             EConfigGroup Config = MsgTypeToConfigGroup(Message->Header.MessageId);
 			std::wstring Guid = vEvent[API_V_GUID].AsStr();
-            EConfigEvent Event = (EConfigEvent)vEvent[API_V_EVENT_TYPE].To<uint32>(); // todo move to api header
-            uint64 PID = vEvent[API_V_EVENT_ACTOR_PID].To<uint64>();
+            EConfigEvent Event = (EConfigEvent)vEvent[API_V_EVENT_TYPE].To<uint32>();
+            uint64 PID = vEvent.Get(API_V_EVENT_ACTOR_PID).To<uint64>(0);
 			CDriverAPI__EmitConfigEvent(This, Config, Guid, Event, PID);
 			break;
 		}

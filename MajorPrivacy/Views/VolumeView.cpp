@@ -12,6 +12,8 @@
 #include "../Core/Programs/ProgramManager.h"
 #include "../Library/Helpers/NtPathMgr.h"
 #include "../Core/Enclaves/EnclaveManager.h"
+#include "../Wizards/VolumeWizard.h"
+#include <QtConcurrent/QtConcurrent>
 
 CVolumeView::CVolumeView(QWidget *parent)
 	:CPanelViewEx<CVolumeModel>(parent)
@@ -30,7 +32,11 @@ CVolumeView::CVolumeView(QWidget *parent)
 
 	m_pMountVolume = m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Mount Volume"), this, SLOT(OnMountVolume()));
 	m_pUnmountVolume = m_pMenu->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount Volume"), this, SLOT(OnUnmountVolume()));
+	m_pMenu->addSeparator();
 	m_pChangeVolumePassword = m_pMenu->addAction(QIcon(":/Icons/VolumePW.png"), tr("Change Volume Password"), this, SLOT(OnChangeVolumePassword()));
+	m_pBackupVolumeHeader = m_pMenu->addAction(QIcon(":/Icons/Export.png"), tr("Backup Volume Header"), this, SLOT(OnBackupVolumeHeader()));
+	m_pRestoreVolumeHeader = m_pMenu->addAction(QIcon(":/Icons/Import.png"), tr("Restore Volume Header"), this, SLOT(OnRestoreVolumeHeader()));
+	m_pExpandVolume = m_pMenu->addAction(QIcon(":/Icons/Expand.png"), tr("Expand Volume"), this, SLOT(OnExpandVolume()));
 	m_pChangeVolumeConfig = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Change Volume Configuration"), this, SLOT(OnChangeVolumeConfig()));
 	m_pAddVolumeEnclave = m_pMenu->addAction(QIcon(":/Icons/Enclave.png"), tr("Add Volume Enclave"), this, SLOT(OnAddVolumeEnclave()));
 	m_pRenameVolume = m_pMenu->addAction(QIcon(":/Icons/Rename.png"), tr("Rename Volume/Folder"), this, SLOT(OnRenameVolume()));
@@ -42,7 +48,6 @@ CVolumeView::CVolumeView(QWidget *parent)
 	m_pCreateVolume = m_pMenu->addAction(QIcon(":/Icons/AddVolume.png"), tr("Create Volume"), this, SLOT(OnCreateVolume()));
 	m_pMountAndAddVolume = m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Add and Mount Volume Image"), this, SLOT(MountVolume()));
 	m_pAddFolder = m_pMenu->addAction(QIcon(":/Icons/AddFolder.png"), tr("Add Folder"), this, SLOT(OnAddFolder()));
-	m_pUnmountAllVolumes = m_pMenu->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount All Volumes"), this, SLOT(OnUnmountAllVolumes()));
 
 	QByteArray Columns = theConf->GetBlob("MainWindow/VolumeView_Columns");
 	if (Columns.isEmpty()) {
@@ -60,7 +65,8 @@ CVolumeView::CVolumeView(QWidget *parent)
 	m_pToolBar->addAction(m_pMountAndAddVolume);
 	m_pToolBar->addAction(m_pAddFolder);
 	m_pToolBar->addSeparator();
-	m_pToolBar->addAction(m_pUnmountAllVolumes);
+	m_pUnmountAllVolumes = m_pToolBar->addAction(QIcon(":/Icons/UnmountVolume.png"), tr("Unmount All Volumes"), this, SLOT(OnUnmountAllVolumes()));
+	m_pCleanupVolumes = m_pToolBar->addAction(QIcon(":/Icons/Clean.png"), tr("Cleanup Missing Entries"), this, SLOT(OnCleanupVolumes()));
 
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -120,11 +126,11 @@ void CVolumeView::OnDoubleClicked(const QModelIndex& Index)
 {
 	QModelIndex ModelIndex = m_pSortProxy->mapToSource(Index);
 	CVolumePtr pVolume = m_pItemModel->GetItem(ModelIndex);
-	if (pVolume.isNull() || pVolume->IsFolder())
+	if (pVolume.isNull() || pVolume->IsFolder() || pVolume->IsBusy())
 		return;
 
 	if (!pVolume->IsMounted())
-		MountVolume(pVolume->GetImagePath());
+		MountVolume(pVolume->GetImagePath(), pVolume);
 	/*else if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to unmount the selected volume?"), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
 	{
 		STATUS Status = theCore->DismountVolume(pVolume->GetDevicePath());
@@ -147,7 +153,10 @@ void CVolumeView::OnMenu(const QPoint& Point)
 	int iMountedCount = 0;
 	int iVolumeCount = 0;
 	int iFolderCount = 0;
+	int iBusyCount = 0;
 	foreach(CVolumePtr pVolume, Volumes) {
+		if (pVolume->IsBusy())
+			iBusyCount++;
 		if (pVolume->IsFolder())
 			iFolderCount++;
 		else {
@@ -157,13 +166,16 @@ void CVolumeView::OnMenu(const QPoint& Point)
 		}
 	}
 
-	m_pMountVolume->setEnabled(iMountedCount == 0 && iVolumeCount == 1);
-	m_pUnmountVolume->setEnabled(iMountedCount > 0);
-	m_pChangeVolumePassword->setEnabled(iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
-	m_pAddVolumeEnclave->setEnabled(iMountedCount > 0);
-	m_pChangeVolumeConfig->setEnabled(iMountedCount == 1);
-	m_pRenameVolume->setEnabled(iVolumeCount + iFolderCount == 1);
-	m_pRemoveVolume->setEnabled(iMountedCount == 0 && iVolumeCount + iFolderCount > 0);
+	m_pMountVolume->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1);
+	m_pUnmountVolume->setEnabled(iBusyCount == 0 && iMountedCount > 0);
+	m_pChangeVolumePassword->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
+	m_pBackupVolumeHeader->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
+	m_pRestoreVolumeHeader->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
+	m_pExpandVolume->setEnabled(iBusyCount == 0 && iMountedCount == 1 && iFolderCount == 0);
+	m_pAddVolumeEnclave->setEnabled(iBusyCount == 0 && iMountedCount > 0);
+	m_pChangeVolumeConfig->setEnabled(iBusyCount == 0 && iMountedCount == 1);
+	m_pRenameVolume->setEnabled(iBusyCount == 0 && iVolumeCount + iFolderCount == 1);
+	m_pRemoveVolume->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount + iFolderCount > 0);
 
 	CPanelView::OnMenu(Point);
 }
@@ -173,14 +185,14 @@ void CVolumeView::OnMountVolume()
 	QList<CVolumePtr> Volumes = GetSelectedItems();
 	if (Volumes.count() != 1) return;
 
-	MountVolume(Volumes[0]->GetImagePath());
+	MountVolume(Volumes[0]->GetImagePath(), Volumes[0]);
 }
 
-void CVolumeView::MountVolume(QString Path)
+void CVolumeView::MountVolume(QString Path, CVolumePtr pVolume)
 {
 	if (Path.isEmpty()) {
 		Path = QFileDialog::getOpenFileName(this, tr("Select Private Volume"), QString(), tr("Private Volume Files (*.pv)"));
-		if (Path.isEmpty()) 
+		if (Path.isEmpty())
 			return;
 	}
 
@@ -191,32 +203,49 @@ void CVolumeView::MountVolume(QString Path)
 	QString MountPoint = window.GetMountPoint();
 	bool bProtect = window.UseProtection();
 	bool bLockdown = window.UseLockdown();
+	int iArgon2Cost = window.GetArgon2Cost();
 
-	STATUS Status = theCore->MountVolume(Path, MountPoint, Password, bProtect, bLockdown);
-	theGUI->CheckResults(QList<STATUS>() << Status, this);
+	RunVolumeOperation(tr("Mounting volume..."), [=]() {
+		return theCore->MountVolume(Path, MountPoint, Password, bProtect, bLockdown, iArgon2Cost);
+	}, nullptr, pVolume ? QList<CVolumePtr>() << pVolume : QList<CVolumePtr>());
 }
 
 void CVolumeView::OnUnmountVolume()
 {
-	QList<STATUS> Results;
-
 	QList<CVolumePtr> Volumes = GetSelectedItems();
-	foreach(CVolumePtr pVolume, Volumes) 
-	{
-		STATUS Status = theCore->DismountVolume(pVolume->GetDevicePath());
-		Results.append(Status);
-	}
+	if (Volumes.isEmpty())
+		return;
 
-	theGUI->CheckResults(Results, this);
+	QStringList DevicePaths;
+	foreach(CVolumePtr pVolume, Volumes)
+		DevicePaths.append(pVolume->GetDevicePath());
+
+	RunVolumeOperation(tr("Unmounting volume..."), [DevicePaths]() {
+		STATUS LastStatus = OK;
+		foreach(const QString& DevicePath, DevicePaths) {
+			STATUS Status = theCore->DismountVolume(DevicePath);
+			if (Status.IsError())
+				LastStatus = Status;
+		}
+		return LastStatus;
+	}, nullptr, Volumes);
 }
 
 void CVolumeView::OnUnmountAllVolumes()
 {
-	STATUS Status = theCore->DismountAllVolumes();
-	theGUI->CheckResults(QList<STATUS>() << Status, this);
+	RunVolumeOperation(tr("Unmounting all volumes..."), [=]() {
+		return theCore->DismountAllVolumes();
+	});
 }
 
 void CVolumeView::OnCreateVolume()
+{
+	CVolumeWizard::ShowWizard(this);
+}
+
+/*
+// Old implementation - replaced by VolumeWizard
+void CVolumeView::OnCreateVolume_Old()
 {
 	QString Path = QFileDialog::getSaveFileName(this, tr("Select Private Volume"), QString(), tr("Private Volume Files (*.pv)")).replace("/","\\");
 	if (Path.isEmpty()) return;
@@ -248,13 +277,15 @@ void CVolumeView::OnCreateVolume()
 		theCore->VolumeManager()->AddVolume(Path);
 	theGUI->CheckResults(QList<STATUS>() << Status, this);
 }
+*/
 
 void CVolumeView::OnChangeVolumePassword()
 {
 	QList<CVolumePtr> Volumes = GetSelectedItems();
 	if (Volumes.count() != 1) return;
 
-	QString Path = Volumes[0]->GetImagePath();
+	CVolumePtr pVolume = Volumes[0];
+	QString Path = pVolume->GetImagePath();
 	//QString Path = QFileDialog::getOpenFileName(this, tr("Select Private Volume"), QString(), tr("Private Volume Files (*.pv)"));
 	//if (Path.isEmpty()) return;
 
@@ -263,9 +294,173 @@ void CVolumeView::OnChangeVolumePassword()
 		return;
 	QString OldPassword = window.GetPassword();
 	QString NewPassword = window.GetNewPassword();
+	int iArgon2Cost = window.GetArgon2Cost();
+	int iNewArgon2Cost = window.GetNewArgon2Cost();
 
-	STATUS Status = theCore->ChangeVolumePassword(Path, OldPassword, NewPassword);
-	theGUI->CheckResults(QList<STATUS>() << Status, this);
+	RunVolumeOperation(tr("Changing volume password..."), [=]() {
+		return theCore->ChangeVolumePassword(Path, OldPassword, NewPassword, iArgon2Cost, iNewArgon2Cost);
+	}, nullptr, QList<CVolumePtr>() << pVolume);
+}
+
+void CVolumeView::OnBackupVolumeHeader()
+{
+	QList<CVolumePtr> Volumes = GetSelectedItems();
+	if (Volumes.count() != 1) return;
+
+	CVolumePtr pVolume = Volumes[0];
+	QString VolumePath = pVolume->GetImagePath();
+
+	QString BackupPath = QFileDialog::getSaveFileName(this, tr("Select Backup Location"),
+		QString(), tr("Volume Header Backup (*.pvh);;All Files (*)"));
+	if (BackupPath.isEmpty())
+		return;
+	BackupPath = BackupPath.replace("/", "\\");
+	if (!BackupPath.endsWith(".pvh", Qt::CaseInsensitive))
+		BackupPath += ".pvh";
+
+	CVolumeWindow window(tr("Enter the volume password to backup the header."), CVolumeWindow::eGetPW, this);
+	if (theGUI->SafeExec(&window) != 1)
+		return;
+	QString Password = window.GetPassword();
+	int iArgon2Cost = window.GetArgon2Cost();
+
+	RunVolumeOperation(tr("Backing up volume header..."), [=]() {
+		return theCore->BackupVolumeHeader(VolumePath, BackupPath, Password, iArgon2Cost);
+	}, nullptr, QList<CVolumePtr>() << pVolume);
+}
+
+void CVolumeView::OnRestoreVolumeHeader()
+{
+	QList<CVolumePtr> Volumes = GetSelectedItems();
+	if (Volumes.count() != 1) return;
+
+	CVolumePtr pVolume = Volumes[0];
+	QString VolumePath = pVolume->GetImagePath();
+
+	if (QMessageBox::warning(this, "MajorPrivacy",
+		tr("WARNING: Restoring a volume header will overwrite the current header. "
+		   "This operation cannot be undone. Make sure you have a backup of the current header before proceeding.\n\n"
+		   "Are you sure you want to restore the volume header?"),
+		QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+		return;
+
+	QString BackupPath = QFileDialog::getOpenFileName(this, tr("Select Header Backup File"),
+		QString(), tr("Volume Header Backup (*.pvh);;All Files (*)"));
+	if (BackupPath.isEmpty())
+		return;
+	BackupPath = BackupPath.replace("/", "\\");
+
+	CVolumeWindow window(tr("Enter the password used when the header backup was created."), CVolumeWindow::eGetPW, this);
+	if (theGUI->SafeExec(&window) != 1)
+		return;
+	QString Password = window.GetPassword();
+	int iArgon2Cost = window.GetArgon2Cost();
+
+	RunVolumeOperation(tr("Restoring volume header..."), [=]() {
+		return theCore->RestoreVolumeHeader(VolumePath, BackupPath, Password, iArgon2Cost);
+	}, nullptr, QList<CVolumePtr>() << pVolume);
+}
+
+void CVolumeView::OnExpandVolume()
+{
+	QList<CVolumePtr> Volumes = GetSelectedItems();
+	if (Volumes.count() != 1) return;
+
+	CVolumePtr pVolume = Volumes[0];
+	if (!pVolume->IsMounted() || pVolume->IsFolder())
+		return;
+
+	quint64 CurrentSize = pVolume->GetVolumeSize();
+	QString MountPoint = pVolume->GetDevicePath();
+
+	// Create expand volume dialog
+	QDialog dialog(this);
+	dialog.setWindowTitle(tr("Expand Volume"));
+	dialog.setMinimumWidth(400);
+
+	QVBoxLayout* layout = new QVBoxLayout(&dialog);
+
+	QLabel* infoLabel = new QLabel(tr("Current volume size: <b>%1</b>").arg(FormatSize(CurrentSize)));
+	layout->addWidget(infoLabel);
+
+	layout->addSpacing(10);
+
+	QLabel* promptLabel = new QLabel(tr("Enter the amount of space to add:"));
+	layout->addWidget(promptLabel);
+
+	QHBoxLayout* sizeLayout = new QHBoxLayout();
+	QLineEdit* sizeEdit = new QLineEdit();
+	sizeEdit->setText("1024");
+	sizeEdit->setMaximumWidth(150);
+	sizeLayout->addWidget(sizeEdit);
+
+	QComboBox* unitCombo = new QComboBox();
+	unitCombo->addItem(tr("KB"), 0);
+	unitCombo->addItem(tr("MB"), 1);
+	unitCombo->addItem(tr("GB"), 2);
+	unitCombo->setCurrentIndex(1); // Default to MB
+	sizeLayout->addWidget(unitCombo);
+	sizeLayout->addStretch();
+	layout->addLayout(sizeLayout);
+
+	QLabel* newSizeLabel = new QLabel();
+	layout->addWidget(newSizeLabel);
+
+	// Update new size label when values change
+	auto updateNewSize = [&]() {
+		bool ok;
+		quint64 addSize = sizeEdit->text().toULongLong(&ok);
+		if (!ok || addSize == 0) {
+			newSizeLabel->setText(tr("<span style='color:red;'>Please enter a valid size.</span>"));
+			return;
+		}
+
+		quint64 addSizeBytes;
+		switch (unitCombo->currentIndex()) {
+		case 0: addSizeBytes = addSize * 1024ULL; break;
+		case 1: addSizeBytes = addSize * 1024ULL * 1024ULL; break;
+		case 2: addSizeBytes = addSize * 1024ULL * 1024ULL * 1024ULL; break;
+		default: addSizeBytes = addSize * 1024ULL * 1024ULL;
+		}
+
+		quint64 newTotalSize = CurrentSize + addSizeBytes;
+		newSizeLabel->setText(tr("New total size: <b>%1</b> (adding %2)")
+			.arg(FormatSize(newTotalSize))
+			.arg(FormatSize(addSizeBytes)));
+	};
+
+	connect(sizeEdit, &QLineEdit::textChanged, &dialog, updateNewSize);
+	connect(unitCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), &dialog, updateNewSize);
+	updateNewSize();
+
+	layout->addSpacing(10);
+
+	QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+	connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+	connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+	layout->addWidget(buttonBox);
+
+	if (dialog.exec() != QDialog::Accepted)
+		return;
+
+	bool ok;
+	quint64 addSize = sizeEdit->text().toULongLong(&ok);
+	if (!ok || addSize == 0) {
+		QMessageBox::warning(this, tr("Expand Volume"), tr("Please enter a valid size to add."));
+		return;
+	}
+
+	quint64 addSizeBytes;
+	switch (unitCombo->currentIndex()) {
+	case 0: addSizeBytes = addSize * 1024ULL; break;
+	case 1: addSizeBytes = addSize * 1024ULL * 1024ULL; break;
+	case 2: addSizeBytes = addSize * 1024ULL * 1024ULL * 1024ULL; break;
+	default: addSizeBytes = addSize * 1024ULL * 1024ULL;
+	}
+
+	RunVolumeOperation(tr("Expanding volume..."), [=]() {
+		return theCore->ExpandVolume(MountPoint, addSizeBytes);
+	}, nullptr, QList<CVolumePtr>() << pVolume);
 }
 
 void CVolumeView::OnChangeVolumeConfig()
@@ -342,4 +537,71 @@ void CVolumeView::OnAddFolder()
 
 	STATUS Status = theCore->VolumeManager()->AddVolume(Value);
 	theGUI->CheckResults(QList<STATUS>() << Status, this);
+}
+
+void CVolumeView::OnCleanupVolumes()
+{
+	QList<CVolumePtr> Volumes = theCore->VolumeManager()->List();
+	QStringList MissingPaths;
+
+	foreach(CVolumePtr pVolume, Volumes) {
+		if (pVolume->IsMounted() || pVolume->IsBusy())
+			continue;
+		QString ImagePath = pVolume->GetImagePath();
+		if (pVolume->IsFolder()) {
+			if (!QDir(ImagePath).exists())
+				MissingPaths.append(ImagePath);
+		} else {
+			if (!QFile::exists(ImagePath))
+				MissingPaths.append(ImagePath);
+		}
+	}
+
+	if (MissingPaths.isEmpty()) {
+		QMessageBox::information(this, "MajorPrivacy", tr("No missing entries found."));
+		return;
+	}
+
+	if (QMessageBox::question(this, "MajorPrivacy",
+		tr("Found %1 entries with missing images/folders. Do you want to remove them from the list?").arg(MissingPaths.count()),
+		QMessageBox::Yes, QMessageBox::No) != QMessageBox::Yes)
+		return;
+
+	QList<STATUS> Results;
+	foreach(const QString& Path, MissingPaths)
+		Results.append(theCore->VolumeManager()->RemoveVolume(Path));
+
+	theGUI->CheckResults(Results, this);
+}
+
+void CVolumeView::RunVolumeOperation(const QString& progressText, std::function<STATUS()> operation, std::function<void()> onSuccess, const QList<CVolumePtr>& Volumes)
+{
+	foreach(CVolumePtr pVolume, Volumes)
+		pVolume->SetBusyStatus(progressText);
+
+	QFutureWatcher<STATUS>* pWatcher = new QFutureWatcher<STATUS>(this);
+
+	connect(pWatcher, &QFutureWatcher<STATUS>::finished, this, [this, pWatcher, onSuccess, Volumes]() {
+		STATUS Status = pWatcher->result();
+
+		foreach(CVolumePtr pVolume, Volumes)
+			pVolume->ClearBusyStatus();
+
+		if (Status.IsSuccess() && onSuccess)
+			onSuccess();
+
+		theGUI->CheckResults(QList<STATUS>() << Status, this);
+		pWatcher->deleteLater();
+		Sync(); // Refresh the view
+	});
+
+	QFuture<STATUS> future = QtConcurrent::run(operation);
+	pWatcher->setFuture(future);
+	Sync(); // Refresh to show busy status
+}
+
+void CVolumeView::OnVolumeOperationFinished()
+{
+	// This slot is no longer needed as we handle completion in the lambda
+	// Kept for potential future use
 }

@@ -6,7 +6,22 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [0.99.7] - 2026-03-01
 
+### fixed
+- fixed restart loop issue
+- fixed discard config changed did not apply to service options
+- program items with running processes can no longer be deleted
+- fixed issues unmounting volumes
+
+### Changed
+- change GUI <-> Service communication to use ALPC ports instead of named pipes 
+
+### Added
+- added full volume creation wizard (replacing the quick one window dialog)
+- added backup/restore volume headers
+- added support for Argon2id key derivation function for volume passwords
+- added expand volume option to GUI
 
 
 

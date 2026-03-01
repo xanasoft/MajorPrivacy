@@ -426,7 +426,7 @@ bool CProcess::FillVerifyInfo(const std::wstring& ModulePath, SVerifierInfo& Ver
 				CBuffer chunk(256 * 1024, false);
 				for (;;) {
 					DWORD got = 0;
-					if (!::ReadFile(hFile, chunk.GetBuffer(), chunk.GetCapacity(), &got, nullptr)) break;
+					if (!::ReadFile(hFile, chunk.GetBuffer(), (DWORD)chunk.GetCapacity(), &got, nullptr)) break;
 					if (got == 0) break; // EOF
 					chunk.SetSize(got);
 					if (!NT_SUCCESS(hasher.UpdateHash(chunk))) break;
@@ -554,7 +554,7 @@ void CProcess::AddSocket(const CSocketPtr& pSocket)
 
 	CWindowsServicePtr pSvc;
 	std::wstring SvcTag = pSocket->GetOwnerServiceName();
-	if (!SvcTag.empty())
+	if (!SvcTag.empty() && pProg)
 		pSvc = pProg->GetService(SvcTag);
 	
 	std::unique_lock Lock(m_SocketMutex);
@@ -570,7 +570,7 @@ void CProcess::RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit)
 
 	CWindowsServicePtr pSvc;
 	std::wstring SvcTag = pSocket->GetOwnerServiceName();
-	if (!SvcTag.empty())
+	if (!SvcTag.empty() && pProg)
 		pSvc = pProg->GetService(SvcTag);
 
 	std::unique_lock Lock(m_SocketMutex);

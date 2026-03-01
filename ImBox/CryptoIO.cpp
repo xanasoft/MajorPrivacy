@@ -8,11 +8,12 @@ extern "C" {
 #include ".\dc\include\boot\dc_header.h"
 #include ".\dc\crypto_fast\crc32.h"
 #include ".\dc\crypto_fast\sha512_pkcs5_2.h"
+#include ".\dc\crypto\Argon2\argon2.h"
 }
 
 void make_rand(void* ptr, size_t size)
 {
-	BCryptGenRandom(NULL, (BYTE*)ptr, size, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+	BCryptGenRandom(NULL, (BYTE*)ptr, (ULONG)size, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
 }
 
 template <class T>
@@ -60,7 +61,7 @@ struct SSecureBuffer
 struct SCryptoIO
 {
 	std::wstring Cipher;
-	bool AllowFormat;
+	bool AllowFormat = false;
 
 	SSecureBuffer<dc_pass> password;
 
@@ -69,24 +70,23 @@ struct SCryptoIO
 	SSection* section;
 };
 
-CCryptoIO::CCryptoIO(CAbstractIO* pIO, const WCHAR* pKey, const std::wstring& Cipher)
+CCryptoIO::CCryptoIO(CAbstractIO* pIO, const WCHAR* pKey, const std::wstring& Cipher, int cost)
 {
 	m = new SCryptoIO;
 	m->Cipher = Cipher;
 	m->AllowFormat = false;
 
 	if (m->password) {
-		m->password->size = wcslen(pKey) * sizeof(wchar_t);
+		m->password->size = (int)(wcslen(pKey) * sizeof(wchar_t));
 		if (m->password->size > MAX_PASSWORD * sizeof(wchar_t))
 			m->password->size = MAX_PASSWORD * sizeof(wchar_t);
 		memcpy(m->password->pass, pKey, m->password->size);
+		m->password->cost = cost;
 	}
 
 	m->section = NULL;
 
 	m_pIO = pIO;
-
-	xts_init(1);
 }
 
 CCryptoIO::~CCryptoIO()
@@ -208,30 +208,11 @@ int CCryptoIO::Init()
 
 int CCryptoIO::WriteHeader(struct _dc_header* header)
 {
-	SSecureBuffer<xts_key> header_key;
 	UCHAR salt[PKCS5_SALT_SIZE];
-	SSecureBuffer<UCHAR> dk(DISKKEY_SIZE);
-
-	// allocate required memory
-	if (!header_key || !dk)
-	{
-		DbgPrint(L"Malloc Failed\n");
-		return ERR_MALLOC_ERROR;
-	}
-	
 	make_rand(salt, PKCS5_SALT_SIZE);
 
-	// derive the header key
-	sha512_pkcs5_2(1000, m->password->pass, m->password->size, salt, PKCS5_SALT_SIZE, dk.ptr, PKCS_DERIVE_MAX);
-
-	// initialize encryption keys
-	xts_set_key(dk.ptr, header->alg_1, header_key.ptr);
-
-	// encrypt the volume header
-	xts_encrypt((const unsigned char*)header, (unsigned char*)header, sizeof(dc_header), 0, header_key.ptr);
-
-	// save salt
-	memcpy(header->salt, salt, PKCS5_SALT_SIZE);
+	if (!dc_encrypt_header(header, m->password.ptr, salt))
+		return ERR_INTERNAL;
 
 	// write volume header to output file
 	m_pIO->DiskWrite(header, sizeof(dc_header), 0);
@@ -239,7 +220,7 @@ int CCryptoIO::WriteHeader(struct _dc_header* header)
 	return ERR_OK;
 }
 
-int CCryptoIO::ChangePassword(const WCHAR* pNewKey)
+int CCryptoIO::ChangePassword(const WCHAR* pNewKey, int iNewCost)
 {
 	int ret = m_pIO ? m_pIO->Init() : ERR_UNKNOWN_TYPE;
 
@@ -255,15 +236,15 @@ int CCryptoIO::ChangePassword(const WCHAR* pNewKey)
 	m_pIO->DiskRead(header.ptr, sizeof(dc_header), 0);
 
 	ret = dc_decrypt_header(header.ptr, m->password.ptr) ? ERR_OK : ERR_WRONG_PASSWORD;
-
 	if (ret != ERR_OK)
 		return ret;
 
 	if (m->password) {
-		m->password->size = wcslen(pNewKey) * sizeof(wchar_t);
+		m->password->size = (int)(wcslen(pNewKey) * sizeof(wchar_t));
 		if (m->password->size > MAX_PASSWORD * sizeof(wchar_t))
 			m->password->size = MAX_PASSWORD * sizeof(wchar_t);
 		memcpy(m->password->pass, pNewKey, m->password->size);
+		m->password->cost = iNewCost;
 	}
 
 	ret = WriteHeader(header.ptr);
@@ -315,7 +296,7 @@ void CCryptoIO::TrimProcess(DEVICE_DATA_SET_RANGE* range, int n)
 	m_pIO->TrimProcess(range, n);
 }
 
-int CCryptoIO::BackupHeader(CAbstractIO* pIO, const std::wstring& Path)
+int CCryptoIO::BackupHeader(CAbstractIO* pIO, const std::wstring& Path, const WCHAR* pKey, int cost)
 {
 	int ret = pIO->Init();
 
@@ -331,6 +312,23 @@ int CCryptoIO::BackupHeader(CAbstractIO* pIO, const std::wstring& Path)
 	if (!pIO->DiskRead(header.ptr, sizeof(dc_header), 0))
 		ret = ERR_FILE_NOT_OPENED;
 
+	SSecureBuffer<dc_pass> password;
+	if (!password)
+		return ERR_MALLOC_ERROR;
+	password->size = int(wcslen(pKey) * sizeof(wchar_t));
+	if (password->size > MAX_PASSWORD * sizeof(wchar_t))
+		password->size = MAX_PASSWORD * sizeof(wchar_t);
+	memcpy(password->pass, pKey, password->size);
+	password->cost = cost;
+
+	ret = dc_decrypt_header(header.ptr, password.ptr) ? ERR_OK : ERR_WRONG_PASSWORD;
+	if (ret != ERR_OK)
+		return ret;
+
+	UCHAR salt[PKCS5_SALT_SIZE];
+	make_rand(salt, PKCS5_SALT_SIZE);
+
+	ret = dc_encrypt_header(header.ptr, password.ptr, salt) ? ERR_OK : ERR_INTERNAL;
 	if (ret != ERR_OK)
 		return ret;
 
@@ -347,7 +345,7 @@ int CCryptoIO::BackupHeader(CAbstractIO* pIO, const std::wstring& Path)
 	return ret;
 }
 
-int CCryptoIO::RestoreHeader(CAbstractIO* pIO, const std::wstring& Path)
+int CCryptoIO::RestoreHeader(CAbstractIO* pIO, const std::wstring& Path, const WCHAR* pKey, int cost)
 {
 	int ret = pIO->Init();
 
@@ -370,6 +368,23 @@ int CCryptoIO::RestoreHeader(CAbstractIO* pIO, const std::wstring& Path)
 	} else
 		ret = ERR_FILE_NOT_OPENED;
 
+	SSecureBuffer<dc_pass> password;
+	if (!password)
+		return ERR_MALLOC_ERROR;
+	password->size = (int)(wcslen(pKey) * sizeof(wchar_t));
+	if (password->size > MAX_PASSWORD * sizeof(wchar_t))
+		password->size = MAX_PASSWORD * sizeof(wchar_t);
+	memcpy(password->pass, pKey, password->size);
+	password->cost = cost;
+
+	ret = dc_decrypt_header(header.ptr, password.ptr) ? ERR_OK : ERR_WRONG_PASSWORD;
+	if (ret != ERR_OK)
+		return ret;
+
+	UCHAR salt[PKCS5_SALT_SIZE];
+	make_rand(salt, PKCS5_SALT_SIZE);
+
+	ret = dc_encrypt_header(header.ptr, password.ptr, salt) ? ERR_OK : ERR_INTERNAL;
 	if (ret != ERR_OK)
 		return ret;
 
@@ -400,7 +415,6 @@ int CCryptoIO::SetData(const UCHAR* pData, SIZE_T uSize)
 	m_pIO->DiskRead(header.ptr, sizeof(dc_header), 0);
 
 	ret = dc_decrypt_header(header.ptr, m->password.ptr) ? ERR_OK : ERR_WRONG_PASSWORD;
-
 	if (ret != ERR_OK)
 		return ret;
 
@@ -409,7 +423,7 @@ int CCryptoIO::SetData(const UCHAR* pData, SIZE_T uSize)
 
 	header.ptr->info_magic = DC_INFO_MAGIC;
 	header.ptr->info_reserved = 0;
-	header.ptr->info_size = uSize;
+	header.ptr->info_size = (u16)uSize;
 	memcpy(header.ptr->info_data, pData, uSize);
 
 	ret = WriteHeader(header.ptr);
@@ -433,7 +447,6 @@ int CCryptoIO::GetData(UCHAR* pData, SIZE_T* pSize)
 	m_pIO->DiskRead(header.ptr, sizeof(dc_header), 0);
 
 	ret = dc_decrypt_header(header.ptr, m->password.ptr) ? ERR_OK : ERR_WRONG_PASSWORD;
-
 	if (ret != ERR_OK)
 		return ret;
 

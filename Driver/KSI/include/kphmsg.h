@@ -54,7 +54,7 @@ typedef enum _KPH_MESSAGE_ID
     KphMsgHashDB        = 0x40001000,
     //                  = 0x40002000,
     //                  = 0x40004000,
-    //                  = 0x40008000,
+    KphMsgConfig        = 0x40008000,
 
     // other events
     KphMsgInjectDll     = 0x40010000,

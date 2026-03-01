@@ -36,10 +36,10 @@ struct DefaultHasher {
 
 template<typename C>
 ULONG HashString(const C* pStr) { // Time: 1532ms
-	size_t hash = 14695981039346656037ULL; // FNV offset basis
+	ULONG64 hash = 14695981039346656037ULL; // FNV offset basis
 	if(pStr)
 		for (; *pStr; pStr++) {
-		hash ^= static_cast<size_t>(*pStr);
+		hash ^= static_cast<ULONG64>(*pStr);
 		hash *= 1099511628211ULL; // FNV prime
 	}
 	return (ULONG)hash | (ULONG)(hash >> 32);

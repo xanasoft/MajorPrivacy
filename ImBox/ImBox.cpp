@@ -25,6 +25,12 @@
 #include "CryptoIO.h"
 #include "Common\helpers.h"
 
+extern "C" {
+#include ".\dc\include\boot\dc_header.h"
+#include ".\dc\crypto_fast\crc32.h"
+#include ".\dc\crypto_fast\sha512_pkcs5_2.h"
+}
+
 bool HasFlag(const std::vector<std::wstring>& arguments, std::wstring name)
 {
 	return std::find(arguments.begin(), arguments.end(), name) != arguments.end();
@@ -80,12 +86,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     //bool bUpdate = HasFlag(arguments, L"update");
 
     std::wstring mount = GetArgument(arguments, L"mount");
-    UINT number = _wtoi(GetArgument(arguments, L"number").c_str());
+    LONG number = _wtoi(GetArgument(arguments, L"number").c_str());
     std::wstring type = GetArgument(arguments, L"type");
     std::wstring size = GetArgument(arguments, L"size");
     std::wstring image = GetArgument(arguments, L"image");
     std::wstring key = GetArgument(arguments, L"key");
     std::wstring cipher = GetArgument(arguments, L"cipher");
+    int iCost = _wtoi(GetArgument(arguments, L"cost").c_str());
+    int iNewCost = _wtoi(GetArgument(arguments, L"new_cost").c_str());
     std::wstring format = GetArgument(arguments, L"format");
     std::wstring params = GetArgument(arguments, L"params");
 
@@ -107,6 +115,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     else
         uSize = _wtoi64(size.c_str());
 
+
+    //
+    // Prepare Crypto
+    //
+
+    xts_init(1);
+
     //
     // prepare disk IO
     //
@@ -123,11 +138,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return -1;
     }
 
-    if (!backup.empty())
-        return CCryptoIO::BackupHeader(pIO, backup);
-    if (!restore.empty())
-        return CCryptoIO::RestoreHeader(pIO, restore);
-
     HANDLE hMapping = NULL;
     SSection* pSection = NULL;
     if (!section.empty()) {
@@ -141,22 +151,28 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		pSection = (SSection*)wcstoull(mem.c_str()+2, NULL, 16);
 	}
 
+    if (!backup.empty())
+		return CCryptoIO::BackupHeader(pIO, backup, key.empty() ? pSection->in.pass : key.c_str(), iCost);
+    if (!restore.empty())
+        return CCryptoIO::RestoreHeader(pIO, restore, key.empty() ? pSection->in.pass : key.c_str(), iCost);
+
     if (!key.empty() || pSection) {
         CCryptoIO* pCrypto;
         if (pSection) {
-            pCrypto = new CCryptoIO(pIO, pSection->in.pass, cipher);
+            pCrypto = new CCryptoIO(pIO, pSection->in.pass, cipher, iCost);
             memset(pSection, 0, sizeof(pSection->buffer)); // clear
         }
         else
-            pCrypto = new CCryptoIO(pIO, key.c_str(), cipher);
+            pCrypto = new CCryptoIO(pIO, key.c_str(), cipher, iCost);
         pIO = pCrypto;
 
         if (new_key.IsSet) {
             if (!new_key.Value.empty())
-                return pCrypto->ChangePassword(new_key.Value.c_str());
-            else if (pSection && pSection->magic == SECTION_MAGIC && pSection->id == SECTION_PARAM_ID_KEY)
-                return pCrypto->ChangePassword((const WCHAR*)pSection->data);
-			else
+                return pCrypto->ChangePassword(new_key.Value.c_str(), iNewCost);
+            else if (pSection && pSection->magic == SECTION_MAGIC && pSection->id == SECTION_PARAM_ID_KEY) {
+                SNewKeySection* pNewKey = (SNewKeySection*)pSection->data;
+                return pCrypto->ChangePassword(pNewKey->new_pass, pNewKey->new_cost);
+            } else
 				return ERR_INVALID_PARAM;
         }
 

@@ -63,7 +63,7 @@ CNtPathMgr::~CNtPathMgr()
 
 CNtPathMgr* CNtPathMgr::Instance()
 {
-    // todo single init
+    // todo initonce
     if (!m_pInstance)
         m_pInstance = new CNtPathMgr;
     return m_pInstance;
@@ -447,7 +447,7 @@ void CNtPathMgr::AddDrive(WCHAR DriveLetter, const std::wstring& DevicePath, boo
     std::shared_ptr<SDrive> Drive = std::make_shared<SDrive>();
     Drive->DriveLetter = DriveLetter;
     //*Drive->SN = 0;
-    //if (1) { // todo
+    //if (1) {
     //    ULONG sn = GetVolumeSN(pDrive->DevicePath);
     //    if (sn != 0)
     //        _snwprintf(pDrive->SN, 10, L"%04X-%04X", HIWORD(sn), LOWORD(sn));

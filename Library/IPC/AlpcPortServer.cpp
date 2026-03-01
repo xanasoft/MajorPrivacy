@@ -18,7 +18,9 @@ CAlpcPortServer::CAlpcPortServer()
 
 	m_hServerPort = NULL;
 
-#ifndef _DEBUG
+#ifdef _DEBUG
+    m_NumThreads = 2;
+#else
 	m_NumThreads = PhSystemBasicInformation.NumberOfProcessors;
 #endif
 }
@@ -44,13 +46,17 @@ STATUS CAlpcPortServer::Open(const std::wstring& name)
     InitializeSecurityDescriptor(sd, SECURITY_DESCRIPTOR_REVISION);
     SetSecurityDescriptorDacl(sd, TRUE, NULL, FALSE);
 
-#if MAX_PORTMSG_LENGTH > 648
     ALPC_PORT_ATTRIBUTES serverPortAttr = { 0 };
+    serverPortAttr.Flags = ALPC_PORFLG_ALLOW_LPC_REQUESTS;  // Enable LPC compatibility for datagrams
     serverPortAttr.MaxMessageLength = MAX_PORTMSG_LENGTH;
+    serverPortAttr.MemoryBandwidth = 0;
+    serverPortAttr.MaxPoolUsage = (SIZE_T)-1;
+    serverPortAttr.MaxSectionSize = 0;
+    serverPortAttr.MaxViewSize = 0;
+    serverPortAttr.MaxTotalSectionSize = 0;
+    serverPortAttr.DupObjectTypes = 0;
+
     status = NtAlpcCreatePort((HANDLE*)&m_hServerPort, SNtObject(name.c_str(), NULL, sd).Get(), &serverPortAttr);
-#else
-    status = NtCreatePort((HANDLE *)&m_hServerPort, SNtObject(name.c_str(), NULL, sd).Get(), 0, MAX_PORTMSG_LENGTH, NULL);
-#endif
 
     if (! NT_SUCCESS(status))
         return ERR(status);
@@ -62,7 +68,7 @@ STATUS CAlpcPortServer::Open(const std::wstring& name)
     //
 
     m_Threads.resize(m_NumThreads);
-    for (ULONG i = 0; i < m_NumThreads; ++i) 
+    for (ULONG i = 0; i < m_NumThreads; ++i)
     {
         DWORD idThread;
         m_Threads[i] = CreateThread(NULL, 0, ThreadStub, this, 0, &idThread);
@@ -80,23 +86,25 @@ void CAlpcPortServer::Close()
     if (PortHandle)
     {
         //
-        // wake up workers and shutdown
+        // wake up workers and shutdown by sending empty ALPC messages
         //
 
-        UCHAR space[MAX_PORTMSG_LENGTH];
+        SIZE_T BufferLength = sizeof(PORT_MESSAGE);
+        UCHAR space[sizeof(PORT_MESSAGE)];
         for (ULONG i = 0; i < m_NumThreads; ++i)
         {
             PORT_MESSAGE* msg = (PORT_MESSAGE*)space;
-            memset(msg, 0, MAX_PORTMSG_LENGTH);
+            memset(msg, 0, sizeof(PORT_MESSAGE));
             msg->u1.s1.TotalLength = (USHORT)sizeof(PORT_MESSAGE);
-            NtRequestPort(PortHandle, msg);
+            msg->u1.s1.DataLength = 0;
+            NtAlpcSendWaitReceivePort(PortHandle, 0, msg, NULL, NULL, NULL, NULL, NULL);
         }
     }
 
     if (WaitForMultipleObjects((DWORD)m_Threads.size(), m_Threads.data(), TRUE, 5000) == WAIT_TIMEOUT)
     {
         //
-        // termiate not yet finished workers
+        // terminate not yet finished workers
         //
 
         for (DWORD i = 0; i < (DWORD)m_Threads.size(); ++i)
@@ -131,410 +139,249 @@ void CAlpcPortServer::RunThread()
 {
     NTSTATUS status;
     UCHAR space[MAX_PORTMSG_LENGTH], spaceReply[MAX_PORTMSG_LENGTH];
-    PORT_MESSAGE *msg = (PORT_MESSAGE *)space;
-    HANDLE hReplyPort;
-    PORT_MESSAGE *ReplyMsg;
+    PORT_MESSAGE* msg = (PORT_MESSAGE*)space;
+    PORT_MESSAGE* ReplyMsg = NULL;
+    PVOID PortContext = NULL;
 
-    //
-    // initially we have no reply to send.  we will also revert to
-    // this no-reply state after each reply has been sent
-    //
+    // Attributes for receiving PortContext (optional)
+    SIZE_T attrSize = AlpcGetHeaderSize(ALPC_MESSAGE_CONTEXT_ATTRIBUTE);
+    PALPC_MESSAGE_ATTRIBUTES recvMsgAttr = (PALPC_MESSAGE_ATTRIBUTES)alloca(attrSize); // alloc from stack
+    status = AlpcInitializeMessageAttribute(ALPC_MESSAGE_CONTEXT_ATTRIBUTE, recvMsgAttr, attrSize, &attrSize);
+    if (!NT_SUCCESS(status))
+        return;
 
-    hReplyPort = m_hServerPort;
-    ReplyMsg = NULL;
+    while (1)
+    {
+        ULONG sendFlags = 0;
 
-    while (1) {
+        if (ReplyMsg) 
+        {
+            memcpy(spaceReply, ReplyMsg, (USHORT)ReplyMsg->u1.s1.TotalLength);
+            ReplyMsg = (PORT_MESSAGE*)spaceReply;
 
-        //
-        // send the outgoing reply in ReplyMsg, if any, to the port in
-        // hReplyPort.  then wait for an incoming message.  note that even
-        // if hReplyPort indicates a client port to send the message, the
-        // server-side NtReplyWaitReceivePort will listen on the associated
-        // server port, after the message has been sent.
-        //
-
-        if (ReplyMsg) {
-
-            memcpy(spaceReply, ReplyMsg, ReplyMsg->u1.s1.TotalLength);
-            ReplyMsg = (PORT_MESSAGE *)spaceReply;
+            // Reply + release the previously received request message in the same call.
+            sendFlags = ALPC_MSGFLG_REPLY_MESSAGE | ALPC_MSGFLG_RELEASE_MESSAGE;
         }
 
-        status = NtReplyWaitReceivePort(hReplyPort, NULL, ReplyMsg, msg);
+        // Receive next message on the SERVER port
+        SIZE_T BufferLength = MAX_PORTMSG_LENGTH;
+        recvMsgAttr->ValidAttributes = 0;
+        RtlZeroMemory(space, sizeof(space));
 
-        if (! m_hServerPort)    // service is shutting down
+        status = NtAlpcSendWaitReceivePort(m_hServerPort, sendFlags, ReplyMsg, NULL, msg, &BufferLength, recvMsgAttr, NULL);
+
+        if (!m_hServerPort)
             break;
 
-        if (ReplyMsg) {
-
-            hReplyPort = m_hServerPort;
+        if (ReplyMsg) 
+        {
             ReplyMsg = NULL;
 
-            if (! NT_SUCCESS(status))
-                continue;       // ignore errors on client port
-
-        } else if (! NT_SUCCESS(status)) {
-
-            if (status == STATUS_UNSUCCESSFUL) {
-                // can be considered a warning rather than an error
-                continue;
-            }
-            break;              // abort on errors on server port
+            if (!NT_SUCCESS(status)) 
+                continue;  // ignore errors when sending reply
+        } 
+        else if (!NT_SUCCESS(status)) 
+        {
+            if (status == STATUS_UNSUCCESSFUL)
+                continue; // can be considered a warning rather than an error
+            break;
         }
 
-        if (msg->u2.s2.Type == LPC_CONNECTION_REQUEST) {
+        // Extract PortContext if present
+        PortContext = NULL;
+        if (recvMsgAttr->ValidAttributes & ALPC_MESSAGE_CONTEXT_ATTRIBUTE) {
+            PALPC_CONTEXT_ATTR contextAttr = (PALPC_CONTEXT_ATTR)AlpcGetMessageAttribute(recvMsgAttr, ALPC_MESSAGE_CONTEXT_ATTRIBUTE); // this returns an address within recvMsgAttr
+            if (contextAttr)
+                PortContext = contextAttr->PortContext;
+        }
+
+        USHORT msgType = msg->u2.s2.Type & 0xFF;
+
+        if (msgType == LPC_CONNECTION_REQUEST) {
 
             PortConnect(msg);
 
-        } else if (msg->u2.s2.Type == LPC_REQUEST) {
+            // No reply; must release notification
+            NtAlpcSendWaitReceivePort(m_hServerPort, ALPC_MSGFLG_RELEASE_MESSAGE, msg, NULL, NULL, NULL, NULL, NULL);
 
-            SThreadPtr client = PortFindClient(msg);
-            if (! client)
+        } else if (msgType == LPC_REQUEST) {
+
+            SPortClientPtr pClient = PortFindClient(msg, PortContext);
+            if (!pClient) {
+                // No reply possible; release the received request
+                NtAlpcSendWaitReceivePort(m_hServerPort, ALPC_MSGFLG_RELEASE_MESSAGE, msg, NULL, NULL, NULL, NULL, NULL);
                 continue;
-
-            if (! client->replying)
-                PortRequest(client->hPort, msg, client);
-
-            msg->u2.ZeroInit = 0;
-
-            if (client->replying)
-                PortReply(msg, client);
-            else {
-                msg->u1.s1.DataLength = (USHORT) 0;
-                msg->u1.s1.TotalLength = sizeof(PORT_MESSAGE);
             }
 
-            hReplyPort = client->hPort;
+            if (!pClient->replying)
+                PortRequest(pClient->hPort, msg, pClient);
+
+            // msg->u2.ZeroInit = 0;
+            // Build reply in-place into msg (or call PortReply to fill it)
+            msg->u2.s2.Type = LPC_REPLY;
+            msg->u2.s2.DataInfoOffset = 0;
+
+            if (pClient->replying)
+                PortReply(msg, pClient);
+            else {
+                msg->u1.s1.DataLength = 0;
+                msg->u1.s1.TotalLength = (USHORT)sizeof(PORT_MESSAGE);
+            }
+
+            // Schedule reply to be sent at top of next loop iteration.
+            // The next NtAlpcSendWaitReceivePort() will send reply+release,
+            // then receive the next message on m_hServerPort.
             ReplyMsg = msg;
 
-            client->in_use = FALSE;
+        } else if (msgType == LPC_PORT_CLOSED || msgType == LPC_CLIENT_DIED) {
 
-        } else if (msg->u2.s2.Type == LPC_PORT_CLOSED ||
-                   msg->u2.s2.Type == LPC_CLIENT_DIED) {
+            PortDisconnect(msg, PortContext);
 
-            PortDisconnect(msg);
+            // Notification; release it
+            NtAlpcSendWaitReceivePort(m_hServerPort, ALPC_MSGFLG_RELEASE_MESSAGE, msg, NULL, NULL, NULL, NULL, NULL);
+
+        } else {
+
+            // Any other message types: release to avoid accumulation
+            NtAlpcSendWaitReceivePort(m_hServerPort, ALPC_MSGFLG_RELEASE_MESSAGE, msg, NULL, NULL, NULL, NULL, NULL);
         }
     }
 }
 
 void CAlpcPortServer::PortConnect(PORT_MESSAGE *msg)
 {
-    NTSTATUS status;
-    SProcessPtr clientProcess;
-    SThreadPtr clientThread;
+    SPortClientPtr pClient;
 
-    //
-    // find a previous connection to that same client, or create a new one
-    //
-
-    CSectionLock Lock(&m_Lock);
-
-    PortFindClientUnsafe(msg->ClientId, clientProcess, clientThread);
-
-    //
-    // create new process and thread structures where needed
-    //
-
-    if (! clientProcess) {
-
-        clientProcess = SProcessPtr(new SProcess);
-
-
-            clientProcess->idProcess = msg->ClientId.UniqueProcess;
-            m_Clients[msg->ClientId.UniqueProcess] = clientProcess;
-
-
-            //
-            // prepare for the case where a disconnect message only
-            // specifies process creation time:  record the process
-            // creation time, so it can be used later
-            //
-
-            clientProcess->CreateTime.HighPart = 0;
-            clientProcess->CreateTime.LowPart = 0;
-            HANDLE hProcess = OpenProcess(
-                PROCESS_QUERY_INFORMATION, FALSE,
-                (ULONG)(ULONG_PTR)msg->ClientId.UniqueProcess);
-            if (hProcess) {
-                FILETIME time, time1, time2, time3;
-                BOOL ok = GetProcessTimes(
-                    hProcess, &time, &time1, &time2, &time3);
-                if (ok) {
-                    clientProcess->CreateTime.HighPart = time.dwHighDateTime;
-                    clientProcess->CreateTime.LowPart  = time.dwLowDateTime;
-                }
-                CloseHandle(hProcess);
-            }
-    }
-
-    if (clientProcess && (! clientThread)) {
-
-        clientThread = SThreadPtr(new SThread);
-
-        clientThread->idThread = msg->ClientId.UniqueThread;
-        clientProcess->Threads[msg->ClientId.UniqueThread] = clientThread;
-    }
-
-    //
-    // if we couldn't create a new connection (not enough memory)
-    // reject the new connection
-    //
-
-    if (! clientThread) {
-
-        HANDLE hPort;
-        NtAcceptConnectPort(&hPort, NULL, msg, FALSE, NULL, NULL);
-
-        return;
-    }
-
-    //
-    // if a previous connection was found, close it
-    //
-
-    if (clientThread->hPort) {
-
-        while (clientThread->in_use)
-            Sleep(3);
-
-        NtClose(clientThread->hPort);
-        //if (clientThread->buf_hdr)
-        //    FreeMsg(clientThread->buf_hdr);
-
-        clientThread->replying = FALSE;
-        clientThread->in_use = FALSE;
-        clientThread->sequence = 0;
-        clientThread->hPort = NULL;
-        //clientThread->buf_hdr = NULL;
-        //clientThread->buf_ptr = NULL;
-        clientThread->recvBuff.SetSize(0);
-        clientThread->sendBuff.SetSize(0);
-    }
-
-    //
-    // if a new client structure was created, accept the connection
-    //
-
-    status = NtAcceptConnectPort(&clientThread->hPort, NULL, msg, TRUE, NULL, NULL);
-    if (NT_SUCCESS(status))
-        status = NtCompleteConnectPort(clientThread->hPort);
-}
-
-void CAlpcPortServer::PortDisconnectHelper(const SProcessPtr& clientProcess, const SThreadPtr& clientThread)
-{
-    if (!clientProcess)
-        return;
-
-    if (clientThread) 
     {
-        while (clientThread->in_use)
-            Sleep(3);
+        CSectionLock Lock(&m_Lock);
 
-        clientProcess->Threads.erase(clientThread->idThread);
-        NtClose(clientThread->hPort);
-    }
+        pClient = SPortClientPtr(new SPortClient);
 
-    if (clientProcess->Threads.empty()) 
-        m_Clients.erase(clientProcess->idProcess);
-}
+        pClient->Info.Ref = (ULONG_PTR)pClient.get();
 
-void CAlpcPortServer::PortDisconnect(PORT_MESSAGE *msg)
-{
-    SProcessPtr clientProcess;
-    SThreadPtr clientThread;
+        pClient->Info.PID = (ULONG)(ULONG_PTR)msg->ClientId.UniqueProcess;
+        pClient->Info.TID = (ULONG)(ULONG_PTR)msg->ClientId.UniqueThread;
+        ProcessIdToSessionId(pClient->Info.PID, &pClient->Info.SessionId);
 
-    //
-    // on Windows Vista, a LPC_PORT_CLOSED messages arrives with zero CID,
-    // but includes a process timestamp
-    //
+        m_Clients[pClient.get()] = pClient;
 
-    if ((! msg->ClientId.UniqueProcess) || (! msg->ClientId.UniqueThread)) 
-    {
-        if (msg->u1.s1.DataLength == 8)
-            PortDisconnectByCreateTime((LARGE_INTEGER*)((UCHAR*)msg + sizeof(PORT_MESSAGE)));
-        return;
-    }
+        ALPC_PORT_ATTRIBUTES portAttr = { 0 };
+        portAttr.Flags = ALPC_PORFLG_ALLOW_LPC_REQUESTS;  // Enable LPC compatibility for datagrams
+        portAttr.MaxMessageLength = MAX_PORTMSG_LENGTH;
+        portAttr.MemoryBandwidth = 0;
+        portAttr.MaxPoolUsage = (SIZE_T)-1;
+        portAttr.MaxSectionSize = 0;
+        portAttr.MaxViewSize = 0;
+        portAttr.MaxTotalSectionSize = 0;
+        portAttr.DupObjectTypes = 0;
 
-    //
-    // find a previous connection to that same client
-    //
-
-    CSectionLock Lock(&m_Lock);
-
-    PortFindClientUnsafe(msg->ClientId, clientProcess, clientThread);
-
-    PortDisconnectHelper(clientProcess, clientThread);
-}
-
-void CAlpcPortServer::PortDisconnectByCreateTime(LARGE_INTEGER *CreateTime)
-{
-    typedef HANDLE (*P_GetProcessIdOfThread)(HANDLE Thread);
-
-    //
-    // find the process id by its creation timestamp
-    //
-
-    /*WCHAR txt[128];
-    wsprintf(txt, L"Message has no CID but has timestamp %08X-%08X", CreateTime->HighPart, CreateTime->LowPart);
-    OutputDebugString(txt);*/
-
-    CSectionLock Lock(&m_Lock);
-
-    SProcessPtr clientProcess = NULL;
-    SThreadPtr  clientThread = NULL;
-    for (auto I = m_Clients.begin(); I != m_Clients.end(); I++){
-
-        clientProcess = I->second;
-
-        if (clientProcess->CreateTime.HighPart == CreateTime->HighPart &&
-            clientProcess->CreateTime.LowPart  == CreateTime->LowPart) {
-
-            for (auto J = clientProcess->Threads.begin(); J != clientProcess->Threads.end(); J++){
-
-                clientThread = J->second;
-
-                //
-                // for each thread in the process, assume it is stale,
-                // unless we can open it, and it still has the same
-                // process id
-                //
-
-                BOOLEAN DeleteThread = TRUE;
-
-                HANDLE hThread = OpenThread(
-                    THREAD_QUERY_INFORMATION, FALSE,
-                    (ULONG)(ULONG_PTR)clientThread->idThread);
-                if (hThread) {
-                    HANDLE ThreadProcessId = (HANDLE)(UINT_PTR)GetProcessIdOfThread(hThread);
-                    if (ThreadProcessId == clientProcess->idProcess)
-                        DeleteThread = FALSE;
-                    CloseHandle(hThread);
-                }
-
-                //
-                // fix-me: when closing the port without waiting some ms after the 
-                //          thread terminated this fails and the client object is not cleared
-                //
-
-                if (DeleteThread) {
-
-                    PortDisconnectHelper(clientProcess, clientThread);
-
-                    break;
-                }
-            }
-
-            break;
+        // NtAlpcAcceptConnectPort combines accept and complete in one call
+        // The last parameter (TRUE) indicates acceptance
+        NTSTATUS status = NtAlpcAcceptConnectPort(&pClient->hPort, m_hServerPort, 0, NULL, &portAttr, pClient.get(), msg, NULL, TRUE);
+        if (!NT_SUCCESS(status)) {
+            m_Clients.erase(pClient.get());
+            return;
         }
     }
+
+    for(auto I : m_EventHandlers)
+        I(eClientConnected, pClient->Info);
 }
 
-void CAlpcPortServer::PortRequest(HANDLE PortHandle, PORT_MESSAGE *msg, const SThreadPtr& client)
+void CAlpcPortServer::PortDisconnect(PORT_MESSAGE* msg, PVOID context)
 {
-    if (client->recvBuff.GetSize() == 0) // first segment of new message
+    SPortClientPtr pClient;
+
+    {
+        CSectionLock Lock(&m_Lock);
+
+        auto F = m_Clients.find(context);
+        if (F == m_Clients.end())
+            return;
+
+        pClient = F->second;
+        m_Clients.erase(F);
+    }
+
+    for(auto I : m_EventHandlers)
+        I(eClientDisconnected, pClient->Info);
+}
+
+void CAlpcPortServer::PortRequest(HANDLE PortHandle, PORT_MESSAGE *msg, const SPortClientPtr& pClient)
+{
+    pClient->Info.TID = (ULONG)(ULONG_PTR)msg->ClientId.UniqueThread; // this can change if a connection is used by another thread
+
+    if (pClient->recvBuff.GetSize() == 0) // first segment of new message
     {
         ULONG* msg_Data = (ULONG*)((UCHAR*)msg + sizeof(PORT_MESSAGE));
         ULONG msgid = msg_Data[1];
 
-        client->sequence = ((UCHAR *)msg_Data)[3];
-        ((UCHAR *)msg_Data)[3] = 0;
+        pClient->sequence = ((PORT_MSG_HEADER*)msg_Data)->Sequence;
 
         ULONG TotalSize = msg_Data[0];
         //if (msgid && TotalSize &&
         if (TotalSize &&
             //TotalSize < MAX_REQUEST_LENGTH &&
-            TotalSize >= sizeof(MSG_HEADER) &&
-            TotalSize >= (ULONG)msg->u1.s1.DataLength)
+            TotalSize >= GetHeaderSize() &&
+            TotalSize >= (USHORT)msg->u1.s1.DataLength)
         {
-            client->recvBuff.SetSize(0, true, TotalSize);
+            pClient->recvBuff.SetSize(0, true, TotalSize);
         }
         else
         {
-            client->sequence = 0;
+            pClient->sequence = 0;
             goto finish;
         }
 
     } 
     else // subsequent segment of pending message
     {
-        if ((ULONG)client->recvBuff.GetSize() + msg->u1.s1.DataLength > ((MSG_HEADER*)client->recvBuff.GetBuffer())->Size)
+        if ((ULONG)pClient->recvBuff.GetSize() + (USHORT)msg->u1.s1.DataLength > ((PORT_MSG_HEADER*)pClient->recvBuff.GetBuffer())->h.Size)
             goto finish;
     }
 
-    client->recvBuff.AppendData((UCHAR*)msg + sizeof(PORT_MESSAGE), msg->u1.s1.DataLength);
+    pClient->recvBuff.AppendData((UCHAR*)msg + sizeof(PORT_MESSAGE), (USHORT)msg->u1.s1.DataLength);
 
-    if ((ULONG)client->recvBuff.GetSize() < ((MSG_HEADER*)client->recvBuff.GetBuffer())->Size)
+    if ((ULONG)pClient->recvBuff.GetSize() < ((PORT_MSG_HEADER*)pClient->recvBuff.GetBuffer())->h.Size)
         return; // packet is not yet complete
 
-    client->sendBuff.SetSize(0);
-    CallTarget(client->recvBuff, client->sendBuff, PortHandle, msg);
-    client->recvBuff.SetSize(0);
-    client->sendBuff.SetPosition(0);
+    pClient->sendBuff.SetSize(0);
+    CallTarget(pClient->recvBuff, pClient->sendBuff, PortHandle, msg, pClient->Info);
+    pClient->recvBuff.SetSize(0);
+    pClient->sendBuff.SetPosition(0);
 
 finish:
-    client->replying = TRUE;
+    pClient->replying = TRUE;
 }
 
-void CAlpcPortServer::PortFindClientUnsafe(const CLIENT_ID& ClientId, SProcessPtr &clientProcess, SThreadPtr &clientThread)
+CAlpcPortServer::SPortClientPtr CAlpcPortServer::PortFindClient(PORT_MESSAGE *msg, PVOID context)
 {
-    //
-    // Note: this is not thread safe, you must lock m_lock before calling this function
-    //
-
-    auto I = m_Clients.find(ClientId.UniqueProcess);
-    if(I == m_Clients.end())
-        return;
-    clientProcess = I->second;
-
-    auto J = clientProcess->Threads.find(ClientId.UniqueThread);
-    if(J == clientProcess->Threads.end())
-        return;
-    clientThread = J->second;
-}
-
-CAlpcPortServer::SThreadPtr CAlpcPortServer::PortFindClient(PORT_MESSAGE *msg)
-{
-    SProcessPtr clientProcess;
-    SThreadPtr clientThread;
-
     CSectionLock Lock(&m_Lock);
-
-    PortFindClientUnsafe(msg->ClientId, clientProcess, clientThread);
-
-    if (clientThread)
-        clientThread->in_use = TRUE;
-
-    return clientThread;
+    auto F = m_Clients.find(context);
+    if (F == m_Clients.end())
+        return nullptr;
+    return F->second;
 }
 
-
-void CAlpcPortServer::CallTarget(const CBuffer& recvBuff, CBuffer& sendBuff, HANDLE PortHandle, PORT_MESSAGE *PortMessage)
+void CAlpcPortServer::CallTarget(const CBuffer& recvBuff, CBuffer& sendBuff, HANDLE PortHandle, PORT_MESSAGE *PortMessage,  const SClientInfo& Info)
 {
     NTSTATUS status;
 
     uint32 PID = (uint32)(ULONG_PTR)PortMessage->ClientId.UniqueProcess;
     uint32 TID = (uint32)(ULONG_PTR)PortMessage->ClientId.UniqueThread;
 
-    sendBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
+    sendBuff.WriteData(NULL, GetHeaderSize()); // make room for header, pointer points after the header
 //#ifndef _DEBUG
     try
 //#endif
     {
         status = STATUS_INVALID_SYSTEM_SERVICE;
 
-        MSG_HEADER* in_msg = (MSG_HEADER*)recvBuff.ReadData(sizeof(MSG_HEADER));
+        PORT_MSG_HEADER* in_msg = (PORT_MSG_HEADER*)recvBuff.ReadData(GetHeaderSize());
 
-        if (in_msg->MessageId == -1)
-        {
-            DWORD pid = GetCurrentProcessId();
-			sendBuff.WriteValue<uint32>(pid);
-            status = STATUS_SUCCESS;
-        }
-        else
-        {
-            auto I = m_MessageHandlers.find(in_msg->MessageId);
-            if (I != m_MessageHandlers.end())
-                status = I->second(in_msg->MessageId, &recvBuff, &sendBuff, PID, TID);
-        }
+        auto I = m_MessageHandlers.find(in_msg->h.MessageId);
+        if (I != m_MessageHandlers.end())
+            status = I->second(in_msg->h.MessageId, &recvBuff, &sendBuff, Info);
 
     }
 //#ifndef _DEBUG
@@ -543,38 +390,105 @@ void CAlpcPortServer::CallTarget(const CBuffer& recvBuff, CBuffer& sendBuff, HAN
         status = STATUS_INVALID_PARAMETER;
     }
 //#endif
-    MSG_HEADER* out_msg = (MSG_HEADER*)sendBuff.GetBuffer();
-    out_msg->Size = (ULONG)sendBuff.GetSize();
-    out_msg->Status = status;
+    PORT_MSG_HEADER* out_msg = (PORT_MSG_HEADER*)sendBuff.GetBuffer();
+    out_msg->h.Size = (ULONG)sendBuff.GetSize();
+    out_msg->h.Status = status;
     
     RevertToSelf();
 }
 
-void CAlpcPortServer::PortReply(PORT_MESSAGE *msg, const SThreadPtr& client)
+void CAlpcPortServer::PortReply(PORT_MESSAGE *msg, const SPortClientPtr& pClient)
 {
-    if (client->sendBuff.GetSize() == 0) {
-        msg->u1.s1.DataLength = (USHORT) 0;
-        msg->u1.s1.TotalLength = sizeof(PORT_MESSAGE);
-        client->replying = FALSE;
+    if (pClient->sendBuff.GetSize() == 0) {
+        msg->u1.s1.DataLength = 0;
+        msg->u1.s1.TotalLength = (USHORT)sizeof(PORT_MESSAGE);
+        pClient->replying = FALSE;
         return;
     }
 
-    SIZE_T len_togo = client->sendBuff.GetSizeLeft();
+    SIZE_T len_togo = pClient->sendBuff.GetSizeLeft();
     if (len_togo > MSG_DATA_LEN)
         len_togo = MSG_DATA_LEN;
 
-    msg->u1.s1.DataLength = (USHORT) len_togo;
+    msg->u1.s1.DataLength = (USHORT)len_togo;
     msg->u1.s1.TotalLength = (USHORT)(sizeof(PORT_MESSAGE) + len_togo);
-    const byte* ptr = client->sendBuff.ReadData(len_togo);
+    const byte* ptr = pClient->sendBuff.ReadData(len_togo);
     if (!ptr) return;
     memcpy((UCHAR*)msg + sizeof(PORT_MESSAGE), ptr, len_togo);
 
-    if (client->sendBuff.GetPosition() == len_togo) // first segment
-        ((UCHAR*)msg + sizeof(PORT_MESSAGE))[3] = client->sequence;
+    if (pClient->sendBuff.GetPosition() == len_togo) // first segment
+        ((PORT_MSG_HEADER*)((UCHAR*)msg + sizeof(PORT_MESSAGE)))->Sequence = pClient->sequence;
 
-    if (client->sendBuff.GetPosition() >= ((MSG_HEADER*)client->sendBuff.GetBuffer())->Size) 
+    if (pClient->sendBuff.GetPosition() >= ((PORT_MSG_HEADER*)pClient->sendBuff.GetBuffer())->h.Size) 
     {
-        client->sendBuff.SetSize(0);
-        client->replying = FALSE;
+        pClient->sendBuff.SetSize(0);
+        pClient->replying = FALSE;
     }
+}
+
+STATUS CAlpcPortServer::PortDatagram(const CBuffer& sendBuff, const SPortClientPtr& pClient)
+{
+    CSectionLock Lock(&pClient->WriteLock);
+
+    UCHAR space[MAX_PORTMSG_LENGTH];
+    PORT_MESSAGE* msg = (PORT_MESSAGE*)space;
+
+    sendBuff.SetPosition(0);
+
+    do
+    {
+        SIZE_T len_togo = sendBuff.GetSizeLeft();
+        if (len_togo > MSG_DATA_LEN)
+            len_togo = MSG_DATA_LEN;
+
+        memset(msg, 0, sizeof(PORT_MESSAGE));
+        msg->u1.s1.DataLength = (USHORT)len_togo;
+        msg->u1.s1.TotalLength = (USHORT)(sizeof(PORT_MESSAGE) + len_togo);
+
+        // datagram type (LPC compatibility)
+        msg->u2.s2.Type = LPC_DATAGRAM;
+        msg->u2.s2.DataInfoOffset = 0;
+
+        const byte* ptr = sendBuff.ReadData(len_togo);
+        if (!ptr) break;
+        memcpy((UCHAR*)msg + sizeof(PORT_MESSAGE), ptr, len_togo);
+        
+        // Try sending through client's communication port with context
+        NTSTATUS status = NtAlpcSendWaitReceivePort(pClient->hPort, 0, msg, NULL, NULL, NULL, NULL, NULL);
+        if (!NT_SUCCESS(status))
+            return ERR(status);
+
+    } while (sendBuff.GetSizeLeft() > 0);
+
+    return OK;
+}
+
+int CAlpcPortServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint32 PID, uint32 TID)
+{
+    CBuffer sendBuff(GetHeaderSize() + msg->GetSize());
+
+    PORT_MSG_HEADER* out_msg = (PORT_MSG_HEADER*)sendBuff.WriteData(NULL, GetHeaderSize());
+    out_msg->h.Size = GetHeaderSize() + (ULONG)msg->GetSize();
+    out_msg->h.MessageId = msgId;
+	out_msg->Sequence = -1; // broadcast message
+
+    sendBuff.WriteData(msg->GetBuffer(), msg->GetSize());
+
+    //
+    // Broadcast the message to all conencted clients
+    //
+
+    CSectionLock Lock(&m_Lock);
+
+    int Success = 0;
+
+    for (auto I : m_Clients)
+    {
+        if ((PID != -1 && I.second->Info.PID != PID) || (TID != -1 && I.second->Info.TID != TID))
+            continue;
+        if (PortDatagram(sendBuff, I.second) == OK)
+            Success++;
+    }
+
+    return Success;
 }

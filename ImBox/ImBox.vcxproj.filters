@@ -43,6 +43,15 @@
     <Filter Include="DC\include\boot">
       <UniqueIdentifier>{28dac04f-502a-448f-83b8-db10b2a77c4f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="DC\crypto">
+      <UniqueIdentifier>{ae24bb60-2c22-4512-8a4e-22e5b20ee2db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DC\crypto\Argon2">
+      <UniqueIdentifier>{16fd31df-84a5-4a1c-bcde-9e9af1f3d0da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DC\crypto\Argon2\blake2">
+      <UniqueIdentifier>{f537be70-97c0-46c0-97f4-f3f412fe1507}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -150,6 +159,24 @@
     <ClInclude Include="Common\helpers.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="dc\crypto\Argon2\argon2.h">
+      <Filter>DC\crypto\Argon2</Filter>
+    </ClInclude>
+    <ClInclude Include="dc\crypto\Argon2\core.h">
+      <Filter>DC\crypto\Argon2</Filter>
+    </ClInclude>
+    <ClInclude Include="dc\crypto\Argon2\blake2\blake2b.h">
+      <Filter>DC\crypto\Argon2\blake2</Filter>
+    </ClInclude>
+    <ClInclude Include="dc\crypto\Argon2\blake2\blake2-impl.h">
+      <Filter>DC\crypto\Argon2\blake2</Filter>
+    </ClInclude>
+    <ClInclude Include="dc\crypto\Argon2\blake2\blamka-round-opt.h">
+      <Filter>DC\crypto\Argon2\blake2</Filter>
+    </ClInclude>
+    <ClInclude Include="dc\crypto\Argon2\blake2\blamka-round-ref.h">
+      <Filter>DC\crypto\Argon2\blake2</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ImageFileIO.cpp">
@@ -223,6 +250,27 @@
     </ClCompile>
     <ClCompile Include="Common\helpers.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="dc\crypto\Argon2\argon2.c">
+      <Filter>DC\crypto\Argon2</Filter>
+    </ClCompile>
+    <ClCompile Include="dc\crypto\Argon2\core.c">
+      <Filter>DC\crypto\Argon2</Filter>
+    </ClCompile>
+    <ClCompile Include="dc\crypto\Argon2\opt_avx2.c">
+      <Filter>DC\crypto\Argon2</Filter>
+    </ClCompile>
+    <ClCompile Include="dc\crypto\Argon2\opt_sse2.c">
+      <Filter>DC\crypto\Argon2</Filter>
+    </ClCompile>
+    <ClCompile Include="dc\crypto\Argon2\ref.c">
+      <Filter>DC\crypto\Argon2</Filter>
+    </ClCompile>
+    <ClCompile Include="dc\crypto\Argon2\selftest.c">
+      <Filter>DC\crypto\Argon2</Filter>
+    </ClCompile>
+    <ClCompile Include="dc\crypto\Argon2\blake2\blake2b.c">
+      <Filter>DC\crypto\Argon2\blake2</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

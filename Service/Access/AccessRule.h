@@ -23,7 +23,7 @@ public:
 	const std::wstring& GetAccessPath() const		{std::shared_lock Lock(m_Mutex); return m_AccessPath;}
 	void SetAccessPath(const std::wstring& Path)	{std::shared_lock Lock(m_Mutex); m_AccessPath = Path;}
 
-	bool IsVolumeRule() const						{ return m_bVolumeRule; }
+	bool IsVolumeRule() const						{ return CGenericRule::IsVolumeRule() || m_bVolumeRule; }
 	void SetVolumeRule(bool bVolumeRule)			{ m_bVolumeRule = bVolumeRule; }
 
 	void Update(const std::shared_ptr<CAccessRule>& Rule);

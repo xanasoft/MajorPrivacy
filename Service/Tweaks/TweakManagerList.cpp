@@ -2562,7 +2562,9 @@ std::shared_ptr<CTweakList> InitKnownTweaks(std::list<CTweakPtr>* pList)
         L"OptIn",
         V(0));
 	MakeTweakObject<CExecTweak>(vsTelemetry, pList, L"Block VCTIP.EXE", L"disable_vs_vctip", WinVer_Win7,
-        L"C:\\Program Files**\\VC\\Tools\\MSVC\\**\\VCTIP.EXE");
+        L"C:\\Program Files\\VC\\Tools\\MSVC\\**\\VCTIP.EXE");
+    MakeTweakObject<CExecTweak>(vsTelemetry, pList, L"Block VCTIP.EXE*32", L"disable_vs_vctip_32", WinVer_Win7,
+        L"C:\\Program Files (x86)\\VC\\Tools\\MSVC\\**\\VCTIP.EXE");
 
 
     // *** Turn off the Feedback button ***

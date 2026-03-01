@@ -8,8 +8,6 @@
 #include "../Library/Helpers/TokenUtil.h"
 #include "ServiceCore.h"
 #include "../Library/API/PrivacyAPI.h"
-#include "../Library/IPC/PipeServer.h"
-#include "../Library/IPC/AlpcPortServer.h"
 #include "Network/NetworkManager.h"
 #include "Network/Firewall/Firewall.h"
 #include "Network/Dns/DnsFilter.h"
@@ -53,8 +51,11 @@ CServiceCore::CServiceCore()
 	m_pSysLog = new CEventLogger(API_SERVICE_NAME);
 	m_pEventLog = new CEventLog();
 
-	m_pUserPipe = new CPipeServer();
+#ifdef USE_ALPC
 	m_pUserPort = new CAlpcPortServer();
+#else
+	m_pUserPipe = new CPipeServer();
+#endif
 
 	m_pEnclaveManager = new CEnclaveManager();
 
@@ -85,8 +86,11 @@ CServiceCore::CServiceCore()
 
 CServiceCore::~CServiceCore()
 {
-	m_pUserPipe->Close();
+#ifdef USE_ALPC
 	m_pUserPort->Close();
+#else
+	m_pUserPipe->Close();
+#endif
 
 	delete m_pEtwEventMonitor;
 
@@ -110,8 +114,11 @@ CServiceCore::~CServiceCore()
 
 	delete m_pHashDB;
 
-	delete m_pUserPipe;
+#ifdef USE_ALPC
 	delete m_pUserPort;
+#else
+	delete m_pUserPipe;
+#endif
 
 	delete m_pSysLog;
 	delete m_pEventLog;
@@ -137,8 +144,6 @@ STATUS CServiceCore::Startup(bool bEngineMode)
 	
 	if (!EventSourceExists(API_DRIVER_NAME))
 		CreateEventSource(API_DRIVER_NAME, APP_NAME);
-
-	// todo start driver if not already started
 
 	theCore = new CServiceCore();
 	theCore->m_bEngineMode = bEngineMode;
@@ -388,6 +393,8 @@ DWORD CALLBACK CServiceCore__ThreadProc(LPVOID lpThreadParameter)
 
 	Start = GetTickCount64();
 
+	theCore->EmitEvent(ELogLevels::eNone, eLogSvcStarted, StVariant());
+
 	This->m_InitStatus = This->m_pEnclaveManager->Init();
 	if (This->m_InitStatus.IsError()) {
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to init Enclave Manager, error: 0x%08X", This->m_InitStatus.GetStatus());
@@ -630,6 +637,12 @@ STATUS CServiceCore::Init()
 	if (!m_pDriver->TestDevAuthority())
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"MajorPrivacy's Service (PrivacyAgent) is not being recognized by the driver (KernelIsolator)!!!");
 
+
+	m_pDriver->RegisterConfigEventHandler(EConfigGroup::eDriverConfig, &CServiceCore::OnDriverChanged, this);
+	m_pDriver->RegisterForConfigEvents(EConfigGroup::eDriverConfig);
+
+
+
 	//
 	// Start Engien Thread and initialize Components
 	//
@@ -651,11 +664,13 @@ STATUS CServiceCore::Init()
 		Sleep(100);
 	}
 	
-	if (!m_InitStatus.IsError())
-		m_InitStatus = m_pUserPipe->Open(API_SERVICE_PIPE);
-
+#ifdef USE_ALPC
 	if (!m_InitStatus.IsError())
 		m_InitStatus = m_pUserPort->Open(API_SERVICE_PORT);
+#else
+	if (!m_InitStatus.IsError())
+		m_InitStatus = m_pUserPipe->Open(API_SERVICE_PIPE);
+#endif
 
 	return m_InitStatus;
 }
@@ -776,18 +791,33 @@ STATUS CServiceCore::CommitConfig()
 	m_pNetworkManager->DnsFilter()->Store();
 	m_pNetworkManager->Firewall()->Store();
 
-	m_pTweakManager->Store();
+	if (m_pTweakManager->AreTweaksDirty())
+		m_pTweakManager->Store();
 
 	m_pPresetManager->Store();
 
-	m_bConfigDirty = false;
+	StVariant Data;
+	theCore->EmitEvent(ELogLevels::eInfo, eLogSvcConfigSaved, Data);
 
+	m_bConfigDirty = false;
 	return OK;
 }
 
 STATUS CServiceCore::DiscardConfig()
 {
-	// todo: reload config from disk
+	m_pProgramManager->ReLoad();
+
+	m_pNetworkManager->DnsFilter()->ReLoad();
+	m_pNetworkManager->Firewall()->ReLoad();
+
+	if (m_pTweakManager->AreTweaksDirty())
+		m_pTweakManager->ReLoad();
+
+	m_pPresetManager->ReLoad();
+
+	StVariant Data;
+	theCore->EmitEvent(ELogLevels::eInfo, eLogSvcConfigDiscarded, Data);
+
 	m_bConfigDirty = false;
 	return OK;
 }
@@ -853,6 +883,23 @@ void CServiceCore::OnTimer()
 		//DbgPrint(L"USED MEMORY: %llu bytes\n", memoryUsed);
 	}
 #endif
+}
+
+void CServiceCore::OnDriverChanged(const std::wstring& Guid, enum class EConfigEvent Event, enum class EConfigGroup Type, uint64 PID)
+{
+	switch (Event)
+	{
+	case EConfigEvent::eStored: {
+		StVariant Data;
+		theCore->EmitEvent(ELogLevels::eInfo, eLogDrvConfigSaved, Data);
+		break;
+	}
+	case EConfigEvent::eDiscarded: {
+		StVariant Data;
+		theCore->EmitEvent(ELogLevels::eInfo, eLogDrvConfigDiscarded, Data);
+		break;
+	}
+	}
 }
 
 CJSEnginePtr CServiceCore::GetScript(const CFlexGuid& Guid, EItemType Type)

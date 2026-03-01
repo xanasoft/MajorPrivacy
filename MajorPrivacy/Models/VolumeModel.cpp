@@ -83,7 +83,7 @@ QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 			case eName:				Value = pVolume->GetName(); break;
 			case eStatus:			Value = pVolume->GetStatus(); break;
 			case eMountPoint:		Value = pVolume->GetMountPoint(); break;
-			case eTotalSize:		Value = pVolume->GetVolumeSize(); break;
+			case eTotalSize:		Value = pVolume->IsFolder() ? -1 : pVolume->GetVolumeSize(); break;
 			case eFullPath:			Value = pVolume->GetImagePath(); break;
 			}
 
@@ -98,7 +98,7 @@ QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 				switch (section)
 				{
 				case eStatus:		ColValue.Formatted = pVolume->GetStatusStr(); break;
-				case eTotalSize:	ColValue.Formatted = FormatSize(Value.toULongLong()); break;
+				case eTotalSize:	if (Value.toULongLong() == -1) ColValue.Formatted = ""; else ColValue.Formatted = FormatSize(Value.toULongLong()); break;
 				}
 			}
 
@@ -159,8 +159,8 @@ QVariant CVolumeModel::headerData(int section, Qt::Orientation orientation, int 
 		case eName:					return tr("Name");
 		case eStatus:				return tr("Status");
 		case eMountPoint:			return tr("Mount Point");
-		case eTotalSize:			return tr("Total Size");
-		case eFullPath:				return tr("Full Path");
+		case eTotalSize:			return tr("Size");
+		case eFullPath:				return tr("Path");
 		}
 	}
 	return QVariant();

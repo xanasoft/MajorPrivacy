@@ -10,7 +10,6 @@
 #include "../Helpers/Scoped.h"
 #include "../Helpers/WinUtil.h"
 #include "../Common/Exception.h"
-#include "PortMessage.h"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CPipeServer
@@ -186,8 +185,12 @@ void CPipeServer::RunServerThread()
 void CPipeServer::ClientConnected(const PPipeSocket& pPipe, uint32 PID, uint32 TID)
 {
     SPipeClientPtr pClient = std::make_shared<SPipeClient>();
+
+    pClient->Info.Ref = (ULONG_PTR)pClient.get();
+
     pClient->Info.PID = PID;
     pClient->Info.TID = TID;
+    ProcessIdToSessionId(pClient->Info.PID, &pClient->Info.SessionId);
     pClient->pPipe = pPipe;
     pClient->pServer = this;
 
@@ -250,18 +253,18 @@ void CPipeServer::RunClientThread(SPipeClient* pClient)
 
         // process request
         NTSTATUS status;
-        sendBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
+        sendBuff.WriteData(NULL, GetHeaderSize()); // make room for header, pointer points after the header
 //#ifndef _DEBUG
         try
 //#endif
         {
             status = STATUS_INVALID_SYSTEM_SERVICE;
 
-            MSG_HEADER* in_msg = (MSG_HEADER*)recvBuff.ReadData(sizeof(MSG_HEADER));
+            PIPE_MSG_HEADER* in_msg = (PIPE_MSG_HEADER*)recvBuff.ReadData(GetHeaderSize());
 
-            auto I = m_MessageHandlers.find(in_msg->MessageId);
+            auto I = m_MessageHandlers.find(in_msg->h.MessageId);
             if (I != m_MessageHandlers.end())
-                status = I->second(in_msg->MessageId, &recvBuff, &sendBuff, pClient->Info);
+                status = I->second(in_msg->h.MessageId, &recvBuff, &sendBuff, pClient->Info);
 
         }
 //#ifndef _DEBUG
@@ -270,10 +273,10 @@ void CPipeServer::RunClientThread(SPipeClient* pClient)
             status = STATUS_INVALID_PARAMETER;
         }
 //#endif
-        MSG_HEADER* out_msg = (MSG_HEADER*)sendBuff.GetBuffer();
-        out_msg->Flag = 0;
-        out_msg->Size = (ULONG)sendBuff.GetSize();
-        out_msg->Status = status;
+        PIPE_MSG_HEADER* out_msg = (PIPE_MSG_HEADER*)sendBuff.GetBuffer();
+        out_msg->IsEvent = 0;
+        out_msg->h.Size = (ULONG)sendBuff.GetSize();
+        out_msg->h.Status = status;
 
         
         // send reply and reset buffer
@@ -285,12 +288,12 @@ void CPipeServer::RunClientThread(SPipeClient* pClient)
 
 int CPipeServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint32 PID, uint32 TID)
 {
-    CBuffer sendBuff(sizeof(MSG_HEADER) + msg->GetSize());
+    CBuffer sendBuff(GetHeaderSize() + msg->GetSize());
 
-    MSG_HEADER* out_msg = (MSG_HEADER*)sendBuff.WriteData(NULL, sizeof(MSG_HEADER));
-    out_msg->Flag = 1;
-    out_msg->Size = (ULONG)sendBuff.GetSize();
-    out_msg->MessageId = msgId;
+    PIPE_MSG_HEADER* out_msg = (PIPE_MSG_HEADER*)sendBuff.WriteData(NULL, GetHeaderSize());
+    out_msg->IsEvent = 1;
+    out_msg->h.Size = GetHeaderSize() + (ULONG)msg->GetSize();
+    out_msg->h.MessageId = msgId;
 
     sendBuff.WriteData(msg->GetBuffer(), msg->GetSize());
 
@@ -307,7 +310,7 @@ int CPipeServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint32 PID, 
         if((PID != -1 && I.second->Info.PID != PID) || (TID != -1 && I.second->Info.TID != TID))
 			continue;
         CSectionLock Lock(&I.second->WriteLock);
-        if (I.second->pPipe->WritePacket(sendBuff))
+        if (I.second->pPipe->WritePacket(sendBuff) == OK)
             Success++;
     }
 
@@ -364,7 +367,7 @@ STATUS SPipeSocket::ReadPacket(CBuffer& recvBuff)
         recvBuff.SetSize(recvBuff.GetSize() + bytesRead);
         recvBuff.SetPosition(recvBuff.GetSize());
 
-    } while (recvBuff.GetSize() < sizeof(MSG_HEADER) || recvBuff.GetSize() < ((MSG_HEADER*)recvBuff.GetBuffer())->Size);
+    } while (recvBuff.GetSize() < sizeof(PIPE_MSG_HEADER) || recvBuff.GetSize() < ((PIPE_MSG_HEADER*)recvBuff.GetBuffer())->h.Size);
 
     recvBuff.SetPosition(0);
 
@@ -382,7 +385,7 @@ STATUS SPipeSocket::WritePacket(const CBuffer& sendBuff)
         DWORD bytesToGo = min(PIPE_BUFSIZE, (DWORD)sendBuff.GetSizeLeft());
 
         DWORD bytesWritten;
-        if (!::WriteFile(hPipe, sendBuff.ReadData(0), bytesToGo, &bytesWritten, &olWrite)) 
+        if (!::WriteFile(hPipe, sendBuff.ReadData(0), bytesToGo, &bytesWritten, &olWrite))  // read 0 retruns data pointer withotu advancing position
         {
             DWORD dwError = GetLastError();
             if (dwError == ERROR_IO_PENDING) 

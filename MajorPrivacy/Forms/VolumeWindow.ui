@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>500</width>
-    <height>320</height>
+    <height>406</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -28,20 +28,13 @@
   <layout class="QGridLayout" name="gridLayout_2">
    <item row="0" column="0">
     <layout class="QGridLayout" name="gridLayout">
-     <item row="5" column="4">
-      <widget class="QComboBox" name="cmbAutoLock"/>
-     </item>
-     <item row="1" column="2" colspan="4">
-      <widget class="QLineEdit" name="txtPassword">
-       <property name="echoMode">
-        <enum>QLineEdit::EchoMode::Password</enum>
+     <item row="8" column="5">
+      <widget class="QToolButton" name="btnMount">
+       <property name="toolTip">
+        <string>Select directory as mount point</string>
        </property>
-      </widget>
-     </item>
-     <item row="11" column="3" colspan="3">
-      <widget class="QDialogButtonBox" name="buttonBox">
-       <property name="standardButtons">
-        <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+       <property name="text">
+        <string>...</string>
        </property>
       </widget>
      </item>
@@ -55,77 +48,17 @@
        </property>
       </widget>
      </item>
-     <item row="7" column="2">
-      <widget class="QLineEdit" name="txtImageSize">
-       <property name="maximumSize">
-        <size>
-         <width>100</width>
-         <height>16777215</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="lblIcon">
-       <property name="text">
-        <string>TextLabel</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="3">
-      <widget class="QLabel" name="lblImageSizeKb">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>kilobytes</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="0" colspan="2">
-      <widget class="QLabel" name="lblImageSize">
-       <property name="text">
-        <string>Disk Image Size</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="2" colspan="4">
-      <widget class="QLineEdit" name="txtNewPassword">
+     <item row="4" column="2" colspan="4">
+      <widget class="QLineEdit" name="txtRepeatPassword">
        <property name="echoMode">
         <enum>QLineEdit::EchoMode::Password</enum>
        </property>
       </widget>
      </item>
-     <item row="6" column="1">
-      <widget class="QLabel" name="lblMount">
+     <item row="7" column="0" colspan="4">
+      <widget class="QLabel" name="lblAutoLocl">
        <property name="text">
-        <string>Mount Point</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item row="8" column="2" colspan="2">
-      <widget class="QComboBox" name="cmbCipher"/>
-     </item>
-     <item row="4" column="4" colspan="2">
-      <widget class="QCheckBox" name="chkShow">
-       <property name="text">
-        <string>Show Password</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0" colspan="2">
-      <widget class="QLabel" name="lblNewPassword">
-       <property name="text">
-        <string>New Password</string>
+        <string>Auto Lock after</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -142,7 +75,51 @@
        </property>
       </widget>
      </item>
-     <item row="8" column="0" colspan="2">
+     <item row="13" column="3" colspan="3">
+      <widget class="QDialogButtonBox" name="buttonBox">
+       <property name="standardButtons">
+        <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2" colspan="4">
+      <widget class="QLineEdit" name="txtPassword">
+       <property name="echoMode">
+        <enum>QLineEdit::EchoMode::Password</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="1" colspan="5">
+      <widget class="QCheckBox" name="chkProtect">
+       <property name="text">
+        <string>Load Volume Configuration (Protection Rules and more)</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="2" colspan="2">
+      <widget class="QComboBox" name="cmbCipher"/>
+     </item>
+     <item row="12" column="1" colspan="5">
+      <widget class="QCheckBox" name="chkLockdown">
+       <property name="text">
+        <string>Lockdown Volume Configuration (Prevent Configuration changes)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0" colspan="2">
+      <widget class="QLabel" name="lblImageSize">
+       <property name="text">
+        <string>Disk Image Size</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="0" colspan="2">
       <widget class="QLabel" name="lblCipher">
        <property name="text">
         <string>Encryption Cipher</string>
@@ -152,31 +129,71 @@
        </property>
       </widget>
      </item>
-     <item row="6" column="2" colspan="3">
+     <item row="8" column="2" colspan="3">
       <widget class="QComboBox" name="cmbMount">
        <property name="editable">
         <bool>true</bool>
        </property>
       </widget>
      </item>
-     <item row="6" column="5">
-      <widget class="QToolButton" name="btnMount">
-       <property name="toolTip">
-        <string>Select directory as mount point</string>
+     <item row="8" column="1">
+      <widget class="QLabel" name="lblMount">
+       <property name="text">
+        <string>Mount Point</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="4">
+      <widget class="QComboBox" name="cmbAutoLock"/>
+     </item>
+     <item row="9" column="3">
+      <widget class="QLabel" name="lblImageSizeKb">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
        <property name="text">
-        <string>...</string>
+        <string>kilobytes</string>
        </property>
       </widget>
      </item>
      <item row="3" column="2" colspan="4">
-      <widget class="QLineEdit" name="txtRepeatPassword">
+      <widget class="QLineEdit" name="txtNewPassword">
        <property name="echoMode">
         <enum>QLineEdit::EchoMode::Password</enum>
        </property>
       </widget>
      </item>
-     <item row="3" column="0" colspan="2">
+     <item row="0" column="0">
+      <widget class="QLabel" name="lblIcon">
+       <property name="text">
+        <string>TextLabel</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="2" colspan="2">
+      <widget class="QCheckBox" name="chkNewUseArgon2">
+       <property name="text">
+        <string>Use Argon2 key derivation, cost:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="2">
+      <widget class="QLineEdit" name="txtImageSize">
+       <property name="maximumSize">
+        <size>
+         <width>100</width>
+         <height>16777215</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0" colspan="2">
       <widget class="QLabel" name="lblRepeatPassword">
        <property name="text">
         <string>Repeat Password</string>
@@ -186,30 +203,41 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="0" colspan="4">
-      <widget class="QLabel" name="lblAutoLocl">
+     <item row="2" column="2" colspan="2">
+      <widget class="QCheckBox" name="chkUseArgon2">
        <property name="text">
-        <string>Auto Lock after</string>
+        <string>Use Argon2 key derivation, cost:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0" colspan="2">
+      <widget class="QLabel" name="lblNewPassword">
+       <property name="text">
+        <string>New Password</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
        </property>
       </widget>
      </item>
-     <item row="10" column="1" colspan="5">
-      <widget class="QCheckBox" name="chkLockdown">
-       <property name="text">
-        <string>Lockdown Volume Configuration (Prevent Configuration changes)</string>
+     <item row="5" column="4" colspan="2">
+      <widget class="QSpinBox" name="spinNewArgon2Cost">
+       <property name="toolTip">
+        <string>Higher values increase security but slow down mounting</string>
        </property>
       </widget>
      </item>
-     <item row="9" column="1" colspan="5">
-      <widget class="QCheckBox" name="chkProtect">
-       <property name="text">
-        <string>Load Volume Configuration (Protection Rules and more)</string>
+     <item row="2" column="4" colspan="2">
+      <widget class="QSpinBox" name="spinArgon2Cost">
+       <property name="toolTip">
+        <string>Higher values increase security but slow down mounting</string>
        </property>
-       <property name="checked">
-        <bool>true</bool>
+      </widget>
+     </item>
+     <item row="6" column="3" colspan="3">
+      <widget class="QCheckBox" name="chkShow">
+       <property name="text">
+        <string>Show Password</string>
        </property>
       </widget>
      </item>

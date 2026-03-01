@@ -5,6 +5,7 @@
 #include "../Models/VolumeModel.h"
 #include "../Core/Programs/ProgramFile.h"
 #include "../Core/Programs/WindowsService.h"
+#include <functional>
 
 class CVolumeView : public CPanelViewEx<CVolumeModel>
 {
@@ -35,15 +36,22 @@ private slots:
 	void					OnUnmountAllVolumes();
 	void					OnCreateVolume();
 	void					OnChangeVolumePassword();
+	void					OnBackupVolumeHeader();
+	void					OnRestoreVolumeHeader();
+	void					OnExpandVolume();
 	void					OnChangeVolumeConfig();
 	void					OnAddVolumeEnclave();
 	void					OnRenameVolume();
 	void					OnRemoveVolume();
 	void					OnAddFolder();
+	void					OnCleanupVolumes();
 
-	void					MountVolume(QString Path = QString());
+	void					MountVolume(QString Path = QString(), CVolumePtr pVolume = CVolumePtr());
+
+	void					OnVolumeOperationFinished();
 
 private:
+	void					RunVolumeOperation(const QString& progressText, std::function<STATUS()> operation, std::function<void()> onSuccess = nullptr, const QList<CVolumePtr>& Volumes = QList<CVolumePtr>());
 
 	QToolBar*				m_pToolBar;
 
@@ -51,11 +59,15 @@ private:
 	QAction*				m_pUnmountVolume;
 	QAction*				m_pCreateVolume;
 	QAction*				m_pChangeVolumePassword;
+	QAction*				m_pBackupVolumeHeader;
+	QAction*				m_pRestoreVolumeHeader;
+	QAction*				m_pExpandVolume;
 	QAction*				m_pChangeVolumeConfig;
 	QAction*				m_pAddVolumeEnclave;
 	QAction*				m_pRenameVolume;
 	QAction*				m_pRemoveVolume;
 	QAction*				m_pMountAndAddVolume;
-	QAction*				m_pUnmountAllVolumes;
 	QAction*				m_pAddFolder;
+	QAction*				m_pUnmountAllVolumes;
+	QAction*				m_pCleanupVolumes;
 };

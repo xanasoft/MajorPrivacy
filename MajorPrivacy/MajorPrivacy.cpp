@@ -506,12 +506,13 @@ STATUS CMajorPrivacy::Connect()
 			.arg(CProcess::GetSecStateStr(theCore->Driver()->GetCurProcSecState())), 30000);
 
 #ifndef _DEBUG
-		if (theCore->IsSvcHighSecurity() && (!theCore->Driver()->IsCurProcMaxSecurity() && (theCore->Driver()->IsCurProcHighSecurity() || theCore->Driver()->IsCurProcLowSecurity())))
+		if (theCore->IsSvcHighSecurity() && (!theCore->Driver()->IsCurProcMaxSecurity() && (theCore->Driver()->IsCurProcHighSecurity() || theCore->Driver()->IsCurProcLowSecurity())) && !QApplication::arguments().contains("-sync"))
 		{
 			((QtSingleApplication*)qApp->instance())->disableSingleApp();
 			QString CommandLine = "\"" + qApp->applicationFilePath().replace("/", "\\") + "\"";
 			for(int i = 1; i < qApp->arguments().size(); i++)
 				CommandLine += " \"" + QString(qApp->arguments().at(i)).replace("\"", "\"\"") + "\"";
+			CommandLine += " -sync";
 
 			STATUS Status = theCore->StartProcessBySvc(CommandLine);
 			if(Status.IsError())
@@ -1643,186 +1644,6 @@ void CMajorPrivacy::OnUnloadProtection()
 	}
 }
 
-void CMajorPrivacy::OnProtectConfig()
-{
-	bool bHardLock = false;
-    int ret = QMessageBox::warning(this, "MajorPrivacy", tr("Would you like to lock down the user key (Yes), or only enable user key signature-based config protection (No)?"
-						"\n\nLocking down the user key will prevent it from being removed or changed, and config protection cannot be disabled until the system is rebooted."
-						"\n\nIf the driver is set to auto-start, it will automatically re-lock the key on reboot!"), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel, QMessageBox::No);
-	if (ret == QMessageBox::Cancel)
-		return;
-	bHardLock = (ret == QMessageBox::Yes);
-
-
-	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(ESignerPurpose::eEnableProtection, PrivateKey);
-	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
-		CheckResults(QList<STATUS>() << Status, this);
-		return;
-	}
-
-	CBuffer ConfigHash;
-	Status = theCore->Driver()->GetConfigHash(ConfigHash);
-	if (!Status.IsError())
-	{
-		CBuffer ConfigSignature;
-		PrivateKey.Sign(ConfigHash, ConfigSignature);
-
-		Status = theCore->Driver()->ProtectConfig(ConfigSignature, bHardLock);
-
-	}
-	UpdateLockStatus();
-	CheckResults(QList<STATUS>() << Status, this);
-}
-
-void CMajorPrivacy::OnUnprotectConfig()
-{
-	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(ESignerPurpose::eDisableProtection, PrivateKey);
-	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
-		CheckResults(QList<STATUS>() << Status, this);
-		return;
-	}
-
-	CBuffer ConfigHash;
-	QtVariant Data;
-	if (!m_pClearKeys->isEnabled()) {
-        QMessageBox::warning(this, "MajorPrivacy", tr("The user key is locked. Please reboot the system to complete the removal of the config protection."));
-		Data[API_S_UNLOCK] = true;
-	}
-	Status = theCore->Driver()->GetConfigHash(ConfigHash, Data);
-	if (!Status.IsError())
-	{
-		CBuffer ConfigSignature;
-		PrivateKey.Sign(ConfigHash, ConfigSignature);
-
-		Status = theCore->Driver()->UnprotectConfig(ConfigSignature);
-
-	}
-	UpdateLockStatus();
-	CheckResults(QList<STATUS>() << Status, this);
-}
-
-STATUS CMajorPrivacy::UnlockDrvConfig()
-{
-	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(ESignerPurpose::eUnlockConfig, PrivateKey);
-	if (!PrivateKey.IsPrivateKeySet()) // eider error or user canceled
-		return Status;
-
-	CBuffer Challenge;
-	Status = theCore->Driver()->GetChallenge(Challenge);
-	if (!Status.IsError())
-	{
-		CBuffer Hash;
-		CHashFunction::Hash(Challenge, Hash);
-
-		CBuffer ChallengeResponse;
-		PrivateKey.Sign(Hash, ChallengeResponse);
-
-		Status = theCore->Driver()->UnlockConfig(ChallengeResponse);
-
-	}
-	UpdateLockStatus();
-
-	return Status;
-}
-
-STATUS CMajorPrivacy::CommitDrvConfig()
-{
-	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
-	if ((uConfigStatus & CONFIG_STATUS_DIRTY) == 0) { // nothign changed
-		theCore->Driver()->DiscardConfigChanges(); // to relock the config
-		return OK;
-	}
-	
-	if ((uConfigStatus & CONFIG_STATUS_PROTECTED) == 0)
-		return theCore->Driver()->StoreConfigChanges();
-	
-	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(ESignerPurpose::eCommitConfig, PrivateKey);
-	if (!PrivateKey.IsPrivateKeySet()) // eider error or user canceled
-		return Status;
-
-	CBuffer ConfigHash;
-	Status = theCore->Driver()->GetConfigHash(ConfigHash);
-	if (!Status.IsError())
-	{
-		CBuffer ConfigSignature;
-		PrivateKey.Sign(ConfigHash, ConfigSignature);
-
-		Status = theCore->Driver()->CommitConfigChanges(ConfigSignature);
-
-	}
-	return Status;
-}
-
-STATUS CMajorPrivacy::DiscardDrvConfig()
-{
-	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
-	bool bProtected = (uConfigStatus & CONFIG_STATUS_PROTECTED) != 0;
-	bool bLocked = (uConfigStatus & CONFIG_STATUS_LOCKED) != 0;
-	bool bDirty = (uConfigStatus & CONFIG_STATUS_DIRTY) != 0;
-
-	if (!(bDirty || (bProtected && !bLocked)))
-		return OK;
-
-	return theCore->Driver()->DiscardConfigChanges();
-}
-
-void CMajorPrivacy::OnUnlockConfig()
-{
-	STATUS Status = UnlockDrvConfig();
-	CheckResults(QList<STATUS>() << Status, this);
-}
-
-void CMajorPrivacy::OnCommitConfig()
-{
-	QList<STATUS> Results;
-
-	Results.append(CommitDrvConfig());
-
-	if (m_AutoCommitConf){
-		m_AutoCommitConf = 0;
-		if(!m_ForgetSignerPW)
-			m_CachedPassword.clear();
-	}
-
-	uint32 uConfigStatus = theCore->Service()->GetConfigStatus();
-	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
-	{
-		STATUS Status = theCore->Service()->StoreConfigChanges();
-		Results.append(Status);
-	}
-
-	CheckResults(Results, this);
-}
-
-void CMajorPrivacy::OnDiscardConfig()
-{
-	if (m_pCommitConfig->isEnabled() && QMessageBox::question(this, "MajorPrivacy", tr("Do you really want to discard all changes?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
-		return;
-
-	QList<STATUS> Results;
-
-	if (m_AutoCommitConf){
-		m_AutoCommitConf = 0;
-		if(!m_ForgetSignerPW)
-			m_CachedPassword.clear();
-	}
-
-	Results.append(DiscardDrvConfig());
-
-	uint32 uConfigStatus = theCore->Service()->GetConfigStatus();
-	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
-	{
-		STATUS Status = theCore->Service()->DiscardConfigChanges();
-		Results.append(Status);
-	}
-
-	CheckResults(Results, this);
-}
-
 STATUS CMajorPrivacy::MakeKeyPair(CPrivateKey* pPrivateKey)
 {
 	CVolumeWindow window(tr("Set a secure Password to protect the new Private User Key."), CVolumeWindow::eSetPW, this);
@@ -2361,6 +2182,7 @@ QString CMajorPrivacy::FormatError(const STATUS& Error)
 		case STATUS_ERR_PROG_NOT_FOUND:				return tr("Program not found.");
 		case STATUS_ERR_DUPLICATE_PROG:				return tr("Program already exists.");
 		case STATUS_ERR_PROG_HAS_RULES:				return tr("This Operation can not be performed on a program which has rules.");
+		case STATUS_ERR_PROG_HAS_PROCESSES:			return tr("This Operation can not be performed on a program which has running processes.");
 		case STATUS_ERR_PROG_PARENT_NOT_FOUND:		return tr("Parent program not found.");
 		case STATUS_ERR_CANT_REMOVE_FROM_PATTERN:	return tr("Can't remove from pattern.");
 		case STATUS_ERR_PROG_PARENT_NOT_VALID:		return tr("Parent program not valid.");
@@ -2654,6 +2476,13 @@ void CMajorPrivacy::OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEnt
 {
 	if (theConf->GetBool("ResourceAccess/ShowNotifications", true)) {
 		if (!IsEventIgnored(EItemType::eResRule, pProgram, pLogEntry)) {
+			// supress expected warnings when mounting private volumes
+			if (pLogEntry->GetOwnerService() == "StorSvc") {
+				const CResLogEntry* pEntry = dynamic_cast<const CResLogEntry*>(pLogEntry.constData());
+				QString Path = pEntry->GetNtPath();
+				if(Path.startsWith("\\Device\\ImDisk"))
+					return;
+			}
 			m_pPopUpWindow->PushResEvent(pProgram, pLogEntry, TimeOut);
 			return;
 		}
@@ -2704,24 +2533,6 @@ void CMajorPrivacy::OnFwChangeEvent(const QString& RuleId, qint32 iEventType)
 			m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eAdded, pFwRule);
 	} else if(pFwRuleBackup)
 		m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eRemoved, pFwRuleBackup);
-}
-
-void CMajorPrivacy::CleanUpPrograms()
-{
-	int ret = QMessageBox::question(this, "MajorPrivacy", tr("Do you want to clean up the Program List? Choosing 'Yes' will remove all missing program entries, including those with rules. "
-		"Choosing 'No' will remove only missing entries without rules. Select 'Cancel' to abort the operation."), QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
-	if (ret != QMessageBox::Cancel) {
-		QList<STATUS> Results = QList<STATUS>() << theCore->CleanUpPrograms(ret == QMessageBox::Yes);
-		theGUI->CheckResults(Results, this);
-	}
-}
-
-void CMajorPrivacy::ReGroupPrograms()
-{
-	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to re-group all Program Items? This will remove all program items from all auto associated groups and re add it based on the default rules."), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes) {
-		QList<STATUS> Results = QList<STATUS>() << theCore->ReGroupPrograms();
-		theGUI->CheckResults(Results, this);
-	}
 }
 
 void CMajorPrivacy::OpenSettings()

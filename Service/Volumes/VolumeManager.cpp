@@ -5,7 +5,6 @@
 #include "../../Library/API/PrivacyAPI.h"
 #include "VolumeManager.h"
 #include "../../Library/Common/Strings.h"
-#include "../../ImBox/ImBox.h"
 #include "../Access/AccessManager.h"
 #include "../../Library/API/DriverAPI.h"
 #include "../../Library/Helpers/NtUtil.h"
@@ -15,6 +14,7 @@
 #include "../Programs/ProgramManager.h"
 #include "../Library/Helpers/NtPathMgr.h"
 #include "../HashDB/HashDB.h"
+#include "../../Library/Helpers/ImDiskHelpers.h"
 
 #define FILE_SHARE_VALID_FLAGS          0x00000007
 
@@ -44,19 +44,6 @@ STATUS CVolumeManager::CVolumeManager::Init()
 #define IMBOX_EVENT L"ImBox_Event"
 #define IMBOX_SECTION L"ImBox_Section"
 
-extern "C" {
-
-    HANDLE WINAPI ImDiskOpenDeviceByMountPoint(LPCWSTR MountPoint, DWORD AccessMode);
-    BOOL WINAPI IsImDiskDriverReady();
-    BOOL WINAPI ImDiskGetDeviceListEx(IN ULONG ListLength, OUT ULONG* DeviceList);
-    WCHAR WINAPI ImDiskFindFreeDriveLetter();
-}
-
-
-std::wstring GetVolumeLabel(const std::wstring& NtPath);
-std::wstring ImDiskQueryDeviceProxy(const std::wstring& FileName);
-ULONGLONG ImDiskQueryDeviceSize(const std::wstring& FileName);
-WCHAR ImDiskQueryDriveLetter(const std::wstring& FileName);
 
 std::wstring GetProxyName(const std::wstring& ImageFile)
 {
@@ -69,6 +56,44 @@ std::wstring GetProxyName(const std::wstring& ImageFile)
     }
     return ProxyName;
 }
+
+//std::wstring GetVolumeLabel(const std::wstring& NtPath)
+//{
+//    std::wstring Label;
+//
+//    UNICODE_STRING objname;
+//    RtlInitUnicodeString(&objname, NtPath.c_str());
+//
+//    OBJECT_ATTRIBUTES objattrs;
+//    InitializeObjectAttributes(&objattrs, &objname, OBJ_CASE_INSENSITIVE, NULL, NULL);
+//
+//    HANDLE handle;
+//    IO_STATUS_BLOCK iosb;
+//
+//    ULONG OldMode;
+//    RtlSetThreadErrorMode(0x10u, &OldMode);
+//    NTSTATUS status = NtCreateFile(
+//        &handle, GENERIC_READ | SYNCHRONIZE, &objattrs,
+//        &iosb, NULL, 0, FILE_SHARE_VALID_FLAGS,
+//        FILE_OPEN,
+//        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+//        NULL, 0);
+//    RtlSetThreadErrorMode(OldMode, 0i64);
+//
+//    if (NT_SUCCESS(status))
+//    {
+//        union {
+//            FILE_FS_VOLUME_INFORMATION volumeInfo;
+//            BYTE volumeInfoBuff[64];
+//        } u;
+//        if (NT_SUCCESS(NtQueryVolumeInformationFile(handle, &iosb, &u.volumeInfo, sizeof(u), FileFsVolumeInformation)))
+//            Label = std::wstring(u.volumeInfo.VolumeLabel, u.volumeInfo.VolumeLabelLength / sizeof(WCHAR));
+//
+//        NtClose(handle);
+//    }
+//
+//    return Label;
+//}
 
 //RESULT(std::shared_ptr<CVolume>) FindImDisk(const std::wstring& ImageFile)
 //{
@@ -127,31 +152,16 @@ std::wstring GetProxyName(const std::wstring& ImageFile)
 //    return pMount;
 //}
 
-ULONG FindNextFreeDevice()
+static ULONG FindNextFreeDevice()
 {
     std::vector<ULONG> DeviceList;
-    DeviceList.resize(3);
-
-retry:
-    if (!ImDiskGetDeviceListEx((ULONG)DeviceList.size(), &DeviceList.front())) {
-        switch (GetLastError())
-        {
-        case ERROR_FILE_NOT_FOUND:
-            return 0;
-
-        case ERROR_MORE_DATA:
-            DeviceList.resize(DeviceList[0] + 1);
-            goto retry;
-
-        default:
-            return 0;
-        }
-    }
+    if (!ImDiskGetDeviceList(DeviceList))
+        return 0;
 
     if (DeviceList[0] == 0)
-		return 1;
+        return 1;
 
-	return DeviceList[1] + 1;    
+    return DeviceList[1] + 1;
 }
 
 HANDLE OpenOrCreateNtFolder(const WCHAR* NtPath)
@@ -300,67 +310,7 @@ bool RemoveJunction(const std::wstring& FileRootPath)
     return ok;
 }
 
-RESULT(PVOID) AllocPasswordMemory(HANDLE hProcess, const wchar_t* pPassword)
-{
-    NTSTATUS status;
-
-    PVOID pMem = NULL;
-    SIZE_T uSize = 0x1000;
-
-    if(!NT_SUCCESS(status = NtAllocateVirtualMemory(hProcess, &pMem, 0, &uSize, MEM_COMMIT, PAGE_READWRITE)))
-        return ERR(status);
-
-#define VM_LOCK_1                0x0001   // This is used, when calling KERNEL32.DLL VirtualLock routine
-#define VM_LOCK_2                0x0002   // This require SE_LOCK_MEMORY_NAME privilege
-    if(!NT_SUCCESS(status = NtLockVirtualMemory(hProcess, &pMem, &uSize, VM_LOCK_1)))
-        return ERR(status);
-
-    if (pPassword && *pPassword)
-    {
-        if(!NT_SUCCESS(status = NtWriteVirtualMemory(hProcess, pMem, (PVOID)pPassword, (wcslen(pPassword) + 1) * 2, NULL)))
-            return ERR(status);
-    }
-
-    RETURN(pMem);
-}
-
-STATUS UpdateCommandLine(HANDLE hProcess, NTSTATUS(*Update)(std::wstring& s, PVOID p), PVOID param)
-{
-    NTSTATUS status;
-
-    ULONG processParametersOffset = 0x20;
-    ULONG appCommandLineOffset = 0x70;
-
-    PROCESS_BASIC_INFORMATION pbi;
-    if (!NT_SUCCESS(status = NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), NULL)))
-        return status;
-    
-    ULONG_PTR procParams;
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(hProcess, (PVOID)((ULONG64)pbi.PebBaseAddress + processParametersOffset), &procParams, sizeof(ULONG_PTR), NULL)))
-        return status;
-        
-    UNICODE_STRING us;
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(hProcess, (PVOID)(procParams + appCommandLineOffset), &us, sizeof(UNICODE_STRING), NULL)))
-        return status;
-            
-    if ((us.Buffer == 0) || (us.Length == 0))
-        return STATUS_UNSUCCESSFUL;
-                
-    std::wstring s;
-    s.resize(us.Length / 2);
-    if (!NT_SUCCESS(status = NtReadVirtualMemory(hProcess, (PVOID)us.Buffer, (PVOID)s.c_str(), s.length() * 2, NULL)))
-        return status;
-
-    if (!NT_SUCCESS(status = Update(s, param)))
-        return status;
-
-    if (!NT_SUCCESS(status = NtWriteVirtualMemory(hProcess, (PVOID)us.Buffer, (PVOID)s.c_str(), s.length() * 2, NULL)))
-        return status;
-
-    return STATUS_SUCCESS;
-}
-
-RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, ULONG64 sizeKb, const std::wstring& MountPoint = L"", ULONG DeviceNumber = 0)
+RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iArgon2Cost, const std::wstring& Cipher, ULONG64 sizeKb, const std::wstring& MountPoint = L"", ULONG DeviceNumber = 0)
 {
     std::shared_ptr<CVolume> pMount = std::make_shared<CVolume>();
 
@@ -375,7 +325,7 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
 
     const wchar_t* drvLetter = NULL;
     if(!MountPoint.empty() && MountPoint.size() <= 3 && MountPoint[1] == L':')
-		drvLetter = MountPoint.c_str();
+        drvLetter = MountPoint.c_str();
 
     WCHAR Drive[4] = L"\0:";
     if (drvLetter) {
@@ -394,7 +344,8 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
     std::wstring cmd;
     if (ImageFile.empty()) cmd = L"ImBox type=ram";
     else cmd = L"ImBox type=img image=\"" + ImageFile + L"\"";
-    if (pPassword && *pPassword) cmd += L" cipher=AES";
+    if (pPassword && *pPassword) cmd += L" cipher=" + (Cipher.empty() ? L"AES" : Cipher);
+    if (iArgon2Cost) cmd += L" cost=" + std::to_wstring(iArgon2Cost);
     //cmd += L" size=" + std::to_wstring(sizeKb) + L" mount=" + std::wstring(Drive) + L" format=ntfs:" DISK_LABEL;
     cmd += L" size=" + std::to_wstring(sizeKb) + L" mount=" + std::wstring(Drive) + L" format=ntfs";
     if(DeviceNumber) cmd += L" number=" + std::to_wstring(DeviceNumber);
@@ -436,25 +387,23 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
     {
         NTSTATUS status = STATUS_SUCCESS;
 
-        auto Mem = AllocPasswordMemory(pi.hProcess, pPassword);
+        pMem = AllocPasswordMemory(pi.hProcess, pPassword);
 
-        if (Mem.IsError()) 
-            status = Mem.GetStatus();
+        if (!pMem) 
+            status = STATUS_INSUFFICIENT_RESOURCES;
         else
         {
-            pMem = Mem.GetValue();
-
             status = UpdateCommandLine(pi.hProcess, [](std::wstring& s, PVOID p) {
                 // Note: Do not change the string length, that would require a different update mechanism.
-				size_t pos = s.find(L"mem=0x0000000000000000");
-				if (pos != std::wstring::npos) {
-					wchar_t Addr[17];
+                size_t pos = s.find(L"mem=0x0000000000000000");
+                if (pos != std::wstring::npos) {
+                    wchar_t Addr[17];
                     toHexadecimal((ULONG64)p, Addr);
-					s.replace(pos + 6, 16, Addr);
+                    s.replace(pos + 6, 16, Addr);
                     return STATUS_SUCCESS;
-				}
+                }
                 return STATUS_UNSUCCESSFUL;
-			}, pMem);
+                }, pMem);
         }
 
         if (!NT_SUCCESS(status)) {
@@ -475,7 +424,7 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
         //
 
         HANDLE hEvents[] = { hEvent, pi.hProcess };
-        DWORD dwEvent = WaitForMultipleObjects(ARRAYSIZE(hEvents), hEvents, FALSE, 40 * 1000);
+        DWORD dwEvent = WaitForMultipleObjects(ARRAYSIZE(hEvents), hEvents, FALSE, 15 * 60 * 1000); // 15 minutes
         if (dwEvent != WAIT_OBJECT_0) {
             DWORD ret;
             GetExitCodeProcess(pi.hProcess, &ret);
@@ -487,7 +436,7 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
                 switch (ret) {
                 case ERR_FILE_NOT_OPENED:   Result = ERR(STATUS_NOT_FOUND); break;
                 case ERR_UNKNOWN_CIPHER:    Result = ERR(STATUS_INVALID_PARAMETER_1); break;
-                case ERR_WRONG_PASSWORD:    Result = ERR(STATUS_WRONG_PASSWORD); break;
+                case ERR_WRONG_PASSWORD:    Result = ERR(STATUS_ERR_WRONG_PASSWORD); break;
                 case ERR_KEY_REQUIRED:      Result = ERR(STATUS_INVALID_PARAMETER_2); break;
                 case ERR_IMDISK_FAILED:     Result = ERR(STATUS_INTERNAL_ERROR); break;
                 case ERR_IMDISK_TIMEOUT:    Result = ERR(STATUS_TIMEOUT); break;
@@ -534,7 +483,7 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
 
                 if (!drvLetter) {
                     if (!DefineDosDevice(DDD_REMOVE_DEFINITION | DDD_EXACT_MATCH_ON_REMOVE | DDD_RAW_TARGET_PATH, Drive, pMount->GetDevicePath().c_str())) {
-                        //todo log error
+                        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Failed to remove drive letter %s for ImDisk volume %s. Error: %u", Drive, pMount->GetDevicePath().c_str(), GetLastError());
                     }
                 }
             }
@@ -567,193 +516,40 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
     return Result;
 }
 
-bool TryUnmountImDisk(const std::wstring& Device, HANDLE hProcess, int iMode)
+bool TryUnmountImDisk(const std::wstring& Device, HANDLE hProcess, bool ForceDismount)
 {
-    bool ok = false;
-
     if (Device.size() <= IMDISK_DEVICE_LEN)
         return false; // not an imdisk path
 
-    std::wstring cmd;
-    switch (iMode)
-    {
-    case 0: cmd = L"imdisk -d -u "; break;  // graceful
-    case 1: cmd = L"imdisk -D -u "; break;  // forced
-    case 2: cmd = L"imdisk -R -u "; break;  // emergency
-    }
-    cmd += Device.substr(IMDISK_DEVICE_LEN);
+    ULONG DeviceNumber = std::stoul(Device.substr(IMDISK_DEVICE_LEN));
 
-    STARTUPINFO si = { sizeof(STARTUPINFO) };
-    si.dwFlags = STARTF_USESHOWWINDOW;
-#ifdef _DEBUG
-    si.wShowWindow = SW_SHOW;
-#else
-    si.wShowWindow = SW_HIDE;
-#endif
-    PROCESS_INFORMATION pi = { 0 };
-    if (CreateProcess(NULL, (WCHAR*)cmd.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-        if (WaitForSingleObject(pi.hProcess, 10 * 1000) == WAIT_OBJECT_0) {
-            DWORD ret = 0;
-            GetExitCodeProcess(pi.hProcess, &ret);
-            ok = (ret == 0 || ret == 1); // 0 - ok // 1 - device not found (already unmounted?)
-        }
-        CloseHandle(pi.hThread);
-        CloseHandle(pi.hProcess);
+    bool ok = ImDiskRemoveDevice(DeviceNumber, ForceDismount);
 
-        if (ok && hProcess) {
-            WaitForSingleObject(hProcess, 10 * 1000);
-            CloseHandle(hProcess);
-        }
+    if (ok && hProcess) {
+        WaitForSingleObject(hProcess, 10 * 1000);
+        CloseHandle(hProcess);
     }
 
     return ok;
 }
 
-bool UnmountImDisk(const std::wstring& Device, HANDLE hProcess) 
+bool UnmountImDisk(const std::wstring& Device, HANDLE hProcess)
 {
-    for (int i = 0; i < 7; i++) { // 5 attempt gracefull and 2 forced
-        if (TryUnmountImDisk(Device, hProcess, i > 4 ? 1 : 0))
+    for (int i = 0; i <= 5; i++) { // 4 attempt gracefull and 1 forced
+        if (TryUnmountImDisk(Device, hProcess, i >= 5))
             return true;
         Sleep(1000);
     }
-    // last emergency attempt
-    TryUnmountImDisk(Device, hProcess, 2);
     return false; // report an error when emergency unmoutn was needed
 }
-
-STATUS ExecImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, const std::wstring& Command, bool bWrite, CBuffer* pBuffer, USHORT uId)
-{
-    STATUS Status = ERR(STATUS_UNSUCCESSFUL);
-
-    std::wstring cmd;
-    /*if (ImageFile.empty()) cmd = L"ImBox type=ram";
-    else*/ cmd = L"ImBox type=img image=\"" + ImageFile + L"\"";
-    cmd += L" " + Command;
-
-#ifdef _M_ARM64
-    ULONG64 ctr = _ReadStatusReg(ARM64_CNTVCT);
-#else
-    ULONG64 ctr = __rdtsc();
-#endif
-
-    WCHAR sName[32];
-    wsprintf(sName, L"_%08X_%08X%08X", GetCurrentProcessId(), (ULONG)(ctr >> 32), (ULONG)ctr);
-
-    cmd += L" mem=0x0000000000000000";
-
-    VOID* pMem = NULL;
-
-    std::wstring app = theCore->GetAppDir() + L"\\ImBox.exe";
-    STARTUPINFO si = { sizeof(STARTUPINFO) };
-    PROCESS_INFORMATION pi = { 0 };
-    if (CreateProcessW(app.c_str(), (WCHAR*)cmd.c_str(), NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi))
-    {
-        NTSTATUS status = STATUS_SUCCESS;
-
-        auto Mem = AllocPasswordMemory(pi.hProcess, pPassword);
-
-        if (Mem.IsError()) 
-            status = Mem.GetStatus();
-        else
-        {
-            pMem = Mem.GetValue();
-
-            status = UpdateCommandLine(pi.hProcess, [](std::wstring& s, PVOID p) {
-                // Note: Do not change the string length, that would require a different update mechanism.
-                size_t pos = s.find(L"mem=0x0000000000000000");
-                if (pos != std::wstring::npos) {
-                    wchar_t Addr[17];
-                    toHexadecimal((ULONG64)p, Addr);
-                    s.replace(pos + 6, 16, Addr);
-                    return STATUS_SUCCESS;
-                }
-                return STATUS_UNSUCCESSFUL;
-                }, pMem);
-        }
-
-        if (NT_SUCCESS(status) && pBuffer && bWrite) 
-        {
-            union {
-                SSection pSection[1];
-                BYTE pSpace[0x1000];
-            };
-            memset(pSpace, 0, sizeof(pSpace));
-
-            memcpy(pSection->in.pass, pPassword, (wcslen(pPassword) + 1) * sizeof(wchar_t));
-            pSection->magic = SECTION_MAGIC;
-            pSection->id = uId;
-            pSection->size = (USHORT)pBuffer->GetSize();
-            memcpy(pSection->data, pBuffer->GetBuffer(), pSection->size);
-
-            status = NtWriteVirtualMemory(pi.hProcess, pMem, (PVOID)pSpace, sizeof(pSpace), NULL);
-        }
-
-        if (!NT_SUCCESS(status)) {
-            TerminateProcess(pi.hProcess, -1);
-            pMem = NULL;
-            CloseHandle(pi.hThread);
-            CloseHandle(pi.hProcess);
-        }
-    }
-
-    if (pMem)
-    {
-        ResumeThread(pi.hThread);
-
-
-        HANDLE hEvents[] = { /*hEvent,*/ pi.hProcess };
-        DWORD dwEvent = WaitForMultipleObjects(ARRAYSIZE(hEvents), hEvents, FALSE, 40 * 1000);
-        //if (dwEvent != WAIT_OBJECT_0)
-
-        DWORD ret;
-        GetExitCodeProcess(pi.hProcess, &ret);
-        if (ret == STILL_ACTIVE)
-            Status = ERR(STATUS_TIMEOUT);
-        else if(ret != ERR_OK)
-            Status = ERR(STATUS_UNSUCCESSFUL);
-        else
-        {
-            if (pBuffer && !bWrite) 
-            {
-                union {
-                    SSection pSection[1];
-                    BYTE pSpace[0x1000];
-                };
-                if (NT_SUCCESS(NtReadVirtualMemory(pi.hProcess, (PVOID)pMem, pSpace, sizeof(pSpace), NULL)))
-                {
-                    // to do, don't care
-                }
-            }
-            Status = OK;
-        }
-
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
-    }
-
-    return Status;
-}
-
 
 STATUS CVolumeManager::Update()
 {
     std::vector<ULONG> DeviceList;
-    DeviceList.resize(3);
-
-retry:
-    if (!ImDiskGetDeviceListEx((ULONG)DeviceList.size(), &DeviceList.front())) {
-        switch (GetLastError())
-        {
-        case ERROR_FILE_NOT_FOUND:
+    if (!ImDiskGetDeviceList(DeviceList)) {
+        if (GetLastError() == ERROR_FILE_NOT_FOUND)
             return STATUS_DEVICE_NOT_READY;
-
-        case ERROR_MORE_DATA:
-            DeviceList.resize(DeviceList[0] + 1);
-            goto retry;
-
-        default:
-            return STATUS_DEVICE_NOT_READY;
-        }
+        return STATUS_DEVICE_NOT_READY;
     }
 
     std::unique_lock Lock(m_Mutex);
@@ -777,7 +573,7 @@ retry:
         if (pos == std::wstring::npos)
             continue;
 
-        //if (GetVolumeLabel(IMDISK_DEVICE + std::to_wstring(DeviceList[counter]) + L"\\") != DISK_LABEL) 
+        //if (GetVolumeLabel(IMDISK_DEVICE + std::to_wstring(DeviceList[counter]) + L"\\") != DISK_LABEL)
         //  continue;
 
         auto pMount = std::make_shared<CVolume>();
@@ -820,10 +616,10 @@ retry:
     return STATUS_SUCCESS;
 }
 
-STATUS CVolumeManager::CreateImage(const std::wstring& Path, const std::wstring& Password, uint64 uSize, const std::wstring& Cipher)
+STATUS CVolumeManager::CreateImage(const std::wstring& Path, const std::wstring& Password, uint64 uSize, const std::wstring& Cipher, int iArgon2Cost)
 {
     // todo: Cipher
-    auto Res = MountImDisk(Path, Password.c_str(), uSize);
+    auto Res = MountImDisk(Path, Password.c_str(), iArgon2Cost, Cipher, uSize);
     if(Res.IsError())
         return Res;
 
@@ -832,26 +628,37 @@ STATUS CVolumeManager::CreateImage(const std::wstring& Path, const std::wstring&
     return STATUS_SUCCESS;
 }
 
-STATUS CVolumeManager::ChangeImagePassword(const std::wstring& Path, const std::wstring& OldPassword, const std::wstring& NewPassword)
-{
-    CBuffer Data(1024);
-    Data.WriteData(NewPassword.c_str(), NewPassword.length() * sizeof(wchar_t));
-    return ExecImDisk(Path, OldPassword.c_str(), L"new_key", true, &Data, SECTION_PARAM_ID_KEY);
-}
+//STATUS CVolumeManager::ChangeImagePassword(const std::wstring& Path, const std::wstring& OldPassword, const std::wstring& NewPassword, int iOldArgon2Cost, int iNewArgon2Cost)
+//{
+//    CBuffer Data(sizeof(SNewKeySection), true);
+//	SNewKeySection* pNewKey = (SNewKeySection*)Data.GetBuffer();
+//	wcscpy_s(pNewKey->new_pass, DC_MAX_PASSWORD + 1, NewPassword.c_str());
+//	pNewKey->new_cost = iNewArgon2Cost;
+//    return ExecImDisk(Path, OldPassword.c_str(), iOldArgon2Cost, L"new_key", true, &Data, SECTION_PARAM_ID_KEY);
+//}
 
 //STATUS CVolumeManager::DeleteImage(const std::wstring& Path)
 //{
 //	return STATUS_NOT_IMPLEMENTED;
 //}
 
-STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& MountPoint, const std::wstring& Password, bool bProtect, bool bLockdown)
-{
-    std::unique_lock Lock(m_Mutex);
+//STATUS CVolumeManager::BackupHeader(const std::wstring& Path, const std::wstring& BackupPath, const std::wstring& Password, int iArgon2Cost)
+//{
+//	std::wstring cmd = L"backup=\"" + BackupPath + L"\"";
+//    return ExecImDisk(Path, Password.c_str(), iArgon2Cost, cmd);
+//}
+//
+//STATUS CVolumeManager::RestoreHeader(const std::wstring& BackupPath, const std::wstring& Path, const std::wstring& Password, int iArgon2Cost)
+//{
+//    std::wstring cmd = L"restore=\"" + BackupPath + L"\"";
+//    return ExecImDisk(Path, Password.c_str(), iArgon2Cost, cmd);
+//}
 
+STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& MountPoint, const std::wstring& Password, bool bProtect, bool bLockdown, int iArgon2Cost)
+{
     auto Guid = CVolume::GetGuidFromPath(Path);
 
-    auto F = m_VolumesByGuid.find(Guid);
-    if(F != m_VolumesByGuid.end())
+    if(GetVolume(Guid))
 		return STATUS_ALREADY_COMPLETE;
 
     //if (MountPoint.size() > 3) // disablenon drive mounting
@@ -914,12 +721,14 @@ STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& 
     // Mount Volume
     //
 
-    auto Res = MountImDisk(Path, Password.c_str(), 0, MountPoint, Number);
+    auto Res = MountImDisk(Path, Password.c_str(), iArgon2Cost, L"", 0, MountPoint, Number);
     if (Res.IsError()) {
         if(!ruleGuid.empty())
             theCore->AccessManager()->RemoveRule(ruleGuid, LockDownToken);
         return Res;
     }
+
+    std::unique_lock Lock(m_Mutex);
 
     if (theCore->Config()->GetBool("Service", "GuardHibernation", false) && !m_NoHibernation)
     {
@@ -1097,6 +906,32 @@ STATUS CVolumeManager::DismountAll()
     return STATUS_SUCCESS;
 }
 
+STATUS CVolumeManager::ExpandVolume(const std::wstring& DevicePath, uint64 uAddSize)
+{
+    std::unique_lock Lock(m_Mutex);
+
+    auto F = m_Volumes.find(MkLower(DevicePath));
+    if (F == m_Volumes.end())
+        return ERR(STATUS_NOT_FOUND);
+
+    std::shared_ptr<CVolume> pMount = F->second;
+
+    if (DevicePath.size() <= IMDISK_DEVICE_LEN)
+        return ERR(STATUS_INVALID_PARAMETER);
+
+    ULONG DeviceNumber = std::stoul(DevicePath.substr(IMDISK_DEVICE_LEN));
+
+    Lock.unlock();
+
+    if (!ImDiskExtendDevice(DeviceNumber, uAddSize))
+        return ERR(STATUS_UNSUCCESSFUL);
+
+    // Update the volume size
+    pMount->SetVolumeSize(ImDiskQueryDeviceSize(pMount->GetDevicePath()));
+
+    return OK;
+}
+
 RESULT(std::vector<std::wstring>) CVolumeManager::GetVolumeList()
 {
     Update();
@@ -1106,7 +941,7 @@ RESULT(std::vector<std::wstring>) CVolumeManager::GetVolumeList()
 	std::vector<std::wstring> Volumes;
 	for (auto& V : m_Volumes)
 		Volumes.push_back(V.second->GetDevicePath());
-	return Volumes;	
+	return Volumes;
 }
 
 RESULT(std::vector<CVolumePtr>) CVolumeManager::GetAllVolumes()
@@ -1521,7 +1356,7 @@ void CVolumeManager::CleanUpVolume(const std::shared_ptr<CVolume>& pMount)
     // Clean Up Volume Enclaves and asociated hashes
     //
 
-    std::set<CFlexGuid> EnclaveGuids;
+    std::map<CFlexGuid, CEnclavePtr> EnclaveGuids;
 
     for (auto I : theCore->EnclaveManager()->GetAllEnclaves())
     {
@@ -1529,8 +1364,7 @@ void CVolumeManager::CleanUpVolume(const std::shared_ptr<CVolume>& pMount)
 
         if (pEnclave->GetVolumeGuid() == pMount->GetGuid())
         {
-            EnclaveGuids.insert(pEnclave->GetGuid());
-            theCore->EnclaveManager()->RemoveEnclave(pEnclave, pMount->GetLockdownToken());
+            EnclaveGuids.insert(std::make_pair(pEnclave->GetGuid(), pEnclave));
         }
     }
 
@@ -1585,6 +1419,15 @@ void CVolumeManager::CleanUpVolume(const std::shared_ptr<CVolume>& pMount)
         if (MatchPathPrefix(RulePath, DevicePath.c_str()) || EnclaveGuids.find(pRule->GetEnclaveGuid()) != EnclaveGuids.end())
             theCore->AccessManager()->RemoveRule(pRule->GetGuid(), pMount->GetLockdownToken());
     }
+
+    //
+    // Remove enclaves last as rules reference them by guid
+    //
+
+    for (auto I : EnclaveGuids)
+    {
+        theCore->EnclaveManager()->RemoveEnclave(I.second, pMount->GetLockdownToken());
+	}
 
     //theCore->Driver()->ClearRuleAlias(pMount->m_DevicePath);
 }

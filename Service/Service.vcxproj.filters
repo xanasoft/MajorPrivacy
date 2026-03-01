@@ -189,9 +189,6 @@
     <ClCompile Include="Programs\ProgramLibrary.cpp">
       <Filter>Programs</Filter>
     </ClCompile>
-    <ClCompile Include="Volumes\MountManagerHelpers.cpp">
-      <Filter>Volumes</Filter>
-    </ClCompile>
     <ClCompile Include="Volumes\VolumeManager.cpp">
       <Filter>Volumes</Filter>
     </ClCompile>

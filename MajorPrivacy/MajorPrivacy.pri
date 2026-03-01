@@ -137,11 +137,13 @@ HEADERS += ./version.h \
     ./Helpers/Highliter/languagedata.h \
     ./Helpers/Highliter/qsourcehighliter.h \
     ./Helpers/Highliter/qsourcehighliterthemes.h \
-    ./Wizards/SetupWizard.h
-    
+    ./Wizards/SetupWizard.h \
+    ./Wizards/VolumeWizard.h
+
 SOURCES += ./main.cpp \
     ./pch.cpp \
     ./MajorPrivacy.cpp \
+    ./MajorPrivacyConfig.cpp \
     ./OnlineUpdater.cpp \
     ./Core/API_Impl.cpp \
     ./Core/EventLog.cpp \
@@ -273,8 +275,9 @@ SOURCES += ./main.cpp \
     ./Helpers/Highliter/languagedata.cpp \
     ./Helpers/Highliter/qsourcehighliter.cpp \
     ./Helpers/Highliter/qsourcehighliterthemes.cpp \
-    ./Wizards/SetupWizard.cpp
-    
+    ./Wizards/SetupWizard.cpp \
+    ./Wizards/VolumeWizard.cpp
+
 FORMS += ./Forms/AccessRuleWnd.ui \
     ./Forms/EnclaveWnd.ui \
     ./Forms/FirewallRuleWnd.ui \

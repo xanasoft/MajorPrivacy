@@ -43,6 +43,37 @@ NTSTATUS CProgramItem::FromVariant(const class StVariant& Data)
 	return STATUS_SUCCESS;
 }
 
+ETracePreset StrToTracePreset(const FW::StringA& Str);
+ESavePreset StrToSavePreset(const FW::StringA& Str);
+
+NTSTATUS CProgramItem::UpdateFromVariant(const class StVariant& vReq)
+{
+	if (vReq.GetType() == VAR_TYPE_MAP) 
+	{
+		if (vReq.Has(API_S_NAME)) SetName(vReq[API_S_NAME]);
+		if (vReq.Has(API_S_ICON)) SetIcon(vReq[API_S_ICON]);
+		if (vReq.Has(API_S_INFO)) SetInfo(vReq[API_S_INFO]);
+
+		if (vReq.Has(API_S_EXEC_TRACE)) SetExecTrace(StrToTracePreset(vReq[API_S_EXEC_TRACE]));
+		if (vReq.Has(API_S_RES_TRACE))  SetResTrace(StrToTracePreset(vReq[API_S_RES_TRACE]));
+		if (vReq.Has(API_S_NET_TRACE))  SetNetTrace(StrToTracePreset(vReq[API_S_NET_TRACE]));
+		if (vReq.Has(API_S_SAVE_TRACE)) SetSaveTrace(StrToSavePreset(vReq[API_S_SAVE_TRACE]));
+	}
+	else
+	{
+		if (vReq.Has(API_V_NAME)) SetName(vReq[API_V_NAME]);
+		if (vReq.Has(API_V_ICON)) SetIcon(vReq[API_V_ICON]);
+		if (vReq.Has(API_V_INFO)) SetInfo(vReq[API_V_INFO]);
+
+		if (vReq.Has(API_V_EXEC_TRACE)) SetExecTrace((ETracePreset)vReq[API_V_EXEC_TRACE].To<int>());
+		if (vReq.Has(API_V_RES_TRACE))  SetResTrace((ETracePreset)vReq[API_V_RES_TRACE].To<int>());
+		if (vReq.Has(API_V_NET_TRACE))  SetNetTrace((ETracePreset)vReq[API_V_NET_TRACE].To<int>());
+		if (vReq.Has(API_V_SAVE_TRACE)) SetSaveTrace((ESavePreset)vReq[API_V_SAVE_TRACE].To<int>());
+	}
+
+	return STATUS_SUCCESS;
+}
+
 StVariant CProgramItem::CollectFwRules(FW::AbstractMemPool* pMemPool) const
 {
 	StVariantWriter FwRules(pMemPool);

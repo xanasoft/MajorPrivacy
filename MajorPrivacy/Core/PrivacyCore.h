@@ -108,8 +108,9 @@ public:
 	class CPresetManager* PresetManager()		{ return m_pPresetManager; }
 	class CIssueManager* IssueManager()			{ return m_pIssueManager; }
 
-	CDriverAPI*		Driver() { return &m_Driver; }
-	CServiceAPI*	Service() { return &m_Service; }
+	std::shared_ptr<CDriverAPI> Driver()		{ return m_Driver; }
+	std::shared_ptr<CServiceAPI> Service()		{ return m_Service; }
+	std::shared_ptr<CServiceAPI> GetServicePort(); // get a new exclusive service port connection
 
 	class CEventLogger*	Log()					{ return m_pSysLog; }
 	class CEventLog*	EventLog()				{ return m_pEventLog; }
@@ -304,11 +305,14 @@ public:
 	RESULT(QtVariant)	GetVolumes();
 	RESULT(QtVariant)	GetVolume(const QFlexGuid& Guid);
 	STATUS				SetVolume(const QtVariant& Volume);
-	STATUS				MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect, bool bLockdown);
+	STATUS				MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect, bool bLockdown, int iArgon2Cost = 0);
 	STATUS				DismountVolume(const QString& MountPoint);
 	STATUS				DismountAllVolumes();
-	STATUS				CreateVolume(const QString& Path, const QString& Password, quint64 ImageSize = 0, const QString& Cipher = QString());
-	STATUS				ChangeVolumePassword(const QString& Path, const QString& OldPassword, const QString& NewPassword);
+	STATUS				CreateVolume(const QString& Path, const QString& Password, quint64 ImageSize = 0, const QString& Cipher = QString(), int iArgon2Cost = 0);
+	STATUS				ChangeVolumePassword(const QString& Path, const QString& OldPassword, const QString& NewPassword, int iOldArgon2Cost = 0, int iNewArgon2Cost = 0);
+	STATUS				ExpandVolume(const QString& MountPoint, quint64 uAddSize);
+	STATUS				BackupVolumeHeader(const QString& Path, const QString& BackupPath, const QString& Password, int iArgon2Cost);
+	STATUS				RestoreVolumeHeader(const QString& Path, const QString& BackupPath, const QString& Password, int iArgon2Cost);
 
 	// Tweak Manager
 	RESULT(QtVariant)	GetTweaks(uint32* pRevision = nullptr);
@@ -389,7 +393,7 @@ protected:
 	//friend class CProcess;
 	friend class CProgramManager;
 
-	//void OnProgEvent(uint32 MessageId, const CBuffer* pEvent);
+	void OnProgEvent(uint32 MessageId, const CBuffer* pEvent);
 
 	void				OnSvcEvent(uint32 MessageId, const CBuffer* pEvent);
 	void				OnDrvEvent(const std::wstring& Guid, enum class EConfigEvent Event, enum class EConfigGroup Type, uint64 PID);
@@ -409,8 +413,8 @@ protected:
 
 	class CPrivacyWorker* m_pWorker = NULL;
 
-	CDriverAPI	m_Driver;
-	CServiceAPI m_Service;
+	std::shared_ptr<CDriverAPI>	m_Driver;
+	std::shared_ptr<CServiceAPI> m_Service;
 	FW::MemoryPool* m_pMemPool = NULL;
 	bool m_bEngineMode = false;
 	QString m_ConfigDir;

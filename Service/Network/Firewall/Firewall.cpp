@@ -95,6 +95,272 @@ STATUS CFirewall::Init()
 	return OK;
 }
 
+STATUS CFirewall::ReLoad()
+{
+	std::unique_lock Lock(m_RulesMutex);
+
+	// Clear pending reversion queues to prevent stale operations
+	m_RulesToRemove.clear();
+	m_RulesToRevert.clear();
+
+	//
+	// Phase 1: Load rules from disk into temporary collection
+	//
+
+	std::map<CFlexGuid, CFirewallRulePtr> DiskRules;
+	CBuffer Buffer;
+	if (ReadFile(theCore->GetDataFolder() + L"\\" API_FIREWALL_FILE_NAME, Buffer))
+	{
+		StVariant Data;
+		if (Data.FromPacket(&Buffer, true) == StVariant::eErrNone &&
+			Data[API_S_VERSION].To<uint32>() == API_FIREWALL_FILE_VERSION)
+		{
+			StVariant Entries = Data[API_S_FW_RULES];
+			for (uint32 i = 0; i < Entries.Count(); i++)
+			{
+				CFirewallRulePtr pFwRule = std::make_shared<CFirewallRule>();
+				if (pFwRule->FromVariant(Entries[i]))
+					DiskRules[pFwRule->GetGuidStr()] = pFwRule;
+			}
+		}
+	}
+
+	//
+	// Phase 2: Load current Windows Firewall state
+	//
+
+	auto ret = CWindowsFirewall::Instance()->LoadRules();
+	if (ret.IsError())
+		return ret;
+
+	auto pWinRuleList = ret.GetValue();
+	std::map<std::wstring, SWindowsFwRulePtr> WinRules;
+	for (auto& pRule : *pWinRuleList)
+		WinRules[pRule->Guid] = pRule;
+
+	//
+	// Phase 3: Capture old state and clear all collections
+	//
+
+	std::map<CFlexGuid, CFirewallRulePtr> OldFwRules = std::move(m_FwRules);
+
+	// Build map of backup rules by their OriginalGuid (to detect external deletions)
+	std::map<std::wstring, CFirewallRulePtr> OldBackupsByOriginalGuid;
+	for (auto& [Guid, pOldRule] : OldFwRules)
+	{
+		if (pOldRule->IsBackup() || pOldRule->IsDiverged())
+		{
+			std::wstring origGuid = pOldRule->GetOriginalGuid();
+			if (!origGuid.empty())
+				OldBackupsByOriginalGuid[origGuid] = pOldRule;
+		}
+	}
+
+	m_FwRules.clear();
+	m_FileRules.clear();
+	m_SvcRules.clear();
+	m_AppRules.clear();
+	m_FwTemplatesTree.Clear();
+	m_FwRuleTemplates.Clear();
+
+	//
+	// Phase 4: Process disk rules
+	//
+
+	std::set<std::wstring> ProcessedWinGuids;
+	std::set<std::wstring> ProcessedBackupOriginalGuids;
+
+	for (auto& [DiskGuid, pDiskRule] : DiskRules)
+	{
+		std::wstring GuidStr = DiskGuid.ToWString();
+
+		// Templates: just reload, no Windows FW interaction
+		if (pDiskRule->IsTemplate())
+		{
+			AddRuleUnsafe(pDiskRule);
+			continue;
+		}
+
+		// Backups: keep as-is, don't touch Windows FW
+		// (they preserve external changes for manual restoration)
+		if (pDiskRule->IsBackup() || pDiskRule->IsDiverged())
+		{
+			AddRuleUnsafe(pDiskRule);
+			continue;
+		}
+
+		auto winIt = WinRules.find(GuidStr);
+
+		if (pDiskRule->IsApproved())
+		{
+			if (winIt == WinRules.end())
+			{
+				// Rule on disk but NOT in Windows FW
+				// Check if there's already a backup for this (external deletion)
+				auto backupIt = OldBackupsByOriginalGuid.find(GuidStr);
+				if (backupIt != OldBackupsByOriginalGuid.end())
+				{
+					// External deletion - keep as backup, don't recreate in Windows FW
+					// Update backup data from disk (discarding any unsaved modifications)
+					CFirewallRulePtr pBackup = backupIt->second;
+					ProcessedBackupOriginalGuids.insert(GuidStr);
+
+					// Create updated backup with disk data but preserving backup's GUID and state
+					SWindowsFwRulePtr pBackupData = std::make_shared<SWindowsFwRule>(*pDiskRule->GetFwRule());
+					pBackupData->Guid = pBackup->GetGuidStr(); // Keep backup's GUID
+
+					CFirewallRulePtr pUpdatedBackup = std::make_shared<CFirewallRule>(pBackupData);
+					pUpdatedBackup->m_State = EFwRuleState::eBackup;
+					pUpdatedBackup->m_OriginalGuid = pBackup->GetOriginalGuid();
+					pUpdatedBackup->m_Source = pDiskRule->GetSource();
+
+					AddRuleUnsafe(pUpdatedBackup);
+				}
+				else
+				{
+					// Our tool deleted it - recreate in Windows FW
+					SWindowsFwRulePtr pData = pDiskRule->GetFwRule();
+					STATUS Status = CWindowsFirewall::Instance()->UpdateRule(pData);
+					if (Status.IsError())
+						theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, 1,
+							L"ReLoad: Failed to recreate rule: %s", pDiskRule->GetName().c_str());
+					AddRuleUnsafe(pDiskRule);
+				}
+			}
+			else
+			{
+				ProcessedWinGuids.insert(GuidStr);
+				SWindowsFwRulePtr pWinRule = winIt->second;
+
+				if (!pDiskRule->Match(pWinRule))
+				{
+					// Rule differs - check if we should revert
+					auto oldIt = OldFwRules.find(DiskGuid);
+					EFwRuleSource oldSource = (oldIt != OldFwRules.end())
+						? oldIt->second->GetSource() : EFwRuleSource::eUnknown;
+
+					// Only revert if our tool modified it
+					if (oldSource == EFwRuleSource::eMajorPrivacy ||
+						oldSource == EFwRuleSource::eAutoTemplate)
+					{
+						// Our modification - revert Windows FW to disk version
+						SWindowsFwRulePtr pData = pDiskRule->GetFwRule();
+						STATUS Status = CWindowsFirewall::Instance()->UpdateRule(pData);
+						if (Status.IsError())
+							theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, 1,
+								L"ReLoad: Failed to revert rule: %s", pDiskRule->GetName().c_str());
+						AddRuleUnsafe(pDiskRule);
+					}
+					else
+					{
+						// External modification since last save - create backup
+						// The approved disk rule becomes a backup, Windows FW rule becomes current
+						pDiskRule->SetAsBackup(false, !MatchProgramID(pWinRule, pDiskRule));
+						AddRuleUnsafe(pDiskRule); // Add backup with new GUID
+
+						// Add Windows FW rule as new unapproved
+						CFirewallRulePtr pNewRule = std::make_shared<CFirewallRule>(pWinRule);
+						AddRuleUnsafe(pNewRule);
+					}
+				}
+				else
+				{
+					// Matches - just add
+					AddRuleUnsafe(pDiskRule);
+				}
+			}
+		}
+		else // Unapproved on disk
+		{
+			if (winIt != WinRules.end())
+			{
+				ProcessedWinGuids.insert(GuidStr);
+				pDiskRule->Update(winIt->second); // Update from current Windows state
+			}
+			AddRuleUnsafe(pDiskRule);
+		}
+	}
+
+	//
+	// Phase 5: Handle Windows FW rules not on disk
+	//
+
+	for (auto& [WinGuid, pWinRule] : WinRules)
+	{
+		if (ProcessedWinGuids.count(WinGuid))
+			continue;
+
+		CFlexGuid guid(WinGuid);
+		auto oldIt = OldFwRules.find(guid);
+
+		if (oldIt != OldFwRules.end())
+		{
+			CFirewallRulePtr pOldRule = oldIt->second;
+			EFwRuleSource oldSource = pOldRule->GetSource();
+
+			if (oldSource == EFwRuleSource::eMajorPrivacy ||
+				oldSource == EFwRuleSource::eAutoTemplate)
+			{
+				// Rule created by our tool but not saved - remove from Windows FW
+				STATUS Status = CWindowsFirewall::Instance()->RemoveRule(WinGuid);
+				if (Status.IsError())
+					theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, 1,
+						L"ReLoad: Failed to remove unsaved rule: %s", pOldRule->GetName().c_str());
+				continue; // Don't add to our collections
+			}
+
+			// Unapproved external rule - keep as is
+			CFirewallRulePtr pFwRule = std::make_shared<CFirewallRule>(pWinRule);
+			pFwRule->Update(pOldRule); // Preserve state info
+			AddRuleUnsafe(pFwRule);
+		}
+		else
+		{
+			// Completely new rule we don't know about - add as unapproved
+			CFirewallRulePtr pFwRule = std::make_shared<CFirewallRule>(pWinRule);
+			if (IsDefaultWindowsRule(pFwRule))
+				pFwRule->SetSource(EFwRuleSource::eWindowsDefault);
+			else if (IsWindowsStoreRule(pFwRule))
+				pFwRule->SetSource(EFwRuleSource::eWindowsStore);
+			AddRuleUnsafe(pFwRule);
+		}
+	}
+
+	//
+	// Phase 6: Preserve backups whose original rule wasn't on disk
+	// (these are unsaved backups for external deletions where disk doesn't have the original rule)
+	//
+
+	for (auto& [OrigGuid, pBackup] : OldBackupsByOriginalGuid)
+	{
+		if (ProcessedBackupOriginalGuids.count(OrigGuid))
+			continue; // Already processed from disk approved rule
+
+		// Check if this backup already exists (e.g., loaded from disk as a backup)
+		if (m_FwRules.find(pBackup->GetGuidStr()) != m_FwRules.end())
+			continue; // Already loaded from disk
+
+		// This backup's original rule wasn't on disk - preserve the backup as-is
+		AddRuleUnsafe(pBackup);
+	}
+
+	//
+	// Phase 7: Cleanup old program references
+	//
+
+	for (auto& [Guid, pOldRule] : OldFwRules)
+	{
+		if (m_FwRules.find(Guid) == m_FwRules.end())
+			theCore->ProgramManager()->RemoveFwRule(pOldRule);
+	}
+
+	// Update flags
+	m_UpdateAllRules = false;
+	m_UpdateDefaultProfiles = 1;
+
+	return OK;
+}
+
 STATUS CFirewall::Load()
 {
 	CBuffer Buffer;
@@ -471,7 +737,7 @@ STATUS CFirewall::RestoreRule(const CFirewallRulePtr& pFwRuleBackup)
 		{
 			pFwRuleBackup->IncrSetErrorCount();
 
-			EmitChangeEvent(pFwRuleBackup->GetGuidStr(), pFwRuleBackup->GetFwRule()->Name, EConfigEvent::eModified, true); // reset backup rule in ui
+			EmitChangeEvent(pFwRuleBackup->GetGuidStr(), pFwRuleBackup->GetFwRule()->Name, EConfigEvent::eModified, true, true); // reset backup rule in ui
 
 			if (!MatchProgramID(pCurData, pFwRule) || pCurData->Action != pFwRule->GetFwRule()->Action)
 			{
@@ -949,7 +1215,7 @@ bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>
 
 			m_FwRules.insert(std::make_pair(pFwRule->GetGuidStr(), pFwRule));
 
-			EmitChangeEvent(pFwRule->GetGuidStr(), pFwRule->GetFwRule()->Name, EConfigEvent::eAdded, true); // event for the backup rule
+			EmitChangeEvent(pFwRule->GetGuidStr(), pFwRule->GetFwRule()->Name, EConfigEvent::eAdded, true, true); // event for the backup rule
 
 			if (GuardAction == CFwAutoGuardEntry::eReject) 
 			{
@@ -987,12 +1253,15 @@ bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>
 
 uint32 CFirewall::OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent)
 {
+	EConfigEvent Type = pEvent->Type;
+
 	SWindowsFwRulePtr pRule;
-	if (pEvent->Type != EConfigEvent::eRemoved) {
+	if (Type != EConfigEvent::eRemoved) {
 		std::vector<std::wstring> RuleIds;
 		RuleIds.push_back(pEvent->RuleId);
 		auto ret = CWindowsFirewall::Instance()->LoadRules(RuleIds);
 		if(ret.GetValue()) pRule = (*ret.GetValue())[pEvent->RuleId]; // CWindowsFirewall::Instance()->GetRule(pEvent->RuleId);
+		if (!pRule) Type = EConfigEvent::eRemoved;
 	}
 
 	std::unique_lock Lock(m_RulesMutex);
@@ -1004,7 +1273,12 @@ uint32 CFirewall::OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent)
 			pFwRule = F->second;
 	}
 
-	if(!pRule && !pFwRule)
+	std::wstring Name;
+	if(pRule)
+		Name = pRule->Name;
+	else if (pFwRule)
+		Name = pFwRule->GetName();
+	else
 		return 0;
 
 	bool bExpected = false;
@@ -1016,10 +1290,10 @@ uint32 CFirewall::OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent)
 
 		StVariant Data;
 		Data[API_V_GUID] = pEvent->RuleId;
-		Data[API_V_NAME] = pEvent->RuleName; 
+		Data[API_V_NAME] = Name; 
 		if(pFwRule) 
 			Data[API_V_ID] = pFwRule->GetProgramID().ToVariant(SVarWriteOpt());
-		switch (pEvent->Type)
+		switch (Type)
 		{
 		case EConfigEvent::eAdded:		theCore->EmitEvent(ELogLevels::eWarning, eLogFwRuleAdded, Data); break;
 		case EConfigEvent::eModified:	theCore->EmitEvent(ELogLevels::eWarning, eLogFwRuleModified, Data); break;
@@ -1027,7 +1301,7 @@ uint32 CFirewall::OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent)
 		}
 	}
 
-	EmitChangeEvent(pEvent->RuleId, pEvent->RuleName, pEvent->Type, !bChanged || bExpected);
+	EmitChangeEvent(pEvent->RuleId, Name, Type, !bChanged || bExpected, bChanged);
 
 	return 0;
 }
@@ -1041,7 +1315,7 @@ uint32 CFirewall::OnFwLogEvent(const SWinFwLogEvent* pEvent)
 	return 0;
 }
 
-void CFirewall::EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event, bool bExpected)
+void CFirewall::EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event, bool bExpected, bool bNoConfig)
 {
 	StVariant vEvent;
 	vEvent[API_V_GUID] = Guid.ToVariant(false);
@@ -1050,6 +1324,19 @@ void CFirewall::EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name,
 	vEvent[API_V_EVENT_EXPECTED] = bExpected;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_FW_RULE_CHANGED, vEvent);
+
+	if(bNoConfig) 
+		return;
+
+	StVariant Data;
+	Data[API_V_GUID] = Guid.ToVariant(false);
+	Data[API_V_NAME] = Name; 
+	switch (Event)
+	{
+	case EConfigEvent::eAdded:		theCore->EmitEvent(ELogLevels::eNone, eLogFwRuleAdded, Data); break;
+	case EConfigEvent::eModified:	theCore->EmitEvent(ELogLevels::eNone, eLogFwRuleModified, Data); break;
+	case EConfigEvent::eRemoved:	theCore->EmitEvent(ELogLevels::eNone, eLogFwRuleRemoved, Data); break;
+	}
 }
 
 void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocket* pSocket)

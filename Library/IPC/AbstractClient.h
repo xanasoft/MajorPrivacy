@@ -28,13 +28,14 @@ public:
     virtual RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message, SCallParams* pParams)
     {
 	    CBuffer sendBuff(Message.Allocator());
-	    sendBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
+	    sendBuff.WriteData(NULL, GetHeaderSize()); // make room for header, pointer points after the header
 		PMSG_HEADER reqHeader = (PMSG_HEADER)sendBuff.GetBuffer();
 		reqHeader->MessageId = MessageId;
-		reqHeader->Size = sizeof(MSG_HEADER);
+		//reqHeader->Size = 
 
-	    Message.ToPacket(&sendBuff);
-        ((PMSG_HEADER)sendBuff.GetBuffer())->Size = (ULONG)sendBuff.GetSize();
+		Message.ToPacket(&sendBuff); // this may realloc the buffer
+		reqHeader = (PMSG_HEADER)sendBuff.GetBuffer();
+		reqHeader->Size = (ULONG)sendBuff.GetSize();
 
 	    CBuffer recvBuff(Message.Allocator());
 	    STATUS Status;
@@ -49,7 +50,7 @@ public:
 		if (!Status || recvBuff.GetSize() == 0)
 			return Status;
 
-	    resHeader = (PMSG_HEADER)recvBuff.ReadData(sizeof(MSG_HEADER));
+	    resHeader = (PMSG_HEADER)recvBuff.ReadData(GetHeaderSize());
 
 		if(resHeader->Status == STATUS_BUFFER_TOO_SMALL)
 		{
@@ -71,5 +72,9 @@ public:
 	//virtual bool RegisterHandler(uint32 MessageId, const std::function<uint32(uint32 msgId, const CBuffer* req, CBuffer* rpl)>& Handler) { return false; }
 
 protected:
+	friend class CServiceAPI;
+
+	virtual ULONG GetHeaderSize() const = 0;
+
 	bool m_AutoConnect = false;
 };

@@ -50,5 +50,8 @@ public:
     }
 
 protected:
+
+    ULONG GetHeaderSize() const override { return sizeof(MSG_HEADER); }
+
     HANDLE m_IoDeviceHandle;
 };

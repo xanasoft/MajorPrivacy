@@ -24,21 +24,27 @@ public:
 	QString GetMountPoint() const					{ return m_MountPoint; }
 	void SetMountPoint(const QString& MountPoint)	{ m_MountPoint = MountPoint; }
 	uint64 GetVolumeSize() const					{ return m_VolumeSize; }
-	void SetVolumeSize(uint64 VolumeSize)			{ m_VolumeSize = VolumeSize; }
+	//void SetVolumeSize(uint64 VolumeSize)			{ m_VolumeSize = VolumeSize; }
 
 	enum EStatus
 	{
 		eUnmounted,
+		eBusy,
 		eMounted,
 		eFolder,
 		eSecFolder,
 	};
-	EStatus GetStatus() const						{ return m_Status; }
+	EStatus GetStatus() const						{ if(!m_BusyStatus.isEmpty()) return eBusy; return m_Status; }
 	QString GetStatusStr() const;
 	void SetStatus(EStatus Status)					{ m_Status = Status; }
 	bool IsFolder() const							{ return m_Status == eFolder || m_Status == eSecFolder; }
 	bool IsMounted() const							{ return m_Status == eMounted; }
 	void SetMounted(bool Mounted);
+
+	bool IsBusy() const								{ return !m_BusyStatus.isEmpty(); }
+	QString GetBusyStatus() const					{ return m_BusyStatus; }
+	void SetBusyStatus(const QString& Status)		{ m_BusyStatus = Status; }
+	void ClearBusyStatus()							{ m_BusyStatus.clear(); }
 
 	QtVariant ToVariant(const SVarWriteOpt& Opts) const;
 	void FromVariant(const class QtVariant& Volume);
@@ -60,6 +66,7 @@ protected:
 	QString						m_Script;
 
 	EStatus						m_Status = eUnmounted;
+	QString						m_BusyStatus;
 };
 
 typedef QSharedPointer<CVolume> CVolumePtr;

@@ -37,6 +37,11 @@ STATUS CPresetManager::Init()
 	return OK;
 }
 
+STATUS CPresetManager::ReLoad()
+{
+	return Init();
+}
+
 STATUS CPresetManager::Load()
 {
 	CBuffer Buffer;
@@ -72,6 +77,7 @@ STATUS CPresetManager::Load()
 	}
 
 	// Load item ownership
+	m_ItemOwnership.clear();
 	const StVariant& OwnershipData = Data[API_S_ITEM_OWNERSHIP];
 	if (OwnershipData.GetType() == VAR_TYPE_LIST)
 	{
@@ -153,7 +159,7 @@ STATUS CPresetManager::LoadEntries(const StVariant& Entries)
 		CPresetPtr pEntry = std::make_shared<CPreset>();
 		STATUS Status = pEntry->FromVariant(Entry);
 		if (Status.IsError())
-			; //  todo log error
+			theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Failed to load Preset entry %d: %s", i, Status.GetMessageText());
 		else
 		{
 			if (pEntry->GetGuid().IsNull())
@@ -231,7 +237,7 @@ RESULT(StVariant) CPresetManager::SetEntry(const StVariant& Entry)
 	if (Status.IsError())
 		return Status;
 	
-	EmitChangeEvent(Guid, bAdded ? EConfigEvent::eAdded : EConfigEvent::eModified);
+	EmitChangeEvent(Guid, pEntry->GetName(), bAdded ? EConfigEvent::eAdded : EConfigEvent::eModified);
 	RETURN(Guid.ToVariant(false, Entry.Allocator()));
 }
 
@@ -255,20 +261,31 @@ STATUS CPresetManager::DelEntry(const std::wstring& EntryId)
 	auto F = m_Presets.find(Guid);
 	if (F == m_Presets.end())
 		return ERR(STATUS_NOT_FOUND);
+	CPresetPtr pEntry = F->second;
 	m_Presets.erase(F);
 
-	EmitChangeEvent(Guid, EConfigEvent::eRemoved);
+	EmitChangeEvent(Guid, pEntry->GetName(), EConfigEvent::eRemoved);
 	return OK;
 }
 
-void CPresetManager::EmitChangeEvent(const CFlexGuid& Guid, enum class EConfigEvent Event)
+void CPresetManager::EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event)
 {
 	StVariant vEvent;
 	vEvent[API_V_GUID] = Guid.ToVariant(false);
-	//vEvent[API_V_NAME] = ;
+	vEvent[API_V_NAME] = Name;
 	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_PRESET_CHANGED, vEvent);
+
+	StVariant Data;
+	Data[API_V_GUID] = Guid.ToVariant(false);
+	Data[API_V_NAME] = Name;
+	switch (Event)
+	{
+	case EConfigEvent::eAdded:		theCore->EmitEvent(ELogLevels::eNone, eLogConfigPresetAdded, Data); break;
+	case EConfigEvent::eModified:	theCore->EmitEvent(ELogLevels::eNone, eLogConfigPresetModified, Data); break;
+	case EConfigEvent::eRemoved:	theCore->EmitEvent(ELogLevels::eNone, eLogConfigPresetRemoved, Data); break;
+	}
 }
 
 STATUS CPresetManager::DeactivatePresetInternal(const CFlexGuid& Preset, uint32 CallerPID)
@@ -521,7 +538,7 @@ STATUS CPresetManager::DeactivateAllPresets(uint32 CallerPID)
 
 	Store();
 
-	EmitChangeEvent(CFlexGuid(), EConfigEvent::eAllChanged);
+	EmitChangeEvent(CFlexGuid(), L"", EConfigEvent::eAllChanged);
 	return OK;
 }
 
@@ -555,7 +572,7 @@ STATUS CPresetManager::DeactivatePreset(const CFlexGuid& Preset, uint32 CallerPI
 
 	Store();
 
-	EmitChangeEvent(Preset, EConfigEvent::eModified);
+	EmitChangeEvent(Preset, pPreset->GetName(), EConfigEvent::eModified);
 	return OK;
 }
 
@@ -601,6 +618,6 @@ STATUS CPresetManager::ActivatePreset(const CFlexGuid& Preset, uint32 CallerPID,
 
 	Store();
 
-	EmitChangeEvent(Preset, EConfigEvent::eModified);
+	EmitChangeEvent(Preset, pPreset->GetName(), EConfigEvent::eModified);
 	return OK;
 }

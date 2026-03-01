@@ -13,6 +13,8 @@
 #include "..\..\crypto_fast\xts_fast.h"
 #endif
 
+int dc_encrypt_header(dc_header* header, dc_pass* password, UCHAR* salt);
+
 int dc_decrypt_header(dc_header *header, dc_pass *password);
 
 #endif

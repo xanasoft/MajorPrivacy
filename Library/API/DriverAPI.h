@@ -190,7 +190,10 @@ enum class EConfigGroup
 	eHashDB,
 	eProgramRules,
 	eAccessRules,
-	eFirewallRules
+	eFirewallRules,
+	eDriverConfig,
+	eServiceConfig
+
 };
 
 class LIBRARY_EXPORT CDriverAPI

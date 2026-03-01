@@ -35,6 +35,8 @@ public:
 protected:
 	friend void CServiceAPI__EmitEvent(CServiceAPI* This, const CBuffer* pEvent);
 
+	ULONG GetHeaderSize() const;
+
 	std::unordered_map<uint32, std::function<void(uint32 msgId, const CBuffer* pEvent)>> m_EventHandlers;
 	std::mutex m_EventHandlersMutex;
 

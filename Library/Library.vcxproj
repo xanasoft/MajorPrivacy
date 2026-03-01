@@ -494,6 +494,7 @@
     <ClInclude Include="Helpers\CertUtil.h" />
     <ClInclude Include="Helpers\EvtUtil.h" />
     <ClInclude Include="Helpers\GPOUtil.h" />
+    <ClInclude Include="Helpers\ImDiskHelpers.h" />
     <ClInclude Include="Helpers\MiscHelpers.h" />
     <ClInclude Include="Helpers\NetUtil.h" />
     <ClInclude Include="Helpers\NtIO.h" />
@@ -518,6 +519,7 @@
     <ClInclude Include="Hooking\injdll.h" />
     <ClInclude Include="Hooking\myasm.h" />
     <ClInclude Include="IPC\AbstractClient.h" />
+    <ClInclude Include="IPC\AbstractServer.h" />
     <ClInclude Include="IPC\AlpcPortClient.h" />
     <ClInclude Include="IPC\AlpcPortServer.h" />
     <ClInclude Include="IPC\DeviceClient.h" />
@@ -707,6 +709,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Helpers\GPOUtil.cpp" />
+    <ClCompile Include="Helpers\ImDiskHelpers.cpp" />
     <ClCompile Include="Helpers\MiscHelpers.cpp" />
     <ClCompile Include="Helpers\NetUtil.cpp" />
     <ClCompile Include="Helpers\NtIO.cpp" />

@@ -1,7 +1,8 @@
 /*
-ImDisk Virtual Disk Driver for Windows NT/2000/XP.
+ImDisk Virtual Disk Driver for Windows 7/10/11.
 
-Copyright (C) 2005-2018 Olof Lagerkvist.
+Copyright (C) 2025 David Xanatos.
+Copyright (C) 2005-2023 Olof Lagerkvist.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
@@ -51,6 +52,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 ///
 /// Base names for device objects created in \Device
 ///
+#define IMDISK_UNIQUE_ID_PREFIX         "ImDisk"
 #define IMDISK_DEVICE_DIR_NAME         _T("\\Device")
 #define IMDISK_DEVICE_BASE_NAME        IMDISK_DEVICE_DIR_NAME  _T("\\ImDisk")
 #define IMDISK_CTL_DEVICE_NAME         IMDISK_DEVICE_BASE_NAME _T("Ctl")
@@ -108,16 +110,16 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define IMDISK_WINVER() ((IMDISK_WINVER_MAJOR() << 8) | \
     IMDISK_WINVER_MINOR())
 
-#if defined(NT4_COMPATIBLE) && !defined(_WIN64)
+#if defined(NT4_COMPATIBLE) && defined(_M_IX86)
 #define IMDISK_GTE_WIN2K() (IMDISK_WINVER_MAJOR() >= 0x05)
 #else
 #define IMDISK_GTE_WIN2K() TRUE
 #endif
 
-#ifdef _WIN64
-#define IMDISK_GTE_WINXP() TRUE
-#else
+#ifdef _M_IX86
 #define IMDISK_GTE_WINXP() (IMDISK_WINVER() >= 0x0501)
+#else
+#define IMDISK_GTE_WINXP() TRUE
 #endif
 
 #define IMDISK_GTE_SRV2003() (IMDISK_WINVER() >= 0x0502)
@@ -221,6 +223,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define IMDISK_FILE_TYPE_AWEALLOC       0x00001000
 /// Direct parallel I/O to an image file, done in request thread
 #define IMDISK_FILE_TYPE_PARALLEL_IO    0x00002000
+/// Buffered I/O to an image file. Disables FILE_NO_INTERMEDIATE_BUFFERING when
+/// opening image file.
+#define IMDISK_FILE_TYPE_BUFFERED_IO    0x00003000
 
 /// Extracts the IMDISK_FILE_TYPE_xxx from flags
 #define IMDISK_FILE_TYPE(x)             ((ULONG)(x) & 0x0000F000)
@@ -1535,6 +1540,10 @@ extern "C" {
         CDECL
         ImDiskAllocPrintF(LPCWSTR lpMessage, ...);
 
+    IMDISK_API LPSTR
+        CDECL
+        ImDiskAllocPrintFA(LPCSTR lpMessage, ...);
+
     IMDISK_API int
         WINAPI
         ImDiskConsoleMessageA(
@@ -1550,6 +1559,10 @@ extern "C" {
             LPCWSTR lpText,
             LPCWSTR lpCaption,
             UINT uType);
+
+    IMDISK_API BOOL
+        WINAPI
+        ImDiskIsProcessElevated();
 
 #ifdef CORE_BUILD
 

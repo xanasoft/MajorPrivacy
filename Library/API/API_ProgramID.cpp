@@ -4,13 +4,13 @@
 // CProgramID
 //
 
-EProgramType CProgramID::ReadType(const XVariant& Data, SVarWriteOpt::EFormat& Format)
+EProgramType CProgramID::ReadType(VariantReader& Reader, SVarWriteOpt::EFormat& Format)
 {
 	EProgramType Type = EProgramType::eUnknown;
-	if (Data.GetType() == VAR_TYPE_MAP)
+	if (Reader.IsMap())
 	{
 		Format = SVarWriteOpt::eMap;
-		ASTR TypeStr = VariantReader(Data).Find(API_S_PROG_TYPE);
+		ASTR TypeStr = Reader.Find(API_S_PROG_TYPE);
 		if (TypeStr == API_S_PROG_TYPE_FILE)			Type = EProgramType::eProgramFile;
 		else if (TypeStr == API_S_PROG_TYPE_PATTERN)	Type = EProgramType::eFilePattern;
 		else if (TypeStr == API_S_PROG_TYPE_INSTALL)	Type = EProgramType::eAppInstallation;
@@ -20,10 +20,10 @@ EProgramType CProgramID::ReadType(const XVariant& Data, SVarWriteOpt::EFormat& F
 		else if (TypeStr == API_S_PROG_TYPE_ROOT)		Type = EProgramType::eProgramRoot;
 		else if (TypeStr == API_S_PROG_TYPE_All)		Type = EProgramType::eAllPrograms;
 	}
-	else if (Data.GetType() == VAR_TYPE_INDEX)
+	else if (Reader.IsIndex())
 	{
 		Format = SVarWriteOpt::eIndex;
-		Type = (EProgramType)VariantReader(Data).Find(API_V_PROG_TYPE).To<uint32>();
+		Type = (EProgramType)Reader.Find(API_V_PROG_TYPE).To<uint32>();
 	}
 	return Type;
 }
@@ -88,7 +88,7 @@ bool CProgramID::FromVariant(const class XVariant& _ID)
 {
 	VariantReader ID(_ID);
 	SVarWriteOpt::EFormat Format;
-	m_Type = ReadType(_ID, Format); // todo pass reader !! ZZZZZZZZZZZZZZ
+	m_Type = ReadType(ID, Format);
 
 	if (m_Type != EProgramType::eAllPrograms && m_Type != EProgramType::eProgramGroup)
 		m_FilePath = AS_STR(Format == SVarWriteOpt::eMap ? ID.Find(API_S_FILE_PATH) : ID.Find(API_V_FILE_PATH));

@@ -996,7 +996,7 @@ CWindowsFirewall* CWindowsFirewall::Instance()
     //static PH_INITONCE initOnce = PH_INITONCE_INIT;
 
     //if (PhBeginInitOnce(&initOnce))
-    if (!m_Instance) // todo
+    if (!m_Instance) // todo initonce
     {
         m_Instance = new CWindowsFirewall();
 

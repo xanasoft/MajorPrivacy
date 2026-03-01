@@ -433,7 +433,6 @@
     <ClCompile Include="Tweaks\TweakManagerList.cpp">
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    <ClCompile Include="Volumes\MountManagerHelpers.cpp" />
     <ClCompile Include="Volumes\Volume.cpp" />
     <ClCompile Include="Volumes\VolumeManager.cpp" />
   </ItemGroup>

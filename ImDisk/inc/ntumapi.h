@@ -6,6 +6,7 @@
 extern "C" {
 #endif
 
+#if !defined(_NTDEF_) && !defined(_NTSECAPI_)
 typedef struct _UNICODE_STRING {
     USHORT Length;
     USHORT MaximumLength;
@@ -13,6 +14,7 @@ typedef struct _UNICODE_STRING {
 } UNICODE_STRING;
 typedef UNICODE_STRING *PUNICODE_STRING;
 typedef const UNICODE_STRING *PCUNICODE_STRING;
+#endif
 #define UNICODE_NULL ((WCHAR)0)
 
 typedef LONG NTSTATUS;
@@ -84,12 +86,15 @@ typedef struct _REPARSE_DATA_BUFFER {
 #define REPARSE_DATA_BUFFER_HEADER_SIZE   FIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
 
 
+#ifndef REPARSE_GUID_DATA_BUFFER_HEADER_SIZE
 #define REPARSE_GUID_DATA_BUFFER_HEADER_SIZE   FIELD_OFFSET(REPARSE_GUID_DATA_BUFFER, GenericReparseBuffer)
+#endif
 
 //
 // Maximum allowed size of the reparse data.
 //
 
+#ifndef IO_REPARSE_TAG_RESERVED_RANGE
 #define MAXIMUM_REPARSE_DATA_BUFFER_SIZE      ( 16 * 1024 )
 
 //
@@ -107,6 +112,7 @@ typedef struct _REPARSE_DATA_BUFFER {
 //
 
 #define IO_REPARSE_TAG_RESERVED_RANGE            IO_REPARSE_TAG_RESERVED_ONE
+#endif
 
 //
 // The reparse tags are a ULONG. The 32 bits are laid out as follows:
@@ -203,14 +209,14 @@ typedef struct _REPARSE_DATA_BUFFER {
 #define IO_REPARSE_TAG_IFSTEST_CONGRUENT        (0x00000009L)
 
 //
-//  Tag allocated to Moonwalk Universal for HSM
+//  Tag allocated to Moonwalk Univeral for HSM
 //  GUID: 257ABE42-5A28-4C8C-AC46-8FEA5619F18F
 //
 
 #define IO_REPARSE_TAG_MOONWALK_HSM             (0x0000000AL)
 
 //
-//  Tag allocated to Tsinghua University for Research purposes
+//  Tag allocated to Tsinghua Univeristy for Research purposes
 //  No released products should use this tag
 //  GUID: b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2
 //
@@ -622,6 +628,24 @@ typedef struct _REPARSE_INDEX_KEY {
 } REPARSE_INDEX_KEY, *PREPARSE_INDEX_KEY;
 
 #pragma pack()
+
+NTSYSAPI
+ULONG
+__cdecl
+DbgPrint(
+    IN PCSTR Format,
+    ...
+);
+
+NTSYSAPI
+ULONG
+__cdecl
+DbgPrintEx(
+    IN ULONG ComponentId,
+    IN ULONG Level,
+    IN PCSTR Format,
+    ...
+);
 
 NTSYSAPI
 BOOLEAN 

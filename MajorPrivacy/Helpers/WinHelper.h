@@ -20,5 +20,4 @@ bool CheckInternet();
 
 QVariantList EnumNICs();
 
-
 bool IsFullScreenMode();

@@ -186,12 +186,12 @@ void CPipeClient::RunThread()
         if(!m->pPipe->ReadPacket(recvBuff))
             break;
 
-		MSG_HEADER* msg = (MSG_HEADER*)recvBuff.GetBuffer();
+		PIPE_MSG_HEADER* msg = (PIPE_MSG_HEADER*)recvBuff.GetBuffer();
 #ifdef _DEBUG
-		ULONG uSize = msg->Size;
+		ULONG uSize = msg->h.Size;
 #endif
 
-		if (msg->Flag)
+		if (msg->IsEvent)
 		{
 			if (m->Callback)
 			{
@@ -200,7 +200,7 @@ void CPipeClient::RunThread()
 		}
 		else
 		{
-			m->Mutex.lock();
+			std::unique_lock lock(m->Mutex);
 			if (m->recvBuff) 
 			{
 				m->recvBuff->CopyBuffer(recvBuff.GetBuffer(), recvBuff.GetSize());
@@ -208,7 +208,6 @@ void CPipeClient::RunThread()
 
 				SetEvent(m->hEvent);
 			}
-			m->Mutex.unlock();
 		}
 	}
 }

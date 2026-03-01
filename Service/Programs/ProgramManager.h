@@ -38,7 +38,7 @@ public:
 
 	STATUS Init();
 
-	STATUS Load();
+	STATUS ReLoad() { return Load(true); }
 	STATUS Store();
 
 	void Update();
@@ -108,8 +108,16 @@ public:
 	size_t							GetLogMemUsage() const;	
 
 protected:
+	friend class CServiceCore;
+
+	CProgramItemPtr LoadItem(StVariantReader& Reader, bool bReLoad = false);
+
+	STATUS Load(bool ReLoad = false);
+	void ApplyTree(std::map<CProgramSetPtr, std::list<CProgramID>>& Tree, bool bReset);
 
 	void CollectSoftware();
+
+	bool RemoveProgramImpl(uint64 UID);
 
 	bool AddProgramToGroup(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
 	bool RemoveProgramFromGroup(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
@@ -120,6 +128,8 @@ protected:
 	void TryAddChildren(const CProgramListPtr& pGroup, const CProgramPatternPtr& pPattern, bool bRemove = false);
 
 	//void BroadcastItemChanged(const CProgramItemPtr& pItem, EConfigEvent Event);
+
+	void EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event);
 
 	mutable std::recursive_mutex			m_Mutex;
 

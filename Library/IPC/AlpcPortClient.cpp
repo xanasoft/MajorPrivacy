@@ -31,6 +31,12 @@ struct SAlpcPortClient
 		//	SizeofPortMsg += sizeof(ULONG) * 4;
     }
 
+	static DWORD __stdcall ThreadStub(void* param)
+	{
+		((CAlpcPortClient*)param)->RunThread();
+		return 0;
+	}
+
     HANDLE PortHandle;
 
 	DWORD dwServerPid = 0;
@@ -38,21 +44,33 @@ struct SAlpcPortClient
 	ULONG MaxDataLen = 0;
 	ULONG SizeofPortMsg = 0;
 	ULONG CallSeqNumber = 0;
+	std::mutex Mutex;
 
 	std::wstring PortName;
+
+	volatile HANDLE hThread = NULL;
+
+	VOID(NTAPI* Callback)(const CBuffer& buff, PVOID Param);
+	PVOID Param;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CAlpcPortClient
 //
 
-CAlpcPortClient::CAlpcPortClient() 
+CAlpcPortClient::CAlpcPortClient(VOID (NTAPI* Callback)(const CBuffer& buff, PVOID Param), PVOID Param) 
 {
     m = new SAlpcPortClient;
+
+	m->Callback = Callback;
+	m->Param = Param;
+
 }
 
 CAlpcPortClient::~CAlpcPortClient() 
 {
+	Disconnect();
+
     delete m;
 }
 
@@ -70,47 +88,64 @@ STATUS CAlpcPortClient::Connect()
     if (m->PortHandle)
 		return OK;
 
+	if (m->hThread) {
+		NtClose(m->hThread);
+		m->hThread = NULL;
+	}
+
+	UNICODE_STRING PortName;
+	RtlInitUnicodeString(&PortName, m->PortName.c_str());
+
+	ALPC_PORT_ATTRIBUTES portAttr = { 0 };
+	portAttr.Flags = ALPC_PORFLG_ALLOW_LPC_REQUESTS;
+	portAttr.MaxMessageLength = MAX_PORTMSG_LENGTH;
+	portAttr.MemoryBandwidth = 0;
+	portAttr.MaxPoolUsage = (SIZE_T)-1;
+	portAttr.MaxSectionSize = 0;
+	portAttr.MaxViewSize = 0;
+	portAttr.MaxTotalSectionSize = 0;
+	portAttr.DupObjectTypes = 0;
+
 	SECURITY_QUALITY_OF_SERVICE QoS;
 	QoS.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
 	QoS.ImpersonationLevel = SecurityImpersonation;
 	QoS.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
 	QoS.EffectiveOnly = TRUE;
+	portAttr.SecurityQos = QoS;
 
-	UNICODE_STRING PortName;
-	RtlInitUnicodeString(&PortName, m->PortName.c_str());
-	NTSTATUS status = NtConnectPort(&m->PortHandle, &PortName, &QoS, NULL, NULL, &m->MaxDataLen, NULL, NULL);
+	// ALPC requires a connection message buffer even for simple connections
+	UCHAR ConnMsgBuffer[sizeof(PORT_MESSAGE)];
+	PORT_MESSAGE* ConnMsg = (PORT_MESSAGE*)ConnMsgBuffer;
+	memset(ConnMsg, 0, sizeof(PORT_MESSAGE));
+	ConnMsg->u1.s1.TotalLength = (USHORT)sizeof(PORT_MESSAGE);
+	ConnMsg->u1.s1.DataLength = 0;
+
+	SIZE_T BufferLength = sizeof(PORT_MESSAGE);
+	HANDLE PortHandle;
+	NTSTATUS status = NtAlpcConnectPort(&PortHandle, &PortName, NULL, &portAttr, ALPC_MSGFLG_SYNC_REQUEST, NULL, ConnMsg, &BufferLength, NULL, NULL, NULL);
 	if (!NT_SUCCESS(status))
-		return ERR(status); // 2203
-	m->MaxDataLen -= m->SizeofPortMsg;
+		return ERR(status);
+	m->PortHandle = PortHandle;
+	m->MaxDataLen = (ULONG)portAttr.MaxMessageLength - m->SizeofPortMsg;
 
-	// Function associate PortHandle with thread, and sends LPC_TERMINATION_MESSAGE to specified port immediately after call NtTerminateThread.
-	//NtRegisterThreadTerminatePort(m->PortHandle);
+	m->dwServerPid = (DWORD)(UINT_PTR)ConnMsg->ClientId.UniqueProcess;
 
-	// Get PID
-	CBuffer sendBuff;
-	sendBuff.WriteData(NULL, sizeof(MSG_HEADER)); // make room for header, pointer points after the header
-	PMSG_HEADER reqHeader = (PMSG_HEADER)sendBuff.GetBuffer();
-	reqHeader->MessageId = -1;
-	reqHeader->Size = sizeof(MSG_HEADER);
+	DWORD idThread;
+	m->hThread = CreateThread(NULL, 0, SAlpcPortClient::ThreadStub, this, 0, &idThread);
 
-	CBuffer recvBuff;
-	recvBuff.WriteData(NULL, sizeof(MSG_HEADER) + sizeof(uint32));
-	PMSG_HEADER resHeader = (PMSG_HEADER)recvBuff.GetBuffer();
-	
-	if (NT_SUCCESS(Call(sendBuff, recvBuff, NULL)))
-	{
-		if (NT_SUCCESS(resHeader->Status)) {
-			recvBuff.SetPosition(sizeof(MSG_HEADER));
-			m->dwServerPid = recvBuff.ReadValue<uint32>();
-		}
-	}
-	//
-
-    return Status;	    
+    return Status;
 }
 
 void CAlpcPortClient::Disconnect() 
 { 
+	HANDLE hThread = InterlockedExchangePointer(&m->hThread, NULL);
+	if (hThread)
+	{
+		if (WaitForSingleObject(hThread, 5000) == WAIT_TIMEOUT)
+			TerminateThread(hThread, 0);
+		NtClose(hThread);
+	}
+
     if (m->PortHandle) {
 		NtClose(m->PortHandle);
 		m->PortHandle = NULL;
@@ -136,6 +171,8 @@ STATUS CAlpcPortClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff, SCallPa
 			return ERR(STATUS_PORT_CONNECTION_REFUSED);
 	}
 
+	NTSTATUS status;
+
 	UCHAR RequestBuff[MAX_PORTMSG_LENGTH];
 	PORT_MESSAGE* ReqHeader = (PORT_MESSAGE*)RequestBuff;
 	UCHAR* ReqData = RequestBuff + m->SizeofPortMsg;
@@ -144,7 +181,9 @@ STATUS CAlpcPortClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff, SCallPa
 	PORT_MESSAGE* ResHeader = (PORT_MESSAGE*)ResponseBuff;
 	UCHAR* ResData = ResponseBuff + m->SizeofPortMsg;
 
-	UCHAR CurSeqNumber = (UCHAR)m->CallSeqNumber++;
+	ULONG CurSeqNumber = m->CallSeqNumber++;
+
+	std::unique_lock lock(m->Mutex); // since a message may be sent in multiple chunks, we need to lock the port for the duration of the call
 
 	// Send the request in chunks
 	UCHAR* Buffer = (UCHAR*)sendBuff.GetBuffer();
@@ -163,60 +202,54 @@ STATUS CAlpcPortClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff, SCallPa
 
 		// use highest byte of the length as sequence field
 		if (Buffer == (UCHAR*)sendBuff.GetBuffer())
-			ReqData[3] = CurSeqNumber;
+			((PORT_MSG_HEADER*)ReqData)->Sequence = CurSeqNumber;
 
 		// advance position
 		Buffer += send_len;
 		BuffLen -= send_len;
 
-		NTSTATUS status = NtRequestWaitReplyPort(m->PortHandle, (PORT_MESSAGE*)RequestBuff, (PORT_MESSAGE*)ResponseBuff);
+		SIZE_T RecvBufferLength = MAX_PORTMSG_LENGTH;
+		status = NtAlpcSendWaitReceivePort(m->PortHandle, ALPC_MSGFLG_SYNC_REQUEST, (PORT_MESSAGE*)RequestBuff, NULL, (PORT_MESSAGE*)ResponseBuff, &RecvBufferLength, NULL, NULL);
 
 		if (!NT_SUCCESS(status))
 		{
 			NtClose(m->PortHandle);
 			m->PortHandle = NULL;
 			return ERR(STATUS_UNSUCCESSFUL);
-			//return SB_ERR(SB_ServiceFail, QVariantList() << QString("request %1").arg(status, 8, 16), status); // 2203
 		}
 
 		if (BuffLen && ResHeader->u1.s1.DataLength)
 			return ERR(STATUS_UNSUCCESSFUL);
-			//return SB_ERR(SB_ServiceFail, QVariantList() << QString("early reply")); // 2203
 	}
 
-	// the last call to NtRequestWaitReplyPort should return the first chunk of the reply
-	if (ResHeader->u1.s1.DataLength >= sizeof(MSG_HEADER))
+	// the last call should return the first chunk of the reply
+	if (ResHeader->u1.s1.DataLength >= GetHeaderSize())
 	{
-		if (ResData[3] != CurSeqNumber)
+		if (((PORT_MSG_HEADER*)ReqData)->Sequence != CurSeqNumber)
 			return ERR(STATUS_UNSUCCESSFUL);
-			//return SB_ERR(SB_ServiceFail, QVariantList() << QString("mismatched reply")); // 2203
 
-		// clear highest byte of the size field
-		ResData[3] = 0;
-		BuffLen = ((MSG_HEADER*)ResData)->Size;
+		BuffLen = ((PORT_MSG_HEADER*)ResData)->h.Size;
 	}
 	else
 		BuffLen = 0;
 	if (BuffLen == 0)
 		return ERR(STATUS_UNSUCCESSFUL);
-		//return SB_ERR(SB_ServiceFail, QVariantList() << QString("null reply (msg %1 len %2)").arg(req->msgid, 8, 16).arg(req->length)); // 2203
 
 	// read remaining chunks
 	recvBuff.SetSize(BuffLen, true);
 	Buffer = (UCHAR*)recvBuff.GetBuffer();
 	for (;;)
 	{
-		NTSTATUS status;
-		if ((ULONG)ResHeader->u1.s1.DataLength > BuffLen)
+		if ((USHORT)ResHeader->u1.s1.DataLength > BuffLen)
 			status = STATUS_PORT_MESSAGE_TOO_LONG;
 		else
 		{
 			// get data
-			memcpy(Buffer, ResData, ResHeader->u1.s1.DataLength);
+			memcpy(Buffer, ResData, (USHORT)ResHeader->u1.s1.DataLength);
 
-			// adcance position
-			Buffer += ResHeader->u1.s1.DataLength;
-			BuffLen -= ResHeader->u1.s1.DataLength;
+			// advance position
+			Buffer += (USHORT)ResHeader->u1.s1.DataLength;
+			BuffLen -= (USHORT)ResHeader->u1.s1.DataLength;
 
 			// are we done yet?
 			if (!BuffLen)
@@ -226,7 +259,8 @@ STATUS CAlpcPortClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff, SCallPa
 			memset(ReqHeader, 0, m->SizeofPortMsg);
 			ReqHeader->u1.s1.TotalLength = (USHORT)m->SizeofPortMsg;
 
-			status = NtRequestWaitReplyPort(m->PortHandle, (PORT_MESSAGE*)RequestBuff, (PORT_MESSAGE*)ResponseBuff);
+			SIZE_T RecvBufferLength = MAX_PORTMSG_LENGTH;
+			status = NtAlpcSendWaitReceivePort(m->PortHandle, ALPC_MSGFLG_SYNC_REQUEST, (PORT_MESSAGE*)RequestBuff, NULL, (PORT_MESSAGE*)ResponseBuff, &RecvBufferLength, NULL, NULL);
 		}
 
 		if (!NT_SUCCESS(status))
@@ -235,10 +269,81 @@ STATUS CAlpcPortClient::Call(const CBuffer& sendBuff, CBuffer& recvBuff, SCallPa
 
 			NtClose(m->PortHandle);
 			m->PortHandle = NULL;
-			//return SB_ERR(SB_ServiceFail, QVariantList() << QString("reply %1").arg(status, 8, 16), status); // 2203
 			return ERR(STATUS_UNSUCCESSFUL);
 		}
 	}
 
 	return OK;
+}
+
+void CAlpcPortClient::RunThread()
+{
+	CBuffer recvBuff;
+	UCHAR* Buffer = nullptr;
+	ULONG  BuffLen = 0;
+	NTSTATUS status;
+
+	UCHAR Buff[MAX_PORTMSG_LENGTH];
+	PORT_MESSAGE* Header = (PORT_MESSAGE*)Buff;
+	UCHAR* Data = Buff + m->SizeofPortMsg;
+
+	while (m->hThread)
+	{
+		SIZE_T BufferLength = MAX_PORTMSG_LENGTH;
+
+		status = NtAlpcSendWaitReceivePort(m->PortHandle, 0, NULL, NULL, Header, &BufferLength, NULL, NULL);
+
+		if (!NT_SUCCESS(status))
+			continue;
+
+		// new message?
+		if (BuffLen == 0)
+		{
+			if ((USHORT)Header->u1.s1.DataLength >= GetHeaderSize())
+			{
+				BuffLen = ((PORT_MSG_HEADER*)Data)->h.Size;
+				recvBuff.SetPosition(0);
+				recvBuff.SetSize(BuffLen, true);
+				Buffer = (UCHAR*)recvBuff.GetBuffer();
+			}
+			else
+			{
+				NtAlpcSendWaitReceivePort(m->PortHandle, ALPC_MSGFLG_RELEASE_MESSAGE, Header, NULL, NULL, NULL, NULL, NULL);
+				continue;
+			}
+		}
+
+		if ((USHORT)Header->u1.s1.DataLength > BuffLen)
+		{
+			NtAlpcSendWaitReceivePort(m->PortHandle, ALPC_MSGFLG_RELEASE_MESSAGE, Header, NULL, NULL, NULL, NULL, NULL);
+			BuffLen = 0;
+			Buffer = nullptr;
+			continue;
+		}
+
+		// get data
+		memcpy(Buffer, Data, (USHORT)Header->u1.s1.DataLength);
+		// advance position
+		Buffer += (USHORT)Header->u1.s1.DataLength;
+		BuffLen -= (USHORT)Header->u1.s1.DataLength;
+
+		// release message
+		NtAlpcSendWaitReceivePort(m->PortHandle, ALPC_MSGFLG_RELEASE_MESSAGE, Header, NULL, NULL, NULL, NULL, NULL);
+
+		// are we done yet?
+		if (BuffLen > 0)
+			continue;
+
+		PORT_MSG_HEADER* msg = (PORT_MSG_HEADER*)recvBuff.GetBuffer();
+
+		if (msg->Sequence == -1)
+		{
+			if (m->Callback)
+				m->Callback(recvBuff, m->Param);
+		}
+
+		// reset
+		Buffer = nullptr;
+		BuffLen = 0;
+	}
 }

@@ -8,6 +8,9 @@ CVolume::CVolume(QObject* parent)
 
 QString CVolume::GetStatusStr() const
 {
+	if (!m_BusyStatus.isEmpty())
+		return m_BusyStatus;
+
 	switch (m_Status) {
 	case eUnmounted:		return tr("Unmounted Volume");
 	case eMounted:			return tr("Mounted Volume");
@@ -36,6 +39,9 @@ void CVolume::SetImagePath(const QString& ImagePath)
 	((__int64*)&Guid)[0] = ((__int64*)Hash.constData())[0] ^ ((__int64*)Hash.constData())[2];
 	((__int64*)&Guid)[1] = ((__int64*)Hash.constData())[1] ^ ((__int64*)Hash.constData())[3];
 	m_Guid.SetRegularGuid(&Guid);
+
+	QFileInfo FI(m_ImagePath);
+	m_VolumeSize = FI.size();
 }
 
 void CVolume::SetMounted(bool Mounted)
@@ -46,7 +52,9 @@ void CVolume::SetMounted(bool Mounted)
 	{
 		m_MountPoint.clear();
 		m_DevicePath.clear();
-		m_VolumeSize = 0;
+		
+		QFileInfo FI(m_ImagePath);
+		m_VolumeSize = FI.size();
 	}
 }
 

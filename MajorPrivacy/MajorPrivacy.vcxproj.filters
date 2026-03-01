@@ -475,6 +475,9 @@
     <ClCompile Include="Wizards\SetupWizard.cpp">
       <Filter>Wizards</Filter>
     </ClCompile>
+    <ClCompile Include="Wizards\VolumeWizard.cpp">
+      <Filter>Wizards</Filter>
+    </ClCompile>
     <ClCompile Include="Windows\ScriptWindow.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
@@ -534,6 +537,9 @@
     </ClCompile>
     <ClCompile Include="Windows\ItemPicker.cpp">
       <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="MajorPrivacyConfig.cpp">
+      <Filter>GUI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -944,6 +950,9 @@
       <Filter>Common</Filter>
     </QtMoc>
     <QtMoc Include="Wizards\SetupWizard.h">
+      <Filter>Wizards</Filter>
+    </QtMoc>
+    <QtMoc Include="Wizards\VolumeWizard.h">
       <Filter>Wizards</Filter>
     </QtMoc>
     <QtMoc Include="Windows\ScriptWindow.h">

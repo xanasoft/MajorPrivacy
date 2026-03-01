@@ -138,4 +138,3 @@ protected:
 
 typedef QSharedPointer<CProgramItem> CProgramItemPtr;
 typedef QWeakPointer<CProgramItem> CProgramItemRef;
-

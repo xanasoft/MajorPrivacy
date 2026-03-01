@@ -232,6 +232,12 @@
     <ClInclude Include="Common\dirent.h" />
     <ClInclude Include="Common\helpers.h" />
     <ClInclude Include="CryptoIO.h" />
+    <ClInclude Include="dc\crypto\Argon2\argon2.h" />
+    <ClInclude Include="dc\crypto\Argon2\blake2\blake2-impl.h" />
+    <ClInclude Include="dc\crypto\Argon2\blake2\blake2b.h" />
+    <ClInclude Include="dc\crypto\Argon2\blake2\blamka-round-opt.h" />
+    <ClInclude Include="dc\crypto\Argon2\blake2\blamka-round-ref.h" />
+    <ClInclude Include="dc\crypto\Argon2\core.h" />
     <ClInclude Include="dc\crypto_fast\aes_asm.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
@@ -352,6 +358,13 @@
   <ItemGroup>
     <ClCompile Include="Common\helpers.cpp" />
     <ClCompile Include="CryptoIO.cpp" />
+    <ClCompile Include="dc\crypto\Argon2\argon2.c" />
+    <ClCompile Include="dc\crypto\Argon2\blake2\blake2b.c" />
+    <ClCompile Include="dc\crypto\Argon2\core.c" />
+    <ClCompile Include="dc\crypto\Argon2\opt_avx2.c" />
+    <ClCompile Include="dc\crypto\Argon2\opt_sse2.c" />
+    <ClCompile Include="dc\crypto\Argon2\ref.c" />
+    <ClCompile Include="dc\crypto\Argon2\selftest.c" />
     <ClCompile Include="dc\crypto_fast\aes_key.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>

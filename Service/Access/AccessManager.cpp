@@ -306,7 +306,7 @@ void CAccessManager::UpdateRule(const CAccessRulePtr& pRule, const CFlexGuid& Gu
 			pOldRule = F->second;
 	}
 
-	if (pRule && pOldRule && pRule->GetProgramPath() == pOldRule->GetProgramPath()) // todo
+	if (pRule && pOldRule && pRule->GetProgramPath() == pOldRule->GetProgramPath()) // todo to lower?
 		pOldRule->Update(pRule);
 	else {  // when the rule changes the programs it applyes to we remove it and tehn add it
 		if (pOldRule) RemoveRuleUnsafe(pOldRule);
@@ -318,6 +318,8 @@ void CAccessManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEven
 {
 	ASSERT(Type == EConfigGroup::eAccessRules);
 
+	ELogLevels Level = ELogLevels::eNone;
+	std::wstring Name;
 	if(Event == EConfigEvent::eAllChanged)
 		LoadRules();
 	else
@@ -339,18 +341,32 @@ void CAccessManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEven
 		CAccessRulePtr pRule2 = pRule;
 		if (Event == EConfigEvent::eRemoved)
 			pRule2 = GetRule(Guid);
-		if (pRule2)
+		if (pRule2) {
 			theCore->VolumeManager()->UpdateAccessRule(pRule2, Event, PID);
+			Name = pRule2->GetName();
+			if (pRule2->IsVolumeRule() || pRule2->IsTemporary())
+				Level = ELogLevels::eInfo;
+		}
 
 		UpdateRule(pRule, Guid);
 	}
 
 	StVariant vEvent;
 	vEvent[API_V_GUID] = Guid.ToVariant(false);
-	//vEvent[API_V_NAME] = ;
+	vEvent[API_V_NAME] = Name;
 	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_RES_RULE_CHANGED, vEvent);
+
+	StVariant Data;
+	Data[API_V_GUID] = Guid.ToVariant(false);
+	Data[API_V_NAME] = Name;
+	switch (Event)
+	{
+	case EConfigEvent::eAdded:		theCore->EmitEvent(Level, eLogResRuleAdded, Data); break;
+	case EConfigEvent::eModified:	theCore->EmitEvent(Level, eLogResRuleModified, Data); break;
+	case EConfigEvent::eRemoved:	theCore->EmitEvent(Level, eLogResRuleRemoved, Data); break;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

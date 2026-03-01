@@ -55,6 +55,8 @@ struct SEtwEventMonitor
 	krabs::kernel::process_provider proc_provider;
 	krabs::kernel::network_tcpip_provider tcp_provider;
 	krabs::kernel::network_udpip_provider udp_provider;
+	//krabs::kernel::file_init_io_provider file_init_provider;
+	//krabs::kernel::file_io_provider file_io_provider;
 	std::shared_ptr<std::thread> kernel_thread;
 
 #ifdef USE_ETW_FILE_IO
@@ -459,6 +461,159 @@ bool CEtwEventMonitor::Init()
 		m->kernel_trace->enable(m->tcp_provider);
 		m->kernel_trace->enable(m->udp_provider);
 	}
+
+	/*if (1)
+	{
+		m->file_init_provider.add_on_event_callback([&](const EVENT_RECORD& record, const krabs::trace_context& trace_context) {
+			//qDebug() << "process event";
+			krabs::schema schema(record, trace_context.schema_locator);
+
+			if (schema.event_id() != 0)
+				return;
+
+			krabs::parser parser(schema);
+
+			std::wostringstream info;
+			info << L"Event " << schema.opcode_name() << " :\n ";
+
+			krabs::property_iterator PI = parser.properties();
+			for (std::vector<krabs::property>::iterator I = PI.begin(); I != PI.end(); ++I)
+			{
+				const auto& prop = *I;
+
+				info << L"\t " << I->name() << L":";
+
+				bool ok = false;
+
+				try{
+				switch (prop.type())
+				{
+					// Strings
+				case TDH_INTYPE_UNICODESTRING:
+					info << parser.parse<std::wstring>(prop.name());
+					break;
+				case TDH_INTYPE_ANSISTRING:
+					info << charArrayToWString(parser.parse<std::string>(prop.name()).c_str());
+					break;
+
+					// Unsigned integers
+				case TDH_INTYPE_UINT8:   info << +parser.parse<std::uint8_t>(prop.name());  break;
+				case TDH_INTYPE_UINT16:  info << parser.parse<std::uint16_t>(prop.name());  break;
+				case TDH_INTYPE_UINT32:  info << parser.parse<std::uint32_t>(prop.name());  break;
+				case TDH_INTYPE_UINT64:  info << parser.parse<std::uint64_t>(prop.name());  break;
+
+					// Signed integers
+				case TDH_INTYPE_INT8:    info << +parser.parse<std::int8_t>(prop.name());   break;
+				case TDH_INTYPE_INT16:   info << parser.parse<std::int16_t>(prop.name());   break;
+				case TDH_INTYPE_INT32:   info << parser.parse<std::int32_t>(prop.name());   break;
+				case TDH_INTYPE_INT64:   info << parser.parse<std::int64_t>(prop.name());   break;
+
+					// Pointer-sized / pointer-like
+				case TDH_INTYPE_POINTER:
+				{
+					info << L"0x" << std::hex << (std::uintptr_t)parser.parse<void*>(prop.name());
+					break;
+				}
+
+				// GUID / FILETIME are common in ETW, handle if you need them
+				// case TDH_INTYPE_GUID: { auto g = parser.parse<GUID>(prop.name()); ... } break;
+				// case TDH_INTYPE_FILETIME: { auto ft = parser.parse<FILETIME>(prop.name()); ... } break;
+
+				default:
+					// Fallback: don’t throw; just print type and maybe attempt a safe representation
+					info << L"(unhandled type " << prop.type() << L")";
+					break;
+				}
+				} catch (...) {}
+
+				info << L"\n ";
+			}
+
+			DbgPrint(L"%s\n", info.str().c_str());
+
+			//std::unique_lock<std::mutex> Lock(m->Mutex);
+			//for (auto Handler : m->ProcessHandlers)
+			//	Handler(&Event);
+		});
+		m->kernel_trace->enable(m->file_init_provider);
+	}*/
+
+	/*if (1)
+	{
+		m->file_io_provider.add_on_event_callback([&](const EVENT_RECORD& record, const krabs::trace_context& trace_context) {
+			//qDebug() << "process event";
+			krabs::schema schema(record, trace_context.schema_locator);
+
+			if (schema.event_id() != 0)
+				return;
+
+
+			krabs::parser parser(schema);
+
+			std::wostringstream info;
+			info << L"Event:\n ";
+
+			krabs::property_iterator PI = parser.properties();
+			for (std::vector<krabs::property>::iterator I = PI.begin(); I != PI.end(); ++I)
+			{
+				const auto& prop = *I;
+
+				info << L"\t " << I->name() << L":";
+
+				bool ok = false;
+
+				try{
+					switch (prop.type())
+					{
+						// Strings
+					case TDH_INTYPE_UNICODESTRING:
+						info << parser.parse<std::wstring>(prop.name());
+						break;
+					case TDH_INTYPE_ANSISTRING:
+						info << charArrayToWString(parser.parse<std::string>(prop.name()).c_str());
+						break;
+
+						// Unsigned integers
+					case TDH_INTYPE_UINT8:   info << +parser.parse<std::uint8_t>(prop.name());  break;
+					case TDH_INTYPE_UINT16:  info << parser.parse<std::uint16_t>(prop.name());  break;
+					case TDH_INTYPE_UINT32:  info << parser.parse<std::uint32_t>(prop.name());  break;
+					case TDH_INTYPE_UINT64:  info << parser.parse<std::uint64_t>(prop.name());  break;
+
+						// Signed integers
+					case TDH_INTYPE_INT8:    info << +parser.parse<std::int8_t>(prop.name());   break;
+					case TDH_INTYPE_INT16:   info << parser.parse<std::int16_t>(prop.name());   break;
+					case TDH_INTYPE_INT32:   info << parser.parse<std::int32_t>(prop.name());   break;
+					case TDH_INTYPE_INT64:   info << parser.parse<std::int64_t>(prop.name());   break;
+
+						// Pointer-sized / pointer-like
+					case TDH_INTYPE_POINTER:
+					{
+						info << L"0x" << std::hex << (std::uintptr_t)parser.parse<void*>(prop.name());
+						break;
+					}
+
+					// GUID / FILETIME are common in ETW, handle if you need them
+					// case TDH_INTYPE_GUID: { auto g = parser.parse<GUID>(prop.name()); ... } break;
+					// case TDH_INTYPE_FILETIME: { auto ft = parser.parse<FILETIME>(prop.name()); ... } break;
+
+					default:
+						// Fallback: don’t throw; just print type and maybe attempt a safe representation
+						info << L"(unhandled type " << prop.type() << L")";
+						break;
+					}
+				} catch (...) {}
+
+				info << L"\n ";
+			}
+
+			DbgPrint(L"%s\n", info.str().c_str());
+
+			//std::unique_lock<std::mutex> Lock(m->Mutex);
+			//for (auto Handler : m->ProcessHandlers)
+			//	Handler(&Event);
+			});
+		m->kernel_trace->enable(m->file_io_provider);
+	}*/
 
 	if (m->DnsHandlers.size() > 0)
 	{

@@ -113,6 +113,36 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 		ui.chkLockdown->setVisible(false);
 	}
 
+	// Argon2 settings - visible when mounting or changing password
+	connect(ui.chkUseArgon2, &QCheckBox::toggled, this, [&](bool checked) {
+		ui.spinArgon2Cost->setEnabled(checked);
+	});
+	ui.spinArgon2Cost->setEnabled(false);
+	ui.spinArgon2Cost->setMinimum(1);
+	ui.spinArgon2Cost->setMaximum(100);
+	ui.spinArgon2Cost->setValue(12);
+
+	// New Argon2 settings - only visible when changing password
+	connect(ui.chkNewUseArgon2, &QCheckBox::toggled, this, [&](bool checked) {
+		ui.spinNewArgon2Cost->setEnabled(checked);
+	});
+	ui.spinNewArgon2Cost->setEnabled(false);
+	ui.spinNewArgon2Cost->setMinimum(1);
+	ui.spinNewArgon2Cost->setMaximum(100);
+	ui.spinNewArgon2Cost->setValue(12);
+
+	// Current Argon2: visible for eMount, eChange, and eGetPW (for backup/restore header)
+	if (m_Action != eMount && m_Action != eChange && m_Action != eGetPW) {
+		ui.chkUseArgon2->setVisible(false);
+		ui.spinArgon2Cost->setVisible(false);
+	}
+
+	// New Argon2: only visible for eChange
+	if (m_Action != eChange) {
+		ui.chkNewUseArgon2->setVisible(false);
+		ui.spinNewArgon2Cost->setVisible(false);
+	}
+
 	restoreGeometry(theConf->GetBlob("VolumeWindow/Window_Geometry"));
 
 	// Adjust the size of the dialog

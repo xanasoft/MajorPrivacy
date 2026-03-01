@@ -857,7 +857,7 @@ void CImageSignInfo::ReadMValue(const SVarName& Name, const XVariant& Data)
 	//	else if (HashStatus == API_S_CERT_STATUS_FAIL)		m_HashStatus = EHashStatus::eHashFail;
 	//	else if (HashStatus == API_S_CERT_STATUS_DUMMY)		m_HashStatus = EHashStatus::eHashDummy;
 	//	else if (HashStatus == API_S_CERT_STATUS_NONE)		m_HashStatus = EHashStatus::eHashNone;
-	//	else // fallback todo remove
+	//	else // fallback
 	//		m_HashStatus = (EHashStatus)Data.To<uint8>();
 	//}
 

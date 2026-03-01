@@ -37,8 +37,9 @@ public:
 	//void SetData(uint32 Index, const StVariant& Value)	{ std::unique_lock Lock(m_Mutex); m_Data[Index] = Value; }
 	//StVariant GetData(uint32 Index) const				{ std::shared_lock Lock(m_Mutex); return m_Data.Get(Index); }
 
-
 	void Update(const std::shared_ptr<CGenericRule>& Rule);
+
+	virtual bool IsVolumeRule() const;
 
 	virtual StVariant ToVariant(const SVarWriteOpt& Opts) const;
 	virtual NTSTATUS FromVariant(const StVariant& Rule);

@@ -17,6 +17,7 @@ public:
 	CFlexGuid();
 	CFlexGuid(const std::wstring& Str) { FromWString(Str); }
 	CFlexGuid(const std::string& Str) { FromString(Str); }
+	CFlexGuid(uint64 uValue) { FromUInt(uValue, 0); }
 	CFlexGuid(const CFlexGuid& Other) { *this = Other; }
 	CFlexGuid(CFlexGuid&& Other); // move constructor
 	CFlexGuid(const FW::CVariant& Variant) { FromVariant(Variant); }
@@ -33,6 +34,7 @@ public:
 	void			SetRegularGuid(const SGuid* pGuid);
 	SGuid*			GetRegularGuid() const;
 
+	void			FromUInt(uint64 uHigh, uint64 uLow);
 	void			FromWString(const std::wstring& Str) { FromWString(Str.c_str(), Str.size()); }
 	std::wstring	ToWString() const;
 	void			FromString(const std::string& Str) { FromAString(Str.c_str(), Str.size()); }

@@ -188,16 +188,16 @@ bool CPackageList::LoadFromCache()
         StVariant Package = List[i];
         SPackagePtr pAppPackage = SPackagePtr(new SPackage());
 
-        pAppPackage->PackageFullName = Package["FullName"].ToWString(); // todo: fix-me shoudl work without ToWString
-        pAppPackage->PackageSid = Package["Sid"].ToWString();
+        pAppPackage->PackageFullName = Package["FullName"];
+        pAppPackage->PackageSid = Package["Sid"];
 
-        pAppPackage->PackageName = Package["Name"].ToWString();
-        pAppPackage->PackageFamilyName = Package["FamilyName"].ToWString();
-        pAppPackage->PackageVersion = Package["Version"].ToWString();
+        pAppPackage->PackageName = Package["Name"];
+        pAppPackage->PackageFamilyName = Package["FamilyName"];
+        pAppPackage->PackageVersion = Package["Version"];
 
-        pAppPackage->PackageInstallPath = Package["InstallPath"].ToWString();
-        pAppPackage->PackageDisplayName = Package["DisplayName"].ToWString();
-        pAppPackage->SmallLogoPath = Package["LogoPath"].ToWString();
+        pAppPackage->PackageInstallPath = Package["InstallPath"];
+        pAppPackage->PackageDisplayName = Package["DisplayName"];
+        pAppPackage->SmallLogoPath = Package["LogoPath"];
 
         m_List.insert(std::make_pair(pAppPackage->PackageFullName, pAppPackage));
         theCore->ProgramManager()->AddPackage(pAppPackage);

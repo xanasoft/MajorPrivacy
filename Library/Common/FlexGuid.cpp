@@ -207,6 +207,17 @@ bool CFlexGuid__IsAscii(const wchar_t* pStr, size_t uLen)
 	return true;
 }
 
+void CFlexGuid::FromUInt(uint64 uHigh, uint64 uLow)
+{
+    Clear();
+    m_Type = Regular;
+    m_LowerCaseMask = 0;
+    for (int i = 0; i < 8; i++)
+        m_Data[i] = (unsigned char)((uHigh >> (56 - i * 8)) & 0xFF);
+    for (int i = 0; i < 8; i++)
+		m_Data[8 + i] = (unsigned char)((uLow >> (56 - i * 8)) & 0xFF);
+}
+
 void CFlexGuid::FromWString(const wchar_t* pStr, size_t uLen, bool bIgnoreCase)
 {
     Clear();

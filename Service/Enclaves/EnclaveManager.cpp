@@ -124,6 +124,8 @@ void CEnclaveManager::OnEnclaveChanged(const CFlexGuid& Guid, enum class EConfig
 {
 	ASSERT(Type == EConfigGroup::eEnclaves);
 
+	ELogLevels Level = ELogLevels::eNone;
+	std::wstring Name;
 	if(Event == EConfigEvent::eAllChanged)
 		LoadEnclaves();
 	else
@@ -143,8 +145,12 @@ void CEnclaveManager::OnEnclaveChanged(const CFlexGuid& Guid, enum class EConfig
 		CEnclavePtr pEnclave2 = pEnclave;
 		if (Event == EConfigEvent::eRemoved)
 			pEnclave2 = GetEnclave(Guid);
-		if (pEnclave2)
+		if (pEnclave2) {
 			theCore->VolumeManager()->UpdateEnclave(pEnclave2, Event, PID);
+			Name = pEnclave2->GetName();
+			if (!pEnclave2->GetVolumeGuid().IsNull())
+				Level = ELogLevels::eInfo;
+		}
 
 		std::unique_lock Lock(m_Mutex);
 
@@ -165,8 +171,18 @@ void CEnclaveManager::OnEnclaveChanged(const CFlexGuid& Guid, enum class EConfig
 
 	StVariant vEvent;
 	vEvent[API_V_GUID] = Guid.ToVariant(false);
-	//vEvent[API_V_NAME] = ;
+	vEvent[API_V_NAME] = Name;
 	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_ENCLAVE_CHANGED, vEvent);
+
+	StVariant Data;
+	Data[API_V_GUID] = Guid.ToVariant(false);
+	Data[API_V_NAME] = Name;
+	switch (Event)
+	{
+	case EConfigEvent::eAdded:		theCore->EmitEvent(Level, eLogSecureEnclaveAdded, Data); break;
+	case EConfigEvent::eModified:	theCore->EmitEvent(Level, eLogSecureEnclaveModified, Data); break;
+	case EConfigEvent::eRemoved:	theCore->EmitEvent(Level, eLogSecureEnclaveRemoved, Data); break;
+	}
 }

@@ -335,6 +335,8 @@ int CImDiskIO::DoComm()
 
 		m->hImDisk = pi.hProcess;
 		m_hThread = CreateThread(NULL, 0, CImDiskIO_Thread, m, 0, NULL);
+        if(m_hThread)
+            SetThreadPriority(m_hThread, THREAD_PRIORITY_TIME_CRITICAL);
 		m = NULL;
 	} 
 	else {

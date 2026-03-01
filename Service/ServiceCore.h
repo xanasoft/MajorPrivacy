@@ -10,6 +10,8 @@
 #include "../../Framework/Core/MemoryPool.h"
 #include "JSEngine/JSEngine.h"
 #include "../Library/Common/FlexGuid.h"
+#include "../Library/IPC/PipeServer.h"
+#include "../Library/IPC/AlpcPortServer.h"
 
 #define DEF_CORE_TIMER_INTERVAL		250
 
@@ -43,8 +45,11 @@ public:
 	class CEventLogger*		Log()					{ return m_pSysLog; }
 	void EmitEvent(ELogLevels Level, int Type, const StVariant& Data);
 
-	class CPipeServer*		UserPipe()				{ return m_pUserPipe; }
+#ifdef USE_ALPC
 	class CAlpcPortServer*	UserPort()				{ return m_pUserPort; }
+#else
+	class CPipeServer*		UserPipe()				{ return m_pUserPipe; }
+#endif
 
 	class CEnclaveManager*	EnclaveManager()		{ return m_pEnclaveManager; }
 
@@ -120,9 +125,11 @@ protected:
 
 	void OnTimer();
 
+	void OnDriverChanged(const std::wstring& Guid, enum class EConfigEvent Event, enum class EConfigGroup Type, uint64 PID);
+
 	void RegisterUserAPI();
-	void OnClient(uint32 uEvent, struct SPipeClientInfo& pClient);
-	uint32 OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, const struct SPipeClientInfo& pClient);
+	void OnClient(uint32 uEvent, struct SClientInfo& pClient);
+	uint32 OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, const struct SClientInfo& pClient);
 
 	static void	DeviceChangedCallback(void* param);
 
@@ -141,8 +148,11 @@ protected:
 	class CEventLogger*		m_pSysLog = NULL;
 	class CEventLog*		m_pEventLog = NULL;
 
-	class CPipeServer*		m_pUserPipe = NULL;
+#ifdef USE_ALPC
 	class CAlpcPortServer*	m_pUserPort = NULL;
+#else
+	class CPipeServer*		m_pUserPipe = NULL;
+#endif
 	
 	class CEnclaveManager*	m_pEnclaveManager = NULL;
 
@@ -184,7 +194,7 @@ protected:
 	typedef std::shared_ptr<SClient> SClientPtr;
 
 	mutable std::recursive_mutex m_ClientsMutex;
-	std::map<uint32, SClientPtr> m_Clients;
+	std::map<uint64, SClientPtr> m_Clients;
 
 	uint64 m_LastStoreTime = 0;
 	uint64 m_LastCheckTime = 0;

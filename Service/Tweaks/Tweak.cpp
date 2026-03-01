@@ -135,13 +135,13 @@ NTSTATUS CAbstractTweak::FromVariant(const class StVariant& Data)
     return STATUS_SUCCESS;
 }
 
-ETweakType CAbstractTweak::ReadType(const StVariant& Data, SVarWriteOpt::EFormat& Format)
+ETweakType CAbstractTweak::ReadType(StVariantReader& Reader, SVarWriteOpt::EFormat& Format)
 {
     ETweakType Type = ETweakType::eUnknown;
-    if (Data.GetType() == VAR_TYPE_MAP)
+    if (Reader.IsMap())
     {
         Format = SVarWriteOpt::eMap;
-        std::string TypeStr = StVariantReader(Data).Find(API_S_TWEAK_TYPE);
+        std::string TypeStr = Reader.Find(API_S_TWEAK_TYPE);
 		if (TypeStr == API_S_TWEAK_TYPE_GROUP) Type = ETweakType::eGroup;
 		else if (TypeStr == API_S_TWEAK_TYPE_SET) Type = ETweakType::eSet;
 		else if (TypeStr == API_S_TWEAK_TYPE_REG) Type = ETweakType::eReg;
@@ -152,10 +152,10 @@ ETweakType CAbstractTweak::ReadType(const StVariant& Data, SVarWriteOpt::EFormat
 		else if (TypeStr == API_S_TWEAK_TYPE_EXEC) Type = ETweakType::eExec;
 		else if (TypeStr == API_S_TWEAK_TYPE_FW) Type = ETweakType::eFw;
     }
-    else if (Data.GetType() == VAR_TYPE_INDEX)
+	else if (Reader.IsIndex())
     {
         Format = SVarWriteOpt::eIndex;
-        Type = (ETweakType)StVariantReader(Data).Find(API_V_TWEAK_TYPE).To<uint32>();
+        Type = (ETweakType)Reader.Find(API_V_TWEAK_TYPE).To<uint32>();
     }
     return Type;
 }

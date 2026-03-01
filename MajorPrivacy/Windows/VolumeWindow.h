@@ -28,6 +28,8 @@ public:
 	bool		UseLockdown() const { return ui.chkLockdown->isChecked(); }
 	void		SetAutoLock(int iSeconds, const QString& Text = "") const;
 	int			GetAutoLock() const { return ui.cmbAutoLock->currentData().toInt(); }
+	int			GetArgon2Cost() const { return ui.chkUseArgon2->isChecked() ? ui.spinArgon2Cost->value() : 0; }
+	int			GetNewArgon2Cost() const { return ui.chkNewUseArgon2->isChecked() ? ui.spinNewArgon2Cost->value() : 0; }
 
 private slots:
 	void		OnShowPassword();

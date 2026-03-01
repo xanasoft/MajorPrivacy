@@ -39,6 +39,12 @@ struct SSection
 	BYTE data[1024];
 };
 
+struct SNewKeySection
+{
+	WCHAR new_pass[DC_MAX_PASSWORD + 1]; // 0 terminated
+	ULONG new_cost;
+};
+
 #define SECTION_MAGIC 'dcsp'
 #define SECTION_PARAM_ID_KEY		0x0001
 #define SECTION_PARAM_ID_DATA		0x0002

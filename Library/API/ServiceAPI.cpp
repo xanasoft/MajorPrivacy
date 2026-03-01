@@ -24,11 +24,9 @@ typedef long NTSTATUS;
 #include "../IPC/PipeClient.h"
 #include "../IPC/AlpcPortClient.h"
 
-//#define USE_ALPC
-
 void CServiceAPI__EmitEvent(CServiceAPI* This, const CBuffer* pEvent)
 {
-	MSG_HEADER* in_msg = (MSG_HEADER*)pEvent->ReadData(sizeof(MSG_HEADER));
+	MSG_HEADER* in_msg = (MSG_HEADER*)pEvent->ReadData(This->GetHeaderSize());
 
 	std::unique_lock<std::mutex> Lock(This->m_EventHandlersMutex);
 
@@ -45,7 +43,7 @@ static VOID NTAPI CServiceAPI__Callback(const CBuffer& buff, PVOID Param)
 CServiceAPI::CServiceAPI()
 {
 #ifdef USE_ALPC
-	m_pClient = new CAlpcPortClient();
+	m_pClient = new CAlpcPortClient(CServiceAPI__Callback, this);
 #else
 	m_pClient = new CPipeClient(CServiceAPI__Callback, this);
 #endif
@@ -241,4 +239,9 @@ STATUS CServiceAPI::DiscardConfigChanges()
 	StVariant ReqVar;
 
 	return Call(SVC_API_DISCARD_CHANGES, ReqVar, NULL);
+}
+
+ULONG CServiceAPI::GetHeaderSize() const 
+{ 
+	return m_pClient->GetHeaderSize(); 
 }

@@ -312,6 +312,12 @@
     <ClInclude Include="Hooking\myasm.h">
       <Filter>Hooking</Filter>
     </ClInclude>
+    <ClInclude Include="IPC\AbstractServer.h">
+      <Filter>IPC</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\ImDiskHelpers.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -574,6 +580,9 @@
     </ClCompile>
     <ClCompile Include="API\API_Preset.cpp">
       <Filter>API</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\ImDiskHelpers.cpp">
+      <Filter>Helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -3,6 +3,8 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/MiscHelpers.h"
 #include "../Library/Helpers/NtUtil.h"
+#include "Enclaves/EnclaveManager.h"
+#include "ServiceCore.h"
 
 CGenericRule::CGenericRule(const CProgramID& ID)
 {
@@ -64,6 +66,21 @@ void CGenericRule::Update(const std::shared_ptr<CGenericRule>& Rule)
 	m_Description = Rule->m_Description;
 
     m_Data = Rule->m_Data;
+}
+
+bool CGenericRule::IsVolumeRule() const
+{
+    if(m_Enclave.IsNull())
+        return false;
+
+    CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(m_Enclave);
+    if (pEnclave && pEnclave->IsVolumeEnclave()) {
+        //if (pVolumeGuid)
+        //    *pVolumeGuid = pEnclave->GetVolumeGuid();
+        return true;
+    }
+
+    return false;
 }
 
 StVariant CGenericRule::ToVariant(const SVarWriteOpt& Opts) const

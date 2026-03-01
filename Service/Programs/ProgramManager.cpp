@@ -44,7 +44,7 @@ CProgramManager::~CProgramManager()
 	delete m_InstallationList;
 	delete m_PackageList;
 
-#ifdef _DEBUG
+/*#ifdef _DEBUG
 	m_Root.reset();
 	m_pAll.reset();
 	m_NtOsKernel.reset();
@@ -112,7 +112,7 @@ CProgramManager::~CProgramManager()
 
 	m_LibraryMap.clear();
 	m_Libraries.clear();
-#endif
+#endif*/
 }
 
 STATUS CProgramManager::Init()
@@ -249,7 +249,7 @@ void CProgramManager::CheckProgramFiles()
 				StVariant Data;
 				Data[API_V_ID] = pProgram->GetID().ToVariant(SVarWriteOpt());
 				Data[API_V_NAME] = pProgram->GetNameEx();
-				theCore->EmitEvent(ELogLevels::eInfo, eLogProgramMissing, Data);
+				theCore->EmitEvent(ELogLevels::eNone, eLogProgramMissing, Data);
 
 				theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PROG_CLEANUP, StrLine(L"Program Item missing: %s", I->second->GetNameEx().c_str()));
 			}
@@ -571,8 +571,7 @@ CAppPackagePtr CProgramManager::GetAppPackage(const std::wstring& AppContainerSi
 		pAppPackage = CAppPackagePtr(new CAppPackage(AppContainerSid, L""));
 		pAppPackage->SetPath(m_ProgDir + L"\\WindowsApps\\" + AppContainerSid);
 		m_Items.insert(std::make_pair(pAppPackage->GetUID(), pAppPackage));
-		//pAppPackage->SetInstallPath(GetAppContainerRootPath( // todo:
-		// todo: icon
+		//pAppPackage->SetInstallPath(GetAppContainerRootPath( // todo: icon
 		lock.unlock();
 
 		AddItemToRoot(pAppPackage);
@@ -924,7 +923,9 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 	if(!pItem)
 		return ERR(STATUS_ERR_PROG_NOT_FOUND);
 
-	if (pItem->GetGroupCount() == 1) // removing from all groups or from last group
+	CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
+
+	if (pItem->GetGroupCount() == 1 || ParentUID == 0) // removing from all groups or from last group
 	{
 		if (pItem->HasFwRules() || pItem->HasProgRules() || pItem->HasResRules())
 		{
@@ -935,6 +936,9 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 			if (!Status) 
 				return ERR(STATUS_ERR_PROG_HAS_RULES); // failed to remove rules	
 		}
+
+		if (pProgram && pProgram->HasProcesses())
+			return ERR(STATUS_ERR_PROG_HAS_PROCESSES);
 	}
 
 	const CProgramID& ID = pItem->GetID();
@@ -955,7 +959,6 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 
 	// Program Files can host services, dont remove files with services
 	// except if all services are missing
-	CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem);
 	if (pProgram) {
 		std::unique_lock lock(pProgram->m_Mutex);
 		for (auto pNode : pProgram->m_Nodes) {
@@ -980,7 +983,7 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 		if (pItem->GetGroupCount() > 0)
 			return OK; 
 	}
-	else
+	else // remove from all groups
 	{
 		for(;;) {
 			std::unique_lock lock(pItem->m_Mutex);
@@ -1004,42 +1007,56 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 
 	// remove the item from all maps
 	std::unique_lock lock(pItem->m_Mutex);
+	RemoveProgramImpl(UID);
+
+	EmitChangeEvent(CFlexGuid(pItem->GetUID()) , pItem->GetName(), EConfigEvent::eRemoved);
+	return OK;
+}
+
+bool CProgramManager::RemoveProgramImpl(uint64 UID)
+{
+	auto F = m_Items.find(UID);
+	if (F == m_Items.end())
+		return false;
+
+	CProgramID ID = F->second->GetID();
 	switch (ID.GetType())
 	{
-		case EProgramType::eProgramFile: {
-			auto F = m_PathMap.find(ID.GetFilePath());
-			if (F != m_PathMap.end())
-				m_PathMap.erase(F);
-		}
-		case EProgramType::eFilePattern: {
-			auto F = m_PatternMap.find(ID.GetFilePath());
-			if (F != m_PatternMap.end())
-				m_PatternMap.erase(F);
-			break;
-		}
-		case EProgramType::eAppInstallation: {
-			auto F = m_InstallMap.find(ID.GetRegKey());
-			if (F != m_InstallMap.end())
-				m_InstallMap.erase(F);
-			break;
-		}
-		case EProgramType::eWindowsService: {
-			auto F = m_ServiceMap.find(ID.GetServiceTag());
-			if (F != m_ServiceMap.end())
-				m_ServiceMap.erase(F);
-			break;
-		}
-		case EProgramType::eAppPackage: {
-			auto F = m_PackageMap.find(ID.GetAppContainerSid());
-			if (F != m_PackageMap.end())
-				m_PackageMap.erase(F);
-			break;
-		}
+	case EProgramType::eProgramFile: {
+		auto It = m_PathMap.find(MkLower(ID.GetFilePath()));
+		if (It != m_PathMap.end()) m_PathMap.erase(It);
+		break;
 	}
-	auto F = m_Items.find(UID);
-	if (F != m_Items.end())
-		m_Items.erase(F);
-	return OK;
+	case EProgramType::eFilePattern: {
+		auto It = m_PatternMap.find(MkLower(ID.GetFilePath()));
+		if (It != m_PatternMap.end()) m_PatternMap.erase(It);
+		break;
+	}
+	case EProgramType::eAppInstallation: {
+		auto It = m_InstallMap.find(MkLower(ID.GetRegKey()));
+		if (It != m_InstallMap.end()) m_InstallMap.erase(It);
+		break;
+	}
+	case EProgramType::eWindowsService: {
+		auto It = m_ServiceMap.find(MkLower(ID.GetServiceTag()));
+		if (It != m_ServiceMap.end()) m_ServiceMap.erase(It);
+		break;
+	}
+	case EProgramType::eAppPackage: {
+		auto It = m_PackageMap.find(MkLower(ID.GetAppContainerSid()));
+		if (It != m_PackageMap.end()) m_PackageMap.erase(It);
+		break;
+	}
+	case EProgramType::eProgramGroup: {
+		auto It = m_GroupMap.find(MkLower(ID.GetGuid()));
+		if (It != m_GroupMap.end()) m_GroupMap.erase(It);
+		break;
+	}
+	}
+
+	m_Items.erase(F);
+
+	return true;
 }
 
 //void CProgramManager::BroadcastItemChanged(const CProgramItemPtr& pItem, EConfigEvent Event)
@@ -1050,6 +1067,26 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 //
 //	theCore->BroadcastMessage(SVC_API_EVENT_PROG_ITEM_CHANGED, vEvent);
 //}
+
+void CProgramManager::EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event)
+{
+	StVariant vEvent;
+	vEvent[API_V_GUID] = Guid.ToVariant(false);
+	vEvent[API_V_NAME] = Name;
+	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
+
+	theCore->BroadcastMessage(SVC_API_EVENT_PROG_ITEM_CHANGED, vEvent);
+
+	StVariant Data;
+	Data[API_V_GUID] = Guid.ToVariant(false);
+	Data[API_V_NAME] = Name;
+	switch (Event)
+	{
+	case EConfigEvent::eAdded:		theCore->EmitEvent(ELogLevels::eNone, eLogProgramAdded, Data); break;
+	case EConfigEvent::eModified:	theCore->EmitEvent(ELogLevels::eNone, eLogProgramModified, Data); break;
+	case EConfigEvent::eRemoved:	theCore->EmitEvent(ELogLevels::eNone, eLogProgramRemoved, Data); break;
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Tree Management
@@ -1309,7 +1346,7 @@ STATUS CProgramManager::LoadRules()
 		{
 			pRule = I->second;
 			OldRules.erase(I);
-			if (pRule->GetProgramPath() != ProgramPath) // todo
+			if (pRule->GetProgramPath() != ProgramPath) // todo to lower?
 			{
 				RemoveRuleUnsafe(pRule);
 				pRule.reset();
@@ -1364,7 +1401,7 @@ void CProgramManager::UpdateRule(const CProgramRulePtr& pRule, const CFlexGuid& 
 			pOldRule = F->second;
 	}
 
-	if (pRule && pOldRule && pRule->GetProgramPath() == pOldRule->GetProgramPath()) // todo
+	if (pRule && pOldRule && pRule->GetProgramPath() == pOldRule->GetProgramPath()) // todo to lower?
 		pOldRule->Update(pRule);
 	else {  // when the rule changes the programs it applyes to we remove it and tehn add it
 		if (pOldRule) RemoveRuleUnsafe(pOldRule);
@@ -1376,6 +1413,8 @@ void CProgramManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEve
 {
 	ASSERT(Type == EConfigGroup::eProgramRules);
 
+	ELogLevels Level = ELogLevels::eNone;
+	std::wstring Name;
 	if(Event == EConfigEvent::eAllChanged)
 		LoadRules();
 	else
@@ -1397,8 +1436,12 @@ void CProgramManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEve
 		CProgramRulePtr pRule2 = pRule;
 		if (Event == EConfigEvent::eRemoved)
 			pRule2 = GetRule(Guid);
-		if (pRule2)
+		if (pRule2) {
 			theCore->VolumeManager()->UpdateProgramRule(pRule2, Event, PID);
+			Name = pRule2->GetName();
+			if (pRule2->IsVolumeRule() || pRule2->IsTemporary())
+				Level = ELogLevels::eInfo;
+		}
 
 		UpdateRule(pRule, Guid);
 	}
@@ -1409,6 +1452,16 @@ void CProgramManager::OnRuleChanged(const CFlexGuid& Guid, enum class EConfigEve
 	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_EXEC_RULE_CHANGED, vEvent);
+
+	StVariant Data;
+	Data[API_V_GUID] = Guid.ToVariant(false);
+	Data[API_V_NAME] = Name;
+	switch (Event)
+	{
+	case EConfigEvent::eAdded:		theCore->EmitEvent(Level, eLogExecRuleAdded, Data); break;
+	case EConfigEvent::eModified:	theCore->EmitEvent(Level, eLogExecRuleModified, Data); break;
+	case EConfigEvent::eRemoved:	theCore->EmitEvent(Level, eLogExecRuleRemoved, Data); break;
+	}
 }
 
 std::map<CFlexGuid, CProgramRulePtr> CProgramManager::GetAllRules()
@@ -1460,7 +1513,7 @@ STATUS CProgramManager::RemoveRule(const CFlexGuid& Guid, uint64 LockdownToken)
 //////////////////////////////////////////////////////////////////////////
 // Load/Store
 
-STATUS CProgramManager::Load()
+STATUS CProgramManager::Load(bool ReLoad)
 {
 	CBuffer Buffer;
 	if (!ReadFile(theCore->GetDataFolder() + L"\\" API_PROGRAMS_FILE_NAME, Buffer)) {
@@ -1497,27 +1550,26 @@ STATUS CProgramManager::Load()
 	//	if (pLibrary)
 	//		pLibrary->FromVariant(Library);
 	//}
+	
+	std::set<CProgramItemPtr> DiskItems; // items present on disk
+	std::map<CProgramSetPtr, std::list<CProgramID>> Tree; // parent -> child IDs
 
 	StVariant Programs = Data[API_S_PROGRAMS];
-
-	std::map<CProgramSetPtr, std::list<CProgramID>> Tree;
 
 	for (uint32 i = 0; i < Programs.Count(); i++)
 	{
 		const StVariant& Item = Programs[i];
 
-		//CProgramID ID;
-		//ID.FromVariant(Item.Find(API_S_ID));
-
-		CProgramItemPtr pItem;
-
-		SVarWriteOpt::EFormat Format;
-		EProgramType Type = CProgramID::ReadType(Item, Format);
-		bool IsMap = (Format == SVarWriteOpt::eMap);
-
 		StVariantReader Reader(Item);
 
-		if (Type == EProgramType::eProgramFile) 
+		SVarWriteOpt::EFormat Format;
+		EProgramType Type = CProgramID::ReadType(Reader, Format);
+		bool IsMap = (Format == SVarWriteOpt::eMap);
+
+		CProgramItemPtr pItem;
+		bool bNew = false;
+
+		if (Type == EProgramType::eProgramFile)
 		{
 			std::wstring FileName = theCore->NormalizePath(IsMap ? Reader.Find(API_S_FILE_PATH) : Reader.Find(API_V_FILE_PATH), false);
 			if(FileName.empty())
@@ -1527,6 +1579,7 @@ STATUS CProgramManager::Load()
 			if (!pFile) {
 				pFile = CProgramFilePtr(new CProgramFile(FileName, false));
 				m_Items.insert(std::make_pair(pFile->GetUID(), pFile));
+				bNew = true;
 			}
 			pItem = pFile;
 		}
@@ -1538,6 +1591,7 @@ STATUS CProgramManager::Load()
 			if (!pPattern) {
 				pPattern = CProgramPatternPtr(new CProgramPattern(Pattern));
 				m_Items.insert(std::make_pair(pPattern->GetUID(), pPattern));
+				bNew = true;
 			}
 			pItem = pPattern;
 		}
@@ -1549,10 +1603,11 @@ STATUS CProgramManager::Load()
 			if (!pInstall) {
 				pInstall = CAppInstallationPtr(new CAppInstallation(RegKey));
 				m_Items.insert(std::make_pair(pInstall->GetUID(), pInstall));
+				bNew = true;
 			}
 			pItem = pInstall;
 		}
-		else if (Type == EProgramType::eWindowsService)	
+		else if (Type == EProgramType::eWindowsService)
 		{
 			std::wstring ServiceTag = IsMap ? Reader.Find(API_S_SERVICE_TAG) : Reader.Find(API_V_SERVICE_TAG);
 			std::wstring Key = MkLower(ServiceTag);
@@ -1560,6 +1615,7 @@ STATUS CProgramManager::Load()
 			if (!pService) {
 				pService = CWindowsServicePtr(new CWindowsService(ServiceTag));
 				m_Items.insert(std::make_pair(pService->GetUID(), pService));
+				bNew = true;
 			}
 			pItem = pService;
 		}
@@ -1571,6 +1627,7 @@ STATUS CProgramManager::Load()
 			if (!pPackage) {
 				pPackage = CAppPackagePtr(new CAppPackage(AppContainerSid, L""));
 				m_Items.insert(std::make_pair(pPackage->GetUID(), pPackage));
+				bNew = true;
 			}
 			pItem = pPackage;
 		}*/
@@ -1583,21 +1640,28 @@ STATUS CProgramManager::Load()
 			if (!pGroup) {
 				pGroup = CProgramGroupPtr(new CProgramGroup(Guid));
 				m_Items.insert(std::make_pair(pGroup->GetUID(), pGroup));
+				bNew = true;
 			}
 			pItem = pGroup;
 		}
-		else if (Type == EProgramType::eAllPrograms)		
+		else if (Type == EProgramType::eAllPrograms)
 			pItem = m_pAll;
 		else if (Type == EProgramType::eProgramRoot)
 			pItem = m_Root;
-		else 
+		else
 			continue;
 
-		pItem->FromVariant(Item); // todo: check for errors and handle
+		// Update or initialize the item from file data
+		if (bNew)
+			pItem->FromVariant(Item);
+		else
+			pItem->UpdateFromVariant(Item);
+
+		if (ReLoad) DiskItems.insert(pItem);
 
 		// We have to differ the association of the items to the groups until all items are loaded
 		auto pSet = std::dynamic_pointer_cast<CProgramSet>(pItem);
-		if (pSet) 
+		if (pSet)
 		{
 			auto Items = IsMap ? Reader.Find(API_S_PROG_ITEMS) : Reader.Find(API_V_PROG_ITEMS);
 			std::list<CProgramID> ItemIDs;
@@ -1613,18 +1677,56 @@ STATUS CProgramManager::Load()
 		}
 	}
 
-	// now we can associate the items to the groups
-	for (auto I : Tree) {
+	if (ReLoad)
+	{
+		std::vector<uint64> ToRemove;
+		for (auto& I : m_Items)
+		{
+			if (I.second == m_Root || I.second == m_pAll || I.second == m_NtOsKernel)
+				continue;
+			if (DiskItems.count(I.second))
+				continue;
+
+			// Keep items that have running processes
+			if (auto pFile = std::dynamic_pointer_cast<CProgramFile>(I.second)) {
+				if (pFile->HasProcesses()) continue;
+			}
+			if (auto pSvc = std::dynamic_pointer_cast<CWindowsService>(I.second)) {
+				if (pSvc->HasProcess()) continue;
+			}
+
+			// Keep items that have rules referencing them
+			if (I.second->HasFwRules() || I.second->HasProgRules() || I.second->HasResRules())
+				continue;
+
+			ToRemove.push_back(I.first);
+		}
+
+		for (auto UID : ToRemove)
+			RemoveProgramImpl(UID);
+
+		// Clear all parent-child relationships
+		for (auto& I : m_Items) {
+			std::unique_lock ilock(I.second->m_Mutex);
+			I.second->m_Groups.clear();
+		}
+		for (auto& I : m_Items) {
+			if (auto pSet = std::dynamic_pointer_cast<CProgramSet>(I.second))
+				pSet->ClearNodes();
+		}
+	}
+
+	// Associate the items to the groups
+	for (auto& I : Tree) {
 		auto pSet = I.first;
-		for (auto ID : I.second) {
+		for (auto& ID : I.second) {
 			auto pItem = GetProgramByID(ID, false);
 			if (pItem) AddProgramToGroup(pItem, pSet);
 		}
 	}
 
-	// add all flaoting items to the root
-	for (auto I : m_Items)
-	{
+	// Add all floating items to the root
+	for (auto& I : m_Items) {
 		if(I.second == m_Root)
 			continue;
 		if(I.second->GetGroupCount() == 0)
