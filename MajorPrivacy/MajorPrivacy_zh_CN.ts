@@ -11,7 +11,7 @@
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="81"/>
         <source>Hold the access attempt during prompt</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">询问期间挂起访问请求</translation>
     </message>
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="111"/>
@@ -240,7 +240,7 @@
     <message>
         <location filename="Core/Access/AccessManager.cpp" line="148"/>
         <source>Invalid User Name in access rule</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">访问规则中的用户名无效</translation>
     </message>
 </context>
 <context>
@@ -491,7 +491,7 @@
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="46"/>
         <source>[%1]</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">[%1]</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="74"/>
@@ -568,12 +568,12 @@
         <location filename="Windows/AccessRuleWnd.cpp" line="370"/>
         <location filename="Windows/AccessRuleWnd.cpp" line="374"/>
         <source>Error</source>
-        <translation type="unfinished"></translation>
+        <translation>错误</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="352"/>
         <source>The Program Path is not valid.</source>
-        <translation type="unfinished"></translation>
+        <translation>程序路径无效。</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="364"/>
@@ -583,12 +583,12 @@
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="370"/>
         <source>The File Path is not valid.</source>
-        <translation type="unfinished"></translation>
+        <translation>文件路径无效。</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="374"/>
         <source>The File Path may break windows, please use a more specific path.</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">该文件路径可能会破坏 Windows，请使用更具体的路径。</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="436"/>
@@ -722,7 +722,7 @@
     <message>
         <location filename="Views/AccessView.cpp" line="70"/>
         <source>Clear Records</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">清除记录</translation>
     </message>
     <message>
         <location filename="Views/AccessView.cpp" line="84"/>
@@ -762,12 +762,12 @@
     <message>
         <location filename="Views/AccessView.cpp" line="429"/>
         <source>Are you sure you want to clear the all Access records for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">您确定要清除所有程序项的所有访问记录吗？</translation>
     </message>
     <message>
         <location filename="Views/AccessView.cpp" line="436"/>
         <source>Are you sure you want to clear the all Access records for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">您确定要清除当前程序项的所有访问记录吗？</translation>
     </message>
     <message>
         <location filename="Views/AccessView.cpp" line="47"/>
@@ -814,32 +814,32 @@
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="357"/>
         <source>Install your &lt;b&gt;MajorPrivacy&lt;/b&gt; License Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">安装你的 &lt;b&gt;MajorPrivacy&lt;/b&gt; 许可证</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="358"/>
         <source>To use most advanced protection features a License Certificate must be installed.</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">若要使用最先进的保护功能，必须安装许可证。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="364"/>
         <source>&lt;b&gt;MajorPrivacy&lt;/b&gt; offers powerful features to safeguard your data. To unlock these features, you&apos;ll need a valid license.If you don&apos;t have one yet, please consider &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-get-cert&quot;&gt;getting a license&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">&lt;b&gt;MajorPrivacy&lt;/b&gt; 提供强大功能保障您的数据安全。如需解锁这些功能，您需要有效的许可证。若您尚未拥有，请考虑&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-get-cert&quot;&gt;获取许可证&lt;/a&gt;。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="383"/>
         <source>Retrieve License Certificate using a Serial Number:</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">使用序列号检索许可证：</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="398"/>
         <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;Get a free evaluation certificate&lt;/font&gt;&lt;/a&gt; and enjoy all features for %1 days.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;获得免费评估证书&lt;/font&gt;&lt;/a&gt; 并享受 %1 天的所有功能。&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="440"/>
         <source>Without an active License Certificate, MajorPrivacy runs in demo mode and does not enforce any rules. You can get a free %1-day evaluation certificate to unlock all features. Are you sure you want to continue without one?</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">若无有效的许可证，MajorPrivacy 将以演示模式运行，且不会执行任何规则。您可以获取一份免费的 %1 天试用证以解锁所有功能。您确定要在没有许可证的情况下继续吗？</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="456"/>
@@ -864,27 +864,27 @@ Error: %1</source>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="692"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; Config Protection</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">配置&lt;b&gt;MajorPrivacy&lt;/b&gt;配置保护</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="693"/>
         <source>To make MajorPrivacy truly secure its configuration must be protected.</source>
-        <translation type="unfinished"></translation>
+        <translation>为确保 MajorPrivacy 真正安全，必须保护其配置。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="702"/>
         <source>The security-relevant configuration of MajorPrivacy (Process Protection rules, Secure Enclave settings, the Allowed Image Hash Database, and File/Folder access rules) is stored in the Windows registry. While MajorPrivacy is running, this data is protected against tampering, and the software itself can prevent unauthorized termination. However, when MajorPrivacy is not active, the registry remains vulnerable. To address this, the configuration can be protected with a digital signature, with the last valid revision locked in a read-only state that is only cleared on system shutdown. It will be re-locked automatically as soon as the KernelIsolator driver loads early in the boot process. The trade-off is that while this protection is engaged, the software cannot be uninstalled. To uninstall, the protection must first be disabled and the system rebooted.</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">MajorPrivacy 的安全相关配置（进程保护规则、安全飞地设置、已允许映像的哈希数据库以及文件/文件夹访问规则）存储于 Windows 注册表中。当 MajorPrivacy 运行时，这些数据受到防篡改保护，且软件本身可防止未经授权的终止。然而，当 MajorPrivacy 未运行时，注册表仍面临安全风险。为解决此问题，可通过数字签名保护配置，将最新有效版本锁定为只读状态，且该锁定仅在系统关机时解除。在启动过程前期， KernelIsolator 驱动程序启动时，该配置将自动重新锁定。该方案的代价是，在此保护启用期间，无法卸载该软件。若要卸载，必须先禁用保护并重启系统。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="709"/>
         <source>Enable Unload Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>启用卸载保护</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="713"/>
         <source>Enable Config Protection and set up User Key</source>
-        <translation type="unfinished"></translation>
+        <translation>启用配置保护并设置用户密钥</translation>
     </message>
 </context>
 <context>
@@ -892,22 +892,22 @@ Error: %1</source>
     <message>
         <location filename="Core/IssueManager.cpp" line="182"/>
         <source>No user key is set, some features may not work!</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">未设置用户密钥，部分功能可能无法正常工作！</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="186"/>
         <source>Existing Windows Firewall rules have not been approved yet!</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">现有 Windows 防火墙规则尚未获得批准！</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="208"/>
         <source>This issue can not be fixed in this mode!</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">此问题无法在此模式下修复！</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="230"/>
         <source>This issue can not be fixed!</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">此问题无法修复！</translation>
     </message>
 </context>
 <context>
@@ -1449,7 +1449,7 @@ Error: %1</source>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="78"/>
         <source>Default</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">默认</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="79"/>
@@ -1545,7 +1545,7 @@ Error: %1</source>
     <message>
         <location filename="Core/EventLog.cpp" line="70"/>
         <source>Error</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">错误</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="71"/>
