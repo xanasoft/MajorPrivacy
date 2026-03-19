@@ -7727,7 +7727,7 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/StatusView.cpp" line="48"/>
         <source>Process Protection</source>
-        <translation进程保护</translation>
+        <translation>进程保护</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="66"/>
