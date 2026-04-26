@@ -89,8 +89,10 @@ LIBRARY_EXPORT bool ImDiskForceRemoveDevice(HANDLE Device);
 // Device extension
 LIBRARY_EXPORT bool ImDiskExtendDevice(ULONG DeviceNumber, ULONGLONG ExtendSize);
 
-LIBRARY_EXPORT PVOID AllocPasswordMemory(HANDLE hProcess, const wchar_t* pPassword);
+LIBRARY_EXPORT PVOID AllocSecureMemory(HANDLE hProcess, size_t uSize);
 
 LIBRARY_EXPORT NTSTATUS UpdateCommandLine(HANDLE hProcess, NTSTATUS(*Update)(std::wstring& s, PVOID p), PVOID param);
 
-LIBRARY_EXPORT NTSTATUS ExecImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iArgon2Cost, const std::wstring& Command, bool bWrite = false, CBuffer* pBuffer = NULL, USHORT uId = 0);
+LIBRARY_EXPORT NTSTATUS CreateSecureSection(HANDLE* phSection, PVOID* ppMapping, SIZE_T uSize);
+
+LIBRARY_EXPORT NTSTATUS ExecImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iKdf, const std::wstring& Command, bool bWrite = false, CBuffer* pBuffer = NULL, USHORT uId = 0);

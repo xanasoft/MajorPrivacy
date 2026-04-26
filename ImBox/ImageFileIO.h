@@ -9,6 +9,7 @@ public:
 
 	virtual ULONG64 GetDiskSize() const;
 	virtual ULONG64 GetAllocSize() const;
+	virtual ULONG GetSectorSize() const;
 	virtual bool CanBeFormated() const;
 
 	virtual int Init();
@@ -17,6 +18,7 @@ public:
 	virtual bool DiskWrite(void* buf, int size, __int64 offset);
 	virtual bool DiskRead(void* buf, int size, __int64 offset);
 	virtual void TrimProcess(DEVICE_DATA_SET_RANGE* range, int n);
+
 
 protected:
 	struct SImageFileIO* m;

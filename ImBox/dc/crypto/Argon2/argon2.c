@@ -22,8 +22,9 @@
 #include "core.h"
 #include "..\..\include\defines.h"
 
-#define _secure_alloc(s) malloc(s)
-#define _secure_free(p) free(p)
+#define _secure_alloc(s) secure_alloc((ULONG)s)
+#define _secure_free(p) secure_free(p)
+
 
 const char *argon2_type2string(argon2_type type, int uppercase) {
     switch (type) {

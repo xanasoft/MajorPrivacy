@@ -346,6 +346,7 @@
     <ClCompile Include="Views\TweakInfo.cpp" />
     <ClCompile Include="Views\TweakView.cpp" />
     <ClCompile Include="Views\VolumeView.cpp" />
+    <ClCompile Include="Widgets\PasswordStrengthWidget.cpp" />
     <ClCompile Include="Windows\AccessRuleWnd.cpp" />
     <ClCompile Include="Windows\EnclaveWnd.cpp" />
     <ClCompile Include="Windows\FirewallRuleWnd.cpp" />
@@ -368,6 +369,7 @@
     <ClCompile Include="Wizards\VolumeWizard.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Widgets\PasswordStrengthWidget.h" />
     <QtMoc Include="Windows\ItemPicker.h" />
     <QtMoc Include="Windows\PresetWindow.h" />
     <QtMoc Include="Views\PresetView.h" />

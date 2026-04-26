@@ -128,6 +128,9 @@
     <Filter Include="Core\Presets">
       <UniqueIdentifier>{aa8f8615-3181-4a9c-991c-10858c5e2593}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Widgets">
+      <UniqueIdentifier>{2fa941d8-9501-4182-b483-2d983ce5d290}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -540,6 +543,9 @@
     </ClCompile>
     <ClCompile Include="MajorPrivacyConfig.cpp">
       <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\PasswordStrengthWidget.cpp">
+      <Filter>Core\Widgets</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1005,6 +1011,9 @@
     </QtMoc>
     <QtMoc Include="Windows\ItemPicker.h">
       <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Widgets\PasswordStrengthWidget.h">
+      <Filter>Core\Widgets</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

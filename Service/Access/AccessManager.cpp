@@ -292,6 +292,9 @@ void CAccessManager::RemoveRuleUnsafe(const CAccessRulePtr& pRule)
 {
 	m_Rules.erase(pRule->GetGuid());
 
+	// Cleanup script state when rule is removed
+	theCore->JSStateManager()->CleanupScriptState(pRule->GetGuid());
+
 	theCore->ProgramManager()->RemoveResRule(pRule);
 }
 

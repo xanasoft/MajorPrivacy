@@ -1,10 +1,13 @@
 #include "pch.h"
 #include "VolumeWindow.h"
+#include "../Widgets/PasswordStrengthWidget.h"
 #include "../Core/PrivacyCore.h"
 #include "../MajorPrivacy.h"
 #include "../MiscHelpers/Common/Settings.h"
 #include "../MiscHelpers/Common/Common.h"
 #include <QStorageInfo>
+#include <QFrame>
+#include <QSpinBox>
 
 
 CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *parent)
@@ -38,6 +41,10 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(CheckPassword()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
 
+	// Disable OK button initially for modes that require new password
+	if (Action == eNew || Action == eSetPW || Action == eChange)
+		ui.buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+
 	ui.lblInfo->setText(Prompt);
 	ui.lblIcon->setPixmap(QPixmap::fromImage(QImage((m_Action == eMount || m_Action == eGetPW) ? ":/Icons/LockOpen.png" : ":/Icons/LockClosed.png")));
 
@@ -45,6 +52,11 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 	{
 		ui.lblPassword->setVisible(false);
 		ui.txtPassword->setVisible(false);
+
+		ui.lblKdf->setVisible(false);
+		ui.cmbKdf->setVisible(false);
+
+		ui.lblDummy->setVisible(false);
 
 		ui.txtNewPassword->setFocus();
 	}
@@ -67,8 +79,37 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 	{
 		ui.lblNewPassword->setVisible(false);
 		ui.txtNewPassword->setVisible(false);
+
 		ui.lblRepeatPassword->setVisible(false);
 		ui.txtRepeatPassword->setVisible(false);
+
+		ui.lblNewKdf->setVisible(false);
+		ui.cmbNewKdf->setVisible(false);
+	}
+
+	// Password strength widget for actions that set a new password
+	if (m_Action == eNew || m_Action == eSetPW || m_Action == eChange)
+	{
+		QFrame* strengthFrame = new QFrame;
+		strengthFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+		QVBoxLayout* frameLayout = new QVBoxLayout(strengthFrame);
+		frameLayout->setContentsMargins(0, 0, 0, 0);
+		m_pStrengthWidget = new CPasswordStrengthWidget;
+		frameLayout->addWidget(m_pStrengthWidget);
+
+		// Insert after row 6 (after new KDF combo) - row 7, aligned with password fields (column 2)
+		QGridLayout* grid = qobject_cast<QGridLayout*>(ui.gridLayout);
+
+		// Password status label (match/length feedback)
+		m_pPasswordStatus = new QLabel;
+		m_pPasswordStatus->setTextFormat(Qt::RichText);
+		grid->addWidget(m_pPasswordStatus, 8, 1, 1, 5);
+
+		grid->addWidget(strengthFrame, 9, 1, 1, 5);
+
+		connect(ui.txtNewPassword, &QLineEdit::textChanged, this, &CVolumeWindow::OnNewPasswordChanged);
+		connect(ui.txtRepeatPassword, &QLineEdit::textChanged, this, &CVolumeWindow::OnNewPasswordChanged);
+		connect(ui.cmbNewKdf, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CVolumeWindow::OnNewPasswordChanged);
 	}
 
 	ui.lblAutoLocl->setVisible(false);
@@ -113,34 +154,32 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 		ui.chkLockdown->setVisible(false);
 	}
 
-	// Argon2 settings - visible when mounting or changing password
-	connect(ui.chkUseArgon2, &QCheckBox::toggled, this, [&](bool checked) {
-		ui.spinArgon2Cost->setEnabled(checked);
-	});
-	ui.spinArgon2Cost->setEnabled(false);
-	ui.spinArgon2Cost->setMinimum(1);
-	ui.spinArgon2Cost->setMaximum(100);
-	ui.spinArgon2Cost->setValue(12);
+	FillKdfCombo(ui.cmbKdf);
+	FillKdfCombo(ui.cmbNewKdf, false, 5);
 
-	// New Argon2 settings - only visible when changing password
-	connect(ui.chkNewUseArgon2, &QCheckBox::toggled, this, [&](bool checked) {
-		ui.spinNewArgon2Cost->setEnabled(checked);
-	});
-	ui.spinNewArgon2Cost->setEnabled(false);
-	ui.spinNewArgon2Cost->setMinimum(1);
-	ui.spinNewArgon2Cost->setMaximum(100);
-	ui.spinNewArgon2Cost->setValue(12);
+	if (m_Action == eMount || m_Action == eChange) {
+		ui.cmbKdf->addItem(tr("Argon2id (Old 0.99.7 compatible mode)"), 1000);
 
-	// Current Argon2: visible for eMount, eChange, and eGetPW (for backup/restore header)
-	if (m_Action != eMount && m_Action != eChange && m_Action != eGetPW) {
-		ui.chkUseArgon2->setVisible(false);
-		ui.spinArgon2Cost->setVisible(false);
-	}
+		// Old KDF cost factor spinbox (shown when old Argon2id is selected)
+		QGridLayout* grid = qobject_cast<QGridLayout*>(ui.gridLayout);
+		if (grid) {
+			m_pOldKdfLabel = new QLabel(tr("Cost Factor:"));
+			m_pOldKdfLabel->setVisible(false);
+			grid->addWidget(m_pOldKdfLabel, 3, 2, 1, 1);
 
-	// New Argon2: only visible for eChange
-	if (m_Action != eChange) {
-		ui.chkNewUseArgon2->setVisible(false);
-		ui.spinNewArgon2Cost->setVisible(false);
+			m_pOldKdfSpin = new QSpinBox;
+			m_pOldKdfSpin->setRange(1, 100);
+			m_pOldKdfSpin->setValue(12);
+			m_pOldKdfSpin->setVisible(false);
+			m_pOldKdfSpin->setToolTip(tr("Argon2id cost factor for old volumes created with MajorPrivacy v0.99.7"));
+			grid->addWidget(m_pOldKdfSpin, 3, 3, 1, 1);
+		}
+
+		connect(ui.cmbKdf, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
+			bool showOldKdf = (ui.cmbKdf->currentData().toInt() == 1000);
+			if (m_pOldKdfLabel) m_pOldKdfLabel->setVisible(showOldKdf);
+			if (m_pOldKdfSpin) m_pOldKdfSpin->setVisible(showOldKdf);
+		});
 	}
 
 	restoreGeometry(theConf->GetBlob("VolumeWindow/Window_Geometry"));
@@ -154,6 +193,43 @@ CVolumeWindow::~CVolumeWindow()
 	theConf->SetBlob("VolumeWindow/Window_Geometry", saveGeometry());
 }
 
+QStringList g_KdfOptions = {
+	CVolumeWindow::tr("Pkcs5.2  (0 - Legacy)"),
+	CVolumeWindow::tr("Argon2id (1 - Minimum)"),
+	CVolumeWindow::tr("Argon2id (2 - Low)"),
+	CVolumeWindow::tr("Argon2id (3 - Moderate)"),
+	CVolumeWindow::tr("Argon2id (4 - Standard)"),
+	CVolumeWindow::tr("Argon2id (5 - Recommended)"),
+	CVolumeWindow::tr("Argon2id (6 - Enhanced)"),
+	CVolumeWindow::tr("Argon2id (7 - Hardened)"),
+	CVolumeWindow::tr("Argon2id (8 - High Cost)"),
+	CVolumeWindow::tr("Argon2id (9 - Very High Cost)"),
+	CVolumeWindow::tr("Argon2id (10 - Extreme Cost)")
+};
+
+void CVolumeWindow::FillKdfCombo(QComboBox* Combo, bool bAuto, int Selected)
+{
+	if (bAuto) Combo->addItem(tr("Standard Pkcs5.2 & Default Argon2id"), -2);
+	if (bAuto) Combo->addItem(tr("Try all KDF's >>> Very Slow <<<"), -3);
+
+	for(int i = 0; i < g_KdfOptions.size(); i++) {
+		Combo->addItem(g_KdfOptions[i], i);
+	}
+
+	int Index = Combo->findData(Selected);
+	if (Index != -1) Combo->setCurrentIndex(Index);
+}
+
+QString CVolumeWindow::GetKdfName(int iKdf)
+{
+	//if (iKdf == -2) return tr("Standard Pkcs5.2 & Default Argon2id");
+	//if (iKdf == -3) return tr("Try all KDF's >>> Very Slow <<<");
+	//if (iKdf == 1000) return tr("Argon2id (Old 0.99.7 compatible mode)");
+	if (iKdf >= 0 && iKdf < g_KdfOptions.size())
+		return g_KdfOptions[iKdf];
+	return QString::number(iKdf);
+}
+
 void CVolumeWindow::OnShowPassword()
 {
 	ui.txtPassword->setEchoMode(ui.chkShow->isChecked() ? QLineEdit::Normal : QLineEdit::Password);
@@ -164,6 +240,26 @@ void CVolumeWindow::OnShowPassword()
 void CVolumeWindow::OnImageSize()
 {
 	ui.lblImageSizeKb->setText(tr("kilobytes (%1)").arg(FormatSize(GetImageSize())));
+}
+
+void CVolumeWindow::OnNewPasswordChanged()
+{
+	QString pw = ui.txtNewPassword->text();
+	QString confirm = ui.txtRepeatPassword->text();
+
+	if (m_pStrengthWidget) {
+		int kdfValue = ui.cmbNewKdf->currentData().toInt();
+		m_pStrengthWidget->SetKdfValue(kdfValue);
+		m_pStrengthWidget->SetPassword(pw);
+	}
+
+	if (m_pPasswordStatus) {
+		m_pPasswordStatus->setText(CPasswordStrengthWidget::GetPasswordStatusText(pw, confirm));
+	}
+
+	// Enable OK button only when passwords match and length is valid
+	bool valid = !pw.isEmpty() && pw == confirm && pw.length() <= 128;
+	ui.buttonBox->button(QDialogButtonBox::Ok)->setEnabled(valid);
 }
 
 void CVolumeWindow::CheckPassword()
@@ -238,4 +334,31 @@ void CVolumeWindow::SetAutoLock(int iSeconds, const QString& Text) const
 		ui.cmbAutoLock->setCurrentIndex(ui.cmbAutoLock->count() - 1);
 	} else
 		ui.cmbAutoLock->setCurrentIndex(Index); 
+}
+
+int CVolumeWindow::GetKdf() const
+{
+	int iKdf = ui.cmbKdf->currentData().toInt();
+	if (iKdf == 1000 && m_pOldKdfSpin)
+	{
+		iKdf = 1000 + m_pOldKdfSpin->value();
+	}
+	return iKdf;
+}
+
+void CVolumeWindow::SetKdf(int iKdf) const
+{
+	int Index = ui.cmbKdf->findData(iKdf);
+	if (Index != -1) ui.cmbKdf->setCurrentIndex(Index);
+}
+
+void CVolumeWindow::SetNoAutoKdf()
+{
+	ui.cmbKdf->clear();
+
+	for(int i = 0; i < g_KdfOptions.size(); i++) {
+		ui.cmbKdf->addItem(g_KdfOptions[i], i);
+	}
+
+	SetKdf(5);
 }

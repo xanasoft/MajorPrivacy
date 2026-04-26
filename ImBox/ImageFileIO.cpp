@@ -112,6 +112,8 @@ NtSetInformationFile(
     IN FILE_INFORMATION_CLASS_       FileInformationClass
 );
 
+#define BUFFER_SIZE (64 * 1024)
+
 BOOL GetSparseRanges(HANDLE hFile);
 
 struct SImageFileIO
@@ -119,6 +121,7 @@ struct SImageFileIO
 	std::wstring FilePath;
     ULONG64 uSize = 0;
 	HANDLE Handle = INVALID_HANDLE_VALUE;
+    ULONG SectorSize = 512;
 
     LARGE_INTEGER fileCreationTime = { 0, 0 };
     LARGE_INTEGER fileLastAccessTime = { 0, 0 };
@@ -172,6 +175,11 @@ ULONG64 CImageFileIO::GetAllocSize() const
     return liSparseFileCompressedSize.QuadPart;
 }
 
+ULONG CImageFileIO::GetSectorSize() const
+{
+	return m->SectorSize;
+}
+
 bool CImageFileIO::CanBeFormated() const
 {
     if (m->Handle == INVALID_HANDLE_VALUE) 
@@ -221,6 +229,19 @@ int CImageFileIO::Init()
         GetFileSizeEx(m->Handle, (LARGE_INTEGER*)&uSize);
         if (uSize != 0)
             m->uSize = uSize;
+    }
+
+    //
+    // Query sector size for aligned I/O (required for FILE_FLAG_NO_BUFFERING)
+    //
+
+    FILE_STORAGE_INFO storageInfo;
+    if (GetFileInformationByHandleEx(m->Handle, FileStorageInfo, &storageInfo, sizeof(storageInfo))) {
+        m->SectorSize = storageInfo.LogicalBytesPerSector;
+        if (m->SectorSize == 0)
+            m->SectorSize = 512;
+        if (m->SectorSize > BUFFER_SIZE)
+            return ERR_FILE_NOT_OPENED;
     }
 
 	//
@@ -280,16 +301,120 @@ int CImageFileIO::Init()
 
 bool CImageFileIO::DiskWrite(void* buf, int size, __int64 offset)
 {
-	SetFilePointerEx(m->Handle, *(LARGE_INTEGER*)&offset, NULL, FILE_BEGIN);
-    DWORD BytesWritten;
-	return !!WriteFile(m->Handle, buf, size, &BytesWritten, NULL);
+    ULONG sectorSize = m->SectorSize;
+
+    // Fast path: if offset and size are aligned, use direct I/O
+    if ((offset % sectorSize) == 0 && (size % sectorSize) == 0) {
+        SetFilePointerEx(m->Handle, *(LARGE_INTEGER*)&offset, NULL, FILE_BEGIN);
+        DWORD BytesWritten;
+        return !!WriteFile(m->Handle, buf, size, &BytesWritten, NULL);
+    }
+
+    // Slow path: handle unaligned access with buffering
+    __declspec(align(4096)) BYTE alignedBuffer[BUFFER_SIZE];
+
+    BYTE* srcPtr = (BYTE*)buf;
+    __int64 remaining = size;
+    __int64 currentOffset = offset;
+
+    while (remaining > 0) {
+        // Round down offset to sector boundary
+        __int64 alignedOffset = (currentOffset / sectorSize) * sectorSize;
+        __int64 offsetInSector = currentOffset - alignedOffset;
+
+        // Calculate how much we can write in this iteration
+        __int64 toWrite = min(remaining, (__int64)(BUFFER_SIZE - offsetInSector));
+
+        // Calculate aligned write size (round up to sector boundary)
+        __int64 alignedSize = ((offsetInSector + toWrite + sectorSize - 1) / sectorSize) * sectorSize;
+        alignedSize = min(alignedSize, (__int64)BUFFER_SIZE);
+
+        // If we're not writing full sectors, we need to read-modify-write
+        bool needReadModifyWrite = (offsetInSector != 0) || (((currentOffset + toWrite) % sectorSize) != 0);
+
+        if (needReadModifyWrite) {
+            LARGE_INTEGER li;
+            li.QuadPart = alignedOffset;
+            SetFilePointerEx(m->Handle, li, NULL, FILE_BEGIN);
+
+            DWORD bytesRead;
+            // Read might fail if extending file, that's ok - buffer will contain garbage
+            // but we'll overwrite the relevant portion anyway
+            ReadFile(m->Handle, alignedBuffer, (DWORD)alignedSize, &bytesRead, NULL);
+        }
+
+        // Copy data into aligned buffer
+        memcpy(alignedBuffer + offsetInSector, srcPtr, (size_t)toWrite);
+
+        // Write the aligned buffer
+        LARGE_INTEGER li;
+        li.QuadPart = alignedOffset;
+        SetFilePointerEx(m->Handle, li, NULL, FILE_BEGIN);
+
+        DWORD bytesWritten;
+        if (!WriteFile(m->Handle, alignedBuffer, (DWORD)alignedSize, &bytesWritten, NULL))
+            return false;
+
+        srcPtr += toWrite;
+        currentOffset += toWrite;
+        remaining -= toWrite;
+    }
+
+    return true;
 }
 
 bool CImageFileIO::DiskRead(void* buf, int size, __int64 offset)
 {
-	SetFilePointerEx(m->Handle, *(LARGE_INTEGER*)&offset, NULL, FILE_BEGIN);
-    DWORD BytesRead;
-	return !!ReadFile(m->Handle, buf, size, &BytesRead, NULL);
+    ULONG sectorSize = m->SectorSize;
+
+    // Fast path: if offset and size are aligned, use direct I/O
+    if ((offset % sectorSize) == 0 && (size % sectorSize) == 0) {
+        SetFilePointerEx(m->Handle, *(LARGE_INTEGER*)&offset, NULL, FILE_BEGIN);
+        DWORD BytesRead;
+        return !!ReadFile(m->Handle, buf, size, &BytesRead, NULL);
+    }
+
+    // Slow path: handle unaligned access with buffering
+    __declspec(align(4096)) BYTE alignedBuffer[BUFFER_SIZE];
+
+    BYTE* destPtr = (BYTE*)buf;
+    __int64 remaining = size;
+    __int64 currentOffset = offset;
+
+    while (remaining > 0) {
+        // Round down offset to sector boundary
+        __int64 alignedOffset = (currentOffset / sectorSize) * sectorSize;
+        __int64 offsetInSector = currentOffset - alignedOffset;
+
+        // Calculate how much we can read in this iteration
+        __int64 toRead = min(remaining, (__int64)(BUFFER_SIZE - offsetInSector));
+
+        // Calculate aligned read size (round up to sector boundary)
+        __int64 alignedSize = ((offsetInSector + toRead + sectorSize - 1) / sectorSize) * sectorSize;
+        alignedSize = min(alignedSize, (__int64)BUFFER_SIZE);
+
+        LARGE_INTEGER li;
+        li.QuadPart = alignedOffset;
+        SetFilePointerEx(m->Handle, li, NULL, FILE_BEGIN);
+
+        DWORD bytesRead;
+        if (!ReadFile(m->Handle, alignedBuffer, (DWORD)alignedSize, &bytesRead, NULL))
+            return false;
+
+        // Copy the relevant portion to destination
+        __int64 available = (__int64)bytesRead - offsetInSector;
+        if (available <= 0)
+            break;
+
+        __int64 copySize = min(toRead, available);
+        memcpy(destPtr, alignedBuffer + offsetInSector, (size_t)copySize);
+
+        destPtr += copySize;
+        currentOffset += copySize;
+        remaining -= copySize;
+    }
+
+    return remaining == 0;
 }
 
 void CImageFileIO::TrimProcess(DEVICE_DATA_SET_RANGE* range, int n)

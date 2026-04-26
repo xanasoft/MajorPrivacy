@@ -3,6 +3,25 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 
+## [0.99.8] - 2026-04-26
+
+### Added
+- Added password strength estimation to the volume creation wizard
+- Added volume crypto info
+- User Key Password can now use Argon2id as KDF
+- User Key Password can now be changed without replacing the user key itself
+- scripts can now persist states across invocations
+
+### fixed 
+- fixed issue with seriel key application
+- fixed issue when clearing user key
+
+### Changed
+- renamed kernel extension to mpkex.dll to avoid name/version conflicts
+- reworked argon2id support to be aligned with DiskCryptro 2.0 implementation
+  - CAUTION: old volumes using Ardong2id can be mounted, but this this functionality will be dropped, use change password to change KDF
+- now using DiskCryptro 2.0 header format, volumes with 1.x headers remain compatible
+
 
 
 

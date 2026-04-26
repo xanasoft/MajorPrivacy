@@ -3,6 +3,9 @@
 #include <QtWidgets/QMainWindow>
 #include "ui_VolumeWindow.h"
 
+class CPasswordStrengthWidget;
+class QSpinBox;
+
 class CVolumeWindow : public QDialog
 {
 	Q_OBJECT
@@ -28,12 +31,18 @@ public:
 	bool		UseLockdown() const { return ui.chkLockdown->isChecked(); }
 	void		SetAutoLock(int iSeconds, const QString& Text = "") const;
 	int			GetAutoLock() const { return ui.cmbAutoLock->currentData().toInt(); }
-	int			GetArgon2Cost() const { return ui.chkUseArgon2->isChecked() ? ui.spinArgon2Cost->value() : 0; }
-	int			GetNewArgon2Cost() const { return ui.chkNewUseArgon2->isChecked() ? ui.spinNewArgon2Cost->value() : 0; }
+	int			GetKdf() const;
+	int			GetNewKdf() const { return ui.cmbNewKdf->currentData().toInt(); }
+	void		SetKdf(int iKdf) const;
+	void		SetNoAutoKdf();
+
+	static void FillKdfCombo(QComboBox* Combo, bool bAuto = true, int Selected = -2);
+	static QString GetKdfName(int iKdf);
 
 private slots:
 	void		OnShowPassword();
 	void		OnImageSize();
+	void		OnNewPasswordChanged();
 	void		CheckPassword();
 	void		BrowseMountPoint();
 
@@ -43,4 +52,8 @@ private:
 	EAction m_Action;
 	QString m_Password;
 	QString m_NewPassword;
+	CPasswordStrengthWidget* m_pStrengthWidget = nullptr;
+	QLabel* m_pPasswordStatus = nullptr;
+	QLabel* m_pOldKdfLabel = nullptr;
+	QSpinBox* m_pOldKdfSpin = nullptr;
 };

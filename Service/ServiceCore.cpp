@@ -75,6 +75,8 @@ CServiceCore::CServiceCore()
 
 	m_pPresetManager = new CPresetManager();
 
+	m_pJSStateManager = new CJSStateManager();
+
 	m_pDriver = new CDriverAPI();
 
 	m_pEtwEventMonitor = new CEtwEventMonitor();
@@ -95,6 +97,8 @@ CServiceCore::~CServiceCore()
 	delete m_pEtwEventMonitor;
 
 	delete m_pDriver;
+
+	delete m_pJSStateManager;
 
 	delete m_pPresetManager;
 

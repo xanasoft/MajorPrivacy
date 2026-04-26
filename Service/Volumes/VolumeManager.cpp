@@ -310,7 +310,7 @@ bool RemoveJunction(const std::wstring& FileRootPath)
     return ok;
 }
 
-RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iArgon2Cost, const std::wstring& Cipher, ULONG64 sizeKb, const std::wstring& MountPoint = L"", ULONG DeviceNumber = 0)
+RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iKdf, const std::wstring& Cipher, ULONG64 sizeKb, const std::wstring& MountPoint = L"", ULONG DeviceNumber = 0, const std::wstring& FS = L"")
 {
     std::shared_ptr<CVolume> pMount = std::make_shared<CVolume>();
 
@@ -320,8 +320,6 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
     // mount a new disk
     // we need to use a temporary drive letter in order to format the volume using the fmifs.dll API
     //
-
-    // todo allow mounting without mount
 
     const wchar_t* drvLetter = NULL;
     if(!MountPoint.empty() && MountPoint.size() <= 3 && MountPoint[1] == L':')
@@ -341,13 +339,20 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
     if (Drive[0] == 0)
         return ERR(STATUS_INSUFFICIENT_RESOURCES);
 
+    const size_t uMemSize = sizeof(SSection);
+    union {
+        SSection pSection[1];
+        BYTE pSpace[uMemSize];
+    };
+    memset(pSpace, 0, sizeof(pSpace));
+
     std::wstring cmd;
     if (ImageFile.empty()) cmd = L"ImBox type=ram";
-    else cmd = L"ImBox type=img image=\"" + ImageFile + L"\"";
+    else cmd = L"ImBox \"image=" + ImageFile + L"\"";
     if (pPassword && *pPassword) cmd += L" cipher=" + (Cipher.empty() ? L"AES" : Cipher);
-    if (iArgon2Cost) cmd += L" cost=" + std::to_wstring(iArgon2Cost);
     //cmd += L" size=" + std::to_wstring(sizeKb) + L" mount=" + std::wstring(Drive) + L" format=ntfs:" DISK_LABEL;
-    cmd += L" size=" + std::to_wstring(sizeKb) + L" mount=" + std::wstring(Drive) + L" format=ntfs";
+    cmd += L" size=" + std::to_wstring(sizeKb) + L" mount=" + std::wstring(Drive);
+    cmd += L" format=" + (FS.empty() ? L"NTFS" : FS);
     if(DeviceNumber) cmd += L" number=" + std::to_wstring(DeviceNumber);
 
 #ifdef _M_ARM64
@@ -359,21 +364,10 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
     WCHAR sName[32];
     wsprintf(sName, L"_%08X_%08X%08X", GetCurrentProcessId(), (ULONG)(ctr >> 32), (ULONG)ctr);
 
-    cmd += L" proxy=" IMBOX_PROXY + std::wstring(sName) + L"!" + ProxyName;
+    cmd += L" \"proxy=" IMBOX_PROXY + std::wstring(sName) + L"!" + ProxyName + L"\"";
 
     HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, (IMBOX_EVENT + std::wstring(sName)).c_str());
-    cmd += L" event=" IMBOX_EVENT + std::wstring(sName);
-
-    //SSection* pSection = NULL;
-    //HANDLE hMapping = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 0x1000, (IMBOX_SECTION + std::wstring(sName)).c_str());
-    //if (hMapping) {
-    //    pSection = (SSection*)MapViewOfFile(hMapping, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0x1000);
-    //    memset(pSection, 0, 0x1000);
-    //}
-    //cmd += L" section=" IMBOX_SECTION + std::wstring(sName);
-    //
-    //if (pPassword && *pPassword)
-    //    wmemcpy(pSection->in.pass, pPassword, wcslen(pPassword) + 1);
+    cmd += L" \"event=" IMBOX_EVENT + std::wstring(sName) + L"\"";
 
     cmd += L" mem=0x0000000000000000";
 
@@ -387,7 +381,7 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
     {
         NTSTATUS status = STATUS_SUCCESS;
 
-        pMem = AllocPasswordMemory(pi.hProcess, pPassword);
+        pMem = AllocSecureMemory(pi.hProcess, uMemSize);
 
         if (!pMem) 
             status = STATUS_INSUFFICIENT_RESOURCES;
@@ -403,7 +397,17 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
                     return STATUS_SUCCESS;
                 }
                 return STATUS_UNSUCCESSFUL;
-                }, pMem);
+            }, pMem);
+        }
+
+        if (NT_SUCCESS(status)) 
+        {
+            pSection->in.pw.size = (int)(wcslen(pPassword) * sizeof(wchar_t));
+            memcpy(pSection->in.pw.pass, pPassword, pSection->in.pw.size);
+            pSection->in.pw.kdf = iKdf;
+            //pSection->in.pw.slot = -KEY_SLOT_MAX;
+
+            status = NtWriteVirtualMemory(pi.hProcess, pMem, (PVOID)pSpace, sizeof(pSpace), NULL);
         }
 
         if (!NT_SUCCESS(status)) {
@@ -444,16 +448,13 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
                 }
             }
         }
-        else 
+        else // hEvent set
         {
-            union {
-                SSection pSection[1];
-                BYTE pSpace[0x1000];
-            };
-            if (NT_SUCCESS(NtReadVirtualMemory(pi.hProcess, (PVOID)pMem, pSection, 0x1000, NULL)))
+            if (NT_SUCCESS(NtReadVirtualMemory(pi.hProcess, (PVOID)pMem, pSpace, sizeof(pSpace), NULL)))
             {
                 if (_wcsnicmp(pSection->out.mount, IMDISK_DEVICE, IMDISK_DEVICE_LEN) == 0)
                     pMount->SetDevicePath(std::wstring(pSection->out.mount));
+				pMount->SetVolumeInfo(&pSection->out.info, pSection->out.fs);
             }
 
             //if (_wcsnicmp(pSection->out.mount, IMDISK_DEVICE, IMDISK_DEVICE_LEN) == 0)
@@ -496,15 +497,10 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
         CloseHandle(pi.hThread);
     }
 
-    //if (pSection) {
-    //    memset(pSection, 0, 0x1000);
-    //    UnmapViewOfFile(pSection);
-    //}
-    //if(hMapping) 
-    //    CloseHandle(hMapping);
-
     if(hEvent) 
         CloseHandle(hEvent);
+
+    memset(pSpace, 0, sizeof(pSpace));
 
     if (Result.IsError())
         return Result;
@@ -595,6 +591,8 @@ STATUS CVolumeManager::Update()
     for (auto& pMount : OldVolumes)
     {
         CleanUpVolume(pMount.second);
+        // Cleanup script state when volume is removed
+        theCore->JSStateManager()->CleanupScriptState(pMount.second->GetGuid());
         m_VolumesByGuid.erase(pMount.second->GetGuid());
         m_Volumes.erase(pMount.first);
     }
@@ -616,10 +614,9 @@ STATUS CVolumeManager::Update()
     return STATUS_SUCCESS;
 }
 
-STATUS CVolumeManager::CreateImage(const std::wstring& Path, const std::wstring& Password, uint64 uSize, const std::wstring& Cipher, int iArgon2Cost)
+STATUS CVolumeManager::CreateImage(const std::wstring& Path, const std::wstring& Password, uint64 uSize, const std::wstring& Cipher, int iKdf, const std::wstring& FS)
 {
-    // todo: Cipher
-    auto Res = MountImDisk(Path, Password.c_str(), iArgon2Cost, Cipher, uSize);
+    auto Res = MountImDisk(Path, Password.c_str(), iKdf, Cipher, uSize, L"", 0, FS);
     if(Res.IsError())
         return Res;
 
@@ -628,13 +625,16 @@ STATUS CVolumeManager::CreateImage(const std::wstring& Path, const std::wstring&
     return STATUS_SUCCESS;
 }
 
-//STATUS CVolumeManager::ChangeImagePassword(const std::wstring& Path, const std::wstring& OldPassword, const std::wstring& NewPassword, int iOldArgon2Cost, int iNewArgon2Cost)
+//STATUS CVolumeManager::ChangeImagePassword(const std::wstring& Path, const std::wstring& OldPassword, const std::wstring& NewPassword, int iOldKdf, int iNewKdf)
 //{
-//    CBuffer Data(sizeof(SNewKeySection), true);
-//	SNewKeySection* pNewKey = (SNewKeySection*)Data.GetBuffer();
-//	wcscpy_s(pNewKey->new_pass, DC_MAX_PASSWORD + 1, NewPassword.c_str());
-//	pNewKey->new_cost = iNewArgon2Cost;
-//    return ExecImDisk(Path, OldPassword.c_str(), iOldArgon2Cost, L"new_key", true, &Data, SECTION_PARAM_ID_KEY);
+//    CBuffer Data(sizeof(SPassword), true);
+//    SPassword* pNewPass = (SPassword*)Data.GetBuffer();
+//    memset(pNewPass, 0, sizeof(SPassword));
+//    pNewPass->size = NewPassword.length() * sizeof(wchar_t);
+//    memcpy(pNewPass->pass, NewPassword.c_str(), pNewPass->size);
+//    pNewPass->kdf = iNewKdf;
+//
+//    return ExecImDisk(Path, OldPassword.c_str(), iKdf, L"new_key", true, &Data, SECTION_PARAM_ID_NEW_PASS);
 //}
 
 //STATUS CVolumeManager::DeleteImage(const std::wstring& Path)
@@ -642,19 +642,19 @@ STATUS CVolumeManager::CreateImage(const std::wstring& Path, const std::wstring&
 //	return STATUS_NOT_IMPLEMENTED;
 //}
 
-//STATUS CVolumeManager::BackupHeader(const std::wstring& Path, const std::wstring& BackupPath, const std::wstring& Password, int iArgon2Cost)
+//STATUS CVolumeManager::BackupHeader(const std::wstring& Path, const std::wstring& BackupPath, const std::wstring& Password, int iKdf)
 //{
 //	std::wstring cmd = L"backup=\"" + BackupPath + L"\"";
-//    return ExecImDisk(Path, Password.c_str(), iArgon2Cost, cmd);
+//    return ExecImDisk(Path, Password.c_str(), iKdf, cmd);
 //}
 //
-//STATUS CVolumeManager::RestoreHeader(const std::wstring& BackupPath, const std::wstring& Path, const std::wstring& Password, int iArgon2Cost)
+//STATUS CVolumeManager::RestoreHeader(const std::wstring& BackupPath, const std::wstring& Path, const std::wstring& Password, int iKdf)
 //{
 //    std::wstring cmd = L"restore=\"" + BackupPath + L"\"";
-//    return ExecImDisk(Path, Password.c_str(), iArgon2Cost, cmd);
+//    return ExecImDisk(Path, Password.c_str(), iKdf, cmd);
 //}
 
-STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& MountPoint, const std::wstring& Password, bool bProtect, bool bLockdown, int iArgon2Cost)
+STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& MountPoint, const std::wstring& Password, bool bProtect, bool bLockdown, int iKdf)
 {
     auto Guid = CVolume::GetGuidFromPath(Path);
 
@@ -721,7 +721,7 @@ STATUS CVolumeManager::MountImage(const std::wstring& Path, const std::wstring& 
     // Mount Volume
     //
 
-    auto Res = MountImDisk(Path, Password.c_str(), iArgon2Cost, L"", 0, MountPoint, Number);
+    auto Res = MountImDisk(Path, Password.c_str(), iKdf, L"", 0, MountPoint, Number);
     if (Res.IsError()) {
         if(!ruleGuid.empty())
             theCore->AccessManager()->RemoveRule(ruleGuid, LockDownToken);
@@ -867,6 +867,9 @@ STATUS CVolumeManager::DismountVolume(const std::wstring& DevicePath)
     if (Status.IsError())
         return Status;
 
+    // Cleanup script state when volume is removed
+    theCore->JSStateManager()->CleanupScriptState(pMount->GetGuid());
+
     m_VolumesByGuid.erase(pMount->GetGuid());
     m_Volumes.erase(MkLower(DevicePath));
 
@@ -889,6 +892,8 @@ STATUS CVolumeManager::DismountAll()
         if (Status.IsError())
             I++;
         else {
+            // Cleanup script state when volume is removed
+            theCore->JSStateManager()->CleanupScriptState(I->second->GetGuid());
             m_VolumesByGuid.erase(I->second->GetGuid());
             I = m_Volumes.erase(I);
         }

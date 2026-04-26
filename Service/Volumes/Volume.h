@@ -25,6 +25,8 @@ public:
 	bool HasDevicePath() const { std::shared_lock Lock(m_Mutex); return !m_DevicePath.empty(); }
 	std::wstring GetDevicePath() const { std::shared_lock Lock(m_Mutex); return m_DevicePath; }
 
+	void SetVolumeInfo(const struct SCryptInfo* pInfo, const WCHAR* fs = NULL);
+
 	void SetMountPoint(const std::wstring& MountPoint) { std::unique_lock Lock(m_Mutex); m_MountPoint = MountPoint; }
 	std::wstring GetMountPoint() const { std::shared_lock Lock(m_Mutex); return m_MountPoint; }
 
@@ -75,6 +77,8 @@ protected:
 	bool m_bUseScript = false;
 	std::string m_Script;
 	bool m_bDataDirty = false;
+	
+	StVariant m_Info;
 
 	StVariant m_Data;
 

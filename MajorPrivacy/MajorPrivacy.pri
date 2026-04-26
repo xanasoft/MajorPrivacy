@@ -138,7 +138,8 @@ HEADERS += ./version.h \
     ./Helpers/Highliter/qsourcehighliter.h \
     ./Helpers/Highliter/qsourcehighliterthemes.h \
     ./Wizards/SetupWizard.h \
-    ./Wizards/VolumeWizard.h
+    ./Wizards/VolumeWizard.h \
+    ./Widgets/PasswordStrengthWidget.h
 
 SOURCES += ./main.cpp \
     ./pch.cpp \
@@ -276,7 +277,8 @@ SOURCES += ./main.cpp \
     ./Helpers/Highliter/qsourcehighliter.cpp \
     ./Helpers/Highliter/qsourcehighliterthemes.cpp \
     ./Wizards/SetupWizard.cpp \
-    ./Wizards/VolumeWizard.cpp
+    ./Wizards/VolumeWizard.cpp \
+    ./Widgets/PasswordStrengthWidget.cpp
 
 FORMS += ./Forms/AccessRuleWnd.ui \
     ./Forms/EnclaveWnd.ui \

@@ -40,9 +40,6 @@
     <Filter Include="DC\include">
       <UniqueIdentifier>{5a9d2681-b190-4507-8415-79b235d0f8a1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="DC\include\boot">
-      <UniqueIdentifier>{28dac04f-502a-448f-83b8-db10b2a77c4f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="DC\crypto">
       <UniqueIdentifier>{ae24bb60-2c22-4512-8a4e-22e5b20ee2db}</UniqueIdentifier>
     </Filter>
@@ -144,11 +141,8 @@
     <ClInclude Include="dc\crypto_small\xts_small.h">
       <Filter>DC\crypto_small</Filter>
     </ClInclude>
-    <ClInclude Include="dc\include\volume.h">
+    <ClInclude Include="dc\include\volume_header.h">
       <Filter>DC\include</Filter>
-    </ClInclude>
-    <ClInclude Include="dc\include\boot\dc_header.h">
-      <Filter>DC\include\boot</Filter>
     </ClInclude>
     <ClInclude Include="dc\include\defines.h">
       <Filter>DC\include</Filter>
@@ -176,6 +170,15 @@
     </ClInclude>
     <ClInclude Include="dc\crypto\Argon2\blake2\blamka-round-ref.h">
       <Filter>DC\crypto\Argon2\blake2</Filter>
+    </ClInclude>
+    <ClInclude Include="dc\include\dc_header.h">
+      <Filter>DC\include</Filter>
+    </ClInclude>
+    <ClInclude Include="dc\include\dcconst.h">
+      <Filter>DC\include</Filter>
+    </ClInclude>
+    <ClInclude Include="dc\crypto\Argon2\argon2_mt.h">
+      <Filter>DC\crypto\Argon2</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -271,6 +274,9 @@
     </ClCompile>
     <ClCompile Include="dc\crypto\Argon2\blake2\blake2b.c">
       <Filter>DC\crypto\Argon2\blake2</Filter>
+    </ClCompile>
+    <ClCompile Include="dc\crypto\Argon2\argon2_mt.c">
+      <Filter>DC\crypto\Argon2</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

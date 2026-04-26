@@ -300,6 +300,9 @@
     <ClCompile Include="Network\Dns\DnsRule.cpp">
       <Filter>Network\Dns\Filter</Filter>
     </ClCompile>
+    <ClCompile Include="JSEngine\JSStateManager.cpp">
+      <Filter>JSEngine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -625,6 +628,9 @@
     </ClInclude>
     <ClInclude Include="Network\Dns\DnsRule.h">
       <Filter>Network\Dns\Filter</Filter>
+    </ClInclude>
+    <ClInclude Include="JSEngine\JSStateManager.h">
+      <Filter>JSEngine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

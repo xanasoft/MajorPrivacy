@@ -17,7 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #if defined(USE_AVX) && !defined(__INTEL_COMPILER)
- #error Please use Intel C++ Compoler
+ #error Please use Intel C++ Compiler
 #endif
 #include <intrin.h>
 #include "serpent.h"

@@ -1361,7 +1361,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
-			STATUS Status = m_pVolumeManager->CreateImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_SIZE).To<uint64>(0), vReq.Get(API_V_VOL_CIPHER).AsStr(), vReq.Get(API_V_VOL_ARGON2_COST).To<uint32>(0));
+			STATUS Status = m_pVolumeManager->CreateImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_SIZE).To<uint64>(0), vReq.Get(API_V_VOL_CIPHER).AsStr(), vReq.Get(API_V_VOL_KDF).To<uint32>(0), vReq.Get(API_V_VOL_FS).AsStr());
 			RETURN_STATUS(Status);
 		}
 		//case SVC_API_VOL_CHANGE_PASSWORD:
@@ -1369,7 +1369,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		//	StVariant vReq(m_pMemPool);
 		//	vReq.FromPacket(req);
 
-		//	STATUS Status = m_pVolumeManager->ChangeImagePassword(vReq[API_V_VOL_PATH], vReq[API_V_VOL_OLD_PASS], vReq[API_V_VOL_NEW_PASS], vReq.Get(API_V_VOL_OLD_ARGON2_COST).To<uint32>(0), vReq.Get(API_V_VOL_NEW_ARGON2_COST).To<uint32>(0));
+		//	STATUS Status = m_pVolumeManager->ChangeImagePassword(vReq[API_V_VOL_PATH], vReq[API_V_VOL_OLD_PASS], vReq[API_V_VOL_NEW_PASS], vReq.Get(API_V_VOL_OLD_KDF).To<uint32>(0), vReq.Get(API_V_VOL_NEW_KDF).To<uint32>(0));
 		//	RETURN_STATUS(Status);
 		//}
 		case SVC_API_VOL_EXPAND:
@@ -1401,7 +1401,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		//	StVariant vReq(m_pMemPool);
 		//	vReq.FromPacket(req);
 		//	
-		//	STATUS Status = m_pVolumeManager->BackupHeader(vReq[API_V_VOL_PATH], vReq[API_V_FILE_PATH], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_ARGON2_COST).To<uint32>(0));
+		//	STATUS Status = m_pVolumeManager->BackupHeader(vReq[API_V_VOL_PATH], vReq[API_V_FILE_PATH], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_KDF).To<uint32>(0));
 		//	RETURN_STATUS(Status);
 		//}
 		//case SVC_API_VOL_RESTORE_HEADER:
@@ -1409,7 +1409,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		//	StVariant vReq(m_pMemPool);
 		//	vReq.FromPacket(req);
 
-		//	STATUS Status = m_pVolumeManager->RestoreHeader(vReq[API_V_FILE_PATH], vReq[API_V_VOL_PATH], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_ARGON2_COST).To<uint32>(0));
+		//	STATUS Status = m_pVolumeManager->RestoreHeader(vReq[API_V_FILE_PATH], vReq[API_V_VOL_PATH], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_KDF).To<uint32>(0));
 		//	RETURN_STATUS(Status);
 		//}
 
@@ -1418,7 +1418,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
-			STATUS Status = m_pVolumeManager->MountImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_MOUNT_POINT], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_PROTECT).To<bool>(), vReq.Get(API_V_VOL_LOCKDOWN).To<bool>(), vReq.Get(API_V_VOL_ARGON2_COST).To<uint32>(0));
+			STATUS Status = m_pVolumeManager->MountImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_MOUNT_POINT], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_PROTECT).To<bool>(), vReq.Get(API_V_VOL_LOCKDOWN).To<bool>(), vReq.Get(API_V_VOL_KDF).To<uint32>(0));
 			RETURN_STATUS(Status);
 		}
 		case SVC_API_VOL_DISMOUNT_VOLUME:

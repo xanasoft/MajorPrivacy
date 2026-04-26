@@ -17,13 +17,13 @@ public:
 
 	STATUS Update();
 
-	STATUS CreateImage(const std::wstring& Path, const std::wstring& Password, uint64 uSize = 0, const std::wstring& Cipher = L"AES", int iArgon2Cost = 0);
-	//STATUS ChangeImagePassword(const std::wstring& Path, const std::wstring& OldPassword, const std::wstring& NewPassword, int iOldArgon2Cost = 0, int iNewArgon2Cost = 0);
+	STATUS CreateImage(const std::wstring& Path, const std::wstring& Password, uint64 uSize = 0, const std::wstring& Cipher = L"AES", int iKdf = 0, const std::wstring& FS = L"");
+	//STATUS ChangeImagePassword(const std::wstring& Path, const std::wstring& OldPassword, const std::wstring& NewPassword, int iOldKdf = 0, int iNewKdf = 0);
 	//STATUS DeleteImage(const std::wstring& Path);
-	//STATUS BackupHeader(const std::wstring& Path, const std::wstring& BackupPath, const std::wstring& Password, int iArgon2Cost = 0);
-	//STATUS RestoreHeader(const std::wstring& BackupPath, const std::wstring& Path, const std::wstring& Password, int iArgon2Cost = 0);
+	//STATUS BackupHeader(const std::wstring& Path, const std::wstring& BackupPath, const std::wstring& Password, int iKdf = 0);
+	//STATUS RestoreHeader(const std::wstring& BackupPath, const std::wstring& Path, const std::wstring& Password, int iKdf = 0);
 
-	STATUS MountImage(const std::wstring& Path, const std::wstring& MountPoint, const std::wstring& Password, bool bProtect, bool bLockdown, int iArgon2Cost = 0);
+	STATUS MountImage(const std::wstring& Path, const std::wstring& MountPoint, const std::wstring& Password, bool bProtect, bool bLockdown, int iKdf = 0);
 	STATUS DismountVolume(const std::wstring& DevicePath);
 	STATUS DismountAll();
 	STATUS ExpandVolume(const std::wstring& DevicePath, uint64 uAddSize);

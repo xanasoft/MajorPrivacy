@@ -2,6 +2,65 @@
 #include "Encryption.h"
 #include "PrivateCrypto.h"
 
+extern "C" {
+#include ".\Argon2\argon2.h"
+
+struct mem_block
+{
+	SIZE_T size;
+	PVOID data;
+};
+
+PVOID secure_alloc(SIZE_T size)
+{
+	mem_block* mem;
+	SIZE_T full_size = sizeof(mem_block) + size;
+	// on 32 bit system xts_key must be located in executable memory
+	// x64 does not require this
+#ifdef _M_IX86
+	mem = (mem_block*)VirtualAlloc(NULL, full_size, MEM_COMMIT + MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+#else
+	mem = (mem_block*)VirtualAlloc(NULL, full_size, MEM_COMMIT + MEM_RESERVE, PAGE_READWRITE);
+#endif
+	if (!mem)
+		return NULL;
+	mem->data = ((char*)mem) + sizeof(mem_block);
+	mem->size = size;
+	RtlSecureZeroMemory(mem->data, mem->size);
+	VirtualLock(mem, full_size);
+	return mem->data;
+}
+
+void secure_free(PVOID ptr)
+{
+	if (!ptr) 
+		return;
+	mem_block* mem = (mem_block*)((BYTE*)ptr - sizeof(mem_block));
+	if (mem->data != ptr) { // sanity check, should never happen
+#ifdef _DEBUG
+		DebugBreak();
+#endif
+		return;
+	}
+	SIZE_T full_size = sizeof(mem_block) + mem->size;
+	RtlSecureZeroMemory(mem->data, mem->size);
+	VirtualUnlock(mem, full_size);
+	VirtualFree(mem, 0, MEM_RELEASE);
+}
+
+void burn(PVOID ptr, SIZE_T size)
+{
+	RtlSecureZeroMemory(ptr, size);
+}
+
+void make_rand(void* ptr, size_t size)
+{
+	BCryptGenRandom(NULL, (BYTE*)ptr, (ULONG)size, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+}
+
+}
+
+
 CEncryption::CEncryption(FW::AbstractMemPool* pMemPool)
  : CCryptoBase(pMemPool)
 {
@@ -179,49 +238,56 @@ fail:
 
 //
 
-NTSTATUS CEncryption::GetKeyFromPW(const CBuffer& password, CBuffer& key, ULONG Iterations)
+NTSTATUS CEncryption::GetKeyFromPWOld(const CBuffer& password, const CBuffer& salt, CBuffer& key, ULONG Iterations)
 {
     NTSTATUS status;
     DWORD ResultLength = 0;
 
-    /*const BYTE Salt [] =
-    {
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 
-    0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
-    };*/
-    const BYTE* salt = nullptr;
+    const BYTE* saltBuf = nullptr;
     ULONG saltLen = 0;
+    if(salt.GetSize() > 0) {
+        saltBuf = salt.GetBuffer();
+        saltLen = (ULONG)salt.GetSize();
+	}
 
-    const ULONGLONG IterationCount = Iterations;
+    ULONGLONG IterationCount = Iterations;
 
     typedef NTSTATUS (WINAPI *PFN_BCryptKeyDerivation)(BCRYPT_KEY_HANDLE, BCryptBufferDesc*, PUCHAR, ULONG, PULONG, ULONG);
     HMODULE hBcrypt = GetModuleHandleW(L"bcrypt.dll");
     PFN_BCryptKeyDerivation pfnKeyDerivation = hBcrypt ? (PFN_BCryptKeyDerivation)GetProcAddress(hBcrypt, "BCryptKeyDerivation") : NULL;
     if (pfnKeyDerivation) 
     {
-        BCryptBuffer PBKDF2ParameterBuffers[] = {
+        BCryptBuffer PBKDF2ParameterBuffers[3] = {
             {
                 sizeof (BCRYPT_SHA256_ALGORITHM),
                 KDF_HASH_ALGORITHM,
                 (PBYTE)BCRYPT_SHA256_ALGORITHM,
             },
-            /*{
-            sizeof (Salt),
-            KDF_SALT,
-            (PBYTE)Salt,
-            },*/
             {
                 sizeof (IterationCount),
                 KDF_ITERATION_COUNT,
                 (PBYTE)&IterationCount,
             }
+            /*,{
+            sizeof (Salt),
+            KDF_SALT,
+            (PBYTE)Salt,
+            }*/
         };
 
         BCryptBufferDesc PBKDF2Parameters = {
             BCRYPTBUFFER_VERSION,
-            2, //3,
+            2,
             PBKDF2ParameterBuffers
         };
+
+        if (saltBuf)
+        {
+			PBKDF2ParameterBuffers[PBKDF2Parameters.cBuffers].BufferType = KDF_SALT;
+			PBKDF2ParameterBuffers[PBKDF2Parameters.cBuffers].cbBuffer = saltLen;
+			PBKDF2ParameterBuffers[PBKDF2Parameters.cBuffers].pvBuffer = (PBYTE)saltBuf;
+            PBKDF2Parameters.cBuffers++;
+        }
 
         CScopedHandle<BCRYPT_ALG_HANDLE, void(*)(BCRYPT_ALG_HANDLE)> KdfAlgHandle(NULL, [](BCRYPT_ALG_HANDLE h) {BCryptCloseAlgorithmProvider(h, 0);});
         status = BCryptOpenAlgorithmProvider(
@@ -258,7 +324,7 @@ NTSTATUS CEncryption::GetKeyFromPW(const CBuffer& password, CBuffer& key, ULONG 
         ResultLength = (ULONG)key.GetCapacity();
         status = PBKDF2_HMAC_SHA256_Fallback(
             (const BYTE*)password.GetBuffer(), (ULONG)password.GetSize(),
-            salt, saltLen,
+            saltBuf, saltLen,
             IterationCount,
             key.GetBuffer(), 
             ResultLength);
@@ -272,14 +338,68 @@ NTSTATUS CEncryption::GetKeyFromPW(const CBuffer& password, CBuffer& key, ULONG 
     return status; // OK;
 }
 
-NTSTATUS CEncryption::SetPassword(const CBuffer& password)
+bool argon2_mk_params(int kdf, uint32* memory_cost, uint32* time_cost, uint32* parallelism)
+{
+    static const uint32 memory_mib_table[] = {
+        64, 128, 192, 256, // +64
+        384, 512, // +128
+        768, 1024, // +256
+        1536, 2048 // +512
+    };
+
+    static const uint32 time_cost_table[] = {
+        3, // for 64 MiB
+        3, // for 128 MiB
+        4, // for 192 MiB
+        4, // for 256 MiB
+        5, // for 384 MiB
+        5, // for 512 MiB
+        5, // for 768 MiB
+        6, // for 1024 MiBquestion
+        6, // for 1536 MiB
+        6  // for 2048 MiB
+    };
+
+    const int min_cost = 1;
+    const int max_cost = (int)(sizeof(memory_mib_table) / sizeof(memory_mib_table[0]));
+
+    if (kdf < min_cost || kdf > max_cost)
+        return false;
+
+    const int idx = kdf - 1;
+
+    if (memory_cost) *memory_cost = memory_mib_table[idx] * 1024U; // Argon2 expects KiB
+    if (time_cost) *time_cost = time_cost_table[idx];
+    if (parallelism) *parallelism = 4;
+
+    return true;
+}
+
+NTSTATUS CEncryption::GetKeyFromPW(const CBuffer& password, const CBuffer& salt, CBuffer& key, int iKdf)
+{
+    if (iKdf == 0)
+        return GetKeyFromPWOld(password, salt, key);
+
+    uint32 memory_cost, time_cost, parallelism;
+    if (!argon2_mk_params(iKdf, &memory_cost, &time_cost, &parallelism))
+        return STATUS_INVALID_PARAMETER;
+
+    int ret = argon2id_hash_raw(time_cost, memory_cost, parallelism, password.GetBuffer(), password.GetSize(), salt.GetBuffer(), salt.GetSize(), key.GetBuffer(), key.GetCapacity(), NULL);
+    if (ret == ARGON2_OK) {
+        key.SetSize(key.GetCapacity(), false);
+		return STATUS_SUCCESS;
+    }
+    return STATUS_UNSUCCESSFUL;
+}
+
+NTSTATUS CEncryption::SetPassword(const CBuffer& password, const CBuffer& salt, int iKdf)
 {
     if(!m)
         return STATUS_DEVICE_NOT_READY;
 
     m->Key.SetSize(0, true, 256/8);
 
-    NTSTATUS status = GetKeyFromPW(password, m->Key);
+    NTSTATUS status = GetKeyFromPW(password, salt, m->Key, iKdf);
     if( !NT_SUCCESS(status) )
 		return status; //ERR(status, L"Unable to derive the AES key from the password");
 

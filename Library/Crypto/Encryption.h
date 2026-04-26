@@ -12,8 +12,9 @@ public:
 #endif
 	virtual ~CEncryption();
 
-	static NTSTATUS GetKeyFromPW(const CBuffer& password, CBuffer& key, ULONG Iterations = 1024);
-	NTSTATUS SetPassword(const CBuffer& password);
+	static NTSTATUS GetKeyFromPW(const CBuffer& password, const CBuffer& salt, CBuffer& key, int iKdf);
+	static NTSTATUS GetKeyFromPWOld(const CBuffer& password, const CBuffer& salt, CBuffer& key, ULONG Iterations = 1024);
+	NTSTATUS SetPassword(const CBuffer& password, const CBuffer& salt, int iKdf);
 
 	NTSTATUS SetSymetricKey(const CBuffer& SymetricKey);
 	NTSTATUS GetSymetricKey(CBuffer& SymetricKey) const;

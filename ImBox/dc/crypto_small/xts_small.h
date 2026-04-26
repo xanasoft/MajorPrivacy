@@ -34,7 +34,8 @@
  #define XTS_FULL_KEY   (XTS_KEY_SIZE*3*2)
 #endif
 
-#pragma warning(disable:4324)
+typedef void (*xts_proc)(const unsigned char *in, unsigned char *out, unsigned long len, unsigned __int64 offset, struct _xts_key *key);
+
 typedef __declspec(align(16)) struct _xts_key {
 	unsigned char crypt_k[MAX_CIPHER_KEY];
 	unsigned char tweak_k[MAX_CIPHER_KEY];
@@ -44,9 +45,8 @@ typedef __declspec(align(16)) struct _xts_key {
 	unsigned long ctxsz;
 #endif
 } xts_key;
-#pragma warning(default:4324)
 
-void xts_set_key(const unsigned char *key, int alg, xts_key *skey);
+int  xts_set_key(const unsigned char *key, int alg, xts_key *skey);
 void xts_encrypt(const unsigned char *in, unsigned char *out, unsigned long len, unsigned __int64 offset, xts_key *key);
 void xts_decrypt(const unsigned char *in, unsigned char *out, unsigned long len, unsigned __int64 offset, xts_key *key);
 int xts_init(int hw_crypt);

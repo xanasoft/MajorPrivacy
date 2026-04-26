@@ -65,6 +65,7 @@
 #define API_S_PRIV_KEY						"PrivateKey"
 #define API_S_HASH							"Hash"
 #define API_S_KEY_BLOB						"KeyBlob"
+#define API_S_KDF							"Kdf"
 #define API_S_LOCK							"Lock"
 #define API_S_UNLOCK						"Unlock"
 #define API_S_RANDOM						"Random"

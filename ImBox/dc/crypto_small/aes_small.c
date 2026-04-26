@@ -194,7 +194,7 @@ void aes256_gentab()
     {
 		unsigned char f = Te4[i]; 
 		unsigned char r = Td4[i];
-		unsigned char x = (unsigned char)lfsr2(f);		
+		unsigned char x = lfsr2(f);		
 
         Te0[i] = (f ^ x) << 24 | f << 16 | f << 8 | x;
 		Td0[i] = ! r ? r :

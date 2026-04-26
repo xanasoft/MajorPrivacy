@@ -26,7 +26,7 @@
 #include "Common\helpers.h"
 
 extern "C" {
-#include ".\dc\include\boot\dc_header.h"
+#include ".\dc\include\dc_header.h"
 #include ".\dc\crypto_fast\crc32.h"
 #include ".\dc\crypto_fast\sha512_pkcs5_2.h"
 }
@@ -72,6 +72,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_ LPWSTR    lpCmdLine,
     _In_ int       nCmdShow)
 {
+    int ret = 0;
+
 	int nArgs = 0;
 	LPWSTR* szArglist = CommandLineToArgvW(lpCmdLine, &nArgs);
 	std::vector<std::wstring> arguments;
@@ -90,10 +92,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     std::wstring type = GetArgument(arguments, L"type");
     std::wstring size = GetArgument(arguments, L"size");
     std::wstring image = GetArgument(arguments, L"image");
-    std::wstring key = GetArgument(arguments, L"key");
+    SArgument key = GetArgumentEx(arguments, L"key");
     std::wstring cipher = GetArgument(arguments, L"cipher");
-    int iCost = _wtoi(GetArgument(arguments, L"cost").c_str());
-    int iNewCost = _wtoi(GetArgument(arguments, L"new_cost").c_str());
+    //int iCost = _wtoi(GetArgument(arguments, L"cost").c_str());
+    //int iNewCost = _wtoi(GetArgument(arguments, L"new_cost").c_str());
+    int iKdf = _wtoi(GetArgument(arguments, L"kdf").c_str());
+    int iNewKdf = _wtoi(GetArgument(arguments, L"new_kdf").c_str());
+    SArgument slot = GetArgumentEx(arguments, L"slot");
+    SArgument new_slot = GetArgumentEx(arguments, L"new_slot");
     std::wstring format = GetArgument(arguments, L"format");
     std::wstring params = GetArgument(arguments, L"params");
 
@@ -106,8 +112,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     std::wstring section = GetArgument(arguments, L"section");
     std::wstring mem = GetArgument(arguments, L"mem");
 
-    SArgument set_data = GetArgumentEx(arguments, L"set_data");
-    SArgument get_data = GetArgumentEx(arguments, L"get_data");
+    //SArgument set_data = GetArgumentEx(arguments, L"set_data");
+    //SArgument get_data = GetArgumentEx(arguments, L"get_data");
 
     ULONG64 uSize = 0;
     if(size.empty())
@@ -115,12 +121,30 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     else
         uSize = _wtoi64(size.c_str());
 
+    SSection* pSection = NULL;
+    if(!mem.empty()) {
+        pSection = (SSection*)wcstoull(mem.c_str()+2, NULL, 16);
+    }
+
+    HANDLE hMapping = NULL;
+    if (!section.empty()) {
+        if (pSection)
+            return ERR_INVALID_PARAM;
+        if(section.substr(0, 2) == L"0x")
+            hMapping = (SSection*)wcstoull(section.c_str() + 2, NULL, 16);
+        else
+            hMapping = OpenFileMapping(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, section.c_str());
+        if (hMapping)
+            pSection = (SSection*)MapViewOfFile(hMapping, FILE_MAP_WRITE, 0, 0, 0x1000);
+    }
+
+    SPassword* pass = NULL;
 
     //
     // Prepare Crypto
     //
 
-    xts_init(1);
+    dc_init_crypto();
 
     //
     // prepare disk IO
@@ -131,121 +155,152 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         pIO = new CVirtualMemoryIO(uSize);
     else if (_wcsicmp(type.c_str(), L"physical") == 0 || _wcsicmp(type.c_str(), L"awe") == 0)
         pIO = new CPhysicalMemoryIO(uSize);
-    else if (_wcsicmp(type.c_str(), L"image") == 0 || _wcsicmp(type.c_str(), L"img") == 0)
+    else if(!image.empty()) // else if (_wcsicmp(type.c_str(), L"image") == 0 || _wcsicmp(type.c_str(), L"img") == 0)
         pIO = new CImageFileIO(image, uSize);
     else {
-        DbgPrint(L"Invalid disk type.\n");
-        return -1;
+        ret = ERR_UNKNOWN_TYPE;
+        goto cleanup;
     }
 
-    HANDLE hMapping = NULL;
-    SSection* pSection = NULL;
-    if (!section.empty()) {
-        HANDLE hMapping = OpenFileMapping(FILE_MAP_READ | FILE_MAP_WRITE, FALSE, section.c_str());
-        if (hMapping)
-            pSection = (SSection*)MapViewOfFile(hMapping, FILE_MAP_WRITE, 0, 0, 0x1000);
+    if (key.IsSet && !key.Value.empty())
+    {
+        pass = (SPassword*)secure_alloc(sizeof(SPassword));
+        pass->size = (int)(key.Value.length() * sizeof(WCHAR));
+        wcsncpy(pass->pass, key.Value.c_str(), DC_MAX_PASSWORD);
+        pass->kdf = iKdf;
+		pass->slot = slot.IsSet ? _wtoi(slot.Value.c_str()) : -KEY_SLOT_MAX;
     }
-    if(!mem.empty()) {
-		if (pSection)
-			return ERR_INVALID_PARAM;
-		pSection = (SSection*)wcstoull(mem.c_str()+2, NULL, 16);
-	}
+    else if(pSection)
+    {
+        pass = (SPassword*)secure_alloc(sizeof(SPassword));
+		memcpy(pass, &pSection->in.pw, sizeof(SPassword));
+		burn(&pSection->in.pw, sizeof(SPassword));
+    }
 
-    if (!backup.empty())
-		return CCryptoIO::BackupHeader(pIO, backup, key.empty() ? pSection->in.pass : key.c_str(), iCost);
-    if (!restore.empty())
-        return CCryptoIO::RestoreHeader(pIO, restore, key.empty() ? pSection->in.pass : key.c_str(), iCost);
+    if (!backup.empty()) {
+        ret = CCryptoIO::BackupHeader(pIO, backup, pass);
+        goto cleanup;
+    }
+    if (!restore.empty()) {
+        ret = CCryptoIO::RestoreHeader(pIO, restore, pass);
+        goto cleanup;
+    }
 
-    if (!key.empty() || pSection) {
-        CCryptoIO* pCrypto;
-        if (pSection) {
-            pCrypto = new CCryptoIO(pIO, pSection->in.pass, cipher, iCost);
-            memset(pSection, 0, sizeof(pSection->buffer)); // clear
-        }
-        else
-            pCrypto = new CCryptoIO(pIO, key.c_str(), cipher, iCost);
+    if (pass) 
+    {
+        CCryptoIO* pCrypto = new CCryptoIO(pIO, pass, cipher);    
         pIO = pCrypto;
 
-        if (new_key.IsSet) {
+		secure_free(pass);
+        pass = NULL;
+
+        if (new_key.IsSet) 
+        {
+			SPassword* new_pass = NULL;
+
             if (!new_key.Value.empty())
-                return pCrypto->ChangePassword(new_key.Value.c_str(), iNewCost);
-            else if (pSection && pSection->magic == SECTION_MAGIC && pSection->id == SECTION_PARAM_ID_KEY) {
-                SNewKeySection* pNewKey = (SNewKeySection*)pSection->data;
-                return pCrypto->ChangePassword(pNewKey->new_pass, pNewKey->new_cost);
-            } else
-				return ERR_INVALID_PARAM;
-        }
-
-        if (set_data.IsSet) 
-        {
-            const UCHAR* pData = NULL;
-            SIZE_T uSize = 0;
-
-            if (!set_data.Value.empty()) {
-                pData = (const UCHAR*)set_data.Value.c_str();
-                uSize = set_data.Value.length() * sizeof(WCHAR);
-            } else if (pSection && pSection->magic == SECTION_MAGIC && pSection->id == SECTION_PARAM_ID_DATA) {
-                pData = pSection->data;
-				uSize = pSection->size;
-			} else
-				return ERR_INVALID_PARAM;
+            {
+                new_pass = (SPassword*)secure_alloc(sizeof(SPassword));
+				new_pass->size = (int)(new_key.Value.length() * sizeof(WCHAR));
+				wcsncpy(new_pass->pass, new_key.Value.c_str(), DC_MAX_PASSWORD);
+				new_pass->kdf = iNewKdf;
+                new_pass->slot = new_slot.IsSet ? _wtoi(new_slot.Value.c_str()) : 0;
+            }
+            else if (pSection && pSection->id == SECTION_PARAM_ID_NEW_PASS) {
+                new_pass = (SPassword*)secure_alloc(sizeof(SPassword));
+				memcpy(new_pass, pSection->data, sizeof(SPassword));
+				burn(pSection->data, sizeof(SPassword));
+            }
             
-            return pCrypto->SetData(pData, uSize);
+            if(!new_pass) {
+                ret = ERR_INVALID_PARAM;
+                goto cleanup;
+            }
+
+            ret = pCrypto->ChangePassword(new_pass);
+
+			secure_free(new_pass);
+
+            goto cleanup;
         }
-        else if(get_data.IsSet) 
-        {
-			UCHAR pData[1024];
-			SIZE_T uSize = 0;
 
-			int ret = pCrypto->GetData(pData, &uSize);
-			if (ret)
-				return ret;
+  //      if (set_data.IsSet) 
+  //      {
+  //          const UCHAR* pData = NULL;
+  //          SIZE_T uSize = 0;
 
-			if (pSection) {
-                pSection->magic = SECTION_MAGIC;
-                pSection->id = SECTION_PARAM_ID_DATA;
-				pSection->size = (USHORT)uSize;
-				memcpy(pSection->data, pData, uSize);
-			} else
-				wprintf(L"\n%.*s\n", (int)(uSize / sizeof(WCHAR)), (WCHAR*)pData);
+  //          if (!set_data.Value.empty()) {
+  //              pData = (const UCHAR*)set_data.Value.c_str();
+  //              uSize = set_data.Value.length() * sizeof(WCHAR);
+  //          } else if (pSection && pSection->id == SECTION_PARAM_ID_DATA) {
+  //              pData = pSection->data;
+		//		uSize = pSection->size;
+		//	} else
+		//		return ERR_INVALID_PARAM;
+  //          
+  //          return pCrypto->SetData(pData, uSize);
+  //      }
+  //      else if(get_data.IsSet) 
+  //      {
+		//	UCHAR pData[1024];
+		//	SIZE_T uSize = 0;
 
-			return ERR_OK;
-		}
+		//	int ret = pCrypto->GetData(pData, &uSize);
+		//	if (ret)
+		//		return ret;
+
+		//	if (pSection) {
+  //              pSection->id = SECTION_PARAM_ID_DATA;
+		//		pSection->size = (USHORT)uSize;
+		//		memcpy(pSection->data, pData, uSize);
+		//	} else
+		//		wprintf(L"\n%.*s\n", (int)(uSize / sizeof(WCHAR)), (WCHAR*)pData);
+
+		//	return ERR_OK;
+		//}
 
         if (pSection)
             pCrypto->SetDataSection(pSection);
     }
 
-    int ret = pIO ? pIO->Init() : ERR_UNKNOWN_TYPE;
-    if (ret)
-        return ret;
+    ret = pIO->Init();
+    if (ret == ERR_OK)
+    {
+        CImDiskIO* pImDisk = new CImDiskIO(pIO, mount, number, format, params);
 
+        if (!proxy.empty())
+            pImDisk->SetProxyName(proxy);
 
-    CImDiskIO* pImDisk = new CImDiskIO(pIO, mount, number, format, params);
+        if (!event.empty()) {
+            HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, event.c_str());
+            if (hEvent)
+                pImDisk->SetMountEvent(hEvent);
+        }
 
-    if (!proxy.empty())
-        pImDisk->SetProxyName(proxy);
+        if (pSection) {
+            pImDisk->SetMountSection(hMapping, pSection);
+            hMapping = NULL;
+            pSection = NULL;
+        }
 
-    if (!event.empty()) {
-        HANDLE hEvent = OpenEvent(EVENT_MODIFY_STATE, FALSE, event.c_str());
-        if(hEvent) 
-            pImDisk->SetMountEvent(hEvent);
+        //
+        // define shutdown behaviour
+        // 
+
+        SetProcessShutdownParameters(0x100, 0);
+
+        //
+        // start processing IO Requests
+        //
+
+        ret = pImDisk->DoComm();
     }
 
-    if (pSection)
-        pImDisk->SetMountSection(hMapping, pSection);
-
-    //
-    // define shutdown behaviour
-    // 
-
-    SetProcessShutdownParameters(0x100, 0);
-
-    //
-    // start processing IO Requests
-    //
-
-    return pImDisk->DoComm();
+cleanup:
+    if (pass) secure_free(pass);
+    if (pSection) UnmapViewOfFile(pSection);
+    if(hMapping) CloseHandle(hMapping);
+    return ret;
 }
 
 

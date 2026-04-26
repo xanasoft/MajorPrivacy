@@ -171,7 +171,7 @@ void CVolumeView::OnMenu(const QPoint& Point)
 	m_pChangeVolumePassword->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
 	m_pBackupVolumeHeader->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
 	m_pRestoreVolumeHeader->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
-	m_pExpandVolume->setEnabled(iBusyCount == 0 && iMountedCount == 1 && iFolderCount == 0);
+	m_pExpandVolume->setEnabled(iBusyCount == 0 && iMountedCount == 1 && iFolderCount == 0 && Volumes.first()->GetFS() == "NTFS");
 	m_pAddVolumeEnclave->setEnabled(iBusyCount == 0 && iMountedCount > 0);
 	m_pChangeVolumeConfig->setEnabled(iBusyCount == 0 && iMountedCount == 1);
 	m_pRenameVolume->setEnabled(iBusyCount == 0 && iVolumeCount + iFolderCount == 1);
@@ -203,10 +203,10 @@ void CVolumeView::MountVolume(QString Path, CVolumePtr pVolume)
 	QString MountPoint = window.GetMountPoint();
 	bool bProtect = window.UseProtection();
 	bool bLockdown = window.UseLockdown();
-	int iArgon2Cost = window.GetArgon2Cost();
+	int iKdf= window.GetKdf();
 
 	RunVolumeOperation(tr("Mounting volume..."), [=]() {
-		return theCore->MountVolume(Path, MountPoint, Password, bProtect, bLockdown, iArgon2Cost);
+		return theCore->MountVolume(Path, MountPoint, Password, bProtect, bLockdown, iKdf);
 	}, nullptr, pVolume ? QList<CVolumePtr>() << pVolume : QList<CVolumePtr>());
 }
 
@@ -294,11 +294,11 @@ void CVolumeView::OnChangeVolumePassword()
 		return;
 	QString OldPassword = window.GetPassword();
 	QString NewPassword = window.GetNewPassword();
-	int iArgon2Cost = window.GetArgon2Cost();
-	int iNewArgon2Cost = window.GetNewArgon2Cost();
+	int iOldKdf = window.GetKdf();
+	int iNewKdf = window.GetNewKdf();
 
 	RunVolumeOperation(tr("Changing volume password..."), [=]() {
-		return theCore->ChangeVolumePassword(Path, OldPassword, NewPassword, iArgon2Cost, iNewArgon2Cost);
+		return theCore->ChangeVolumePassword(Path, OldPassword, NewPassword, iOldKdf, iNewKdf);
 	}, nullptr, QList<CVolumePtr>() << pVolume);
 }
 
@@ -322,10 +322,10 @@ void CVolumeView::OnBackupVolumeHeader()
 	if (theGUI->SafeExec(&window) != 1)
 		return;
 	QString Password = window.GetPassword();
-	int iArgon2Cost = window.GetArgon2Cost();
+	int iKdf = window.GetKdf();
 
 	RunVolumeOperation(tr("Backing up volume header..."), [=]() {
-		return theCore->BackupVolumeHeader(VolumePath, BackupPath, Password, iArgon2Cost);
+		return theCore->BackupVolumeHeader(VolumePath, BackupPath, Password, iKdf);
 	}, nullptr, QList<CVolumePtr>() << pVolume);
 }
 
@@ -354,10 +354,10 @@ void CVolumeView::OnRestoreVolumeHeader()
 	if (theGUI->SafeExec(&window) != 1)
 		return;
 	QString Password = window.GetPassword();
-	int iArgon2Cost = window.GetArgon2Cost();
+	int iKdf = window.GetKdf();
 
 	RunVolumeOperation(tr("Restoring volume header..."), [=]() {
-		return theCore->RestoreVolumeHeader(VolumePath, BackupPath, Password, iArgon2Cost);
+		return theCore->RestoreVolumeHeader(VolumePath, BackupPath, Password, iKdf);
 	}, nullptr, QList<CVolumePtr>() << pVolume);
 }
 

@@ -233,6 +233,7 @@
     <ClInclude Include="Common\helpers.h" />
     <ClInclude Include="CryptoIO.h" />
     <ClInclude Include="dc\crypto\Argon2\argon2.h" />
+    <ClInclude Include="dc\crypto\Argon2\argon2_mt.h" />
     <ClInclude Include="dc\crypto\Argon2\blake2\blake2-impl.h" />
     <ClInclude Include="dc\crypto\Argon2\blake2\blake2b.h" />
     <ClInclude Include="dc\crypto\Argon2\blake2\blamka-round-opt.h" />
@@ -343,9 +344,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="dc\include\boot\dc_header.h" />
+    <ClInclude Include="dc\include\dcconst.h" />
+    <ClInclude Include="dc\include\dc_header.h" />
     <ClInclude Include="dc\include\defines.h" />
-    <ClInclude Include="dc\include\volume.h" />
+    <ClInclude Include="dc\include\volume_header.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImageFileIO.h" />
     <ClInclude Include="ImBox.h" />
@@ -359,6 +361,7 @@
     <ClCompile Include="Common\helpers.cpp" />
     <ClCompile Include="CryptoIO.cpp" />
     <ClCompile Include="dc\crypto\Argon2\argon2.c" />
+    <ClCompile Include="dc\crypto\Argon2\argon2_mt.c" />
     <ClCompile Include="dc\crypto\Argon2\blake2\blake2b.c" />
     <ClCompile Include="dc\crypto\Argon2\core.c" />
     <ClCompile Include="dc\crypto\Argon2\opt_avx2.c" />

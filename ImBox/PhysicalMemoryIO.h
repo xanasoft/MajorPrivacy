@@ -9,6 +9,7 @@ public:
 
 	virtual ULONG64 GetDiskSize() const;
 	virtual ULONG64 GetAllocSize() const;
+	virtual ULONG GetSectorSize() const { return 512; }
 	virtual bool CanBeFormated() const { return true; }
 
 	virtual int Init();

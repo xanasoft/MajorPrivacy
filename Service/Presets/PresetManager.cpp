@@ -264,6 +264,9 @@ STATUS CPresetManager::DelEntry(const std::wstring& EntryId)
 	CPresetPtr pEntry = F->second;
 	m_Presets.erase(F);
 
+	// Cleanup script state when preset is removed
+	theCore->JSStateManager()->CleanupScriptState(Guid);
+
 	EmitChangeEvent(Guid, pEntry->GetName(), EConfigEvent::eRemoved);
 	return OK;
 }

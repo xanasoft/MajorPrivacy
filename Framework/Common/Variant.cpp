@@ -66,7 +66,7 @@ CVariant::EResult CVariant::Throw(EResult Error)
 	// check if we got a valid variant, and with the ref mechanism we can return empty refs without any problem
 	//
 
-	if (Error != eErrNotFound)
+	if (Error != eErrNotFound) 
 	{
 #ifdef KERNEL_DEBUG
 		DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "CVariant::Throw: %s\n", ErrorString(Error));

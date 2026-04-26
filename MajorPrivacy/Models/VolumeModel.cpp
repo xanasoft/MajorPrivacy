@@ -41,7 +41,6 @@ QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 			pNode = static_cast<SVolumeNode*>(MkNode(ID));
 			pNode->Values.resize(columnCount());
 			//pNode->Path = Path;
-			pNode->pVolume = pVolume;
 			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
 		else
@@ -49,6 +48,7 @@ QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 			I.value() = NULL;
 			Index = Find(m_Root, pNode);
 		}
+		pNode->pVolume = pVolume;
 
 		//if(Index.isValid()) // this is to slow, be more precise
 		//	emit dataChanged(createIndex(Index.row(), 0, pNode), createIndex(Index.row(), columnCount()-1, pNode));
@@ -83,7 +83,8 @@ QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 			case eName:				Value = pVolume->GetName(); break;
 			case eStatus:			Value = pVolume->GetStatus(); break;
 			case eMountPoint:		Value = pVolume->GetMountPoint(); break;
-			case eTotalSize:		Value = pVolume->IsFolder() ? -1 : pVolume->GetVolumeSize(); break;
+			case eTotalSize:		Value = pVolume->IsFolder() ? -1 : pVolume->GetVolumeSize() - pVolume->GetHeaderLen(); break;
+			case eCryptoInfo:		Value = (pVolume->GetCipher() | (pVolume->GetKdf() << 8)); break;
 			case eFullPath:			Value = pVolume->GetImagePath(); break;
 			}
 
@@ -98,7 +99,18 @@ QList<QModelIndex>	CVolumeModel::Sync(const QList<CVolumePtr>& VolumeList)
 				switch (section)
 				{
 				case eStatus:		ColValue.Formatted = pVolume->GetStatusStr(); break;
-				case eTotalSize:	if (Value.toULongLong() == -1) ColValue.Formatted = ""; else ColValue.Formatted = FormatSize(Value.toULongLong()); break;
+				case eMountPoint:	ColValue.Formatted = pVolume->GetMountPoint().isEmpty() ? "" : tr("%1 (%2)").arg(pVolume->GetMountPoint()).arg(pVolume->GetFS()); break;
+				case eTotalSize:	if (Value.toULongLong() == -1) ColValue.Formatted = ""; 
+									else {
+										QString Info = FormatSize(Value.toULongLong());
+										if (pVolume->GetHeaderLen())
+											Info += tr(" (%1 header)").arg(FormatSize(pVolume->GetHeaderLen()));
+										ColValue.Formatted = Info;
+									}
+									break;
+				case eCryptoInfo:	if (Value.toUInt() == -1) ColValue.Formatted = ""; else 
+									ColValue.Formatted = tr("%1 / %2").arg(pVolume->GetCipherStr()).arg(pVolume->GetKdfStr()); 
+									break;
 				}
 			}
 
@@ -160,6 +172,7 @@ QVariant CVolumeModel::headerData(int section, Qt::Orientation orientation, int 
 		case eStatus:				return tr("Status");
 		case eMountPoint:			return tr("Mount Point");
 		case eTotalSize:			return tr("Size");
+		case eCryptoInfo:			return tr("Crypto");
 		case eFullPath:				return tr("Path");
 		}
 	}

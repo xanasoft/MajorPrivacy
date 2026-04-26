@@ -1,6 +1,8 @@
 ﻿/*
     *
     * DiskCryptor - open source partition encryption tool
+	* Copyright (c) 2026
+	* DavidXanatos <info@diskcryptor.org>
     * Copyright (c) 2007 
     * ntldr <ntldr@diskcryptor.net> PGP key ID - 0x1B6A24550F33E44A
     *
@@ -83,4 +85,57 @@ unsigned long _stdcall crc32(const unsigned char *p, unsigned long len)
 		crc = crc32_tab[(unsigned char)(crc ^ p[i])] ^ (crc >> 8);
 	}	
 	return ~crc;
+}
+
+#define CRC32_POLY 0xEDB88320u
+
+/* Multiply a(x) by b(x) mod p(x), reflected. Requires a != 0 for the loop exit. */
+static unsigned long multmodp(unsigned long a, unsigned long b)
+{
+	unsigned long m = 1u << 31;
+	unsigned long p = 0;
+
+	if (a == 0)
+		return 0;
+
+	for (;;) {
+		if (a & m) {
+			p ^= b;
+			if ((a & (m - 1)) == 0)
+				break;
+		}
+		m >>= 1;
+		b = (b & 1u) ? ((b >> 1) ^ CRC32_POLY) : (b >> 1);
+	}
+	return p;
+}
+
+/* Compute x^(n * 2^k) mod p(x) */
+static unsigned long x2nmodp(unsigned __int64 n, unsigned k)
+{
+	/* Start with x^0 == 1 -> represented as 1<<31 in this reflected convention */
+	unsigned long p = 1u << 31;
+
+	/* Compute x^(2^k) mod p, then square/exponentiate as we walk bits of n */
+	unsigned long x = 1u << 30;                 /* x^1 in this representation */
+	for (unsigned i = 0; i < k; i++)       /* raise to x^(2^k) */
+		x = multmodp(x, x);
+
+	while (n) {
+		if (n & 1u)
+			p = multmodp(x, p);
+		n >>= 1;
+		x = multmodp(x, x);
+	}
+	return p;
+}
+
+/* Combine crc1=CRC(A) and crc2=CRC(B) into CRC(A||B). len2 is bytes of B. */
+unsigned long _stdcall crc32_combine(unsigned long crc1, unsigned long crc2, unsigned long len2)
+{
+	if (len2 == 0)
+		return crc1;
+
+	unsigned long xpow = x2nmodp((unsigned __int64)len2, 3); /* 3 -> *8 bits per byte */
+	return multmodp(xpow, crc1) ^ crc2;
 }

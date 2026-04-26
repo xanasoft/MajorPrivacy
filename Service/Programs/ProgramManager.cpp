@@ -1384,6 +1384,9 @@ void CProgramManager::RemoveRuleUnsafe(const CProgramRulePtr& pRule)
 {
 	m_Rules.erase(pRule->GetGuid());
 
+	// Cleanup script state when rule is removed
+	theCore->JSStateManager()->CleanupScriptState(pRule->GetGuid());
+
 	CProgramItemPtr pItem = GetProgramByID(pRule->GetProgramID(), false);
 	if (!pItem) return;
 	std::unique_lock lock(pItem->m_Mutex);

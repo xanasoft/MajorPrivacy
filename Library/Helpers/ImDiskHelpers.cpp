@@ -417,26 +417,19 @@ bool ImDiskExtendDevice(ULONG DeviceNumber, ULONGLONG ExtendSize)
     return true;
 }
 
-PVOID AllocPasswordMemory(HANDLE hProcess, const wchar_t* pPassword)
+#define VM_LOCK_1 0x0001   // This is used, when calling KERNEL32.DLL VirtualLock routine
+#define VM_LOCK_2 0x0002   // This require SE_LOCK_MEMORY_NAME privilege
+
+PVOID AllocSecureMemory(HANDLE hProcess, size_t uSize)
 {
     NTSTATUS status;
 
     PVOID pMem = NULL;
-    SIZE_T uSize = 0x1000;
 
     if(!NT_SUCCESS(status = NtAllocateVirtualMemory(hProcess, &pMem, 0, &uSize, MEM_COMMIT, PAGE_READWRITE)))
         return NULL;
-
-#define VM_LOCK_1                0x0001   // This is used, when calling KERNEL32.DLL VirtualLock routine
-#define VM_LOCK_2                0x0002   // This require SE_LOCK_MEMORY_NAME privilege
     if(!NT_SUCCESS(status = NtLockVirtualMemory(hProcess, &pMem, &uSize, VM_LOCK_1)))
         return NULL;
-
-    if (pPassword && *pPassword)
-    {
-        if(!NT_SUCCESS(status = NtWriteVirtualMemory(hProcess, pMem, (PVOID)pPassword, (wcslen(pPassword) + 1) * 2, NULL)))
-            return NULL;
-    }
 
     return pMem;
 }
@@ -477,85 +470,187 @@ NTSTATUS UpdateCommandLine(HANDLE hProcess, NTSTATUS(*Update)(std::wstring& s, P
     return STATUS_SUCCESS;
 }
 
-NTSTATUS ExecImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iArgon2Cost, const std::wstring& Command, bool bWrite, CBuffer* pBuffer, USHORT uId)
+NTSTATUS CreateSecureSection(HANDLE* phSection, PVOID* ppMapping, SIZE_T uSize)
+{
+    NTSTATUS status;
+    PACL pDacl = NULL;
+    PSECURITY_DESCRIPTOR pSD = NULL;
+    OBJECT_ATTRIBUTES objAttr;
+    LARGE_INTEGER liSize;
+    SIZE_T viewSize = 0;
+
+    //
+    // Build a security descriptor with an empty DACL (deny all access).
+    // Since the section is unnamed and access is via inherited handles only,
+    // an empty DACL prevents anyone from opening or duplicating the section.
+    //
+
+    pDacl = (PACL)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(ACL));
+    if (!pDacl) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto cleanup;
+    }
+
+    if (!InitializeAcl(pDacl, sizeof(ACL), ACL_REVISION)) {
+        status = STATUS_ACCESS_DENIED;
+        goto cleanup;
+    }
+
+    pSD = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, SECURITY_DESCRIPTOR_MIN_LENGTH);
+    if (!pSD) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto cleanup;
+    }
+
+    if (!InitializeSecurityDescriptor(pSD, SECURITY_DESCRIPTOR_REVISION)) {
+        status = STATUS_ACCESS_DENIED;
+        goto cleanup;
+    }
+
+    // Set empty DACL - denies all access to anyone trying to open the section
+    if (!SetSecurityDescriptorDacl(pSD, TRUE, pDacl, FALSE)) {
+        status = STATUS_ACCESS_DENIED;
+        goto cleanup;
+    }
+
+    // Create without OBJ_INHERIT - we'll make it inheritable temporarily during CreateProcess
+    InitializeObjectAttributes(&objAttr, NULL, 0, NULL, pSD);
+
+    liSize.QuadPart = uSize;
+
+    //
+    // Create an unnamed section with SEC_NO_CHANGE to prevent
+    // changing the protection after mapping.
+    //
+    status = NtCreateSection(phSection, SECTION_ALL_ACCESS, &objAttr, &liSize, PAGE_READWRITE, SEC_COMMIT | SEC_NO_CHANGE, NULL);
+
+    if (!NT_SUCCESS(status))
+        goto cleanup;
+
+    //
+    // Map the section into the current process for writing
+    //
+    *ppMapping = NULL;
+    viewSize = uSize;
+    status = NtMapViewOfSection(*phSection, GetCurrentProcess(), ppMapping, 0, 0, NULL, &viewSize, ViewUnmap, 0, PAGE_READWRITE);
+
+    if (!NT_SUCCESS(status)) {
+        NtClose(*phSection);
+        *phSection = NULL;
+    }
+    else {
+        //
+        // Lock the mapped view in physical memory to prevent paging to disk.
+        // This protects sensitive data (passwords) from being written to pagefile.
+        //
+        PVOID lockAddr = *ppMapping;
+        SIZE_T lockSize = uSize;
+
+        NtLockVirtualMemory(GetCurrentProcess(), &lockAddr, &lockSize, VM_LOCK_1);
+        // Note: failure is non-fatal - may fail due to working set quota limits
+    }
+
+cleanup:
+    if (pSD) HeapFree(GetProcessHeap(), 0, pSD);
+    if (pDacl) HeapFree(GetProcessHeap(), 0, pDacl);
+
+    return status;
+}
+
+NTSTATUS ExecImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iKdf, const std::wstring& Command, bool bWrite, CBuffer* pBuffer, USHORT uId)
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
 
+    const size_t uMemSize = sizeof(SSection);
+
+    HANDLE hSection = NULL;
+    PVOID pMapping = NULL;
+
+    //
+    // Create a secure unnamed section, the section handle will be inherited by the child process.
+    //
+    status = CreateSecureSection(&hSection, &pMapping, uMemSize);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    //
+    // Prepare the section data
+    //
+    SSection* pSection = (SSection*)pMapping;
+    memset(pSection, 0, uMemSize);
+
+    pSection->in.pw.size = (int)(wcslen(pPassword) * sizeof(wchar_t));
+    memcpy(pSection->in.pw.pass, pPassword, pSection->in.pw.size);
+    pSection->in.pw.kdf = iKdf;
+
+    if (pBuffer && bWrite)
+    {
+        pSection->id = uId;
+        pSection->size = (USHORT)pBuffer->GetSize();
+        memcpy(pSection->data, pBuffer->GetBuffer(), pSection->size);
+    }
+
+    //
+    // Build the command line with the section handle value.
+    //
     std::wstring cmd;
-    /*if (ImageFile.empty()) cmd = L"ImBox type=ram";
-    else*/ cmd = L"ImBox type=img image=\"" + ImageFile + L"\"";
-    if (iArgon2Cost) cmd += L" cost=" + std::to_wstring(iArgon2Cost);
+    cmd = L"ImBox \"image=" + ImageFile + L"\"";
     cmd += L" " + Command;
 
-#ifdef _M_ARM64
-    ULONG64 ctr = _ReadStatusReg(ARM64_CNTVCT);
-#else
-    ULONG64 ctr = __rdtsc();
-#endif
-
-    WCHAR sName[32];
-    wsprintf(sName, L"_%08X_%08X%08X", GetCurrentProcessId(), (ULONG)(ctr >> 32), (ULONG)ctr);
-
-    cmd += L" mem=0x0000000000000000";
-
-    VOID* pMem = NULL;
+    WCHAR sSection[32];
+    wsprintf(sSection, L" section=0x%p", hSection);
+    cmd += sSection;
 
     std::wstring app = GetApplicationDirectory() + L"\\ImBox.exe";
-    STARTUPINFO si = { sizeof(STARTUPINFO) };
     PROCESS_INFORMATION pi = { 0 };
-    if (CreateProcessW(app.c_str(), (WCHAR*)cmd.c_str(), NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi))
-    {
-        pMem = AllocPasswordMemory(pi.hProcess, pPassword);
 
-        if (!pMem) 
-            status = STATUS_INSUFFICIENT_RESOURCES;
-        else
-        {
-            status = UpdateCommandLine(pi.hProcess, [](std::wstring& s, PVOID p) {
-                // Note: Do not change the string length, that would require a different update mechanism.
-                size_t pos = s.find(L"mem=0x0000000000000000");
-                if (pos != std::wstring::npos) {
-                    wchar_t Addr[17];
-                    toHexadecimal((ULONG64)p, Addr);
-                    s.replace(pos + 6, 16, Addr);
-                    return STATUS_SUCCESS;
-                }
-                return STATUS_UNSUCCESSFUL;
-                }, pMem);
-        }
+    //
+    // Use STARTUPINFOEX with PROC_THREAD_ATTRIBUTE_HANDLE_LIST to inherit
+    // only the section handle, not all inheritable handles in the process.
+    //
+    SIZE_T attrListSize = 0;
+    InitializeProcThreadAttributeList(NULL, 1, 0, &attrListSize);
 
-        if (NT_SUCCESS(status) && pBuffer && bWrite) 
-        {
-            union {
-                SSection pSection[1];
-                BYTE pSpace[0x1000];
-            };
-            memset(pSpace, 0, sizeof(pSpace));
+    LPPROC_THREAD_ATTRIBUTE_LIST pAttrList = (LPPROC_THREAD_ATTRIBUTE_LIST)HeapAlloc(GetProcessHeap(), 0, attrListSize);
+    if (!pAttrList) {
+        SecureZeroMemory(pMapping, uMemSize);
+        NtUnmapViewOfSection(GetCurrentProcess(), pMapping);
+        NtClose(hSection);
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
 
-            memcpy(pSection->in.pass, pPassword, (wcslen(pPassword) + 1) * sizeof(wchar_t));
-            pSection->magic = SECTION_MAGIC;
-            pSection->id = uId;
-            pSection->size = (USHORT)pBuffer->GetSize();
-            memcpy(pSection->data, pBuffer->GetBuffer(), pSection->size);
+    STARTUPINFOEXW siex = { 0 };
+    siex.StartupInfo.cb = sizeof(STARTUPINFOEXW);
+    siex.lpAttributeList = pAttrList;
 
-            status = NtWriteVirtualMemory(pi.hProcess, pMem, (PVOID)pSpace, sizeof(pSpace), NULL);
-        }
+    BOOL bAttrOk = FALSE;
+    if (InitializeProcThreadAttributeList(pAttrList, 1, 0, &attrListSize)) {
+        //
+        // Mark handle as inheritable for the CreateProcess call.
+        //
+        SetHandleInformation(hSection, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
 
-        if (!NT_SUCCESS(status)) {
-            TerminateProcess(pi.hProcess, -1);
-            pMem = NULL;
-            CloseHandle(pi.hThread);
-            CloseHandle(pi.hProcess);
+        if (UpdateProcThreadAttribute(pAttrList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, &hSection, sizeof(HANDLE), NULL, NULL)) {
+            bAttrOk = TRUE;
         }
     }
 
-    if (pMem)
+    //
+    // Create child process. Only the section handle in the attribute list will be inherited.
+    //
+    BOOL bCreated = bAttrOk && CreateProcessW(app.c_str(), (WCHAR*)cmd.c_str(), NULL, NULL, TRUE, CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT, NULL, NULL, &siex.StartupInfo, &pi);
+
+    //
+    // Immediately remove inheritable flag after CreateProcess.
+    //
+    SetHandleInformation(hSection, HANDLE_FLAG_INHERIT, 0);
+
+    if (bCreated)
     {
         ResumeThread(pi.hThread);
 
-        HANDLE hEvents[] = { /*hEvent,*/ pi.hProcess };
-        DWORD dwEvent = WaitForMultipleObjects(ARRAYSIZE(hEvents), hEvents, FALSE, 15 * 60 * 1000); // 15 minutes
-        //if (dwEvent != WAIT_OBJECT_0)
+        HANDLE hEvents[] = { pi.hProcess };
+        WaitForMultipleObjects(ARRAYSIZE(hEvents), hEvents, FALSE, 15 * 60 * 1000); // 15 minutes
 
         DWORD ret;
         GetExitCodeProcess(pi.hProcess, &ret);
@@ -565,23 +660,34 @@ NTSTATUS ExecImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int
             status = STATUS_UNSUCCESSFUL;
         else
         {
-            if (pBuffer && !bWrite) 
+            /*if (pBuffer && !bWrite) 
             {
-                union {
-                    SSection pSection[1];
-                    BYTE pSpace[0x1000];
-                };
-                if (NT_SUCCESS(NtReadVirtualMemory(pi.hProcess, (PVOID)pMem, pSpace, sizeof(pSpace), NULL)))
-                {
-                    // to do, don't care
-                }
-            }
+                pSection->out.
+            }*/
             status = STATUS_SUCCESS;
         }
 
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
     }
+    else
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
+
+    //
+    // Cleanup attribute list
+    //
+    if (bAttrOk)
+        DeleteProcThreadAttributeList(pAttrList);
+    HeapFree(GetProcessHeap(), 0, pAttrList);
+
+    //
+    // Securely clear the section data before unmapping
+    //
+    SecureZeroMemory(pMapping, uMemSize);
+    NtUnmapViewOfSection(GetCurrentProcess(), pMapping);
+    NtClose(hSection);
 
     return status;
 }

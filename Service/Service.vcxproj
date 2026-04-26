@@ -375,6 +375,7 @@
     <ClCompile Include="HashDB\HashEntry.cpp" />
     <ClCompile Include="Helpers\SecDeskHelper.cpp" />
     <ClCompile Include="JsEngine\JSEngine.cpp" />
+    <ClCompile Include="JSEngine\JSStateManager.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Network\Dns\DnsCacheEntry.cpp" />
     <ClCompile Include="Network\Dns\DnsClient.cpp" />
@@ -493,6 +494,7 @@
     <ClInclude Include="HashDB\HashEntry.h" />
     <ClInclude Include="Helpers\SecDeskHelper.h" />
     <ClInclude Include="JsEngine\JSEngine.h" />
+    <ClInclude Include="JSEngine\JSStateManager.h" />
     <ClInclude Include="Network\Dns\DnsCacheEntry.h" />
     <ClInclude Include="Network\Dns\DnsClient.h" />
     <ClInclude Include="Network\Dns\DnsConfigurator.h" />

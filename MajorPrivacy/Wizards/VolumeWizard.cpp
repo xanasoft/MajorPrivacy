@@ -3,21 +3,25 @@
 #include "VolumeWizard.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../MajorPrivacy.h"
+#include "../Windows/VolumeWindow.h"
+#include "../Widgets/PasswordStrengthWidget.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Volumes/VolumeManager.h"
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include "../../MiscHelpers/Common/ProgressDialog.h"
 #include <QtConcurrent/QtConcurrent>
+#include <QFrame>
 
 CVolumeWizard::CVolumeWizard(QWidget *parent)
     : QWizard(parent)
 {
     setPage(Page_Intro, new CVolumeIntroPage);
     setPage(Page_Location, new CVolumeLocationPage);
-    setPage(Page_Encryption, new CVolumeEncryptionPage);
+    //setPage(Page_Cipher, new CVolumeCipherPage);
     setPage(Page_Size, new CVolumeSizePage);
+    setPage(Page_Encryption, new CVolumeEncryptionPage);
     setPage(Page_Password, new CVolumePasswordPage);
-    setPage(Page_Cost, new CVolumeCostPage);
+    //setPage(Page_Cost, new CVolumeCostPage);
     setPage(Page_Summary, new CVolumeSummaryPage);
 
     setStartId(Page_Intro);
@@ -48,18 +52,21 @@ void CVolumeWizard::showHelp()
     case Page_Location:
         message = tr("Choose a location and filename for your encrypted volume. The file will have a .pv extension.");
         break;
-    case Page_Encryption:
-        message = tr("Select the encryption algorithm. AES is recommended for most users. Cascaded ciphers provide additional security at the cost of performance.");
-        break;
+    //case Page_Cipher:
+    //    message = tr("Select the encryption algorithm. AES is recommended for most users. Cascaded ciphers provide additional security at the cost of performance.");
+    //    break;
     case Page_Size:
         message = tr("Specify the size of your encrypted volume. The minimum size is 256 MB, and 2 GB or more is recommended.");
+        break;
+    case Page_Encryption:
+        message = tr("Select the encryption algorithm and key derivation function. AES is recommended for most users.");
         break;
     case Page_Password:
         message = tr("Choose a strong password. A password of 20 or more characters is recommended for maximum security.");
         break;
-    case Page_Cost:
-        message = tr("Cost increases the number of iterations and memory used in key derivation. Higher values increase security but slow down mounting.");
-        break;
+    //case Page_Cost:
+    //    message = tr("Cost increases the number of iterations and memory used in key derivation. Higher values increase security but slow down mounting.");
+    //    break;
     case Page_Summary:
         message = tr("Review your settings before creating the volume.");
         break;
@@ -98,7 +105,8 @@ bool CVolumeWizard::ShowWizard(QWidget* parent)
     QString Password = wizard.GetPassword();
     quint64 ImageSize = wizard.GetImageSize();
     QString Cipher = wizard.GetCipher();
-    int iArgon2Cost = wizard.GetArgon2Cost();
+    QString FS = wizard.GetFileSystem();
+    int iKdf = wizard.GetKdf();
 
     // Show progress dialog and run operation in background
     CProgressDialog* pProgress = new CProgressDialog(QObject::tr("Creating encrypted volume..."), parent ? parent : theGUI);
@@ -115,7 +123,7 @@ bool CVolumeWizard::ShowWizard(QWidget* parent)
     });
 
     QFuture<STATUS> future = QtConcurrent::run([=]() {
-        return theCore->CreateVolume(Path, Password, ImageSize, Cipher, iArgon2Cost);
+        return theCore->CreateVolume(Path, Password, ImageSize, Cipher, iKdf, FS);
     });
     pWatcher->setFuture(future);
 
@@ -172,11 +180,15 @@ QString CVolumeWizard::GetCipher() const
     }
 }
 
-quint32 CVolumeWizard::GetArgon2Cost() const
+QString CVolumeWizard::GetFileSystem() const
 {
-    if (!field("useArgon2").toBool())
-        return 0;
-    return field("costArgon2").toUInt();
+    return field("fileSystem").toString();
+}
+
+int CVolumeWizard::GetKdf() const
+{
+    int iKdf = field("kdfValue").toInt();
+    return iKdf;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -196,8 +208,8 @@ CVolumeIntroPage::CVolumeIntroPage(QWidget *parent)
         "Only those who know the correct password can access the contents.\n\n"
         "This wizard will guide you through the following steps:\n\n"
         "1. Choose a location for the volume file\n"
-        "2. Select encryption settings\n"
-        "3. Set the volume size\n"
+        "2. Set the volume size\n"
+        "3. Select encryption settings\n"
         "4. Create a strong password\n"
         "5. Optionally configure advanced security settings\n\n"
         "Click Next to continue."));
@@ -277,7 +289,7 @@ void CVolumeLocationPage::OnBrowse()
 
 int CVolumeLocationPage::nextId() const
 {
-    return CVolumeWizard::Page_Encryption;
+    return CVolumeWizard::Page_Size;
 }
 
 bool CVolumeLocationPage::isComplete() const
@@ -321,10 +333,144 @@ bool CVolumeLocationPage::validatePage()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-// CVolumeEncryptionPage
+// CVolumeEncryptionPage (combined cipher + KDF)
 //
 
 CVolumeEncryptionPage::CVolumeEncryptionPage(QWidget *parent)
+    : QWizardPage(parent)
+{
+    setTitle(tr("Encryption Settings"));
+    setSubTitle(tr("Select encryption algorithm and key derivation function."));
+
+    QVBoxLayout *layout = new QVBoxLayout;
+
+    // Cipher section explanation
+    QLabel* cipherExplain = new QLabel(tr(
+        "All algorithms provide strong 256-bit security. "
+        "Cascaded ciphers encrypt data multiple times for additional protection at the cost of performance."));
+    cipherExplain->setWordWrap(true);
+    layout->addWidget(cipherExplain);
+
+    layout->addSpacing(8);
+
+    // Cipher combo
+    QHBoxLayout *cipherLayout = new QHBoxLayout;
+    QLabel* cipherLabel = new QLabel(tr("Encryption Algorithm:"));
+    cipherLayout->addWidget(cipherLabel);
+
+    m_pCipherCombo = new QComboBox;
+    m_pCipherCombo->addItem(tr("AES"), 0);
+    m_pCipherCombo->addItem(tr("Twofish"), 1);
+    m_pCipherCombo->addItem(tr("Serpent"), 2);
+    m_pCipherCombo->addItem(tr("AES-Twofish (Cascaded)"), 3);
+    m_pCipherCombo->addItem(tr("Twofish-Serpent (Cascaded)"), 4);
+    m_pCipherCombo->addItem(tr("Serpent-AES (Cascaded)"), 5);
+    m_pCipherCombo->addItem(tr("AES-Twofish-Serpent (Cascaded)"), 6);
+    m_pCipherCombo->setCurrentIndex(0);
+    connect(m_pCipherCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CVolumeEncryptionPage::OnCipherChanged);
+    cipherLayout->addWidget(m_pCipherCombo, 1);
+    layout->addLayout(cipherLayout);
+    registerField("cipherIndex", m_pCipherCombo, "currentIndex", "currentIndexChanged");
+
+    m_pCipherInfo = new QLabel;
+    m_pCipherInfo->setWordWrap(true);
+    m_pCipherInfo->setStyleSheet("QLabel { background-color: palette(alternate-base); padding: 8px; border-radius: 4px; }");
+    layout->addWidget(m_pCipherInfo);
+
+    layout->addSpacing(16);
+
+    // KDF section explanation
+    QLabel* kdfExplain = new QLabel(tr(
+        "Argon2id is a memory-hard key derivation function that protects against brute-force attacks. "
+        "Higher cost values increase security but also increase the time needed to mount the volume."));
+    kdfExplain->setWordWrap(true);
+    layout->addWidget(kdfExplain);
+
+    layout->addSpacing(8);
+
+    // KDF combo
+    QHBoxLayout *kdfLayout = new QHBoxLayout;
+    QLabel* kdfLabel = new QLabel(tr("Key Derivation Function:"));
+    kdfLayout->addWidget(kdfLabel);
+
+    m_pKdfCombo = new QComboBox;
+    CVolumeWindow::FillKdfCombo(m_pKdfCombo, false, 5);
+    connect(m_pKdfCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CVolumeEncryptionPage::OnKdfChanged);
+    kdfLayout->addWidget(m_pKdfCombo, 1);
+    layout->addLayout(kdfLayout);
+    registerField("kdfValue", m_pKdfCombo, "currentData", "currentIndexChanged");
+
+    m_pKdfInfo = new QLabel;
+    m_pKdfInfo->setWordWrap(true);
+    m_pKdfInfo->setStyleSheet("QLabel { background-color: palette(alternate-base); padding: 8px; border-radius: 4px; }");
+    layout->addWidget(m_pKdfInfo);
+
+    layout->addStretch();
+    setLayout(layout);
+
+    OnCipherChanged(0);
+    OnKdfChanged(m_pKdfCombo->currentIndex());
+}
+
+void CVolumeEncryptionPage::OnCipherChanged(int index)
+{
+    QString info;
+    switch (index) {
+    case 0:
+        info = tr("<b>AES (Advanced Encryption Standard)</b><br/>"
+                  "256-bit key, widely adopted and thoroughly analyzed. Recommended for most users.");
+        break;
+    case 1:
+        info = tr("<b>Twofish</b><br/>"
+                  "256-bit key, AES competition finalist. Highly secure with no known practical attacks.");
+        break;
+    case 2:
+        info = tr("<b>Serpent</b><br/>"
+                  "256-bit key, AES competition finalist. Conservative design with large security margin.");
+        break;
+    case 3:
+        info = tr("<b>AES-Twofish (Cascaded)</b><br/>"
+                  "Data encrypted with Twofish, then AES. Defense-in-depth if one cipher is compromised.");
+        break;
+    case 4:
+        info = tr("<b>Twofish-Serpent (Cascaded)</b><br/>"
+                  "Data encrypted with Serpent, then Twofish. Combines two AES competition finalists.");
+        break;
+    case 5:
+        info = tr("<b>Serpent-AES (Cascaded)</b><br/>"
+                  "Data encrypted with AES, then Serpent. Proven security with conservative design.");
+        break;
+    case 6:
+        info = tr("<b>AES-Twofish-Serpent (Cascaded)</b><br/>"
+                  "Triple encryption using all three ciphers. Maximum security at cost of performance.");
+        break;
+    }
+    m_pCipherInfo->setText(info);
+}
+
+void CVolumeEncryptionPage::OnKdfChanged(int index)
+{
+    static const int memory_mib[] = {64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048};
+    static const int time_cost[] = {3, 3, 4, 4, 5, 5, 5, 6, 6, 6};
+
+    if (index == 0) {
+        m_pKdfInfo->setText(tr("<b>PBKDF2-SHA512</b> - <span style='color:red;'>Legacy, weaker GPU resistance. Not recommended.</span>"));
+    } else if (index > 0 && index <= 10) {
+        m_pKdfInfo->setText(tr("<b>Argon2id</b> - Memory: %1 MiB, Time cost: %2. Higher = more secure but slower mount.").arg(memory_mib[index - 1]).arg(time_cost[index - 1]));
+    }
+}
+
+int CVolumeEncryptionPage::nextId() const
+{
+    return CVolumeWizard::Page_Password;
+}
+
+#if 0
+//////////////////////////////////////////////////////////////////////////////////////////
+// CVolumeCipherPage
+//
+
+CVolumeCipherPage::CVolumeCipherPage(QWidget *parent)
     : QWizardPage(parent)
 {
     setTitle(tr("Encryption Options"));
@@ -354,7 +500,7 @@ CVolumeEncryptionPage::CVolumeEncryptionPage(QWidget *parent)
     m_pCipherCombo->addItem(tr("Serpent-AES (Cascaded)"), 5);
     m_pCipherCombo->addItem(tr("AES-Twofish-Serpent (Cascaded)"), 6);
     m_pCipherCombo->setCurrentIndex(0);
-    connect(m_pCipherCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CVolumeEncryptionPage::OnCipherChanged);
+    connect(m_pCipherCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CVolumeCipherPage::OnCipherChanged);
     cipherLayout->addWidget(m_pCipherCombo, 1);
 
     layout->addLayout(cipherLayout);
@@ -374,7 +520,7 @@ CVolumeEncryptionPage::CVolumeEncryptionPage(QWidget *parent)
     setLayout(layout);
 }
 
-void CVolumeEncryptionPage::OnCipherChanged(int index)
+void CVolumeCipherPage::OnCipherChanged(int index)
 {
     QString info;
     switch (index) {
@@ -417,10 +563,11 @@ void CVolumeEncryptionPage::OnCipherChanged(int index)
     m_pCipherInfo->setText(info);
 }
 
-int CVolumeEncryptionPage::nextId() const
+int CVolumeCipherPage::nextId() const
 {
-    return CVolumeWizard::Page_Size;
+    return CVolumeWizard::Page_Cost;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // CVolumeSizePage
@@ -442,15 +589,17 @@ CVolumeSizePage::CVolumeSizePage(QWidget *parent)
 
     layout->addSpacing(20);
 
-    QHBoxLayout *sizeLayout = new QHBoxLayout;
+    QGridLayout *gridLayout = new QGridLayout;
+    gridLayout->setColumnStretch(3, 1); // Stretch column 3 (empty spacer)
+
     QLabel* sizeLabel = new QLabel(tr("Volume Size:"));
-    sizeLayout->addWidget(sizeLabel);
+    gridLayout->addWidget(sizeLabel, 0, 0);
 
     m_pSizeEdit = new QLineEdit;
     m_pSizeEdit->setText("2048");
-    m_pSizeEdit->setMaximumWidth(150);
+    m_pSizeEdit->setMaximumWidth(100);
     connect(m_pSizeEdit, &QLineEdit::textChanged, this, &CVolumeSizePage::OnSizeChanged);
-    sizeLayout->addWidget(m_pSizeEdit);
+    gridLayout->addWidget(m_pSizeEdit, 0, 1);
     registerField("volumeSize", m_pSizeEdit);
 
     m_pSizeUnit = new QComboBox;
@@ -458,12 +607,26 @@ CVolumeSizePage::CVolumeSizePage(QWidget *parent)
     m_pSizeUnit->addItem(tr("MB"), 1);
     m_pSizeUnit->addItem(tr("GB"), 2);
     m_pSizeUnit->setCurrentIndex(1); // Default to MB
+    m_pSizeUnit->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     connect(m_pSizeUnit, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CVolumeSizePage::OnSizeChanged);
-    sizeLayout->addWidget(m_pSizeUnit);
+    gridLayout->addWidget(m_pSizeUnit, 0, 2);
     registerField("sizeUnit", m_pSizeUnit, "currentIndex", "currentIndexChanged");
 
-    sizeLayout->addStretch();
-    layout->addLayout(sizeLayout);
+    QLabel* fsLabel = new QLabel(tr("File System:"));
+    gridLayout->addWidget(fsLabel, 1, 0);
+
+    m_pFileSystem = new QComboBox;
+    m_pFileSystem->addItem(tr("NTFS"), "NTFS");
+    //m_pFileSystem->addItem(tr("reFS"), "reFS");
+    //m_pFileSystem->addItem(tr("exFAT"), "exFAT");
+    m_pFileSystem->addItem(tr("FAT32"), "FAT32");
+    m_pFileSystem->setCurrentIndex(0); // Default to NTFS
+    m_pFileSystem->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    connect(m_pFileSystem, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CVolumeSizePage::OnFileSystemChanged);
+    gridLayout->addWidget(m_pFileSystem, 1, 1);
+    registerField("fileSystem", m_pFileSystem, "currentData", "currentIndexChanged");
+
+    layout->addLayout(gridLayout);
 
     m_pSizeInfo = new QLabel;
     m_pSizeInfo->setWordWrap(true);
@@ -508,23 +671,31 @@ void CVolumeSizePage::OnSizeChanged()
     }
 
     QString sizeStr = FormatSize(sizeInBytes);
+    QString fsWarning = (m_pFileSystem->currentIndex() != 0)
+        ? tr("<br/><span style='color:orange;'>Note: Volume resizing is only supported with NTFS.</span>")
+        : QString();
 
     if (sizeInBytes < 128ULL * 1024ULL * 1024ULL) {
-        m_pSizeInfo->setText(tr("<span style='color:red;'>Size too small. Minimum size is 256 MB.</span>"));
+        m_pSizeInfo->setText(tr("<span style='color:red;'>Size too small. Minimum size is 256 MB.</span>") + fsWarning);
     } else if (sizeInBytes < 256ULL * 1024ULL * 1024ULL) {
-        m_pSizeInfo->setText(tr("<span style='color:orange;'>Warning: Size is below recommended minimum of 256 MB.</span><br/>Volume size: %1").arg(sizeStr));
+        m_pSizeInfo->setText(tr("<span style='color:orange;'>Warning: Size is below recommended minimum of 256 MB.</span><br/>Volume size: %1").arg(sizeStr) + fsWarning);
     } else if (sizeInBytes < 2ULL * 1024ULL * 1024ULL * 1024ULL) {
-        m_pSizeInfo->setText(tr("Volume size: %1<br/><i>Tip: 2 GB or more is recommended for general use.</i>").arg(sizeStr));
+        m_pSizeInfo->setText(tr("Volume size: %1<br/><i>Tip: 2 GB or more is recommended for general use.</i>").arg(sizeStr) + fsWarning);
     } else {
-        m_pSizeInfo->setText(tr("Volume size: %1").arg(sizeStr));
+        m_pSizeInfo->setText(tr("Volume size: %1").arg(sizeStr) + fsWarning);
     }
 
     emit completeChanged();
 }
 
+void CVolumeSizePage::OnFileSystemChanged(int index)
+{
+    OnSizeChanged();
+}
+
 int CVolumeSizePage::nextId() const
 {
-    return CVolumeWizard::Page_Password;
+    return CVolumeWizard::Page_Encryption;
 }
 
 bool CVolumeSizePage::isComplete() const
@@ -580,20 +751,18 @@ CVolumePasswordPage::CVolumePasswordPage(QWidget *parent)
     setSubTitle(tr("Create a strong password to protect your volume."));
 
     QVBoxLayout *layout = new QVBoxLayout;
+    layout->setSpacing(4);
 
     m_pTopLabel = new QLabel(tr(
-        "Choose a strong password for your encrypted volume. The security of your data depends on "
-        "the strength of this password.\n\n"
-        "A good password should:\n"
-        "- Be at least 20 characters long\n"
-        "- Include a mix of letters, numbers, and symbols\n"
-        "- Not be based on dictionary words or personal information"));
+        "Choose a strong password for your encrypted volume. A good password should be at least "
+        "20 characters long, include a mix of letters, numbers, and symbols, and not be based on "
+        "dictionary words or personal information."));
     m_pTopLabel->setWordWrap(true);
     layout->addWidget(m_pTopLabel);
 
-    layout->addSpacing(15);
-
     QGridLayout *pwLayout = new QGridLayout;
+    pwLayout->setSpacing(2);
+    pwLayout->setContentsMargins(0, 4, 0, 0);
 
     pwLayout->addWidget(new QLabel(tr("Password:")), 0, 0);
     m_pPassword = new QLineEdit;
@@ -618,6 +787,15 @@ CVolumePasswordPage::CVolumePasswordPage(QWidget *parent)
     m_pStrengthLabel->setWordWrap(true);
     layout->addWidget(m_pStrengthLabel);
 
+    // Password strength widget
+    QFrame* ratingFrame = new QFrame;
+    ratingFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    QVBoxLayout* frameLayout = new QVBoxLayout(ratingFrame);
+    frameLayout->setContentsMargins(0, 0, 0, 0);
+    m_pStrengthWidget = new CPasswordStrengthWidget;
+    frameLayout->addWidget(m_pStrengthWidget);
+    layout->addWidget(ratingFrame);
+
     OnPasswordChanged();
 
     layout->addStretch();
@@ -632,46 +810,33 @@ void CVolumePasswordPage::OnShowPassword()
     m_pConfirmPassword->setEchoMode(mode);
 }
 
+void CVolumePasswordPage::initializePage()
+{
+    OnPasswordChanged();
+}
+
+void CVolumePasswordPage::cleanupPage()
+{
+    // Don't clear the password when navigating back
+}
+
 void CVolumePasswordPage::OnPasswordChanged()
 {
     QString pw = m_pPassword->text();
     QString confirm = m_pConfirmPassword->text();
 
-    if (pw.isEmpty()) {
-        m_pStrengthLabel->setText("");
-        emit completeChanged();
-        return;
-    }
+    // Update strength widget
+    int kdfValue = field("kdfValue").toInt();
+    m_pStrengthWidget->SetKdfValue(kdfValue);
+    m_pStrengthWidget->SetPassword(pw);
 
-    QString info;
-
-    // Check password strength
-    int length = pw.length();
-    if (length > 128) {
-        info = tr("<span style='color:red;'>Password is too long. Maximum length is 128 characters.</span>");
-    } else if (length < 8) {
-        info = tr("<span style='color:red;'>Password is very weak. Please use at least 8 characters.</span>");
-    } else if (length < 12) {
-        info = tr("<span style='color:orange;'>Password is weak. Consider using more characters.</span>");
-    } else if (length < 20) {
-        info = tr("<span style='color:orange;'>Password strength: Fair. 20+ characters recommended.</span>");
-    } else {
-        info = tr("<span style='color:green;'>Password strength: Good</span>");
-    }
-
-    if (!confirm.isEmpty() && pw != confirm) {
-        info += tr("<br/><span style='color:red;'>Passwords do not match!</span>");
-    } else if (!confirm.isEmpty() && pw == confirm) {
-        info += tr("<br/><span style='color:green;'>Passwords match.</span>");
-    }
-
-    m_pStrengthLabel->setText(info);
+    m_pStrengthLabel->setText(CPasswordStrengthWidget::GetPasswordStatusText(pw, confirm));
     emit completeChanged();
 }
 
 int CVolumePasswordPage::nextId() const
 {
-    return CVolumeWizard::Page_Cost;
+    return CVolumeWizard::Page_Summary;
 }
 
 bool CVolumePasswordPage::isComplete() const
@@ -720,6 +885,7 @@ bool CVolumePasswordPage::validatePage()
     return true;
 }
 
+#if 0
 //////////////////////////////////////////////////////////////////////////////////////////
 // CVolumeCostPage
 //
@@ -737,63 +903,89 @@ CVolumeCostPage::CVolumeCostPage(QWidget *parent)
         "brute-force and specialized hardware attacks. The cost parameter controls the computational "
         "resources required for key derivation.\n"
         "A higher cost value increases security by making attacks more expensive, but also increases "
-        "the time required to mount the volume.\n"
-        "For most users, the default setting (custom cost disabled) provides adequate security. "
-        "Enable custom cost only if you need additional protection or have specific security requirements."));
+        "the time required to mount the volume."));
     m_pTopLabel->setWordWrap(true);
     layout->addWidget(m_pTopLabel);
 
     layout->addSpacing(20);
 
-    m_pEnableArgon2 = new QCheckBox(tr("Use custom Argon2 cost parameter"));
-    m_pEnableArgon2->setChecked(false);
-    connect(m_pEnableArgon2, &QCheckBox::toggled, this, &CVolumeCostPage::OnEnableArgon2);
-    layout->addWidget(m_pEnableArgon2);
-    registerField("useArgon2", m_pEnableArgon2);
-
     QHBoxLayout *pimLayout = new QHBoxLayout;
     pimLayout->addSpacing(20);
-    QLabel* pimLabel = new QLabel(tr("Cost Parameter:"));
+    QLabel* pimLabel = new QLabel(tr("Key Derivation Function:"));
     pimLayout->addWidget(pimLabel);
 
-    m_pArgon2Cost = new QSpinBox;
-    m_pArgon2Cost->setMinimum(1);
-    m_pArgon2Cost->setMaximum(100);
-    m_pArgon2Cost->setValue(12);
-    m_pArgon2Cost->setEnabled(false);
-    pimLayout->addWidget(m_pArgon2Cost);
-    registerField("costArgon2", m_pArgon2Cost);
+	m_pKdfCombo = new QComboBox;
+	CVolumeWindow::FillKdfCombo(m_pKdfCombo, false, 5);
+    pimLayout->addWidget(m_pKdfCombo);
+	connect(m_pKdfCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CVolumeCostPage::OnKdfChanged);
+    registerField("kdfValue", m_pKdfCombo, "currentData", "currentIndexChanged");
 
     pimLayout->addStretch();
     layout->addLayout(pimLayout);
 
-    m_pCostInfo = new QLabel(tr(
-        "<i>Note: Higher cost values significantly increase mount time. The cost parameter determines "
-        "memory usage and iterations for the Argon2 algorithm. Remember your cost setting - "
-        "without it, you cannot access your data!</i>"));
-    m_pCostInfo->setWordWrap(true);
-    m_pCostInfo->setEnabled(false);
-    layout->addWidget(m_pCostInfo);
+    m_pKdfInfo = new QLabel;
+    m_pKdfInfo->setWordWrap(true);
+    m_pKdfInfo->setStyleSheet("QLabel { background-color: palette(alternate-base); padding: 10px; border-radius: 5px; }");
+    layout->addWidget(m_pKdfInfo);
 
     layout->addStretch();
     setLayout(layout);
+
+    OnKdfChanged(m_pKdfCombo->currentIndex());
 }
 
-void CVolumeCostPage::OnEnableArgon2(bool enabled)
+void CVolumeCostPage::OnKdfChanged(int index)
 {
-    m_pArgon2Cost->setEnabled(enabled);
-    m_pCostInfo->setEnabled(enabled);
+    if (index == 0) // legacy
+    {
+        m_pKdfInfo->setText(tr(
+            "<b>PBKDF2-HMAC-SHA512</b><br/>"
+            "Iterations: 1000<br/>"
+            "<span style='color:red;'>Legacy key derivation function. "
+            "Provides weaker resistance to GPU/ASIC attacks compared to Argon2id and is not recommended for new volumes.</span>"
+        ));
+	}
+    else
+    {
+        static const int memory_mib_table[] = {
+            64, 128, 192, 256, // +64
+            384, 512, // +128
+            768, 1024, // +256
+            1536, 2048 // +512
+        };
+
+        static const int time_cost_table[] = {
+            3, // for 64 MiB
+            3, // for 128 MiB
+            4, // for 192 MiB
+            4, // for 256 MiB
+            5, // for 384 MiB
+            5, // for 512 MiB
+            5, // for 768 MiB
+            6, // for 1024 MiBquestion
+            6, // for 1536 MiB
+            6  // for 2048 MiB
+        };
+
+        m_pKdfInfo->setText(tr(
+            "<b>Argon2id Key Derivation</b><br/>"
+            "Memory Usage: %2 MiB<br/>"
+            "Time Cost: %3<br/>"
+            "Higher values increase resistance against brute-force attacks but require more computation."
+        ).arg(memory_mib_table[index - 1]).arg(time_cost_table[index - 1]));
+    }
 }
 
 int CVolumeCostPage::nextId() const
 {
-    return CVolumeWizard::Page_Summary;
+    return CVolumeWizard::Page_Password;
 }
 
 bool CVolumeCostPage::isComplete() const
 {
     return true;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // CVolumeSummaryPage
@@ -817,7 +1009,7 @@ CVolumeSummaryPage::CVolumeSummaryPage(QWidget *parent)
     QLabel* noteLabel = new QLabel(tr(
         "<b>Important:</b> After clicking Finish, the volume will be created. "
         "This may take some time depending on the volume size.\n\n"
-        "Make sure to remember your password (and PIM if enabled). "
+        "Make sure to remember your password (and sellected KDF). "
         "Without the correct password, your data cannot be recovered!"));
     noteLabel->setWordWrap(true);
     layout->addWidget(noteLabel);
@@ -846,20 +1038,23 @@ void CVolumeSummaryPage::initializePage()
     }
     QString sizeStr = FormatSize(sizeInBytes);
 
-    bool enablePIM = field("enablePIM").toBool();
-    int pimValue = field("pimValue").toInt();
+    QString fileSystem = field("fileSystem").toString();
+
+    int iKdf = field("kdfValue").toInt();
 
     QString summary = tr(
         "<table>"
         "<tr><td><b>Volume Location:</b></td><td>%1</td></tr>"
-        "<tr><td><b>Encryption Algorithm:</b></td><td>%2</td></tr>"
-        "<tr><td><b>Volume Size:</b></td><td>%3</td></tr>"
-        "<tr><td><b>PIM:</b></td><td>%4</td></tr>"
+        "<tr><td><b>Volume Size:</b></td><td>%2</td></tr>"
+        "<tr><td><b>File System:</b></td><td>%3</td></tr>"
+        "<tr><td><b>Encryption Algorithm:</b></td><td>%4</td></tr>"
+        "<tr><td><b>Key Derivation:</b></td><td>%5</td></tr>"
         "</table>")
         .arg(volumePath)
-        .arg(cipher)
         .arg(sizeStr)
-        .arg(enablePIM ? QString::number(pimValue) : tr("Default (disabled)"));
+        .arg(fileSystem)
+        .arg(cipher)
+        .arg(CVolumeWindow::GetKdfName(iKdf));
 
     m_pSummaryLabel->setText(summary);
 }

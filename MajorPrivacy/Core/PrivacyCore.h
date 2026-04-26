@@ -305,14 +305,14 @@ public:
 	RESULT(QtVariant)	GetVolumes();
 	RESULT(QtVariant)	GetVolume(const QFlexGuid& Guid);
 	STATUS				SetVolume(const QtVariant& Volume);
-	STATUS				MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect, bool bLockdown, int iArgon2Cost = 0);
+	STATUS				MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect, bool bLockdown, int iKfd = 0);
 	STATUS				DismountVolume(const QString& MountPoint);
 	STATUS				DismountAllVolumes();
-	STATUS				CreateVolume(const QString& Path, const QString& Password, quint64 ImageSize = 0, const QString& Cipher = QString(), int iArgon2Cost = 0);
-	STATUS				ChangeVolumePassword(const QString& Path, const QString& OldPassword, const QString& NewPassword, int iOldArgon2Cost = 0, int iNewArgon2Cost = 0);
+	STATUS				CreateVolume(const QString& Path, const QString& Password, quint64 ImageSize = 0, const QString& Cipher = QString(), int iKfd = 0, const QString& FS = QString());
+	STATUS				ChangeVolumePassword(const QString& Path, const QString& OldPassword, const QString& NewPassword, int iKfd = 0, int iNewKfd = 0);
 	STATUS				ExpandVolume(const QString& MountPoint, quint64 uAddSize);
-	STATUS				BackupVolumeHeader(const QString& Path, const QString& BackupPath, const QString& Password, int iArgon2Cost);
-	STATUS				RestoreVolumeHeader(const QString& Path, const QString& BackupPath, const QString& Password, int iArgon2Cost);
+	STATUS				BackupVolumeHeader(const QString& Path, const QString& BackupPath, const QString& Password, int iKfd);
+	STATUS				RestoreVolumeHeader(const QString& Path, const QString& BackupPath, const QString& Password, int iKfd);
 
 	// Tweak Manager
 	RESULT(QtVariant)	GetTweaks(uint32* pRevision = nullptr);

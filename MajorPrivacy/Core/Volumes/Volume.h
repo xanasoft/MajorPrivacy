@@ -46,6 +46,14 @@ public:
 	void SetBusyStatus(const QString& Status)		{ m_BusyStatus = Status; }
 	void ClearBusyStatus()							{ m_BusyStatus.clear(); }
 
+	int GetVersion() const							{ return m_Version; }
+	int GetCipher() const							{ return m_Cipher; }
+	QString GetCipherStr() const;
+	int GetKdf() const								{ return m_Kdf; }
+	QString GetKdfStr() const;
+	int GetHeaderLen() const						{ return m_HeaderLen; }
+	QString GetFS() const							{ return m_FS; }
+
 	QtVariant ToVariant(const SVarWriteOpt& Opts) const;
 	void FromVariant(const class QtVariant& Volume);
 
@@ -61,6 +69,12 @@ protected:
 	QString						m_DevicePath;
 	QString						m_MountPoint;
 	uint64						m_VolumeSize = 0;
+
+	int							m_Version = 0;
+	int							m_Cipher = -1;
+	int							m_Kdf = -1;
+	int 						m_HeaderLen = 0;
+	QString						m_FS;
 
 	bool						m_bUseScript = false;
 	QString						m_Script;

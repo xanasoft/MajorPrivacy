@@ -164,7 +164,11 @@ void CEnclaveManager::OnEnclaveChanged(const CFlexGuid& Guid, enum class EConfig
 		if (pEnclave && pOldEnclave)
 			pOldEnclave->Update(pEnclave);
 		else {
-			if (pOldEnclave) m_Enclaves.erase(pOldEnclave->GetGuid());
+			if (pOldEnclave) {
+				m_Enclaves.erase(pOldEnclave->GetGuid());
+				// Cleanup script state when enclave is removed
+				theCore->JSStateManager()->CleanupScriptState(pOldEnclave->GetGuid());
+			}
 			if (pEnclave) m_Enclaves.insert(std::make_pair(pEnclave->GetGuid(), pEnclave));
 		}
 	}

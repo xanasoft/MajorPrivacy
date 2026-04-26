@@ -23,9 +23,13 @@
 #include "blake2/blake2b.h"
 #include "blake2/blake2-impl.h"
 
-#define _secure_alloc(s) malloc(s)
-#define _secure_free(p) free(p)
-#define burn(_ptr, _len) { RtlSecureZeroMemory(_ptr, _len); }
+#define _secure_alloc(s) secure_alloc((ULONG)s)
+#define _secure_free(p) secure_free(p)
+#define ARGON2_THREADS
+
+#ifdef ARGON2_THREADS
+#include "argon2_mt.h"
+#endif
 
 /***************Instance and Position constructors**********/
 void init_block_value(block *b, u8 in) { memset(b->v, in, sizeof(b->v)); }
@@ -255,17 +259,19 @@ static int fill_memory_blocks_mt(argon2_instance_t *instance) {
     int rc = ARGON2_OK;
 
     /* 1. Allocating space for threads */
-    thread = calloc(instance->lanes, sizeof(argon2_thread_handle_t));
+    thread = _secure_alloc(instance->lanes * sizeof(argon2_thread_handle_t));
     if (thread == NULL) {
         rc = ARGON2_MEMORY_ALLOCATION_ERROR;
         goto fail;
     }
+    memset(thread, 0, instance->lanes * sizeof(argon2_thread_handle_t));
 
-    thr_data = calloc(instance->lanes, sizeof(argon2_thread_data));
+    thr_data = _secure_alloc(instance->lanes * sizeof(argon2_thread_data));
     if (thr_data == NULL) {
         rc = ARGON2_MEMORY_ALLOCATION_ERROR;
         goto fail;
     }
+    memset(thr_data, 0, instance->lanes * sizeof(argon2_thread_data));
 
     for (r = 0; r < instance->passes; ++r) {
         for (s = 0; s < ARGON2_SYNC_POINTS; ++s) {
@@ -322,10 +328,10 @@ static int fill_memory_blocks_mt(argon2_instance_t *instance) {
 
 fail:
     if (thread != NULL) {
-        free(thread);
+        _secure_free(thread);
     }
     if (thr_data != NULL) {
-        free(thr_data);
+        _secure_free(thr_data);
     }
     return rc;
 }

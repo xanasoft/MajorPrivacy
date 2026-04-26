@@ -1,6 +1,7 @@
 #include "pch.h"
 #include <cstdarg>
 #include "JSEngine.h"
+#include "JSStateManager.h"
 #include "../../quickjspp/quickjspp.hpp"
 #include "../../quickjspp/quickjs/quickjs-libc.h"
 #include "../ServiceCore.h"
@@ -33,31 +34,49 @@ struct SJSEngine
         auto C = Value.ctx;
 
         // 1) null/undefined -> empty variant
-        if (Value.v.tag == JS_TAG_NULL
-            || Value.v.tag == JS_TAG_UNDEFINED
-            || Value.v.tag == JS_TAG_UNINITIALIZED)
+        if (JS_IsNull(Value.v) || JS_IsUndefined(Value.v))
         {
             return StVariant();
         }
 
-        // 2) primitives
-        switch (Value.v.tag) {
-        case JS_TAG_INT:
-            return StVariant(Value.as<int>());
-        case JS_TAG_BOOL:
-            return StVariant(Value.as<bool>());
-        case JS_TAG_FLOAT64:
-            return StVariant(Value.as<double>());
-        case JS_TAG_STRING:
-            return StVariant(Value.as<std::string>().c_str());
-        default:
-            break;
+        // 2) boolean
+        if (JS_IsBool(Value.v))
+        {
+            return StVariant(JS_ToBool(C, Value.v) != 0);
         }
 
-        // 3) arrays
+        // 3) number (int or float)
+        if (JS_IsNumber(Value.v))
+        {
+            // Try to get as integer first
+            int64_t intVal;
+            if (JS_ToInt64(C, &intVal, Value.v) == 0)
+            {
+                // Check if it's actually an integer (no fractional part)
+                double dblVal;
+                JS_ToFloat64(C, &dblVal, Value.v);
+                if (dblVal == (double)intVal)
+                    return StVariant(intVal);
+                else
+                    return StVariant(dblVal);
+            }
+            // Fall back to double
+            double dblVal;
+            if (JS_ToFloat64(C, &dblVal, Value.v) == 0)
+                return StVariant(dblVal);
+            return StVariant();
+        }
+
+        // 4) string
+        if (JS_IsString(Value.v))
+        {
+            return StVariant(Value.as<std::string>().c_str());
+        }
+
+        // 5) arrays
         if (JS_IsArray(C, Value.v)) {
             qjs::Value arr{C, JS_DupValue(C, Value.v)};
-            uint32_t len = static_cast<uint32_t>(arr["length"].as<int>());  
+            uint32_t len = static_cast<uint32_t>(arr["length"].as<int>());
             // create a list-variant
             CVariant listVar(nullptr, VAR_TYPE_LIST);
             for (uint32_t i = 0; i < len; ++i) {
@@ -68,19 +87,19 @@ struct SJSEngine
             return StVariant(listVar);
         }
 
-        // 4) plain objects -> map
-        if (Value.v.tag == JS_TAG_OBJECT) {
-            // 4a) get own property names
+        // 6) plain objects -> map
+        if (JS_IsObject(Value.v)) {
+            // get own enumerable string property names
             JSPropertyEnum *ptab;
             uint32_t plen;
-            int res = JS_GetOwnPropertyNames(C, &ptab, &plen, Value.v, 0);
+            int res = JS_GetOwnPropertyNames(C, &ptab, &plen, Value.v, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
             if (res < 0)
                 return StVariant();  // on error, return empty
 
-            // 4b) build a map-variant
+            // build a map-variant
             CVariant mapVar(nullptr, VAR_TYPE_MAP);
             for (uint32_t i = 0; i < plen; ++i) {
-                // convert atom ? C-string
+                // convert atom to C-string
                 const char *name = JS_AtomToCString(C, ptab[i].atom);
                 if (!name) {
                     // skip this property on OOM
@@ -102,13 +121,13 @@ struct SJSEngine
                 JS_FreeCString(C, name);
             }
 
-            // 4c) free the enumeration table
+            // free the enumeration table
             js_free_rt(JS_GetRuntime(C), ptab);
 
             return StVariant(mapVar);
         }
 
-        // 5) everything else
+        // 7) everything else
         return StVariant();
     }
 
@@ -262,6 +281,30 @@ struct SJSEngine
 //      applyTweak(id)          - Apply a tweak
 //      undoTweak(id)           - Undo a tweak
 //      approveTweak(id)        - Approve a diverged tweak
+//
+// privateState            - Private state storage (only accessible by this script)
+//    Methods:
+//      get(key)                - Get value by key (returns undefined if not found)
+//      set(key, value)         - Set value (returns true on success)
+//      delete(key)             - Delete key (returns true on success)
+//      keys()                  - Get array of all keys
+//      has(key)                - Check if key exists
+//
+// globalState             - Named global state storage (accessible by any script knowing the name)
+//    State Management:
+//      create(name)            - Create read-only state (only owner can write)
+//      create(name, true)      - Create writable state (any script can write)
+//      destroy(name)           - Destroy state (owner only)
+//      exists(name)            - Check if state exists
+//      isOwner(name)           - Check if this script owns the state
+//      isWritable(name)        - Check if state is writable by any script
+//      list()                  - Get array of all global state names
+//    Value Operations:
+//      get(name, key)          - Get value from state
+//      set(name, key, value)   - Set value (owner always, others if writable)
+//      delete(name, key)       - Delete key from state
+//      keys(name)              - Get array of keys in state
+//      has(name, key)          - Check if key exists in state
 //
 // =============================================================================
 // OBJECTS
@@ -526,6 +569,120 @@ CJSEngine::CJSEngine(const std::string& Script, const CFlexGuid& Guid, EItemType
 
     // Tweak Manager API
     m->context.global()["tweakManager"] = m->MakeTweakManager();
+
+    // Private State API
+    qjs::Value privateState = m->context.newObject();
+    privateState["get"] = [this](const std::string& key) -> qjs::Value {
+        StVariant result = theCore->JSStateManager()->GetPrivate(m_Guid, key);
+        if (!result.IsValid()) return qjs::Value{m->context.ctx, JS_UNDEFINED};
+        return m->Var2JS(result);
+    };
+    privateState["set"] = [this](const std::string& key, const qjs::Value& value) -> bool {
+        StVariant var = m->JS2Var(value);
+        return theCore->JSStateManager()->SetPrivate(m_Guid, key, var).IsSuccess();
+    };
+    privateState["delete"] = [this](const std::string& key) -> bool {
+        return theCore->JSStateManager()->DeletePrivate(m_Guid, key).IsSuccess();
+    };
+    privateState["keys"] = [this]() -> qjs::Value {
+        StVariant keys = theCore->JSStateManager()->GetPrivateKeys(m_Guid);
+        return m->Var2JS(keys);
+    };
+    privateState["has"] = [this](const std::string& key) -> bool {
+        return theCore->JSStateManager()->HasPrivate(m_Guid, key);
+    };
+    m->context.global()["privateState"] = privateState;
+
+    // Global State API - named states accessible by any script knowing the name
+    qjs::Value globalState = m->context.newObject();
+
+    // create(name) - create read-only state, create(name, true) - create writable state
+    globalState["create"] = [this](const std::string& stateName, bool writable) -> bool {
+        STATUS status = theCore->JSStateManager()->CreateGlobalState(m_Guid, stateName, writable);
+        if (status.IsError()) {
+            if (status.GetStatus() == STATUS_OBJECT_NAME_COLLISION)
+                Log("globalState.create: State '" + stateName + "' already exists", ELogLevels::eError);
+            return false;
+        }
+        return true;
+    };
+
+    // destroy(name) - destroy state (only owner can do this)
+    globalState["destroy"] = [this](const std::string& stateName) -> bool {
+        STATUS status = theCore->JSStateManager()->DestroyGlobalState(m_Guid, stateName);
+        if (status.IsError()) {
+            if (status.GetStatus() == STATUS_ACCESS_DENIED)
+                Log("globalState.destroy: Access denied - not owner of '" + stateName + "'", ELogLevels::eError);
+            return false;
+        }
+        return true;
+    };
+
+    // exists(name) - check if state exists
+    globalState["exists"] = [this](const std::string& stateName) -> bool {
+        return theCore->JSStateManager()->GlobalStateExists(stateName);
+    };
+
+    // isOwner(name) - check if this script owns the state
+    globalState["isOwner"] = [this](const std::string& stateName) -> bool {
+        return theCore->JSStateManager()->IsGlobalStateOwner(m_Guid, stateName);
+    };
+
+    // isWritable(name) - check if state is writable by any script
+    globalState["isWritable"] = [this](const std::string& stateName) -> bool {
+        return theCore->JSStateManager()->IsGlobalStateWritable(stateName);
+    };
+
+    // list() - get array of all global state names
+    globalState["list"] = [this]() -> qjs::Value {
+        StVariant names = theCore->JSStateManager()->ListGlobalStates();
+        return m->Var2JS(names);
+    };
+
+    // get(name, key) - get value from state
+    globalState["get"] = [this](const std::string& stateName, const std::string& key) -> qjs::Value {
+        StVariant result = theCore->JSStateManager()->GetGlobal(stateName, key);
+        if (result.GetType() == VAR_TYPE_EMPTY) return qjs::Value{m->context.ctx, JS_UNDEFINED};
+        return m->Var2JS(result);
+    };
+
+    // set(name, key, value) - set value in state (owner always, others if writable)
+    globalState["set"] = [this](const std::string& stateName, const std::string& key, const qjs::Value& value) -> bool {
+        StVariant var = m->JS2Var(value);
+        STATUS status = theCore->JSStateManager()->SetGlobal(m_Guid, stateName, key, var);
+        if (status.IsError()) {
+            if (status.GetStatus() == STATUS_ACCESS_DENIED)
+                Log("globalState.set: Access denied to '" + stateName + "'", ELogLevels::eError);
+            else if (status.GetStatus() == STATUS_NOT_FOUND)
+                Log("globalState.set: State '" + stateName + "' not found", ELogLevels::eError);
+            return false;
+        }
+        return true;
+    };
+
+    // delete(name, key) - delete key from state
+    globalState["delete"] = [this](const std::string& stateName, const std::string& key) -> bool {
+        STATUS status = theCore->JSStateManager()->DeleteGlobal(m_Guid, stateName, key);
+        if (status.IsError()) {
+            if (status.GetStatus() == STATUS_ACCESS_DENIED)
+                Log("globalState.delete: Access denied to '" + stateName + "'", ELogLevels::eError);
+            return false;
+        }
+        return true;
+    };
+
+    // keys(name) - get array of keys in state
+    globalState["keys"] = [this](const std::string& stateName) -> qjs::Value {
+        StVariant keys = theCore->JSStateManager()->GetGlobalKeys(stateName);
+        return m->Var2JS(keys);
+    };
+
+    // has(name, key) - check if key exists in state
+    globalState["has"] = [this](const std::string& stateName, const std::string& key) -> bool {
+        return theCore->JSStateManager()->HasGlobal(stateName, key);
+    };
+
+    m->context.global()["globalState"] = globalState;
 
     // Enums
     qjs::Value eSpawn = m->context.newObject();

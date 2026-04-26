@@ -190,7 +190,7 @@ void CStatusView::Update()
 			auto pInfo = Ret.GetValue();
 
 			CBuffer FP(8); // 64 bits
-			CEncryption::GetKeyFromPW(pInfo->PubKey, FP, 1048576); // 2^20 iterations
+			CEncryption::GetKeyFromPWOld(pInfo->PubKey, CBuffer(), FP, 1048576); // 2^20 iterations
 			m_pSecKey->setText(tr("User Key: %1").arg(QString::fromLatin1(QByteArray((char*)FP.GetBuffer(), (int)FP.GetSize()).toHex().toUpper())));
 
 			CBuffer Hash(64);

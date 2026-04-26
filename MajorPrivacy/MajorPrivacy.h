@@ -176,6 +176,7 @@ private slots:
 	void				OnCommitConfig();
 	void				OnDiscardConfig();
 	void				OnMakeKeyPair();
+	void				OnChangePassword();
 	void				OnClearKeys();
 	void				OnSignFile();
 
@@ -316,6 +317,7 @@ private:
 	QAction*			m_pCommitConfig = nullptr;
 	QAction*			m_pDiscardConfig = nullptr;
 	QAction*			m_pMakeKeyPair = nullptr;
+	QAction*			m_pChangePassword = nullptr;
 	QAction*			m_pClearKeys = nullptr;
 	QAction*			m_pSignFile = nullptr;
 	//QAction*			m_pSignDb = nullptr;
@@ -389,6 +391,7 @@ protected:
 	quint64				m_ForgetSignerPW = 0;
 	quint64				m_AutoCommitConf = 0;
 	QString				m_CachedPassword; // todo replace with a secure storeage object
+	int					m_CachedKdf = 0;
 
 public:
 	CProgressDialog*	m_pProgressDialog;

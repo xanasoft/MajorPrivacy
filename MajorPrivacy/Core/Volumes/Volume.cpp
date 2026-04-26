@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Volume.h"
 #include "../Library/API/PrivacyAPI.h"
+
+
 CVolume::CVolume(QObject* parent)
 	: QObject(parent)
 {
@@ -58,6 +60,28 @@ void CVolume::SetMounted(bool Mounted)
 	}
 }
 
+QString CVolume::GetCipherStr() const
+{
+	switch (m_Cipher) {
+	case 0:	return "AES";
+	case 1:	return "TWOFISH";
+	case 2:	return "SERPENT";
+	case 3:	return "AES-TWOFISH";
+	case 4:	return "TWOFISH-SERPENT";
+	case 5:	return "SERPENT-AES";
+	case 6: return "AES-TWOFISH-SERPENT";
+	default: return tr("Unknown");
+	}
+}
+
+QString CVolume::GetKdfStr() const
+{
+	if (!m_Kdf) 
+		return tr("Pkcs5.2 SHA-512");
+	if (m_Kdf > 1000 && m_Kdf <= 1100)
+		return tr("Argon2id (old %1)").arg(m_Kdf - 1000);
+	return tr("Argon2id (%1)").arg(m_Kdf);
+}
 
 QtVariant CVolume::ToVariant(const SVarWriteOpt& Opts) const
 {
@@ -74,7 +98,6 @@ QtVariant CVolume::ToVariant(const SVarWriteOpt& Opts) const
 	Volume.WriteEx(API_V_SCRIPT, m_Script);
 
 	return Volume.Finish();
-
 }
 
 void CVolume::FromVariant(const class QtVariant& Volume)
@@ -92,6 +115,19 @@ void CVolume::FromVariant(const class QtVariant& Volume)
 		case API_V_VOL_SIZE:		m_VolumeSize = Data; break;
 		case API_V_USE_SCRIPT:		m_bUseScript = Data; break;
 		case API_V_SCRIPT:			m_Script = Data.AsQStr(); break;
+		case API_V_INFO:
+			QtVariantReader(Data).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
+				const QtVariant& Data = *(QtVariant*)&vData;
+				switch (Index)
+				{
+				case API_V_VERSION:			m_Version = Data; break;
+				case API_V_VOL_CIPHER:		m_Cipher = Data; break;
+				case API_V_VOL_KDF:			m_Kdf = Data; break;
+				case API_V_VOL_HEAD_LEN:	m_HeaderLen = Data; break;
+				//case API_V_VOL_SLOT_COUNT:
+				case API_V_VOL_FS:			m_FS = Data.AsQStr(); break;
+				}
+			});
 		}
 	});
 

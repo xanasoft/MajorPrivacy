@@ -9,6 +9,7 @@
 #include "../Library/API/PrivacyDefs.h"
 #include "../../Framework/Core/MemoryPool.h"
 #include "JSEngine/JSEngine.h"
+#include "JSEngine/JSStateManager.h"
 #include "../Library/Common/FlexGuid.h"
 #include "../Library/IPC/PipeServer.h"
 #include "../Library/IPC/AlpcPortServer.h"
@@ -68,6 +69,8 @@ public:
 	class CTweakManager*	TweakManager()			{ return m_pTweakManager; }
 
 	class CPresetManager*	PresetManager()			{ return m_pPresetManager; }
+
+	class CJSStateManager*	JSStateManager()		{ return m_pJSStateManager; }
 
 	class CDriverAPI*		Driver()				{ return m_pDriver; }
 
@@ -171,6 +174,8 @@ protected:
 	class CTweakManager*	m_pTweakManager = NULL;
 
 	class CPresetManager*	m_pPresetManager = NULL;
+
+	class CJSStateManager*	m_pJSStateManager = NULL;
 
 	class CDriverAPI*		m_pDriver = NULL;
 

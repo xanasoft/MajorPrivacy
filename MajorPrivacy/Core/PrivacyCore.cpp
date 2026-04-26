@@ -1770,7 +1770,7 @@ STATUS CPrivacyCore::SetVolume(const QtVariant& Volume)
 	return m_Service->Call(SVC_API_VOL_SET_VOLUME, Volume);
 }
 
-STATUS CPrivacyCore::MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect, bool bLockdown, int iArgon2Cost)
+STATUS CPrivacyCore::MountVolume(const QString& Path, const QString& MountPoint, const QString& Password, bool bProtect, bool bLockdown, int iKdf)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\");
@@ -1778,7 +1778,7 @@ STATUS CPrivacyCore::MountVolume(const QString& Path, const QString& MountPoint,
 	Request[API_V_VOL_PASSWORD] = Password;
 	Request[API_V_VOL_PROTECT] = bProtect;
 	Request[API_V_VOL_LOCKDOWN] = bLockdown;
-	if(iArgon2Cost) Request[API_V_VOL_ARGON2_COST] = iArgon2Cost;
+	if (iKdf) Request[API_V_VOL_KDF] = iKdf;
 	return GetServicePort()->Call(SVC_API_VOL_MOUNT_IMAGE, Request);
 }
 
@@ -1795,31 +1795,36 @@ STATUS CPrivacyCore::DismountAllVolumes()
 	return GetServicePort()->Call(SVC_API_VOL_DISMOUNT_ALL, Request);
 }
 
-STATUS CPrivacyCore::CreateVolume(const QString& Path, const QString& Password, quint64 ImageSize, const QString& Cipher, int iArgon2Cost)
+STATUS CPrivacyCore::CreateVolume(const QString& Path, const QString& Password, quint64 ImageSize, const QString& Cipher, int iKdf, const QString& FS)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\");
 	Request[API_V_VOL_PASSWORD] = Password;
 	if(ImageSize) Request[API_V_VOL_SIZE] = ImageSize;
 	if(!Cipher.isEmpty()) Request[API_V_VOL_CIPHER] = Cipher;
-	if(iArgon2Cost) Request[API_V_VOL_ARGON2_COST] = iArgon2Cost;
+	if(iKdf) Request[API_V_VOL_KDF] = iKdf;
+	if(!FS.isEmpty()) Request[API_V_VOL_FS] = FS;
 	return GetServicePort()->Call(SVC_API_VOL_CREATE_IMAGE, Request);
 }
 
-STATUS CPrivacyCore::ChangeVolumePassword(const QString& Path, const QString& OldPassword, const QString& NewPassword, int iOldArgon2Cost, int iNewArgon2Cost)
+STATUS CPrivacyCore::ChangeVolumePassword(const QString& Path, const QString& OldPassword, const QString& NewPassword, int iOldKdf, int iNewKdf)
 {
 	//QtVariant Request(m_pMemPool);
 	//Request[API_V_VOL_PATH] = QString(Path).replace("/","\\");
 	//Request[API_V_VOL_OLD_PASS] = OldPassword;
 	//Request[API_V_VOL_NEW_PASS] = NewPassword;
-	//if(iArgon2Cost) Request[API_V_VOL_OLD_ARGON2_COST] = iArgon2Cost;
-	//if(iNewArgon2Cost) Request[API_V_VOL_NEW_ARGON2_COST] = iNewArgon2Cost;
+	//if(iOldKdf) Request[API_V_VOL_OLD_KDF] = iOldKdf;
+	//if(iNewKdf) Request[API_V_VOL_NEW_KDF] = iNewKdf;
 	//return GetServicePort()->Call(SVC_API_VOL_CHANGE_PASSWORD, Request);
-	CBuffer Data(sizeof(SNewKeySection), true);
-	SNewKeySection* pNewKey = (SNewKeySection*)Data.GetBuffer();
-	wcscpy_s(pNewKey->new_pass, DC_MAX_PASSWORD + 1, (wchar_t*)NewPassword.utf16());
-	pNewKey->new_cost = iNewArgon2Cost;
-	return ExecImDisk(Path.toStdWString(), (wchar_t*)OldPassword.utf16(), iOldArgon2Cost, L"new_key", true, &Data, SECTION_PARAM_ID_KEY);
+	
+	CBuffer Data(sizeof(SPassword), true);
+	SPassword* pNewPass = (SPassword*)Data.GetBuffer();
+	memset(pNewPass, 0, sizeof(SPassword));
+	pNewPass->size = NewPassword.length() * sizeof(wchar_t);
+	memcpy(pNewPass->pass, NewPassword.utf16(), pNewPass->size);
+	pNewPass->kdf = iNewKdf;
+
+	return ExecImDisk(Path.toStdWString(), (wchar_t*)OldPassword.utf16(), iOldKdf, L"new_key", true, &Data, SECTION_PARAM_ID_NEW_PASS);
 }
 
 STATUS CPrivacyCore::ExpandVolume(const QString& MountPoint, quint64 uAddSize)
@@ -1830,28 +1835,28 @@ STATUS CPrivacyCore::ExpandVolume(const QString& MountPoint, quint64 uAddSize)
 	return GetServicePort()->Call(SVC_API_VOL_EXPAND, Request);
 }
 
-STATUS CPrivacyCore::BackupVolumeHeader(const QString& Path, const QString& BackupPath, const QString& Password, int iArgon2Cost)
+STATUS CPrivacyCore::BackupVolumeHeader(const QString& Path, const QString& BackupPath, const QString& Password, int iKdf)
 {
 	//QtVariant Request(m_pMemPool);
 	//Request[API_V_VOL_PATH] = QString(Path).replace("/","\\");
 	//Request[API_V_FILE_PATH] = QString(BackupPath).replace("/","\\");
 	//Request[API_V_VOL_PASSWORD] = Password;
-	//if(iArgon2Cost) Request[API_V_VOL_ARGON2_COST] = iArgon2Cost;
+	//if(iKdf) Request[API_V_VOL_KDF] = iKdf;
 	//return GetServicePort()->Call(SVC_API_VOL_BACKUP_HEADER, Request);
 	std::wstring cmd = L"backup=\"" + BackupPath.toStdWString() + L"\"";
-	return ExecImDisk(Path.toStdWString(), (wchar_t*)Password.utf16(), iArgon2Cost, cmd);
+	return ExecImDisk(Path.toStdWString(), (wchar_t*)Password.utf16(), iKdf, cmd);
 }
 
-STATUS CPrivacyCore::RestoreVolumeHeader(const QString& Path, const QString& BackupPath, const QString& Password, int iArgon2Cost)
+STATUS CPrivacyCore::RestoreVolumeHeader(const QString& Path, const QString& BackupPath, const QString& Password, int iKdf)
 {
 	//QtVariant Request(m_pMemPool);
 	//Request[API_V_VOL_PATH] = QString(Path).replace("/","\\");
 	//Request[API_V_FILE_PATH] = QString(BackupPath).replace("/","\\");
 	//Request[API_V_VOL_PASSWORD] = Password;
-	//if(iArgon2Cost) Request[API_V_VOL_ARGON2_COST] = iArgon2Cost;
+	//if(iKdf) Request[API_V_VOL_KDF] = iKdf;
 	//return GetServicePort()->Call(SVC_API_VOL_RESTORE_HEADER, Request);
 	std::wstring cmd = L"restore=\"" + BackupPath.toStdWString() + L"\"";
-	return ExecImDisk(Path.toStdWString(), (wchar_t*)Password.utf16(), iArgon2Cost, cmd);
+	return ExecImDisk(Path.toStdWString(), (wchar_t*)Password.utf16(), iKdf, cmd);
 }
 
 // Tweak Manager

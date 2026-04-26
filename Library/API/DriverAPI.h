@@ -178,7 +178,8 @@ struct SUserKeyInfo
 {
 	CBuffer PubKey;
 	CBuffer EncryptedBlob;
-	bool bLocked = false;
+	CBuffer InfoBlob;
+	//bool bLocked = false;
 };
 
 typedef std::shared_ptr<SUserKeyInfo> SUserKeyInfoPtr;
@@ -281,7 +282,7 @@ public:
 
 	STATUS SetConfig(const char* Name, const StVariant& Value);
 
-	STATUS SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, bool bLock = false);
+	STATUS SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, const CBuffer& InfoBlob/*, bool bLock = false*/);
 	RESULT(SUserKeyInfoPtr) GetUserKey();
 	STATUS ClearUserKey(const CBuffer& ChallengeResponse);
 

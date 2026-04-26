@@ -591,12 +591,13 @@ STATUS CDriverAPI::SetConfig(const char* Name, const StVariant& Value)
     return Call(API_SET_CONFIG_VALUE, ReqVar);
 }
 
-STATUS CDriverAPI::SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, bool bLock)
+STATUS CDriverAPI::SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, const CBuffer& InfoBlob/*, bool bLock*/)
 {
     StVariant ReqVar;
 	ReqVar[API_V_PUB_KEY] = PubKey;
 	ReqVar[API_V_KEY_BLOB] = EncryptedBlob;
-    ReqVar[API_V_LOCK] = bLock;
+    ReqVar[API_V_INFO] = InfoBlob;
+    //ReqVar[API_V_LOCK] = bLock;
 
 	return Call(API_SET_USER_KEY, ReqVar, NULL);
 }
@@ -614,7 +615,8 @@ RESULT(SUserKeyInfoPtr) CDriverAPI::GetUserKey()
     SUserKeyInfoPtr Info = SUserKeyInfoPtr(new SUserKeyInfo());
     Info->PubKey = ResVar[API_V_PUB_KEY];
     Info->EncryptedBlob = ResVar[API_V_KEY_BLOB];
-    Info->bLocked = ResVar.Get(API_V_LOCK).To<bool>(false);
+    Info->InfoBlob = ResVar.Get(API_V_INFO);
+    //Info->bLocked = ResVar.Get(API_V_LOCK).To<bool>(false);
 
     RETURN(Info);
 }
