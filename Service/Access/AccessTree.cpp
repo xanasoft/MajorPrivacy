@@ -8,12 +8,29 @@
 #include "../Library/Helpers/MiscHelpers.h"
 #include "../ServiceCore.h"
 
+#define MAX_BRANCHES_BEFORE_COLLAPSE 1000
+
 CAccessTree::CAccessTree()
 {
 }
 
 CAccessTree::~CAccessTree()
 {
+}
+
+void CAccessTree::MergeStats(SAccessStats& Target, const SAccessStats& Source)
+{
+	// Keep the most recent access time and its associated status
+	if (Source.LastAccessTime > Target.LastAccessTime) {
+		Target.LastAccessTime = Source.LastAccessTime;
+		Target.NtStatus = Source.NtStatus;
+		Target.IsDirectory = Source.IsDirectory;
+	}
+	// OR the access masks and blocked flags together
+	Target.AccessMask |= Source.AccessMask;
+	Target.bBlocked |= Source.bBlocked;
+	// Sum up access counts
+	Target.AccessCount += Source.AccessCount;
 }
 
 void CAccessTree::Add(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked)
@@ -44,7 +61,7 @@ bool CAccessTree::Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std
 	size_t uPos = Path.find(L'\\', uOffset);
 	if (uPos == -1 && uOffset < Path.length())
 		uPos = Path.length();
-	
+
 #ifdef DEF_USE_POOL
 	FW::StringW Name(m_pMem);
 	if (uPos != -1)
@@ -57,35 +74,124 @@ bool CAccessTree::Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std
 
 	if (uPos == -1)
 	{
-		pParent->Stats = Stat;
+		MergeStats(pParent->Stats, Stat);
 		return false;
 	}
 
 	bool bAdded = false;
+
+	// Check if a catch-all "*" branch already exists - if so, use it
+	// Use find() to avoid creating null entries via operator[]
+#ifdef DEF_USE_POOL
+	FW::StringW catchAllKey(m_pMem);
+	catchAllKey.Assign(L"*", 1);
+	auto itCatchAll = pParent->Branches.find(catchAllKey);
+	if (itCatchAll != pParent->Branches.end()) {
+		SPathNodePtr pCatchAll = itCatchAll.Value();
+		if(Add(Stat, *&pCatchAll, Path, uPos + 1))
+			bAdded = true;
+		if(bAdded)
+			pParent->TotalCount++;
+		return bAdded;
+	}
+#else
+	auto itCatchAll = pParent->Branches.find(L"*");
+	if (itCatchAll != pParent->Branches.end()) {
+		if(Add(Stat, itCatchAll->second, Path, uPos + 1))
+			bAdded = true;
+		if(bAdded)
+			pParent->TotalCount++;
+		return bAdded;
+	}
+#endif
+
+	// Check if we need to collapse before looking up/creating the branch
+	// Use find() to avoid creating null entries via operator[]
 #ifdef DEF_USE_POOL
 	FW::StringW name = Name;
 	name.MakeLower();
-	auto pBranch = pParent->Branches[name];
+	auto itBranch = pParent->Branches.find(name);
+	bool bBranchExists = (itBranch != pParent->Branches.end());
 #else
-	auto &pBranch = pParent->Branches[MkLower(Name)];
+	std::wstring nameLower = MkLower(Name);
+	auto itBranch = pParent->Branches.find(nameLower);
+	bool bBranchExists = (itBranch != pParent->Branches.end());
 #endif
-	if (!pBranch) {
+
+	if (!bBranchExists) {
+		// About to create a new branch - check if we've exceeded the threshold
+		if (pParent->Branches.size() >= MAX_BRANCHES_BEFORE_COLLAPSE) {
+			// Collapse all branches into a catch-all "*" branch
+#ifdef DEF_USE_POOL
+			auto pNewCatchAll = m_pMem->New<SPathNode>();
+			(*&pNewCatchAll)->Name.Assign(L"*", 1);
+#else
+			auto pNewCatchAll = std::make_shared<SPathNode>();
+			pNewCatchAll->Name = L"*";
+#endif
+			// Aggregate stats and total count from all existing branches
+			uint32 totalCount = 0;
+#ifdef DEF_USE_POOL
+			for (auto I = pParent->Branches.begin(); I != pParent->Branches.end(); ++I) {
+				SPathNodePtr pExisting = I.Value();
+#else
+			for (auto& branch : pParent->Branches) {
+				SPathNodePtr pExisting = branch.second;
+#endif
+				if (!pExisting)
+					continue; // Skip null entries
+				MergeStats(pNewCatchAll->Stats, pExisting->Stats);
+				totalCount += 1 + pExisting->TotalCount;
+			}
+			pNewCatchAll->TotalCount = totalCount;
+
+			// Clear existing branches and add the catch-all
+			pParent->Branches.clear();
+#ifdef DEF_USE_POOL
+			pParent->Branches[catchAllKey] = pNewCatchAll;
+#else
+			pParent->Branches[L"*"] = pNewCatchAll;
+#endif
+			// The total count remains the same (catch-all represents all collapsed entries)
+			// Now add the new path to the catch-all branch
+#ifdef DEF_USE_POOL
+			if(Add(Stat, *&pNewCatchAll, Path, uPos + 1))
+#else
+			if(Add(Stat, pNewCatchAll, Path, uPos + 1))
+#endif
+				bAdded = true;
+			if(bAdded)
+				pParent->TotalCount++;
+			return bAdded;
+		}
+
+		// Create the new branch - now safe to use operator[] since we're actually inserting
 		bAdded = true;
 #ifdef DEF_USE_POOL
+		auto pBranch = pParent->Branches[name]; // SafeRef - not a reference
 		pBranch = m_pMem->New<SPathNode>();
 		(*&pBranch)->Name = Name;
+		if(Add(Stat, *&pBranch, Path, uPos + 1))
+			bAdded = true;
 #else
+		auto& pBranch = pParent->Branches[nameLower];
 		pBranch = std::make_shared<SPathNode>();
 		pBranch->Name = Name;
+		if(Add(Stat, pBranch, Path, uPos + 1))
+			bAdded = true;
 #endif
 	}
-
+	else {
+		// Branch already exists, use it
 #ifdef DEF_USE_POOL
-	if(Add(Stat, *&pBranch, Path, uPos + 1))
+		SPathNodePtr pBranch = itBranch.Value();
+		if(Add(Stat, *&pBranch, Path, uPos + 1))
+			bAdded = true;
 #else
-	if(Add(Stat, pBranch, Path, uPos + 1))
+		if(Add(Stat, itBranch->second, Path, uPos + 1))
+			bAdded = true;
 #endif
-		bAdded = true;
+	}
 
 	if(bAdded)
 		pParent->TotalCount++;
@@ -148,8 +254,44 @@ void CAccessTree::LoadTree(const StVariant& Data)
 uint32 CAccessTree::LoadTree(const StVariant& Data, SPathNodePtr& pParent)
 {
 	uint32 Count = 0;
-	pParent->Stats = SAccessStats(Data[API_V_ACCESS_MASK], Data[API_V_LAST_ACTIVITY], Data[API_V_NT_STATUS], Data[API_V_IS_DIRECTORY], Data[API_V_WAS_BLOCKED]);
+	pParent->Stats = SAccessStats(Data[API_V_ACCESS_MASK], Data[API_V_LAST_ACTIVITY], Data[API_V_NT_STATUS], Data[API_V_IS_DIRECTORY], Data[API_V_WAS_BLOCKED], Data.Get(API_V_ACCESS_COUNT).To<uint64>(0));
 	StVariant Nodes = Data[API_V_ACCESS_NODES];
+
+	// Check if the number of nodes to load exceeds threshold - if so, create a collapsed catch-all
+	if (Nodes.Count() > MAX_BRANCHES_BEFORE_COLLAPSE) {
+		// Create a catch-all branch to represent all the collapsed data
+#ifdef DEF_USE_POOL
+		FW::StringW catchAllKey(m_pMem);
+		catchAllKey.Assign(L"*", 1);
+		auto pCatchAll = m_pMem->New<SPathNode>();
+		(*&pCatchAll)->Name.Assign(L"*", 1);
+#else
+		auto pCatchAll = std::make_shared<SPathNode>();
+		pCatchAll->Name = L"*";
+#endif
+		// Aggregate stats from all nodes being collapsed
+		uint32 totalCollapsedCount = 0;
+		for (uint32 i = 0; i < Nodes.Count(); i++) {
+			StVariant Node = Nodes[i];
+			SAccessStats nodeStats(Node[API_V_ACCESS_MASK], Node[API_V_LAST_ACTIVITY], Node[API_V_NT_STATUS], Node[API_V_IS_DIRECTORY], Node[API_V_WAS_BLOCKED], Data.Get(API_V_ACCESS_COUNT).To<uint64>(0));
+			MergeStats(pCatchAll->Stats, nodeStats);
+			// Count this node plus estimate children (we skip loading children to save memory)
+			StVariant ChildNodes = Node[API_V_ACCESS_NODES];
+			totalCollapsedCount += 1 + ChildNodes.Count(); // Approximate count
+			// If this node has no children and no access count, increment the catch-all's access count (fallback for old entries)
+			if (!ChildNodes.Count() && nodeStats.AccessCount == 0) pCatchAll->Stats.AccessCount++;
+		}
+		pCatchAll->TotalCount = totalCollapsedCount;
+#ifdef DEF_USE_POOL
+		pParent->Branches[catchAllKey] = pCatchAll;
+#else
+		pParent->Branches[L"*"] = pCatchAll;
+#endif
+		Count = 1 + totalCollapsedCount;
+		pParent->TotalCount += Count;
+		return Count;
+	}
+
 	for (uint32 i = 0; i < Nodes.Count(); i++)
 	{
 		StVariant Node = Nodes[i];
@@ -237,6 +379,8 @@ StVariant CAccessTree::StoreNode(const SPathNodePtr& pParent, const StVariant& C
 		Node.Write(API_V_ACCESS_MASK, pParent->Stats.AccessMask);
 		Node.Write(API_V_NT_STATUS, pParent->Stats.NtStatus);
 		Node.Write(API_V_IS_DIRECTORY, pParent->Stats.IsDirectory);
+		if (pParent->Stats.AccessCount)
+			Node.Write(API_V_ACCESS_COUNT, pParent->Stats.AccessCount);
 	}
 
 	if(Children.IsValid())

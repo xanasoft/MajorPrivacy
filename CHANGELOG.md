@@ -3,6 +3,32 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 
+
+
+## [0.100.0] - 2026-07-04
+
+### Added
+- added support for user specific firewall rules
+
+### Changed
+- updated to ImDisk 3.0.3
+- dns cache monitoring can now be switched
+- moved dns options to DNS filter page and renamed it to DNS Inspector
+- moved presets to an own page
+- added more advanced user options to resource access rules
+- when a program accesses more then 1000 items at a tree level, a "*" catch all is used to reduce the number of entries in the access tree
+
+### Fixed 
+- fixed issues with firewall presets
+- fixed rule picker dialog search
+- fixed driver performance problems with CI verification [#107](https://github.com/xanasoft/MajorPrivacy/issues/107)
+- fixed issue with delayed firewall event attribution
+- fixed issue with event broadcast
+- fixed unapproved rule change/remove handling
+
+
+
+
 ## [0.99.10] - 2026-05-17
 
 ### Added

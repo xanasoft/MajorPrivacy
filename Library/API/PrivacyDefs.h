@@ -429,13 +429,14 @@ struct SItemPreset
 		eEnable,
 		eDisable,
 	}				Activate = eUndefined;
+	bool			Enabled = true; // If false, item is ignored when preset is activated/deactivated
 };
 
 enum class EFwRuleState
 {
 	eUnapproved = 0,
 	eUnapprovedDisabled,
-	eBackup, // was approved but somethign happened
+	//eBackup, // was approved but somethign happened
 	eDiverged,
 	eApproved,
 	eMax,

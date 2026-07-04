@@ -19,6 +19,7 @@ class CProgramView;
 class CDnsPage;
 class CTweakPage;
 class CVolumePage;
+class CPresetPage;
 
 class CPopUpWindow;
 
@@ -256,6 +257,7 @@ private:
 		eFirewall,
 		eDNS,
 		eTweaks,
+		ePresets,
 		eTabCount
 	};
 
@@ -362,6 +364,7 @@ private:
 	CNetworkPage*		m_NetworkPage = nullptr;
 	CDnsPage*			m_DnsPage = nullptr;
 	CTweakPage*			m_TweakPage = nullptr;
+	CPresetPage*		m_PresetPage = nullptr;
 
 	CProgramView*		m_pProgramView = nullptr;
 

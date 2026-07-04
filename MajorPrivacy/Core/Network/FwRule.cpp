@@ -24,24 +24,30 @@ QString CFwRule::GetSourceStr() const
 
 QString CFwRule::GetStateStr() const
 {
+    QString Str;
     switch (GetState()) {
     case EFwRuleState::eUnapprovedDisabled:
-    case EFwRuleState::eUnapproved: return tr("Unapproved");
-    case EFwRuleState::eApproved:   return tr("Approved");
-    case EFwRuleState::eBackup:     return tr("Backup");
-    case EFwRuleState::eDiverged:   return tr("Diverged");
+    case EFwRuleState::eUnapproved: Str = tr("Unapproved"); break;
+    case EFwRuleState::eApproved:   Str = tr("Approved"); break;
+    //case EFwRuleState::eBackup:     return tr("Backup"); 
+    case EFwRuleState::eDiverged:   Str = tr("Diverged"); break;
         //case EFwRuleState::eDeleted:    return tr("Deleted");
+	default:                        Str = tr("Unknown"); break;
     }
-    return tr("Unknown");
+    if (IsBackup())
+        return tr("Backup (%1)").arg(Str);
+    return Str;
 }
 
 QVariant CFwRule::GetStateColor() const
 {
+    if (IsBackup())
+		return QColor(255, 192, 192); // Red
     switch (GetState()) {
     case EFwRuleState::eUnapprovedDisabled:
     case EFwRuleState::eUnapproved: return QColor(255, 255, 192); // Yellow
     case EFwRuleState::eApproved:   return QVariant(); //QColor(192, 255, 192); // Green
-    case EFwRuleState::eBackup:     return QColor(255, 192, 192); // Red
+    //case EFwRuleState::eBackup:     return QColor(255, 192, 192); // Red
     case EFwRuleState::eDiverged:   return QColor(255, 224, 192);   // Orange
         //case EFwRuleState::eDeleted:    return QColor(192, 192, 192); // Gray
     }
@@ -91,6 +97,7 @@ CFwRule* CFwRule::Clone(bool CloneGuid) const
     pRule->m_BinaryPath = m_BinaryPath;
     pRule->m_ServiceTag = m_ServiceTag;
     pRule->m_AppContainerSid = m_AppContainerSid;
+    //pRule->m_LocalUserAuthorizationList = m_LocalUserAuthorizationList;
     pRule->m_LocalUserOwner = m_LocalUserOwner;
     pRule->m_PackageFamilyName = m_PackageFamilyName;
 

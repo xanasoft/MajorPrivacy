@@ -286,7 +286,7 @@ void CPipeServer::RunClientThread(SPipeClient* pClient)
     }
 }
 
-int CPipeServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint32 PID, uint32 TID)
+int CPipeServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint64 Ref)
 {
     CBuffer sendBuff(GetHeaderSize() + msg->GetSize());
 
@@ -307,7 +307,7 @@ int CPipeServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint32 PID, 
 
     for (auto I : m_PipeClients) 
     {
-        if((PID != -1 && I.second->Info.PID != PID) || (TID != -1 && I.second->Info.TID != TID))
+        if(Ref != -1 && I.second->Info.Ref != Ref)
 			continue;
         CSectionLock Lock(&I.second->WriteLock);
         if (I.second->pPipe->WritePacket(sendBuff) == OK)

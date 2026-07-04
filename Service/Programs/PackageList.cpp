@@ -48,38 +48,45 @@ BOOLEAN CPackageList::EnumCallBack(PVOID param, void* AppPackage, void* AppPacka
     std::wstring PackageFamilyName; // windows.immersivecontrolpanel_cw5n1h2txyewy
     std::wstring PackageVersion;    // 10.0.1000.2
     std::wstring PackageFullName;   // windows.immersivecontrolpanel_10.0.2.1000_neutral_neutral_cw5n1h2txyewy
+    std::wstring PackageInstallPath;
     GetAppPackageInfos(AppPackage, AppPackage2, 
         &PackageName, &PackageFullName, &PackageFamilyName, &PackageVersion, 
-        NULL, NULL, NULL);
+        NULL, NULL, &PackageInstallPath);
 
-    if (PackageFullName.empty() || PackageFamilyName.empty())
+    if (PackageFullName.empty() || PackageFamilyName.empty() || PackageInstallPath.empty())
         return TRUE;
+    if (PackageInstallPath.back() != L'\\') PackageInstallPath += L'\\';
 
     auto F = pParams->OldList.find(PackageFullName);
     SPackagePtr pAppPackage;
-    if (F != pParams->OldList.end()) {
+    if (F != pParams->OldList.end()) 
+    {
         pAppPackage = F->second;
-        pParams->OldList.erase(F);
+        if (_wcsicmp(pAppPackage->PackageInstallPath.c_str(), PackageInstallPath.c_str()) == 0) {
+            pParams->OldList.erase(F);
+        } else  {
+            pAppPackage.reset();
+        }
     }
-    else
+    
+    if (!pAppPackage) 
     {
         pAppPackage = SPackagePtr(new SPackage());
 
-        pAppPackage->PackageFullName = PackageFullName; 
+        pAppPackage->PackageFullName = PackageFullName;
         pAppPackage->PackageSid = GetAppContainerSidFromName(PackageFamilyName);
 
         pAppPackage->PackageName = PackageName;
         pAppPackage->PackageFamilyName = PackageFamilyName;
         pAppPackage->PackageVersion = PackageVersion;
 
-        std::wstring PackageInstallPath;
-        GetAppPackageInfos(AppPackage, AppPackage2, 
+        GetAppPackageInfos(AppPackage, AppPackage2,
             NULL, NULL, NULL, NULL,
-            &pAppPackage->PackageDisplayName, &pAppPackage->SmallLogoPath, &PackageInstallPath);
+            &pAppPackage->PackageDisplayName, &pAppPackage->SmallLogoPath, NULL);
 
         pAppPackage->PackageInstallPath = PackageInstallPath; // DOS Path
 
-		pParams->NewList.insert(std::make_pair(PackageFullName, pAppPackage));
+        pParams->NewList.insert(std::make_pair(PackageFullName, pAppPackage));
     }
 
     return TRUE;

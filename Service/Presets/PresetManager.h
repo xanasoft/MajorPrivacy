@@ -27,6 +27,8 @@ public:
 	STATUS DeactivateAllPresets(uint32 CallerPID);
 	std::set<CFlexGuid> GetActivePresets() const { std::shared_lock Lock(m_Mutex); return m_ActivePresets; }
 
+	StVariant GetItemOwnership(FW::AbstractMemPool* pMemPool = nullptr) const;
+
 protected:
 
 	STATUS Load();

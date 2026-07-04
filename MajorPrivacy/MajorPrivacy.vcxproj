@@ -294,6 +294,8 @@
     <ClCompile Include="Models\AccessTraceModel.cpp" />
     <ClCompile Include="Models\NetTraceModel.cpp" />
     <ClCompile Include="Models\FwRuleModel.cpp" />
+    <ClCompile Include="Models\PresetItemsModel.cpp" />
+    <ClCompile Include="Models\PresetsModel.cpp" />
     <ClCompile Include="Models\ProcessModel.cpp" />
     <ClCompile Include="Models\ProgramModel.cpp" />
     <ClCompile Include="Models\SocketModel.cpp" />
@@ -309,6 +311,7 @@
     <ClCompile Include="Pages\HomePage.cpp" />
     <ClCompile Include="Pages\VolumePage.cpp" />
     <ClCompile Include="Pages\TweakPage.cpp" />
+    <ClCompile Include="Pages\PresetPage.cpp" />
     <ClCompile Include="Pages\ProcessPage.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -331,6 +334,7 @@
     <ClCompile Include="Views\LibraryInfoView.cpp" />
     <ClCompile Include="Views\LibraryView.cpp" />
     <ClCompile Include="Views\PresetView.cpp" />
+    <ClCompile Include="Views\PresetProperties.cpp" />
     <ClCompile Include="Views\ProgramRuleView.cpp" />
     <ClCompile Include="Views\ProcessTraceView.cpp" />
     <ClCompile Include="Views\AccessRuleView.cpp" />
@@ -373,6 +377,7 @@
     <QtMoc Include="Windows\ItemPicker.h" />
     <QtMoc Include="Windows\PresetWindow.h" />
     <QtMoc Include="Views\PresetView.h" />
+    <QtMoc Include="Views\PresetProperties.h" />
     <QtMoc Include="Windows\VolumeConfigWnd.h" />
     <QtMoc Include="Windows\HashEntryWnd.h" />
     <QtMoc Include="Views\HashDBView.h" />
@@ -439,6 +444,7 @@
     <QtMoc Include="Views\TweakView.h" />
     <QtMoc Include="Pages\VolumePage.h" />
     <QtMoc Include="Pages\TweakPage.h" />
+    <QtMoc Include="Pages\PresetPage.h" />
     <QtMoc Include="Models\TweakModel.h" />
     <QtMoc Include="Views\DnsCacheView.h" />
     <QtMoc Include="Models\DnsCacheModel.h" />
@@ -485,6 +491,8 @@
     <QtMoc Include="Models\ProgramModel.h" />
     <QtMoc Include="Pages\HomePage.h" />
     <QtMoc Include="Models\FwRuleModel.h" />
+    <QtMoc Include="Models\PresetItemsModel.h" />
+    <QtMoc Include="Models\PresetsModel.h" />
     <QtMoc Include="Models\SocketModel.h" />
     <QtMoc Include="Models\NetTraceModel.h" />
     <QtMoc Include="Helpers\SidResolver.h" />

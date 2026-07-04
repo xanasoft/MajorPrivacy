@@ -4,8 +4,9 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
+#include "../Core/GenericRule.h"
 #include "../MajorPrivacy.h"
-#include "../Windows/FirewallRuleWnd.h"
+#include "../Windows/FirewallRuleWnd.h" 
 
 CFwRuleModel::CFwRuleModel(QObject* parent)
 	:CTreeItemModel(parent)
@@ -108,6 +109,8 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 			case eICMPOptions:		Value = pRule->GetIcmpTypesAndCodes(); break;
 			case eInterfaces:		Value = pRule->GetInterface(); break;
 			case eEdgeTraversal:	Value = pRule->GetEdgeTraversal(); break;
+			//case eUsers:		Value = pRule->GetLocalUserAuthorizationList(); break;
+			case eUsers:		Value = pRule->GetPrincipalSddl(); break;
 			case eProgram:			Value = pRule->GetProgram(); break;
 			}
 
@@ -137,6 +140,7 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 					case eLocalPorts:		ColValue.Formatted = pRule->GetLocalPorts().join(", "); break;
 					case eICMPOptions:		ColValue.Formatted = pRule->GetIcmpTypesAndCodes().join(", "); break;
 					case eInterfaces:		ColValue.Formatted = pRule->GetInterfaceStr(); break;
+					case eUsers:		ColValue.Formatted = CGenericRule::FormatLocalUserAuthorizationList(Value.toString(), this, SLOT(OnSidResolved(const QByteArray&, const QString&))); break;
 				}
 			}
 
@@ -212,8 +216,35 @@ QVariant CFwRuleModel::headerData(int section, Qt::Orientation orientation, int 
 		case eICMPOptions:			return tr("ICMP Options");
 		case eInterfaces:			return tr("Interfaces");
 		case eEdgeTraversal:		return tr("Edge Traversal");
+		case eUsers:			return tr("Local Users");
 		case eProgram:				return tr("Program");
 		}
 	}
 	return QVariant();
+}
+
+void CFwRuleModel::OnSidResolved(const QByteArray& Sid, const QString& FullName)
+{
+	// A SID has been resolved, refresh all LocalUsers columns
+	// Since we don't track which rules use which SIDs, refresh all visible nodes
+	for (auto I = m_Map.begin(); I != m_Map.end(); ++I) {
+		SRuleNode* pNode = static_cast<SRuleNode*>(I.value());
+		if (!pNode || !pNode->pRule)
+			continue;
+
+		//QString sddl = pNode->pRule->GetLocalUserAuthorizationList();
+		QString sddl = pNode->pRule->GetPrincipalSddl();
+		if (sddl.isEmpty())
+			continue;
+
+		// Re-format with now-resolved SID (no callback needed, it's cached now)
+		QString newFormatted = CGenericRule::FormatLocalUserAuthorizationList(sddl);
+
+		if (pNode->Values[eUsers].Formatted != newFormatted) {
+			pNode->Values[eUsers].Formatted = newFormatted;
+			QModelIndex Index = Find(m_Root, pNode);
+			if (Index.isValid())
+				emit dataChanged(createIndex(Index.row(), eUsers, pNode), createIndex(Index.row(), eUsers, pNode));
+		}
+	}
 }

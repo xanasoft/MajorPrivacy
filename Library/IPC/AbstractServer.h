@@ -35,7 +35,7 @@ public:
         return m_MessageHandlers.insert(std::make_pair(MessageId, Handler)).second; 
     }
 
-    virtual int BroadcastMessage(uint32 msgId, const CBuffer* msg, uint32 PID = -1, uint32 TID = -1) = 0;
+    virtual int BroadcastMessage(uint32 msgId, const CBuffer* msg, uint64 Ref = -1ll) = 0;
 
 protected:
 

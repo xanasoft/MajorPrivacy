@@ -59,8 +59,9 @@ protected:
 
 	CFlexGuid m_Enclave;
 
-	std::wstring m_User;
-	StVariant m_UserSid;
+	//std::wstring m_User;
+	//StVariant m_UserSid;
+	std::wstring m_PrincipalSddl;
 
 	bool m_bTemporary = false;
 	uint64 m_uTimeOut = -1;

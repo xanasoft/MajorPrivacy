@@ -463,7 +463,7 @@ STATUS CAlpcPortServer::PortDatagram(const CBuffer& sendBuff, const SPortClientP
     return OK;
 }
 
-int CAlpcPortServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint32 PID, uint32 TID)
+int CAlpcPortServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint64 Ref)
 {
     CBuffer sendBuff(GetHeaderSize() + msg->GetSize());
 
@@ -484,7 +484,7 @@ int CAlpcPortServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint32 P
 
     for (auto I : m_Clients)
     {
-        if ((PID != -1 && I.second->Info.PID != PID) || (TID != -1 && I.second->Info.TID != TID))
+        if(Ref != -1 && I.second->Info.Ref != Ref)
             continue;
         if (PortDatagram(sendBuff, I.second) == OK)
             Success++;

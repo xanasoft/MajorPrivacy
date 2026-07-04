@@ -81,6 +81,7 @@
 
 #define API_S_USER							"User"
 #define API_S_USER_SID						"UserSID"
+#define API_S_PRINCIPAL_SDDL				"PrincipalSDDL"
 
 // Unique ID
 #define API_S_PROG_UID						"UID"
@@ -116,8 +117,10 @@
 #define API_S_APP_SID						"AppSID"	
 #define API_S_APP_NAME						"AppName"
 #define API_S_PACK_NAME						"Package"
+#define API_S_PACK_FULL_NAME				"PackageFullName"
 #define API_S_REG_KEY						"RegKey"
 #define API_S_PROG_PATTERN					"Pattern"
+#define API_S_AUTH							"Authorization"
 #define API_S_OWNER							"Owner" // used by firewall rules
 
 // Info
@@ -198,6 +201,7 @@
 	#define API_S_ACTION_UNDEFINED	"Undefined"
 	#define API_S_ACTION_ENABLE 	"Enable"
 	#define API_S_ACTION_DISABLE 	"Disable"
+#define API_S_ITEM_ENABLED "ItemEnabled"
 // ...
 
 ////////////////////////////

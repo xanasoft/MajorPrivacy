@@ -280,20 +280,46 @@ void CProcessList::AddProcessImpl(const CProcessPtr& pProcess)
     //}
 }
 
-CProcessPtr CProcessList::GetProcessEx(uint64 Pid, EGetMode Mode)
+CProcessPtr CProcessList::GetProcessEx(uint64 Pid, const std::wstring& FileNameNt, EGetMode Mode)
 {
 	std::unique_lock Lock(m_Mutex);
 
 	auto F = m_ProcessByPID.find(Pid); 
-    if (F != m_ProcessByPID.end())
+    if (F != m_ProcessByPID.end()) {
+        if (Pid != NT_OS_KERNEL_PID && !FileNameNt.empty()) {
+            std::shared_lock ProcLock(F->second->m_Mutex);
+            if (_wcsicmp(F->second->m_NtFilePath.c_str(), FileNameNt.c_str()) != 0) {
+				theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PID_COLISION, L"Found Process PID collision detected: %s (%u) vs %s (%u).", F->second->m_NtFilePath.c_str(), Pid, FileNameNt.c_str(), Pid);
+
+                F = m_ProcessByPID.end();
+            }
+        }
+    }
+    if (F != m_ProcessByPID.end()) {
         return F->second;
+    }
 
     if (Mode == eCanNotAdd)
         return NULL;
 
     CProcessPtr pProcess = CProcessPtr(new CProcess(Pid));
     auto Result = theCore->Driver()->GetProcessInfo(Pid);
-    if (pProcess->Init(Result.GetValue().get()))
+    bool bOk = pProcess->Init(Result.GetValue().get());
+
+    if (Pid != NT_OS_KERNEL_PID && !FileNameNt.empty()) {
+        if (_wcsicmp(pProcess->m_NtFilePath.c_str(), FileNameNt.c_str()) != 0) {
+            theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PID_COLISION, L"New Process PID collision detected: %s (%u) vs %s (%u).", pProcess->m_NtFilePath.c_str(), Pid, FileNameNt.c_str(), Pid);
+
+            // Create dummy
+            pProcess = CProcessPtr(new CProcess(Pid));
+			pProcess->m_NtFilePath = FileNameNt;
+            pProcess->m_Name = GetFileNameFromPath(pProcess->m_NtFilePath);
+
+            bOk = false;
+        }
+    }
+
+    if (bOk)
     {
         AddProcessUnsafe(pProcess);
         theCore->ProgramManager()->AddProcess(pProcess);

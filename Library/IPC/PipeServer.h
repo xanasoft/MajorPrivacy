@@ -47,7 +47,7 @@ public:
     template<typename T, class C>
     bool RegisterHandler(uint32 MessageId, T Handler, C This) { return CAbstractServer::RegisterHandler(MessageId, std::bind(Handler, This, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)); }
 
-    int BroadcastMessage(uint32 msgId, const CBuffer* msg, uint32 PID = -1, uint32 TID = -1) override;
+    int BroadcastMessage(uint32 msgId, const CBuffer* msg, uint64 Ref = -1ll) override;
 
 protected:
 

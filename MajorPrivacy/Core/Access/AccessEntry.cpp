@@ -35,6 +35,7 @@ quint64 ReadAccessBranch(QMap<quint64, SAccessStatsPtr>& m_AccessStats, const Qt
 		case API_V_ACCESS_MASK:		pStats->AccessMask = Data.To<uint32>(0); break;
 		case API_V_NT_STATUS:		pStats->NtStatus = Data.To<uint32>(0); break;
 		case API_V_IS_DIRECTORY:	pStats->IsDirectory = Data.To<bool>(false); break;
+		case API_V_ACCESS_COUNT:	pStats->AccessCount = Data.To<uint64>(0); break;
 
 		case API_V_ACCESS_NODES:
 			QtVariantReader(Data).ReadRawList([&](const FW::CVariant& vData) {

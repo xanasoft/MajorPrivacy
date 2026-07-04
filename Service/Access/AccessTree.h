@@ -20,8 +20,8 @@ public:
 	struct SAccessStats
 	{
 		//TRACK_OBJECT(SAccessStats)
-		SAccessStats(uint32 AccessMask = 0, uint64 AccessTime = 0, uint32 NtStatus = 0, bool IsDirectory = false, bool bBlocked = false)
-			: LastAccessTime(AccessTime), bBlocked(bBlocked), NtStatus(NtStatus), IsDirectory(IsDirectory), AccessMask(AccessMask) {}
+		SAccessStats(uint32 AccessMask = 0, uint64 AccessTime = 0, uint32 NtStatus = 0, bool IsDirectory = false, bool bBlocked = false, uint64 AccessCount = 1)
+			: LastAccessTime(AccessTime), bBlocked(bBlocked), NtStatus(NtStatus), IsDirectory(IsDirectory), AccessMask(AccessMask), AccessCount(AccessCount) {}
 		~SAccessStats() {}
 
 		uint64	LastAccessTime = 0;
@@ -29,6 +29,7 @@ public:
 		uint32	AccessMask = 0;
 		uint32	NtStatus = 0;
 		bool	IsDirectory = false;
+		uint64	AccessCount = 0;	// Number of accesses at this leaf node
 	};	
 
 	void Add(const std::wstring& Path, uint32 AccessMask, uint64 AccessTime, NTSTATUS NtStatus, bool IsDirectory, bool bBlocked);
@@ -76,6 +77,8 @@ public:
 
 protected:
 	mutable std::recursive_mutex	m_Mutex;
+
+	static void MergeStats(SAccessStats& Target, const SAccessStats& Source);
 
 	bool Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std::wstring& Path, size_t uOffset = 0);
 

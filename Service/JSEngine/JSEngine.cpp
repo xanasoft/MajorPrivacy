@@ -1402,7 +1402,7 @@ qjs::Value SJSEngine::MakeProcessList()
 
     auto getProcess = [&](int PID) -> qjs::Value {
 
-        CProcessPtr pProcess = theCore->ProcessList()->GetProcessEx(PID, CProcessList::eCanAdd);
+        CProcessPtr pProcess = theCore->ProcessList()->GetProcessEx(PID, L"", CProcessList::eCanAdd);
         if (!pProcess)
             return qjs::Value{ context.ctx, JS_NULL };
 

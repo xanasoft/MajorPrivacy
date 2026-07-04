@@ -32,7 +32,7 @@ protected:
 	struct SEnumParams
 	{
 		CInstallationList* pThis;
-		//std::map<std::wstring, SInstallationPtr> OldList;
+		std::map<std::wstring, SInstallationPtr> OldList;
 		std::map<std::wstring, SInstallationPtr> NewList;
 	};
 
@@ -42,5 +42,5 @@ protected:
 
 	//std::shared_mutex  m_Mutex;
 
-	//std::map<std::wstring, SInstallationPtr> m_List; // by RegKey
+	std::map<std::wstring, SInstallationPtr> m_List; // by RegKey
 };

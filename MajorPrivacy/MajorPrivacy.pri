@@ -139,7 +139,11 @@ HEADERS += ./version.h \
     ./Helpers/Highliter/qsourcehighliterthemes.h \
     ./Wizards/SetupWizard.h \
     ./Wizards/VolumeWizard.h \
-    ./Widgets/PasswordStrengthWidget.h
+    ./Widgets/PasswordStrengthWidget.h \
+    ./Models/PresetItemsModel.h \
+    ./Models/PresetsModel.h \
+    ./Pages/PresetPage.h \
+    ./Views/PresetProperties.h
 
 SOURCES += ./main.cpp \
     ./pch.cpp \
@@ -278,7 +282,11 @@ SOURCES += ./main.cpp \
     ./Helpers/Highliter/qsourcehighliterthemes.cpp \
     ./Wizards/SetupWizard.cpp \
     ./Wizards/VolumeWizard.cpp \
-    ./Widgets/PasswordStrengthWidget.cpp
+    ./Widgets/PasswordStrengthWidget.cpp \
+    ./Models/PresetItemsModel.cpp \
+    ./Models/PresetsModel.cpp \
+    ./Pages/PresetPage.cpp \
+    ./Views/PresetProperties.cpp
 
 FORMS += ./Forms/AccessRuleWnd.ui \
     ./Forms/EnclaveWnd.ui \

@@ -22,7 +22,7 @@ public:
 	virtual void SetEnclave(const QFlexGuid& Enclave) { m_Enclave = Enclave; }
 	virtual QFlexGuid GetEnclave() const			{ return m_Enclave; }
 
-	virtual bool ValidateUserSID();
+	//virtual bool ValidateUserSID();
 
 	virtual bool IsEnabled() const					{ return m_bEnabled; }
 	virtual void SetEnabled(bool bEnabled)			{ m_bEnabled = bEnabled; }
@@ -36,8 +36,13 @@ public:
 	//virtual QString GetGrouping() const				{ return m_Grouping; }
 	virtual QString GetDescription() const			{ return m_Description; }
 
+	virtual QString GetPrincipalSddl() const		{ return m_PrincipalSddl; }
+
 	virtual QtVariant ToVariant(const SVarWriteOpt& Opts) const;
 	virtual void FromVariant(const class QtVariant& Rule);
+
+	static QString FormatLocalUserAuthorizationList(const QString& SDDL, QObject* pReceiver = nullptr, const char* pMember = nullptr);
+	static QByteArray SidStringToBinary(const QString& SidStr);
 
 protected:
 	void CopyTo(CGenericRule* pRule, bool CloneGuid = false) const;
@@ -52,9 +57,10 @@ protected:
 
 	QFlexGuid m_Enclave;
 
-	QString m_User;
-	bool m_SidValid = false;
-	QtVariant m_UserSid;
+	//QString m_User;
+	//bool m_SidValid = false;
+	//QtVariant m_UserSid;
+	QString m_PrincipalSddl;
 
 	bool m_bTemporary = false;
 	quint64 m_uTimeOut = -1;

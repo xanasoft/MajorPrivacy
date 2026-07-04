@@ -636,8 +636,10 @@ STATUS CServiceCore::Init()
 
 //#ifndef _DEBUG
 	//if (!theCore->Driver()->IsCurProcMaxSecurity() && (theCore->Driver()->IsCurProcHighSecurity() || theCore->Driver()->IsCurProcLowSecurity()))
-	if (!theCore->Driver()->IsCurProcDevTrusted())
+	if (!theCore->Driver()->IsCurProcDevTrusted()) {
+		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"PrivacyAgent Driver trust mask: 0x%08X", theCore->Driver()->GetCurProcSecState());
 		return ERR(STATUS_SYNCHRONIZATION_REQUIRED);
+	}
 //#endif
 
 	//if (!m_pDriver->TestDevAuthority())

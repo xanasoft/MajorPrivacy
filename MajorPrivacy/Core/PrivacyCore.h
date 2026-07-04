@@ -329,6 +329,7 @@ public:
 	STATUS				DelPreset(const QFlexGuid& Guid);
 	STATUS				ActivatePreset(const QFlexGuid& Guid, bool bForce = false);
 	STATUS				DeactivatePreset(const QFlexGuid& Guid);
+	RESULT(QtVariant)	GetItemOwnership();
 
 
 	// Other

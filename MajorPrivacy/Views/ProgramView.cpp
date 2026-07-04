@@ -8,6 +8,8 @@
 #include "../Windows/ProgramWnd.h"
 #include "../MajorPrivacy.h"
 #include "InfoView.h"
+#include "../../Library/Helpers/RegUtil.h"
+#include "../../Library/Helpers/AppUtil.h"
 
 CProgramView::CProgramView(QWidget* parent)
 	: CPanelView(parent)
@@ -345,6 +347,7 @@ CProgramView::CProgramView(QWidget* parent)
 
 	m_pAddToGroup = m_pMenu->addMenu(QIcon(":/Icons/MkLink.png"), tr("Groups"));
 
+	m_pUninstall = m_pMenu->addAction(QIcon(":/Icons/Uninstall.png"), tr("Uninstall"), this, SLOT(OnProgramAction()));
 	m_pRemoveItem = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Remove"), this, SLOT(OnProgramAction()));
 	m_pRemoveItem->setShortcut(QKeySequence::Delete);
 	m_pRemoveItem->setShortcutContext(Qt::WidgetWithChildrenShortcut);
@@ -490,6 +493,16 @@ void CProgramView::FilterUpdate()
 
 void CProgramView::Update()
 {
+	// check for uninstalls to finish and refresh the list if so
+	bool bRefresh = false;
+	foreach(void* Handle, m_pRunningUninstalls) {
+		if (TestExec(Handle, NULL)) {
+			m_pRunningUninstalls.remove(Handle);
+			bRefresh = true;
+		}
+	}
+	if(bRefresh) OnRefresh();
+
 	int Filter = CProgramModel::EFilters::eAll;
 
 	if (m_pTypeFilter->isChecked())
@@ -703,7 +716,16 @@ void CProgramView::OnMenu(const QPoint& Point)
 		pAction->setChecked(pAction->data().toInt() == SaveTrace);
 	m_pClear->setEnabled(TraceCount > 0);
 	m_pTraceConfig->setEnabled(TraceCount > 0);
-	
+
+	// Enable uninstall only for single app package or installation items
+	bool bCanUninstall = false;
+	if (Programs.count() == 1) {
+		CProgramItemPtr pProgram = *Programs.begin();
+		bCanUninstall = pProgram.objectCast<CAppInstallation>() || pProgram.objectCast<CAppPackage>();
+	}
+	m_pUninstall->setEnabled(bCanUninstall);
+	m_pUninstall->setVisible(bCanUninstall);
+
 	CPanelView::OnMenu(Point);
 }
 
@@ -888,7 +910,59 @@ void CProgramView::OnProgramAction()
 
 		foreach(const CProgramItemPtr& pProgram, Programs)
 			Results << theCore->ClearRecords(ETraceLogs(pAction->data().toInt()), pProgram);
-	} 
+	}
+	else if (pAction == m_pUninstall)
+	{
+		if (Programs.count() != 1)
+			return;
+
+		CProgramItemPtr pProgram = *Programs.begin();
+		QString Name = pProgram->GetName();
+		if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to uninstall '%1'?").arg(Name), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+			return;
+
+		std::wstring UninstallString;
+		CAppInstallationPtr pInstallation = pProgram.objectCast<CAppInstallation>();
+		CAppPackagePtr pPackage = pProgram.objectCast<CAppPackage>();
+		if (pInstallation)
+		{
+			// Convert NT registry path to Win32 format
+			QString RegKey = pInstallation->GetRegKey();
+			RegKey.replace("\\REGISTRY\\MACHINE\\", "HKLM\\", Qt::CaseInsensitive);
+			RegKey.replace("\\REGISTRY\\USER\\", "HKU\\", Qt::CaseInsensitive);
+			std::wstring RegKeyW = RegKey.toStdWString();
+
+			// Parse registry path
+			auto HiveKey = SplitRegKeyPath(RegKeyW);
+			if (!HiveKey.first || !HiveKey.second) {
+				QMessageBox::warning(this, "MajorPrivacy", tr("Invalid registry path for this application."));
+				return;
+			}
+
+			// Read UninstallString from registry
+			StVariant Value = RegQuery(HiveKey.first, HiveKey.second, L"UninstallString");
+			UninstallString = Value.AsStr();
+		}
+		else if (pPackage)
+		{
+			QString PackageFullName = pPackage->GetPackageFullName();
+			if (PackageFullName.isEmpty()) {
+				QMessageBox::warning(this, "MajorPrivacy", tr("No package name found for this app."));
+				return;
+			}
+
+			UninstallString = L"powershell.exe -Command \"Remove-AppxPackage -Package '" + PackageFullName.toStdWString() + L"'\"";
+		}
+
+		if (UninstallString.empty()) {
+			QMessageBox::warning(this, "MajorPrivacy", tr("No uninstall command found for this application."));
+			return;
+		}
+
+		VOID* Handle = ShellExec(UninstallString);
+		if (Handle) m_pRunningUninstalls.insert(Handle);
+		return;
+	}
 	else
 	{
 		QMenu* pMenu = qobject_cast<QMenu*>(pAction->parent());

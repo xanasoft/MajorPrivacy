@@ -16,6 +16,7 @@
 #include "Pages/DnsPage.h"
 #include "Core/Programs/ProgramManager.h"
 #include "Pages/TweakPage.h"
+#include "Pages/PresetPage.h"
 #include "Pages/VolumePage.h"
 #include "Pages/EnclavePage.h"
 #include "Windows/SettingsWindow.h"
@@ -515,7 +516,7 @@ STATUS CMajorPrivacy::Connect()
 			.arg(CProcess::GetSecStateStr(theCore->GetSvcSecState()))
 			.arg(CProcess::GetSecStateStr(theCore->Driver()->GetCurProcSecState())), 30000);
 
-//#ifndef _DEBUG
+#ifndef _DEBUG
 		if (theCore->IsSvcHighSecurity() && (!theCore->Driver()->IsCurProcMaxSecurity() && (theCore->Driver()->IsCurProcHighSecurity() || theCore->Driver()->IsCurProcLowSecurity())) && !QApplication::arguments().contains("-sync_drv"))
 		//if (theCore->IsSvcHighSecurity() && !theCore->Driver()->IsCurProcDevTrusted() && !QApplication::arguments().contains("-sync_drv"))
 		{
@@ -534,7 +535,7 @@ STATUS CMajorPrivacy::Connect()
 				return Status;
 			}
 		}
-//#endif
+#endif
 
 		//if (!theCore->Driver()->TestDevAuthority()) 
 		if (!theCore->Driver()->IsCurProcDevTrusted())
@@ -728,6 +729,7 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 		m_DnsPage->Clear();
 		m_VolumePage->Clear();
 		m_TweakPage->Clear();
+		m_PresetPage->Clear();
 	}
 
 
@@ -794,6 +796,7 @@ void CMajorPrivacy::UpdateViews()
 	m_DnsPage->Update();
 	m_VolumePage->Update();
 	m_TweakPage->Update();
+	m_PresetPage->Update();
 	m_UpdatignView = false;
 
 	uint64 uNow = GetTickCount64();
@@ -1103,6 +1106,7 @@ void CMajorPrivacy::BuildGUI()
 	m_NetworkPage = new CNetworkPage(this);
 	m_DnsPage = new CDnsPage(this);
 	m_TweakPage = new CTweakPage(this);
+	m_PresetPage = new CPresetPage(this);
 	m_VolumePage = new CVolumePage(this);
 
 	m_pTabBar = new  QTabBar();
@@ -1115,6 +1119,7 @@ void CMajorPrivacy::BuildGUI()
 	m_pTabBar->addTab(QIcon(":/Icons/Wall3.png"), tr("Network Firewall"));
 	m_pTabBar->addTab(QIcon(":/Icons/Network2.png"), tr("DNS Filtering"));
 	m_pTabBar->addTab(QIcon(":/Icons/Tweaks.png"), tr("Privacy Tweaks"));
+	m_pTabBar->addTab(QIcon(":/Icons/EditIni.png"), tr("Rule Presets"));
 	m_pMainLayout->addWidget(m_pTabBar, 0, 0, 2, 1);
 
 	connect(m_pTabBar, SIGNAL(currentChanged(int)), this, SLOT(OnPageChanged(int)));
@@ -1236,6 +1241,7 @@ void CMajorPrivacy::BuildGUI()
 
 	m_pPageStack->addWidget(m_DnsPage);
 	m_pPageStack->addWidget(m_TweakPage);
+	m_pPageStack->addWidget(m_PresetPage);
 	m_pPageStack->addWidget(m_VolumePage);
 	//m_pPageStack->addWidget(new QWidget()); // logg ???
 
@@ -2097,6 +2103,7 @@ void CMajorPrivacy::OnPageChanged(int index)
 	case eDrives: m_pPageStack->setCurrentWidget(m_VolumePage); break;
 	case eDNS: m_pPageStack->setCurrentWidget(m_DnsPage); break;
 	case eTweaks: m_pPageStack->setCurrentWidget(m_TweakPage); break;
+	case ePresets: m_pPageStack->setCurrentWidget(m_PresetPage); break;
 	//case eLog: m_pPageStack->setCurrentWidget(m_); break;
 	}
 }
@@ -3316,9 +3323,9 @@ void CMajorPrivacy::OnAbout()
 		QString CertInfo;
 		if (!g_CertName.isEmpty()) {
 			if(g_CertInfo.active)
-				CertInfo = tr("This version is licensed to %1.").arg(g_CertName);
+				CertInfo = tr("This copy is licensed to %1.").arg(g_CertName);
 			else
-				CertInfo = tr("This version was licensed to %1, but its no longer valid.").arg(g_CertName);
+				CertInfo = tr("This copy was licensed to %1, but its no longer valid.").arg(g_CertName);
 		}
 
 		QString AboutText = tr(

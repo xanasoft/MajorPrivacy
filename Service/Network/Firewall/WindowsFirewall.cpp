@@ -676,6 +676,7 @@ SWindowsFwRulePtr SWindowsFirewall::LoadRule(const FW_RULE* fwRule)
     pRule->ServiceTag = SAFE_GET_STR(fwRule->wszLocalService);
     if (fwRule->wSchemaVersion >= FW_WIN8_1_BINARY_VERSION) {
         pRule->AppContainerSid = SAFE_GET_STR(fwRule->wszPackageId);
+        pRule->LocalUserAuthorizationList = SAFE_GET_STR(fwRule->wszLocalUserAuthorizationList);
         pRule->LocalUserOwner = SAFE_GET_STR(fwRule->wszLocalUserOwner);
     }
 
@@ -810,26 +811,11 @@ FW_RULE* SWindowsFirewall::SaveRule(const SWindowsFwRulePtr& pRule, std::list<st
 
     fwRule->wszLocalApplication = SAFE_SET_STR(pRule->BinaryPath);
     fwRule->wszLocalService = SAFE_SET_STR(pRule->ServiceTag);
-    if (fwRule->wSchemaVersion >= FW_WIN8_1_BINARY_VERSION) {
-		// We can set eider AppContainerSid or PackageFamilyName, but not both
-        // we preffer to set PackageFamilyName if we can and have it,
-		// else we fall back to setting the AppContainerSid
-        if (pRule->PackageFamilyName.empty() || fwRule->wSchemaVersion < FW_23H2_BINARY_VERSION)
-            fwRule->wszPackageId = SAFE_SET_STR(pRule->AppContainerSid);
-        else
-            fwRule->wszPackageId = NULL;
-        fwRule->wszLocalUserOwner = NULL; //SAFE_SET_STR(pRule->LocalUserOwner); // we can not set this
-    }
-
-    if (fwRule->wSchemaVersion >= FW_23H2_BINARY_VERSION) {
-        fwRule->wszPackageFamilyName = SAFE_SET_STR(pRule->PackageFamilyName);
-    }
 
     fwRule->wszName = SAFE_SET_STR(pRule->Name);
     fwRule->wszDescription = SAFE_SET_STR(pRule->Description);
     fwRule->wszEmbeddedContext = SAFE_SET_STR(pRule->Grouping);
 
-#undef SAFE_SET_STR
 
     fwRule->wFlags = FW_RULE_FLAGS_NONE;
     if (pRule->Enabled) *(ULONG*)&fwRule->wFlags |= FW_RULE_FLAGS_ACTIVE;
@@ -902,10 +888,19 @@ FW_RULE* SWindowsFirewall::SaveRule(const SWindowsFwRulePtr& pRule, std::list<st
     if (uApiVersion < FW_WIN8_1_BINARY_VERSION)
         return fwRule;
     fwRule->pMetaData = NULL;
-    fwRule->wszLocalUserAuthorizationList = NULL;
-    fwRule->wszLocalUserOwner = NULL;
     fwRule->dwTrustTupleKeywords = FW_TRUST_TUPLE_KEYWORD_NONE;
 
+    if (fwRule->wSchemaVersion >= FW_WIN8_1_BINARY_VERSION) {
+        // We can set eider AppContainerSid or PackageFamilyName, but not both
+        // we preffer to set PackageFamilyName if we can and have it,
+        // else we fall back to setting the AppContainerSid
+        if (pRule->PackageFamilyName.empty() || fwRule->wSchemaVersion < FW_23H2_BINARY_VERSION)
+            fwRule->wszPackageId = SAFE_SET_STR(pRule->AppContainerSid);
+        else
+            fwRule->wszPackageId = NULL;
+        fwRule->wszLocalUserAuthorizationList = SAFE_SET_STR(pRule->LocalUserAuthorizationList);
+        fwRule->wszLocalUserOwner = NULL; //SAFE_SET_STR(pRule->LocalUserOwner); // we can not set this
+    }
 
     // Windows 10+
     if (uApiVersion < FW_THRESHOLD_BINARY_VERSION) // 1507
@@ -935,6 +930,12 @@ FW_RULE* SWindowsFirewall::SaveRule(const SWindowsFwRulePtr& pRule, std::list<st
     memset(&fwRule->providerContextKey, 0, sizeof(GUID));
     fwRule->RemoteDynamicKeywordAddresses.dwNumIds = 0;
     fwRule->RemoteDynamicKeywordAddresses.ids = NULL;
+
+    if (fwRule->wSchemaVersion >= FW_23H2_BINARY_VERSION) {
+        fwRule->wszPackageFamilyName = SAFE_SET_STR(pRule->PackageFamilyName);
+    }
+
+#undef SAFE_SET_STR
 
     return fwRule;
 }

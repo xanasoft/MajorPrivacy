@@ -12,6 +12,7 @@ struct SAccessItem
 	virtual ~SAccessItem() {}
 	QString Name;
 	quint64 LastAccess = 0;
+	quint64 AccessCount = 0;
 	uint32 AccessMask = 0;
 	QString Path;
 	enum EType {
@@ -52,6 +53,7 @@ public:
 	{
 		eName = 0,
 		eLastAccess,
+		eAccessCount,
 		eCount
 	};
 

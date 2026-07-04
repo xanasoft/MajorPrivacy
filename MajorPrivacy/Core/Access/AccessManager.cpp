@@ -144,8 +144,8 @@ RESULT(QFlexGuid) CAccessManager::SetAccessRule(const CAccessRulePtr& pRule)
 	SVarWriteOpt Opts;
 	Opts.Flags = SVarWriteOpt::eTextGuids;
 
-	if (!pRule->ValidateUserSID())
-		return ERR(STATUS_INVALID_PARAMETER, tr("Invalid User Name in access rule").toStdWString());
+	//if (!pRule->ValidateUserSID())
+	//	return ERR(STATUS_INVALID_PARAMETER, tr("Invalid User Name in access rule").toStdWString());
 
 	return theCore->SetAccessRule(pRule->ToVariant(Opts));
 }

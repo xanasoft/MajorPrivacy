@@ -86,6 +86,7 @@ void CAccessModel::updateNodeData(SAbstractTreeNode* node, const void* data, con
 		switch (section)
 		{
 		case eName:				Value = pNode->data->Name; break;
+		case eAccessCount:		Value = pNode->data->AccessCount; break;
 		case eLastAccess:		if (pNode->data->LastAccess) Value = pNode->data->LastAccess;
 		}
 
@@ -170,6 +171,7 @@ QVariant CAccessModel::headerData(int section, Qt::Orientation orientation, int 
 		{
 		case eName:			return tr("Name");
 		case eLastAccess:	return tr("Last Access");
+		case eAccessCount:	return tr("Access Count");
 		}
 	}
 	return QVariant();

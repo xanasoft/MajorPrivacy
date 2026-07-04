@@ -2,7 +2,7 @@
 ImDisk Virtual Disk Driver for Windows 7/10/11.
 
 Copyright (C) 2025 David Xanatos.
-Copyright (C) 2005-2023 Olof Lagerkvist.
+Copyright (C) 2005-2026 Olof Lagerkvist.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation

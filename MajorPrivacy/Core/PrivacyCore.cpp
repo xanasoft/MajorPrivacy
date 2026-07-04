@@ -1969,6 +1969,12 @@ STATUS CPrivacyCore::DeactivatePreset(const QFlexGuid& Guid)
 	return m_Service->Call(SVC_API_DEACTIVATE_PRESET, Request);
 }
 
+RESULT(QtVariant) CPrivacyCore::GetItemOwnership()
+{
+	QtVariant Request(m_pMemPool);
+	RET_GET_XVARIANT(m_Service->Call(SVC_API_GET_ITEM_OWNERSHIP, Request), API_V_ITEMS);
+}
+
 // Other
 
 void CPrivacyCore::ClearPrivacyLog()

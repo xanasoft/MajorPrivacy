@@ -41,6 +41,16 @@ private slots:
 	void OnRemoteIPEdit();
 	void OnRemoteIPSet();
 
+	void OnAllowUsersChanged();
+	void OnApplyUsersEdit();
+	void OnApplyUsersSet();
+
+	void OnExemptUsersChanged();
+	void OnExemptUsersEdit();
+	void OnExemptUsersSet();
+
+	void OnSidResolved(const QByteArray& Sid, const QString& FullName);
+
 	void OnSaveAndClose();
 	bool OnSave();
 
@@ -52,6 +62,10 @@ protected:
 
 	void UpdatePorts();
 	bool ValidateAddress(const QString& Address, bool bRemote);
+
+	void ParseLocalUserAuthorizationList(const QString& SDDL);
+	QString BuildLocalUserAuthorizationList();
+	QString SidToUserName(const QString& Sid);
 
 	bool Save();
 

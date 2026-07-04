@@ -563,7 +563,8 @@ STATUS CVolumeManager::Update()
         }
 
         std::wstring proxy = ImDiskQueryDeviceProxy(IMDISK_DEVICE + std::to_wstring(DeviceList[counter]));
-        if (!MatchPathPrefix(proxy, L"\\BaseNamedObjects\\Global\\" IMBOX_PROXY, false))
+        //if (!MatchPathPrefix(proxy, L"\\BaseNamedObjects\\Global\\" IMBOX_PROXY, false))
+        if (!MatchPathPrefix(proxy, IMBOX_PROXY, false))
             continue;
         std::size_t pos = proxy.find_first_of(L'!');
         if (pos == std::wstring::npos)

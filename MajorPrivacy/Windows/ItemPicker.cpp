@@ -110,7 +110,7 @@ int CItemPicker::LoadSubList(QTreeWidgetItem* pParent, const QMap<QVariant, SIte
 		else
 			count += 1 + SubCount;
 	}
-	return true;
+	return count;
 }
 
 void CItemPicker::OnPick()
@@ -124,8 +124,10 @@ void CItemPicker::OnPick()
 	accept();
 }
 
-QVariant CItemPicker::GetItem() 
+QVariantList CItemPicker::GetItems()
 {
-	auto pCurrent = ui.treeItems->currentItem();
-	return pCurrent ? pCurrent->data(0, Qt::UserRole) : QVariant();
+	QVariantList List;
+	for (auto pItem : ui.treeItems->selectedItems())
+		List.append(pItem->data(0, Qt::UserRole));
+	return List;
 }

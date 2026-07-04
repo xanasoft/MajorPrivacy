@@ -3,6 +3,7 @@
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
 #include "../Core/Network/NetworkManager.h"
+#include "../Core/GenericRule.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../Library/Helpers/NetUtil.h"
 #include "../Library/Helpers/NtUtil.h"
@@ -10,10 +11,78 @@
 #include "../MiscHelpers/Common/Common.h"
 #include "../MajorPrivacy.h"
 #include "../Windows/ProgramPicker.h"
+#include "../Helpers/SidResolver.h"
+#include <sddl.h>
+#include <Lm.h>
+
+static QString ResolveNameToSid(const QString& Name, QString* pFullName = nullptr)
+{
+	BYTE sidBuffer[SECURITY_MAX_SID_SIZE];
+	DWORD sidSize = sizeof(sidBuffer);
+	SID_NAME_USE sidType;
+	WCHAR domain[256];
+	DWORD domainSize = _countof(domain);
+
+	if (LookupAccountNameW(nullptr, (LPCWSTR)Name.utf16(), sidBuffer, &sidSize, domain, &domainSize, &sidType))
+	{
+		if (pFullName) {
+			QString domainStr = QString::fromWCharArray(domain);
+			if (!domainStr.isEmpty())
+				*pFullName = domainStr + "\\" + Name;
+			else
+				*pFullName = Name;
+		}
+
+		LPWSTR sidStr = nullptr;
+		if (ConvertSidToStringSidW((PSID)sidBuffer, &sidStr))
+		{
+			QString sid = QString::fromWCharArray(sidStr);
+			LocalFree(sidStr);
+			return sid;
+		}
+	}
+	return QString();
+}
+
+static void AddAccountsToUserComboBox(QComboBox* pComboBox)
+{
+	{
+		LPUSER_INFO_0 pBuf = nullptr;
+		DWORD entriesRead = 0, totalEntries = 0, resumeHandle = 0;
+		if (NERR_Success == NetUserEnum(nullptr, 0, FILTER_NORMAL_ACCOUNT, (LPBYTE*)&pBuf, MAX_PREFERRED_LENGTH, &entriesRead, &totalEntries, &resumeHandle))
+		{
+			for (DWORD i = 0; i < entriesRead; ++i) {
+				QString Name = QString::fromWCharArray(pBuf[i].usri0_name);
+				QString FullName;
+				QString Sid = ResolveNameToSid(Name, &FullName);
+				pComboBox->addItem(FullName.isEmpty() ? Name : FullName, Sid.isEmpty() ? Name : Sid);
+			}
+		}
+		if (pBuf) NetApiBufferFree(pBuf);
+	}
+
+	{
+		LPLOCALGROUP_INFO_0 pBuf = nullptr;
+		DWORD entriesRead = 0, totalEntries = 0;
+		DWORD_PTR resumeHandle = NULL;
+		if (NERR_Success == NetLocalGroupEnum(nullptr, 0, (LPBYTE*)&pBuf, MAX_PREFERRED_LENGTH, &entriesRead, &totalEntries, &resumeHandle))
+		{
+			for (DWORD i = 0; i < entriesRead; ++i) {
+				QString Name = QString::fromWCharArray(pBuf[i].lgrpi0_name);
+				QString FullName;
+				QString Sid = ResolveNameToSid(Name, &FullName);
+				pComboBox->addItem(QObject::tr("[%1]").arg(FullName.isEmpty() ? Name : FullName), Sid.isEmpty() ? Name : Sid);
+			}
+		}
+		if (pBuf) NetApiBufferFree(pBuf);
+	}
+}
 
 CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget* parent)
 	: QDialog(parent)
 {
+	setAttribute(Qt::WA_DeleteOnClose);
+
 	Qt::WindowFlags flags = windowFlags();
 	flags |= Qt::CustomizeWindowHint;
 	//flags &= ~Qt::WindowContextHelpButtonHint;
@@ -71,6 +140,14 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	connect(ui.lstRemoteIP, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(OnRemoteIPEdit()));
 	//connect(ui.lstRemoteIP, SIGNAL(itemChanged(QListWidgetItem*)), this, SLOT(OnRemoteIPEdit()));
 	connect(ui.btnRemoteIPSet, SIGNAL(clicked(bool)), this, SLOT(OnRemoteIPSet()));
+
+	connect(ui.chkAllowUsers, SIGNAL(toggled(bool)), this, SLOT(OnAllowUsersChanged()));
+	connect(ui.lstApplyUsers, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(OnApplyUsersEdit()));
+	connect(ui.btnApplyUsersSet, SIGNAL(clicked(bool)), this, SLOT(OnApplyUsersSet()));
+
+	connect(ui.chkExcemptUsers, SIGNAL(toggled(bool)), this, SLOT(OnExemptUsersChanged()));
+	connect(ui.lstExemptUsers, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(OnExemptUsersEdit()));
+	connect(ui.btnExemptUsersSet, SIGNAL(clicked(bool)), this, SLOT(OnExemptUsersSet()));
 
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(OnSaveAndClose()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
@@ -188,6 +265,18 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	SetAddresses(m_pRule->m_LocalAddresses, ui.lstLocalIP, ui.radLocalIPAny, ui.radLocalIPCustom);
 	SetAddresses(m_pRule->m_RemoteAddresses, ui.lstRemoteIP, ui.radRemoteIPAny, ui.radRemoteIPCustom);
 
+	// Initialize User Authorization Lists
+	ui.cmbApplyUsersSet->setVisible(false);
+	ui.btnApplyUsersSet->setVisible(false);
+	ui.cmbExemptUsersSet->setVisible(false);
+	ui.btnExemptUsersSet->setVisible(false);
+
+	AddAccountsToUserComboBox(ui.cmbApplyUsersSet);
+	AddAccountsToUserComboBox(ui.cmbExemptUsersSet);
+
+	//ParseLocalUserAuthorizationList(m_pRule->m_LocalUserAuthorizationList);
+	ParseLocalUserAuthorizationList(m_pRule->m_PrincipalSddl);
+
 	ui.cmbEdgeTraversal->addItem(tr("No"), 0);
 	ui.cmbEdgeTraversal->addItem(tr("Allow"), 1);
 	ui.cmbEdgeTraversal->addItem(tr("Defer to App"), 2);
@@ -199,6 +288,8 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	OnProtocolChanged();
 	OnLocalIPChanged();
 	OnRemoteIPChanged();
+	OnAllowUsersChanged();
+	OnExemptUsersChanged();
 
 	m_NameHold = false;
 
@@ -378,6 +469,9 @@ bool CFirewallRuleWnd::Save()
 
 	m_pRule->m_LocalAddresses = GetAddresses(ui.lstLocalIP, ui.radLocalIPAny, ui.radLocalIPCustom);
 	m_pRule->m_RemoteAddresses = GetAddresses(ui.lstRemoteIP, ui.radRemoteIPAny, ui.radRemoteIPCustom);
+
+	//m_pRule->m_LocalUserAuthorizationList = BuildLocalUserAuthorizationList();
+	m_pRule->m_PrincipalSddl = BuildLocalUserAuthorizationList();
 
 	m_pRule->m_EdgeTraversal = ui.cmbEdgeTraversal->currentData().toInt();
 
@@ -694,6 +788,285 @@ void CFirewallRuleWnd::OnActionChanged()
 	TryMakeName();
 }
 
+QString CFirewallRuleWnd::SidToUserName(const QString& Sid)
+{
+	QByteArray sidBinary = CGenericRule::SidStringToBinary(Sid);
+	if (sidBinary.isEmpty())
+		return Sid;
+
+	QString userName = theCore->GetSidResolver()->GetSidFullName(sidBinary, this, SLOT(OnSidResolved(const QByteArray&, const QString&)));
+	return userName.isEmpty() ? Sid : userName;
+}
+
+void CFirewallRuleWnd::ParseLocalUserAuthorizationList(const QString& SDDL)
+{
+	ui.lstApplyUsers->clear();
+	ui.lstExemptUsers->clear();
+
+	if (SDDL.isEmpty()) {
+		ui.chkAllowUsers->setChecked(false);
+		ui.chkExcemptUsers->setChecked(false);
+	}
+	else {
+		// Parse SDDL format: O:LSD:(D;;CC;;;SID1)(A;;CC;;;SID2)...
+		// Find the start of ACEs (after "D:")
+		int dPos = SDDL.indexOf("D:");
+		if (dPos == -1) {
+			ui.chkAllowUsers->setChecked(false);
+			ui.chkExcemptUsers->setChecked(false);
+		}
+		else {
+			QString acesPart = SDDL.mid(dPos + 2);
+
+			bool hasApplyUsers = false;
+			bool hasExemptUsers = false;
+
+			// Parse each ACE: (type;;rights;;;SID)
+			QRegularExpression aceRx("\\(([AD]);;[^;]*;;;([^)]+)\\)");
+			QRegularExpressionMatchIterator i = aceRx.globalMatch(acesPart);
+			while (i.hasNext()) {
+				QRegularExpressionMatch match = i.next();
+				QString aceType = match.captured(1);
+				QString sid = match.captured(2);
+				QString userName = SidToUserName(sid);
+
+				if (aceType == "A") {
+					// Allow - rule applies to this user
+					hasApplyUsers = true;
+					QListWidgetItem* pItem = new QListWidgetItem(userName);
+					pItem->setData(Qt::UserRole, sid);
+					ui.lstApplyUsers->addItem(pItem);
+				}
+				else if (aceType == "D") {
+					// Deny - user is exempt
+					hasExemptUsers = true;
+					QListWidgetItem* pItem = new QListWidgetItem(userName);
+					pItem->setData(Qt::UserRole, sid);
+					ui.lstExemptUsers->addItem(pItem);
+				}
+			}
+
+			ui.chkAllowUsers->setChecked(hasApplyUsers);
+			ui.chkExcemptUsers->setChecked(hasExemptUsers);
+		}
+	}
+
+	// Add "Add User" placeholder items
+	QListWidgetItem* pNewApply = new QListWidgetItem(tr("[Add User]"));
+	pNewApply->setData(Qt::UserRole, "");
+	ui.lstApplyUsers->addItem(pNewApply);
+
+	QListWidgetItem* pNewExempt = new QListWidgetItem(tr("[Add User]"));
+	pNewExempt->setData(Qt::UserRole, "");
+	ui.lstExemptUsers->addItem(pNewExempt);
+}
+
+QString CFirewallRuleWnd::BuildLocalUserAuthorizationList()
+{
+	if (!ui.chkAllowUsers->isChecked() && !ui.chkExcemptUsers->isChecked())
+		return QString();
+
+	QString sddl = "O:LSD:";
+
+	// Add Deny (exempt) entries first
+	if (ui.chkExcemptUsers->isChecked()) {
+		for (int i = 0; i < ui.lstExemptUsers->count(); i++) {
+			QListWidgetItem* pItem = ui.lstExemptUsers->item(i);
+			QString sid = pItem->data(Qt::UserRole).toString();
+			if (!sid.isEmpty())
+				sddl += QString("(D;;CC;;;%1)").arg(sid);
+		}
+	}
+
+	// Add Allow (apply) entries
+	if (ui.chkAllowUsers->isChecked()) {
+		for (int i = 0; i < ui.lstApplyUsers->count(); i++) {
+			QListWidgetItem* pItem = ui.lstApplyUsers->item(i);
+			QString sid = pItem->data(Qt::UserRole).toString();
+			if (!sid.isEmpty())
+				sddl += QString("(A;;CC;;;%1)").arg(sid);
+		}
+	}
+
+	// If no actual entries were added, return empty
+	if (sddl == "O:LSD:")
+		return QString();
+
+	return sddl;
+}
+
+void CFirewallRuleWnd::OnAllowUsersChanged()
+{
+	ui.lstApplyUsers->setEnabled(ui.chkAllowUsers->isChecked());
+}
+
+void CFirewallRuleWnd::OnApplyUsersEdit()
+{
+	ui.lstApplyUsers->setEnabled(false);
+	QListWidgetItem* pItem = ui.lstApplyUsers->currentItem();
+	if (pItem->data(Qt::UserRole).toString().isEmpty())
+		ui.cmbApplyUsersSet->setCurrentText("");
+	else {
+		// Try to find matching item in combo by SID
+		QString sid = pItem->data(Qt::UserRole).toString();
+		int index = ui.cmbApplyUsersSet->findData(sid);
+		if (index != -1)
+			ui.cmbApplyUsersSet->setCurrentIndex(index);
+		else
+			ui.cmbApplyUsersSet->setCurrentText(pItem->text());
+	}
+	ui.cmbApplyUsersSet->setVisible(true);
+	ui.btnApplyUsersSet->setVisible(true);
+}
+
+void CFirewallRuleWnd::OnApplyUsersSet()
+{
+	QString userName = ui.cmbApplyUsersSet->currentText();
+
+	QListWidgetItem* pItem = ui.lstApplyUsers->currentItem();
+	bool bAdd = pItem->data(Qt::UserRole).toString() == "";
+
+	if (userName.isEmpty())
+	{
+		if (!bAdd) delete pItem;
+		pItem = NULL;
+	}
+	else
+	{
+		QString sid;
+
+		// Check if an item is selected from the combo box (has pre-resolved SID)
+		int comboIndex = ui.cmbApplyUsersSet->currentIndex();
+		if (comboIndex != -1) {
+			sid = ui.cmbApplyUsersSet->currentData().toString();
+			// If data starts with S- it's already a SID, otherwise it's a name that needs resolution
+			if (!sid.startsWith("S-"))
+				sid.clear();
+		}
+
+		// If no pre-resolved SID, resolve username to SID
+		if (sid.isEmpty()) {
+			sid = ResolveNameToSid(userName);
+		}
+
+		if (sid.isEmpty()) {
+			QMessageBox::critical(this, "MajorPrivacy", tr("Could not resolve user '%1' to SID").arg(userName));
+			ui.lstApplyUsers->setEnabled(true);
+			ui.cmbApplyUsersSet->setVisible(false);
+			ui.btnApplyUsersSet->setVisible(false);
+			return;
+		}
+
+		if (bAdd) {
+			pItem = new QListWidgetItem();
+			ui.lstApplyUsers->insertItem(ui.lstApplyUsers->count() - 1, pItem);
+		}
+		pItem->setText(userName);
+		pItem->setData(Qt::UserRole, sid);
+	}
+
+	ui.lstApplyUsers->setEnabled(true);
+	ui.cmbApplyUsersSet->setVisible(false);
+	ui.btnApplyUsersSet->setVisible(false);
+}
+
+void CFirewallRuleWnd::OnExemptUsersChanged()
+{
+	ui.lstExemptUsers->setEnabled(ui.chkExcemptUsers->isChecked());
+}
+
+void CFirewallRuleWnd::OnExemptUsersEdit()
+{
+	ui.lstExemptUsers->setEnabled(false);
+	QListWidgetItem* pItem = ui.lstExemptUsers->currentItem();
+	if (pItem->data(Qt::UserRole).toString().isEmpty())
+		ui.cmbExemptUsersSet->setCurrentText("");
+	else {
+		// Try to find matching item in combo by SID
+		QString sid = pItem->data(Qt::UserRole).toString();
+		int index = ui.cmbExemptUsersSet->findData(sid);
+		if (index != -1)
+			ui.cmbExemptUsersSet->setCurrentIndex(index);
+		else
+			ui.cmbExemptUsersSet->setCurrentText(pItem->text());
+	}
+	ui.cmbExemptUsersSet->setVisible(true);
+	ui.btnExemptUsersSet->setVisible(true);
+}
+
+void CFirewallRuleWnd::OnExemptUsersSet()
+{
+	QString userName = ui.cmbExemptUsersSet->currentText();
+
+	QListWidgetItem* pItem = ui.lstExemptUsers->currentItem();
+	bool bAdd = pItem->data(Qt::UserRole).toString() == "";
+
+	if (userName.isEmpty())
+	{
+		if (!bAdd) delete pItem;
+		pItem = NULL;
+	}
+	else
+	{
+		QString sid;
+
+		// Check if an item is selected from the combo box (has pre-resolved SID)
+		int comboIndex = ui.cmbExemptUsersSet->currentIndex();
+		if (comboIndex != -1) {
+			sid = ui.cmbExemptUsersSet->currentData().toString();
+			// If data starts with S- it's already a SID, otherwise it's a name that needs resolution
+			if (!sid.startsWith("S-"))
+				sid.clear();
+		}
+
+		// If no pre-resolved SID, resolve username to SID
+		if (sid.isEmpty()) {
+			sid = ResolveNameToSid(userName);
+		}
+
+		if (sid.isEmpty()) {
+			QMessageBox::critical(this, "MajorPrivacy", tr("Could not resolve user '%1' to SID").arg(userName));
+			ui.lstExemptUsers->setEnabled(true);
+			ui.cmbExemptUsersSet->setVisible(false);
+			ui.btnExemptUsersSet->setVisible(false);
+			return;
+		}
+
+		if (bAdd) {
+			pItem = new QListWidgetItem();
+			ui.lstExemptUsers->insertItem(ui.lstExemptUsers->count() - 1, pItem);
+		}
+		pItem->setText(userName);
+		pItem->setData(Qt::UserRole, sid);
+	}
+
+	ui.lstExemptUsers->setEnabled(true);
+	ui.cmbExemptUsersSet->setVisible(false);
+	ui.btnExemptUsersSet->setVisible(false);
+}
+
+void CFirewallRuleWnd::OnSidResolved(const QByteArray& Sid, const QString& FullName)
+{
+	// Convert binary SID back to string for comparison
+	LPWSTR sidStr = nullptr;
+	if (!ConvertSidToStringSidW((PSID)Sid.data(), &sidStr))
+		return;
+	QString sidString = QString::fromWCharArray(sidStr);
+	LocalFree(sidStr);
+
+	// Update any list items that have this SID
+	auto UpdateList = [&](QListWidget* pList) {
+		for (int i = 0; i < pList->count(); i++) {
+			QListWidgetItem* pItem = pList->item(i);
+			if (pItem->data(Qt::UserRole).toString() == sidString) {
+				pItem->setText(FullName);
+			}
+		}
+	};
+
+	UpdateList(ui.lstApplyUsers);
+	UpdateList(ui.lstExemptUsers);
+}
 
 void CFirewallRuleWnd::TryMakeName()
 {

@@ -36,6 +36,7 @@ QString CDnsCacheEntry::GetStatusString() const
 {
 	switch (m_Status)
 	{
+	case eNone:		return tr("Logged");
 	case eCached:	return tr("Cached");
 	case eAllowed:	return tr("Allowed");
 	case eBlocked:	return tr("Blocked");

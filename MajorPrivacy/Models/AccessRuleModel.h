@@ -29,9 +29,13 @@ public:
 		eAction,
 		ePath,
 		eEnclave,
+		eUsers,
 		eProgram,
 		eCount
 	};
+
+private slots:
+	void OnSidResolved(const QByteArray& Sid, const QString& FullName);
 
 protected:
 	struct SRuleNode : STreeNode

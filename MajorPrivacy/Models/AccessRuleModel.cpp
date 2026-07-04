@@ -4,6 +4,7 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramManager.h"
+#include "../Core/GenericRule.h"
 #include "../MajorPrivacy.h"
 #include "../Core/Enclaves/EnclaveManager.h"
 #include "../Windows/AccessRuleWnd.h"
@@ -101,6 +102,7 @@ QList<QModelIndex>	CAccessRuleModel::Sync(const QList<CAccessRulePtr>& RuleList)
 			case eAction:			Value = (int)pRule->GetType(); break;
 			case ePath:				Value = pRule->GetNtPath(); break;
 			case eEnclave:			Value = pRule->GetEnclave().ToQV(); break;
+			case eUsers:			Value = pRule->GetPrincipalSddl(); break;
 			case eProgram:			Value = pRule->GetProgramNtPath(); break;
 			}
 
@@ -131,6 +133,7 @@ QList<QModelIndex>	CAccessRuleModel::Sync(const QList<CAccessRulePtr>& RuleList)
 					break;
 				}
 				case ePath:				ColValue.Formatted = pRule->GetPath(); break;
+				case eUsers:			ColValue.Formatted = CGenericRule::FormatLocalUserAuthorizationList(Value.toString(), this, SLOT(OnSidResolved(const QByteArray&, const QString&))); break;
 				case eProgram:			ColValue.Formatted = pRule->GetProgramPath(); break;
 				}
 			}
@@ -194,8 +197,33 @@ QVariant CAccessRuleModel::headerData(int section, Qt::Orientation orientation, 
 		case eAction:				return tr("Action");
 		case ePath:					return tr("Path");
 		case eEnclave:				return tr("Enclave");
+		case eUsers:				return tr("Users");
 		case eProgram:				return tr("Program");
 		}
 	}
 	return QVariant();
+}
+
+void CAccessRuleModel::OnSidResolved(const QByteArray& Sid, const QString& FullName)
+{
+	// A SID has been resolved, refresh all Users columns
+	for (auto I = m_Map.begin(); I != m_Map.end(); ++I) {
+		SRuleNode* pNode = static_cast<SRuleNode*>(I.value());
+		if (!pNode || !pNode->pRule)
+			continue;
+
+		QString sddl = pNode->pRule->GetPrincipalSddl();
+		if (sddl.isEmpty())
+			continue;
+
+		// Re-format with now-resolved SID (no callback needed, it's cached now)
+		QString newFormatted = CGenericRule::FormatLocalUserAuthorizationList(sddl);
+
+		if (pNode->Values[eUsers].Formatted != newFormatted) {
+			pNode->Values[eUsers].Formatted = newFormatted;
+			QModelIndex Index = Find(m_Root, pNode);
+			if (Index.isValid())
+				emit dataChanged(createIndex(Index.row(), eUsers, pNode), createIndex(Index.row(), eUsers, pNode));
+		}
+	}
 }

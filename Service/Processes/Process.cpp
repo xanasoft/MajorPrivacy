@@ -149,9 +149,7 @@ bool CProcess::Init(const struct SProcessInfo* Data)
 		// InitOther will SetRawCreationTime
 	}
 
-	if(m_NtFilePath == L"MemCompression")
-		m_NtFilePath = std::wstring(NtOsKernel_exe);
-	else if(m_NtFilePath == L"Registry")
+	if(m_ParentPid == NT_OS_KERNEL_PID && *m_NtFilePath.c_str() != L'\\') // L"MemCompression" / L"Registry"
 		m_NtFilePath = std::wstring(NtOsKernel_exe);
 
 	return InitOther();
@@ -228,6 +226,19 @@ bool CProcess::InitOther()
 
 		CBuffer Buffer;
 
+		if (!QueryTokenVariable(ProcessToken, TokenGroups, Buffer).IsError())
+		{
+			PTOKEN_GROUPS pTokenGroups = (PTOKEN_GROUPS)Buffer.GetBuffer();
+			for (DWORD i = 0; i < pTokenGroups->GroupCount; i++)
+			{
+				SSid GroupSid = (struct _SID*)pTokenGroups->Groups[i].Sid;
+				SGroupInfo Info;
+				Info.Enabled = (pTokenGroups->Groups[i].Attributes & SE_GROUP_ENABLED) != 0;
+				m_UserGroups[GroupSid.ToWString()] = Info;
+			}
+		}
+		Buffer.Clear();
+
 		if (!QueryTokenVariable(ProcessToken, TokenAppContainerSid, Buffer).IsError())
 		{
 			PTOKEN_APPCONTAINER_INFORMATION pAppContainerInfo = (PTOKEN_APPCONTAINER_INFORMATION)Buffer.GetBuffer();
@@ -238,8 +249,6 @@ bool CProcess::InitOther()
 				m_AppContainerName = ::GetAppContainerNameBySid(AppContainerSid);
 			}
 		}
-
-
 		Buffer.Clear();
 
 		if (!QueryTokenVariable(ProcessToken, TokenSecurityAttributes, Buffer).IsError())

@@ -239,6 +239,12 @@ CFirewallIssue::CFirewallIssue(const CFwRulePtr& pFwRule, QObject* parent)
 	: CIssue(parent) 
 {
 	m_RuleID = pFwRule->GetGuid().ToQS();
+	if (pFwRule->IsBackup())
+	{
+		m_Description = tr("Missing Windows Firewall rule: %1").arg(CMajorPrivacy::GetResourceStr(pFwRule->GetName()));
+		m_Severity = eHigh;
+	} 
+	else
 	switch (pFwRule->GetState())
 	{
 		case EFwRuleState::eUnapprovedDisabled:
@@ -249,10 +255,8 @@ CFirewallIssue::CFirewallIssue(const CFwRulePtr& pFwRule, QObject* parent)
 			else
 				m_Severity = eLow;
 			break;
-		case EFwRuleState::eBackup:
-			m_Description = tr("Missing Windows Firewall rule: %1").arg(CMajorPrivacy::GetResourceStr(pFwRule->GetName()));
-			m_Severity = eHigh;
-			break;
+		//case EFwRuleState::eBackup:
+			//
 		default:
 			ASSERT(0);
 	}
@@ -262,7 +266,8 @@ CFirewallIssue::CFirewallIssue(const CFwRulePtr& pFwRule, const CFwRulePtr& pNew
 	: CIssue(parent) 
 {
 	m_RuleID = pFwRule->GetGuid().ToQS();
-	ASSERT(pFwRule->GetState() == EFwRuleState::eBackup);
+	//ASSERT(pFwRule->GetState() == EFwRuleState::eBackup);
+	ASSERT(pFwRule->IsBackup());
 	m_Description = tr("Altered Windows Firewall rule: %1").arg(CMajorPrivacy::GetResourceStr(pFwRule->GetName()));
 	m_Severity = eHigh;
 }
@@ -276,22 +281,8 @@ STATUS CFirewallIssue::FixIssue(EFixMode Mode)
 {
 	CFwRulePtr pFwRule = theCore->NetworkManager()->GetFwRules().value(m_RuleID);
 
-	switch (pFwRule->GetState())
+	if (pFwRule->IsBackup())
 	{
-	case EFwRuleState::eUnapprovedDisabled:
-	case EFwRuleState::eUnapproved:
-		if(Mode == eAccept)
-		{
-			if(pFwRule->GetState() == EFwRuleState::eUnapprovedDisabled)
-				pFwRule->SetEnabled(true);
-			pFwRule->SetApproved();
-			return theCore->NetworkManager()->SetFwRule(pFwRule);
-		}
-		else if(Mode == eReject)
-			return theCore->NetworkManager()->DelFwRule(pFwRule);
-		else
-			return ERR(STATUS_NOT_IMPLEMENTED, tr("This issue can not be fixed in this mode!").toStdWString());
-	case EFwRuleState::eBackup:
 		if (Mode == eAccept) {
 			STATUS status = OK;
 			CFwRulePtr pFwOriginalRule = theCore->NetworkManager()->GetFwRule(pFwRule->GetOriginalGuid());
@@ -312,6 +303,25 @@ STATUS CFirewallIssue::FixIssue(EFixMode Mode)
 		}
 		else if(Mode != eDefault)
 			return ERR(STATUS_NOT_IMPLEMENTED, tr("This issue can not be fixed in this mode!").toStdWString());
+	}
+
+	switch (pFwRule->GetState())
+	{
+	case EFwRuleState::eUnapprovedDisabled:
+	case EFwRuleState::eUnapproved:
+		if(Mode == eAccept)
+		{
+			if(pFwRule->GetState() == EFwRuleState::eUnapprovedDisabled)
+				pFwRule->SetEnabled(true);
+			pFwRule->SetApproved();
+			return theCore->NetworkManager()->SetFwRule(pFwRule);
+		}
+		else if(Mode == eReject)
+			return theCore->NetworkManager()->DelFwRule(pFwRule);
+		else
+			return ERR(STATUS_NOT_IMPLEMENTED, tr("This issue can not be fixed in this mode!").toStdWString());
+	//case EFwRuleState::eBackup:
+		//
 	default:
 		return ERR(STATUS_NOT_IMPLEMENTED, tr("This issue can not be fixed!").toStdWString());
 	}

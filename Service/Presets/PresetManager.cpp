@@ -324,7 +324,8 @@ STATUS CPresetManager::DeactivatePresetInternal(const CFlexGuid& Preset, uint32 
 			break;
 
 		case EItemType::eFwRule: // Firewall Rule
-			if (CFirewallRulePtr pRule = theCore->NetworkManager()->Firewall()->GetRule(ItemGuid)) {
+			if (CFirewallRulePtr pCurRule = theCore->NetworkManager()->Firewall()->GetRule(ItemGuid)) {
+				CFirewallRulePtr pRule = pCurRule->Clone(true);
 				pRule->SetEnabled(OriginalState.bWasEnabled);
 				STATUS Status = theCore->NetworkManager()->Firewall()->SetRule(pRule);
 				if (Status.IsError())
@@ -363,7 +364,8 @@ std::vector<std::pair<CFlexGuid, CFlexGuid>> CPresetManager::CheckPresetConflict
 	std::vector<std::pair<CFlexGuid, CFlexGuid>> Conflicts;
 	for (const auto& [ItemGuid, ItemPreset] : pPreset->GetItems())
 	{
-		if (ItemPreset.Activate == SItemPreset::EActivate::eUndefined)
+		// Skip disabled items and items with no action
+		if (!ItemPreset.Enabled || ItemPreset.Activate == SItemPreset::EActivate::eUndefined)
 			continue;
 
 		auto OwnerIt = m_ItemOwnership.find(ItemGuid);
@@ -377,7 +379,8 @@ STATUS CPresetManager::ApplyPresetItems(const CPresetPtr& pPreset, uint32 Caller
 {
 	for (auto& [ItemGuid, ItemPreset] : pPreset->GetItems())
 	{
-		if (ItemPreset.Activate == SItemPreset::EActivate::eUndefined)
+		// Skip disabled items and items with no action
+		if (!ItemPreset.Enabled || ItemPreset.Activate == SItemPreset::EActivate::eUndefined)
 			continue;
 
 		// Check if item is already owned by this Preset
@@ -470,7 +473,8 @@ STATUS CPresetManager::ApplyPresetItems(const CPresetPtr& pPreset, uint32 Caller
 			break;
 
 		case EItemType::eFwRule: // Firewall Rule
-			if (CFirewallRulePtr pRule = theCore->NetworkManager()->Firewall()->GetRule(ItemGuid)) {
+			if (CFirewallRulePtr pCurRule = theCore->NetworkManager()->Firewall()->GetRule(ItemGuid)) {
+				CFirewallRulePtr pRule = pCurRule->Clone(true);
 				switch (ItemPreset.Activate) {
 				case SItemPreset::EActivate::eEnable: pRule->SetEnabled(true); break;
 				case SItemPreset::EActivate::eDisable: pRule->SetEnabled(false); break;
@@ -623,4 +627,27 @@ STATUS CPresetManager::ActivatePreset(const CFlexGuid& Preset, uint32 CallerPID,
 
 	EmitChangeEvent(Preset, pPreset->GetName(), EConfigEvent::eModified);
 	return OK;
+}
+
+StVariant CPresetManager::GetItemOwnership(FW::AbstractMemPool* pMemPool) const
+{
+	std::shared_lock Lock(m_Mutex);
+
+	StVariantWriter Writer(pMemPool);
+	Writer.BeginList();
+
+	for (const auto& [ItemGuid, Ownership] : m_ItemOwnership)
+	{
+		StVariantWriter ItemWriter(pMemPool);
+		ItemWriter.BeginIndex();
+
+		ItemWriter.WriteVariant(API_V_GUID, ItemGuid.ToVariant(false, pMemPool));
+		ItemWriter.WriteVariant(API_V_PRESET_GUID, Ownership.PresetGuid.ToVariant(false, pMemPool));
+		ItemWriter.Write(API_V_TYPE, (uint32)Ownership.Type);
+		ItemWriter.Write(API_V_WAS_ENABLED, Ownership.bWasEnabled);
+
+		Writer.WriteVariant(ItemWriter.Finish());
+	}
+
+	return Writer.Finish();
 }

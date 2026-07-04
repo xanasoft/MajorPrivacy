@@ -358,7 +358,7 @@ STATUS CDriverAPI::InstallDrv(bool bAutoStart, uint32 TraceLogLevel)
     Params["TraceLevel"] = TraceLogLevel;
 #ifdef _DEBUG
     Params["AllowUserDev"] = TRUE;
-    Params["SignProbeAll"] = TRUE; 
+    Params["SignProbeAll"] = FALSE; 
     Params["AllowDebugging"] = TRUE; // Required test signing mode to be enabled
 #endif
 

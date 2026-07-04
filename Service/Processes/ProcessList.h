@@ -32,8 +32,9 @@ public:
 		eCanAdd, // if process is not listed try to add it when its running, else return null
 		eMustAdd // always add process even if its not running
 	};
-	CProcessPtr GetProcessEx(uint64 Pid, EGetMode Mode);
-	CProcessPtr GetProcess(uint64 Pid, bool bCanAdd = false) { return GetProcessEx(Pid, bCanAdd ? eMustAdd : eCanNotAdd); }
+	CProcessPtr GetProcessEx(uint64 Pid, const std::wstring& FileNameNt, EGetMode Mode);
+	CProcessPtr GetProcess(uint64 Pid, bool bCanAdd = false) { return GetProcessEx(Pid, L"", bCanAdd ? eMustAdd : eCanNotAdd); }
+	CProcessPtr GetProcess(uint64 Pid, const std::wstring& FileNameNt, bool bCanAdd = false) { return GetProcessEx(Pid, FileNameNt, bCanAdd ? eMustAdd : eCanNotAdd); }
 
 	std::map<SProcessUID, CProcessPtr> FindProcesses(const CProgramID& ID);
 

@@ -154,7 +154,8 @@ void CServiceCore::RegisterUserAPI()
 	server->RegisterHandler(SVC_API_DEL_PRESET, &CServiceCore::OnRequest, this);
 	server->RegisterHandler(SVC_API_ACTIVATE_PRESET, &CServiceCore::OnRequest, this);
 	server->RegisterHandler(SVC_API_DEACTIVATE_PRESET, &CServiceCore::OnRequest, this);
-	
+	server->RegisterHandler(SVC_API_GET_ITEM_OWNERSHIP, &CServiceCore::OnRequest, this);
+
 
 	server->RegisterHandler(SVC_API_SET_WATCHED_PROG, &CServiceCore::OnRequest, this);
 	
@@ -860,6 +861,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_REFRESH_PROGRAMS:
 		{
+			theCore->ProgramManager()->CollectSoftware();
 			theCore->ProgramManager()->CheckProgramFiles();
 			return STATUS_SUCCESS;
 		}
@@ -946,7 +948,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				// Note: If we are running in engine mode, We are admin but not system and are missing SeAssignPrimaryTokenPrivilege
 				//
 
-				if (CreateProcessAsUserW(m_bEngineMode ? NULL : *&hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &si, &pi))
+				if (CreateProcessAsUserW(*&hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &si, &pi))
 				{
 					CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pi.dwProcessId, true);
 					//ResumeThread(pi.hThread);
@@ -1618,6 +1620,13 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if(Status)
 				theCore->SetConfigDirty(true);
 			RETURN_STATUS(Status);
+		}
+		case SVC_API_GET_ITEM_OWNERSHIP:
+		{
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_ITEMS] = theCore->PresetManager()->GetItemOwnership(m_pMemPool);
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
 		}
 
 		case SVC_API_SET_WATCHED_PROG:

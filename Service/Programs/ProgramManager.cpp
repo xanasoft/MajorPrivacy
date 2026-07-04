@@ -490,14 +490,35 @@ bool CProgramManager::IsPathReserved(std::wstring FileName) const
 		return false;
 	if (FileName.at(FileName.length() - 1) != L'\\')
 		FileName.append(L"\\");
+
+	// Root drive
+	if (_wcsicmp(FileName.c_str(), m_OsDrive.c_str()) == 0)						// "C:\\"
+		return true;
+
+	// Windows directories
 	if (_wcsicmp(FileName.c_str(), (m_WinDir + L"\\").c_str()) == 0)			// "C:\\Windows\\"
 		return true;
 	if (_wcsicmp(FileName.c_str(), (m_WinDir + L"\\System32\\").c_str()) == 0)	// "C:\\Windows\\System32\\"
 		return true;
+	if (_wcsicmp(FileName.c_str(), (m_WinDir + L"\\SysWOW64\\").c_str()) == 0)	// "C:\\Windows\\SysWOW64\\"
+		return true;
+	if (_wcsicmp(FileName.c_str(), (m_WinDir + L"\\SystemApps\\").c_str()) == 0)// "C:\\Windows\\SystemApps\\"
+		return true;
+
+	// Program Files directories
 	if(_wcsicmp(FileName.c_str(), (m_ProgDir + L"\\").c_str()) == 0)			// "C:\\Program Files\\"
 		return true;
 	if(_wcsicmp(FileName.c_str(), (m_ProgDir + L" (x86)\\").c_str()) == 0)		// "C:\\Program Files (x86)\\"
 		return true;
+	if(_wcsicmp(FileName.c_str(), (m_ProgDir + L"\\WindowsApps\\").c_str()) == 0)// "C:\\Program Files\\WindowsApps\\"
+		return true;
+
+	// Other system directories
+	if (_wcsicmp(FileName.c_str(), (m_OsDrive + L"ProgramData\\").c_str()) == 0)// "C:\\ProgramData\\"
+		return true;
+	if (_wcsicmp(FileName.c_str(), (m_OsDrive + L"Users\\").c_str()) == 0)		// "C:\\Users\\"
+		return true;
+
 	return false;
 }
 
@@ -805,25 +826,47 @@ void CProgramManager::AddPackage(const CPackageList::SPackagePtr& pPackage)
 {
 	std::wstring Key = MkLower(pPackage->PackageSid);
 
+	std::wstring NewPath = theCore->NormalizePath(pPackage->PackageInstallPath, false);
+	if (NewPath.empty())
+		NewPath = m_ProgDir + L"\\WindowsApps\\" + pPackage->PackageSid + L"\\";
+
 	std::unique_lock lock(m_Mutex);
 	CAppPackagePtr& pAppPackage = m_PackageMap[Key];
+	bool bNew = false;
 	if (!pAppPackage) {
 		pAppPackage = CAppPackagePtr(new CAppPackage(pPackage->PackageSid, pPackage->PackageFamilyName, pPackage->PackageName));
 		pAppPackage->SetName(pPackage->PackageDisplayName);
-		std::wstring Path = theCore->NormalizePath(pPackage->PackageInstallPath, false);
-		if(Path.empty())
-			Path = m_ProgDir + L"\\WindowsApps\\" + pPackage->PackageSid;
-		pAppPackage->SetPath(Path);
+		pAppPackage->SetPackageFullName(pPackage->PackageFullName);
+		pAppPackage->SetPath(NewPath);
 		pAppPackage->SetIcon(pPackage->SmallLogoPath);
 		m_Items.insert(std::make_pair(pAppPackage->GetUID(), pAppPackage));
 		lock.unlock();
 
 		AddItemToRoot(pAppPackage);
+		bNew = true;
 
 		//BroadcastItemChanged(pAppPackage, EConfigEvent::eAdded);
 	}
 	else
+	{
 		pAppPackage->SetMissing(false);
+
+		// Update PackageFullName (changes with app updates/version changes)
+		pAppPackage->SetPackageFullName(pPackage->PackageFullName);
+
+		// Check if path has changed
+		std::wstring OldPath = pAppPackage->GetPath();
+		if (_wcsicmp(OldPath.c_str(), NewPath.c_str()) != 0)
+		{
+			CollectListExNodes(pAppPackage);
+			pAppPackage->SetPath(NewPath);
+			bNew = true;
+		}
+	}
+
+	// For new packages or path changes, move matching items from parents to the package
+	if (bNew)
+		DistributeListExNodes(pAppPackage);
 }
 
 void CProgramManager::RemovePackage(const CPackageList::SPackagePtr& pPackage)
@@ -840,39 +883,41 @@ void CProgramManager::AddInstallation(const CInstallationList::SInstallationPtr&
 {
 	std::wstring Key = MkLower(pInstalledApp->RegKey);
 
-	std::wstring Path = theCore->NormalizePath(pInstalledApp->InstallPath, false);
+	std::wstring NewPath = theCore->NormalizePath(pInstalledApp->InstallPath, false);
 
 	std::unique_lock lock(m_Mutex);
 	CAppInstallationPtr& pAppInstall = m_InstallMap[Key];
-
-	if (pAppInstall)
-	{
-		if (pAppInstall->GetPath() != Path)
-		{
-			std::wstring Key = MkLower(pInstalledApp->RegKey);
-
-			auto F = m_InstallMap.find(Key);
-			if (F != m_InstallMap.end())
-				F->second->SetMissing(true);
-
-			pAppInstall.reset();
-		}
-	}
-
+	bool bNew = false;
 	if (!pAppInstall) {
 		pAppInstall = CAppInstallationPtr(new CAppInstallation(pInstalledApp->RegKey));
 		pAppInstall->SetName(pInstalledApp->DisplayName);
-		pAppInstall->SetPath(Path);
+		pAppInstall->SetPath(NewPath);
 		pAppInstall->SetIcon(pInstalledApp->DisplayIcon);
 		m_Items.insert(std::make_pair(pAppInstall->GetUID(), pAppInstall));
 		lock.unlock();
 
 		AddItemToRoot(pAppInstall);
+		bNew = true;
 
 		//BroadcastItemChanged(pAppInstall, EConfigEvent::eAdded);
 	}
 	else
+	{
 		pAppInstall->SetMissing(false);
+
+		// Check if path has changed
+		std::wstring OldPath = pAppInstall->GetPath();
+		if (_wcsicmp(OldPath.c_str(), NewPath.c_str()) != 0)
+		{
+			CollectListExNodes(pAppInstall);
+			pAppInstall->SetPath(NewPath);
+			bNew = true;
+		}
+	}
+
+	// For new installations or path changes, move matching items from parents to the installation
+	if (bNew)
+		DistributeListExNodes(pAppInstall);
 }
 
 void CProgramManager::RemoveInstallation(const CInstallationList::SInstallationPtr& pInstalledApp)
@@ -963,18 +1008,18 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 	// do not allow to remove auto items
 	switch (ID.GetType())
 	{
-		case EProgramType::eAppInstallation: 
-			if(!theCore->Config()->GetBool("Service", "EnumInstallations", true))
-				break; // allow removing installs when install enum is off
+		//case EProgramType::eAppInstallation: 
+		//	if(!theCore->Config()->GetBool("Service", "EnumInstallations", true))
+		//		break; // allow removing installs when install enum is off
 		case EProgramType::eWindowsService: 
-		case EProgramType::eAppPackage: 
+		//case EProgramType::eAppPackage: 
 			if(pItem->IsMissing())
 				break;
 		case EProgramType::eAllPrograms:
 			return ERR(STATUS_ERR_CANT_REMOVE_AUTO_ITEM);
 	}
 
-	// Program Files can host services, dont remove files with services
+	// Program Files with host services, dont remove files with services
 	// except if all services are missing
 	if (pProgram) {
 		std::unique_lock lock(pProgram->m_Mutex);
@@ -1253,6 +1298,68 @@ void CProgramManager::TryAddChildren(const CProgramListPtr& pBranche, const CPro
 				TryAddChildren(pSubBranch, pPattern);
 		}
 		++I;
+	}
+}
+
+void CProgramManager::CollectListExNodes(const CProgramListExPtr& pListEx)
+{
+	// Get parent groups of the list
+	auto Groups = pListEx->GetGroups();
+
+	// Remove all sub-items from the list and add them to parents
+	std::vector<CProgramItemPtr> NodesToMove;
+	{
+		std::unique_lock lock2(pListEx->m_Mutex);
+		NodesToMove = pListEx->m_Nodes;
+	}
+	for (auto& pNode : NodesToMove)
+	{
+		RemoveProgramFromGroup(pNode, pListEx);
+		// Add to parent groups using AddItemToBranch to place where they belong
+		for (auto& G : Groups) {
+			CProgramSetPtr pParent = G.second.lock();
+			if (pParent)
+				AddItemToBranch(pNode, pParent);
+		}
+		// If item has no groups, add to root
+		if (pNode->GetGroupCount() == 0)
+			AddProgramToGroup(pNode, m_Root);
+	}
+}
+
+void CProgramManager::DistributeListExNodes(const CProgramListExPtr& pListEx)
+{
+	// Iterate through children of each parent and move matching ones to the list
+	auto Groups = pListEx->GetGroups();
+	for (auto& G : Groups)
+	{
+		CProgramSetPtr pParent = G.second.lock();
+		if (!pParent)
+			continue;
+
+		std::vector<CProgramItemPtr> NodesToCheck;
+		{
+			std::unique_lock lock2(pParent->m_Mutex);
+			NodesToCheck = pParent->m_Nodes;
+		}
+
+		for (auto& pNode : NodesToCheck)
+		{
+			if (pNode == pListEx)
+				continue;
+
+			std::wstring NodePath;
+			if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pNode))
+				NodePath = pProgram->GetPath();
+			else if (CProgramListExPtr pList = std::dynamic_pointer_cast<CProgramListEx>(pNode))
+				NodePath = pList->GetPath();
+
+			if (!NodePath.empty() && pListEx->MatchFileName(NodePath))
+			{
+				RemoveProgramFromGroup(pNode, pParent);
+				AddProgramToGroup(pNode, pListEx);
+			}
+		}
 	}
 }
 
@@ -1639,7 +1746,7 @@ STATUS CProgramManager::Load(bool ReLoad)
 			}
 			pItem = pService;
 		}
-		/*else if (Type == EProgramType::eAppPackage)	
+		else if (Type == EProgramType::eAppPackage)	
 		{
 			std::wstring AppContainerSid = IsMap ? Reader.Find(API_S_APP_SID) : Reader.Find(API_V_APP_SID);
 			std::wstring Key = MkLower(AppContainerSid);
@@ -1650,7 +1757,7 @@ STATUS CProgramManager::Load(bool ReLoad)
 				bNew = true;
 			}
 			pItem = pPackage;
-		}*/
+		}
 		else if (Type == EProgramType::eProgramGroup)
 		{
 			StVariant ID = IsMap ? Reader.Find(API_S_ID) : Reader.Find(API_V_ID);

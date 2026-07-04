@@ -41,8 +41,9 @@ void CGenericRule::CopyTo(CGenericRule* Rule, bool CloneGuid) const
 
     Rule->m_Enclave = m_Enclave;
 	
-	Rule->m_User = m_User;
-	Rule->m_UserSid = m_UserSid;
+	//Rule->m_User = m_User;
+	//Rule->m_UserSid = m_UserSid;
+    Rule->m_PrincipalSddl = m_PrincipalSddl;
 
 	Rule->m_bTemporary = m_bTemporary;
 
@@ -62,8 +63,9 @@ void CGenericRule::Update(const std::shared_ptr<CGenericRule>& Rule)
 
 	m_Enclave = Rule->m_Enclave;
 
-    m_User = Rule->m_User;
-    m_UserSid = Rule->m_UserSid;
+    //m_User = Rule->m_User;
+    //m_UserSid = Rule->m_UserSid;
+    m_PrincipalSddl = Rule->m_PrincipalSddl;
 
     m_bTemporary = Rule->m_bTemporary;
 

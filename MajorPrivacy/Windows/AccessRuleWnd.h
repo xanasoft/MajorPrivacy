@@ -26,10 +26,20 @@ private slots:
 	void OnNameChanged(const QString& Text);
 	void OnPickProgram();
 	void OnPathChanged();
-	void OnUserChanged();
+	//void OnUserChanged();
 	void OnProgramChanged();
 	void OnProgramPathChanged();
 	void OnActionChanged();
+
+	void OnAllowUsersChanged();
+	void OnApplyUsersEdit();
+	void OnApplyUsersSet();
+
+	void OnExemptUsersChanged();
+	void OnExemptUsersEdit();
+	void OnExemptUsersSet();
+
+	void OnSidResolved(const QByteArray& Sid, const QString& FullName);
 
 	void BrowseFolder();
 	void BrowseFile();
@@ -42,6 +52,10 @@ protected:
 	void closeEvent(QCloseEvent* e);
 
 	bool AddProgramItem(const CProgramItemPtr& pItem);
+
+	void ParsePrincipalSddl(const QString& SDDL);
+	QString BuildPrincipalSddl();
+	QString SidToUserName(const QString& Sid);
 
 	bool Save();
 

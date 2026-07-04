@@ -24,6 +24,11 @@ struct SProcessUID
 	bool operator>=(const SProcessUID& other) const { return PUID >= other.PUID; }
 };
 
+struct SGroupInfo
+{
+	bool Enabled = false;
+};
+
 class CProcess: public CAbstractInfoEx
 {
 	TRACK_OBJECT(CProcess)
@@ -40,6 +45,7 @@ public:
 	std::wstring GetWorkDir() const;
 
 	std::wstring GetUserSid() const { std::shared_lock Lock(m_Mutex); return m_UserSid; }
+	std::map<std::wstring, SGroupInfo> GetUserGroups() const { std::shared_lock Lock(m_Mutex); return m_UserGroups; }
 
 	CFlexGuid GetEnclave() const { std::shared_lock Lock(m_Mutex); return m_EnclaveGuid; }
 	uint32 GetSecState() const { std::shared_lock Lock(m_Mutex); return m_SecState; }
@@ -140,6 +146,7 @@ protected:
 	std::wstring m_AppPackageName;
 
 	std::wstring m_UserSid;
+	std::map<std::wstring, SGroupInfo> m_UserGroups;
 
 	mutable std::shared_mutex	m_HandleMutex;
 	std::set<CHandlePtr>		m_HandleList;

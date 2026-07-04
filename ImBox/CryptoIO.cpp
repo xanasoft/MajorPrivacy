@@ -132,7 +132,7 @@ int CCryptoIO::InitCrypto()
 	m->AllowFormat = m_pIO->CanBeFormated();
 	if (m->AllowFormat) {
 
-		m->hdr_len = 8192;
+		m->hdr_len = 64*1024; // 64 KiB header is default
 
 		DbgPrint(L"Creating DCv2 header, size: %u\n", m->hdr_len);
 

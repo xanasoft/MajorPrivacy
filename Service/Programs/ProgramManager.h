@@ -107,6 +107,10 @@ public:
 
 	size_t							GetLogMemUsage() const;	
 
+	std::wstring					GetOsDrive() const { return m_OsDrive; }
+	std::wstring					GetWinDir() const { return m_WinDir; }
+	std::wstring					GetProgDir() const { return m_ProgDir; }
+
 protected:
 	friend class CServiceCore;
 
@@ -126,6 +130,8 @@ protected:
 	bool AddItemToBranch(const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
 	int AddItemToBranch2(const std::wstring& FilePath, const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
 	void TryAddChildren(const CProgramListPtr& pGroup, const CProgramPatternPtr& pPattern, bool bRemove = false);
+	void CollectListExNodes(const CProgramListExPtr& pListEx);
+	void DistributeListExNodes(const CProgramListExPtr& pListEx);
 
 	//void BroadcastItemChanged(const CProgramItemPtr& pItem, EConfigEvent Event);
 

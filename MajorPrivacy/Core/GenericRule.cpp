@@ -2,6 +2,9 @@
 #include "GenericRule.h"
 #include "../../Library/API/PrivacyAPI.h"
 #include "../../Library/Helpers/NtUtil.h"
+#include "PrivacyCore.h"
+#include "../Helpers/SidResolver.h"
+#include <sddl.h>
 
 CGenericRule::CGenericRule(QObject* parent)
 	: QObject(parent)
@@ -91,45 +94,46 @@ void CGenericRule::CopyTo(CGenericRule* pRule, bool CloneGuid) const
 
 	pRule->m_Enclave = m_Enclave;
 
-	pRule->m_User = m_User;
-	pRule->m_SidValid = m_SidValid;
-	pRule->m_UserSid = m_UserSid;
+	//pRule->m_User = m_User;
+	//pRule->m_SidValid = m_SidValid;
+	//pRule->m_UserSid = m_UserSid;
+	pRule->m_PrincipalSddl = m_PrincipalSddl;
 
 	//pRule->m_ProgramID = m_ProgramID;
 }
 
-bool CGenericRule::ValidateUserSID()
-{
-	if(m_SidValid)
-		return true;
-
-	if(m_User.isEmpty())
-	{
-		m_UserSid.Clear();
-		m_SidValid = true;
-		return true;
-	}
-
-	BYTE sidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
-	DWORD sidSize = sizeof(sidBuffer);
-	SID_NAME_USE sidType;
-	WCHAR domain[256];
-	DWORD domainSize = _countof(domain);
-
-	QtVariant SID;
-	if (LookupAccountNameW(nullptr, (wchar_t*)m_User.utf16(), sidBuffer, &sidSize, domain, &domainSize, &sidType))
-	{
-		CBuffer SidBuff;
-		SidBuff.AllocBuffer(72);
-		SidBuff.WriteData(sidBuffer, sizeof(sidBuffer));
-		SidBuff.WriteData(L"\0\0\0\0", 4);
-		ASSERT(SidBuff.GetSize() == 72);
-		m_UserSid = SidBuff;
-	}
-
-	m_SidValid = true;
-	return true;
-}
+//bool CGenericRule::ValidateUserSID()
+//{
+//	if(m_SidValid)
+//		return true;
+//
+//	if(m_User.isEmpty())
+//	{
+//		m_UserSid.Clear();
+//		m_SidValid = true;
+//		return true;
+//	}
+//
+//	BYTE sidBuffer[SECURITY_MAX_SID_SIZE] = { 0 };
+//	DWORD sidSize = sizeof(sidBuffer);
+//	SID_NAME_USE sidType;
+//	WCHAR domain[256];
+//	DWORD domainSize = _countof(domain);
+//
+//	QtVariant SID;
+//	if (LookupAccountNameW(nullptr, (wchar_t*)m_User.utf16(), sidBuffer, &sidSize, domain, &domainSize, &sidType))
+//	{
+//		CBuffer SidBuff;
+//		SidBuff.AllocBuffer(72);
+//		SidBuff.WriteData(sidBuffer, sizeof(sidBuffer));
+//		SidBuff.WriteData(L"\0\0\0\0", 4);
+//		ASSERT(SidBuff.GetSize() == 72);
+//		m_UserSid = SidBuff;
+//	}
+//
+//	m_SidValid = true;
+//	return true;
+//}
 
 QtVariant CGenericRule::ToVariant(const SVarWriteOpt& Opts) const
 {
@@ -149,4 +153,60 @@ void CGenericRule::FromVariant(const class QtVariant& Rule)
 	if (Rule.GetType() == VAR_TYPE_MAP)			QtVariantReader(Rule).ReadRawMap([&](const SVarName& Name, const QtVariant& Data)	{ ReadMValue(Name, Data); });
 	else if (Rule.GetType() == VAR_TYPE_INDEX)  QtVariantReader(Rule).ReadRawIndex([&](uint32 Index, const QtVariant& Data)		{ ReadIValue(Index, Data); });
 	// todo err
+}
+
+QByteArray CGenericRule::SidStringToBinary(const QString& SidStr)
+{
+	QByteArray binary;
+	PSID pSid = nullptr;
+	if (ConvertStringSidToSidW((LPCWSTR)SidStr.utf16(), &pSid)) {
+		DWORD sidLen = GetLengthSid(pSid);
+		binary = QByteArray((const char*)pSid, sidLen);
+		LocalFree(pSid);
+	}
+	return binary;
+}
+
+QString CGenericRule::FormatLocalUserAuthorizationList(const QString& SDDL, QObject* pReceiver, const char* pMember)
+{
+	if (SDDL.isEmpty())
+		return QString();
+
+	QStringList result;
+
+	// Find the start of ACEs (after "D:")
+	int dPos = SDDL.indexOf("D:");
+	if (dPos == -1)
+		return QString();
+
+	QString acesPart = SDDL.mid(dPos + 2);
+
+	// Parse each ACE: (type;;rights;;;SID)
+	QRegularExpression aceRx("\\(([AD]);;[^;]*;;;([^)]+)\\)");
+	QRegularExpressionMatchIterator i = aceRx.globalMatch(acesPart);
+	while (i.hasNext()) {
+		QRegularExpressionMatch match = i.next();
+		QString aceType = match.captured(1);
+		QString sidStr = match.captured(2);
+
+		// Convert SID string to binary for resolver
+		QByteArray sidBinary = SidStringToBinary(sidStr);
+
+		QString userName;
+		if (!sidBinary.isEmpty()) {
+			// Use async SID resolver - returns cached name or SID string if not yet resolved
+			userName = theCore->GetSidResolver()->GetSidFullName(sidBinary, pReceiver, pMember);
+			if (userName.isEmpty())
+				userName = sidStr; // Show SID until resolved
+		}
+		else
+			userName = sidStr;
+
+		if (aceType == "D")
+			result.append(QObject::tr("NOT %1").arg(userName));
+		else
+			result.append(userName);
+	}
+
+	return result.join(", ");
 }

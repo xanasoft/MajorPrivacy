@@ -18,6 +18,8 @@
 CVolumeConfigWnd::CVolumeConfigWnd(const CVolumePtr& pVolume, QWidget* parent)
 	: QDialog(parent)
 {
+	setAttribute(Qt::WA_DeleteOnClose);
+
 	Qt::WindowFlags flags = windowFlags();
 	flags |= Qt::CustomizeWindowHint;
 	//flags &= ~Qt::WindowContextHelpButtonHint;

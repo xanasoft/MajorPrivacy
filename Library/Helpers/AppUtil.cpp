@@ -306,6 +306,36 @@ DWORD RunElevated(const std::wstring& path, const std::wstring& params, DWORD dw
     return dwExitCode;
 }
 
+VOID* ShellExec(const std::wstring& cmd, int nCmdShow)
+{
+	WCHAR* pszCmdLine = (WCHAR*)cmd.c_str();
+    LPWSTR path = GetArgumentW(&pszCmdLine);
+
+    SHELLEXECUTEINFO shex;
+    memset(&shex, 0, sizeof(SHELLEXECUTEINFOW));
+    shex.cbSize = sizeof(SHELLEXECUTEINFO);
+    shex.fMask = SEE_MASK_NOCLOSEPROCESS;
+    shex.hwnd = NULL;
+    shex.lpFile = path;
+    shex.lpParameters = pszCmdLine;
+    shex.nShow = SW_SHOWNORMAL;
+    shex.lpVerb = L"runas";
+
+    if (ShellExecuteEx(&shex))
+        return shex.hProcess;
+    return NULL;
+}
+
+bool TestExec(VOID* Handle, DWORD* pExitCode, DWORD dwTimeOut)
+{
+    if (WaitForSingleObject(Handle, dwTimeOut) != WAIT_OBJECT_0)
+		return false; // process is still running
+	// process has exited, get the exit code
+    if(pExitCode) GetExitCodeProcess(Handle, pExitCode);
+    CloseHandle(Handle);
+    return true;
+}
+
 #else
 
 HANDLE RunElevated(const std::wstring& path, const std::wstring& params, int nCmdShow)

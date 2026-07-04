@@ -4,7 +4,6 @@
 #include "../../MiscHelpers/Common/TreeWidgetEx.h"
 #include "../Core/Programs/ProgramItem.h"
 #include "../../MiscHelpers/Common/FlowLayout.h"
-#include "PresetView.h"
 
 class CStatusView : public QWidget
 {
@@ -65,6 +64,4 @@ private:
 	QLabel*			m_pTweakStatus;
 	QLabel*			m_pTweakApplied;
 	QLabel*			m_pTweakFailed;
-
-	CPresetView*	m_pPresetView;
 };

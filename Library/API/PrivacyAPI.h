@@ -235,6 +235,7 @@ enum {
 	SVC_API_DEL_PRESET = 'DPRT',
 	SVC_API_ACTIVATE_PRESET = 'APRT',
 	SVC_API_DEACTIVATE_PRESET = 'UPRT',
+	SVC_API_GET_ITEM_OWNERSHIP = 'GIOW',
 
 	SVC_API_SET_WATCHED_PROG = 'SWAT',
 
@@ -456,8 +457,10 @@ API_V_VALUES : unsigned long
 	API_V_APP_SID = 'asid', // App Container SI
 	API_V_APP_NAME = 'appn', // App Container Name
 	API_V_PACK_NAME = 'pckg', // Package Name
+	API_V_PACK_FULL_NAME = 'pfnm', // Package Full Name
 	API_V_REG_KEY = 'rkey',
 	API_V_PROG_PATTERN = 'patt', // like API_V_FILE_PATH but with wildcards
+	API_V_AUTH = 'auth', // used by firewall rules
 	API_V_OWNER = 'ownr', // used by firewall rules
 
 
@@ -499,6 +502,9 @@ API_V_VALUES : unsigned long
 
 	API_V_ITEMS = 'itms',
 	API_V_ACTION = 'actn',
+	API_V_ITEM_ENABLED = 'iten',
+	API_V_PRESET_GUID = 'pgid',
+	API_V_WAS_ENABLED = 'waen',
 		// ...
 
 	////////////////////////////
@@ -588,6 +594,7 @@ API_V_VALUES : unsigned long
 
 	API_V_USER = 'user',
 	API_V_USER_SID = 'usid',
+	API_V_PRINCIPAL_SDDL = 'psdl',
 
 	API_V_NUM_IMG = 'nimg',
 	API_V_NUM_MS_IMG = 'nmsi',
@@ -670,6 +677,7 @@ API_V_VALUES : unsigned long
 
 	API_V_OPERATION = 'oper',
 	API_V_ACCESS_MASK = 'amsk',  // desired access
+	API_V_ACCESS_COUNT = 'acnt', // number of accesses at leaf node
 	API_V_STATUS = 'stat', // NTSTATUS
 	API_V_NT_STATUS = 'ntst', // NTSTATUS
 	API_V_EVENT_STATUS = 'ests', // EEventStatus
@@ -863,6 +871,7 @@ API_V_VALUES : unsigned long
 #define SVC_EVENT_GPO_FAILED		0x0109
 #define SVC_EVENT_RULE_NOT_FOUND	0x010A
 #define SVC_EVENT_JSLOG_MSG			0x010B
+#define SVC_EVENT_PID_COLISION		0x010c
 
 
 /////////////////////////////////////////////////////////////////////////////

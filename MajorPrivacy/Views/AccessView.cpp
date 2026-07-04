@@ -15,7 +15,7 @@ CAccessView::CAccessView(QWidget *parent)
 	m_pTreeView->setItemDelegate(new CTreeItemDelegate());
 	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 
-	m_pTreeView->setColumnReset(2);
+	m_pTreeView->setColumnReset(3);
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 
@@ -147,6 +147,7 @@ SAccessItemPtr CAccessView::ApplyTreeFilter(const SAccessItemPtr& pItem)
 		pFiltered->Type = pNode->Type;
 		pFiltered->Path = pNode->Path;
 		pFiltered->LastAccess = pNode->LastAccess;
+		pFiltered->AccessCount = pNode->AccessCount;
 		pFiltered->AccessMask = pNode->AccessMask;
 		pFiltered->Stats = pNode->Stats;
 
@@ -251,6 +252,7 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			if(pParent->LastAccess < pStats->LastAccessTime)
 				pParent->LastAccess = pStats->LastAccessTime;
 			pParent->AccessMask = pStats->AccessMask;
+			pParent->AccessCount += pStats->AccessCount;
 			return;
 		}
 
@@ -263,10 +265,12 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			//pBranch->Type = Type;
 		}
 
+		quint64 oldCount = pBranch->AccessCount;
 		AddTreeEntry(pBranch, Type, Path, uPos + 1, pProg, pStats);
 
 		if(pParent->LastAccess < pBranch->LastAccess)
 			pParent->LastAccess = pBranch->LastAccess;
+		pParent->AccessCount += (pBranch->AccessCount - oldCount);
 		pParent->AccessMask |= pBranch->AccessMask;
 		};
 

@@ -21,6 +21,7 @@
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/Helpers/NtPathMgr.h"
 #include "../Library/Helpers/NtObj.h"
+#include <algorithm>
 
 
 #define API_FIREWALL_FILE_NAME L"Firewall.dat"
@@ -210,7 +211,7 @@ STATUS CFirewall::ReLoad()
 					pBackupData->Guid = pBackup->GetGuidStr(); // Keep backup's GUID
 
 					CFirewallRulePtr pUpdatedBackup = std::make_shared<CFirewallRule>(pBackupData);
-					pUpdatedBackup->m_State = EFwRuleState::eBackup;
+					//pUpdatedBackup->m_State = EFwRuleState::eBackup;
 					pUpdatedBackup->m_OriginalGuid = pBackup->GetOriginalGuid();
 					pUpdatedBackup->m_Source = pDiskRule->GetSource();
 
@@ -729,7 +730,8 @@ STATUS CFirewall::RestoreRule(const CFirewallRulePtr& pFwRuleBackup)
 			AddRuleUnsafe(pNewRule);
 			pNewRule->Update(pFwRule);
 
-			RemoveRuleUnsafe(pFwRuleBackup);
+			//RemoveRuleUnsafe(pFwRuleBackup);
+			ClearBackups(pFwRule->GetGuidStr());
 
 			theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, 1, L"Reverted Firewall Rule: %s", pFwRule->GetFwRule()->Name.c_str());
 		}
@@ -764,6 +766,15 @@ STATUS CFirewall::RestoreRule(const CFirewallRulePtr& pFwRuleBackup)
 		theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, 1, L"Failed to revert Firewall Rule %s: %s", pFwRule->GetFwRule()->Name.c_str(), Status.GetMessageText());
 	}
 	return Status;
+}
+
+void CFirewall::ClearBackups(const std::wstring& Guid)
+{
+	for (auto I = m_FwRules.begin(); I != m_FwRules.end(); ) {
+		auto Cur = (I++)->second;
+		if (Cur->GetOriginalGuid() == Guid)
+			RemoveRuleUnsafe(Cur);
+	}
 }
 
 void CFirewall::AddRuleUnsafe(const CFirewallRulePtr& pFwRule)
@@ -928,6 +939,7 @@ STATUS CFirewall::SetRule(const CFirewallRulePtr& pFwRule)
 		else if(pCurRule->Match(pFwRule->GetFwRule())) // compare with windows firewall rule, is same
 		{
 			pCurRule->Update(pFwRule); // changing private paremeter only
+			ClearBackups(pCurRule->GetGuidStr());
 			return OK; 
 		}
 	}
@@ -1205,7 +1217,7 @@ bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>
 	{
 		ASSERT(!pFwRule->IsTemplate()); // should not happen
 
-		if (!pFwRule->IsApproved() || GuardAction == CFwAutoGuardEntry::eApprove)
+		if (/*!pFwRule->IsApproved() ||*/ GuardAction == CFwAutoGuardEntry::eApprove)
 			RemoveRuleUnsafe(pFwRule); // a non approved rule chaneg or the rule is to be auto approved
 		else
 		{
@@ -1356,7 +1368,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 	}
 	else if (pSocket != (CSocket*)-1)
 	{
-		pProcess = pSocket ? pSocket->GetProcess() : theCore->ProcessList()->GetProcess(pEvent->ProcessId, true); // todo socket should always have a process
+		pProcess = pSocket ? pSocket->GetProcess() : theCore->ProcessList()->GetProcess(pEvent->ProcessId, pEvent->ProcessFileName, true); // todo socket should always have a process
 		if (pProcess)
 		{
 			pProgram = pProcess->GetProgram();
@@ -1458,14 +1470,14 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 		// We also evaluate rules applying to the App package if one is present
 		//
 
-		SRuleMatch AllMatch = MatchRulesWithEvent(theCore->ProgramManager()->GetAllItem()->GetFwRules(), pEvent, AllowRules, BlockRules, pNicInfo);
+		SRuleMatch AllMatch = MatchRulesWithEvent(theCore->ProgramManager()->GetAllItem()->GetFwRules(), pEvent, pProcess, AllowRules, BlockRules, pNicInfo);
 		RuleAction.TestAndSetOrClear(AllMatch, pEvent);
 
-		SRuleMatch FileMatch = MatchRulesWithEvent(pProgram->GetFwRules(), pEvent, AllowRules, BlockRules, pNicInfo);
+		SRuleMatch FileMatch = MatchRulesWithEvent(pProgram->GetFwRules(), pEvent, pProcess, AllowRules, BlockRules, pNicInfo);
 		RuleAction.TestAndSetOrClear(FileMatch, pEvent);
 
 		SRuleMatch AppMatch;
-		if (pApp) AppMatch = MatchRulesWithEvent(pApp->GetFwRules(), pEvent, AllowRules, BlockRules, pNicInfo);
+		if (pApp) AppMatch = MatchRulesWithEvent(pApp->GetFwRules(), pEvent, pProcess, AllowRules, BlockRules, pNicInfo);
 		RuleAction.TestAndSetOrClear(AppMatch, pEvent, pProcess != NULL);
 
 		//
@@ -1482,7 +1494,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 			if (!ServiceTag.empty() && _wcsicmp(pSvc->GetServiceTag().c_str(), ServiceTag.c_str()) != 0)
 				continue;
 
-			SRuleMatch SvcMatch = MatchRulesWithEvent(pSvc->GetFwRules(), pEvent, AllowRules, BlockRules, pNicInfo);
+			SRuleMatch SvcMatch = MatchRulesWithEvent(pSvc->GetFwRules(), pEvent, pProcess, AllowRules, BlockRules, pNicInfo);
 			SRuleAction SvcAction = RuleAction; // copy
 			if (SvcAction.TestAndSetOrClear(SvcMatch, pEvent, !ServiceTag.empty())) {
 				if (SvcAction.bConflict)	SvcActionsFail.push_back(std::make_pair(pSvc, SvcAction));
@@ -1613,7 +1625,7 @@ EFwActions CFirewall::GetDefaultAction(EFwDirections Direction, EFwProfiles Prof
     return EFwActions::Undefined;
 }
 
-CFirewall::SRuleMatch CFirewall::MatchRulesWithEvent(const std::set<CFirewallRulePtr>& Rules, const struct SWinFwLogEvent* pEvent, std::vector<CFlexGuid>& AllowRules, std::vector<CFlexGuid>& BlockRules, std::shared_ptr<struct SAdapterInfo> pNicInfo)
+CFirewall::SRuleMatch CFirewall::MatchRulesWithEvent(const std::set<CFirewallRulePtr>& Rules, const struct SWinFwLogEvent* pEvent, const CProcessPtr& pProcess, std::vector<CFlexGuid>& AllowRules, std::vector<CFlexGuid>& BlockRules, std::shared_ptr<struct SAdapterInfo> pNicInfo)
 {
 	SRuleMatch MatchingRules;
 
@@ -1639,6 +1651,11 @@ CFirewall::SRuleMatch CFirewall::MatchRulesWithEvent(const std::set<CFirewallRul
             continue;
         if (!MatchEndpoint(pData->LocalAddresses, pData->LocalPorts, pEvent->RemoteAddress, pEvent->RemotePort, pNicInfo))
             continue;
+
+		if (pRule->HasPrincipalRestriction()) {
+			if (!pProcess || !MatchUserAuthorization(pRule, pProcess->GetUserSid(), pProcess->GetUserGroups()))
+				continue;
+		}
 
         pRule->IncrHitCount();
 
@@ -1772,6 +1789,108 @@ bool CFirewall::MatchEndpoint(const std::vector<std::wstring>& Addresses, const 
     if (!Address.IsNull() && !IsEmptyOrStar(Addresses) && !MatchAddress(Address, Addresses, pNicInfo))
         return false;
     return true;
+}
+
+//bool CFirewall::MatchUserAuthorization(const std::wstring& Sddl, const std::wstring& UserSid, const std::map<std::wstring, SGroupInfo>& UserGroups)
+//{
+//	// SDDL format: "O:LSD:(A;;CC;;;SID)(D;;CC;;;SID)..."
+//	// ACE format: (type;flags;rights;object_guid;inherit_object_guid;account_sid)
+//	// We need to check Allow (A) and Deny (D) ACEs against user SID and enabled groups
+//
+//	auto MatchesSid = [&](const std::wstring& AceSid) -> bool {
+//		if (_wcsicmp(AceSid.c_str(), UserSid.c_str()) == 0)
+//			return true;
+//		auto it = UserGroups.find(AceSid);
+//		return it != UserGroups.end() && it->second.Enabled;
+//	};
+//
+//	// Find DACL section (after "D:")
+//	size_t daclPos = Sddl.find(L"D:");
+//	if (daclPos == std::wstring::npos)
+//		return true; // No DACL means no restrictions
+//
+//	std::wstring dacl = Sddl.substr(daclPos + 2);
+//
+//	bool hasAllowMatch = false;
+//	bool hasApplyEntries = false;
+//	size_t pos = 0;
+//
+//	while ((pos = dacl.find(L'(', pos)) != std::wstring::npos) {
+//		size_t end = dacl.find(L')', pos);
+//		if (end == std::wstring::npos)
+//			break;
+//
+//		std::wstring ace = dacl.substr(pos + 1, end - pos - 1);
+//		pos = end + 1;
+//
+//		// Parse ACE: type;flags;rights;object_guid;inherit_object_guid;account_sid
+//		auto parts = SplitStr(ace, L";");
+//		if (parts.size() < 6)
+//			continue;
+//
+//		const std::wstring& aceType = parts[0];
+//		const std::wstring& aceSid = parts[5];
+//
+//		if (aceType == L"D" && MatchesSid(aceSid))
+//			return false; // Explicit deny takes precedence
+//
+//		if (aceType == L"A") {
+//			hasApplyEntries = true;
+//			if (MatchesSid(aceSid))
+//				hasAllowMatch = true;
+//		}
+//	}
+//
+//	// If there are Apply entries, user must match one; otherwise rule applies to all non-exempt
+//	return hasApplyEntries ? hasAllowMatch : true;
+//}
+
+bool CFirewall::MatchUserAuthorization(const CFirewallRulePtr& pRule, const std::wstring& UserSid, const std::map<std::wstring, SGroupInfo>& UserGroups)
+{
+	auto principalSids = pRule->GetPrincipalSids();
+	if (!principalSids || principalSids->empty())
+		return true; // No restrictions
+
+	bool bHasApply = false;
+	bool bHasExempt = false;
+
+	// Convert user SID to uppercase for lookup
+	std::wstring userSidUpper = UserSid;
+	std::transform(userSidUpper.begin(), userSidUpper.end(), userSidUpper.begin(), ::towupper);
+
+	// Check user SID
+	auto it = principalSids->find(userSidUpper);
+	if (it != principalSids->end()) {
+		if (it->second.Type == ESidEntryType::eExempt)
+			bHasExempt = true; // User is explicitly exempt
+		else if (it->second.Type == ESidEntryType::eApply)
+			bHasApply = true; // User is explicitly allowed
+	}
+
+	// Check group SIDs
+	for (const auto& group : UserGroups) {
+		if (!group.second.Enabled)
+			continue;
+
+		std::wstring groupSidUpper = group.first;
+		std::transform(groupSidUpper.begin(), groupSidUpper.end(), groupSidUpper.begin(), ::towupper);
+
+		auto git = principalSids->find(groupSidUpper);
+		if (git != principalSids->end()) {
+			if (git->second.Type == ESidEntryType::eExempt)
+				bHasExempt = true; // Group is explicitly exempt
+			else if (git->second.Type == ESidEntryType::eApply)
+				bHasApply = true; // Group is explicitly allowed
+		}
+	}
+
+	// User is exempt - rule does not apply
+	if (bHasExempt)
+		return false;
+	// If there are Apply entries, user must match one
+	if (pRule->HasPrincipalApplyEntries() && !bHasApply)
+		return false;
+	return true;
 }
 
 std::vector<std::wstring> CFirewall__CopyStrIPs(const std::list<CAddress>& Addresses)
