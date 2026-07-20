@@ -516,7 +516,7 @@ void CVolumeView::OnAddFolder()
 		bool State = false;
 		if(CCheckableMessageBox::question(this, "MajorPrivacy",
 			tr("The security of files and folders on unencrypted volumes cannot be guaranteed if MajorPrivacy is not running or if the Kernel Isolator driver is not loaded. In this state, folder access control will not be enforced.\n"
-				"For non-critical data, folder protection may still provide a basic level of security. However, for highly confidential or sensitive information, it is strongly recommended to use a secure, encrypted volume to ensure robust protection against unauthorized access.")
+				"For non-critical data, folder protection may still provide a basic level of security. Even when MajorPrivacy is running, a program directly controlled by an advanced persistent threat attacker may still access files stored on unencrypted volumes through direct disk access and hard links. For highly confidential or sensitive information, it is strongly recommended to use a secure, encrypted volume to ensure robust protection against unauthorized access.")
 			, tr("Don't show this message again."), &State, QDialogButtonBox::Ok | QDialogButtonBox::Cancel, QDialogButtonBox::Cancel, QMessageBox::Warning) != QDialogButtonBox::Ok)
 			return;
 
