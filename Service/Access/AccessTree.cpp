@@ -80,11 +80,21 @@ bool CAccessTree::Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std
 
 	bool bAdded = false;
 
-	// Check if a catch-all "*" branch already exists - if so, use it
+	// Determine catch-all key based on whether this is a directory or file access
+	// "*\" for directories, "*" for files
+#ifdef DEF_USE_POOL
+	FW::StringW catchAllKeyFile(m_pMem);
+	catchAllKeyFile.Assign(L"*", 1);
+	FW::StringW catchAllKeyDir(m_pMem);
+	catchAllKeyDir.Assign(L"*\\", 2);
+	const FW::StringW& catchAllKey = Stat.IsDirectory ? catchAllKeyDir : catchAllKeyFile;
+#else
+	const wchar_t* catchAllKey = Stat.IsDirectory ? L"*\\" : L"*";
+#endif
+
+	// Check if a catch-all branch already exists for this type (file/dir) - if so, use it
 	// Use find() to avoid creating null entries via operator[]
 #ifdef DEF_USE_POOL
-	FW::StringW catchAllKey(m_pMem);
-	catchAllKey.Assign(L"*", 1);
 	auto itCatchAll = pParent->Branches.find(catchAllKey);
 	if (itCatchAll != pParent->Branches.end()) {
 		SPathNodePtr pCatchAll = itCatchAll.Value();
@@ -95,7 +105,7 @@ bool CAccessTree::Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std
 		return bAdded;
 	}
 #else
-	auto itCatchAll = pParent->Branches.find(L"*");
+	auto itCatchAll = pParent->Branches.find(catchAllKey);
 	if (itCatchAll != pParent->Branches.end()) {
 		if(Add(Stat, itCatchAll->second, Path, uPos + 1))
 			bAdded = true;
@@ -121,16 +131,13 @@ bool CAccessTree::Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std
 	if (!bBranchExists) {
 		// About to create a new branch - check if we've exceeded the threshold
 		if (pParent->Branches.size() >= MAX_BRANCHES_BEFORE_COLLAPSE) {
-			// Collapse all branches into a catch-all "*" branch
-#ifdef DEF_USE_POOL
-			auto pNewCatchAll = m_pMem->New<SPathNode>();
-			(*&pNewCatchAll)->Name.Assign(L"*", 1);
-#else
-			auto pNewCatchAll = std::make_shared<SPathNode>();
-			pNewCatchAll->Name = L"*";
-#endif
-			// Aggregate stats and total count from all existing branches
-			uint32 totalCount = 0;
+			// Collapse all branches into catch-all branches, creating "*" for files and/or "*\" for directories as needed
+			SPathNodePtr pFileCatchAll;
+			SPathNodePtr pDirCatchAll;
+			uint32 fileCount = 0;
+			uint32 dirCount = 0;
+
+			// Aggregate stats and total count from all existing branches, separating files from directories
 #ifdef DEF_USE_POOL
 			for (auto I = pParent->Branches.begin(); I != pParent->Branches.end(); ++I) {
 				SPathNodePtr pExisting = I.Value();
@@ -140,25 +147,77 @@ bool CAccessTree::Add(const SAccessStats& Stat, SPathNodePtr& pParent, const std
 #endif
 				if (!pExisting)
 					continue; // Skip null entries
-				MergeStats(pNewCatchAll->Stats, pExisting->Stats);
-				totalCount += 1 + pExisting->TotalCount;
+				if (pExisting->Stats.IsDirectory) {
+					if (!pDirCatchAll) {
+#ifdef DEF_USE_POOL
+						pDirCatchAll = m_pMem->New<SPathNode>();
+						(*&pDirCatchAll)->Name.Assign(L"*\\", 2);
+#else
+						pDirCatchAll = std::make_shared<SPathNode>();
+						pDirCatchAll->Name = L"*\\";
+#endif
+					}
+					MergeStats(pDirCatchAll->Stats, pExisting->Stats);
+					dirCount += 1 + pExisting->TotalCount;
+				} else {
+					if (!pFileCatchAll) {
+#ifdef DEF_USE_POOL
+						pFileCatchAll = m_pMem->New<SPathNode>();
+						(*&pFileCatchAll)->Name.Assign(L"*", 1);
+#else
+						pFileCatchAll = std::make_shared<SPathNode>();
+						pFileCatchAll->Name = L"*";
+#endif
+					}
+					MergeStats(pFileCatchAll->Stats, pExisting->Stats);
+					fileCount += 1 + pExisting->TotalCount;
+				}
 			}
-			pNewCatchAll->TotalCount = totalCount;
 
-			// Clear existing branches and add the catch-all
+			// Ensure the catch-all for the current access type exists
+			if (Stat.IsDirectory && !pDirCatchAll) {
+#ifdef DEF_USE_POOL
+				pDirCatchAll = m_pMem->New<SPathNode>();
+				(*&pDirCatchAll)->Name.Assign(L"*\\", 2);
+#else
+				pDirCatchAll = std::make_shared<SPathNode>();
+				pDirCatchAll->Name = L"*\\";
+#endif
+			} else if (!Stat.IsDirectory && !pFileCatchAll) {
+#ifdef DEF_USE_POOL
+				pFileCatchAll = m_pMem->New<SPathNode>();
+				(*&pFileCatchAll)->Name.Assign(L"*", 1);
+#else
+				pFileCatchAll = std::make_shared<SPathNode>();
+				pFileCatchAll->Name = L"*";
+#endif
+			}
+
+			// Clear existing branches and add the catch-all(s) that have data
 			pParent->Branches.clear();
 #ifdef DEF_USE_POOL
-			pParent->Branches[catchAllKey] = pNewCatchAll;
+			if (pFileCatchAll) {
+				(*&pFileCatchAll)->TotalCount = fileCount;
+				pParent->Branches[catchAllKeyFile] = pFileCatchAll;
+			}
+			if (pDirCatchAll) {
+				(*&pDirCatchAll)->TotalCount = dirCount;
+				pParent->Branches[catchAllKeyDir] = pDirCatchAll;
+			}
+			SPathNodePtr pNewCatchAll = Stat.IsDirectory ? pDirCatchAll : pFileCatchAll;
 #else
-			pParent->Branches[L"*"] = pNewCatchAll;
+			if (pFileCatchAll) {
+				pFileCatchAll->TotalCount = fileCount;
+				pParent->Branches[L"*"] = pFileCatchAll;
+			}
+			if (pDirCatchAll) {
+				pDirCatchAll->TotalCount = dirCount;
+				pParent->Branches[L"*\\"] = pDirCatchAll;
+			}
+			SPathNodePtr pNewCatchAll = Stat.IsDirectory ? pDirCatchAll : pFileCatchAll;
 #endif
-			// The total count remains the same (catch-all represents all collapsed entries)
-			// Now add the new path to the catch-all branch
-#ifdef DEF_USE_POOL
-			if(Add(Stat, *&pNewCatchAll, Path, uPos + 1))
-#else
+			// Now add the new path to the appropriate catch-all branch
 			if(Add(Stat, pNewCatchAll, Path, uPos + 1))
-#endif
 				bAdded = true;
 			if(bAdded)
 				pParent->TotalCount++;
@@ -257,37 +316,78 @@ uint32 CAccessTree::LoadTree(const StVariant& Data, SPathNodePtr& pParent)
 	pParent->Stats = SAccessStats(Data[API_V_ACCESS_MASK], Data[API_V_LAST_ACTIVITY], Data[API_V_NT_STATUS], Data[API_V_IS_DIRECTORY], Data[API_V_WAS_BLOCKED], Data.Get(API_V_ACCESS_COUNT).To<uint64>(0));
 	StVariant Nodes = Data[API_V_ACCESS_NODES];
 
-	// Check if the number of nodes to load exceeds threshold - if so, create a collapsed catch-all
+	// Check if the number of nodes to load exceeds threshold - if so, create collapsed catch-alls
 	if (Nodes.Count() > MAX_BRANCHES_BEFORE_COLLAPSE) {
-		// Create a catch-all branch to represent all the collapsed data
-#ifdef DEF_USE_POOL
-		FW::StringW catchAllKey(m_pMem);
-		catchAllKey.Assign(L"*", 1);
-		auto pCatchAll = m_pMem->New<SPathNode>();
-		(*&pCatchAll)->Name.Assign(L"*", 1);
-#else
-		auto pCatchAll = std::make_shared<SPathNode>();
-		pCatchAll->Name = L"*";
-#endif
-		// Aggregate stats from all nodes being collapsed
-		uint32 totalCollapsedCount = 0;
+		// Create catch-all branches only as needed for files "*" and/or directories "*\"
+		SPathNodePtr pFileCatchAll;
+		SPathNodePtr pDirCatchAll;
+		uint32 fileCount = 0;
+		uint32 dirCount = 0;
+
+		// Aggregate stats from all nodes being collapsed, separating files from directories
 		for (uint32 i = 0; i < Nodes.Count(); i++) {
 			StVariant Node = Nodes[i];
-			SAccessStats nodeStats(Node[API_V_ACCESS_MASK], Node[API_V_LAST_ACTIVITY], Node[API_V_NT_STATUS], Node[API_V_IS_DIRECTORY], Node[API_V_WAS_BLOCKED], Data.Get(API_V_ACCESS_COUNT).To<uint64>(0));
-			MergeStats(pCatchAll->Stats, nodeStats);
+			SAccessStats nodeStats(Node[API_V_ACCESS_MASK], Node[API_V_LAST_ACTIVITY], Node[API_V_NT_STATUS], Node[API_V_IS_DIRECTORY], Node[API_V_WAS_BLOCKED], Node.Get(API_V_ACCESS_COUNT).To<uint64>(0));
 			// Count this node plus estimate children (we skip loading children to save memory)
 			StVariant ChildNodes = Node[API_V_ACCESS_NODES];
-			totalCollapsedCount += 1 + ChildNodes.Count(); // Approximate count
-			// If this node has no children and no access count, increment the catch-all's access count (fallback for old entries)
-			if (!ChildNodes.Count() && nodeStats.AccessCount == 0) pCatchAll->Stats.AccessCount++;
-		}
-		pCatchAll->TotalCount = totalCollapsedCount;
+			uint32 nodeCount = 1 + ChildNodes.Count(); // Approximate count
+
+			if (nodeStats.IsDirectory) {
+				if (!pDirCatchAll) {
 #ifdef DEF_USE_POOL
-		pParent->Branches[catchAllKey] = pCatchAll;
+					pDirCatchAll = m_pMem->New<SPathNode>();
+					(*&pDirCatchAll)->Name.Assign(L"*\\", 2);
 #else
-		pParent->Branches[L"*"] = pCatchAll;
+					pDirCatchAll = std::make_shared<SPathNode>();
+					pDirCatchAll->Name = L"*\\";
 #endif
-		Count = 1 + totalCollapsedCount;
+				}
+				MergeStats(pDirCatchAll->Stats, nodeStats);
+				dirCount += nodeCount;
+				// If this node has no children and no access count, increment the catch-all's access count (fallback for old entries)
+				if (!ChildNodes.Count() && nodeStats.AccessCount == 0) pDirCatchAll->Stats.AccessCount++;
+			} else {
+				if (!pFileCatchAll) {
+#ifdef DEF_USE_POOL
+					pFileCatchAll = m_pMem->New<SPathNode>();
+					(*&pFileCatchAll)->Name.Assign(L"*", 1);
+#else
+					pFileCatchAll = std::make_shared<SPathNode>();
+					pFileCatchAll->Name = L"*";
+#endif
+				}
+				MergeStats(pFileCatchAll->Stats, nodeStats);
+				fileCount += nodeCount;
+				// If this node has no children and no access count, increment the catch-all's access count (fallback for old entries)
+				if (!ChildNodes.Count() && nodeStats.AccessCount == 0) pFileCatchAll->Stats.AccessCount++;
+			}
+		}
+
+		// Add catch-alls that were created
+#ifdef DEF_USE_POOL
+		FW::StringW catchAllKeyFile(m_pMem);
+		catchAllKeyFile.Assign(L"*", 1);
+		FW::StringW catchAllKeyDir(m_pMem);
+		catchAllKeyDir.Assign(L"*\\", 2);
+		if (pFileCatchAll) {
+			(*&pFileCatchAll)->TotalCount = fileCount;
+			pParent->Branches[catchAllKeyFile] = pFileCatchAll;
+		}
+		if (pDirCatchAll) {
+			(*&pDirCatchAll)->TotalCount = dirCount;
+			pParent->Branches[catchAllKeyDir] = pDirCatchAll;
+		}
+#else
+		if (pFileCatchAll) {
+			pFileCatchAll->TotalCount = fileCount;
+			pParent->Branches[L"*"] = pFileCatchAll;
+		}
+		if (pDirCatchAll) {
+			pDirCatchAll->TotalCount = dirCount;
+			pParent->Branches[L"*\\"] = pDirCatchAll;
+		}
+#endif
+		Count = (pFileCatchAll ? 1 + fileCount : 0) + (pDirCatchAll ? 1 + dirCount : 0);
 		pParent->TotalCount += Count;
 		return Count;
 	}

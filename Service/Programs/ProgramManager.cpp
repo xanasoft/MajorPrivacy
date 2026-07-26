@@ -973,7 +973,7 @@ STATUS CProgramManager::AddProgramTo(uint64 UID, uint64 ParentUID)
 	if (!AddProgramToGroup(pItem, pParent))
 		return ERR(STATUS_ERR_PROG_ALREADY_IN_GROUP);
 
-	// remove teh ittem from root, if its already removed it will be a no-op
+	// remove the ittem from root, if its already removed it will be a no-op
 	RemoveProgramFromGroup(pItem, m_Root);
 
 	return OK;

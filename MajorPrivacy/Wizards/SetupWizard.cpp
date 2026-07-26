@@ -303,7 +303,7 @@ CWarningPage::CWarningPage(QWidget *parent)
 
     layout->addItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Expanding));
 
-    m_pAcknowledge = new QCheckBox(tr("I acknowledge the risks and take full responsibility for teh rules I create."));
+    m_pAcknowledge = new QCheckBox(tr("I acknowledge the risks and take full responsibility for the rules I create."));
     connect(m_pAcknowledge, &QCheckBox::toggled, this, &QWizardPage::completeChanged);
 
     if(theConf->GetBool("Options/WarningAcknowledged", false)) {

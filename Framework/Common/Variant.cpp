@@ -475,7 +475,7 @@ uint32 CVariant::ReadHeader(const CBuffer* pPacket, EType* pType)
 			Size = pPacket->ReadValue<uint8>(&bOk);
 		else if ((Type & VAR_LEN_MASK) == VAR_LEN16)
 			Size = pPacket->ReadValue<uint16>(&bOk);
-		else //if ((Type & VAR_LEN_MASK) == VAR_LEN32) // VAR_LEN32 or packed in eider case teh length is 32 bit 
+		else //if ((Type & VAR_LEN_MASK) == VAR_LEN32) // VAR_LEN32 or packed in eider case the length is 32 bit 
 			Size = pPacket->ReadValue<uint32>(&bOk);
 		if (!bOk) 
 			return 0xFFFFFFFF;

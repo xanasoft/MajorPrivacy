@@ -505,6 +505,7 @@
     <ClInclude Include="Helpers\EvtUtil.h" />
     <ClInclude Include="Helpers\GPOUtil.h" />
     <ClInclude Include="Helpers\ImDiskHelpers.h" />
+    <ClInclude Include="Helpers\MiniDumpFilter.h" />
     <ClInclude Include="Helpers\MiscHelpers.h" />
     <ClInclude Include="Helpers\NetUtil.h" />
     <ClInclude Include="Helpers\NtIO.h" />
@@ -803,6 +804,7 @@
     </ClCompile>
     <ClCompile Include="Helpers\GPOUtil.cpp" />
     <ClCompile Include="Helpers\ImDiskHelpers.cpp" />
+    <ClCompile Include="Helpers\MiniDumpFilter.cpp" />
     <ClCompile Include="Helpers\MiscHelpers.cpp" />
     <ClCompile Include="Helpers\NetUtil.cpp" />
     <ClCompile Include="Helpers\NtIO.cpp" />

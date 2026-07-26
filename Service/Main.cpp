@@ -12,8 +12,12 @@
 #include "../Library/Helpers/TokenUtil.h"
 #include "../Library/IPC/AbstractClient.h"
 #include <shellapi.h>
+//#include <shlobj.h>
 #include "Helpers/SecDeskHelper.h"
 #include "../Library/IPC/ServerReadyEvent.h"
+
+#include "../library/Helpers/MiniDumpFilter.h"
+#include "../MajorPrivacy/version.h"
 
 #include <windows.h>
 #include <winsock2.h>
@@ -179,11 +183,25 @@ static int RestartSelf(const wchar_t* arg_tag, bool bAsSystem = false)
 	return -1; // Timeout or error
 }
 
+EXTERN_C DECLSPEC_IMPORT HRESULT STDAPICALLTYPE SHGetFolderPathW(_Reserved_ HWND hwnd, _In_ int csidl, _In_opt_ HANDLE hToken, _In_ DWORD dwFlags, _Out_writes_(MAX_PATH) LPWSTR pszPath);
+
 int WinMain(
     HINSTANCE hInstance,
     HINSTANCE hPrevInstance,
     LPSTR lpCmdLine, int nCmdShow)
 {
+	srand((unsigned int)time(NULL));
+
+    if (!IsDebuggerPresent()) {
+        // Dumps go under %ProgramData%\Xanasoft\MajorPrivacy\MiniDump.
+        WCHAR szDumpDir[MAX_PATH] = {0};
+        if (SUCCEEDED(SHGetFolderPathW(NULL, 0x0023/*CSIDL_COMMON_APPDATA*/, NULL, 0, szDumpDir))) {
+            wcscat_s(szDumpDir, MAX_PATH, L"\\Xanasoft\\MajorPrivacy\\MiniDump");
+        }
+        MiniDumpFilter_Init(NULL, L"PrivacyAgent-v" VERSION_WSTR, MDF_TYPE_TRIAGE, NULL,
+                            szDumpDir[0] ? szDumpDir : NULL);
+    }
+
 #ifdef _DEBUG
     MySetThreadDescription(GetCurrentThread(), L"WinMain");
 #endif

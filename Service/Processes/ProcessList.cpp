@@ -1072,7 +1072,7 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
                 OnProcessStarted(pStartEvent->ProcessId, pStartEvent->ParentId, pStartEvent->ActorProcessId, pStartEvent->ActorServiceTag, pStartEvent->EnclaveId, pStartEvent->NtPath, pStartEvent->CommandLine, &pStartEvent->VerifierInfo, pStartEvent->TimeStamp, pStartEvent->Status);
 
             //
-            // Note: this triggers before teh process is started, during early process initialization
+            // Note: this triggers before the process is started, during early process initialization
             // returnign an error could cancel the process creation, if we uncoment the code in the driver and driver interface
             //
 #ifdef _DEBUG

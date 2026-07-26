@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [0.100.1] - 2026-07-
+
+### Added
+- added a new crash dump mechanism
+
+
+
 
 ## [0.100.0] - 2026-07-04
 
@@ -25,7 +32,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - fixed issue with delayed firewall event attribution
 - fixed issue with event broadcast
 - fixed unapproved rule change/remove handling
-
 
 
 

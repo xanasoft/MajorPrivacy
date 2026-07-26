@@ -299,7 +299,7 @@ STATUS CPrivacyCore::Connect(bool bCanStart, bool bEngineMode)
 		}
 	}
 
-	m_Driver->RegisterGUI(); // this resets teh butt try counter
+	m_Driver->RegisterGUI(); // this resets the butt try counter
 
 	auto Result = m_Driver->GetProcessInfo(m_Service->GetProcessId());
 	if (!Result.IsError())
@@ -808,7 +808,7 @@ STATUS CPrivacyCore::HashFile(const QString& Path, CBuffer& Hash)
 /*QByteArray CPrivacyCore__MakeFileSig(const CBuffer& Signature, const QString& Path)
 {
 	QtVariant SigData;
-	// Note: the driver supportrs also teh V version
+	// Note: the driver supportrs also the V version
 	SigData[API_S_VERSION] = DEF_MP_SIG_VERSION;
 	SigData[API_S_SIGNATURE] = Signature;
 	SigData[API_S_TYPE] = "File";
@@ -822,7 +822,7 @@ STATUS CPrivacyCore::HashFile(const QString& Path, CBuffer& Hash)
 QByteArray CPrivacyCore__MakeCertSig(const CBuffer& Signature, const QString& Subject)
 {
 	QtVariant SigData;
-	// Note: the driver supportrs also teh V version
+	// Note: the driver supportrs also the V version
 	SigData[API_S_VERSION] = DEF_MP_SIG_VERSION;
 	SigData[API_S_SIGNATURE] = Signature;
 	SigData[API_S_TYPE] = "Certificate";

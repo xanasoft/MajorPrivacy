@@ -357,6 +357,9 @@
     <ClInclude Include="Crypto\SecurePassword.h">
       <Filter>Crypto</Filter>
     </ClInclude>
+    <ClInclude Include="Helpers\MiniDumpFilter.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -655,6 +658,9 @@
     </ClCompile>
     <ClCompile Include="Crypto\SecurePassword.cpp">
       <Filter>Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\MiniDumpFilter.cpp">
+      <Filter>Helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

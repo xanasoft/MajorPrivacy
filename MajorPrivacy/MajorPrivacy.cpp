@@ -1676,7 +1676,7 @@ STATUS CMajorPrivacy::SignFiles(const QStringList& Paths)
 		if (SignatureFile.open(QIODevice::WriteOnly)) 
 		{
 			QtVariant SigData;
-			// Note: the driver supportrs also teh V version
+			// Note: the driver supportrs also the V version
 			SigData[API_S_VERSION] = DEF_MP_SIG_VERSION;
 			SigData[API_S_SIGNATURE] = Signature;
 

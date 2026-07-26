@@ -3,8 +3,12 @@
 #include "Core\PrivacyCore.h"
 #include "../QtSingleApp/src/qtsingleapplication.h"
 
+
+#include "../library/Helpers/MiniDumpFilter.h"
+
 #include <phnt_windows.h>
 #include <phnt.h>
+//#include <shlobj.h>
 
 #include <QtWidgets/QApplication>
 
@@ -24,9 +28,22 @@ bool HasFlag(const std::vector<std::string>& arguments, std::string name)
 	return std::find(arguments.begin(), arguments.end(), "-" + name) != arguments.end();
 }
 
+EXTERN_C DECLSPEC_IMPORT HRESULT STDAPICALLTYPE SHGetFolderPathW(_Reserved_ HWND hwnd, _In_ int csidl, _In_opt_ HANDLE hToken, _In_ DWORD dwFlags, _Out_writes_(MAX_PATH) LPWSTR pszPath);
+
 int main(int argc, char *argv[])
 {
 	srand(QDateTime::currentDateTimeUtc().toSecsSinceEpoch());
+
+	if (!IsDebuggerPresent()) {
+		// Dumps go under %LOCALAPPDATA%\Xanasoft\MajorPrivacy\MiniDump.
+		WCHAR szDumpDir[MAX_PATH] = {0};
+		if (SUCCEEDED(SHGetFolderPathW(NULL, 0x001c/*CSIDL_LOCAL_APPDATA*/, NULL, 0, szDumpDir))) {
+			wcscat_s(szDumpDir, MAX_PATH, L"\\Xanasoft\\MajorPrivacy\\MiniDump");
+		}
+		MiniDumpFilter_Init(NULL, QString("MajorPrivacy-v%1").arg(CMajorPrivacy::GetVersion()).toStdWString().c_str(), MDF_TYPE_TRIAGE, NULL,
+			szDumpDir[0] ? szDumpDir : NULL);
+	}
+	//DebugBreak();
 
 	int nArgs = 0;
 	std::vector<std::string> arguments;

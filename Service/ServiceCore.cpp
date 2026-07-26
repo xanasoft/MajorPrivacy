@@ -649,7 +649,7 @@ STATUS CServiceCore::Init()
 	m_pDriver->RegisterConfigEventHandler(EConfigGroup::eDriverConfig, &CServiceCore::OnDriverChanged, this);
 	m_pDriver->RegisterForConfigEvents(EConfigGroup::eDriverConfig);
 
-
+	//DebugBreak();
 
 	//
 	// Start Engien Thread and initialize Components
