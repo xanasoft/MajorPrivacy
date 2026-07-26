@@ -507,6 +507,7 @@ bool CDnsInspector::ResolveHost(const CAddress& Address, const CHostNamePtr& pHo
 		if (HostName.empty())
 		{
 			// queue job for delayed resolution (after next cache update)
+			std::unique_lock Lock(m_Mutex);
 			m_DelayQueue.insert(std::make_pair(Address, pHostName));
 			return false;
 		}

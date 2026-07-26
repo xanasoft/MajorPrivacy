@@ -30,7 +30,7 @@ AppUpdatesURL={#MyAppURL}
 
 AppCopyright={#MyAppCopyright}
 
-UninstallDisplayName=T{#MyAppName} {#MyAppVersion}
+UninstallDisplayName={#MyAppName} {#MyAppVersion}
 UninstallDisplayIcon={app}\MajorPrivacy.exe
 AppPublisher={#MyAppAuthor}
 
@@ -70,6 +70,7 @@ Source: ".\Release\MajorPrivacy\*"; DestDir: "{app}"; MinVersion: 0.0,5.0; Flags
 
 ; other files
 Source: "license.txt"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
+Source: "MajorWallpaper.png"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
 ;Source: "Certificate.dat"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
 ;Source: "changelog.txt"; DestDir: "{app}"; MinVersion: 0.0,5.0; 
 
@@ -87,7 +88,7 @@ Source: ".\Redist\VC_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstal
 [Icons]
 Name: "{group}\MajorPrivacy"; Filename: "{app}\MajorPrivacy.exe"; MinVersion: 0.0,5.0; 
 ;Name: "{group}\{cm:License}"; Filename: "{app}\license.txt"; MinVersion: 0.0,5.0; 
-Name: "{group}\{cm:UninstallProgram}"; Filename: "{uninstallexe}"; MinVersion: 0.0,5.0; 
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"; MinVersion: 0.0,5.0; 
 Name: "{userdesktop}\MajorPrivacy"; Filename: "{app}\MajorPrivacy.exe"; Tasks: desktopicon; MinVersion: 0.0,5.0; 
 
 
@@ -277,8 +278,20 @@ begin
 
     // Remove
     UpdateStatus(OutputProgressPage, 'PrivacyAgent.exe -remove', 50);
-    Exec(ExpandConstant('{app}\PrivacyAgent.exe'), '-remove', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ExecRet);
-  
+    if not Exec(ExpandConstant('{app}\PrivacyAgent.exe'), '-remove', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ExecRet) then
+    begin
+      MsgBox('Failed to execute PrivacyAgent.exe', mbError, MB_OK);
+      Result := False;
+      exit;
+    end;
+
+    if ExecRet <> 0 then
+    begin
+      MsgBox('Uninstallation was cancelled.', mbInformation, MB_OK);
+      Result := False;
+      exit;
+    end;
+
   finally
 
     // Restore status text (uninstall). Hide Prepare progress page (install).
@@ -563,7 +576,7 @@ end;
 
 
 //////////////////////////////////////////////////////
-// ksi.dll handling
+// mpkex.dll handling
 //
 
 procedure PrepareOneDllForUpdate(const FileName: String);
@@ -627,6 +640,6 @@ function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   { Handle both DLLs before file copy }
-  PrepareOneDllForUpdate('x64\ksi.dll');
-  PrepareOneDllForUpdate('ARM64\ksi.dll');
+  PrepareOneDllForUpdate('x64\mpkex.dll');
+  PrepareOneDllForUpdate('ARM64\mpkex.dll');
 end;

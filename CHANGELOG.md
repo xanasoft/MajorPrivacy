@@ -4,10 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
-## [0.100.1] - 2026-07-
+## [0.100.1] - 2026-07-26
 
 ### Added
 - added a new crash dump mechanism
+
+### Fixed 
+- fixed uninstaller not workign due to self protection
+- fixed crash in dnsinspector
 
 
 
@@ -348,7 +352,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - added mechanism for blocking driver events
 - added JsEngine allowing to create scripted rules
-  - currently most of teh script PI is not yet implemented more api's will come in the next builds
+  - currently most of the script PI is not yet implemented more api's will come in the next builds
 - added a summary page
   - displays the current status of the system
   - identified privacy issues
