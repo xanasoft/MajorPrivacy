@@ -32,6 +32,7 @@ public:
     QString GetCipher() const;
     QString GetFileSystem() const;
     int GetKdf() const;
+    bool GetProtectContainerFile() const;
 
 private slots:
     void showHelp();
@@ -234,4 +235,5 @@ public:
 
 private:
     QLabel* m_pSummaryLabel;
+    QCheckBox* m_pProtectFile;
 };
