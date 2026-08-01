@@ -53,7 +53,7 @@ void CVolumeManager::Update()
 	}
 }
 
-STATUS CVolumeManager::AddVolume(const QString& Path)
+STATUS CVolumeManager::AddVolume(const QString& Path, bool bProtect)
 {
 	if (Path.endsWith("\\")) 
 	{
@@ -62,6 +62,17 @@ STATUS CVolumeManager::AddVolume(const QString& Path)
 		pRule->SetEnabled(true);
 		pRule->SetName(tr("%1 - Protection").arg(Path));
 		pRule->SetPath(Path + "*");
+		STATUS Status = theCore->AccessManager()->SetAccessRule(pRule);
+		if(!Status)
+			return Status;
+	}
+	else if (bProtect)
+	{
+		CAccessRulePtr pRule = CAccessRulePtr(new CAccessRule(theCore->ProgramManager()->GetAll()->GetID()));
+		pRule->SetType(EAccessRuleType::eProtect);
+		pRule->SetEnabled(true);
+		pRule->SetName(tr("%1 - Protection").arg(Path));
+		pRule->SetPath(Path);
 		STATUS Status = theCore->AccessManager()->SetAccessRule(pRule);
 		if(!Status)
 			return Status;

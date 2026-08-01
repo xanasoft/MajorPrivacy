@@ -13,7 +13,7 @@ public:
 
 	QList<CVolumePtr> List() { return m_List.values(); }
 	
-	STATUS AddVolume(const QString& Path);
+	STATUS AddVolume(const QString& Path, bool bProtect = false);
 	STATUS RemoveVolume(const QString& Path);
 
 	STATUS SetVolume(const CVolumePtr& pVolume);

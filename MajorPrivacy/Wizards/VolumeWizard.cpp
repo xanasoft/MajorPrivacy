@@ -131,8 +131,11 @@ bool CVolumeWizard::ShowWizard(QWidget* parent)
 
     pWatcher->deleteLater();
 
-    if (Result.IsSuccess())
-        theCore->VolumeManager()->AddVolume(Path);
+    if (Result.IsSuccess()) {
+        STATUS Status = theCore->VolumeManager()->AddVolume(Path, wizard.GetProtectContainerFile());
+        if (!Status)
+            Result = Status;
+    }
     theGUI->CheckResults(QList<STATUS>() << Result, parent ? parent : theGUI);
 
     return Result.IsSuccess();
@@ -183,6 +186,11 @@ int CVolumeWizard::GetKdf() const
 {
     int iKdf = field("kdfValue").toInt();
     return iKdf;
+}
+
+bool CVolumeWizard::GetProtectContainerFile() const
+{
+    return field("protectContainerFile").toBool();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1075,6 +1083,15 @@ CVolumeSummaryPage::CVolumeSummaryPage(QWidget *parent)
     m_pSummaryLabel->setWordWrap(true);
     m_pSummaryLabel->setStyleSheet("QLabel { background-color: palette(alternate-base); padding: 15px; border-radius: 5px; }");
     layout->addWidget(m_pSummaryLabel);
+
+    layout->addSpacing(16);
+
+    m_pProtectFile = new QCheckBox(tr("Protect the volume container file (.pv) from modification by other programs"));
+    m_pProtectFile->setWordWrap(true);
+    m_pProtectFile->setToolTip(tr("Adds a Protect access rule for the container file itself, so that no other program can read, modify or delete it while the protection is active."));
+    m_pProtectFile->setChecked(true);
+    layout->addWidget(m_pProtectFile);
+    registerField("protectContainerFile", m_pProtectFile);
 
     layout->addSpacing(20);
 
