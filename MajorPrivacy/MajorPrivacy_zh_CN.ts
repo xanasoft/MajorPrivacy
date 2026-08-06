@@ -1918,12 +1918,12 @@ Error: %1</source>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="189"/>
         <source>Defer to App</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">交由应用程序处理</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="190"/>
         <source>Defer to User</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">交由用户处理</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="398"/>
@@ -7727,7 +7727,7 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/StatusView.cpp" line="48"/>
         <source>Process Protection</source>
-        <translation进程保护</translation>
+        <translation>进程保护</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="66"/>
@@ -10115,7 +10115,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="701"/>
         <source>Use Reverse DNS</source>
-        <translation>使用反转DNS</translation>
+        <translation>使用反向DNS</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="823"/>
@@ -10269,83 +10269,83 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="436"/>
         <source>When an event notification is displayed, you can ignore all future notifications for a specific file. These ignore entries can be removed using the below list. To add new entries, you need to add them from the notification popup.</source>
-        <translation type="unfinished"></translation>
+        <translation>当显示事件通知时，您可以忽略特定文件的所有未来通知。可以使用下面的列表删除这些忽略条目。若要添加新条目，您需要从通知弹窗中添加。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="504"/>
         <source>Save Process Execution and Ingress Records to Disk (IngressRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>保存进程执行与入口访问记录到磁盘 (IngressRecord.dat)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="524"/>
         <source>Log Process Execution and Ingress events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>记录进程执行与入口访问事件到内存</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="575"/>
         <source>Save File/Folder Accesses Records to Disk (AccessRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>保存文件/目录访问记录到磁盘 (AccessRecord.dat)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="622"/>
         <source>Collect File/Folder Accesses Events</source>
-        <translation type="unfinished"></translation>
+        <translation>收集文件/目录访问事件</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="643"/>
         <source>Log all File/Folder Accesses events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>记录所有文件/目录访问事件到内存</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="663"/>
         <source>Windows Firewall Management</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Windows防火墙管理</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="736"/>
         <source>Show system notification when a new rule has been created</source>
-        <translation type="unfinished"></translation>
+        <translation>当新规则被创建时显示系统通知</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="796"/>
         <source>Save Network Traffic Record to Disk (TrafficRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>保存网络通信记录到磁盘 (TrafficRecord.dat)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="803"/>
         <source>Log all Network Access events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>记录所有网络访问事件到内存</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="850"/>
         <source>Automatically remove firewall rules that were generated from templates when the associated program file no longer exists</source>
-        <translation type="unfinished"></translation>
+        <translation>当关联的程序文件不再存在时，自动移除从模板生成的防火墙规则</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="853"/>
         <source>Auto-delete rules created from a template when the associated binary no longer exists</source>
-        <translation type="unfinished"></translation>
+        <translation>当关联的二进制文件不再存在时，自动删除从模板创建的规则</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="863"/>
         <location filename="Forms/SettingsWindow.ui" line="877"/>
         <source>Windows Firewall Protection</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Windows防火墙保护</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="890"/>
         <source>Add Approve</source>
-        <translation type="unfinished"></translation>
+        <translation>添加许可</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="897"/>
         <source>You can specify guidelines below which rule changes to auto accept or revert based on the subject application file path.</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">您可以在下面指定指导原则，以便基于目标应用程序文件路径自动接受或回退规则更改。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="926"/>
         <source>Add Reject</source>
-        <translation type="unfinished"></translation>
+        <translation>添加拒绝</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="933"/>
@@ -10355,22 +10355,22 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="936"/>
         <source>Ctrl+S</source>
-        <translation type="unfinished"></translation>
+        <translation>Ctrl+S</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="969"/>
         <source>Delete Unauthorized rules instead of Disabling them</source>
-        <translation type="unfinished"></translation>
+        <translation>删除未授权的规则而非禁用它们</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="976"/>
         <source>Auto Reverse any Unauthorized Changes to Windows Firewall Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>自动回退对Windows防火墙规则的任何未授权更改</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1002"/>
         <source>Firewall Guard Automation</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙保护自动化</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1015"/>
@@ -10380,7 +10380,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1023"/>
         <source>Show system notification when a rule is rejected or approved</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">当规则被拒绝或许可时显示系统通知</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1082"/>
@@ -10430,7 +10430,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1701"/>
         <source>Update Tweak List from Server when checking for updates</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">检查更新时从服务器更新微调列表</translation>
     </message>
     <message>
         <source>In the future, don&apos;t notify about certificate expiration</source>
@@ -10473,12 +10473,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1349"/>
         <source>This license has expired, please &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-renew-cert&quot;&gt;get an updated license&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>此许可证已过期，请 &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-renew-cert&quot;&gt;获取更新的许可证&lt;/a&gt;。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1359"/>
         <source>Please enter your License Data or Serial Number:</source>
-        <translation type="unfinished"></translation>
+        <translation>请输入您的许可证数据或序列号:</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1375"/>
@@ -10488,27 +10488,27 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1388"/>
         <source>Retrieve/Upgrade/Renew license using Serial Number</source>
-        <translation type="unfinished"></translation>
+        <translation>使用序列号检索/升级/续订许可证</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1411"/>
         <source>In the future, don&apos;t notify about license expiration</source>
-        <translation type="unfinished"></translation>
+        <translation>不再通知许可证过期</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1424"/>
         <source>Enter the License Data here</source>
-        <translation type="unfinished"></translation>
+        <translation>在此处输入许可证数据</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1483"/>
         <source>Maintaining and improving MajorPrivacy is an ongoing process focused on enhancing functionality, user experience, and privacy protection. Your support is essential to ensure continued development, long-term sustainability, and the addition of new features. You can support MajorPrivacy by &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-contribute&quot;&gt;contributing directly to the project&lt;/a&gt;, showing your appreciation by &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-obtain-cert&quot;&gt;purchasing a license&lt;/a&gt;, becoming a patron by &lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;subscribing on Patreon&lt;/a&gt;, or through a &lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal donation&lt;/a&gt;. Your support helps drive innovation and ensures the continued availability of this privacy-focused tool.</source>
-        <translation type="unfinished"></translation>
+        <translation>维护和改进MajorPrivacy是一个旨在持续增进软件功能、用户体验和隐私保护的长久过程。您的支持对于确保项目的持续开发、长期可持续性以及新功能的添加至关重要。您可以通过&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-contribute&quot;&gt;直接向项目贡献代码&lt;/a&gt;来支持MajorPrivacy，或者通过&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-obtain-cert&quot;&gt;购买许可证&lt;/a&gt;来表达您的感激之情，亦或是通过在&lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;Patreon上订阅&lt;/a&gt;成为赞助人，或通过&lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal进行捐赠&lt;/a&gt;。您的支持有助于推动创新，并确保这款注重隐私保护的工具能够持续可用。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1549"/>
         <source>Check periodically for new MajorPrivacy versions</source>
-        <translation type="unfinished"></translation>
+        <translation>定期检查新的MajorPrivacy版本</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1691"/>
@@ -10690,7 +10690,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/VolumeWindow.ui" line="202"/>
         <source>Lockdown Volume Configuration (Prevent Configuration changes)</source>
-        <translation type="unfinished"></translation>
+        <translation>锁定卷配置(防止配置被更改)</translation>
     </message>
     <message>
         <location filename="Forms/VolumeWindow.ui" line="209"/>
