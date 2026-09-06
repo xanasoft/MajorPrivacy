@@ -240,15 +240,11 @@ extern "C" LIBRARY_EXPORT VOID RunElevatedW(HWND hwnd, HINSTANCE hinst, LPWSTR p
     shex.nShow = SW_SHOWNORMAL;
     shex.lpVerb = L"runas";
 
-	DWORD dwExitCode = -1;
+	DWORD dwExitCode = STILL_ACTIVE;
 
     if (ShellExecuteEx(&shex)) {
-        if (dwTimeOut) {
-            if (WaitForSingleObject(shex.hProcess, dwTimeOut) == WAIT_OBJECT_0)
-				GetExitCodeProcess(shex.hProcess, &dwExitCode);
-            else
-                dwExitCode = STILL_ACTIVE;
-        }
+        if (WaitForSingleObject(shex.hProcess, dwTimeOut) == WAIT_OBJECT_0)
+			GetExitCodeProcess(shex.hProcess, &dwExitCode);
         CloseHandle(shex.hProcess);
     }
     else
@@ -308,6 +304,36 @@ DWORD RunElevated(const std::wstring& path, const std::wstring& params, DWORD dw
     }
 
     return dwExitCode;
+}
+
+VOID* ShellExec(const std::wstring& cmd, int nCmdShow)
+{
+	WCHAR* pszCmdLine = (WCHAR*)cmd.c_str();
+    LPWSTR path = GetArgumentW(&pszCmdLine);
+
+    SHELLEXECUTEINFO shex;
+    memset(&shex, 0, sizeof(SHELLEXECUTEINFOW));
+    shex.cbSize = sizeof(SHELLEXECUTEINFO);
+    shex.fMask = SEE_MASK_NOCLOSEPROCESS;
+    shex.hwnd = NULL;
+    shex.lpFile = path;
+    shex.lpParameters = pszCmdLine;
+    shex.nShow = SW_SHOWNORMAL;
+    shex.lpVerb = L"runas";
+
+    if (ShellExecuteEx(&shex))
+        return shex.hProcess;
+    return NULL;
+}
+
+bool TestExec(VOID* Handle, DWORD* pExitCode, DWORD dwTimeOut)
+{
+    if (WaitForSingleObject(Handle, dwTimeOut) != WAIT_OBJECT_0)
+		return false; // process is still running
+	// process has exited, get the exit code
+    if(pExitCode) GetExitCodeProcess(Handle, pExitCode);
+    CloseHandle(Handle);
+    return true;
 }
 
 #else
@@ -375,7 +401,6 @@ SImageVersionInfoPtr GetImageVersionInfo(const std::wstring& FileName)
     PPH_STRING FileNameWin32 = PhCreateStringEx((WCHAR*)FileName.c_str(), FileName.length() * sizeof(WCHAR));
     if (PhInitializeImageVersionInfoCached(&PhVersionInfo, FileNameWin32, FALSE, FALSE)) 
     {
-        // todo: fix me PhInitializeImageVersionInfoCached returns to long strings
         pVersionInfo = std::make_shared<SImageVersionInfo>();
         pVersionInfo->CompanyName = PHStr2WStr(PhVersionInfo.CompanyName, true).c_str();
         pVersionInfo->FileDescription = PHStr2WStr(PhVersionInfo.FileDescription, true).c_str();

@@ -5,6 +5,7 @@
 #include "Programs/ProgramRule.h"
 #include "Enclaves/Enclave.h"
 #include "HashDB/HashEntry.h"
+#include "../Library/Crypto/SecurePassword.h"
 
 class CVolumeManager
 {
@@ -17,14 +18,17 @@ public:
 
 	STATUS Update();
 
-	STATUS CreateImage(const std::wstring& Path, const std::wstring& Password, uint64 uSize = 0, const std::wstring& Cipher = L"AES");
-	STATUS ChangeImagePassword(const std::wstring& Path, const std::wstring& OldPassword, const std::wstring& NewPassword);
+	STATUS CreateImage(const std::wstring& Path, const CSecurePassword& Password, uint64 uSize = 0, const std::wstring& Cipher = L"AES", int iKdf = 0, const std::wstring& FS = L"");
+	//STATUS ChangeImagePassword(const std::wstring& Path, const std::wstring& OldPassword, const std::wstring& NewPassword, int iOldKdf = 0, int iNewKdf = 0);
 	//STATUS DeleteImage(const std::wstring& Path);
+	//STATUS BackupHeader(const std::wstring& Path, const std::wstring& BackupPath, const std::wstring& Password, int iKdf = 0);
+	//STATUS RestoreHeader(const std::wstring& BackupPath, const std::wstring& Path, const std::wstring& Password, int iKdf = 0);
 
-	STATUS MountImage(const std::wstring& Path, const std::wstring& MountPoint, const std::wstring& Password, bool bProtect, bool bLockdown);
+	STATUS MountImage(const std::wstring& Path, const std::wstring& MountPoint, const CSecurePassword& Password, bool bProtect, bool bLockdown, int iKdf = 0);
 	STATUS DismountVolume(const std::wstring& DevicePath);
 	STATUS DismountAll();
-	
+	STATUS ExpandVolume(const std::wstring& DevicePath, uint64 uAddSize);
+
 	//STATUS SetVolumeData(const std::wstring& Path, const std::wstring& Password, const CBuffer& Buffer);
 	//STATUS GetVolumeData(const std::wstring& Path, const std::wstring& Password, CBuffer& Buffer);
 

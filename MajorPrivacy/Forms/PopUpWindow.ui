@@ -49,7 +49,7 @@
      <item>
       <widget class="QTabWidget" name="tabs">
        <property name="currentIndex">
-        <number>2</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="tabFw">
         <attribute name="title">
@@ -582,6 +582,11 @@
               <column>
                <property name="text">
                 <string>Enclave</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>User</string>
                </property>
               </column>
               <column>

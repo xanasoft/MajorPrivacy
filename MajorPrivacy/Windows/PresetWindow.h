@@ -24,36 +24,13 @@ private slots:
 
 	void PickIcon();
 	void BrowseImage();
-	//void ResetIcon();
 
 	void EditScript();
 
-	void AddExecRule();
-	void AddResRule();
-	void AddFwRule();
-	void AddDnsRule();
-	void AddTweak();
-	void RemoveSelectedItems();
-
-	void OnItemDoubleClicked(QTreeWidgetItem* pItem, int Column);
-	void OnSelectionChanged() { CloseItemEdit(); }
-
-
 protected:
 	void closeEvent(QCloseEvent* e);
-	bool eventFilter(QObject *watched, QEvent *e);
 
 	bool Save();
-
-	void CloseItemEdit(bool bSave = true);
-	void CloseItemEdit(QTreeWidgetItem* pItem, bool bSave = true);
-
-	enum EColumn
-	{
-		eName = 0,
-		eAction,
-		eCount,
-	};
 
 	CPresetPtr m_pPreset;
 	QString m_IconFile;

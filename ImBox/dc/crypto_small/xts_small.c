@@ -113,23 +113,28 @@ static void xts_process(
 
 #ifndef AES_ONLY
 
-void xts_set_key(const unsigned char *key, int alg, xts_key *skey)
+int xts_set_key(const unsigned char *key, int alg, xts_key *skey)
 {
 	cipher_desc   *p_alg;
 	unsigned char *p_ctx;
 	int            i;
-	
+
+	if (alg >= CF_CIPHERS_NUM) return 0;
+
 	/* set encryption key */
-	for (i = 0, p_ctx = skey->crypt_k; (i < 3) && ((p_alg = algs[alg][i]) != 0); i++) {
+	for (i = 0, p_ctx = skey->crypt_k; (i < 3) && (p_alg = algs[alg][i]); i++) {
 		p_alg->set_key(key, p_ctx); key += XTS_KEY_SIZE; p_ctx += p_alg->ctxsz;
 	}
 	/* set tweak key */
-	for (i = 0, p_ctx = skey->tweak_k; (i < 3) && ((p_alg = algs[alg][i]) != 0); i++) {
+	for (i = 0, p_ctx = skey->tweak_k; (i < 3) && (p_alg = algs[alg][i]); i++) {
 		p_alg->set_key(key, p_ctx); key += XTS_KEY_SIZE; p_ctx += p_alg->ctxsz;
 	}
 	skey->algs  = (void**)algs[alg];
 	skey->max   = i-1;
 	skey->ctxsz = (unsigned long)(p_ctx - skey->tweak_k);
+	skey->encrypt = xts_encrypt;
+	skey->decrypt = xts_decrypt;
+	return 1;
 }
 
 void xts_encrypt(const unsigned char *in, unsigned char *out, unsigned long len, unsigned __int64 offset, xts_key *key)
@@ -163,10 +168,14 @@ void xts_decrypt(const unsigned char *in, unsigned char *out, unsigned long len,
 }
 #else
 
-void xts_set_key(const unsigned char *key, int alg, xts_key *skey)
+int xts_set_key(const unsigned char *key, int alg, xts_key *skey)
 {
+	if (alg != CF_AES) return 0;
 	aes256_set_key(key, (aes256_key*)&skey->crypt_k);
 	aes256_set_key(key + XTS_KEY_SIZE, (aes256_key*)&skey->tweak_k);
+	skey->encrypt = xts_encrypt;
+	skey->decrypt = xts_decrypt;
+	return 1;
 }
 
 void xts_encrypt(const unsigned char *in, unsigned char *out, unsigned long len, unsigned __int64 offset, xts_key *key)

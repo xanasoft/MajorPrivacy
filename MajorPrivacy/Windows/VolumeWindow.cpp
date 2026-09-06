@@ -1,10 +1,14 @@
 #include "pch.h"
 #include "VolumeWindow.h"
+#include "../Widgets/PasswordStrengthWidget.h"
 #include "../Core/PrivacyCore.h"
 #include "../MajorPrivacy.h"
 #include "../MiscHelpers/Common/Settings.h"
 #include "../MiscHelpers/Common/Common.h"
 #include <QStorageInfo>
+#include <QFrame>
+#include <QSpinBox>
+#include <QToolButton>
 
 
 CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *parent)
@@ -38,17 +42,34 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 	connect(ui.buttonBox, SIGNAL(accepted()), SLOT(CheckPassword()));
 	connect(ui.buttonBox, SIGNAL(rejected()), SLOT(reject()));
 
+	// Setup secure password entry buttons
+	ui.btnSecurePw->setIcon(QIcon(":/Icons/Shield.png"));
+	connect(ui.btnSecurePw, &QToolButton::clicked, this, &CVolumeWindow::OnSecurePasswordEntry);
+
+	ui.btnSecureNewPw->setIcon(QIcon(":/Icons/Shield.png"));
+	connect(ui.btnSecureNewPw, &QToolButton::clicked, this, &CVolumeWindow::OnSecureNewPasswordEntry);
+
+	// Disable OK button initially for modes that require new password
+	if (Action == eNew || Action == eSetPW || Action == eChange)
+		ui.buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+
 	ui.lblInfo->setText(Prompt);
 	ui.lblIcon->setPixmap(QPixmap::fromImage(QImage((m_Action == eMount || m_Action == eGetPW) ? ":/Icons/LockOpen.png" : ":/Icons/LockClosed.png")));
 
-	if (m_Action == eNew || m_Action == eSetPW) 
+	if (m_Action == eNew || m_Action == eSetPW)
 	{
 		ui.lblPassword->setVisible(false);
 		ui.txtPassword->setVisible(false);
+		ui.btnSecurePw->setVisible(false);
+
+		ui.lblKdf->setVisible(false);
+		ui.cmbKdf->setVisible(false);
+
+		ui.lblDummy->setVisible(false);
 
 		ui.txtNewPassword->setFocus();
 	}
-	else 
+	else
 		ui.txtPassword->setFocus();
 
 	if (m_Action == eNew)
@@ -67,8 +88,38 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 	{
 		ui.lblNewPassword->setVisible(false);
 		ui.txtNewPassword->setVisible(false);
+		ui.btnSecureNewPw->setVisible(false);
+
 		ui.lblRepeatPassword->setVisible(false);
 		ui.txtRepeatPassword->setVisible(false);
+
+		ui.lblNewKdf->setVisible(false);
+		ui.cmbNewKdf->setVisible(false);
+	}
+
+	// Password strength widget for actions that set a new password
+	if (m_Action == eNew || m_Action == eSetPW || m_Action == eChange)
+	{
+		QFrame* strengthFrame = new QFrame;
+		strengthFrame->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+		QVBoxLayout* frameLayout = new QVBoxLayout(strengthFrame);
+		frameLayout->setContentsMargins(0, 0, 0, 0);
+		m_pStrengthWidget = new CPasswordStrengthWidget;
+		frameLayout->addWidget(m_pStrengthWidget);
+
+		// Insert after row 6 (after new KDF combo) - row 7, aligned with password fields (column 2)
+		QGridLayout* grid = qobject_cast<QGridLayout*>(ui.gridLayout);
+
+		// Password status label (match/length feedback)
+		m_pPasswordStatus = new QLabel;
+		m_pPasswordStatus->setTextFormat(Qt::RichText);
+		grid->addWidget(m_pPasswordStatus, 8, 1, 1, 5);
+
+		grid->addWidget(strengthFrame, 9, 1, 1, 5);
+
+		connect(ui.txtNewPassword, &QLineEdit::textChanged, this, &CVolumeWindow::OnNewPasswordChanged);
+		connect(ui.txtRepeatPassword, &QLineEdit::textChanged, this, &CVolumeWindow::OnNewPasswordChanged);
+		connect(ui.cmbNewKdf, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &CVolumeWindow::OnNewPasswordChanged);
 	}
 
 	ui.lblAutoLocl->setVisible(false);
@@ -113,6 +164,34 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 		ui.chkLockdown->setVisible(false);
 	}
 
+	FillKdfCombo(ui.cmbKdf);
+	FillKdfCombo(ui.cmbNewKdf, false, 5);
+
+	if (m_Action == eMount || m_Action == eChange) {
+		ui.cmbKdf->addItem(tr("Argon2id (Old 0.99.7 compatible mode)"), 1000);
+
+		// Old KDF cost factor spinbox (shown when old Argon2id is selected)
+		QGridLayout* grid = qobject_cast<QGridLayout*>(ui.gridLayout);
+		if (grid) {
+			m_pOldKdfLabel = new QLabel(tr("Cost Factor:"));
+			m_pOldKdfLabel->setVisible(false);
+			grid->addWidget(m_pOldKdfLabel, 3, 2, 1, 1);
+
+			m_pOldKdfSpin = new QSpinBox;
+			m_pOldKdfSpin->setRange(1, 100);
+			m_pOldKdfSpin->setValue(12);
+			m_pOldKdfSpin->setVisible(false);
+			m_pOldKdfSpin->setToolTip(tr("Argon2id cost factor for old volumes created with MajorPrivacy v0.99.7"));
+			grid->addWidget(m_pOldKdfSpin, 3, 3, 1, 1);
+		}
+
+		connect(ui.cmbKdf, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this]() {
+			bool showOldKdf = (ui.cmbKdf->currentData().toInt() == 1000);
+			if (m_pOldKdfLabel) m_pOldKdfLabel->setVisible(showOldKdf);
+			if (m_pOldKdfSpin) m_pOldKdfSpin->setVisible(showOldKdf);
+		});
+	}
+
 	restoreGeometry(theConf->GetBlob("VolumeWindow/Window_Geometry"));
 
 	// Adjust the size of the dialog
@@ -122,6 +201,43 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 CVolumeWindow::~CVolumeWindow()
 {
 	theConf->SetBlob("VolumeWindow/Window_Geometry", saveGeometry());
+}
+
+QStringList g_KdfOptions = {
+	CVolumeWindow::tr("Pkcs5.2  (0 - Legacy)"),
+	CVolumeWindow::tr("Argon2id (1 - Minimum)"),
+	CVolumeWindow::tr("Argon2id (2 - Low)"),
+	CVolumeWindow::tr("Argon2id (3 - Moderate)"),
+	CVolumeWindow::tr("Argon2id (4 - Standard)"),
+	CVolumeWindow::tr("Argon2id (5 - Recommended)"),
+	CVolumeWindow::tr("Argon2id (6 - Enhanced)"),
+	CVolumeWindow::tr("Argon2id (7 - Hardened)"),
+	CVolumeWindow::tr("Argon2id (8 - High Cost)"),
+	CVolumeWindow::tr("Argon2id (9 - Very High Cost)"),
+	CVolumeWindow::tr("Argon2id (10 - Extreme Cost)")
+};
+
+void CVolumeWindow::FillKdfCombo(QComboBox* Combo, bool bAuto, int Selected)
+{
+	if (bAuto) Combo->addItem(tr("Standard Pkcs5.2 & Default Argon2id"), -2);
+	if (bAuto) Combo->addItem(tr("Try all KDF's >>> Very Slow <<<"), -3);
+
+	for(int i = 0; i < g_KdfOptions.size(); i++) {
+		Combo->addItem(g_KdfOptions[i], i);
+	}
+
+	int Index = Combo->findData(Selected);
+	if (Index != -1) Combo->setCurrentIndex(Index);
+}
+
+QString CVolumeWindow::GetKdfName(int iKdf)
+{
+	//if (iKdf == -2) return tr("Standard Pkcs5.2 & Default Argon2id");
+	//if (iKdf == -3) return tr("Try all KDF's >>> Very Slow <<<");
+	//if (iKdf == 1000) return tr("Argon2id (Old 0.99.7 compatible mode)");
+	if (iKdf >= 0 && iKdf < g_KdfOptions.size())
+		return g_KdfOptions[iKdf];
+	return QString::number(iKdf);
 }
 
 void CVolumeWindow::OnShowPassword()
@@ -136,43 +252,84 @@ void CVolumeWindow::OnImageSize()
 	ui.lblImageSizeKb->setText(tr("kilobytes (%1)").arg(FormatSize(GetImageSize())));
 }
 
+void CVolumeWindow::OnNewPasswordChanged()
+{
+	CSecurePassword pw;
+	bool bConfirm = true;
+	bool bToLong = false;
+	if (!m_SecureNewPassword.IsEmpty())
+		pw = m_SecureNewPassword;
+	else {
+		// Get the new password (from edit field)
+		QString sPassword = ui.txtNewPassword->text();
+		if (sPassword.length() > MAX_SEC_PASSWORD)
+			bToLong = true;
+		else {
+			QString sConfirm = ui.txtRepeatPassword->text();
+			bConfirm = sPassword == sConfirm;
+
+			pw.SetPassword((wchar_t*)sPassword.utf16(), sPassword.length() * sizeof(wchar_t));
+		}
+	}
+
+	// Enable OK button only when passwords match
+	bool valid = !pw.IsEmpty() && bConfirm;
+	ui.buttonBox->button(QDialogButtonBox::Ok)->setEnabled(valid);
+
+	if (m_pStrengthWidget) {
+		int kdfValue = ui.cmbNewKdf->currentData().toInt();
+		m_pStrengthWidget->SetKdfValue(kdfValue);
+		m_pStrengthWidget->SetPassword(pw);
+	}
+
+	if (m_pPasswordStatus) {
+		if (bToLong)
+			m_pPasswordStatus->setText(tr("<span style='color:red;'>Password exceeds maximum length of %1 characters!</span>").arg(MAX_SEC_PASSWORD));
+		else if (!bConfirm)
+			m_pPasswordStatus->setText(tr("<span style='color:red;'>Passwords do not match!</span>"));
+		else
+			m_pPasswordStatus->setText(CPasswordStrengthWidget::GetPasswordStatusText(pw));
+	}
+}
+
 void CVolumeWindow::CheckPassword()
 {
-	if (m_Action == eMount || m_Action == eGetPW) {
-		m_Password = ui.txtPassword->text();
-	}
-	else {
+	if (m_Action != eMount && m_Action != eGetPW) 
+	{
+		int PasswordLength = 0;
+		if (!m_SecureNewPassword.IsEmpty())
+			PasswordLength = m_SecureNewPassword.GetPasswordLength();
+		else {
+			// Get the new password (from secure entry or edit field)
+			QString sPassword = ui.txtNewPassword->text();
+			QString sConfirm = ui.txtRepeatPassword->text();
 
-		if (ui.txtNewPassword->text() != ui.txtRepeatPassword->text()) {
-			QMessageBox::critical(this, "MajorPrivacy", tr("Passwords don't match!!!"));
-			return;
+			if (sPassword != sConfirm) {
+				QMessageBox::critical(this, "MajorPrivacy", tr("Passwords don't match!!!"));
+				return;
+			}
+			PasswordLength = sPassword.length();
+			if (sPassword.length() > MAX_SEC_PASSWORD) {
+				QMessageBox::warning(this, "MajorPrivacy", tr("The password is constrained to a maximum length of %1 characters. \n"
+					"This length permits approximately 384 bits of entropy with a passphrase composed of actual English words, \n"
+					"increases to 512 bits with the application of Leet (L337) speak modifications, and exceeds 768 bits when composed of entirely random printable ASCII characters.").arg(MAX_SEC_PASSWORD)
+					, QMessageBox::Ok);
+				return;
+			}
 		}
-		if (ui.txtNewPassword->text().length() < 20) {
+
+		if (PasswordLength < 20) {
 			if (QMessageBox::warning(this, "MajorPrivacy", tr("WARNING: Short passwords are easy to crack using brute force techniques!\n\n"
 				"It is recommended to choose a password consisting of 20 or more characters. Are you sure you want to use a short password?")
 				, QMessageBox::Yes, QMessageBox::No) != QMessageBox::Yes)
 				return;
 		}
-		if (ui.txtNewPassword->text().length() > 128) {
-			QMessageBox::warning(this, "MajorPrivacy", tr("The password is constrained to a maximum length of 128 characters. \n"
-				"This length permits approximately 384 bits of entropy with a passphrase composed of actual English words, \n"
-				"increases to 512 bits with the application of Leet (L337) speak modifications, and exceeds 768 bits when composed of entirely random printable ASCII characters.")
-				, QMessageBox::Ok);
-			return;
-		}
-
-		if (m_Action == eNew || m_Action == eSetPW)
-			m_Password = ui.txtNewPassword->text();
-		else if (m_Action == eChange) {
-			m_Password = ui.txtPassword->text();
-			m_NewPassword = ui.txtNewPassword->text();
-		}
 	}
 	
 	if (m_Action == eNew) {
 		if (GetImageSize() < 128 * 1024 * 1024) { // ask for 256 mb but silently accept >= 128 mb
-			QMessageBox::critical(this, "MajorPrivacy", tr("The Box Disk Image must be at least 256 MB in size, 2GB are recommended."));
-			SetImageSize(256 * 1024 * 1024);
+			QMessageBox::critical(this, "MajorPrivacy", tr("The Box Disk Image must be at least 128 MB in size, 2GB are recommended."));
+			SetImageSize(128 * 1024 * 1024);
 			return;
 		}
 	}
@@ -184,7 +341,7 @@ void CVolumeWindow::BrowseMountPoint()
 {
 	QString path = QFileDialog::getExistingDirectory(this, tr("Select Mount Point"), ui.cmbMount->currentText());
 	if (!path.isEmpty())
-		ui.cmbMount->setCurrentText(path);
+		ui.cmbMount->setCurrentText(path.replace("/", "\\"));
 }
 
 void CVolumeWindow::SetAutoLock(int iSeconds, const QString& Text) const 
@@ -208,4 +365,136 @@ void CVolumeWindow::SetAutoLock(int iSeconds, const QString& Text) const
 		ui.cmbAutoLock->setCurrentIndex(ui.cmbAutoLock->count() - 1);
 	} else
 		ui.cmbAutoLock->setCurrentIndex(Index); 
+}
+
+int CVolumeWindow::GetKdf() const
+{
+	int iKdf = ui.cmbKdf->currentData().toInt();
+	if (iKdf == 1000 && m_pOldKdfSpin)
+	{
+		iKdf = 1000 + m_pOldKdfSpin->value();
+	}
+	return iKdf;
+}
+
+void CVolumeWindow::SetKdf(int iKdf) const
+{
+	int Index = ui.cmbKdf->findData(iKdf);
+	if (Index != -1) ui.cmbKdf->setCurrentIndex(Index);
+}
+
+void CVolumeWindow::SetNoAutoKdf()
+{
+	ui.cmbKdf->clear();
+
+	for(int i = 0; i < g_KdfOptions.size(); i++) {
+		ui.cmbKdf->addItem(g_KdfOptions[i], i);
+	}
+
+	SetKdf(5);
+}
+
+CSecurePassword CVolumeWindow::GetPassword() const
+{
+	if (m_Action == eNew || m_Action == eSetPW)
+		return GetNewPassword();
+
+	if (!m_SecurePassword.IsEmpty())
+		return m_SecurePassword;
+	QString sPassword = ui.txtPassword->text();
+	return CSecurePassword((wchar_t*)sPassword.utf16(), sPassword.length() * sizeof(wchar_t));
+}
+
+CSecurePassword CVolumeWindow::GetNewPassword() const
+{
+	if (!m_SecureNewPassword.IsEmpty())
+		return m_SecureNewPassword;
+	QString sPassword = ui.txtNewPassword->text();
+	return CSecurePassword((wchar_t*)sPassword.utf16(), sPassword.length() * sizeof(wchar_t));
+}
+
+CSecurePassword	 CVolumeWindow::RequestSecurePassword(bool bConfirm)
+{
+	QString prompt = bConfirm
+		? tr("Enter and confirm your new password:")
+		: tr("Enter your password:");
+
+	auto Ret = theCore->RequestSecurePassword(prompt, tr("MajorPrivacy - Secure Password Entry"), bConfirm);
+	if (Ret.IsError())
+	{
+		if (Ret.GetStatus() == STATUS_CANCELLED)
+			return CSecurePassword(); // User cancelled - return empty
+
+		const wchar_t* msg = Ret.GetMessageText();
+		QMessageBox::warning(this, "MajorPrivacy", tr("Secure password entry failed: %1").arg(msg ? QString::fromWCharArray(msg) : tr("Unknown error")));
+		return CSecurePassword();
+	}
+
+	return Ret.GetValue();
+}
+
+void CVolumeWindow::OnSecurePasswordEntry()
+{
+	if (ui.btnSecurePw->isChecked())
+	{
+		// Button is now checked - request secure password entry
+		CSecurePassword password = RequestSecurePassword(false);
+		if (password.IsEmpty())
+		{
+			// User cancelled or error - uncheck button
+			ui.btnSecurePw->setChecked(false);
+			return;
+		}
+
+		// Store cached password and disable edit
+		m_SecurePassword = password;
+		ui.txtPassword->setEnabled(false);
+		ui.txtPassword->setText(QString(password.GetPasswordLength(), QChar(0x2022))); // Show bullets
+	}
+	else
+	{
+		// Button unchecked - clear cached password and re-enable edit
+		m_SecurePassword.ClearPassword();
+		ui.txtPassword->setEnabled(true);
+		ui.txtPassword->clear();
+		ui.txtPassword->setFocus();
+	}
+}
+
+void CVolumeWindow::OnSecureNewPasswordEntry()
+{
+	if (ui.btnSecureNewPw->isChecked())
+	{
+		// Button is now checked - request secure password entry with confirmation
+		CSecurePassword password = RequestSecurePassword(true);
+		if (password.IsEmpty())
+		{
+			// User cancelled or error - uncheck button
+			ui.btnSecureNewPw->setChecked(false);
+			return;
+		}
+
+		// Store cached password and disable edits
+		m_SecureNewPassword = password;
+		ui.txtNewPassword->setEnabled(false);
+		ui.txtNewPassword->setText(QString(password.GetPasswordLength(), QChar(0x2022))); // Show bullets
+		ui.txtRepeatPassword->setEnabled(false);
+		ui.txtRepeatPassword->setText(QString(password.GetPasswordLength(), QChar(0x2022)));
+
+		// Update password strength display
+		OnNewPasswordChanged();
+	}
+	else
+	{
+		// Button unchecked - clear cached password and re-enable edits
+		m_SecureNewPassword.ClearPassword();
+		ui.txtNewPassword->setEnabled(true);
+		ui.txtNewPassword->clear();
+		ui.txtRepeatPassword->setEnabled(true);
+		ui.txtRepeatPassword->clear();
+		ui.txtNewPassword->setFocus();
+
+		// Update password strength display
+		OnNewPasswordChanged();
+	}
 }

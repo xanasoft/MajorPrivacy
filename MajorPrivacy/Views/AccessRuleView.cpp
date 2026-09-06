@@ -114,11 +114,12 @@ CAccessRuleView::~CAccessRuleView()
 	theConf->SetBlob("MainWindow/AccessRuleView_Columns", m_pTreeView->saveState());
 }
 
-void CAccessRuleView::Sync(QList<CAccessRulePtr> RuleList, const QString& VolumeRoot, const QString& VolumeImage)
+void CAccessRuleView::Sync(QList<CAccessRulePtr> RuleList, const QString& VolumeRoot, const QString& VolumeImage, const QString& MountPoint)
 {
 	m_RuleList = RuleList;
 	m_VolumeRoot = VolumeRoot;
 	m_VolumeImage = VolumeImage;
+	m_MountPoint = MountPoint;
 
 	bool bHideDisabled = m_pBtnEnabled->isChecked();
 	bool bHideTemp = !m_pBtnTemp->isChecked();
@@ -153,6 +154,7 @@ void CAccessRuleView::Clear()
 	m_RuleList.clear();
 	m_VolumeRoot.clear();
 	m_VolumeImage.clear();
+	m_MountPoint.clear();
 	m_pItemModel->Clear();
 }
 
@@ -169,7 +171,7 @@ void CAccessRuleView::OnDoubleClicked(const QModelIndex& Index)
 void CAccessRuleView::OpenRullDialog(const CAccessRulePtr& pRule)
 {
 	auto Current = theGUI->GetCurrentItems();
-	CAccessRuleWnd* pAccessRuleWnd = new CAccessRuleWnd(pRule, Current.Items, m_VolumeRoot, m_VolumeImage);
+	CAccessRuleWnd* pAccessRuleWnd = new CAccessRuleWnd(pRule, Current.Items, m_VolumeRoot, m_VolumeImage, m_MountPoint);
 	pAccessRuleWnd->show();
 }
 

@@ -107,9 +107,9 @@ void CDnsCacheModel::SyncEntry(TNewNodesMap& New, QHash<QVariant, STreeNode*>& O
 		}
 	}*/
 
-	if (pNode->IsGray != (pEntry->GetDeadTime() > 0))
-	{
-		pNode->IsGray = (pEntry->GetDeadTime() > 0);
+	bool bIsGray = pEntry->GetStatus() != CDnsCacheEntry::eNone && pEntry->GetDeadTime() > 0;
+	if (pNode->IsGray != bIsGray) {
+		pNode->IsGray = bIsGray;
 		Changed = 2;
 	}
 

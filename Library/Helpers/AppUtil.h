@@ -56,6 +56,10 @@ LIBRARY_EXPORT HANDLE RunElevatedEx(const std::wstring& path, const std::wstring
 
 LIBRARY_EXPORT DWORD RunElevated(const std::wstring& path, const std::wstring& params = L"", DWORD dwTimeOut = 0, int nCmdShow = SW_SHOWNORMAL);
 
+LIBRARY_EXPORT VOID* ShellExec(const std::wstring& cmd, int nCmdShow = SW_SHOWNORMAL);
+
+LIBRARY_EXPORT bool TestExec(VOID* Handle, DWORD* pExitCode, DWORD dwTimeOut = 0);
+
 LIBRARY_EXPORT std::wstring ExpandEnvironmentVariablesInPath(const std::wstring& path);
 
 LIBRARY_EXPORT std::wstring GetResourceStr(const std::wstring& str);

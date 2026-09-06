@@ -9,7 +9,7 @@ public:
 
 	STATUS Init();
 
-	STATUS Load();
+	STATUS ReLoad();
 	STATUS Store();
 
 	STATUS LoadEntries(const StVariant& Entries);
@@ -27,8 +27,13 @@ public:
 	STATUS DeactivateAllPresets(uint32 CallerPID);
 	std::set<CFlexGuid> GetActivePresets() const { std::shared_lock Lock(m_Mutex); return m_ActivePresets; }
 
+	StVariant GetItemOwnership(FW::AbstractMemPool* pMemPool = nullptr) const;
+
 protected:
-	void EmitChangeEvent(const CFlexGuid& Guid, enum class EConfigEvent Event);
+
+	STATUS Load();
+
+	void EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event);
 
 	STATUS DeactivatePresetInternal(const CFlexGuid& Preset, uint32 CallerPID);
 	STATUS ApplyPresetItems(const CPresetPtr& pPreset, uint32 CallerPID, bool bForce = false);

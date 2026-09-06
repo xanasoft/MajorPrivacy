@@ -4,9 +4,113 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+## [0.100.1] - 2026-07-26
+
+### Added
+- added a new crash dump mechanism
+
+### Fixed 
+- fixed uninstaller not workign due to self protection
+- fixed crash in dnsinspector
 
 
 
+
+## [0.100.0] - 2026-07-04
+
+### Added
+- added support for user specific firewall rules
+
+### Changed
+- updated to ImDisk 3.0.3
+- dns cache monitoring can now be switched
+- moved dns options to DNS filter page and renamed it to DNS Inspector
+- moved presets to an own page
+- added more advanced user options to resource access rules
+- when a program accesses more then 1000 items at a tree level, a "*" catch all is used to reduce the number of entries in the access tree
+
+### Fixed 
+- fixed issues with firewall presets
+- fixed rule picker dialog search
+- fixed driver performance problems with CI verification [#107](https://github.com/xanasoft/MajorPrivacy/issues/107)
+- fixed issue with delayed firewall event attribution
+- fixed issue with event broadcast
+- fixed unapproved rule change/remove handling
+
+
+
+## [0.99.10] - 2026-05-17
+
+### Added
+- added secure desktop password prompt option
+- add app folder protection
+- addes secure password handling
+- added option ti display the computer name in the main and notification window title bar
+
+### Fixed 
+- fixed minor UI glitches
+- fixed removed programs sometimes re-appiearing after restart from the outdated records
+- fixed instalelr issues
+
+
+
+
+## [0.99.9] - 2026-05-09
+
+### Added
+- added user column to access log
+
+### Fixed 
+- fixed issue causing the UI sometimes to not be recognized by the driver as a protected process
+- fixed user name in rules not being properly saved and applied
+- fixed issues with config recovery after failed boots
+- fixed issues when paths of installed appliations changed
+
+### Changed
+- updated imdisk driver to latest version 3.0.1
+- improved volume view
+
+
+
+
+## [0.99.8] - 2026-04-26
+
+### Added
+- Added password strength estimation to the volume creation wizard
+- Added volume crypto info
+- User Key Password can now use Argon2id as KDF
+- User Key Password can now be changed without replacing the user key itself
+- scripts can now persist states across invocations
+
+### fixed 
+- fixed issue with seriel key application
+- fixed issue when clearing user key
+
+### Changed
+- renamed kernel extension to mpkex.dll to avoid name/version conflicts
+- reworked argon2id support to be aligned with DiskCryptro 2.0 implementation
+  - CAUTION: old volumes using Ardong2id can be mounted, but this this functionality will be dropped, use change password to change KDF
+- now using DiskCryptro 2.0 header format, volumes with 1.x headers remain compatible
+
+
+
+
+## [0.99.7] - 2026-03-01
+
+### fixed
+- fixed restart loop issue
+- fixed discard config changed did not apply to service options
+- program items with running processes can no longer be deleted
+- fixed issues unmounting volumes
+
+### Changed
+- change GUI <-> Service communication to use ALPC ports instead of named pipes 
+
+### Added
+- added full volume creation wizard (replacing the quick one window dialog)
+- added backup/restore volume headers
+- added support for Argon2id key derivation function for volume passwords
+- added expand volume option to GUI
 
 
 
@@ -248,7 +352,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - added mechanism for blocking driver events
 - added JsEngine allowing to create scripted rules
-  - currently most of teh script PI is not yet implemented more api's will come in the next builds
+  - currently most of the script PI is not yet implemented more api's will come in the next builds
 - added a summary page
   - displays the current status of the system
   - identified privacy issues

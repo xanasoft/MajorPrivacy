@@ -46,11 +46,12 @@ protected:
 	{
 		CPackageList* pThis;
 		std::map<std::wstring, SPackagePtr> OldList;
+		std::map<std::wstring, SPackagePtr> NewList;
 	};
 
 	static BOOLEAN EnumCallBack(PVOID param, void* AppPackage, void* AppPackage2);
 
-	std::shared_mutex  m_Mutex;
+	//std::shared_mutex  m_Mutex;
 
 	std::map<std::wstring, SPackagePtr> m_List; // by PackageFullName
 	//std::multimap<std::wstring, SPackagePtr> m_ListBySID;

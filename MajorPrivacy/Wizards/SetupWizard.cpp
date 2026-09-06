@@ -114,7 +114,7 @@ bool CSetupWizard::ShowWizard(int iOldLevel)
         theCore->SetConfig("Service/SaveTrafficRecord", wizard.field("recordNet").toBool());
         theCore->SetConfig("Service/NetLog", wizard.field("logNet").toBool());
 
-        if (wizard.field("enableFw").toBool() && wizard.field("collectNet").toBool())
+        if (wizard.field("collectNet").toBool())
 			theCore->SetAuditPolicy(FwAuditPolicy::All);
         //
 
@@ -303,7 +303,7 @@ CWarningPage::CWarningPage(QWidget *parent)
 
     layout->addItem(new QSpacerItem(10, 10, QSizePolicy::Fixed, QSizePolicy::Expanding));
 
-    m_pAcknowledge = new QCheckBox(tr("I acknowledge the risks and take full responsibility for teh rules I create."));
+    m_pAcknowledge = new QCheckBox(tr("I acknowledge the risks and take full responsibility for the rules I create."));
     connect(m_pAcknowledge, &QCheckBox::toggled, this, &QWizardPage::completeChanged);
 
     if(theConf->GetBool("Options/WarningAcknowledged", false)) {
@@ -649,7 +649,7 @@ CNetPage::CNetPage(QWidget *parent)
         layout->addWidget(m_pProtect, row++, 1);
         registerField("protectFw", m_pProtect);
 
-    m_pCollect = new QCheckBox(tr("Collect File/Folder Accesses Events"));
+	m_pCollect = new QCheckBox(tr("Collect Network Access Events (Firewall and DNS)"));
     m_pCollect->setChecked(theCore->GetConfigBool("Service/NetTrace", true));
     layout->addWidget(m_pCollect, row++, 0, 1, 2);
     registerField("collectNet", m_pCollect);
@@ -668,9 +668,6 @@ CNetPage::CNetPage(QWidget *parent)
         m_pRestrict->setEnabled(m_pEnable->isChecked());
         m_pCreate->setEnabled(m_pEnable->isChecked());
         m_pProtect->setEnabled(m_pEnable->isChecked());
-		m_pCollect->setEnabled(m_pEnable->isChecked());
-		m_pRecord->setEnabled(m_pEnable->isChecked());
-		m_pLog->setEnabled(m_pEnable->isChecked());
     });
 
     setLayout(layout);

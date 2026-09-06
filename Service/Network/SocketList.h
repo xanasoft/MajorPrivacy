@@ -67,7 +67,7 @@ public:
 protected:
 	friend class CFirewall;
 	
-	CSocketPtr OnNetworkEvent(EEventType Type, uint64 ProcessId, uint32 ProtocolType, uint32 TransferSize,
+	CSocketPtr OnNetworkEvent(EEventType Type, uint64 ProcessId, const std::wstring& ProcessFileName, uint32 ProtocolType, uint32 TransferSize,
 		CAddress LocalAddress, uint16 LocalPort, CAddress RemoteAddress, uint16 RemotePort, uint64 TimeStamp);
 
 	CSocketPtr OnFwLogEvent(const struct SWinFwLogEvent* pEvent);

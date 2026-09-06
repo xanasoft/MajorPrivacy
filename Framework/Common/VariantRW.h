@@ -26,6 +26,12 @@ public:
 	CVariantReader(const FW::CVariant& Variant) : m_Variant(Variant) {}
 	~CVariantReader() { End(); }
 
+	CVariant Data() const		{ return m_Variant; }
+	
+	bool IsMap() const			{ return m_Variant.IsMap(); }
+	bool IsList() const			{ return m_Variant.IsList(); }
+	bool IsIndex() const		{ return m_Variant.IsIndex(); }
+
 	typedef CVariant::EResult EResult;
 
 	bool Begin();
@@ -185,11 +191,11 @@ public:
 	EResult Write(const char* Name, const double& val)				{return WriteValue(Name, VAR_TYPE_DOUBLE, sizeof(double), &val);}
 #endif
 
-	EResult Write(const char* Name, const char* str)				{return WriteValue(Name, VAR_TYPE_ASCII, strlen(str), str);}
+	EResult Write(const char* Name, const char* str)				{return WriteValue(Name, VAR_TYPE_ASCII, str ? strlen(str) : 0, str);}
 	EResult Write(const char* Name, const wchar_t* wstr, size_t len, bool bUtf8 = false)
 	{
 		EResult Res;
-		if (len == -1) len = wcslen(wstr);
+		if (len == -1) len = wstr ? wcslen(wstr) : 0;
 		if (bUtf8)
 			Res = Write(Name, ToUtf8(m_Buffer.Allocator(), wstr, len));
 		else
@@ -234,11 +240,11 @@ public:
 	EResult Write(const double& val)			{return WriteValue(VAR_TYPE_DOUBLE, sizeof(double), &val);}
 #endif
 
-	EResult Write(const char* str)				{return WriteValue(VAR_TYPE_ASCII, strlen(str), str);}
+	EResult Write(const char* str)				{return WriteValue(VAR_TYPE_ASCII, str ? strlen(str) : 0, str);}
 	EResult Write(const wchar_t* wstr, size_t len, bool bUtf8 = false)
 	{
 		EResult Res;
-		if (len == -1) len = wcslen(wstr);
+		if (len == -1) len = wstr ? wcslen(wstr) : 0;
 		if (bUtf8) 
 			Res = Write(ToUtf8(m_Buffer.Allocator(), wstr, len));
 		else
@@ -282,11 +288,11 @@ public:
 	EResult Write(uint32 Index, const double& val)			{return WriteValue(Index, VAR_TYPE_DOUBLE, sizeof(double), &val);}
 #endif
 
-	EResult Write(uint32 Index, const char* str)			{return WriteValue(Index, VAR_TYPE_ASCII, strlen(str), str);}
+	EResult Write(uint32 Index, const char* str)			{return WriteValue(Index, VAR_TYPE_ASCII, str ? strlen(str) : 0, str);}
 	EResult Write(uint32 Index, const wchar_t* wstr, size_t len, bool bUtf8 = false)
 	{
 		EResult Res;
-		if (len == -1) len = wcslen(wstr);
+		if (len == -1) len = wstr ? wcslen(wstr) : 0;
 		if (bUtf8) 
 			Res = Write(Index, ToUtf8(m_Buffer.Allocator(), wstr, len));
 		else

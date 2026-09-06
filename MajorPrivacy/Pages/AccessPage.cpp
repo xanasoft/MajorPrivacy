@@ -153,7 +153,7 @@ void CAccessPage::Update()
 	}
 }
 
-void CAccessPage::Update(const QString& VolumeRoot, const QString& VolumeImage)
+void CAccessPage::Update(const QString& VolumeRoot, const QString& VolumeImage, const QString& MountPoint)
 {
 	if (!isVisible() || !m_bEmbedded)
 		return;
@@ -163,7 +163,7 @@ void CAccessPage::Update(const QString& VolumeRoot, const QString& VolumeImage)
 
 	if (m_pRuleView->isVisible())
 	{
-		m_pRuleView->Sync(theCore->AccessManager()->GetAccessRules(), VolumeRoot, VolumeImage);
+		m_pRuleView->Sync(theCore->AccessManager()->GetAccessRules(), VolumeRoot, VolumeImage, MountPoint);
 	}
 
 	if (m_pHandleView->isVisible())

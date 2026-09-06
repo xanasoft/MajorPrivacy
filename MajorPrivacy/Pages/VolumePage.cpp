@@ -49,7 +49,7 @@ void CVolumePage::Update()
 	
 	m_pVolumeView->Sync();
 
-	m_pAccessPage->Update(m_pVolumeView->GetSelectedVolumePath(), m_pVolumeView->GetSelectedVolumeImage());
+	m_pAccessPage->Update(m_pVolumeView->GetSelectedVolumePath(), m_pVolumeView->GetSelectedVolumeImage(), m_pVolumeView->GetSelectedVolumeMount());
 }
 
 void CVolumePage::Clear()

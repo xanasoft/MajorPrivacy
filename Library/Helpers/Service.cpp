@@ -154,25 +154,23 @@ SVC_STATE GetServiceState(PCWSTR Name)
     if (!scmHandle)
         return SVC_SCM_ERROR;
 
-    CScopedHandle serviceHandle(OpenService(scmHandle, Name, SERVICE_INTERROGATE), CloseServiceHandle);
+    CScopedHandle serviceHandle(OpenService(scmHandle, Name, SERVICE_QUERY_STATUS), CloseServiceHandle);
     if (!serviceHandle)
         return SVC_NOT_FOUND;
 
-    /*DWORD dwBytesNeeded;
-	SERVICE_STATUS_PROCESS svcStatus;
-    if (!QueryServiceStatusEx(serviceHandle, SC_STATUS_PROCESS_INFO, (LPBYTE)&svcStatus, sizeof(SERVICE_STATUS_PROCESS), &dwBytesNeeded))
-        return SVC_INSTALLED;*/
-
     SERVICE_STATUS svcStatus;
-    if (!ControlService(serviceHandle, SERVICE_CONTROL_INTERROGATE, &svcStatus)) 
+    if (!QueryServiceStatus(serviceHandle, &svcStatus))
+        return SVC_INSTALLED;
+
+    switch (svcStatus.dwCurrentState)
     {
-        if (GetLastError() == ERROR_SERVICE_NOT_ACTIVE)
-            svcStatus.dwCurrentState = SERVICE_STOPPED;
-        else
-            return SVC_INSTALLED;
+    case SERVICE_RUNNING:
+        return SVC_RUNNING;
+    case SERVICE_START_PENDING:
+        return SVC_STARTING;
+    default:
+        return SVC_INSTALLED;
     }
-    
-    return svcStatus.dwCurrentState == SERVICE_RUNNING ? SVC_RUNNING : SVC_INSTALLED;
 }
 
 STATUS RunService(PCWSTR Name)

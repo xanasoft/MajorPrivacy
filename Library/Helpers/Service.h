@@ -19,8 +19,10 @@ LIBRARY_EXPORT STATUS InstallService(PCWSTR Name, PCWSTR FilePath, PCWSTR Displa
 enum SVC_STATE {
     SVC_NOT_FOUND = 0x00,
     SVC_INSTALLED = 0x01,
-    SVC_RUNNING   = 0x03,
-    SVC_SCM_ERROR = 0x04,
+    SVC_RUNNING   = 0x03,  // SVC_INSTALLED | 0x02
+    SVC_STARTING  = 0x05,  // SVC_INSTALLED | 0x04 - service is starting up
+
+    SVC_SCM_ERROR = 0x80000000,
 };
 
 LIBRARY_EXPORT SVC_STATE GetServiceState(PCWSTR Name);

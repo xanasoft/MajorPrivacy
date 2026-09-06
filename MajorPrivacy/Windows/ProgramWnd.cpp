@@ -15,6 +15,8 @@
 CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 	: QDialog(parent)
 {
+	setAttribute(Qt::WA_DeleteOnClose);
+
 	Qt::WindowFlags flags = windowFlags();
 	flags |= Qt::CustomizeWindowHint;
 	//flags &= ~Qt::WindowContextHelpButtonHint;
@@ -135,7 +137,6 @@ CProgramWnd::CProgramWnd(CProgramItemPtr pProgram, QWidget* parent)
 
 CProgramWnd::~CProgramWnd()
 {
-
 	theConf->SetBlob("ProgramWindow/Window_Geometry", saveGeometry());
 }
 

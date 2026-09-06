@@ -19,6 +19,13 @@ CEventView::CEventView(QWidget *parent)
 	m_pEventToolBar = new QToolBar();
 	m_pMainLayout->addWidget(m_pEventToolBar, 1, 0);
 
+	m_pBtnShowMore = new QToolButton();
+	m_pBtnShowMore->setIcon(QIcon(":/Icons/List.png"));
+	m_pBtnShowMore->setCheckable(true);
+	m_pBtnShowMore->setToolTip(tr("Show Verbose Log"));
+	m_pBtnShowMore->setMaximumHeight(22);
+	m_pEventToolBar->addWidget(m_pBtnShowMore);
+
 	m_pBtnClear = new QToolButton();
 	m_pBtnClear->setIcon(QIcon(":/Icons/Trash.png"));
 	m_pBtnClear->setToolTip(tr("Clear Privacy Event Log"));
@@ -59,6 +66,8 @@ void CEventView::OnClearEventLog()
 
 void CEventView::Update()
 {
+	bool bShowAll = m_pBtnShowMore->isChecked();
+
 	auto Entries = theCore->EventLog()->GetEntries();
 
 	QMap<quint64, QTreeWidgetItem*> Old;
@@ -67,10 +76,13 @@ void CEventView::Update()
 		quint64 Ref = pItem->data(eName, Qt::UserRole).toULongLong();
 		Q_ASSERT(!Old.contains(Ref));
 		Old.insert(Ref, pItem);
-	}	
+	}
 
 	foreach(const CEventLogEntryPtr& pEntry, Entries)
 	{
+		if (!bShowAll && pEntry->GetEventLevel() == ELogLevels::eNone)
+			continue;
+
 		quint64 Ref = pEntry->GetUID();
 		QTreeWidgetItem* pItem = Old.take(Ref);
 

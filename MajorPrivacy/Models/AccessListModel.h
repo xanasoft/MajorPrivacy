@@ -24,6 +24,7 @@ public:
 	enum EColumns
 	{
 		eName = 0,
+		eUserName,
 		eLastAccess,
 		eAccess,
 		eStatus,

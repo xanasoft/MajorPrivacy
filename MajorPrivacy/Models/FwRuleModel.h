@@ -41,10 +41,15 @@ public:
 		eLocalPorts,
 		eICMPOptions,
 		eEdgeTraversal,
+		eUsers,
 		eHitCount,
 		eProgram,
 		eCount
 	};
+
+
+private slots:
+	void OnSidResolved(const QByteArray& Sid, const QString& FullName);
 
 protected:
 	struct SRuleNode : STreeNode

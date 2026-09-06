@@ -323,6 +323,13 @@ void CInfoView::ShowCurrent(const CProgramItemPtr& pItem)
 	pDosPath->setText(0, tr("Path: %1").arg(pItem->GetPath()));
 	m_pExtendedInfo->GetTree()->addTopLevelItem(pDosPath);
 
+	CAppInstallationPtr pInstall = pItem.objectCast<CAppInstallation>();
+	if (pInstall) {
+		QTreeWidgetItem* pRegKey = new QTreeWidgetItem();
+		pRegKey->setText(0, tr("Key: %1").arg(pInstall->GetRegKey()));
+		m_pExtendedInfo->GetTree()->addTopLevelItem(pRegKey);
+	}
+
 	auto Groups = pItem->GetGroups();
 
 	if (Groups.count() > 0) {

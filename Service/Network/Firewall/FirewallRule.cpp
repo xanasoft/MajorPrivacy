@@ -4,6 +4,7 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "..\..\Processes\Process.h"
 #include "../Library/Common/Strings.h"
+#include <algorithm>
 #include "../../Library/Helpers/AppUtil.h"
 #include "../../ServiceCore.h"
 #include "../../Programs/ProgramManager.h"
@@ -28,11 +29,33 @@ CFirewallRule::CFirewallRule(const std::shared_ptr<struct SWindowsFwRule>& Rule)
 	if(AppContainerSid.empty() && !m_FwRule->PackageFamilyName.empty())
 		AppContainerSid = GetAppContainerSidFromName(m_FwRule->PackageFamilyName);
 	m_ProgramID = CProgramID::FromFw(m_BinaryPath, m_FwRule->ServiceTag, AppContainerSid);
+
+	SetPrincipalSddl(m_FwRule->LocalUserAuthorizationList);
 }
 
 CFirewallRule::~CFirewallRule()
 {
 
+}
+
+std::shared_ptr<CFirewallRule> CFirewallRule::Clone(bool CloneGuid) const
+{
+	std::shared_lock Lock(m_Mutex);
+
+	std::shared_ptr<CFirewallRule> pRule = std::make_shared<CFirewallRule>(std::make_shared<struct SWindowsFwRule>(*m_FwRule));
+
+	pRule->SetPrincipalSddl(m_PrincipalSddl);
+
+	pRule->m_State = m_State;
+	pRule->m_OriginalGuid = m_OriginalGuid;
+
+	pRule->m_Source = m_Source;
+	pRule->m_TemplateGuid = m_TemplateGuid;
+
+	pRule->m_bTemporary = m_bTemporary;
+	pRule->m_uTimeOut = m_uTimeOut;
+
+	return pRule;
 }
 
 bool CFirewallRule::Match(const std::shared_ptr<struct SWindowsFwRule>& Rule)const
@@ -71,6 +94,9 @@ bool CFirewallRule::Match(const std::shared_ptr<struct SWindowsFwRule>& RuleL, c
 		if (AppSidMissmatch || AppPFNMissmatch)
 			return false;
 	}
+
+	if (_wcsicmp(RuleL->LocalUserAuthorizationList.c_str(), RuleR->LocalUserAuthorizationList.c_str()) != 0)
+		return false;
 
 	//if (_wcsicmp(RuleL->LocalUserOwner.c_str(), RuleR->LocalUserOwner.c_str()) != 0)
 	//	return false; // this is metadata only (has no effect on fitlering) and we can NOT set it
@@ -114,12 +140,16 @@ void CFirewallRule::Update(const std::shared_ptr<struct SWindowsFwRule>& Rule)
 
 	m_FwRule = Rule;
 
+	SetPrincipalSddl(m_FwRule->LocalUserAuthorizationList);
+
 	m_bTemporary = _wcsnicmp(m_FwRule->Grouping.c_str(), L"#Temporary", 10) == 0;
 }
 
 void CFirewallRule::Update(const std::shared_ptr<CFirewallRule>& pRule)
 {
 	std::unique_lock Lock(m_Mutex);
+
+	SetPrincipalSddl(pRule->m_PrincipalSddl);
 
 	m_State = pRule->m_State;
 	m_OriginalGuid = pRule->m_OriginalGuid;
@@ -147,7 +177,7 @@ std::wstring CFirewallRule::GetName() const
 void CFirewallRule::SetAsBackup(bool bRemoved, bool bProgramChanged)
 {
 	std::unique_lock Lock(m_Mutex);
-	m_State = EFwRuleState::eBackup;
+	//m_State = EFwRuleState::eBackup;
 	//
 	// Special case when the program of a rule changed,
 	// in such scenario we behave as if a new rule for the new program woudl have been created
@@ -235,5 +265,70 @@ bool CFirewallRule::FromVariant(const StVariant& Rule)
 	if (theCore->ProgramManager()->IsNtOsKrnl(m_BinaryPath))
 		m_FwRule->BinaryPath = L"system";
 
+	SetPrincipalSddl(m_PrincipalSddl);
+
 	return true;
+}
+
+void CFirewallRule::SetPrincipalSddl(const std::wstring& PrincipalSddl)
+{
+	if (&m_PrincipalSddl != &PrincipalSddl) m_PrincipalSddl = PrincipalSddl;
+	if (&m_FwRule->LocalUserAuthorizationList != &PrincipalSddl) m_FwRule->LocalUserAuthorizationList = PrincipalSddl;
+
+	// Parse SDDL and populate a new SID table
+	auto newSids = std::make_shared<std::unordered_map<std::wstring, SSidEntryInfo>>();
+	bool bHasApplyEntries = false;
+
+	if (!m_PrincipalSddl.empty()) {
+		// Find DACL section (after "D:")
+		size_t daclPos = m_PrincipalSddl.find(L"D:");
+		if (daclPos != std::wstring::npos) {
+			size_t pos = daclPos + 2;
+
+			while (pos < m_PrincipalSddl.length()) {
+				// Find start of ACE
+				size_t aceStart = m_PrincipalSddl.find(L'(', pos);
+				if (aceStart == std::wstring::npos)
+					break;
+
+				size_t aceEnd = m_PrincipalSddl.find(L')', aceStart);
+				if (aceEnd == std::wstring::npos)
+					break;
+
+				// Extract ACE content
+				std::wstring ace = m_PrincipalSddl.substr(aceStart + 1, aceEnd - aceStart - 1);
+				pos = aceEnd + 1;
+
+				// Parse ACE: type;flags;rights;object_guid;inherit_object_guid;account_sid
+				auto parts = SplitStr(ace, L";");
+				if (parts.size() < 6)
+					continue;
+
+				wchar_t aceType = parts[0].empty() ? 0 : parts[0][0];
+				const std::wstring& aceSid = parts[5];
+
+				if (aceSid.empty())
+					continue;
+
+				SSidEntryInfo info;
+				if (aceType == L'A') {
+					info.Type = ESidEntryType::eApply;
+					bHasApplyEntries = true;
+				} else if (aceType == L'D') {
+					info.Type = ESidEntryType::eExempt;
+				} else {
+					continue;
+				}
+
+				// Store SID in uppercase for case-insensitive comparison
+				std::wstring sidUpper = aceSid;
+				std::transform(sidUpper.begin(), sidUpper.end(), sidUpper.begin(), ::towupper);
+				(*newSids)[sidUpper] = info;
+			}
+		}
+	}
+
+	// Atomically assign the new map
+	m_PrincipalSids = newSids->empty() ? nullptr : newSids;
+	m_bHasApplyEntries = bHasApplyEntries;
 }

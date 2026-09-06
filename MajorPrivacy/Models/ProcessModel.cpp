@@ -124,7 +124,7 @@ QSet<quint64> CProcessModel::Sync(QHash<quint64, CProcessPtr> ProcessList)
 				case eParentPID:			Value = pProcess->GetParentId(); break;
 				case eEnclave:				Value = pProcess->GetEnclaveGuid().ToQV(); break;
 				case eTrustLevel:			Value = pProcess->GetSignInfo().GetUnion(); break;
-				case eSID:					Value = pProcess->GetUserName(); break;
+				case eSID:					Value = pProcess->GetUser(); break;
 				case eStatus:				Value = pProcess->GetStatusStr(); break;
 				case eImageStats:			Value = pProcess->GetImgStats(); break;
 				case eHandles:				Value = pProcess->GetHandleCount(); break;

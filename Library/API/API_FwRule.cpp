@@ -35,6 +35,10 @@ void CFwRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteEx(API_V_FILE_PATH, TO_STR(m_BinaryPath));
     Rule.WriteEx(API_V_SERVICE_TAG, TO_STR(M(ServiceTag)));
     Rule.WriteEx(API_V_APP_SID, TO_STR(M(AppContainerSid)));
+#ifdef CFwRule
+    //Rule.WriteEx(API_V_AUTH, TO_STR(M(LocalUserAuthorizationList)));
+    Rule.WriteEx(API_V_PRINCIPAL_SDDL, TO_STR(m_PrincipalSddl));
+#endif
     Rule.WriteEx(API_V_OWNER, TO_STR(M(LocalUserOwner)));
     Rule.WriteEx(API_V_APP_NAME, TO_STR(M(PackageFamilyName)));
 
@@ -106,6 +110,10 @@ void CFwRule::ReadIValue(uint32 Index, const XVariant& Data)
     case API_V_FILE_PATH: m_BinaryPath = AS_STR(Data); break;
     case API_V_SERVICE_TAG: M(ServiceTag) = AS_STR(Data); break;
     case API_V_APP_SID: M(AppContainerSid) = AS_STR(Data); break;
+#ifdef CFwRule
+    //case API_V_AUTH: M(LocalUserAuthorizationList) = AS_STR(Data); break;
+	case API_V_PRINCIPAL_SDDL: m_PrincipalSddl = AS_STR(Data); break;
+#endif
     case API_V_OWNER: M(LocalUserOwner) = AS_STR(Data); break;
     case API_V_APP_NAME: M(PackageFamilyName) = AS_STR(Data); break;
 
@@ -182,7 +190,7 @@ void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
 	switch (m_State) {
 	case EFwRuleState::eUnapproved: Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_UNAPPROVED); break;
 	case EFwRuleState::eApproved:   Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_APPROVED); break;
-    case EFwRuleState::eBackup:     Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_BACKUP); break;
+    //case EFwRuleState::eBackup:     Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_BACKUP); break;
 	case EFwRuleState::eUnapprovedDisabled: Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_UNAPPROVED_DISABLED); break;
 	case EFwRuleState::eDiverged:   Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_DIVERGED); break;
 	//case EFwRuleState::eDeleted:	Rule.Write(API_S_RULE_STATE, API_S_RULE_STATE_DELETED); break;
@@ -207,6 +215,10 @@ void CFwRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) const
     Rule.WriteEx(API_S_FILE_PATH, TO_STR(m_BinaryPath));
     Rule.WriteEx(API_S_SERVICE_TAG, TO_STR(M(ServiceTag)));
     Rule.WriteEx(API_S_APP_SID, TO_STR(M(AppContainerSid)));
+#ifdef CFwRule
+    //Rule.WriteEx(API_S_AUTH, TO_STR(M(LocalUserAuthorizationList)));
+	Rule.WriteEx(API_S_PRINCIPAL_SDDL, TO_STR(m_PrincipalSddl));
+#endif
     Rule.WriteEx(API_S_OWNER, TO_STR(M(LocalUserOwner)));
     Rule.WriteEx(API_S_APP_NAME, TO_STR(M(PackageFamilyName)));
 
@@ -298,8 +310,8 @@ void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
             m_State = EFwRuleState::eUnapproved;
         else if (State == API_S_RULE_STATE_APPROVED)
             m_State = EFwRuleState::eApproved;
-        else if (State == API_S_RULE_STATE_BACKUP)
-            m_State = EFwRuleState::eBackup;
+        //else if (State == API_S_RULE_STATE_BACKUP)
+        //    m_State = EFwRuleState::eBackup;
 		else if (State == API_S_RULE_STATE_UNAPPROVED_DISABLED)
 			m_State = EFwRuleState::eUnapprovedDisabled;
         else if (State == API_S_RULE_STATE_DIVERGED)
@@ -343,6 +355,12 @@ void CFwRule::ReadMValue(const SVarName& Name, const XVariant& Data)
         M(ServiceTag) = AS_STR(Data);
     else if (VAR_TEST_NAME(Name, API_S_APP_SID))
         M(AppContainerSid) = AS_STR(Data);
+#ifdef CFwRule
+    //else if (VAR_TEST_NAME(Name, API_S_AUTH))
+    //    M(LocalUserAuthorizationList) = AS_STR(Data);
+    else if (VAR_TEST_NAME(Name, API_S_PRINCIPAL_SDDL))
+		m_PrincipalSddl = AS_STR(Data);
+#endif
     else if (VAR_TEST_NAME(Name, API_S_OWNER))
         M(LocalUserOwner) = AS_STR(Data);
     else if (VAR_TEST_NAME(Name, API_S_APP_NAME))

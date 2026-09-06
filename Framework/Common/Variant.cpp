@@ -66,7 +66,7 @@ CVariant::EResult CVariant::Throw(EResult Error)
 	// check if we got a valid variant, and with the ref mechanism we can return empty refs without any problem
 	//
 
-	if (Error != eErrNotFound)
+	if (Error != eErrNotFound) 
 	{
 #ifdef KERNEL_DEBUG
 		DbgPrintEx(DPFLTR_DEFAULT_ID, 0xFFFFFFFF, "CVariant::Throw: %s\n", ErrorString(Error));
@@ -475,7 +475,7 @@ uint32 CVariant::ReadHeader(const CBuffer* pPacket, EType* pType)
 			Size = pPacket->ReadValue<uint8>(&bOk);
 		else if ((Type & VAR_LEN_MASK) == VAR_LEN16)
 			Size = pPacket->ReadValue<uint16>(&bOk);
-		else //if ((Type & VAR_LEN_MASK) == VAR_LEN32) // VAR_LEN32 or packed in eider case teh length is 32 bit 
+		else //if ((Type & VAR_LEN_MASK) == VAR_LEN32) // VAR_LEN32 or packed in eider case the length is 32 bit 
 			Size = pPacket->ReadValue<uint32>(&bOk);
 		if (!bOk) 
 			return 0xFFFFFFFF;

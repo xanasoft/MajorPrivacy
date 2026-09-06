@@ -22,8 +22,9 @@ void CGenericRule::WriteIVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 		Rule.WriteVariant(API_V_ENCLAVE, m_Enclave.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Rule.Allocator()));
 #endif
 
-	Rule.WriteEx(API_V_USER, TO_STR(m_User));
-	Rule.WriteVariant(API_V_USER_SID, m_UserSid);
+	//Rule.WriteEx(API_V_USER, TO_STR(m_User));
+	//Rule.WriteVariant(API_V_USER_SID, m_UserSid);
+	Rule.WriteEx(API_V_PRINCIPAL_SDDL, TO_STR(m_PrincipalSddl));
 
 	Rule.Write(API_V_TEMP, m_bTemporary);
 	Rule.Write(API_V_TIMEOUT, m_uTimeOut);
@@ -52,8 +53,9 @@ void CGenericRule::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_ENCLAVE:		m_Enclave.FromVariant(Data); break;
 #endif
 
-	case API_V_USER:		m_User = AS_STR(Data); break;
-	case API_V_USER_SID:	m_UserSid = Data.Clone(); break;
+	//case API_V_USER:		m_User = AS_STR(Data); break;
+	//case API_V_USER_SID:	m_UserSid = Data.Clone(); break;
+	case API_V_PRINCIPAL_SDDL: m_PrincipalSddl = AS_STR(Data); break;
 
 	case API_V_TEMP:		m_bTemporary = Data.To<bool>(); break;
 	case API_V_TIMEOUT:		m_uTimeOut = Data.To<uint64>(); break;
@@ -88,8 +90,9 @@ void CGenericRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 		Rule.WriteVariant(API_S_ENCLAVE, m_Enclave.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Rule.Allocator()));
 #endif
 
-	Rule.WriteEx(API_S_USER, TO_STR(m_User));
-	Rule.WriteVariant(API_S_USER_SID, m_UserSid);
+	//Rule.WriteEx(API_S_USER, TO_STR(m_User));
+	//Rule.WriteVariant(API_S_USER_SID, m_UserSid);
+	Rule.WriteEx(API_S_PRINCIPAL_SDDL, TO_STR(m_PrincipalSddl));
 
 	Rule.Write(API_S_TEMP, m_bTemporary);
 	Rule.Write(API_S_TIMEOUT, m_uTimeOut);
@@ -116,8 +119,9 @@ void CGenericRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 	else if (VAR_TEST_NAME(Name, API_S_ENCLAVE))		m_Enclave.FromVariant(Data);
 #endif
 
-	else if (VAR_TEST_NAME(Name, API_S_USER))			m_User = AS_STR(Data);
-	else if (VAR_TEST_NAME(Name, API_S_USER_SID))		m_UserSid = Data.Clone();
+	//else if (VAR_TEST_NAME(Name, API_S_USER))			m_User = AS_STR(Data);
+	//else if (VAR_TEST_NAME(Name, API_S_USER_SID))		m_UserSid = Data.Clone();
+	else if (VAR_TEST_NAME(Name, API_S_PRINCIPAL_SDDL))	m_PrincipalSddl = AS_STR(Data);
 
 	else if (VAR_TEST_NAME(Name, API_S_TEMP))			m_bTemporary = Data.To<bool>();
 	else if (VAR_TEST_NAME(Name, API_S_TIMEOUT))		m_uTimeOut = Data.To<uint64>();

@@ -125,12 +125,6 @@ CStatusView::CStatusView(QWidget *parent)
 	m_pMainLayout->addWidget(m_pTweakBox);
 	m_pTweakBox->setFixedHeight(height);
 
-	m_pPresetView = new CPresetView();
-	m_pPresetView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	m_pMainLayout->addWidget(m_pPresetView);
-	m_pPresetView->setFixedHeight(height);
-	m_pPresetView->setMinimumWidth(320);
-
 
 	// set black background
 	/*QPalette pal = palette();
@@ -190,7 +184,7 @@ void CStatusView::Update()
 			auto pInfo = Ret.GetValue();
 
 			CBuffer FP(8); // 64 bits
-			CEncryption::GetKeyFromPW(pInfo->PubKey, FP, 1048576); // 2^20 iterations
+			CEncryption::GetKeyFromPWOld(pInfo->PubKey, CBuffer(), FP, 1048576); // 2^20 iterations
 			m_pSecKey->setText(tr("User Key: %1").arg(QString::fromLatin1(QByteArray((char*)FP.GetBuffer(), (int)FP.GetSize()).toHex().toUpper())));
 
 			CBuffer Hash(64);
@@ -309,6 +303,4 @@ void CStatusView::Update()
 	//m_pTweakStatus->setText(tr("Status"));
 	m_pTweakApplied->setText(tr("Applied Tweaks: %1").arg(theCore->TweakManager()->GetAppliedCount()));
 	m_pTweakFailed->setText(tr("Failed Tweaks: %1").arg(theCore->TweakManager()->GetFailedCount()));
-
-	m_pPresetView->Update();
 }

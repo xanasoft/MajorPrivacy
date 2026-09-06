@@ -36,6 +36,7 @@ private:
 
 	QToolBar*				m_pEventToolBar;
 	QToolButton*			m_pBtnClear;
+	QToolButton*			m_pBtnShowMore;
 
 	CPanelWidgetEx*			m_pInfo;
 };

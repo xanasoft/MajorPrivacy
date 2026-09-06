@@ -17,6 +17,8 @@ public:
 protected:
 	friend class CProgramManager;
 
+	void ClearNodes() { std::unique_lock lock(m_Mutex); m_Nodes.clear(); }
+
 	void WriteIVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const override;
 	void WriteMVariant(StVariantWriter& Data, const SVarWriteOpt& Opts) const override;
 	void ReadIValue(uint32 Index, const StVariant& Data) override;

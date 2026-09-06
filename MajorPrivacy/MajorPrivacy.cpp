@@ -16,6 +16,7 @@
 #include "Pages/DnsPage.h"
 #include "Core/Programs/ProgramManager.h"
 #include "Pages/TweakPage.h"
+#include "Pages/PresetPage.h"
 #include "Pages/VolumePage.h"
 #include "Pages/EnclavePage.h"
 #include "Windows/SettingsWindow.h"
@@ -194,16 +195,16 @@ void CMajorPrivacy::UpdateTitle()
 	Title += " v" + Version;
 
 	if (!theCore->Service()->IsConnected())
-		Title += "   -   NOT CONNECTED";
+		Title += tr("   -   NOT CONNECTED");
 	
 	if (theCore->Driver()->IsConnected())
 	{
 		if (!g_CertInfo.active)
 		{
 			if(theCore->HasDriverRules())
-				Title += "   -   !!! WARNING: Rules are NOT being enforced (no valid license found) !!!";
+				Title += tr("   -   !!! WARNING: Rules are NOT being enforced (no valid license found) !!!");
 			else
-				Title += "   -   Free Mode";
+				Title += tr("   -   Free Mode");
 		}
 		else
 		{
@@ -211,13 +212,12 @@ void CMajorPrivacy::UpdateTitle()
 
 			m_HasUserKey = !Ret.IsError();
 			//m_pSignFile->setEnabled(!Ret.IsError());
-			m_pClearKeys->setEnabled(!Ret.IsError());
 			m_pMakeKeyPair->setEnabled(Ret.IsError());
+			m_pChangePassword->setEnabled(!Ret.IsError());
+			m_pClearKeys->setEnabled(!Ret.IsError());
 
 			if (!Ret.IsError())
 			{
-				m_pMakeKeyPair->setEnabled(false);
-
 				auto pInfo = Ret.GetValue();
 
 				//
@@ -234,9 +234,9 @@ void CMajorPrivacy::UpdateTitle()
 					//
 
 					CBuffer FP(8); // 64 bits
-					CEncryption::GetKeyFromPW(pInfo->PubKey, FP, 1048576); // 2^20 iterations
+					CEncryption::GetKeyFromPWOld(pInfo->PubKey, CBuffer(), FP, 1048576); // 2^20 iterations
 
-					Title += "   -   USER KEY: " + QByteArray((char*)FP.GetBuffer(), (int)FP.GetSize()).toHex().toUpper();
+					Title += tr("   -   USER KEY: ") + QByteArray((char*)FP.GetBuffer(), (int)FP.GetSize()).toHex().toUpper();
 				}
 				else
 				{
@@ -247,7 +247,7 @@ void CMajorPrivacy::UpdateTitle()
 					CBuffer Hash(64);
 					CHashFunction::Hash(pInfo->PubKey, Hash);
 
-					Title += "   -   USER KEY: " + QByteArray((char*)Hash.GetBuffer(), (int)Hash.GetSize()).toHex().toUpper();
+					Title += tr("   -   USER KEY: ") + QByteArray((char*)Hash.GetBuffer(), (int)Hash.GetSize()).toHex().toUpper();
 				}
 			}
 		}
@@ -256,9 +256,16 @@ void CMajorPrivacy::UpdateTitle()
 	{
 		m_HasUserKey = false;
 		//m_pSignFile->setEnabled(false);
-		m_pClearKeys->setEnabled(false);
 		m_pMakeKeyPair->setEnabled(false);
+		m_pChangePassword->setEnabled(false);
+		m_pClearKeys->setEnabled(false);
 	}
+
+	if (theConf->GetBool("Options/ShowHostName", true))
+		Title += tr("   -   %1").arg(QHostInfo::localHostName());
+
+	if (IsElevated())
+		Title += tr(" (Administrator)");
 
 	setWindowTitle(Title);
 }
@@ -441,7 +448,11 @@ void CMajorPrivacy::UpdateLockStatus(bool bOnConnect)
 		else if ((uConfigStatus & CONFIG_STATUS_REVERTED) != 0)
 			QMessageBox::warning(this, "MajorPrivacy", tr("The current driver configuration was not loaded due to to many faild boot atempts, the last presumably good config was loaded instead."));
 		else if ((uConfigStatus & CONFIG_STATUS_SUPRESSED) != 0)
-			QMessageBox::warning(this, "MajorPrivacy", tr("The current driver configuration was not loaded due to to many faild boot atempts."));
+		{
+			if (QMessageBox::question(this, "MajorPrivacy", tr("The current driver configuration was not loaded due to to many faild boot atempts.\n"
+			 "Do you want to re-try loading the latest configuration?")) == QMessageBox::Yes)
+				theCore->Driver()->DiscardConfigChanges();
+		}
 	}
 }
 
@@ -506,12 +517,14 @@ STATUS CMajorPrivacy::Connect()
 			.arg(CProcess::GetSecStateStr(theCore->Driver()->GetCurProcSecState())), 30000);
 
 #ifndef _DEBUG
-		if (theCore->IsSvcHighSecurity() && (!theCore->Driver()->IsCurProcMaxSecurity() && (theCore->Driver()->IsCurProcHighSecurity() || theCore->Driver()->IsCurProcLowSecurity())))
+		if (theCore->IsSvcHighSecurity() && (!theCore->Driver()->IsCurProcMaxSecurity() && (theCore->Driver()->IsCurProcHighSecurity() || theCore->Driver()->IsCurProcLowSecurity())) && !QApplication::arguments().contains("-sync_drv"))
+		//if (theCore->IsSvcHighSecurity() && !theCore->Driver()->IsCurProcDevTrusted() && !QApplication::arguments().contains("-sync_drv"))
 		{
 			((QtSingleApplication*)qApp->instance())->disableSingleApp();
 			QString CommandLine = "\"" + qApp->applicationFilePath().replace("/", "\\") + "\"";
 			for(int i = 1; i < qApp->arguments().size(); i++)
 				CommandLine += " \"" + QString(qApp->arguments().at(i)).replace("\"", "\"\"") + "\"";
+			CommandLine += " -sync_drv";
 
 			STATUS Status = theCore->StartProcessBySvc(CommandLine);
 			if(Status.IsError())
@@ -524,7 +537,8 @@ STATUS CMajorPrivacy::Connect()
 		}
 #endif
 
-		if (!theCore->Driver()->TestDevAuthority()) 
+		//if (!theCore->Driver()->TestDevAuthority()) 
+		if (!theCore->Driver()->IsCurProcDevTrusted())
 			QMessageBox::critical(this, "MajorPrivacy", tr("MajorPrivacy's UI is not recognized by the driver!!!"));
 
 		// Log all user config dirs in the global config file for cleanup during uninstall
@@ -600,7 +614,7 @@ void CMajorPrivacy::changeEvent(QEvent* e)
 
 void CMajorPrivacy::closeEvent(QCloseEvent *e)
 {
-	if (!m_bExit)// && !theAPI->IsConnected())
+	if (!m_bExit && theCore->Service()->IsConnected())
 	{
 		QString OnClose = theConf->GetString("Options/OnClose", "ToTray");
 		if (m_pTrayIcon->isVisible() && OnClose.compare("ToTray", Qt::CaseInsensitive) == 0)
@@ -715,6 +729,7 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 		m_DnsPage->Clear();
 		m_VolumePage->Clear();
 		m_TweakPage->Clear();
+		m_PresetPage->Clear();
 	}
 
 
@@ -731,8 +746,8 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 	if (m_ForgetSignerPW && m_ForgetSignerPW < CurTime)
 		m_ForgetSignerPW = 0;
 
-	if(!m_CachedPassword.isEmpty() && !(m_AutoCommitConf || m_ForgetSignerPW))
-		m_CachedPassword.clear();
+	if(!m_CachedPassword.IsEmpty() && !(m_AutoCommitConf || m_ForgetSignerPW))
+		m_CachedPassword.ClearPassword();
 
 
 	if (bVisible)
@@ -781,10 +796,11 @@ void CMajorPrivacy::UpdateViews()
 	m_DnsPage->Update();
 	m_VolumePage->Update();
 	m_TweakPage->Update();
+	m_PresetPage->Update();
 	m_UpdatignView = false;
 
 	uint64 uNow = GetTickCount64();
-	//if(uNow - uStart > 100)
+	if(uNow - uStart > 100)
 		DbgPrint("CMajorPrivacy::UpdateViews took %llu ms\n", uNow - uStart);
 }
 
@@ -924,7 +940,20 @@ void CMajorPrivacy::BuildMenu()
 	m_pCreateVolume = m_pVolumes->addAction(QIcon(":/Icons/MountVolume.png"), tr("Create Volume"), this, SIGNAL(OnCreateVolume()));
 
 	m_pSecurity = menuBar()->addMenu(tr("Security"));
-	m_pUnloadProtection = m_pSecurity->addAction(QIcon(":/Icons/Shield15.png"), tr("Unload Protection"), this, SLOT(OnUnloadProtection()));
+	QIcon unloadProtIcon;
+	unloadProtIcon.addFile(":/Icons/Shield15.png", QSize(), QIcon::Normal, QIcon::Off);
+	/*QPixmap shieldOff(":/Icons/Shield15.png");
+	QPixmap stopOverlay(":/Icons/Stop.png");
+	{
+		QPainter painter(&shieldOff);
+		int overlaySize = shieldOff.width() / 2;
+		QRect targetRect(shieldOff.width() - overlaySize, shieldOff.height() - overlaySize, overlaySize, overlaySize);
+		painter.drawPixmap(targetRect, stopOverlay);
+	}
+	unloadProtIcon.addPixmap(shieldOff, QIcon::Normal, QIcon::On);*/
+	//unloadProtIcon.addPixmap(IconAddOverlay(QIcon(":/Icons/Shield15.png"), ":/Icons/Stop.png").pixmap(QSize()), QIcon::Normal, QIcon::On);
+	unloadProtIcon.addFile(":/Icons/Shield10.png", QSize(), QIcon::Normal, QIcon::On);
+	m_pUnloadProtection = m_pSecurity->addAction(unloadProtIcon, tr("Unload Protection"), this, SLOT(OnUnloadProtection()));
 	m_pUnloadProtection->setCheckable(true);
 	m_pSecurity->addSeparator();
 	m_pProtectConfig = m_pSecurity->addAction(QIcon(":/Icons/LockClosed.png"), tr("Enable Config Protection"), this, SLOT(OnProtectConfig()));
@@ -937,8 +966,8 @@ void CMajorPrivacy::BuildMenu()
 	//});
 	m_pSecurity->addSeparator();
 	m_pMakeKeyPair = m_pSecurity->addAction(QIcon(":/Icons/AddKey.png"), tr("Setup User Key"), this, SLOT(OnMakeKeyPair()));
+	m_pChangePassword = m_pSecurity->addAction(QIcon(":/Icons/ChangeKey.png"), tr("Change Key Password"), this, SLOT(OnChangePassword()));
 	m_pClearKeys = m_pSecurity->addAction(QIcon(":/Icons/RemoveKey.png"), tr("Remove User Key"), this, SLOT(OnClearKeys()));
-	
 
 
 	m_pTools = menuBar()->addMenu(tr("Tools"));
@@ -1077,6 +1106,7 @@ void CMajorPrivacy::BuildGUI()
 	m_NetworkPage = new CNetworkPage(this);
 	m_DnsPage = new CDnsPage(this);
 	m_TweakPage = new CTweakPage(this);
+	m_PresetPage = new CPresetPage(this);
 	m_VolumePage = new CVolumePage(this);
 
 	m_pTabBar = new  QTabBar();
@@ -1089,6 +1119,7 @@ void CMajorPrivacy::BuildGUI()
 	m_pTabBar->addTab(QIcon(":/Icons/Wall3.png"), tr("Network Firewall"));
 	m_pTabBar->addTab(QIcon(":/Icons/Network2.png"), tr("DNS Filtering"));
 	m_pTabBar->addTab(QIcon(":/Icons/Tweaks.png"), tr("Privacy Tweaks"));
+	m_pTabBar->addTab(QIcon(":/Icons/EditIni.png"), tr("Rule Presets"));
 	m_pMainLayout->addWidget(m_pTabBar, 0, 0, 2, 1);
 
 	connect(m_pTabBar, SIGNAL(currentChanged(int)), this, SLOT(OnPageChanged(int)));
@@ -1210,6 +1241,7 @@ void CMajorPrivacy::BuildGUI()
 
 	m_pPageStack->addWidget(m_DnsPage);
 	m_pPageStack->addWidget(m_TweakPage);
+	m_pPageStack->addWidget(m_PresetPage);
 	m_pPageStack->addWidget(m_VolumePage);
 	//m_pPageStack->addWidget(new QWidget()); // logg ???
 
@@ -1453,67 +1485,20 @@ bool CMajorPrivacy::IsAlwaysOnTop() const
 	return m_bOnTop || theConf->GetBool("Options/AlwaysOnTop", false);
 }
 
-STATUS CMajorPrivacy::InitSigner(ESignerPurpose Purpose, class CPrivateKey& PrivateKey)
+bool CMajorPrivacy__TryDecryptSigner(const CSecurePassword& Password, const SUserKeyInfoPtr& pInfo, int iKdf, class CPrivateKey& PrivateKey)
 {
-	auto Ret = theCore->Driver()->GetUserKey();
-	if(Ret.IsError())
-		return Ret.GetStatus();
-	auto pInfo = Ret.GetValue();
-	
-	QString Password;
-
-	switch (Purpose) {
-		case ESignerPurpose::eSignFile:
-		case ESignerPurpose::eSignCert:
-			if (m_ForgetSignerPW)
-				Password = m_CachedPassword;
-			break;
-		case ESignerPurpose::eCommitConfig:
-			if (m_AutoCommitConf)
-				Password = m_CachedPassword;
-			break;
-	}
-
-	int AutoLock = 0;
-	if (Password.isEmpty())
-	{
-		QString Prompt;
-		switch (Purpose) {
-			case ESignerPurpose::eSignFile:		Prompt = tr("Enter Secure Configuration Password, to sign a file"); break;
-			case ESignerPurpose::eSignCert:		Prompt = tr("Enter Secure Configuration Password, to sign a certificate"); break;
-			case ESignerPurpose::eEnableProtection:	Prompt = tr("Enter Secure Configuration Password, to enable config protection."
-				"\nOnce that is done you can not change rules (except windows firewall) without using the user key."); break;
-			case ESignerPurpose::eDisableProtection:	Prompt = tr("Enter Secure Configuration Password, to disable config protection."); break;
-			case ESignerPurpose::eUnlockConfig:	Prompt = tr("Enter Secure Configuration Password, to allow rule editing."); break;
-			case ESignerPurpose::eCommitConfig: Prompt = tr("Enter Secure Configuration Password, to commit changes."); break;
-			case ESignerPurpose::eClearUserKey: Prompt = tr("Enter Secure Configuration Password, to remove the user key."); break;
-			default: return ERR(STATUS_INVALID_PARAMETER);
-		}
-
-		CVolumeWindow window(Prompt, CVolumeWindow::eGetPW, this);
-
-		if(Purpose == ESignerPurpose::eSignFile || Purpose == ESignerPurpose::eSignCert)
-			window.SetAutoLock(0, tr("Remember Password to sign more items for:"));
-		else if (Purpose == ESignerPurpose::eUnlockConfig)
-			window.SetAutoLock(0, tr("Remember Password and commit changes after:"));
-
-		if (theGUI->SafeExec(&window) != 1)
-			return STATUS_OK_CNCELED;
-		Password = window.GetPassword();
-		if (Password.isEmpty())
-			return STATUS_OK_CNCELED;
-
-		AutoLock = window.GetAutoLock();
-	}
-
 	STATUS Status;
+
 	do {
 		CEncryption Encryption;
-		Status = Encryption.SetPassword(CBuffer(Password.utf16(), Password.length() * sizeof(ushort), true));
+		if (iKdf == -1) // legacy old format without salt
+			Status = Encryption.SetPassword(Password, CBuffer(), 0);
+		else
+			Status = Encryption.SetPassword(Password, pInfo->PubKey, iKdf); // use public key as salt
 		if(Status.IsError()) break;
 
 		CBuffer KeyBlob;
-		Encryption.Decrypt(pInfo->EncryptedBlob, KeyBlob);
+		Status = Encryption.Decrypt(pInfo->EncryptedBlob, KeyBlob);
 		if(Status.IsError()) break;
 
 		QtVariant KeyData;
@@ -1534,16 +1519,109 @@ STATUS CMajorPrivacy::InitSigner(ESignerPurpose Purpose, class CPrivateKey& Priv
 
 	} while(0);
 
-	if (!Status.IsError() && AutoLock > 0) 
+	return Status.IsSuccess();
+}
+
+STATUS CMajorPrivacy::InitSigner(ESignerPurpose Purpose, class CPrivateKey& PrivateKey)
+{
+	auto Ret = theCore->Driver()->GetUserKey();
+	if(Ret.IsError())
+		return Ret.GetStatus();
+	auto pInfo = Ret.GetValue();
+	
+	QtVariant InfoData;
+	if (pInfo->InfoBlob.GetSize() > 0)
+		InfoData.FromPacket(&pInfo->InfoBlob);
+
+	CSecurePassword Password;
+	int iKdf = InfoData.Get(API_S_KDF).To<int>(-2);
+
+	switch (Purpose) {
+		case ESignerPurpose::eSignFile:
+		case ESignerPurpose::eSignCert:
+			if (m_ForgetSignerPW) {
+				Password = m_CachedPassword;
+				iKdf = m_CachedKdf;
+			}
+			break;
+		case ESignerPurpose::eCommitConfig:
+			if (m_AutoCommitConf) {
+				Password = m_CachedPassword;
+				iKdf = m_CachedKdf;
+			}
+			break;
+	}
+
+	int AutoLock = 0;
+	if (Password.IsEmpty())
+	{
+		QString Prompt;
+		switch (Purpose) {
+			case ESignerPurpose::eSignFile:		Prompt = tr("Enter Secure Configuration Password, to sign a file"); break;
+			case ESignerPurpose::eSignCert:		Prompt = tr("Enter Secure Configuration Password, to sign a certificate"); break;
+			case ESignerPurpose::eEnableProtection:	Prompt = tr("Enter Secure Configuration Password, to enable config protection."
+				"\nOnce that is done you can not change rules (except windows firewall) without using the user key."); break;
+			case ESignerPurpose::eDisableProtection:	Prompt = tr("Enter Secure Configuration Password, to disable config protection."); break;
+			case ESignerPurpose::eUnlockConfig:	Prompt = tr("Enter Secure Configuration Password, to allow rule editing."); break;
+			case ESignerPurpose::eCommitConfig: Prompt = tr("Enter Secure Configuration Password, to commit changes."); break;
+			case ESignerPurpose::eClearUserKey: Prompt = tr("Enter Secure Configuration Password, to remove the user key."); break;
+			default: return ERR(STATUS_INVALID_PARAMETER);
+		}
+
+		CVolumeWindow window(Prompt, CVolumeWindow::eGetPW, this);
+		//window.SetNoAutoKdf();
+		window.SetKdf(iKdf);
+
+		if(Purpose == ESignerPurpose::eSignFile || Purpose == ESignerPurpose::eSignCert)
+			window.SetAutoLock(0, tr("Remember Password to sign more items for:"));
+		else if (Purpose == ESignerPurpose::eUnlockConfig)
+			window.SetAutoLock(0, tr("Remember Password and commit changes after:"));
+
+		if (theGUI->SafeExec(&window) != 1)
+			return STATUS_OK_CNCELED;
+		Password = window.GetPassword();
+		if (Password.IsEmpty())
+			return STATUS_OK_CNCELED;
+		iKdf = window.GetKdf();
+
+		AutoLock = window.GetAutoLock();
+	}
+
+	int iFoundKdf = -2;
+	if (iKdf <= 0) {
+		if (CMajorPrivacy__TryDecryptSigner(Password, pInfo, 0, PrivateKey))
+			iFoundKdf = 0;
+		if(iFoundKdf == -2) // legacy mode mp <= 0.99.7
+			if(CMajorPrivacy__TryDecryptSigner(Password, pInfo, -1, PrivateKey))
+				iFoundKdf = -1;
+	}
+
+	if (iKdf > 0 && iFoundKdf == -2) {
+		if (CMajorPrivacy__TryDecryptSigner(Password, pInfo, iKdf, PrivateKey))
+			iFoundKdf = iKdf;
+	}
+	else
+	{
+		for (int i = 1; i <= 10 && iFoundKdf == -2; i++) {
+			if (CMajorPrivacy__TryDecryptSigner(Password, pInfo, i, PrivateKey))
+				iFoundKdf = i;
+		}
+	}
+
+	if(iFoundKdf == -2)
+		return ERR(STATUS_ERR_WRONG_PASSWORD);
+
+	if (AutoLock > 0) 
 	{
 		if (Purpose == ESignerPurpose::eSignFile || Purpose == ESignerPurpose::eSignCert)
 			m_ForgetSignerPW = QDateTime::currentSecsSinceEpoch() + AutoLock;
 		else if (Purpose == ESignerPurpose::eUnlockConfig)
 			m_AutoCommitConf = QDateTime::currentSecsSinceEpoch() + AutoLock;
 		m_CachedPassword = Password;
+		m_CachedKdf = iFoundKdf;
 	}
 
-	return Status;
+	return OK;
 }
 
 void CMajorPrivacy::OnSignFile()
@@ -1598,7 +1676,7 @@ STATUS CMajorPrivacy::SignFiles(const QStringList& Paths)
 		if (SignatureFile.open(QIODevice::WriteOnly)) 
 		{
 			QtVariant SigData;
-			// Note: the driver supportrs also teh V version
+			// Note: the driver supportrs also the V version
 			SigData[API_S_VERSION] = DEF_MP_SIG_VERSION;
 			SigData[API_S_SIGNATURE] = Signature;
 
@@ -1643,184 +1721,36 @@ void CMajorPrivacy::OnUnloadProtection()
 	}
 }
 
-void CMajorPrivacy::OnProtectConfig()
+STATUS CMajorPrivacy__SetUserKey(const CSecurePassword& Password, int iKdf, const CBuffer& PrivKey, const CBuffer& PubKey)
 {
-	bool bHardLock = false;
-    int ret = QMessageBox::warning(this, "MajorPrivacy", tr("Would you like to lock down the user key (Yes), or only enable user key signature-based config protection (No)?"
-						"\n\nLocking down the user key will prevent it from being removed or changed, and config protection cannot be disabled until the system is rebooted."
-						"\n\nIf the driver is set to auto-start, it will automatically re-lock the key on reboot!"), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel, QMessageBox::No);
-	if (ret == QMessageBox::Cancel)
-		return;
-	bHardLock = (ret == QMessageBox::Yes);
+	CEncryption Encryption;
+	STATUS Status = Encryption.SetPassword(Password, PubKey, iKdf); // use public key as salt
+	if (Status.IsError()) return Status;
 
+	CBuffer Hash;
+	CHashFunction::Hash(PrivKey, Hash);
+	if (Status.IsError()) return Status;
 
-	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(ESignerPurpose::eEnableProtection, PrivateKey);
-	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
-		CheckResults(QList<STATUS>() << Status, this);
-		return;
-	}
+	QtVariant KeyData;
+	KeyData[API_S_PUB_KEY] = PrivKey;
+	KeyData[API_S_HASH] = Hash;
 
-	CBuffer ConfigHash;
-	Status = theCore->Driver()->GetConfigHash(ConfigHash);
-	if (!Status.IsError())
-	{
-		CBuffer ConfigSignature;
-		PrivateKey.Sign(ConfigHash, ConfigSignature);
+	CBuffer KeyBlob;
+	KeyData.ToPacket(&KeyBlob);
 
-		Status = theCore->Driver()->ProtectConfig(ConfigSignature, bHardLock);
+	CBuffer EncryptedBlob;
+	Status = Encryption.Encrypt(KeyBlob, EncryptedBlob);
+	if (Status.IsError()) return Status;
 
-	}
-	UpdateLockStatus();
-	CheckResults(QList<STATUS>() << Status, this);
-}
+	QtVariant InfoData;
+	InfoData[API_S_KDF] = iKdf;
 
-void CMajorPrivacy::OnUnprotectConfig()
-{
-	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(ESignerPurpose::eDisableProtection, PrivateKey);
-	if (!PrivateKey.IsPrivateKeySet()) { // eider error or user canceled
-		CheckResults(QList<STATUS>() << Status, this);
-		return;
-	}
+	CBuffer InfoBlob;
+	InfoData.ToPacket(&InfoBlob);
 
-	CBuffer ConfigHash;
-	QtVariant Data;
-	if (!m_pClearKeys->isEnabled()) {
-        QMessageBox::warning(this, "MajorPrivacy", tr("The user key is locked. Please reboot the system to complete the removal of the config protection."));
-		Data[API_S_UNLOCK] = true;
-	}
-	Status = theCore->Driver()->GetConfigHash(ConfigHash, Data);
-	if (!Status.IsError())
-	{
-		CBuffer ConfigSignature;
-		PrivateKey.Sign(ConfigHash, ConfigSignature);
-
-		Status = theCore->Driver()->UnprotectConfig(ConfigSignature);
-
-	}
-	UpdateLockStatus();
-	CheckResults(QList<STATUS>() << Status, this);
-}
-
-STATUS CMajorPrivacy::UnlockDrvConfig()
-{
-	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(ESignerPurpose::eUnlockConfig, PrivateKey);
-	if (!PrivateKey.IsPrivateKeySet()) // eider error or user canceled
-		return Status;
-
-	CBuffer Challenge;
-	Status = theCore->Driver()->GetChallenge(Challenge);
-	if (!Status.IsError())
-	{
-		CBuffer Hash;
-		CHashFunction::Hash(Challenge, Hash);
-
-		CBuffer ChallengeResponse;
-		PrivateKey.Sign(Hash, ChallengeResponse);
-
-		Status = theCore->Driver()->UnlockConfig(ChallengeResponse);
-
-	}
-	UpdateLockStatus();
+	Status = theCore->Driver()->SetUserKey(PubKey, EncryptedBlob, InfoBlob);
 
 	return Status;
-}
-
-STATUS CMajorPrivacy::CommitDrvConfig()
-{
-	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
-	if ((uConfigStatus & CONFIG_STATUS_DIRTY) == 0) { // nothign changed
-		theCore->Driver()->DiscardConfigChanges(); // to relock the config
-		return OK;
-	}
-	
-	if ((uConfigStatus & CONFIG_STATUS_PROTECTED) == 0)
-		return theCore->Driver()->StoreConfigChanges();
-	
-	CPrivateKey PrivateKey;
-	STATUS Status = InitSigner(ESignerPurpose::eCommitConfig, PrivateKey);
-	if (!PrivateKey.IsPrivateKeySet()) // eider error or user canceled
-		return Status;
-
-	CBuffer ConfigHash;
-	Status = theCore->Driver()->GetConfigHash(ConfigHash);
-	if (!Status.IsError())
-	{
-		CBuffer ConfigSignature;
-		PrivateKey.Sign(ConfigHash, ConfigSignature);
-
-		Status = theCore->Driver()->CommitConfigChanges(ConfigSignature);
-
-	}
-	return Status;
-}
-
-STATUS CMajorPrivacy::DiscardDrvConfig()
-{
-	uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
-	bool bProtected = (uConfigStatus & CONFIG_STATUS_PROTECTED) != 0;
-	bool bLocked = (uConfigStatus & CONFIG_STATUS_LOCKED) != 0;
-	bool bDirty = (uConfigStatus & CONFIG_STATUS_DIRTY) != 0;
-
-	if (!(bDirty || (bProtected && !bLocked)))
-		return OK;
-
-	return theCore->Driver()->DiscardConfigChanges();
-}
-
-void CMajorPrivacy::OnUnlockConfig()
-{
-	STATUS Status = UnlockDrvConfig();
-	CheckResults(QList<STATUS>() << Status, this);
-}
-
-void CMajorPrivacy::OnCommitConfig()
-{
-	QList<STATUS> Results;
-
-	Results.append(CommitDrvConfig());
-
-	if (m_AutoCommitConf){
-		m_AutoCommitConf = 0;
-		if(!m_ForgetSignerPW)
-			m_CachedPassword.clear();
-	}
-
-	uint32 uConfigStatus = theCore->Service()->GetConfigStatus();
-	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
-	{
-		STATUS Status = theCore->Service()->StoreConfigChanges();
-		Results.append(Status);
-	}
-
-	CheckResults(Results, this);
-}
-
-void CMajorPrivacy::OnDiscardConfig()
-{
-	if (m_pCommitConfig->isEnabled() && QMessageBox::question(this, "MajorPrivacy", tr("Do you really want to discard all changes?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
-		return;
-
-	QList<STATUS> Results;
-
-	if (m_AutoCommitConf){
-		m_AutoCommitConf = 0;
-		if(!m_ForgetSignerPW)
-			m_CachedPassword.clear();
-	}
-
-	Results.append(DiscardDrvConfig());
-
-	uint32 uConfigStatus = theCore->Service()->GetConfigStatus();
-	if ((uConfigStatus & CONFIG_STATUS_DIRTY) != 0)
-	{
-		STATUS Status = theCore->Service()->DiscardConfigChanges();
-		Results.append(Status);
-	}
-
-	CheckResults(Results, this);
 }
 
 STATUS CMajorPrivacy::MakeKeyPair(CPrivateKey* pPrivateKey)
@@ -1828,9 +1758,10 @@ STATUS CMajorPrivacy::MakeKeyPair(CPrivateKey* pPrivateKey)
 	CVolumeWindow window(tr("Set a secure Password to protect the new Private User Key."), CVolumeWindow::eSetPW, this);
 	if (theGUI->SafeExec(&window) != 1)
 		return ERR(STATUS_OK_CNCELED);
-	QString Password = window.GetPassword();
-	if(Password.isEmpty())
+	CSecurePassword Password = window.GetPassword();
+	if(Password.IsEmpty())
 		return ERR(STATUS_OK_CNCELED);
+	int iKdf = window.GetNewKdf();
 
 	STATUS Status;
 	do {
@@ -1843,29 +1774,10 @@ STATUS CMajorPrivacy::MakeKeyPair(CPrivateKey* pPrivateKey)
 		PrivateKey.GetPrivateKey(PrivKey);
 		if (pPrivateKey) pPrivateKey->SetPrivateKey(PrivKey);
 
-		CEncryption Encryption;
-		Status = Encryption.SetPassword(CBuffer(Password.utf16(), Password.length() * sizeof(ushort), true));
-		if(Status.IsError()) break;
-
-		CBuffer Hash;
-		CHashFunction::Hash(PrivKey, Hash);
-		if(Status.IsError()) break;
-
-		QtVariant KeyData;
-		KeyData[API_S_PUB_KEY] = PrivKey;
-		KeyData[API_S_HASH] = Hash;
-
-		CBuffer KeyBlob;
-		KeyData.ToPacket(&KeyBlob);
-
-		CBuffer EncryptedBlob;
-		Status = Encryption.Encrypt(KeyBlob, EncryptedBlob);
-		if(Status.IsError()) break;
-
 		CBuffer PubKey;
 		PublicKey.GetPublicKey(PubKey);
-		Status = theCore->Driver()->SetUserKey(PubKey, EncryptedBlob);
 
+		Status = CMajorPrivacy__SetUserKey(Password, iKdf, PrivKey, PubKey);
 	} while(0);
 
 	UpdateTitle();
@@ -1877,6 +1789,73 @@ void CMajorPrivacy::OnMakeKeyPair()
 {
 	STATUS Status = MakeKeyPair();
 	CheckResults(QList<STATUS>() << Status, this);
+}
+
+void CMajorPrivacy::OnChangePassword()
+{
+	auto Ret = theCore->Driver()->GetUserKey();
+	if (Ret.IsError()) {
+		CheckResults(QList<STATUS>() << Ret.GetStatus(), this);
+		return;
+	}
+	auto pInfo = Ret.GetValue();
+
+	QtVariant InfoData;
+	if (pInfo->InfoBlob.GetSize() > 0)
+		InfoData.FromPacket(&pInfo->InfoBlob);
+
+	CSecurePassword Password;
+	int iKdf = InfoData.Get(API_S_KDF).To<int>(-2);
+
+	QString Prompt = tr("Change Secure Configuration Password");
+		
+	CVolumeWindow window(Prompt, CVolumeWindow::eChange, this);
+	//window.SetNoAutoKdf();
+	window.SetKdf(iKdf);
+
+	if (theGUI->SafeExec(&window) != 1)
+		return;
+	Password = window.GetPassword();
+	iKdf = window.GetKdf();
+
+	CPrivateKey PrivateKey;
+
+	int iFoundKdf = -2;
+	if (iKdf <= 0) {
+		if (CMajorPrivacy__TryDecryptSigner(Password, pInfo, 0, PrivateKey))
+			iFoundKdf = 0;
+		if(iFoundKdf == -2) // legacy mode mp <= 0.99.7
+			if(CMajorPrivacy__TryDecryptSigner(Password, pInfo, -1, PrivateKey))
+				iFoundKdf = -1;
+	}
+
+	if (iKdf > 0 && iFoundKdf == -2) {
+		if (CMajorPrivacy__TryDecryptSigner(Password, pInfo, iKdf, PrivateKey))
+			iFoundKdf = iKdf;
+	}
+	else
+	{
+		for (int i = 1; i <= 10 && iFoundKdf == -2; i++) {
+			if (CMajorPrivacy__TryDecryptSigner(Password, pInfo, i, PrivateKey))
+				iFoundKdf = i;
+		}
+	}
+
+	if(iFoundKdf == -2) {
+		CheckResults(QList<STATUS>() << ERR(STATUS_ERR_WRONG_PASSWORD), this);
+		return;
+	}
+
+	Password = window.GetNewPassword();
+	iKdf = window.GetNewKdf();
+
+	CBuffer PrivKey;
+	PrivateKey.GetPrivateKey(PrivKey);
+
+	STATUS Status = CMajorPrivacy__SetUserKey(Password, iKdf, PrivKey, pInfo->PubKey);
+
+	if (Status.IsError()) 
+		CheckResults(QList<STATUS>() << Status, this);
 }
 
 void CMajorPrivacy::OnClearKeys()
@@ -2124,6 +2103,7 @@ void CMajorPrivacy::OnPageChanged(int index)
 	case eDrives: m_pPageStack->setCurrentWidget(m_VolumePage); break;
 	case eDNS: m_pPageStack->setCurrentWidget(m_DnsPage); break;
 	case eTweaks: m_pPageStack->setCurrentWidget(m_TweakPage); break;
+	case ePresets: m_pPageStack->setCurrentWidget(m_PresetPage); break;
 	//case eLog: m_pPageStack->setCurrentWidget(m_); break;
 	}
 }
@@ -2361,6 +2341,7 @@ QString CMajorPrivacy::FormatError(const STATUS& Error)
 		case STATUS_ERR_PROG_NOT_FOUND:				return tr("Program not found.");
 		case STATUS_ERR_DUPLICATE_PROG:				return tr("Program already exists.");
 		case STATUS_ERR_PROG_HAS_RULES:				return tr("This Operation can not be performed on a program which has rules.");
+		case STATUS_ERR_PROG_HAS_PROCESSES:			return tr("This Operation can not be performed on a program which has running processes.");
 		case STATUS_ERR_PROG_PARENT_NOT_FOUND:		return tr("Parent program not found.");
 		case STATUS_ERR_CANT_REMOVE_FROM_PATTERN:	return tr("Can't remove from pattern.");
 		case STATUS_ERR_PROG_PARENT_NOT_VALID:		return tr("Parent program not valid.");
@@ -2654,6 +2635,13 @@ void CMajorPrivacy::OnAccessEvent(const CProgramFilePtr& pProgram, const CLogEnt
 {
 	if (theConf->GetBool("ResourceAccess/ShowNotifications", true)) {
 		if (!IsEventIgnored(EItemType::eResRule, pProgram, pLogEntry)) {
+			// supress expected warnings when mounting private volumes
+			if (pLogEntry->GetOwnerService() == "StorSvc") {
+				const CResLogEntry* pEntry = dynamic_cast<const CResLogEntry*>(pLogEntry.constData());
+				QString Path = pEntry->GetNtPath();
+				if(Path.startsWith("\\Device\\ImDisk"))
+					return;
+			}
 			m_pPopUpWindow->PushResEvent(pProgram, pLogEntry, TimeOut);
 			return;
 		}
@@ -2704,24 +2692,6 @@ void CMajorPrivacy::OnFwChangeEvent(const QString& RuleId, qint32 iEventType)
 			m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eAdded, pFwRule);
 	} else if(pFwRuleBackup)
 		m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eRemoved, pFwRuleBackup);
-}
-
-void CMajorPrivacy::CleanUpPrograms()
-{
-	int ret = QMessageBox::question(this, "MajorPrivacy", tr("Do you want to clean up the Program List? Choosing 'Yes' will remove all missing program entries, including those with rules. "
-		"Choosing 'No' will remove only missing entries without rules. Select 'Cancel' to abort the operation."), QMessageBox::Yes, QMessageBox::No, QMessageBox::Cancel);
-	if (ret != QMessageBox::Cancel) {
-		QList<STATUS> Results = QList<STATUS>() << theCore->CleanUpPrograms(ret == QMessageBox::Yes);
-		theGUI->CheckResults(Results, this);
-	}
-}
-
-void CMajorPrivacy::ReGroupPrograms()
-{
-	if (QMessageBox::question(this, "MajorPrivacy", tr("Do you want to re-group all Program Items? This will remove all program items from all auto associated groups and re add it based on the default rules."), QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes) {
-		QList<STATUS> Results = QList<STATUS>() << theCore->ReGroupPrograms();
-		theGUI->CheckResults(Results, this);
-	}
 }
 
 void CMajorPrivacy::OpenSettings()
@@ -2858,7 +2828,7 @@ void CMajorPrivacy::OnMaintenance()
 
 		if (Selection & COptionsTransferWnd::eUserKeys) {
 			QtVariant Keys = Options[API_S_USER_KEY];
-			theCore->Driver()->SetUserKey(Keys[API_S_PUB_KEY], Keys[API_S_KEY_BLOB]);
+			theCore->Driver()->SetUserKey(Keys[API_S_PUB_KEY], Keys[API_S_KEY_BLOB], Keys.Get(API_S_INFO));
 		}
 
 		if (Selection & COptionsTransferWnd::eEnclaves) {
@@ -2933,6 +2903,7 @@ void CMajorPrivacy::OnMaintenance()
 			QtVariant Keys;
 			Keys[API_S_PUB_KEY] = UserKey.GetValue()->PubKey;
 			Keys[API_S_KEY_BLOB] = UserKey.GetValue()->EncryptedBlob;
+			Keys[API_S_INFO] = UserKey.GetValue()->InfoBlob;
 			Options[API_S_USER_KEY] = Keys;
 		}
 
@@ -3352,9 +3323,9 @@ void CMajorPrivacy::OnAbout()
 		QString CertInfo;
 		if (!g_CertName.isEmpty()) {
 			if(g_CertInfo.active)
-				CertInfo = tr("This version is licensed to %1.").arg(g_CertName);
+				CertInfo = tr("This copy is licensed to %1.").arg(g_CertName);
 			else
-				CertInfo = tr("This version was licensed to %1, but its no longer valid.").arg(g_CertName);
+				CertInfo = tr("This copy was licensed to %1, but its no longer valid.").arg(g_CertName);
 		}
 
 		QString AboutText = tr(

@@ -37,6 +37,7 @@ public:
 
 protected:
 	friend class CPresetWindow;
+	friend class CPresetProperties;
 
 	virtual void WriteIVariant(QtVariantWriter& Data, const SVarWriteOpt& Opts) const;
 	virtual void WriteMVariant(QtVariantWriter& Data, const SVarWriteOpt& Opts) const;

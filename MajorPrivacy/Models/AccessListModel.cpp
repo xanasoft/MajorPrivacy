@@ -259,6 +259,7 @@ QVariant CAccessListModel::headerData(int section, Qt::Orientation orientation, 
 		switch (section)
 		{
 		case eName: return tr("Name");
+		case eUserName: return tr("User Name");
 		case eLastAccess: return tr("Last Access");
 		case eAccess: return tr("Access");
 		case eStatus: return tr("Status");

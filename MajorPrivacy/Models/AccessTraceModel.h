@@ -32,6 +32,7 @@ public:
 		ePath,
 		eStatus,
 		eEnclave,
+		eUser,
 		eTimeStamp,
 		eProgram,
 		eCount

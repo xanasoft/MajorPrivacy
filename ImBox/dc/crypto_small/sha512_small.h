@@ -13,7 +13,7 @@ typedef struct _sha512_ctx {
 #define SHA512_BLOCK_SIZE  128
 
 void sha512_init(sha512_ctx *ctx);
-void sha512_add(sha512_ctx *ctx, const unsigned char *in, unsigned long inlen);
+void sha512_hash(sha512_ctx *ctx, const unsigned char *in, unsigned long inlen);
 void sha512_done(sha512_ctx *ctx, unsigned char *out);
 
 #endif

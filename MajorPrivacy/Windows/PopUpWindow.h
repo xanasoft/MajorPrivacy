@@ -180,6 +180,7 @@ private:
 		eResStatus,
 		eResTimeStamp,
 		eResEnclave,
+		eResUser,
 		eResProcessId,
 		eResCmdLine,
 		eResColMax

@@ -9,7 +9,11 @@
 #include "../Library/API/PrivacyDefs.h"
 #include "../../Framework/Core/MemoryPool.h"
 #include "JSEngine/JSEngine.h"
+#include "JSEngine/JSStateManager.h"
 #include "../Library/Common/FlexGuid.h"
+#include "../Library/IPC/PipeServer.h"
+#include "../Library/IPC/AlpcPortServer.h"
+#include "../Library/Crypto/KeyExchange.h"
 
 #define DEF_CORE_TIMER_INTERVAL		250
 
@@ -43,8 +47,11 @@ public:
 	class CEventLogger*		Log()					{ return m_pSysLog; }
 	void EmitEvent(ELogLevels Level, int Type, const StVariant& Data);
 
-	class CPipeServer*		UserPipe()				{ return m_pUserPipe; }
+#ifdef USE_ALPC
 	class CAlpcPortServer*	UserPort()				{ return m_pUserPort; }
+#else
+	class CPipeServer*		UserPipe()				{ return m_pUserPipe; }
+#endif
 
 	class CEnclaveManager*	EnclaveManager()		{ return m_pEnclaveManager; }
 
@@ -63,6 +70,8 @@ public:
 	class CTweakManager*	TweakManager()			{ return m_pTweakManager; }
 
 	class CPresetManager*	PresetManager()			{ return m_pPresetManager; }
+
+	class CJSStateManager*	JSStateManager()		{ return m_pJSStateManager; }
 
 	class CDriverAPI*		Driver()				{ return m_pDriver; }
 
@@ -110,6 +119,7 @@ protected:
 	void ConfigInit();
 
 	STATUS InitHooks();
+	void RemoveHooks();
 
 	STATUS InitDriver();
 	void CloseDriver();
@@ -120,9 +130,11 @@ protected:
 
 	void OnTimer();
 
+	void OnDriverChanged(const std::wstring& Guid, enum class EConfigEvent Event, enum class EConfigGroup Type, uint64 PID);
+
 	void RegisterUserAPI();
-	void OnClient(uint32 uEvent, struct SPipeClientInfo& pClient);
-	uint32 OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, const struct SPipeClientInfo& pClient);
+	void OnClient(uint32 uEvent, struct SClientInfo& pClient);
+	uint32 OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, const struct SClientInfo& pClient);
 
 	static void	DeviceChangedCallback(void* param);
 
@@ -141,8 +153,11 @@ protected:
 	class CEventLogger*		m_pSysLog = NULL;
 	class CEventLog*		m_pEventLog = NULL;
 
-	class CPipeServer*		m_pUserPipe = NULL;
+#ifdef USE_ALPC
 	class CAlpcPortServer*	m_pUserPort = NULL;
+#else
+	class CPipeServer*		m_pUserPipe = NULL;
+#endif
 	
 	class CEnclaveManager*	m_pEnclaveManager = NULL;
 
@@ -162,6 +177,8 @@ protected:
 
 	class CPresetManager*	m_pPresetManager = NULL;
 
+	class CJSStateManager*	m_pJSStateManager = NULL;
+
 	class CDriverAPI*		m_pDriver = NULL;
 
 	class CEtwEventMonitor*	m_pEtwEventMonitor = NULL;
@@ -171,6 +188,8 @@ protected:
 
 	struct SClient
 	{
+		SClient() {}
+		~SClient() {}
 		bool bIsTrusted = false;
 
 		mutable std::shared_mutex Mutex;
@@ -180,11 +199,13 @@ protected:
 
 		//uint64 LibraryCacheToken = 0;
 		//std::map<uint64, uint64> LibraryCache;
+
+		CBuffer SharedSecret;
 	};
 	typedef std::shared_ptr<SClient> SClientPtr;
 
 	mutable std::recursive_mutex m_ClientsMutex;
-	std::map<uint32, SClientPtr> m_Clients;
+	std::map<uint64, SClientPtr> m_Clients;
 
 	uint64 m_LastStoreTime = 0;
 	uint64 m_LastCheckTime = 0;

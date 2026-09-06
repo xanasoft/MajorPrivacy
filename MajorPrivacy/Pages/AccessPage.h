@@ -19,7 +19,7 @@ public:
 	void SetMergePanels(bool bMerge);
 
 	void	Update();
-	void	Update(const QString& VolumeRoot, const QString& VolumeImage);
+	void	Update(const QString& VolumeRoot, const QString& VolumeImage, const QString& MountPoint);
 	void	Clear();
 
 private:

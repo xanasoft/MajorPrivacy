@@ -11,6 +11,8 @@ public:
 
 	virtual std::wstring GetAppSid() const					{ std::unique_lock lock(m_Mutex);return m_AppContainerSid; }
 	virtual std::wstring GetAppPackage() const				{ std::unique_lock lock(m_Mutex);return m_AppPackageName; }
+	virtual std::wstring GetPackageFullName() const			{ std::unique_lock lock(m_Mutex);return m_PackageFullName; }
+	virtual void SetPackageFullName(const std::wstring& Name) { std::unique_lock lock(m_Mutex); m_PackageFullName = Name; }
 	virtual std::wstring GetContainerName() const			{ std::unique_lock lock(m_Mutex);return m_AppContainerName; }
 	virtual void SetPath(const std::wstring& Path)			{ std::unique_lock lock(m_Mutex); m_Path = Path; }
 	virtual std::wstring GetPath() const					{ std::unique_lock lock(m_Mutex);return m_Path; }
@@ -27,6 +29,7 @@ protected:
 
 	std::wstring m_AppContainerSid;
 	std::wstring m_AppPackageName;
+	std::wstring m_PackageFullName;
 	std::wstring m_AppContainerName;
 	std::wstring m_Path;
 };

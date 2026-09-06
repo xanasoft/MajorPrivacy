@@ -11,6 +11,8 @@ public:
 	CResLogEntry();
 
 	QString GetNtPath() const				{ return m_NtPath; }
+	QString GetUserSid() const				{ return m_UserSid; }
+	QString GetUser() const;
 	quint32 GetAccess() const				{ return m_AccessMask; }
 	QString GetAccessStr() const;
 	QString GetAccessStrEx() const;
@@ -28,6 +30,8 @@ protected:
 	virtual void ReadValue(uint32 Index, const QtVariant& Data);
 
 	QString				m_NtPath;
+	QString				m_UserSid;
+	QString				m_UserName;
 	quint32				m_AccessMask = 0;	
 	uint32				m_NtStatus = 0;
 	EEventStatus		m_Status = EEventStatus::eUndefined;

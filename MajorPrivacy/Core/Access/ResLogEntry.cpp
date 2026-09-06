@@ -1,9 +1,20 @@
 #include "pch.h"
 #include "ResLogEntry.h"
 #include "../Library/API/PrivacyAPI.h"
+#include "../PrivacyCore.h"
+#include "../../Library/Helpers/SID.h"
 
 CResLogEntry::CResLogEntry()
 {
+}
+
+QString CResLogEntry::GetUser() const
+{
+    if (!m_UserSid.isEmpty() && m_UserName.isEmpty()) {
+        SSid UserSid(m_UserSid.toStdString());
+        ((CResLogEntry*)this)->m_UserName = theCore->GetSidResolver()->GetSidFullName(QByteArray((char*)UserSid.Value.data(), UserSid.Value.size()));
+    }
+    return m_UserName;
 }
 
 enum class EResAccessClass
@@ -117,6 +128,7 @@ void CResLogEntry::ReadValue(uint32 Index, const QtVariant& Data)
     switch (Index)
     {
     case API_V_FILE_NT_PATH:			m_NtPath = Data.AsQStr(); break;
+	case API_V_USER_SID:			    m_UserSid = Data.AsQStr(); break;
     case API_V_ACCESS_MASK:	            m_AccessMask = Data.To<uint32>(); break;
     case API_V_EVENT_STATUS:		    m_Status = (EEventStatus)Data.To<uint32>(); break;
     case API_V_NT_STATUS:		        m_NtStatus = Data.To<uint32>(); break;

@@ -190,7 +190,7 @@ void CFwRuleView::OnMenu(const QPoint& Point)
 	{
 		if (pItem->GetState() == EFwRuleState::eUnapproved || pItem->GetState() == EFwRuleState::eUnapprovedDisabled)
 			iUnaproved++;
-		else if (pItem->GetState() == EFwRuleState::eBackup) {
+		else if (pItem->IsBackup()) {
 			iBackups++;
 			continue;
 		}

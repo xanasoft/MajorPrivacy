@@ -21,7 +21,7 @@ public:
 	const std::wstring& GetGuid() const;
 	const std::wstring& GetRegKey() const;
 
-	static EProgramType ReadType(const StVariant& Data, SVarWriteOpt::EFormat& Format);
+	static EProgramType ReadType(StVariantReader& Reader, SVarWriteOpt::EFormat& Format);
 	static std::string TypeToStr(EProgramType Type);
 
 	std::wstring ToString() const;

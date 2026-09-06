@@ -211,3 +211,14 @@ FRAMEWORK_EXPORT FW::StringA ToAscii(FW::AbstractMemPool* pMem, const wchar_t* p
 
 FRAMEWORK_EXPORT void ToHex(FW::StringW& dest, const byte* Data, size_t uSize);
 FRAMEWORK_EXPORT CBuffer FromHex(FW::StringW Hex);
+
+struct FRAMEWORK_EXPORT BufferHasher {
+	ULONG operator()(const CBuffer& key) const {
+		unsigned int hash = 5381;
+		const byte* ptr = key.GetBuffer();
+		const byte* end = key.GetBuffer() + key.GetSize();
+		while(ptr < end)
+			hash = ((hash << 5) + hash) ^ *ptr++;
+		return hash;
+	}
+};

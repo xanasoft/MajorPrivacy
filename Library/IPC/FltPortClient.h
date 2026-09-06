@@ -43,6 +43,9 @@ public:
 //	std::unordered_multimap<uint32, std::function<uint32(uint32 msgId, const CBuffer* req, CBuffer* rpl)>> m_EventHandlers;
 
 private:
+	
+	ULONG GetHeaderSize() const override { return sizeof(MSG_HEADER); }
+
 	struct SFltPortClient* m;
 };
 

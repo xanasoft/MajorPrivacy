@@ -33,6 +33,7 @@ void CPreset::WriteIVariant(VariantWriter& Preset, const SVarWriteOpt& Opts) con
 		Item.WriteVariant(API_V_GUID, ItemGuid.ToVariant(Opts.Flags & SVarWriteOpt::eTextGuids, Preset.Allocator()));
 		Item.Write(API_V_TYPE, (uint32)ItemPreset.Type);
 		Item.Write(API_V_ACTION, (uint32)ItemPreset.Activate);
+		Item.Write(API_V_ITEM_ENABLED, ItemPreset.Enabled);
 		Items.WriteVariant(Item.Finish());
 	}
 	Preset.WriteVariant(API_V_ITEMS, Items.Finish());
@@ -50,11 +51,13 @@ void CPreset::ReadIValue(uint32 Index, const XVariant& Data)
 
 	case API_V_IS_ACTIVE:		m_bIsActive = Data.To<bool>(); break;
 	
-	case API_V_USE_SCRIPT:	m_bUseScript = Data.To<bool>(); break;
-	case API_V_SCRIPT:		AS_STR_A(m_Script, Data); break;
+	case API_V_USE_SCRIPT:		m_bUseScript = Data.To<bool>(); break;
+	case API_V_SCRIPT:			AS_STR_A(m_Script, Data); break;
 
 	case API_V_ITEMS:
 	{
+		m_Items.clear();
+
 		VariantReader(Data).ReadRawList([this](const XVariant& ItemData)
 		{
 			QFlexGuid ItemGuid;
@@ -68,6 +71,8 @@ void CPreset::ReadIValue(uint32 Index, const XVariant& Data)
 					Item.Type = (EItemType)Value.To<uint32>();
 				else if (Index == API_V_ACTION)
 					Item.Activate = (SItemPreset::EActivate)Value.To<uint32>();
+				else if (Index == API_V_ITEM_ENABLED)
+					Item.Enabled = Value.To<bool>();
 			});
 
 			if (!ItemGuid.IsNull() /*&& Item.Type != EItemType::eUnknown*/)
@@ -123,7 +128,9 @@ void CPreset::WriteMVariant(VariantWriter& Preset, const SVarWriteOpt& Opts) con
 		case SItemPreset::EActivate::eEnable:		Item.Write(API_S_ACTION, API_S_ACTION_ENABLE); break;
 		case SItemPreset::EActivate::eDisable:		Item.Write(API_S_ACTION, API_S_ACTION_DISABLE); break;
 		}
-		
+
+		Item.Write(API_S_ITEM_ENABLED, ItemPreset.Enabled);
+
 		Items.WriteVariant(Item.Finish());
 	}
 	Preset.WriteVariant(API_S_ITEMS, Items.Finish());
@@ -171,6 +178,8 @@ void CPreset::ReadMValue(const SVarName& Name, const XVariant& Data)
 					else if (Action == API_S_ACTION_ENABLE)		Item.Activate = SItemPreset::EActivate::eEnable;
 					else if (Action == API_S_ACTION_DISABLE)	Item.Activate = SItemPreset::EActivate::eDisable;
 				}
+				else if (VAR_TEST_NAME(Name, API_S_ITEM_ENABLED))
+					Item.Enabled = Value.To<bool>();
 			});
 			
 			if (!ItemGuid.IsNull() /*&& Item.Type != EItemType::eUnknown*/)

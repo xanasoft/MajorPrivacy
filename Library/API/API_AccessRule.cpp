@@ -90,7 +90,7 @@ void CAccessRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 			m_Type = EAccessRuleType::eProtect;
 		else if (Type == API_S_ACCESS_RULE_ACTION_IGNORE)
 			m_Type = EAccessRuleType::eIgnore;
-		//else // todo other
+		//else
 		//	return STATUS_INVALID_PARAMETER;
 	}
 

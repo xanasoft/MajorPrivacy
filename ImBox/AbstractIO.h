@@ -7,6 +7,7 @@ public:
 
 	virtual ULONG64 GetAllocSize() const = 0;
 	virtual ULONG64 GetDiskSize() const = 0;
+	virtual ULONG GetSectorSize() const = 0;
 	virtual bool CanBeFormated() const = 0;
 
 	virtual int Init() = 0;

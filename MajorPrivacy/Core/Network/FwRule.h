@@ -19,7 +19,8 @@ public:
     QString GetStateStr() const;
 	QVariant GetStateColor() const;
     void SetApproved()                      { m_State = EFwRuleState::eApproved; }
-	bool IsBackup() const                   { return m_State == EFwRuleState::eBackup; }
+	//bool IsBackup() const                   { return m_State == EFwRuleState::eBackup; }
+    bool IsBackup() const                   { return !m_OriginalGuid.isEmpty(); }
 	bool IsUnapproved() const               { if(IsTemplate()) return false; return m_State == EFwRuleState::eUnapproved || m_State == EFwRuleState::eUnapprovedDisabled; }
 	QString GetOriginalGuid() const         { return m_OriginalGuid; }
 
@@ -61,6 +62,8 @@ public:
     QStringList GetRemotePorts() const      { return m_RemotePorts; }
     QStringList GetIcmpTypesAndCodes() const { return m_IcmpTypesAndCodes; }
 
+    //QString GetLocalUserAuthorizationList() const { return m_LocalUserAuthorizationList; }
+
     QStringList GetOsPlatformValidity() const { return m_OsPlatformValidity; }
 
     int GetEdgeTraversal() const            { return m_EdgeTraversal; }
@@ -93,6 +96,7 @@ protected:
     QString m_BinaryPath;
     QString m_ServiceTag;
     QString m_AppContainerSid;
+    //QString m_LocalUserAuthorizationList;
     QString m_LocalUserOwner;
     QString m_PackageFamilyName;
 

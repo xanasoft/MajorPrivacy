@@ -116,6 +116,12 @@ QVariant CAccessTraceModel::NodeData(STraceNode* pTraceNode, int role, int secti
 			}
 			break;
 		}
+		case eUser: {
+			QString User = pEntry->GetUser();
+			if (!User.isEmpty())
+				return User;
+			break;
+		}
 		case eTimeStamp:		return QDateTime::fromMSecsSinceEpoch(FILETIME2ms(pEntry->GetTimeStamp())).toString("dd.MM.yyyy hh:mm:ss.zzz"); 
 		case eProgram:			return pNode->pProgram ? pNode->pProgram->GetPath() : tr("PROGRAM MISSING");
 		}
@@ -152,6 +158,7 @@ QVariant CAccessTraceModel::headerData(int section, Qt::Orientation orientation,
 		case eOperation:			return tr("Operation");
 		case eStatus:				return tr("Status");
 		case eEnclave:				return tr("Enclave");
+		case eUser:					return tr("User");
 		case eTimeStamp:			return tr("Time Stamp");
 		case eProgram:				return tr("Program (Actor)");
 		}

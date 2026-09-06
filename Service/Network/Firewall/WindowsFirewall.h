@@ -60,6 +60,7 @@ struct SWindowsFwRule
     std::wstring BinaryPath;
     std::wstring ServiceTag;
     std::wstring AppContainerSid;
+    std::wstring LocalUserAuthorizationList;
     std::wstring LocalUserOwner;
     std::wstring PackageFamilyName;
         

@@ -49,6 +49,11 @@ STATUS CDnsFilter::Init()
 	return OK;
 }
 
+STATUS CDnsFilter::ReLoad()
+{
+	return Load();
+}
+
 STATUS CDnsFilter::Load()
 {
 	CBuffer Buffer;
@@ -374,6 +379,9 @@ STATUS CDnsFilter::LoadEntries(const StVariant& Entries)
 {
 	std::unique_lock lock(m_Mutex);
 
+	m_FilterTree.Clear();
+	m_EntryMap.Clear();
+
 	for (uint32 i = 0; i < Entries.Count(); i++)
 	{
 		StVariant Entry = Entries[i];
@@ -382,7 +390,7 @@ STATUS CDnsFilter::LoadEntries(const StVariant& Entries)
 		
 		STATUS Status = pEntry->FromVariant(Entry);
 		if (Status.IsError())
-			; //  todo log error
+			theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to load DNS rule entry");
 		else
 			AddEntry_NoLock(pEntry);
 	}
@@ -459,7 +467,7 @@ RESULT(StVariant) CDnsFilter::SetEntry(const StVariant& Entry)
 			return ERR(STATUS_INTERNAL_ERROR);
 	}
 
-	EmitChangeEvent(Guid, bAdded ? EConfigEvent::eAdded : EConfigEvent::eModified);
+	EmitChangeEvent(Guid, pEntry->GetPath().ConstData(), bAdded ? EConfigEvent::eAdded : EConfigEvent::eModified);
 	RETURN(Guid.ToVariant(false, Entry.Allocator()));
 }
 
@@ -483,18 +491,29 @@ STATUS CDnsFilter::DelEntry(const std::wstring& EntryId)
 	if (!pEntry)
 		return ERR(STATUS_NOT_FOUND);
 	m_FilterTree.RemoveEntry(pEntry);
-	EmitChangeEvent(Guid, EConfigEvent::eRemoved);
+
+	EmitChangeEvent(Guid, pEntry->GetPath().ConstData(), EConfigEvent::eRemoved);
 	return OK;
 }
 
-void CDnsFilter::EmitChangeEvent(const CFlexGuid& Guid, enum class EConfigEvent Event)
+void CDnsFilter::EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event)
 {
 	StVariant vEvent;
 	vEvent[API_V_GUID] = Guid.ToVariant(false);
-	//vEvent[API_V_NAME] = ;
+	vEvent[API_V_NAME] = Name;
 	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_DNS_RULE_CHANGED, vEvent);
+
+	StVariant Data;
+	Data[API_V_GUID] = Guid.ToVariant(false);
+	Data[API_V_NAME] = Name;
+	switch (Event)
+	{
+	case EConfigEvent::eAdded:		theCore->EmitEvent(ELogLevels::eNone, eLogDnsRuleAdded, Data); break;
+	case EConfigEvent::eModified:	theCore->EmitEvent(ELogLevels::eNone, eLogDnsRuleModified, Data); break;
+	case EConfigEvent::eRemoved:	theCore->EmitEvent(ELogLevels::eNone, eLogDnsRuleRemoved, Data); break;
+	}
 }
 
 void CDnsFilter::UpdateBlockLists()

@@ -119,7 +119,6 @@ void CProgramRule::WriteMVariant(VariantWriter& Rule, const SVarWriteOpt& Opts) 
 	case EExecRuleType::eProtect:	Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_PROTECT); break;
 	case EExecRuleType::eIsolate:	Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_ISOLATE); break;
 	case EExecRuleType::eAudit:		Rule.Write(API_S_EXEC_RULE_ACTION, API_S_EXEC_RULE_ACTION_AUDIT); break;
-		// todo other:
 	}
 
 
@@ -211,7 +210,7 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 			m_Type = EExecRuleType::eIsolate;
 		else if (Type == API_S_EXEC_RULE_ACTION_AUDIT)
 			m_Type = EExecRuleType::eAudit;
-		//else // todo other
+		//else
 		//	return STATUS_INVALID_PARAMETER;
 	}
 
@@ -229,7 +228,7 @@ void CProgramRule::ReadMValue(const SVarName& Name, const XVariant& Data)
 			m_DllMode = EExecDllMode::eInjectHigh;
 		else if (DllMode == API_S_EXEC_DLL_MODE_DISABLED)
 			m_DllMode = EExecDllMode::eDisabled;
-		//else // todo other
+		//else
 		//	return STATUS_INVALID_PARAMETER;
 	}
 

@@ -71,7 +71,7 @@ public:
 	virtual StVariant ToVariant(const SVarWriteOpt& Opts) const;
     virtual NTSTATUS FromVariant(const class StVariant& Data);
 
-    static ETweakType ReadType(const StVariant& Data, SVarWriteOpt::EFormat &Format);
+    static ETweakType ReadType(StVariantReader& Reader, SVarWriteOpt::EFormat &Format);
 
     //virtual std::wstring ToString() const = 0;
     virtual void Dump(class CConfigIni* pIni);

@@ -51,6 +51,8 @@ public:
 	virtual StVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual NTSTATUS FromVariant(const StVariant& Data);
 
+	virtual NTSTATUS UpdateFromVariant(const StVariant& Data);
+
 protected:
 	friend class CProgramManager;
 

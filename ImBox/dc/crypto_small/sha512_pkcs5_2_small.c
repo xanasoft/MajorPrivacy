@@ -41,7 +41,7 @@ void sha512_hmac(const void *k, unsigned long k_len, const void *d, unsigned lon
 	// compress hmac key
 	if (k_len > SHA512_BLOCK_SIZE) {
 		sha512_init(&ctx);
-		sha512_add(&ctx, (const unsigned char*)k, k_len);
+		sha512_hash(&ctx, (const unsigned char*)k, k_len);
 		sha512_done(&ctx, buf);
 	} else {
 		__movsb(buf, (const unsigned char*)k, k_len);
@@ -54,8 +54,8 @@ void sha512_hmac(const void *k, unsigned long k_len, const void *d, unsigned lon
 
 	// hash key and data
 	sha512_init(&ctx);
-	sha512_add(&ctx, buf, SHA512_BLOCK_SIZE);
-	sha512_add(&ctx, (const unsigned char*)d, d_len);
+	sha512_hash(&ctx, buf, SHA512_BLOCK_SIZE);
+	sha512_hash(&ctx, (const unsigned char*)d, d_len);
 	sha512_done(&ctx, hval);
 
 	// create the second HMAC vector
@@ -65,8 +65,8 @@ void sha512_hmac(const void *k, unsigned long k_len, const void *d, unsigned lon
 
 	// calculate "outer" hash
 	sha512_init(&ctx);
-	sha512_add(&ctx, buf, SHA512_BLOCK_SIZE);
-	sha512_add(&ctx, hval, SHA512_DIGEST_SIZE);
+	sha512_hash(&ctx, buf, SHA512_BLOCK_SIZE);
+	sha512_hash(&ctx, hval, SHA512_DIGEST_SIZE);
 	sha512_done(&ctx, out);
 
 	// prevent leaks

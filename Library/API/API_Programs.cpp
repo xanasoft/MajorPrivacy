@@ -607,6 +607,7 @@ void CAppPackage::WriteIVariant(VariantWriter& Data, const SVarWriteOpt& Opts) c
 	Data.WriteEx(API_V_APP_SID, TO_STR(m_AppContainerSid));
 	Data.WriteEx(API_V_APP_NAME, TO_STR(m_AppContainerName));
 	Data.WriteEx(API_V_PACK_NAME, TO_STR(m_AppPackageName));
+	Data.WriteEx(API_V_PACK_FULL_NAME, TO_STR(m_PackageFullName));
 	Data.WriteEx(API_V_FILE_PATH, GET_PATH(m_Path));
 }
 
@@ -617,6 +618,7 @@ void CAppPackage::ReadIValue(uint32 Index, const XVariant& Data)
 	case API_V_APP_SID: m_AppContainerSid = AS_STR(Data); break;
 	case API_V_APP_NAME: m_AppContainerName = AS_STR(Data); break;
 	case API_V_PACK_NAME: m_AppPackageName = AS_STR(Data); break;
+	case API_V_PACK_FULL_NAME: m_PackageFullName = AS_STR(Data); break;
 	case API_V_FILE_PATH: SET_PATH(m_Path, Data); break;
 	default: CProgramList::ReadIValue(Index, Data);
 	}
@@ -631,6 +633,7 @@ void CAppPackage::WriteMVariant(VariantWriter& Data, const SVarWriteOpt& Opts) c
 	Data.WriteEx(API_S_APP_SID, TO_STR(m_AppContainerSid));
 	Data.WriteEx(API_S_APP_NAME, TO_STR(m_AppContainerName));
 	Data.WriteEx(API_S_PACK_NAME, TO_STR(m_AppPackageName));
+	Data.WriteEx(API_S_PACK_FULL_NAME, TO_STR(m_PackageFullName));
 	Data.WriteEx(API_S_FILE_PATH, GET_PATH(m_Path));
 }
 
@@ -639,6 +642,7 @@ void CAppPackage::ReadMValue(const SVarName& Name, const XVariant& Data)
 	if (VAR_TEST_NAME(Name, API_S_APP_SID))			m_AppContainerSid = AS_STR(Data);
 	else if (VAR_TEST_NAME(Name, API_S_APP_NAME))	m_AppContainerName = AS_STR(Data);
 	else if (VAR_TEST_NAME(Name, API_S_PACK_NAME))	m_AppPackageName = AS_STR(Data);
+	else if (VAR_TEST_NAME(Name, API_S_PACK_FULL_NAME)) m_PackageFullName = AS_STR(Data);
 	else if (VAR_TEST_NAME(Name, API_S_FILE_PATH))	SET_PATH(m_Path, Data);
 	else
 		CProgramList::ReadMValue(Name, Data);
@@ -857,7 +861,7 @@ void CImageSignInfo::ReadMValue(const SVarName& Name, const XVariant& Data)
 	//	else if (HashStatus == API_S_CERT_STATUS_FAIL)		m_HashStatus = EHashStatus::eHashFail;
 	//	else if (HashStatus == API_S_CERT_STATUS_DUMMY)		m_HashStatus = EHashStatus::eHashDummy;
 	//	else if (HashStatus == API_S_CERT_STATUS_NONE)		m_HashStatus = EHashStatus::eHashNone;
-	//	else // fallback todo remove
+	//	else // fallback
 	//		m_HashStatus = (EHashStatus)Data.To<uint8>();
 	//}
 

@@ -233,7 +233,7 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 			m_DllMode = EExecDllMode::eInjectHigh;
 		else if (DllMode == API_S_EXEC_DLL_MODE_DISABLED)
 			m_DllMode = EExecDllMode::eDisabled;
-		//else // todo other
+		//else
 		//	return STATUS_INVALID_PARAMETER;
 	}
 
@@ -275,7 +275,7 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 			m_OnTrustedSpawn = EProgramOnSpawn::eBlock;
 		else if (OnTrustedSpawn == API_S_EXEC_ON_SPAWN_EJECT)
 			m_OnTrustedSpawn = EProgramOnSpawn::eEject;
-		//else // todo other
+		//else
 		//	return STATUS_INVALID_PARAMETER;
 	}
 
@@ -288,7 +288,7 @@ void CEnclave::ReadMValue(const SVarName& Name, const XVariant& Data)
 			m_OnSpawn = EProgramOnSpawn::eBlock;
 		else if (OnSpawn == API_S_EXEC_ON_SPAWN_EJECT)
 			m_OnSpawn = EProgramOnSpawn::eEject;
-		//else // todo other
+		//else
 		//	return STATUS_INVALID_PARAMETER;
 	}
 

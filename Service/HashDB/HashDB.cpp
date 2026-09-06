@@ -138,6 +138,8 @@ void CHashDB::OnHashChanged(const std::wstring& Guid, enum class EConfigEvent Ev
 {
 	ASSERT(Type == EConfigGroup::eHashDB);
 
+	std::wstring Name;
+	ELogLevels Level = ELogLevels::eNone;
 	if(Event == EConfigEvent::eAllChanged)
 		LoadEntries();
 	else
@@ -159,8 +161,12 @@ void CHashDB::OnHashChanged(const std::wstring& Guid, enum class EConfigEvent Ev
 		CHashPtr pEntry2 = pEntry;
 		if (Event == EConfigEvent::eRemoved)
 			pEntry2 = GetEntry(HashValue);
-		if (pEntry2)
+		if (pEntry2) {
 			theCore->VolumeManager()->UpdateHashEntry(pEntry2, Event, PID);
+			Name = pEntry2->GetName();
+			if (pEntry2->IsTemporary())
+				Level = ELogLevels::eInfo;
+		}
 
 		std::unique_lock Lock(m_Mutex);
 
@@ -181,8 +187,18 @@ void CHashDB::OnHashChanged(const std::wstring& Guid, enum class EConfigEvent Ev
 
 	StVariant vEvent;
 	vEvent[API_V_GUID] = Guid;
-	//vEvent[API_V_NAME] = ;
+	vEvent[API_V_NAME] = Name;
 	vEvent[API_V_EVENT_TYPE] = (uint32)Event;
 
 	theCore->BroadcastMessage(SVC_API_EVENT_HASHDB_CHANGED, vEvent);
+
+	StVariant Data;
+	Data[API_V_GUID] = Guid;
+	Data[API_V_NAME] = Name;
+	switch (Event)
+	{
+	case EConfigEvent::eAdded:		theCore->EmitEvent(Level, eLogHashDbEntryAdded, Data); break;
+	case EConfigEvent::eModified:	theCore->EmitEvent(Level, eLogHashDbEntryModified, Data); break;
+	case EConfigEvent::eRemoved:	theCore->EmitEvent(Level, eLogHashDbEntryRemoved, Data); break;
+	}
 }

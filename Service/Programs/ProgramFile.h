@@ -27,6 +27,7 @@ public:
 	virtual void RemoveProcess(const CProcessPtr& pProcess);
 
 	virtual std::map<uint64, CProcessPtr> GetProcesses() const	{ std::unique_lock lock(m_Mutex); return m_Processes; }
+	virtual bool HasProcesses() const							{ std::unique_lock lock(m_Mutex); return !m_Processes.empty(); }
 	virtual std::wstring GetPath() const						{ std::unique_lock lock(m_Mutex); return m_Path; }
 	virtual std::wstring GetNameEx() const;
 	virtual std::wstring GetIcon() const						{ std::unique_lock lock(m_Mutex); return m_IconFile.empty() ? m_Path : m_IconFile; } // use program file for icon when no icon is set

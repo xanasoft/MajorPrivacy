@@ -23,12 +23,11 @@ typedef long NTSTATUS;
 
 #include "../IPC/PipeClient.h"
 #include "../IPC/AlpcPortClient.h"
-
-//#define USE_ALPC
+#include "../IPC/ServerReadyEvent.h"
 
 void CServiceAPI__EmitEvent(CServiceAPI* This, const CBuffer* pEvent)
 {
-	MSG_HEADER* in_msg = (MSG_HEADER*)pEvent->ReadData(sizeof(MSG_HEADER));
+	MSG_HEADER* in_msg = (MSG_HEADER*)pEvent->ReadData(This->GetHeaderSize());
 
 	std::unique_lock<std::mutex> Lock(This->m_EventHandlersMutex);
 
@@ -45,7 +44,7 @@ static VOID NTAPI CServiceAPI__Callback(const CBuffer& buff, PVOID Param)
 CServiceAPI::CServiceAPI()
 {
 #ifdef USE_ALPC
-	m_pClient = new CAlpcPortClient();
+	m_pClient = new CAlpcPortClient(CServiceAPI__Callback, this);
 #else
 	m_pClient = new CPipeClient(CServiceAPI__Callback, this);
 #endif
@@ -83,7 +82,7 @@ STATUS CServiceAPI::ReConnect()
 	return Connect();
 }
 
-STATUS CServiceAPI::ConnectSvc()
+STATUS CServiceAPI::ConnectSvc(bool bCanInstall)
 {
 	STATUS Status = ReConnect();
 	if (Status)
@@ -91,25 +90,40 @@ STATUS CServiceAPI::ConnectSvc()
 
     SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
 	if ((SvcState & SVC_INSTALLED) != SVC_INSTALLED) {
-		return ERR(STATUS_DEVICE_NOT_READY);
-		//Status = InstallSvc();
-		//if (!Status) return Status;
+		if(!bCanInstall)
+			return ERR(STATUS_DEVICE_NOT_READY);
+		Status = InstallSvc(false);
+		if (!Status) return Status;
 	}
+
 	if ((SvcState & SVC_RUNNING) != SVC_RUNNING)
 	{
-		Status = RunService(API_SERVICE_NAME);
-		if (!Status)
-			return Status;
+		if ((SvcState & SVC_STARTING) != SVC_STARTING) 
+		{
+			Status = RunService(API_SERVICE_NAME);
+			if (!Status)
+				return Status;
+		}
+
+		// Wait for service to finish starting up
+		for (int i = 0; i < 5 * 60; i++)
+		{
+			Sleep(1000);
+			SvcState = GetServiceState(API_SERVICE_NAME);
+			if ((SvcState & SVC_RUNNING) == SVC_RUNNING)
+				break;
+			if (SvcState != SVC_STARTING)
+				return ERR(STATUS_UNSUCCESSFUL); // Service stopped or failed to start
+		}
 	}
 
-	for (int i = 0; i < 10; i++)
+	// Try connecting with short retry
+	for (int i = 0; i < 5; i++)
 	{
 		Status = Connect();
-		if (Status)
-			break;
-		Sleep(1000 * (1 + i));
+		if (Status) break;
+		Sleep(250);
 	}
-
 	return Status;
 }
 
@@ -122,50 +136,55 @@ STATUS CServiceAPI::ConnectEngine(bool bCanStart)
 	if(!bCanStart)
 		return ERR(STATUS_INVALID_SYSTEM_SERVICE);
 
-	CScopedHandle hEngineProcess = CScopedHandle((HANDLE)0, CloseHandle);
-	/*if (IsRunningElevated())
+	// Create event before starting engine so we can wait for it to be ready
+	// Uses Local\ namespace since engine runs in the same session as client
+	CServerReadyEvent ReadyEvent;
+	ReadyEvent.ClientCreate(API_WORKER_READY_EVENT);
+
+	std::wstring Path = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
+	CScopedHandle hEngineProcess(INVALID_HANDLE_VALUE, CloseHandle);
+	if (IsRunningElevated())
 	{
-		std::wstring Command = L"\"" + GetApplicationDirectory() + L"\\" API_SERVICE_BINARY L"\" -engine";
+		std::wstring Command = Path + L" -engine";
 
 		STARTUPINFOW si = { sizeof(si) };
 		PROCESS_INFORMATION pi = { 0 };
 		if (CreateProcessW(NULL, (WCHAR*)Command.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
 			hEngineProcess.Set(pi.hProcess);
 			CloseHandle(pi.hThread);
-		} else
-			return ERR(PhGetLastWin32ErrorAsNtStatus());
-	}
-	else*/
-	{
-		std::wstring Path = GetApplicationDirectory() + L"\\" API_SERVICE_BINARY;
-
-		hEngineProcess.Set(RunElevatedEx(Path, L"-engine", 30*1000));
-		if (!hEngineProcess)
-			return ERR(PhGetLastWin32ErrorAsNtStatus());
-	}
-
-
-#ifdef _DEBUG
-	for(int i = 3;;)
-#else
-	for (int i = 1; i < 10; i++)
-#endif
-	{
-		DWORD exitCode;
-		GetExitCodeProcess(hEngineProcess, &exitCode);
-		if (exitCode != STILL_ACTIVE) {
-			Status = ERR(PhDosErrorToNtStatus(exitCode));
-			break; // engine failed to start
 		}
+	}
+	else
+		hEngineProcess.Set(RunElevatedEx(Path, L"-engine"));
+	if (!hEngineProcess)
+		return ERR(PhGetLastWin32ErrorAsNtStatus());
 
-		Status = Connect();
-		if (Status)
-			return OK;
-		Sleep(1000 * i);
+	DWORD Ret = WaitForSingleObject(hEngineProcess, 5 * 60 * 1000);
+	if (Ret == WAIT_TIMEOUT) { // user did not approve or deny UAC prompt 
+		TerminateProcess(hEngineProcess, -1);
+		return ERR(STATUS_TIMEOUT);
+	}
+	if (Ret == WAIT_OBJECT_0) {
+		GetExitCodeProcess(hEngineProcess, &Ret);
+		if (Ret) {
+			if (Ret == ERROR_CANCELLED)
+				return ERR(STATUS_OK_CNCELED);
+			if (Ret != STILL_ACTIVE)
+				return ERR(STATUS_UNSUCCESSFUL); // failed to start process
+		}
 	}
 
-	TerminateProcess(hEngineProcess, -1);
-	return ERR(STATUS_INVALID_SYSTEM_SERVICE);
+	if (!ReadyEvent.ClientWait(5 * 60 * 1000))
+		return ERR(STATUS_TIMEOUT);
+
+	// Try connecting with short retry
+	for (int i = 0; i < 5; i++)
+	{
+		Status = Connect();
+		if (Status) break;
+		Sleep(250);
+	}
+	return Status;
 }
 
 STATUS CServiceAPI::Connect()
@@ -241,4 +260,49 @@ STATUS CServiceAPI::DiscardConfigChanges()
 	StVariant ReqVar;
 
 	return Call(SVC_API_DISCARD_CHANGES, ReqVar, NULL);
+}
+
+STATUS CServiceAPI::NegotiateKey()
+{
+	CKeyExchange KeyExchange;
+	NTSTATUS status = KeyExchange.GenerateKeyPair();
+	if (!NT_SUCCESS(status))
+		return ERR(status);
+
+	CBuffer pubKey;
+	status = KeyExchange.GetPublicKey(pubKey);
+	if (!NT_SUCCESS(status))
+		return ERR(status);
+
+	StVariant ReqVar;
+	ReqVar[API_V_PUB_KEY] = pubKey;
+
+	auto Ret = Call(SVC_API_KEY_EXCHANGE, ReqVar, NULL);
+	if (Ret.IsError())
+		return Ret.GetStatus();
+
+	StVariant ResVar = Ret.GetValue();
+	CBuffer svcPubKey = ResVar[API_V_PUB_KEY].To<CBuffer>();
+	if (svcPubKey.GetSize() == 0)
+		return ERR(STATUS_INVALID_PARAMETER);
+
+	status = KeyExchange.DeriveSharedSecret(svcPubKey, m_SharedSecret);
+	if (!NT_SUCCESS(status))
+		return ERR(status);
+
+	return OK;
+}
+
+STATUS CServiceAPI::GetSharedSecret(CBuffer& SharedSecret) const
+{
+	if (m_SharedSecret.GetSize() == 0)
+		return ERR(STATUS_DEVICE_NOT_READY);
+
+	SharedSecret = m_SharedSecret;
+	return OK;
+}
+
+ULONG CServiceAPI::GetHeaderSize() const
+{
+	return m_pClient->GetHeaderSize();
 }

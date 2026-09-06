@@ -178,7 +178,8 @@ struct SUserKeyInfo
 {
 	CBuffer PubKey;
 	CBuffer EncryptedBlob;
-	bool bLocked = false;
+	CBuffer InfoBlob;
+	//bool bLocked = false;
 };
 
 typedef std::shared_ptr<SUserKeyInfo> SUserKeyInfoPtr;
@@ -190,7 +191,10 @@ enum class EConfigGroup
 	eHashDB,
 	eProgramRules,
 	eAccessRules,
-	eFirewallRules
+	eFirewallRules,
+	eDriverConfig,
+	eServiceConfig
+
 };
 
 class LIBRARY_EXPORT CDriverAPI
@@ -212,6 +216,7 @@ public:
 	bool IsCurProcLowSecurity() const;
 	bool IsCurProcHighSecurity() const;
 	bool IsCurProcMaxSecurity() const;
+	bool IsCurProcDevTrusted() const;
 
 	RESULT(StVariant) Call(uint32 MessageId, const StVariant& Message, struct SCallParams* pParams = NULL);
 
@@ -278,7 +283,9 @@ public:
 
 	STATUS SetConfig(const char* Name, const StVariant& Value);
 
-	STATUS SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, bool bLock = false);
+	STATUS RegisterGUI();
+
+	STATUS SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, const CBuffer& InfoBlob/*, bool bLock = false*/);
 	RESULT(SUserKeyInfoPtr) GetUserKey();
 	STATUS ClearUserKey(const CBuffer& ChallengeResponse);
 

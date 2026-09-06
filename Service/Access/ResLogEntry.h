@@ -8,9 +8,9 @@ class CResLogEntry: public CTraceLogEntry
 	//TRACK_OBJECT(CResLogEntry)
 public:
 #ifdef DEF_USE_POOL
-	CResLogEntry(FW::AbstractMemPool* pMem, const CFlexGuid& EnclaveGuid, const std::wstring& NtPath, std::wstring ServiceTag, uint32 AccessMask, EEventStatus Status, uint64 TimeStamp, uint64 PID);
+	CResLogEntry(FW::AbstractMemPool* pMem, const CFlexGuid& EnclaveGuid, const std::wstring& NtPath, const std::wstring& User, const std::wstring& ServiceTag, uint32 AccessMask, EEventStatus Status, uint64 TimeStamp, uint64 PID);
 #else
-	CResLogEntry(const CFlexGuid& EnclaveGuid, const std::wstring& NtPath, std::wstring ServiceTag, uint32 AccessMask, EEventStatus Status, uint64 TimeStamp, uint64 PID);
+	CResLogEntry(const CFlexGuid& EnclaveGuid, const std::wstring& NtPath, const std::wstring& User, const std::wstring& ServiceTag, uint32 AccessMask, EEventStatus Status, uint64 TimeStamp, uint64 PID);
 #endif
 
 	EEventStatus GetStatus() const { return m_Status; }
@@ -21,8 +21,10 @@ protected:
 
 #ifdef DEF_USE_POOL
 	FW::StringW m_NtPath;
+	FW::StringW m_User;
 #else
 	std::wstring m_NtPath;
+	std::wstring m_User;
 #endif
 	uint32 m_AccessMask;
 	EEventStatus m_Status;

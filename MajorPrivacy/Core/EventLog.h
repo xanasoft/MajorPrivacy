@@ -66,6 +66,13 @@ signals:
 protected:
 
 	static QString GetFwRuleEventInfoStr(ELogEventType Type, const QtVariant& Data);
+	static QString GetDnsRuleEventInfoStr(ELogEventType Type, const QtVariant& Data);
+	static QString GetResRuleEventInfoStr(ELogEventType Type, const QtVariant& Data);
+	static QString GetSecEnclaveEventInfoStr(ELogEventType Type, const QtVariant& Data);
+	static QString GetExecRuleEventInfoStr(ELogEventType Type, const QtVariant& Data);
+	static QString GetHashDbEventInfoStr(ELogEventType Type, const QtVariant& Data);
+	static QString GetPresetEventInfoStr(ELogEventType Type, const QtVariant& Data);
+	static QString GetProgramEventInfoStr(ELogEventType Type, const QtVariant& Data);
 
 	QList<CEventLogEntryPtr> m_Entries;
 };

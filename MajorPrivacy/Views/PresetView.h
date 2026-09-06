@@ -1,9 +1,11 @@
 #pragma once
 
 #include "../../MiscHelpers/Common/PanelView.h"
-#include "../../MiscHelpers/Common/TreeWidgetEx.h"
+#include "../../MiscHelpers/Common/TreeViewEx.h"
 #include "../Core/Programs/ProgramItem.h"
 #include "../Core/EventLog.h"
+
+class CPresetsModel;
 
 class CPresetView : public QWidget
 {
@@ -13,6 +15,9 @@ public:
 	CPresetView(QWidget *parent = 0);
 	virtual ~CPresetView();
 
+signals:
+	void				CurrentChanged(const QString& presetGuid);
+
 public slots:
 	void 				Update();
 
@@ -20,30 +25,27 @@ private slots:
 	void				OnMenu(const QPoint& Point);
 	void				OnAction();
 
-	void				OnPresetClicked(QTreeWidgetItem*);
-	void				OnPresetDoubleClicked(QTreeWidgetItem*);
-
-protected:
-
-	enum EColumns
-	{
-		eName = 0,
-		eDescription,
-		eCount
-	};
+	void				OnSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
+	void				OnDoubleClicked(const QModelIndex& index);
 
 private:
 	QGridLayout*		m_pMainLayout;
-	QLabel*				m_pLabel;
 
-	//QToolBar*			m_pPresetToolBar;
+	QToolBar*			m_pToolBar;
+	QToolButton*		m_pBtnAdd;
+	QToolButton*		m_pBtnActivate;
+	QToolButton*		m_pBtnDeactivate;
 
-	CPanelWidgetEx*		m_pPresets;
+	QTreeViewEx*		m_pTreeView;
+	CPresetsModel*		m_pModel;
+	CFinder*			m_pFinder;
 
+	QMenu*				m_pMenu;
 	QAction*			m_pAddPreset;
 	QAction*			m_pActivate;
 	QAction*			m_pDeactivate;
 	QAction*			m_pEditPreset;
+	QAction*			m_pDuplicatePreset;
 	QAction*			m_pRemovePreset;
-	
+
 };

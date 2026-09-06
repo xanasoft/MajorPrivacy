@@ -44,7 +44,7 @@ public:
 	QString GetAppContainerSid() const { QReadLocker Lock(&m_Mutex); return m_AppContainerSid; }
 
 	QString GetUserSid() const { QReadLocker Lock(&m_Mutex); return m_UserSid; }
-	QString GetUserName() const { QReadLocker Lock(&m_Mutex); return m_UserName; }
+	QString GetUser() const { QReadLocker Lock(&m_Mutex); return m_UserName; }
 
 	QList<CHandlePtr> GetHandles() const { QReadLocker Lock(&m_Mutex); return m_Handles.values(); }
 	int GetHandleCount() const { QReadLocker Lock(&m_Mutex); return m_Handles.count(); }

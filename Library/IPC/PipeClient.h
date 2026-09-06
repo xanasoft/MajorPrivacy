@@ -19,6 +19,9 @@ public:
     virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff, SCallParams* pParams);
 
 protected:
+    
+    ULONG GetHeaderSize() const override { return sizeof(PIPE_MSG_HEADER); }
+
     friend struct SPipeClient;
     void RunThread();
 

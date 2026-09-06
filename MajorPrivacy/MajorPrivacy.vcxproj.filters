@@ -128,6 +128,15 @@
     <Filter Include="Core\Presets">
       <UniqueIdentifier>{aa8f8615-3181-4a9c-991c-10858c5e2593}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Widgets">
+      <UniqueIdentifier>{2fa941d8-9501-4182-b483-2d983ce5d290}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Views\Presets">
+      <UniqueIdentifier>{a2252357-54ad-455f-aab9-41c2ab7c16db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Models\Presets">
+      <UniqueIdentifier>{d993f266-5461-4482-8059-faf31ecc1d61}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -475,6 +484,9 @@
     <ClCompile Include="Wizards\SetupWizard.cpp">
       <Filter>Wizards</Filter>
     </ClCompile>
+    <ClCompile Include="Wizards\VolumeWizard.cpp">
+      <Filter>Wizards</Filter>
+    </ClCompile>
     <ClCompile Include="Windows\ScriptWindow.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
@@ -520,9 +532,6 @@
     <ClCompile Include="Windows\VolumeConfigWnd.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
-    <ClCompile Include="Views\PresetView.cpp">
-      <Filter>Views\Home</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\PresetWindow.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
@@ -534,6 +543,27 @@
     </ClCompile>
     <ClCompile Include="Windows\ItemPicker.cpp">
       <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="MajorPrivacyConfig.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\PasswordStrengthWidget.cpp">
+      <Filter>Core\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\PresetView.cpp">
+      <Filter>Views\Presets</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\PresetProperties.cpp">
+      <Filter>Views\Presets</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\PresetPage.cpp">
+      <Filter>Pages</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\PresetsModel.cpp">
+      <Filter>Models\Presets</Filter>
+    </ClCompile>
+    <ClCompile Include="Models\PresetItemsModel.cpp">
+      <Filter>Models\Presets</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -946,6 +976,9 @@
     <QtMoc Include="Wizards\SetupWizard.h">
       <Filter>Wizards</Filter>
     </QtMoc>
+    <QtMoc Include="Wizards\VolumeWizard.h">
+      <Filter>Wizards</Filter>
+    </QtMoc>
     <QtMoc Include="Windows\ScriptWindow.h">
       <Filter>Windows</Filter>
     </QtMoc>
@@ -982,9 +1015,6 @@
     <QtMoc Include="Windows\VolumeConfigWnd.h">
       <Filter>Windows</Filter>
     </QtMoc>
-    <QtMoc Include="Views\PresetView.h">
-      <Filter>Views\Home</Filter>
-    </QtMoc>
     <QtMoc Include="Windows\PresetWindow.h">
       <Filter>Windows</Filter>
     </QtMoc>
@@ -996,6 +1026,24 @@
     </QtMoc>
     <QtMoc Include="Windows\ItemPicker.h">
       <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Widgets\PasswordStrengthWidget.h">
+      <Filter>Core\Widgets</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\PresetView.h">
+      <Filter>Views\Presets</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\PresetProperties.h">
+      <Filter>Views\Presets</Filter>
+    </QtMoc>
+    <QtMoc Include="Pages\PresetPage.h">
+      <Filter>Pages</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\PresetsModel.h">
+      <Filter>Models\Presets</Filter>
+    </QtMoc>
+    <QtMoc Include="Models\PresetItemsModel.h">
+      <Filter>Models\Presets</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>

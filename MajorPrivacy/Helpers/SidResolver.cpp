@@ -58,7 +58,8 @@ QString CSidResolver::GetSidFullName(const QByteArray& Sid, QObject *receiver, c
 		QObject::connect(pJob, SIGNAL(SidResolved(const QByteArray&, const QString&)), receiver, member, Qt::QueuedConnection);
 		return tr("Resolving...");
 	}
-	return tr("Not resolved...");
+	//return tr("Not resolved...");
+    return QString();
 }
 
 void CSidResolver::OnSidResolved(const QByteArray& Sid, const QString& FullName)

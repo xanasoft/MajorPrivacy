@@ -48,6 +48,8 @@ void CPresetManager::Update()
 
 	foreach(const QFlexGuid& Guid, OldPresets.keys())
 		m_Presets.remove(Guid);
+
+	UpdateItemOwnership();
 }
 
 RESULT(QFlexGuid) CPresetManager::SetPreset(const CPresetPtr& pPreset)
@@ -104,4 +106,39 @@ STATUS CPresetManager::DeactivatePreset(const QFlexGuid& Preset)
 		Update();
 	emit PresetsChanged();
 	return Status;
+}
+
+void CPresetManager::UpdateItemOwnership()
+{
+	auto Ret = theCore->GetItemOwnership();
+	if (Ret.IsError())
+		return;
+
+	m_ItemOwnership.clear();
+
+	QtVariant& Items = Ret.GetValue();
+	for (int i = 0; i < Items.Count(); i++)
+	{
+		const QtVariant& Item = Items[i];
+
+		QFlexGuid ItemGuid;
+		ItemGuid.FromVariant(Item[API_V_GUID]);
+
+		SItemOwnerInfo Info;
+		Info.PresetGuid.FromVariant(Item[API_V_PRESET_GUID]);
+		Info.Type = (EItemType)Item[API_V_TYPE].To<uint32>();
+		Info.bWasEnabled = Item[API_V_WAS_ENABLED].To<bool>();
+
+		// Get preset name
+		CPresetPtr pPreset = m_Presets.value(Info.PresetGuid);
+		if (pPreset)
+			Info.PresetName = pPreset->GetName();
+
+		m_ItemOwnership.insert(ItemGuid, Info);
+	}
+}
+
+SItemOwnerInfo CPresetManager::GetItemOwner(const QFlexGuid& ItemGuid) const
+{
+	return m_ItemOwnership.value(ItemGuid);
 }

@@ -26,7 +26,7 @@ public:
 
 	STATUS Init();
 
-	STATUS Load();
+	STATUS ReLoad();
 	STATUS Store();
 
 	STATUS LoadEntries(const StVariant& Entries);
@@ -46,10 +46,12 @@ public:
 	StVariant GetBlockListInfo(FW::AbstractMemPool* pMemPool = nullptr) const;
 
 protected:
+	STATUS Load();
+
 	bool HandlePacket(DNS::Packet& Packet, const SAddress& Address) override;
 	void SendResponse(DNS::Packet& Response, const SAddress& Address) override;
 
-	void EmitChangeEvent(const CFlexGuid& Guid, enum class EConfigEvent Event);
+	void EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event);
 
 	std::wstring GetFileNameFromUrl(const std::wstring& sUrl);
 	virtual bool DownloadBlockList(const std::wstring& sBlockListUrl);

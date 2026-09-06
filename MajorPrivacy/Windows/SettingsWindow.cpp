@@ -184,6 +184,8 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 
 	connect(ui.chkEnumApps, SIGNAL(clicked(bool)), this, SLOT(OnOptChanged()));
 
+	connect(ui.chkShowHost, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
+
 	connect(ui.chkEncryptSwap, SIGNAL(clicked(bool)), this, SLOT(OnOptChanged()));
 	connect(ui.chkGuardSuspend, SIGNAL(clicked(bool)), this, SLOT(OnOptChanged()));
 
@@ -202,7 +204,9 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.chkTrafficRecord, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkReverseDNS, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkMonitorDNS, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkSimpleDomains, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.txtDnsTime, SIGNAL(textChanged(const QString &)), this, SLOT(OnOptChanged()));
 
 	connect(ui.chkDarkTheme, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
 	connect(ui.chkFusionTheme, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
@@ -690,6 +694,8 @@ void CSettingsWindow::LoadSettings()
 
 	ui.chkEnumApps->setChecked(theCore->GetConfigBool("Service/EnumInstallations", true));
 
+	ui.chkShowHost->setChecked(theConf->GetBool("Options/ShowHostName", true));
+
 	ui.chkEncryptSwap->setChecked(theCore->GetConfigBool("Service/EncryptPageFile", false));
 	ui.chkGuardSuspend->setChecked(theCore->GetConfigBool("Service/GuardHibernation", false));
 
@@ -706,6 +712,8 @@ void CSettingsWindow::LoadSettings()
 	ui.chkNetTrace->setChecked(theCore->GetConfigBool("Service/NetTrace", true));
 	ui.chkTrafficRecord->setChecked(theCore->GetConfigBool("Service/SaveTrafficRecord", false));
 	ui.chkFwLog->setChecked(theCore->GetConfigBool("Service/NetLog", false));
+	ui.chkMonitorDNS->setChecked(theCore->GetConfigBool("Service/MonitorDnsCache", false));
+	ui.txtDnsTime->setText(QString::number(theCore->GetConfigUInt("Service/DnsPersistenceTime", 60*60) / 60));
 	ui.chkReverseDNS->setChecked(theCore->GetConfigBool("Service/UseReverseDns", false));
 	ui.chkSimpleDomains->setChecked(theCore->GetConfigBool("Service/UseSimpleDomains", true));
 
@@ -847,6 +855,8 @@ void CSettingsWindow::SaveSettings()
 
 	theCore->SetConfig("Service/EnumInstallations", ui.chkEnumApps->isChecked());
 
+	theConf->SetValue("Options/ShowHostName", ui.chkShowHost->isChecked());
+
 	theCore->SetConfig("Service/EncryptPageFile", ui.chkEncryptSwap->isChecked());
 	theCore->SetConfig("Service/GuardHibernation", ui.chkGuardSuspend->isChecked());
 
@@ -863,6 +873,8 @@ void CSettingsWindow::SaveSettings()
 	theCore->SetConfig("Service/NetTrace", ui.chkNetTrace->isChecked());
 	theCore->SetConfig("Service/SaveTrafficRecord", ui.chkTrafficRecord->isChecked());
 	theCore->SetConfig("Service/NetLog", ui.chkFwLog->isChecked());
+	theCore->SetConfig("Service/MonitorDnsCache", ui.chkMonitorDNS->isChecked());
+	theCore->SetConfig("Service/DnsPersistenceTime", ui.txtDnsTime->text().toUInt() * 60);
 	theCore->SetConfig("Service/UseReverseDns", ui.chkReverseDNS->isChecked());
 	theCore->SetConfig("Service/UseSimpleDomains", ui.chkSimpleDomains->isChecked());
 
@@ -1228,7 +1240,7 @@ void CSettingsWindow::OnGetCert()
 
 	QString Message;
 
-	if (Serial.length() < 4 || Serial.left(4).compare("PRIVS", Qt::CaseInsensitive) != 0) {
+	if (Serial.length() < 4 || Serial.left(4).compare("PRIV", Qt::CaseInsensitive) != 0) {
 		Message = tr("This does not look like a MajorPrivacy Serial Number.<br />"
 			"If you have attempted to enter the UpdateKey or the Signature from license certificate, "
 			"that is not correct, please enter the entire license certificate into the text area above instead.");

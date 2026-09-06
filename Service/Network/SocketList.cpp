@@ -275,7 +275,7 @@ STATUS CSocketList::EnumSockets()
     return OK;
 }
 
-CSocketPtr CSocketList::OnNetworkEvent(EEventType Type, uint64 ProcessId, uint32 ProtocolType, uint32 TransferSize,
+CSocketPtr CSocketList::OnNetworkEvent(EEventType Type, uint64 ProcessId, const std::wstring& ProcessFileName, uint32 ProtocolType, uint32 TransferSize,
     CAddress LocalAddress, uint16 LocalPort, CAddress RemoteAddress, uint16 RemotePort, uint64 TimeStamp)
 {
 	std::unique_lock Lock(m_Mutex);
@@ -311,7 +311,7 @@ CSocketPtr CSocketList::OnNetworkEvent(EEventType Type, uint64 ProcessId, uint32
 		}
 
 		if (pSocket->m_ProcessId) {
-			CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pSocket->m_ProcessId, true); // Note: this will add the process and load some basic data if it does not already exist
+			CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pSocket->m_ProcessId, ProcessFileName, true); // Note: this will add the process and load some basic data if it does not already exist
 			pSocket->LinkProcess(pProcess);
 			pProcess->AddSocket(pSocket);
 		}
@@ -346,7 +346,7 @@ CSocketPtr CSocketList::OnFwLogEvent(const struct SWinFwLogEvent* pEvent)
     case EFwActions::Allow: EventType = EEventType::Allow; break;
     case EFwActions::Block: EventType = EEventType::Block; break;
     }
-    return OnNetworkEvent(EventType, pEvent->ProcessId, (uint32)pEvent->ProtocolType, 0, pEvent->LocalAddress, pEvent->LocalPort, pEvent->RemoteAddress, pEvent->RemotePort, pEvent->TimeStamp);
+    return OnNetworkEvent(EventType, pEvent->ProcessId, pEvent->ProcessFileName, (uint32)pEvent->ProtocolType, 0, pEvent->LocalAddress, pEvent->LocalPort, pEvent->RemoteAddress, pEvent->RemotePort, pEvent->TimeStamp);
 }
 
 void CSocketList::OnEtwNetEvent(const struct SEtwNetworkEvent* pEvent)
@@ -357,7 +357,7 @@ void CSocketList::OnEtwNetEvent(const struct SEtwNetworkEvent* pEvent)
 	case SEtwNetworkEvent::EType::Send: EventType = EEventType::Send; break;
     case SEtwNetworkEvent::EType::Receive: EventType = EEventType::Receive; break;
     }
-    OnNetworkEvent(EventType, pEvent->ProcessId, pEvent->ProtocolType, pEvent->TransferSize, pEvent->LocalAddress, pEvent->LocalPort, pEvent->RemoteAddress, pEvent->RemotePort, pEvent->TimeStamp);
+    OnNetworkEvent(EventType, pEvent->ProcessId, L"", pEvent->ProtocolType, pEvent->TransferSize, pEvent->LocalAddress, pEvent->LocalPort, pEvent->RemoteAddress, pEvent->RemotePort, pEvent->TimeStamp);
 }
 
 std::set<CSocketPtr> CSocketList::FindSockets(const CProgramID& ID)

@@ -11,7 +11,7 @@ class CAccessRuleWnd : public QDialog
 	Q_OBJECT
 
 public:
-	CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, const QString& VolumeRoot = QString(), const QString& VolumeImage = QString(), QWidget *parent = Q_NULLPTR);
+	CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr> Items, const QString& VolumeRoot = QString(), const QString& VolumeImage = QString(), const QString& MountPoint = QString(), QWidget *parent = Q_NULLPTR);
 	~CAccessRuleWnd();
 
 	static QColor GetActionColor(EAccessRuleType Action);
@@ -26,10 +26,20 @@ private slots:
 	void OnNameChanged(const QString& Text);
 	void OnPickProgram();
 	void OnPathChanged();
-	void OnUserChanged();
+	//void OnUserChanged();
 	void OnProgramChanged();
 	void OnProgramPathChanged();
 	void OnActionChanged();
+
+	void OnAllowUsersChanged();
+	void OnApplyUsersEdit();
+	void OnApplyUsersSet();
+
+	void OnExemptUsersChanged();
+	void OnExemptUsersEdit();
+	void OnExemptUsersSet();
+
+	void OnSidResolved(const QByteArray& Sid, const QString& FullName);
 
 	void BrowseFolder();
 	void BrowseFile();
@@ -43,6 +53,10 @@ protected:
 
 	bool AddProgramItem(const CProgramItemPtr& pItem);
 
+	void ParsePrincipalSddl(const QString& SDDL);
+	QString BuildPrincipalSddl();
+	QString SidToUserName(const QString& Sid);
+
 	bool Save();
 
 	CAccessRulePtr m_pRule;
@@ -50,6 +64,7 @@ protected:
 
 	QString m_VolumeRoot;
 	QString m_VolumeImage;
+	QString m_MountPoint;
 
 	QString m_Script;
 

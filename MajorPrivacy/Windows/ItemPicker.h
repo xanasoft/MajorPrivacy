@@ -23,7 +23,7 @@ public:
 	CItemPicker(const QString& Prompt, const QMap<QVariant, SItem>& Items, QWidget *parent = Q_NULLPTR);
 	~CItemPicker();
 
-	QVariant GetItem();
+	QVariantList GetItems();
 
 private slots:
 	void SetFilter(const QRegularExpression& Exp, int iOptions, int Column);

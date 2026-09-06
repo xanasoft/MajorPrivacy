@@ -15,6 +15,7 @@ public:
 	virtual QString GetAppSid() const				{ return m_AppContainerSid; }
 	virtual QString GetContainerName() const		{ return m_AppContainerName; }
 	virtual QString GetPackageName() const			{ return m_AppPackageName; }
+	virtual QString GetPackageFullName() const		{ return m_PackageFullName; }
 	virtual QString GetPath() const					{ return m_Path; }
 
 protected:
@@ -27,6 +28,7 @@ protected:
 	QString m_AppContainerSid;
 	QString m_AppContainerName;
 	QString m_AppPackageName;
+	QString m_PackageFullName;
 	QString m_Path;
 };
 

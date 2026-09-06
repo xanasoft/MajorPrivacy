@@ -12,7 +12,7 @@ public:
 	CAccessRuleView(QWidget *parent = 0);
 	virtual ~CAccessRuleView();
 
-	void					Sync(QList<CAccessRulePtr> RuleList, const QString& VolumeRoot = QString(), const QString& VolumeImage = QString());
+	void					Sync(QList<CAccessRulePtr> RuleList, const QString& VolumeRoot = QString(), const QString& VolumeImage = QString(), const QString& MountPoint = QString());
 	void					Clear();
 
 protected:
@@ -35,6 +35,7 @@ protected:
 	QList<CAccessRulePtr>	m_RuleList;
 	QString				    m_VolumeRoot;
 	QString				    m_VolumeImage;
+	QString				    m_MountPoint;
 
 private:
 

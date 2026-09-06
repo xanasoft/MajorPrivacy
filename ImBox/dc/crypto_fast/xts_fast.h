@@ -41,7 +41,7 @@ typedef __declspec(align(16)) struct _xts_key {
 } xts_key;
 
 int _stdcall xts_init(int hw_crypt);
-void _stdcall xts_set_key(const unsigned char *key, int alg, xts_key *skey);
+int  _stdcall xts_set_key(const unsigned char *key, int alg, xts_key *skey);
 int  _stdcall xts_aes_ni_available();
 
 #define xts_encrypt(_in, _out, _len, _offset, _key) ( (_key)->encrypt(_in, _out, _len, _offset, _key) )

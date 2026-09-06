@@ -7,7 +7,7 @@
 class LIBRARY_EXPORT CAlpcPortClient : public CAbstractClient
 {
 public:
-    CAlpcPortClient();
+    CAlpcPortClient(VOID (NTAPI* Callback)(const CBuffer& buff, PVOID Param), PVOID Param);
     virtual ~CAlpcPortClient();
 
     virtual STATUS Connect(const wchar_t* Name);
@@ -19,6 +19,12 @@ public:
     virtual STATUS Call(const CBuffer& inBuff, CBuffer& outBuff, SCallParams* pParams);
 
 protected:
+
+    ULONG GetHeaderSize() const override { return sizeof(PORT_MSG_HEADER); }
+
+    friend struct SAlpcPortClient;
+    void RunThread();
+
     virtual STATUS Connect();
 
 	struct SAlpcPortClient* m;

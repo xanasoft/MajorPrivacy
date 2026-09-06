@@ -3,8 +3,12 @@
 #include "Core\PrivacyCore.h"
 #include "../QtSingleApp/src/qtsingleapplication.h"
 
+
+#include "../library/Helpers/MiniDumpFilter.h"
+
 #include <phnt_windows.h>
 #include <phnt.h>
+//#include <shlobj.h>
 
 #include <QtWidgets/QApplication>
 
@@ -19,9 +23,32 @@
 
 #include "../Library/Helpers/Service.h"
 
+bool HasFlag(const std::vector<std::string>& arguments, std::string name)
+{
+	return std::find(arguments.begin(), arguments.end(), "-" + name) != arguments.end();
+}
+
+EXTERN_C DECLSPEC_IMPORT HRESULT STDAPICALLTYPE SHGetFolderPathW(_Reserved_ HWND hwnd, _In_ int csidl, _In_opt_ HANDLE hToken, _In_ DWORD dwFlags, _Out_writes_(MAX_PATH) LPWSTR pszPath);
+
 int main(int argc, char *argv[])
 {
 	srand(QDateTime::currentDateTimeUtc().toSecsSinceEpoch());
+
+	if (!IsDebuggerPresent()) {
+		// Dumps go under %LOCALAPPDATA%\Xanasoft\MajorPrivacy\MiniDump.
+		WCHAR szDumpDir[MAX_PATH] = {0};
+		if (SUCCEEDED(SHGetFolderPathW(NULL, 0x001c/*CSIDL_LOCAL_APPDATA*/, NULL, 0, szDumpDir))) {
+			wcscat_s(szDumpDir, MAX_PATH, L"\\Xanasoft\\MajorPrivacy\\MiniDump");
+		}
+		MiniDumpFilter_Init(NULL, QString("MajorPrivacy-v%1").arg(CMajorPrivacy::GetVersion()).toStdWString().c_str(), MDF_TYPE_TRIAGE, NULL,
+			szDumpDir[0] ? szDumpDir : NULL);
+	}
+	//DebugBreak();
+
+	int nArgs = 0;
+	std::vector<std::string> arguments;
+	for (int i = 0; i < nArgs; i++)
+		arguments.push_back(argv[i]);
 
 	//NTCRT_DEFINE(MyCRT);
 	//InitGeneralCRT(&MyCRT);
@@ -65,21 +92,24 @@ int main(int argc, char *argv[])
 
 
 	SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
-	if (SvcState == SVC_SCM_ERROR) 
+	if (SvcState == SVC_SCM_ERROR && !HasFlag(arguments, "sync_tok")) 
 	{
-		//MessageBoxW(NULL, L"MajorPrivacy will restart...", L"MajorPrivacy", MB_OK | MB_ICONINFORMATION);
-
 		//
-		// BUG: When MP restarts itself after creating the service somehow somethign is broken the restarted instance can not access scm,
-		// shellexecuteex fails, and atempting to connect to driver results in device not ready. Restarting the process resolves the issue.
+		// When we are started by ShellExecuteEx while the driver is already loaded, windows fails to set the correct permissions on out process token
+		// We need to restart to fix that
+		//
+		// Without the right permissions wen can't access SCM to start our service and
 		//
 
-		LPWSTR cmd = _wcsdup(GetCommandLineW());
+		std::wstring cmd = GetCommandLineW();
+		cmd += L" -sync_tok";
 		STARTUPINFOW si = { sizeof(si) };
 		PROCESS_INFORMATION pi = {};
-		CreateProcessW(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
-		return 0;
+		if (CreateProcessW(NULL, (wchar_t*)cmd.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+			return 0;
 	}
+
+	CPrivacyCore::InitHooks();
 
 	QString AppDir = QString::fromStdWString(GetApplicationDirectory());
 	theConf = new CSettings(AppDir, "MajorPrivacy", "Xanasoft");
@@ -122,16 +152,20 @@ int main(int argc, char *argv[])
 		App.setStyle("windowsvista");
 #endif
 
+	CMajorPrivacy* pWnd = NULL;
+
+	int ret = 0;
+
 	if (App.sendMessage("ShowWnd"))
-		return 0;
+		goto exit;
 
 	theCore = new CPrivacyCore();
 
-	CMajorPrivacy* pWnd = new CMajorPrivacy;
+	pWnd = new CMajorPrivacy;
 
 	QObject::connect(&App, SIGNAL(messageReceived(const QString&)), pWnd, SLOT(OnMessage(const QString&)), Qt::QueuedConnection);
 
-	int ret = App.exec();
+	ret = App.exec();
 
 	delete pWnd;
 
@@ -140,6 +174,9 @@ int main(int argc, char *argv[])
 
 	delete theConf;
 	theConf = NULL;
+
+exit:
+	CPrivacyCore::RemoveHooks();
 
 	return ret;
 }

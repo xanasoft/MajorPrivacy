@@ -52,7 +52,7 @@ public:
 
 	STATUS Init();
 
-	STATUS Load();
+	STATUS ReLoad();
 	STATUS Store();
 
 	STATUS LoadRules(const StVariant& Entries);
@@ -91,11 +91,15 @@ public:
 	static bool MatchPort(uint16 Port, const std::vector<std::wstring>& Ports);
 	static bool MatchAddress(const CAddress& Address, const std::vector<std::wstring>& Addresses, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
 	static bool MatchEndpoint(const std::vector<std::wstring>& Addresses, const std::vector<std::wstring>& Ports, const CAddress& Address, uint16 Port, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
+	//static bool MatchUserAuthorization(const std::wstring& Sddl, const std::wstring& UserSid, const std::map<std::wstring, SGroupInfo>& UserGroups);
+	static bool MatchUserAuthorization(const CFirewallRulePtr& pRule, const std::wstring& UserSid, const std::map<std::wstring, SGroupInfo>& UserGroups);
 	static std::vector<std::wstring> GetSpecialNet(std::wstring SubNet, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
 
 	STATUS RestoreDefaultFwRules();
 
 protected:
+	STATUS Load();
+
 	bool MatchProgramID(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFirewallRulePtr& pFwRule);
 
 	CFirewallRulePtr UpdateFWRuleUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule, const CFlexGuid& Guid);
@@ -110,6 +114,7 @@ protected:
 	void RemoveRuleUnsafeImpl(const CFirewallRulePtr& pFwRule);
 
 	STATUS RestoreRule(const CFirewallRulePtr& pFwRuleBackup);
+	void ClearBackups(const std::wstring& Guid);
 
 	void SetTempalte(const CFirewallRulePtr& pFwRule);
 	bool TryRemoveTemplate(const CFlexGuid& Guid);
@@ -117,7 +122,7 @@ protected:
 	uint32 OnFwGuardEvent(const struct SWinFwGuardEvent* pEvent);
 	uint32 OnFwLogEvent(const struct SWinFwLogEvent* pEvent);
 
-	void EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event, bool bExpected);
+	void EmitChangeEvent(const CFlexGuid& Guid, const std::wstring& Name, enum class EConfigEvent Event, bool bExpected, bool bNoConfig = false);
 
 	void ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocket* pSocket);
 
@@ -133,7 +138,7 @@ protected:
 		//std::list<CFirewallRulePtr> BlockRules;
 	};
 
-	static SRuleMatch MatchRulesWithEvent(const std::set<CFirewallRulePtr>& Rules, const struct SWinFwLogEvent* pEvent, std::vector<CFlexGuid>& AllowRules, std::vector<CFlexGuid>& BlockRules, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
+	static SRuleMatch MatchRulesWithEvent(const std::set<CFirewallRulePtr>& Rules, const struct SWinFwLogEvent* pEvent, const CProcessPtr& pProcess, std::vector<CFlexGuid>& AllowRules, std::vector<CFlexGuid>& BlockRules, std::shared_ptr<struct SAdapterInfo> pNicInfo = std::shared_ptr<struct SAdapterInfo>());
 
 	EFwActions GetDefaultAction(EFwDirections Direction, EFwProfiles Profiles);
 

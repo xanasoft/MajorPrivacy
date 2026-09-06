@@ -28,6 +28,7 @@ public:
 		eStatus,
 		eMountPoint,
 		eTotalSize,
+		eCryptoInfo,
 		eFullPath,
 		eCount
 	};

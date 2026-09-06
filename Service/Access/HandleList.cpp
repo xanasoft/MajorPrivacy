@@ -105,10 +105,10 @@ STATUS CHandleList::EnumAllHandles()
 		//if (!hProcess) {
 		//	hProcess.Set(OpenProcess(PROCESS_DUP_HANDLE, FALSE, (DWORD)handle->UniqueProcessId), CloseHandle);
 		//	if (!hProcess)
-		//		continue; // we cant inspect handles belonging to protected processes, todo: use driver to get handle info
+		//		continue; // we cant inspect handles belonging to protected processes
 		//}
-
 		//std::wstring Name = GetHandleObjectName(hProcess, handle);
+
 		auto Res = theCore->Driver()->GetHandleInfo(handle->UniqueProcessId, handle->HandleValue);
 		std::wstring Name = !Res.IsError() ? Res.GetValue()->Path : L"";
 

@@ -29,166 +29,177 @@
 #include "../Library/Helpers/TokenUtil.h"
 #include "Enclaves/EnclaveManager.h"
 #include "Presets/PresetManager.h"
+#include "../Library/Helpers/ImDiskHelpers.h"
+#include "Helpers/SecDeskHelper.h"
 
 void CServiceCore::RegisterUserAPI()
 {
-	m_pUserPipe->RegisterEventHandler(&CServiceCore::OnClient, this);
+#ifdef USE_ALPC
+#define server m_pUserPort
+#else
+#define server m_pUserPipe
+#endif
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_VERSION, &CServiceCore::OnRequest, this);
+	server->RegisterEventHandler(&CServiceCore::OnClient, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_CONFIG_DIR, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_CONFIG, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_SET_CONFIG, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_VERSION, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_CHECK_CONFIG_FILE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_CONFIG_FILE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_SET_CONFIG_FILE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_DEL_CONFIG_FILE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_LIST_CONFIG_FILES, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_CONFIG_DIR, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_CONFIG, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SET_CONFIG, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_CONFIG_STATUS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_COMMIT_CONFIG, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_DISCARD_CHANGES, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_CHECK_CONFIG_FILE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_CONFIG_FILE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SET_CONFIG_FILE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_DEL_CONFIG_FILE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_LIST_CONFIG_FILES, &CServiceCore::OnRequest, this);
+
+	server->RegisterHandler(SVC_API_GET_CONFIG_STATUS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_COMMIT_CONFIG, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_DISCARD_CHANGES, &CServiceCore::OnRequest, this);
 
 	// Network Manager
-	m_pUserPipe->RegisterHandler(SVC_API_GET_FW_RULES, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_SET_FW_RULE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_FW_RULE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_DEL_FW_RULE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_FW_RULES, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SET_FW_RULE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_FW_RULE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_DEL_FW_RULE, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_RESET_FW_RULE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_RESET_FW_RULE, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_FW_PROFILE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_SET_FW_PROFILE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_FW_PROFILE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SET_FW_PROFILE, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_FW_AUDIT_MODE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_SET_FW_AUDIT_MODE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_FW_AUDIT_MODE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SET_FW_AUDIT_MODE, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_SOCKETS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_TRAFFIC, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_SOCKETS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_TRAFFIC, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_DNC_CACHE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_DNC_CACHE, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_FLUSH_DNS_CACHE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_FLUSH_DNS_CACHE, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_DNS_RULES, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_DNS_RULE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_SET_DNS_RULE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_DEL_DNS_RULE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_DNS_RULES, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_DNS_RULE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SET_DNS_RULE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_DEL_DNS_RULE, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_DNS_LIST_INFO, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_DNS_LIST_INFO, &CServiceCore::OnRequest, this);
 
 	// Process Manager
-	m_pUserPipe->RegisterHandler(SVC_API_GET_PROCESSES, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_PROCESS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_PROCESSES, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_PROCESS, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_PROGRAMS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_PROGRAM, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_LIBRARIES, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_LIBRARY, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_PROGRAMS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_PROGRAM, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_LIBRARIES, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_LIBRARY, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_SET_PROGRAM, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_ADD_PROGRAM, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_REMOVE_PROGRAM, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SET_PROGRAM, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_ADD_PROGRAM, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_REMOVE_PROGRAM, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_REFRESH_PROGRAMS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_CLEANUP_PROGRAMS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_REGROUP_PROGRAMS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_REFRESH_PROGRAMS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_CLEANUP_PROGRAMS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_REGROUP_PROGRAMS, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_START_SECURE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_START_SECURE, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_RUN_UPDATER, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_RUN_UPDATER, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_TRACE_LOG, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_TRACE_LOG, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_LIBRARY_STATS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_EXEC_STATS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_INGRESS_STATS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_CLEANUP_LIBS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_ACCESS_STATS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_LIBRARY_STATS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_EXEC_STATS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_INGRESS_STATS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_CLEANUP_LIBS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_ACCESS_STATS, &CServiceCore::OnRequest, this);
 
 	// Access Manager
-	m_pUserPipe->RegisterHandler(SVC_API_GET_HANDLES, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_CLEAR_LOGS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_CLEAR_RECORDS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_CLEANUP_ACCESS_TREE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_SET_ACCESS_EVENT_ACTION, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_HANDLES, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_CLEAR_LOGS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_CLEAR_RECORDS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_CLEANUP_ACCESS_TREE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SET_ACCESS_EVENT_ACTION, &CServiceCore::OnRequest, this);
 	
 	// Volume Manager
-	m_pUserPipe->RegisterHandler(SVC_API_VOL_CREATE_IMAGE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_VOL_CHANGE_PASSWORD, &CServiceCore::OnRequest, this);
-	//m_pUserPipe->RegisterHandler(SVC_API_VOL_DELETE_IMAGE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_VOL_CREATE_IMAGE, &CServiceCore::OnRequest, this);
+	//server->RegisterHandler(SVC_API_VOL_CHANGE_PASSWORD, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_VOL_EXPAND, &CServiceCore::OnRequest, this);
+	//server->RegisterHandler(SVC_API_VOL_SCHRINK, &CServiceCore::OnRequest, this);
+	//server->RegisterHandler(SVC_API_VOL_DELETE_IMAGE, &CServiceCore::OnRequest, this);
+	//server->RegisterHandler(SVC_API_VOL_BACKUP_HEADER, &CServiceCore::OnRequest, this);
+	//server->RegisterHandler(SVC_API_VOL_RESTORE_HEADER, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_VOL_MOUNT_IMAGE, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_VOL_DISMOUNT_VOLUME, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_VOL_DISMOUNT_ALL, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_VOL_MOUNT_IMAGE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_VOL_DISMOUNT_VOLUME, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_VOL_DISMOUNT_ALL, &CServiceCore::OnRequest, this);
 
-	//m_pUserPipe->RegisterHandler(SVC_API_VOL_GET_VOLUME_LIST, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_VOL_GET_ALL_VOLUMES, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_VOL_GET_VOLUME, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_VOL_SET_VOLUME, &CServiceCore::OnRequest, this);
+	//server->RegisterHandler(SVC_API_VOL_GET_VOLUME_LIST, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_VOL_GET_ALL_VOLUMES, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_VOL_GET_VOLUME, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_VOL_SET_VOLUME, &CServiceCore::OnRequest, this);
 
 	// Tweak Manager
-	m_pUserPipe->RegisterHandler(SVC_API_GET_TWEAKS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_APPLY_TWEAK, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_UNDO_TWEAK, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_APPROVE_TWEAK, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_TWEAKS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_APPLY_TWEAK, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_UNDO_TWEAK, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_APPROVE_TWEAK, &CServiceCore::OnRequest, this);
 
 	// PresetManager
-	m_pUserPipe->RegisterHandler(SVC_API_SET_PRESETS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_PRESETS, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_GET_PRESET, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_SET_PRESET, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_DEL_PRESET, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_ACTIVATE_PRESET, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_DEACTIVATE_PRESET, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SET_PRESETS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_PRESETS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_PRESET, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SET_PRESET, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_DEL_PRESET, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_ACTIVATE_PRESET, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_DEACTIVATE_PRESET, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_ITEM_OWNERSHIP, &CServiceCore::OnRequest, this);
+
+
+	server->RegisterHandler(SVC_API_SET_WATCHED_PROG, &CServiceCore::OnRequest, this);
 	
+	server->RegisterHandler(SVC_API_SET_DAT_FILE, &CServiceCore::OnRequest, this);
+	//server->RegisterHandler(SVC_API_GET_DAT_FILE, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_SET_WATCHED_PROG, &CServiceCore::OnRequest, this);
-	
-	m_pUserPipe->RegisterHandler(SVC_API_SET_DAT_FILE, &CServiceCore::OnRequest, this);
-	//m_pUserPipe->RegisterHandler(SVC_API_GET_DAT_FILE, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_EVENT_LOG, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_CLEAR_EVENT_LOG, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_EVENT_LOG, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_CLEAR_EVENT_LOG, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_SVC_STATS, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_SVC_STATS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_SCRIPT_LOG, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_CLEAR_SCRIPT_LOG, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_CALL_SCRIPT_FUNC, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_GET_SCRIPT_LOG, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_CLEAR_SCRIPT_LOG, &CServiceCore::OnRequest, this);
-	m_pUserPipe->RegisterHandler(SVC_API_CALL_SCRIPT_FUNC, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_SHOW_SECURE_PROMPT, &CServiceCore::OnRequest, this);
 
-	m_pUserPipe->RegisterHandler(SVC_API_SHOW_SECURE_PROMPT, &CServiceCore::OnRequest, this);
-	
-	m_pUserPipe->RegisterHandler(SVC_API_SHUTDOWN, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_KEY_EXCHANGE, &CServiceCore::OnRequest, this);
 
+	server->RegisterHandler(SVC_API_SHUTDOWN, &CServiceCore::OnRequest, this);
 
-	// todo port
+#undef server
 }
 
-void CServiceCore::OnClient(uint32 uEvent, struct SPipeClientInfo& pClient)
+void CServiceCore::OnClient(uint32 uEvent, struct SClientInfo& pClient)
 {
 	std::unique_lock Lock(m_ClientsMutex);
 	switch (uEvent)
 	{
 		case CPipeServer::eClientConnected: {
 			DbgPrint("Client connected %d %d\n", pClient.PID, pClient.TID);
-			m_Clients[pClient.PID] = std::make_shared<SClient>();
+			m_Clients[pClient.Ref] = std::make_shared<SClient>();
 
 			if (pClient.PID != -1) {
-
-				ProcessIdToSessionId(pClient.PID, &pClient.SessionId);
-
 				CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pClient.PID, true);
 				//if ((pProcess->GetSecFlags() & KPH_PROCESS_STATE_MEDIUM) == KPH_PROCESS_STATE_MEDIUM)
 				if (pProcess->GetSignInfo().GetAuthority() == KphDevAuthority)
-					m_Clients[pClient.PID]->bIsTrusted = true;
+					m_Clients[pClient.Ref]->bIsTrusted = true;
 			}
 			break;
 		}
 		case CPipeServer::eClientDisconnected:
 			DbgPrint("Client disconnected %d %d\n", pClient.PID, pClient.TID);
-			m_Clients.erase(pClient.PID);
+			m_Clients.erase(pClient.Ref);
 			break;
 	}
 }
@@ -199,14 +210,14 @@ vRpl[API_V_ERR_MSG] = Status.GetMessageText(); \
 vRpl.ToPacket(rpl); \
 } return STATUS_SUCCESS;
 
-uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, const struct SPipeClientInfo& pClient)
+uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, const struct SClientInfo& pClient)
 {
 #ifdef _DEBUG
 	//DbgPrint("CServiceCore::OnRequest %d\n", msgId);
 #endif
 
 	std::unique_lock Lock(m_ClientsMutex);
-	auto F = m_Clients.find(pClient.PID);
+	auto F = m_Clients.find(pClient.Ref);
 	if(F == m_Clients.end())
 		return STATUS_BAD_KEY;
 	SClientPtr pClientData = F->second;
@@ -796,6 +807,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
+			bool bAdded = false;
 			CProgramItemPtr pItem;
 			if (uint64 UID = vReq.Get(API_V_PROG_UID)) // edit existing
 			{
@@ -812,18 +824,14 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 					RETURN_STATUS(Ret);
 				}
 				pItem = Ret.GetValue();
+				bAdded = true;
 			}
 
-			if(vReq.Has(API_V_NAME)) pItem->SetName(vReq[API_V_NAME]);
-			if(vReq.Has(API_V_ICON)) pItem->SetIcon(vReq[API_V_ICON]);
-			if(vReq.Has(API_V_INFO)) pItem->SetInfo(vReq[API_V_INFO]);
-
-			if(vReq.Has(API_V_EXEC_TRACE)) pItem->SetExecTrace((ETracePreset)vReq[API_V_EXEC_TRACE].To<int>());
-			if(vReq.Has(API_V_RES_TRACE))  pItem->SetResTrace((ETracePreset)vReq[API_V_RES_TRACE].To<int>());
-			if(vReq.Has(API_V_NET_TRACE))  pItem->SetNetTrace((ETracePreset)vReq[API_V_NET_TRACE].To<int>());
-			if(vReq.Has(API_V_SAVE_TRACE)) pItem->SetSaveTrace((ESavePreset)vReq[API_V_SAVE_TRACE].To<int>());
+			pItem->UpdateFromVariant(vReq);
 
 			theCore->SetConfigDirty(true);
+
+			theCore->ProgramManager()->EmitChangeEvent(CFlexGuid(pItem->GetUID()) , pItem->GetName(), bAdded ? EConfigEvent::eAdded : EConfigEvent::eModified);
 
 			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_PROG_UID] = pItem->GetUID();
@@ -853,6 +861,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_REFRESH_PROGRAMS:
 		{
+			theCore->ProgramManager()->CollectSoftware();
 			theCore->ProgramManager()->CheckProgramFiles();
 			return STATUS_SUCCESS;
 		}
@@ -939,7 +948,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				// Note: If we are running in engine mode, We are admin but not system and are missing SeAssignPrimaryTokenPrivilege
 				//
 
-				if (CreateProcessAsUserW(m_bEngineMode ? NULL : *&hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &si, &pi))
+				if (CreateProcessAsUserW(*&hDupToken, NULL, (wchar_t*)path.c_str(), NULL, NULL, FALSE, CREATE_UNICODE_ENVIRONMENT, lpEnvironment, NULL, &si, &pi))
 				{
 					CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pi.dwProcessId, true);
 					//ResumeThread(pi.hThread);
@@ -1358,17 +1367,36 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
-			STATUS Status = m_pVolumeManager->CreateImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_SIZE).To<uint64>(0), vReq.Get(API_V_VOL_CIPHER).AsStr());
+			CSecurePassword Password;
+			Password.FromVariant(vReq[API_V_VOL_PASSWORD], pClientData->SharedSecret);
+
+			STATUS Status = m_pVolumeManager->CreateImage(vReq[API_V_VOL_PATH], Password, vReq.Get(API_V_VOL_SIZE).To<uint64>(0), vReq.Get(API_V_VOL_CIPHER).AsStr(), vReq.Get(API_V_VOL_KDF).To<uint32>(0), vReq.Get(API_V_VOL_FS).AsStr());
 			RETURN_STATUS(Status);
 		}
-		case SVC_API_VOL_CHANGE_PASSWORD:
+		//case SVC_API_VOL_CHANGE_PASSWORD:
+		//{
+		//	StVariant vReq(m_pMemPool);
+		//	vReq.FromPacket(req);
+
+		//	STATUS Status = m_pVolumeManager->ChangeImagePassword(vReq[API_V_VOL_PATH], vReq[API_V_VOL_OLD_PASS], vReq[API_V_VOL_NEW_PASS], vReq.Get(API_V_VOL_OLD_KDF).To<uint32>(0), vReq.Get(API_V_VOL_NEW_KDF).To<uint32>(0));
+		//	RETURN_STATUS(Status);
+		//}
+		case SVC_API_VOL_EXPAND:
 		{
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
-			STATUS Status = m_pVolumeManager->ChangeImagePassword(vReq[API_V_VOL_PATH], vReq[API_V_VOL_OLD_PASS], vReq[API_V_VOL_NEW_PASS]);
+			STATUS Status = m_pVolumeManager->ExpandVolume(vReq[API_V_VOL_MOUNT_POINT], vReq.Get(API_V_VOL_SIZE).To<uint64>(0));
 			RETURN_STATUS(Status);
 		}
+		//case SVC_API_VOL_SCHRINK:
+		//{
+		//	StVariant vReq(m_pMemPool);
+		//	vReq.FromPacket(req);
+		//
+		//	STATUS Status = m_pVolumeManager->ShrinkVolume(vReq[API_V_VOL_MOUNT_POINT], vReq.Get(API_V_VOL_SIZE).To<uint64>(0));
+		//	RETURN_STATUS(Status);
+		//}
 		//case SVC_API_VOL_DELETE_IMAGE:
 		//{
 		//	StVariant vReq(m_pMemPool);
@@ -1377,13 +1405,32 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		//  STATUS Status = m_pVolumeManager->DeleteImage(vReq[API_V_VOL_PATH]);
 		//	RETURN_STATUS(Status);
 		//}
+		//case SVC_API_VOL_BACKUP_HEADER:
+		//{
+		//	StVariant vReq(m_pMemPool);
+		//	vReq.FromPacket(req);
+		//	
+		//	STATUS Status = m_pVolumeManager->BackupHeader(vReq[API_V_VOL_PATH], vReq[API_V_FILE_PATH], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_KDF).To<uint32>(0));
+		//	RETURN_STATUS(Status);
+		//}
+		//case SVC_API_VOL_RESTORE_HEADER:
+		//{
+		//	StVariant vReq(m_pMemPool);
+		//	vReq.FromPacket(req);
+
+		//	STATUS Status = m_pVolumeManager->RestoreHeader(vReq[API_V_FILE_PATH], vReq[API_V_VOL_PATH], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_KDF).To<uint32>(0));
+		//	RETURN_STATUS(Status);
+		//}
 
 		case SVC_API_VOL_MOUNT_IMAGE:
 		{
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
-			STATUS Status = m_pVolumeManager->MountImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_MOUNT_POINT], vReq[API_V_VOL_PASSWORD], vReq.Get(API_V_VOL_PROTECT).To<bool>(), vReq.Get(API_V_VOL_LOCKDOWN).To<bool>());
+			CSecurePassword Password;
+			Password.FromVariant(vReq[API_V_VOL_PASSWORD], pClientData->SharedSecret);
+
+			STATUS Status = m_pVolumeManager->MountImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_MOUNT_POINT], Password, vReq.Get(API_V_VOL_PROTECT).To<bool>(), vReq.Get(API_V_VOL_LOCKDOWN).To<bool>(), vReq.Get(API_V_VOL_KDF).To<uint32>(0));
 			RETURN_STATUS(Status);
 		}
 		case SVC_API_VOL_DISMOUNT_VOLUME:
@@ -1574,6 +1621,13 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				theCore->SetConfigDirty(true);
 			RETURN_STATUS(Status);
 		}
+		case SVC_API_GET_ITEM_OWNERSHIP:
+		{
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_ITEMS] = theCore->PresetManager()->GetItemOwnership(m_pMemPool);
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
+		}
 
 		case SVC_API_SET_WATCHED_PROG:
 		{
@@ -1721,72 +1775,198 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			vReq.FromPacket(req);
 
 			std::wstring Text = vReq[API_V_MB_TEXT].AsStr();
-			//std::wstring Title = vReq.Get(API_V_MB_TITLE).AsStr();
-			//if(Title.empty()) Title = L"MajorPrivacy";
+			std::wstring Title = vReq.Get(API_V_MB_TITLE).AsStr();
+			if(Title.empty()) Title = L"MajorPrivacy";
 			uint32 Type = vReq[API_V_MB_TYPE].To<uint32>();
-		
+
 			CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hToken(NULL, CloseHandle);
-			if (OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &hToken)) 
+			if (OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &hToken))
 			{
 				CScopedHandle<HANDLE, BOOL(*)(HANDLE)> hNewToken(NULL, CloseHandle);
-				if (DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &hNewToken)) 
+				if (DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, nullptr, SecurityIdentification, TokenPrimary, &hNewToken))
 				{
 					// Set the new session ID on the duplicated token
-					if (SetTokenInformation(hNewToken, TokenSessionId, (LPVOID)&pClient.SessionId, sizeof(pClient.SessionId))) 
+					if (SetTokenInformation(hNewToken, TokenSessionId, (LPVOID)&pClient.SessionId, sizeof(pClient.SessionId)))
 					{
 						wchar_t szPath[MAX_PATH];
 						GetModuleFileNameW(NULL, szPath, ARRAYSIZE(szPath));
 						std::wstring CmdLine = L"\"" + std::wstring(szPath) + L"\"";
 
-						CmdLine += L" \"-MSGBOX:";
-
-						switch (Type & 0xF) {
-						case MB_OK: CmdLine += L"OK"; break;
-						case MB_OKCANCEL: CmdLine += L"OKCANCEL"; break;
-						case MB_ABORTRETRYIGNORE: CmdLine += L"ABORTRETRYIGNORE"; break;
-						case MB_YESNOCANCEL: CmdLine += L"YESNOCANCEL"; break;
-						case MB_YESNO: CmdLine += L"YESNO"; break;
-						case MB_RETRYCANCEL: CmdLine += L"RETRYCANCEL"; break;
-						case MB_CANCELTRYCONTINUE: CmdLine += L"CANCELTRYCONTINUE"; break;
-						}
-
-						switch (Type & 0xF0) {
-						case MB_ICONHAND: CmdLine += L"-STOP"; break;
-						case MB_ICONQUESTION: CmdLine += L"-QUESTION"; break;
-						case MB_ICONEXCLAMATION: CmdLine += L"-EXCLAMATION"; break;
-						case MB_ICONASTERISK: CmdLine += L"-INFORMATION"; break;
-						}
-
-						CmdLine += L":" + Text + L"\"";
-
-						STARTUPINFOW si = { 0 };
-						si.cb = sizeof(si);
-						si.dwFlags = STARTF_FORCEOFFFEEDBACK;
-						si.wShowWindow = SW_SHOWNORMAL;
-						PROCESS_INFORMATION pi = { 0 };
-						if (CreateProcessAsUserW(hNewToken, NULL, (wchar_t*)CmdLine.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+						//
+						// Password Dialog - uses section-based IPC
+						//
+						if (Type & 0x0F00)
 						{
-							if (WaitForSingleObject(pi.hProcess, INFINITE) == 0)
-							{
-								DWORD Code = 0;
-								if (GetExitCodeProcess(pi.hProcess, &Code))
-								{
-									StVariant vRpl(m_pMemPool);
-									vRpl[API_V_MB_CODE] = (uint32)Code;
-									vRpl.ToPacket(rpl);
+							HANDLE hSection = NULL;
+							PVOID pMapping = NULL;
 
-									status = STATUS_SUCCESS;
+							status = CreateSecureSection(&hSection, &pMapping, sizeof(SPasswordPromptSection));
+							if (NT_SUCCESS(status))
+							{
+								// Fill section with input data
+								SPasswordPromptSection* pSection = (SPasswordPromptSection*)pMapping;
+								memset(pSection, 0, sizeof(SPasswordPromptSection));
+								pSection->in.uType = Type;
+								wcsncpy_s(pSection->in.szPrompt, Text.c_str(), _TRUNCATE);
+								wcsncpy_s(pSection->in.szTitle, Title.c_str(), _TRUNCATE);
+								pSection->out.status = STATUS_UNSUCCESSFUL;
+
+								// Copy optional localized strings (empty = use English defaults)
+								std::wstring Str;
+								Str = vReq.Get(API_V_PW_LBL_PASSWORD).AsStr();
+								if (!Str.empty()) wcsncpy_s(pSection->in.szLblPassword, Str.c_str(), _TRUNCATE);
+								Str = vReq.Get(API_V_PW_LBL_CONFIRM).AsStr();
+								if (!Str.empty()) wcsncpy_s(pSection->in.szLblConfirm, Str.c_str(), _TRUNCATE);
+								Str = vReq.Get(API_V_PW_LBL_SHOW).AsStr();
+								if (!Str.empty()) wcsncpy_s(pSection->in.szLblShow, Str.c_str(), _TRUNCATE);
+								Str = vReq.Get(API_V_PW_BTN_OK).AsStr();
+								if (!Str.empty()) wcsncpy_s(pSection->in.szBtnOk, Str.c_str(), _TRUNCATE);
+								Str = vReq.Get(API_V_PW_BTN_CANCEL).AsStr();
+								if (!Str.empty()) wcsncpy_s(pSection->in.szBtnCancel, Str.c_str(), _TRUNCATE);
+								Str = vReq.Get(API_V_PW_ERR_MISMATCH).AsStr();
+								if (!Str.empty()) wcsncpy_s(pSection->in.szErrMismatch, Str.c_str(), _TRUNCATE);
+								Str = vReq.Get(API_V_PW_ERR_TOLONG).AsStr();
+								if (!Str.empty()) wcsncpy_s(pSection->in.szErrToLong, Str.c_str(), _TRUNCATE);
+
+								// Build command line with section handle
+								WCHAR szSection[32];
+								swprintf_s(szSection, L" -PwPrompt:0x%p", hSection);
+								CmdLine += szSection;
+
+								// Make handle inheritable temporarily
+								SetHandleInformation(hSection, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
+
+								// Use STARTUPINFOEX to inherit only the section handle
+								SIZE_T attrListSize = 0;
+								InitializeProcThreadAttributeList(NULL, 1, 0, &attrListSize);
+
+								LPPROC_THREAD_ATTRIBUTE_LIST pAttrList = (LPPROC_THREAD_ATTRIBUTE_LIST)HeapAlloc(GetProcessHeap(), 0, attrListSize);
+								if (pAttrList)
+								{
+									STARTUPINFOEXW siex = { 0 };
+									siex.StartupInfo.cb = sizeof(STARTUPINFOEXW);
+									siex.StartupInfo.dwFlags = STARTF_FORCEOFFFEEDBACK;
+									siex.lpAttributeList = pAttrList;
+
+									if (InitializeProcThreadAttributeList(pAttrList, 1, 0, &attrListSize) &&
+										UpdateProcThreadAttribute(pAttrList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, &hSection, sizeof(HANDLE), NULL, NULL))
+									{
+										PROCESS_INFORMATION pi = { 0 };
+										if (CreateProcessAsUserW(hNewToken, NULL, (wchar_t*)CmdLine.c_str(), NULL, NULL, TRUE,
+											EXTENDED_STARTUPINFO_PRESENT, NULL, NULL, &siex.StartupInfo, &pi))
+										{
+											WaitForSingleObject(pi.hProcess, INFINITE);
+
+											// Read result from section
+											status = pSection->out.status;
+											if (NT_SUCCESS(status))
+											{
+												CSecurePassword Password(pSection->out.szPassword);
+
+												StVariant vRpl(m_pMemPool);
+												vRpl[API_V_PASSWORD] = Password.ToVariant(pClientData->SharedSecret, SVarWriteOpt());
+												vRpl.ToPacket(rpl);
+											}
+
+											CloseHandle(pi.hProcess);
+											CloseHandle(pi.hThread);
+										}
+									}
+
+									DeleteProcThreadAttributeList(pAttrList);
+									HeapFree(GetProcessHeap(), 0, pAttrList);
 								}
+
+								// Securely wipe and unmap section
+								SecureZeroMemory(pMapping, sizeof(SPasswordPromptSection));
+								NtUnmapViewOfSection(GetCurrentProcess(), pMapping);
+								NtClose(hSection);
+							}
+						}
+						//
+						// Message Box - uses command line for text
+						//
+						else
+						{
+							CmdLine += L" \"-MSGBOX:";
+
+							switch (Type & 0xF) {
+							case MB_OK: CmdLine += L"OK"; break;
+							case MB_OKCANCEL: CmdLine += L"OKCANCEL"; break;
+							case MB_ABORTRETRYIGNORE: CmdLine += L"ABORTRETRYIGNORE"; break;
+							case MB_YESNOCANCEL: CmdLine += L"YESNOCANCEL"; break;
+							case MB_YESNO: CmdLine += L"YESNO"; break;
+							case MB_RETRYCANCEL: CmdLine += L"RETRYCANCEL"; break;
+							case MB_CANCELTRYCONTINUE: CmdLine += L"CANCELTRYCONTINUE"; break;
 							}
 
-							CloseHandle(pi.hProcess);
-							CloseHandle(pi.hThread);
+							switch (Type & 0xF0) {
+							case MB_ICONHAND: CmdLine += L"-STOP"; break;
+							case MB_ICONQUESTION: CmdLine += L"-QUESTION"; break;
+							case MB_ICONEXCLAMATION: CmdLine += L"-EXCLAMATION"; break;
+							case MB_ICONASTERISK: CmdLine += L"-INFORMATION"; break;
+							}
+
+							CmdLine += L":" + Text + L"\"";
+
+							STARTUPINFOW si = { 0 };
+							si.cb = sizeof(si);
+							si.dwFlags = STARTF_FORCEOFFFEEDBACK;
+							si.wShowWindow = SW_SHOWNORMAL;
+							PROCESS_INFORMATION pi = { 0 };
+							if (CreateProcessAsUserW(hNewToken, NULL, (wchar_t*)CmdLine.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+							{
+								if (WaitForSingleObject(pi.hProcess, INFINITE) == 0)
+								{
+									DWORD Code = 0;
+									if (GetExitCodeProcess(pi.hProcess, &Code))
+									{
+										StVariant vRpl(m_pMemPool);
+										vRpl[API_V_MB_CODE] = (uint32)Code;
+										vRpl.ToPacket(rpl);
+
+										status = STATUS_SUCCESS;
+									}
+								}
+
+								CloseHandle(pi.hProcess);
+								CloseHandle(pi.hThread);
+							}
 						}
 					}
 				}
 			}
 
 			return status;
+		}
+
+		case SVC_API_KEY_EXCHANGE:
+		{
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+
+			CBuffer clientPubKey = vReq[API_V_PUB_KEY].To<CBuffer>();
+			if (clientPubKey.GetSize() == 0)
+				return STATUS_INVALID_PARAMETER;
+
+			CKeyExchange KeyExchange;
+			NTSTATUS status = KeyExchange.GenerateKeyPair();
+			if (!NT_SUCCESS(status))
+				return status;
+
+			status = KeyExchange.DeriveSharedSecret(clientPubKey, pClientData->SharedSecret);
+			if (!NT_SUCCESS(status))
+				return status;
+
+			CBuffer svcPubKey;
+			status = KeyExchange.GetPublicKey(svcPubKey);
+			if (!NT_SUCCESS(status))
+				return status;
+
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_PUB_KEY] = svcPubKey;
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
 		}
 
 		case SVC_API_SHUTDOWN:
@@ -1814,7 +1994,11 @@ int CServiceCore::BroadcastMessage(uint32 MessageID, const StVariant& MessageDat
 	MessageData.ToPacket(&MessageBuffer);
 
 	if (!pProgram)
+#ifdef USE_ALPC
+		return theCore->UserPort()->BroadcastMessage(MessageID, &MessageBuffer);
+#else
 		return theCore->UserPipe()->BroadcastMessage(MessageID, &MessageBuffer);
+#endif
 
 	std::unique_lock Lock(m_ClientsMutex);
 	auto Clients = m_Clients;
@@ -1826,7 +2010,11 @@ int CServiceCore::BroadcastMessage(uint32 MessageID, const StVariant& MessageDat
 		std::unique_lock Lock(pClientData->Mutex);
 		if(!pClientData->bWatchAllPrograms && pClientData->WatchedPrograms.find(pProgram->GetUID()) == pClientData->WatchedPrograms.end())
 			continue;
+#ifdef USE_ALPC
+		if(theCore->UserPort()->BroadcastMessage(MessageID, &MessageBuffer, I.first))
+#else
 		if(theCore->UserPipe()->BroadcastMessage(MessageID, &MessageBuffer, I.first))
+#endif
 			Success++;
 	}
 	return Success != 0;

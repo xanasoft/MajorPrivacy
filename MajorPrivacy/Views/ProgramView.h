@@ -59,6 +59,8 @@ protected:
 
 	CFinder*					m_pFinder = nullptr;
 
+	QSet<void*>					m_pRunningUninstalls;
+
 private:
 	virtual void				OnMenu(const QPoint& Point);
 
@@ -138,6 +140,7 @@ private:
 		QMenu*						m_pNetTraceConfig = nullptr;
 		QMenu*						m_pStoreTraceConfig = nullptr;
 	QMenu*						m_pAddToGroup = nullptr;
+	QAction*					m_pUninstall = nullptr;
 	QAction*					m_pRemoveItem = nullptr;
 
 	QVector<QAction*>			m_Groups;

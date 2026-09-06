@@ -15,9 +15,23 @@ bool HookFunction(void* pFunction, void* pHook, void** ppOriginal)
 
 	DetourTransactionCommit();
 
-	if (error == NO_ERROR)
-	{
+	if (error == NO_ERROR) {
 		*ppOriginal = pFunction;
+		return true;
+	}
+	return false;
+}
+
+bool UnHookFunction(void* pFunction, void* pHook)
+{
+	DetourTransactionBegin();
+	DetourUpdateThread(NtCurrentThread());
+
+	LONG error = DetourDetach((PVOID*)&pFunction, pHook);
+
+	DetourTransactionCommit();
+
+	if (error == NO_ERROR) {
 		return true;
 	}
 	return false;

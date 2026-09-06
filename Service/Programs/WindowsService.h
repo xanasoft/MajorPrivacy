@@ -17,6 +17,7 @@ public:
 	virtual CProgramFilePtr GetProgramFile() const;
 
 	virtual void SetProcess(const CProcessPtr& pProcess);
+	virtual bool HasProcess() const { std::unique_lock lock(m_Mutex); return m_pProcess != nullptr; }
 
 	virtual void AddExecChild(
 		const std::shared_ptr<CProgramFile>& pTargetProgram, const CFlexGuid& TargetEnclave, const SProcessUID& ProcessUID, 
@@ -73,9 +74,7 @@ protected:
 	// howeever a process can host multiple services
 	//
 
-#ifdef _DEBUG
 public:
-#endif
 
 	uint64							m_LastExec = 0;
 

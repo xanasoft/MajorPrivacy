@@ -59,7 +59,7 @@ NTSTATUS DebugReportError(LDRCODE_DATA* pLdrData, ULONG uError)
     for(int i=28; i >= 0; i-=4)
         *Ptr++ = Table[(uError >> i) & 0xF];
 
-    return 0; // todo
+    return 0;
 }
 
 #if 0

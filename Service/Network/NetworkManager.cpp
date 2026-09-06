@@ -472,7 +472,11 @@ STATUS CNetworkManager::Load()
         CProgramID ID;
         if(!ID.FromVariant(StVariantReader(Item).Find(API_V_ID)))
             continue;
-        CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
+        CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
+        if (!pItem) {
+            DbgPrint(L"CNetworkManager::Load() - No program found for access record item with ID %s\n", ID.ToString().c_str());
+            continue;
+        }
         if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
             pProgram->LoadTraffic(Item);
         else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))

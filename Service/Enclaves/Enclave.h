@@ -29,6 +29,7 @@ public:
 
 	void SetVolumeGuid(const CFlexGuid& Guid) { std::unique_lock Lock(m_Mutex); m_VolumeGuid = Guid; }
 	CFlexGuid GetVolumeGuid() const			{ std::shared_lock Lock(m_Mutex); return m_VolumeGuid; }
+	bool IsVolumeEnclave() const			{ std::shared_lock Lock(m_Mutex); return !m_VolumeGuid.IsNull(); }
 
 	void Update(const std::shared_ptr<CEnclave>& Enclave);
 

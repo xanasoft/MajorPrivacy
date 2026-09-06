@@ -27,6 +27,11 @@ STATUS CTweakManager::Init()
 	return Load();
 }
 
+STATUS CTweakManager::ReLoad()
+{
+	return Load();
+}
+
 STATUS CTweakManager::Load()
 {
 	// prepare default tweak list
@@ -110,6 +115,7 @@ STATUS CTweakManager::Load()
 
 	m_Revision = Revision;
 
+	m_bTweaksDirty = false;
 	return OK;
 }
 
@@ -143,10 +149,11 @@ STATUS CTweakManager::Load(std::shared_ptr<CTweakList>& pRoot, std::map<std::wst
 	{
 		StVariant Tweak = Tweaks[i];
 
-		SVarWriteOpt::EFormat Format;
-		ETweakType eType = CAbstractTweak::ReadType(Tweak, Format);
-
 		StVariantReader Reader(Tweak);
+
+		SVarWriteOpt::EFormat Format;
+		ETweakType eType = CAbstractTweak::ReadType(Reader, Format);
+
 		std::wstring Id = (Format == SVarWriteOpt::eMap) ? Reader.Find(API_S_TWEAK_ID) : Reader.Find(API_V_TWEAK_ID);
 		std::wstring Parent = (Format == SVarWriteOpt::eMap) ? Reader.Find(API_S_PARENT) : Reader.Find(API_V_PARENT);
 

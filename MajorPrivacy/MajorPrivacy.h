@@ -8,6 +8,7 @@
 #include "../MiscHelpers/Common/CustomTheme.h"
 #include "../MiscHelpers/Common/ProgressDialog.h"
 #include <QTranslator>
+#include "../Library/Crypto/SecurePassword.h"
 
 class CHomePage;
 class CEnclavePage;
@@ -18,6 +19,7 @@ class CProgramView;
 class CDnsPage;
 class CTweakPage;
 class CVolumePage;
+class CPresetPage;
 
 class CPopUpWindow;
 
@@ -176,6 +178,7 @@ private slots:
 	void				OnCommitConfig();
 	void				OnDiscardConfig();
 	void				OnMakeKeyPair();
+	void				OnChangePassword();
 	void				OnClearKeys();
 	void				OnSignFile();
 
@@ -254,6 +257,7 @@ private:
 		eFirewall,
 		eDNS,
 		eTweaks,
+		ePresets,
 		eTabCount
 	};
 
@@ -316,6 +320,7 @@ private:
 	QAction*			m_pCommitConfig = nullptr;
 	QAction*			m_pDiscardConfig = nullptr;
 	QAction*			m_pMakeKeyPair = nullptr;
+	QAction*			m_pChangePassword = nullptr;
 	QAction*			m_pClearKeys = nullptr;
 	QAction*			m_pSignFile = nullptr;
 	//QAction*			m_pSignDb = nullptr;
@@ -359,6 +364,7 @@ private:
 	CNetworkPage*		m_NetworkPage = nullptr;
 	CDnsPage*			m_DnsPage = nullptr;
 	CTweakPage*			m_TweakPage = nullptr;
+	CPresetPage*		m_PresetPage = nullptr;
 
 	CProgramView*		m_pProgramView = nullptr;
 
@@ -388,7 +394,8 @@ protected:
 	bool				m_DrvConfigLocked = false;
 	quint64				m_ForgetSignerPW = 0;
 	quint64				m_AutoCommitConf = 0;
-	QString				m_CachedPassword; // todo replace with a secure storeage object
+	CSecurePassword		m_CachedPassword;
+	int					m_CachedKdf = 0;
 
 public:
 	CProgressDialog*	m_pProgressDialog;

@@ -10,7 +10,7 @@ public:
 
 	STATUS Init();
 
-	STATUS Load();
+	STATUS ReLoad();
 	STATUS Store();
 
 	uint32 GetRevision() const { std::unique_lock Lock(m_Mutex); return m_Revision; }
@@ -30,6 +30,8 @@ public:
 	void ReleaseGPO(class CGPO* pGPO);
 
 protected:
+	
+	STATUS Load();
 
 	static STATUS Load(std::shared_ptr<CTweakList>& pRoot, std::map<std::wstring, CTweakPtr>& Map);
 

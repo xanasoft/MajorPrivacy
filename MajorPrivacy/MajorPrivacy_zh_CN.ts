@@ -11,7 +11,7 @@
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="81"/>
         <source>Hold the access attempt during prompt</source>
-        <translation type="unfinished"></translation>
+        <translation>提示期间暂缓访问（阻塞弹窗）</translation>
     </message>
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="111"/>
@@ -37,17 +37,17 @@
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="253"/>
         <source>User</source>
-        <translation type="unfinished">用户</translation>
+        <translation>用户</translation>
     </message>
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="272"/>
         <source>Scripting</source>
-        <translation type="unfinished"></translation>
+        <translation>脚本</translation>
     </message>
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="278"/>
         <source>Call script to make decisions</source>
-        <translation type="unfinished"></translation>
+        <translation>调用脚本决策</translation>
     </message>
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="95"/>
@@ -232,7 +232,7 @@
     <message>
         <location filename="Views/AccessListView.cpp" line="67"/>
         <source>Loading %1</source>
-        <translation type="unfinished">加载中 %1</translation>
+        <translation>加载中 %1</translation>
     </message>
 </context>
 <context>
@@ -240,7 +240,7 @@
     <message>
         <location filename="Core/Access/AccessManager.cpp" line="148"/>
         <source>Invalid User Name in access rule</source>
-        <translation type="unfinished"></translation>
+        <translation>访问规则中的用户名无效</translation>
     </message>
 </context>
 <context>
@@ -463,7 +463,7 @@
     <message>
         <location filename="Views/AccessRuleView.cpp" line="198"/>
         <source>Resource Access Rule</source>
-        <translation type="unfinished">资源访问规则</translation>
+        <translation>资源访问规则</translation>
     </message>
     <message>
         <location filename="Views/AccessRuleView.cpp" line="239"/>
@@ -481,17 +481,17 @@
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="23"/>
         <source>Unspecified (Any)</source>
-        <translation type="unfinished"></translation>
+        <translation>未指定（任意）</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="32"/>
         <source>%1</source>
-        <translation type="unfinished">%1</translation>
+        <translation>%1</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="46"/>
         <source>[%1]</source>
-        <translation type="unfinished"></translation>
+        <translation>[%1]</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="74"/>
@@ -568,12 +568,12 @@
         <location filename="Windows/AccessRuleWnd.cpp" line="370"/>
         <location filename="Windows/AccessRuleWnd.cpp" line="374"/>
         <source>Error</source>
-        <translation type="unfinished"></translation>
+        <translation>错误</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="352"/>
         <source>The Program Path is not valid.</source>
-        <translation type="unfinished"></translation>
+        <translation>程序路径无效。</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="364"/>
@@ -583,12 +583,12 @@
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="370"/>
         <source>The File Path is not valid.</source>
-        <translation type="unfinished"></translation>
+        <translation>文件路径无效。</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="374"/>
         <source>The File Path may break windows, please use a more specific path.</source>
-        <translation type="unfinished"></translation>
+        <translation>此文件路径可能破坏Windows，请使用一个更具体的路径。</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="436"/>
@@ -684,7 +684,7 @@
     <message>
         <location filename="Views/AccessTraceView.cpp" line="38"/>
         <source>Hold updates</source>
-        <translation>加载更新</translation>
+        <translation>暂缓更新</translation>
     </message>
     <message>
         <location filename="Views/AccessTraceView.cpp" line="45"/>
@@ -722,7 +722,7 @@
     <message>
         <location filename="Views/AccessView.cpp" line="70"/>
         <source>Clear Records</source>
-        <translation type="unfinished"></translation>
+        <translation>清除记录</translation>
     </message>
     <message>
         <location filename="Views/AccessView.cpp" line="84"/>
@@ -762,17 +762,17 @@
     <message>
         <location filename="Views/AccessView.cpp" line="429"/>
         <source>Are you sure you want to clear the all Access records for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定你想要为全部程序项清除所有访问记录吗？</translation>
     </message>
     <message>
         <location filename="Views/AccessView.cpp" line="436"/>
         <source>Are you sure you want to clear the all Access records for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定你想要为当前程序项清除所有访问记录吗？</translation>
     </message>
     <message>
         <location filename="Views/AccessView.cpp" line="47"/>
         <source>Hold updates</source>
-        <translation>保留更新</translation>
+        <translation>暂缓更新</translation>
     </message>
 </context>
 <context>
@@ -814,32 +814,32 @@
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="357"/>
         <source>Install your &lt;b&gt;MajorPrivacy&lt;/b&gt; License Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>安装你的&lt;b&gt;MajorPrivacy&lt;/b&gt;许可证证书</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="358"/>
         <source>To use most advanced protection features a License Certificate must be installed.</source>
-        <translation type="unfinished"></translation>
+        <translation>为了使用最先进的保护功能,一个许可证证书必须被安装。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="364"/>
         <source>&lt;b&gt;MajorPrivacy&lt;/b&gt; offers powerful features to safeguard your data. To unlock these features, you&apos;ll need a valid license.If you don&apos;t have one yet, please consider &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-get-cert&quot;&gt;getting a license&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt;提供强大的功能以保护你的数据。如果你还没有一个,请考虑&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-get-cert&quot;&gt;获取一个证书&lt;/a&gt;。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="383"/>
         <source>Retrieve License Certificate using a Serial Number:</source>
-        <translation type="unfinished"></translation>
+        <translation>使用序列号获取许可证证书:</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="398"/>
         <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;Get a free evaluation certificate&lt;/font&gt;&lt;/a&gt; and enjoy all features for %1 days.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;获取一个免费评估证书&lt;/font&gt;&lt;/a&gt; 并享受%1天全部功能。&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="440"/>
         <source>Without an active License Certificate, MajorPrivacy runs in demo mode and does not enforce any rules. You can get a free %1-day evaluation certificate to unlock all features. Are you sure you want to continue without one?</source>
-        <translation type="unfinished"></translation>
+        <translation>没有一个激活的许可证证书,MajorPrivacy将运行在demo模式并且不强制任何规则.你可以获取一个免费的%1天评估证书以解锁全部功能。你确定要在没有证书的情况下继续吗?</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="456"/>
@@ -864,27 +864,27 @@ Error: %1</source>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="692"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; Config Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>配置 &lt;b&gt;MajorPrivacy&lt;/b&gt; 配置保护</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="693"/>
         <source>To make MajorPrivacy truly secure its configuration must be protected.</source>
-        <translation type="unfinished"></translation>
+        <translation>为了让MajorPrivacy真的安全,它的配置必须被保护。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="702"/>
         <source>The security-relevant configuration of MajorPrivacy (Process Protection rules, Secure Enclave settings, the Allowed Image Hash Database, and File/Folder access rules) is stored in the Windows registry. While MajorPrivacy is running, this data is protected against tampering, and the software itself can prevent unauthorized termination. However, when MajorPrivacy is not active, the registry remains vulnerable. To address this, the configuration can be protected with a digital signature, with the last valid revision locked in a read-only state that is only cleared on system shutdown. It will be re-locked automatically as soon as the KernelIsolator driver loads early in the boot process. The trade-off is that while this protection is engaged, the software cannot be uninstalled. To uninstall, the protection must first be disabled and the system rebooted.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy的安全相关配置(进程保护规则,安全飞地设置,受允许的映像哈希数据库以及文件/目录访问规则)被存储在Windows注册表中。当MajorPrivacy正在运行时, 这个数据被保护以免篡改,并且软件自身能阻止不受授权的终止。然而,当MajorPrivacy未激活时,注册表是脆弱的。为此,配置信息可以使用一个数字签名来保护,这种情况下最后一个可用的版本是以只读状态锁定的,仅在系统关闭时清除。当KernelIsolator在引导早期过程启动时它将被很快重新锁定。短板是,当保护被启用,软件不能被卸载。如果要卸载,你必须首先禁用保护并重启系统。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="709"/>
         <source>Enable Unload Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>启用卸载保护</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="713"/>
         <source>Enable Config Protection and set up User Key</source>
-        <translation type="unfinished"></translation>
+        <translation>启用卸载保护并设置用户密钥</translation>
     </message>
 </context>
 <context>
@@ -892,22 +892,22 @@ Error: %1</source>
     <message>
         <location filename="Core/IssueManager.cpp" line="182"/>
         <source>No user key is set, some features may not work!</source>
-        <translation type="unfinished"></translation>
+        <translation>没有用户密钥被设置,一些功能可能不工作!</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="186"/>
         <source>Existing Windows Firewall rules have not been approved yet!</source>
-        <translation type="unfinished"></translation>
+        <translation>现有Windows 防火墙规则尚未被许可!</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="208"/>
         <source>This issue can not be fixed in this mode!</source>
-        <translation type="unfinished"></translation>
+        <translation>这个问题无法在该模式下被修复!</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="230"/>
         <source>This issue can not be fixed!</source>
-        <translation type="unfinished"></translation>
+        <translation>这个问题无法被修复!</translation>
     </message>
 </context>
 <context>
@@ -1272,7 +1272,7 @@ Error: %1</source>
     <message>
         <location filename="Models/EnclaveModel.cpp" line="138"/>
         <source>, </source>
-        <translation type="unfinished"></translation>
+        <translation>, </translation>
     </message>
     <message>
         <location filename="Models/EnclaveModel.cpp" line="325"/>
@@ -1287,7 +1287,7 @@ Error: %1</source>
     <message>
         <location filename="Models/EnclaveModel.cpp" line="327"/>
         <source>Signers</source>
-        <translation type="unfinished"></translation>
+        <translation>签名者</translation>
     </message>
     <message>
         <source>Trust Level</source>
@@ -1419,7 +1419,7 @@ Error: %1</source>
         <location filename="Windows/EnclaveWnd.cpp" line="49"/>
         <location filename="Windows/EnclaveWnd.cpp" line="279"/>
         <source>None</source>
-        <translation type="unfinished">无</translation>
+        <translation>无</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="60"/>
@@ -1449,22 +1449,22 @@ Error: %1</source>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="78"/>
         <source>Default</source>
-        <translation type="unfinished"></translation>
+        <translation>默认</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="79"/>
         <source>Inject Low (Exclusive)</source>
-        <translation type="unfinished"></translation>
+        <translation>底层注入(独占)</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="80"/>
         <source>Inject High (Sbie+ Compatible)</source>
-        <translation type="unfinished"></translation>
+        <translation>高层注入(SBIE兼容)</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="81"/>
         <source>Disabled</source>
-        <translation type="unfinished"></translation>
+        <translation>禁用的</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="83"/>
@@ -1517,12 +1517,12 @@ Error: %1</source>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="272"/>
         <source>Add Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>新建集合</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="272"/>
         <source>Enter the name of the collection:</source>
-        <translation type="unfinished"></translation>
+        <translation>输入集合名称:</translation>
     </message>
 </context>
 <context>
@@ -1530,122 +1530,122 @@ Error: %1</source>
     <message>
         <location filename="Core/EventLog.cpp" line="67"/>
         <source>Info</source>
-        <translation type="unfinished">信息</translation>
+        <translation>信息</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="68"/>
         <source>Success</source>
-        <translation type="unfinished">成功</translation>
+        <translation>成功</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="69"/>
         <source>Warning</source>
-        <translation type="unfinished">警告</translation>
+        <translation>警告</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="70"/>
         <source>Error</source>
-        <translation type="unfinished"></translation>
+        <translation>错误</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="71"/>
         <source>Critical</source>
-        <translation type="unfinished"></translation>
+        <translation>关键</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="72"/>
         <source>Unknown</source>
-        <translation type="unfinished">未知</translation>
+        <translation>未知</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="101"/>
         <source>Firewall Mode Changed to NO Filtering.</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙模式切换至不过滤。</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="102"/>
         <source>Firewall Mode Changed to Block List.</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙模式切换至黑名单。</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="103"/>
         <source>Firewall Mode Changed to Allow List.</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙模式切换至白名单。</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="104"/>
         <source>Firewall Mode Changed to Unknown.</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙模式切换至未知。</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="125"/>
         <source>Startup was blocked, Program &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>启动被阻止,程序 &apos;%1;&apos;</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="130"/>
         <source>Program no longer present &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>程序不再存在 &apos;%1&apos;</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="135"/>
         <source>Removed no longer existign Program &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>移除不再存在的程序 &apos;%1&apos;</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="141"/>
         <source>Program failed Coherency Check and was blocked &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>程序未通过连贯性检查并被阻止 &apos;%1&apos;</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="143"/>
         <source>Program had insificient Signature leven and was blocked &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>程序签名级别不足并被阻止 &apos;%1&apos;</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="153"/>
         <source>Unknown Event: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>未知事件: %1</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="165"/>
         <source>Firewall Rule &apos;%1&apos; Added</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则 &apos;%1&apos; 已被添加</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="166"/>
         <source>Firewall Rule &apos;%1&apos; Modified</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则 &apos;%1&apos; 已被更改</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="167"/>
         <source>Firewall Rule &apos;%1&apos; Removed</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则 &apos;%1&apos; 已被移除</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="168"/>
         <source>Firewall Rule &apos;%1&apos; Generated from Template</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则 &apos;%1&apos; 已从模板被生成</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="169"/>
         <source>Firewall Rule &apos;%1&apos; Approved</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则 &apos;%1&apos; 已被许可</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="170"/>
         <source>Firewall Rule &apos;%1&apos; Restored</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则 &apos;%1&apos; 已被恢复</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="171"/>
         <source>Firewall Rule &apos;%1&apos; Rejected</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则 &apos;%1&apos; 已被拒绝</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="172"/>
         <source>Firewall Rule &apos;%1&apos; Unknown Event</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则 &apos;%1&apos; 未知事件</translation>
     </message>
 </context>
 <context>
@@ -1654,27 +1654,27 @@ Error: %1</source>
         <location filename="Views/EventView.cpp" line="24"/>
         <location filename="Views/EventView.cpp" line="54"/>
         <source>Clear Privacy Event Log</source>
-        <translation type="unfinished"></translation>
+        <translation>清除隐私事件日志</translation>
     </message>
     <message>
         <location filename="Views/EventView.cpp" line="30"/>
         <source>Level|Time Stamp|Information</source>
-        <translation type="unfinished"></translation>
+        <translation>级别|时间戳|信息</translation>
     </message>
     <message>
         <location filename="Views/EventView.cpp" line="54"/>
         <source>Do you really want to clear the Privacy Event Log?</source>
-        <translation type="unfinished"></translation>
+        <translation>你真的想要清除隐私事件日志吗?</translation>
     </message>
     <message>
         <location filename="Views/EventView.cpp" line="98"/>
         <source>Firewall Rule Created</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则已被创建</translation>
     </message>
     <message>
         <location filename="Views/EventView.cpp" line="105"/>
         <source>Firewall Rule Guard</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则保护器</translation>
     </message>
 </context>
 <context>
@@ -1682,27 +1682,27 @@ Error: %1</source>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="506"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; Process Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>配置&lt;b&gt;MajorPrivacy&lt;/b&gt;进程保护</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="507"/>
         <source>MajorPrivacy can protect the integrity of processes and enforce custom Code Integrity rules.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy可以保护进程完整性并强制自定义代码完整性规则。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="516"/>
         <source>MajorPrivacy puts you in charge of your system by letting you decide which programs are allowed to start others, which libraries they may load, and how processes can interact with each other (read/write memory, etc.). To give you clear insight, Execution and inter-process access (Ingress) events are aggregated into records that clearly show interactions between programs. These records are stored in memory (RAM) and can be saved to disk, giving you long-term insight into how your programs interact. For privacy, you can configure the storage options individually per program. If needed, the raw events can also be logged to RAM, though this will consume a significant amount of memory.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy使你对你的系统负责通过让你选择哪些程序被允许启动其他程序,它们可以加载哪些库,以及进程可以怎样彼此交互(读/写内存等)。为了给你清晰的洞见,执行与跨进程访问(入口访问)事件被汇总为清晰显示程序间交互的记录.这些记录存储在内存中并可以被保存到硬盘中,给你对于进程间交互长期洞见的能力。出于隐私考虑,你可以为每个程序配置单独的存储选项。如有需要,原始事件也可被记录到内存中,尽管这会造成显著的空间占用</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="527"/>
         <source>Save Process Execution and Ingress Records to Disk (IngressRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>保存进程执行与入口访问记录到磁盘 (IngressRecord.dat)</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="532"/>
         <source>Log Process Execution and Ingress events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>记录进程执行与入口访问记录到内存</translation>
     </message>
 </context>
 <context>
@@ -1778,17 +1778,17 @@ Error: %1</source>
     <message>
         <location filename="Views/ExecutionView.cpp" line="57"/>
         <source>Hold updates</source>
-        <translation type="unfinished"></translation>
+        <translation>暂缓更新</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="63"/>
         <source>Reload</source>
-        <translation type="unfinished"></translation>
+        <translation>重载</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="72"/>
         <source>Clear Records</source>
-        <translation type="unfinished"></translation>
+        <translation>清除记录</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="81"/>
@@ -1798,17 +1798,17 @@ Error: %1</source>
     <message>
         <location filename="Views/ExecutionView.cpp" line="197"/>
         <source>Loading %1</source>
-        <translation type="unfinished">加载中 %1</translation>
+        <translation>加载中 %1</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="289"/>
         <source>Are you sure you want to clear the all Execution and Ingress records for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要为所有程序项清除全部进程执行与入口访问记录吗?</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="296"/>
         <source>Are you sure you want to clear the all Execution and Ingress records for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要为当前程序项清除全部进程执行与入口访问记录吗?</translation>
     </message>
 </context>
 <context>
@@ -1829,28 +1829,28 @@ Error: %1</source>
     <message>
         <location filename="Core/IssueManager.cpp" line="246"/>
         <source>Unapproved Windows Firewall rule: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>未受许可的Windows 防火墙规则: %1</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="253"/>
         <source>Missing Windows Firewall rule: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>丢失Windows 防火墙规则: %1</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="266"/>
         <source>Altered Windows Firewall rule: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>被警告的Windows 防火墙规则: %1</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="293"/>
         <location filename="Core/IssueManager.cpp" line="314"/>
         <source>This issue can not be fixed in this mode!</source>
-        <translation type="unfinished"></translation>
+        <translation>这个问题在当前模式下无法被修复!</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="316"/>
         <source>This issue can not be fixed!</source>
-        <translation type="unfinished"></translation>
+        <translation>这个问题无法被修复!</translation>
     </message>
 </context>
 <context>
@@ -1872,7 +1872,7 @@ Error: %1</source>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="40"/>
         <source>MajorPrivacy-Rule, New Firewall Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy-规则, 新建防火墙规则</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="75"/>
@@ -1913,7 +1913,7 @@ Error: %1</source>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="187"/>
         <source>No</source>
-        <translation type="unfinished">否</translation>
+        <translation>否</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="189"/>
@@ -1963,42 +1963,42 @@ Error: %1</source>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="17"/>
         <source>Windows Default</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows默认</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="18"/>
         <source>Windows Store</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows商店</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="19"/>
         <source>MajorPrivacy</source>
-        <translation type="unfinished">MajorPrivacy</translation>
+        <translation>MajorPrivacy</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="20"/>
         <source>Privacy Template</source>
-        <translation type="unfinished"></translation>
+        <translation>隐私模板</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="29"/>
         <source>Unapproved</source>
-        <translation type="unfinished"></translation>
+        <translation>未受许可</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="30"/>
         <source>Approved</source>
-        <translation type="unfinished"></translation>
+        <translation>受许可的</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="31"/>
         <source>Backup</source>
-        <translation type="unfinished"></translation>
+        <translation>备份</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="32"/>
         <source>Diverged</source>
-        <translation type="unfinished"></translation>
+        <translation>分叉的</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="122"/>
@@ -2149,12 +2149,12 @@ Error: %1</source>
     <message>
         <location filename="Models/FwRuleModel.cpp" line="200"/>
         <source>State</source>
-        <translation type="unfinished">状态</translation>
+        <translation>状态</translation>
     </message>
     <message>
         <location filename="Models/FwRuleModel.cpp" line="201"/>
         <source>Source</source>
-        <translation type="unfinished"></translation>
+        <translation>源</translation>
     </message>
     <message>
         <location filename="Models/FwRuleModel.cpp" line="202"/>
@@ -2242,12 +2242,12 @@ Error: %1</source>
     <message>
         <location filename="Views/FwRuleView.cpp" line="34"/>
         <source>Approve Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>许可规则</translation>
     </message>
     <message>
         <location filename="Views/FwRuleView.cpp" line="35"/>
         <source>Restore Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>恢复规则</translation>
     </message>
     <message>
         <location filename="Views/FwRuleView.cpp" line="37"/>
@@ -2318,7 +2318,7 @@ Error: %1</source>
     <message>
         <location filename="Views/FwRuleView.cpp" line="82"/>
         <source>Hide default rules</source>
-        <translation type="unfinished"></translation>
+        <translation>隐藏默认规则</translation>
     </message>
     <message>
         <location filename="Views/FwRuleView.cpp" line="91"/>
@@ -2389,12 +2389,12 @@ Error: %1</source>
     <message>
         <location filename="Models/HashDBModel.cpp" line="160"/>
         <source>Name</source>
-        <translation type="unfinished">名称</translation>
+        <translation>名称</translation>
     </message>
     <message>
         <location filename="Models/HashDBModel.cpp" line="161"/>
         <source>Value</source>
-        <translation type="unfinished">值</translation>
+        <translation>值</translation>
     </message>
 </context>
 <context>
@@ -2402,43 +2402,43 @@ Error: %1</source>
     <message>
         <location filename="Views/HashDBView.cpp" line="29"/>
         <source>Enable Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>启用实体</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="30"/>
         <source>Disable Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>禁用实体</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="33"/>
         <source>Delete Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>删除实体</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="37"/>
         <source>Edit Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>编辑实体</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="39"/>
         <location filename="Views/HashDBView.cpp" line="46"/>
         <source>Add Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>添加实体</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="54"/>
         <source>Refresh DB</source>
-        <translation type="unfinished"></translation>
+        <translation>刷新数据库</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="76"/>
         <source>Auto Expand</source>
-        <translation type="unfinished">自动展开</translation>
+        <translation>自动展开</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="316"/>
         <source>Do you want to delete selected Entries?</source>
-        <translation type="unfinished"></translation>
+        <translation>你想要删除选定的实体吗?</translation>
     </message>
 </context>
 <context>
@@ -2446,49 +2446,49 @@ Error: %1</source>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="35"/>
         <source>Create Hash DB Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>创建哈希数据库实体</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="35"/>
         <source>Edit HashDB Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>编辑哈希数据库实体</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="38"/>
         <location filename="Windows/HashEntryWnd.cpp" line="45"/>
         <location filename="Windows/HashEntryWnd.cpp" line="174"/>
         <source>None</source>
-        <translation type="unfinished">无</translation>
+        <translation>无</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="60"/>
         <source>File</source>
-        <translation type="unfinished">文件</translation>
+        <translation>文件</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="61"/>
         <source>Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>证书</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="121"/>
         <source>Please select a type.</source>
-        <translation type="unfinished"></translation>
+        <translation>请选择一个类型。</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="129"/>
         <source>Please enter a valid hash value using hexadecimal notation.</source>
-        <translation type="unfinished"></translation>
+        <translation>请使用十六进制格式输入一个有效的哈希值</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="167"/>
         <source>Add Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>新建集合</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="167"/>
         <source>Enter the name of the collection:</source>
-        <translation type="unfinished"></translation>
+        <translation>输入集合名称:</translation>
     </message>
 </context>
 <context>
@@ -2496,17 +2496,17 @@ Error: %1</source>
     <message>
         <location filename="Pages/HomePage.cpp" line="66"/>
         <source>Privacy Events</source>
-        <translation type="unfinished"></translation>
+        <translation>隐私事件</translation>
     </message>
     <message>
         <location filename="Pages/HomePage.cpp" line="72"/>
         <source>System Events</source>
-        <translation type="unfinished"></translation>
+        <translation>系统事件</translation>
     </message>
     <message>
         <location filename="Pages/HomePage.cpp" line="79"/>
         <source>Clear System Event Log</source>
-        <translation type="unfinished"></translation>
+        <translation>清空系统事件日志</translation>
     </message>
     <message>
         <location filename="Pages/HomePage.cpp" line="89"/>
@@ -2516,7 +2516,7 @@ Error: %1</source>
     <message>
         <location filename="Pages/HomePage.cpp" line="181"/>
         <source>Are you sure you want to clear the event log?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要清除事件日志吗?</translation>
     </message>
     <message>
         <location filename="Pages/HomePage.cpp" line="252"/>
@@ -2705,17 +2705,17 @@ Error: %1</source>
     <message>
         <location filename="Views/IngressView.cpp" line="79"/>
         <source>Hold updates</source>
-        <translation type="unfinished"></translation>
+        <translation>暂缓更新</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="85"/>
         <source>Reload</source>
-        <translation type="unfinished"></translation>
+        <translation>重载</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="94"/>
         <source>Clear Records</source>
-        <translation type="unfinished"></translation>
+        <translation>清除记录</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="103"/>
@@ -2725,17 +2725,17 @@ Error: %1</source>
     <message>
         <location filename="Views/IngressView.cpp" line="241"/>
         <source>Loading %1</source>
-        <translation type="unfinished">加载中 %1</translation>
+        <translation>加载中 %1</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="339"/>
         <source>Are you sure you want to clear the all Execution and Ingress records for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要为所有程序项清除全部执行与入口访问记录吗?</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="346"/>
         <source>Are you sure you want to clear the all Execution and Ingress records for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要为当前程序项清除全部执行与入口访问记录吗?</translation>
     </message>
 </context>
 <context>
@@ -2748,7 +2748,7 @@ Error: %1</source>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="216"/>
         <source>Welcome to the Setup Wizard. This wizard will help you to configure your copy of &lt;b&gt;MajorPrivacy&lt;/b&gt;. It is strongly recommended to go through this wizard in order to learn about some of the avilable featues and mechanisms. You can start this wizard at any time from the Privacy-&gt;Maintenance menu if you do not wish to complete it now.</source>
-        <translation type="unfinished"></translation>
+        <translation>欢迎来到安装向导。此向导将帮助你配置你的&lt;b&gt;MajorPrivacy&lt;/b&gt;副本。强烈建议完成此向导，以了解部分可用功能及机制。若现在不想完成，可随时从“隐私 -&gt; 维护”菜单中启动此向导。</translation>
     </message>
     <message>
         <source>Welcome to the Setup Wizard. This wizard will help you to configure your copy of &lt;b&gt;MajorPrivacy&lt;/b&gt;. You can start this wizard at any time from the Sandbox-&gt;Maintenance menu if you do not wish to complete it now.</source>
@@ -2776,27 +2776,27 @@ Error: %1</source>
     <message>
         <location filename="Core/IssueManager.cpp" line="166"/>
         <source>Low</source>
-        <translation type="unfinished"></translation>
+        <translation>低</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="167"/>
         <source>Medium</source>
-        <translation type="unfinished"></translation>
+        <translation>中</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="168"/>
         <source>High</source>
-        <translation type="unfinished">高</translation>
+        <translation>高</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="169"/>
         <source>Critical</source>
-        <translation type="unfinished"></translation>
+        <translation>关键</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="170"/>
         <source>Undefined</source>
-        <translation type="unfinished">未定义</translation>
+        <translation>未定义</translation>
     </message>
 </context>
 <context>
@@ -2804,82 +2804,82 @@ Error: %1</source>
     <message>
         <location filename="Views/IssueView.cpp" line="18"/>
         <source>Current Privacy related Issues requirering an Action to be taken:</source>
-        <translation type="unfinished"></translation>
+        <translation>当前隐私相关问题需要采取一个行为:</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="24"/>
         <source>Severity|Description</source>
-        <translation type="unfinished"></translation>
+        <translation>严重性|注释</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="34"/>
         <source>Fix Issue</source>
-        <translation type="unfinished"></translation>
+        <translation>修复问题</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="38"/>
         <source>Accept Change</source>
-        <translation type="unfinished"></translation>
+        <translation>接受变更</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="42"/>
         <source>Reject Change</source>
-        <translation type="unfinished"></translation>
+        <translation>拒绝变更</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="46"/>
         <source>Ignore Issue</source>
-        <translation type="unfinished"></translation>
+        <translation>忽略问题</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="163"/>
         <source>&lt;br /&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br /&gt;</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="165"/>
         <source>... and %1 more</source>
-        <translation type="unfinished"></translation>
+        <translation>... and %1 更多</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="170"/>
         <source>Do you really want to hide the following issue?&lt;br /&gt;&lt;br /&gt;%1</source>
-        <translation type="unfinished"></translation>
+        <translation>你真的想要隐藏以下问题吗?&lt;br /&gt;&lt;br /&gt;%1</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="181"/>
         <source>Do you want to fix the following issue?&lt;br /&gt;&lt;br /&gt;%1</source>
-        <translation type="unfinished"></translation>
+        <translation>你想要修复以下问题吗?&lt;br /&gt;&lt;br /&gt;%1</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="186"/>
         <source>Do you want to %1 the following firewall rule changes?&lt;br /&gt;&lt;br /&gt;%2</source>
-        <translation type="unfinished"></translation>
+        <translation>你想要%1以下防火墙规则变更吗?&lt;br /&gt;&lt;br /&gt;%2</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="186"/>
         <source>accept</source>
-        <translation type="unfinished"></translation>
+        <translation>接受</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="186"/>
         <source>reject</source>
-        <translation type="unfinished"></translation>
+        <translation>拒绝</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="210"/>
         <source>Do you want to accept the changes to the Firewall Rule (Yes) or restore the previouse state (No)?&lt;br /&gt;&lt;br /&gt;%1</source>
-        <translation type="unfinished"></translation>
+        <translation>你想要接受对防火墙的更改(是)还是恢复到之前的状态(否)?&lt;br /&gt;&lt;br /&gt;%1</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="222"/>
         <source>Do you want to fix the issue?&lt;br /&gt;&lt;br /&gt;%1</source>
-        <translation type="unfinished"></translation>
+        <translation>你想要修复该问题吗?&lt;br /&gt;&lt;br /&gt;%1</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="226"/>
         <source>Don&apos;t ask in future</source>
-        <translation type="unfinished"></translation>
+        <translation>在未来不要再问我</translation>
     </message>
 </context>
 <context>
@@ -2887,12 +2887,12 @@ Error: %1</source>
     <message>
         <location filename="Windows/ItemPicker.cpp" line="29"/>
         <source>MajorPrivacy - Select Item</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy - 选择项目</translation>
     </message>
     <message>
         <location filename="Windows/ItemPicker.cpp" line="120"/>
         <source>Please select an item</source>
-        <translation type="unfinished"></translation>
+        <translation>请选择一个项目</translation>
     </message>
 </context>
 <context>
@@ -2905,7 +2905,7 @@ Error: %1</source>
     <message>
         <location filename="Views/LibraryInfoView.cpp" line="93"/>
         <source>Loading %1</source>
-        <translation type="unfinished">加载中 %1</translation>
+        <translation>加载中 %1</translation>
     </message>
     <message>
         <location filename="Views/LibraryInfoView.cpp" line="126"/>
@@ -2953,7 +2953,7 @@ Error: %1</source>
     <message>
         <location filename="Models/LibraryModel.cpp" line="247"/>
         <source>File Hash</source>
-        <translation type="unfinished"></translation>
+        <translation>文件哈希</translation>
     </message>
     <message>
         <location filename="Models/LibraryModel.cpp" line="248"/>
@@ -3029,22 +3029,22 @@ Error: %1</source>
     <message>
         <location filename="Views/LibraryView.cpp" line="30"/>
         <source>Allow Signer Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>允许签名者证书</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="31"/>
         <source>Remove Signer Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>移除签名者证书</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="32"/>
         <source>Allow Issuer Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>允许签发者证书</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="33"/>
         <source>Remove Issuer Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>移除签发者证书</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="66"/>
@@ -3069,17 +3069,17 @@ Error: %1</source>
     <message>
         <location filename="Views/LibraryView.cpp" line="76"/>
         <source>Hide windows Libraries</source>
-        <translation type="unfinished"></translation>
+        <translation>隐藏Windows库</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="86"/>
         <source>Hold updates</source>
-        <translation type="unfinished"></translation>
+        <translation>暂缓更新</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="92"/>
         <source>Reload</source>
-        <translation type="unfinished"></translation>
+        <translation>重载</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="101"/>
@@ -3094,23 +3094,24 @@ Error: %1</source>
     <message>
         <location filename="Views/LibraryView.cpp" line="123"/>
         <source>Show Signature Details</source>
-        <translation type="unfinished"></translation>
+        <translation>显示签名细节</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="266"/>
         <source>Loading %1</source>
-        <translation type="unfinished">加载中 %1</translation>
+        <translation>加载中 %1</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="448"/>
         <source>Do you really want to allow the Issuing Certificate Authoricy Certificate? This will allow all Signign Certificate issued by this CA.</source>
-        <translation type="unfinished"></translation>
+        <translation>你真的想要允许该签发证书权威机构证书吗?这将会允许所有由该CA签发的证书。</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="481"/>
         <source>Are you sure you want to cleanup the library list for the current program items?
 This will remove all library entries for for not currently loaded libraries.</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要清理当前程序项的库列表吗？
+此操作将移除所有当前未加载库的库条目。</translation>
     </message>
 </context>
 <context>
@@ -3124,7 +3125,8 @@ This will remove all library entries for for not currently loaded libraries.</so
         <location filename="MajorPrivacy.cpp" line="310"/>
         <source>The License Certificate is not valid.
 Error: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>该许可证证书无效。
+错误: %1</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="422"/>
@@ -3312,67 +3314,68 @@ Error: %1</source>
         <location filename="MajorPrivacy.cpp" line="425"/>
         <source>The driver configuration has an INVALID Signature!!! Do you want to load it anyways?
 It is strongly recomended to manualy validate the configuration or restore a known good configuration. Before commiting (signing) the loaded configuration.</source>
-        <translation type="unfinished"></translation>
+        <translation>驱动配置有一个无效签名!!!你无论如何都想要加载它吗?
+强烈推荐手动校验配置或恢复到一个已知的正常工作的配置。在那之前提交(签名)加载的配置</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="433"/>
         <source>The current driver configuration could not be loaded, the last valid config was loaded instead. Commit the config to save it as current.</source>
-        <translation type="unfinished"></translation>
+        <translation>当前驱动配置无法被加载,最后的有效配置被取代之而加载。提交配置以将其作为当前配置保存。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="435"/>
         <source>The current driver configuration was not loaded due to to many faild boot atempts, the last presumably good config was loaded instead.</source>
-        <translation type="unfinished"></translation>
+        <translation>当前驱动配置由于太多次失败的启动尝试而未被加载,最后一次可能的正确配置被取而代之加载。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="437"/>
         <source>The current driver configuration was not loaded due to to many faild boot atempts.</source>
-        <translation type="unfinished"></translation>
+        <translation>当前驱动配置由于太多次失败的启动尝试而未被加载。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="501"/>
         <source>Failed to restart MajorPrivacy with maximum security, error: 0x%1!</source>
-        <translation type="unfinished"></translation>
+        <translation>无法以最大化安全重启MajorPrivacy,错误: 0x%1!</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="511"/>
         <source>MajorPrivacy&apos;s UI is not recognized by the driver!!!</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy的UI未被驱动识别成功!!!</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="519"/>
         <source>Do you want the setup wizard to be omitted?</source>
-        <translation type="unfinished"></translation>
+        <translation>你想要跳过安装向导吗?</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="844"/>
         <source>Start Services</source>
-        <translation type="unfinished"></translation>
+        <translation>启动服务</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="845"/>
         <source>Stop Services</source>
-        <translation type="unfinished"></translation>
+        <translation>停止服务</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="851"/>
         <source>Restart As Admin</source>
-        <translation type="unfinished"></translation>
+        <translation>以管理员身份重启</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="857"/>
         <source>Toggle Program View</source>
-        <translation type="unfinished"></translation>
+        <translation>切换程序视图</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="895"/>
         <source>Enable Config Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>启用配置保护</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="896"/>
         <source>Disable Config Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>禁用配置保护</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="904"/>
@@ -3397,27 +3400,27 @@ It is strongly recomended to manualy validate the configuration or restore a kno
     <message>
         <location filename="MajorPrivacy.cpp" line="916"/>
         <source>&amp;Firewall Tools</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;F防火墙工具</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="917"/>
         <source>Restore Default Windows Firewall Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>恢复默认Windows防火墙规则</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="918"/>
         <source>Are you sure you want to remove ALL current Firewall Rules and restore the default Windows Firewall rules set?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要移除所有当前防火墙规则并恢复默认Windows 防火墙规则集吗?</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="922"/>
         <source>Create Recommended Firewall Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>创建受推荐的防火墙规则</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="923"/>
         <source>Are you sure you want to create the recommended Firewall Rules?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要创建受推荐的防火墙规则吗</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="929"/>
@@ -3462,7 +3465,7 @@ It is strongly recomended to manualy validate the configuration or restore a kno
     <message>
         <location filename="MajorPrivacy.cpp" line="961"/>
         <source>&amp;Management</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;M管理</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="969"/>
@@ -3487,12 +3490,12 @@ It is strongly recomended to manualy validate the configuration or restore a kno
     <message>
         <location filename="MajorPrivacy.cpp" line="975"/>
         <source>Diagnostics Information</source>
-        <translation type="unfinished"></translation>
+        <translation>诊断信息</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="976"/>
         <source>Check for Updates</source>
-        <translation type="unfinished"></translation>
+        <translation>检查更新</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="978"/>
@@ -3659,7 +3662,7 @@ It is strongly recomended to manualy validate the configuration or restore a kno
     <message>
         <location filename="MajorPrivacy.cpp" line="1346"/>
         <source>Security Presets</source>
-        <translation type="unfinished"></translation>
+        <translation>安全预设</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1349"/>
@@ -3860,12 +3863,12 @@ If the driver is set to auto-start, it will automatically re-lock the key on reb
     <message>
         <location filename="MajorPrivacy.cpp" line="2610"/>
         <source>Process start blocked</source>
-        <translation type="unfinished"></translation>
+        <translation>进程启动已被封禁</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2610"/>
         <source>Application %1 fails coherency check.</source>
-        <translation type="unfinished"></translation>
+        <translation>应用程序%1未通过连贯性检查。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2681"/>
@@ -3933,7 +3936,7 @@ CAUTION: This will disable protection.</source>
     <message>
         <location filename="MajorPrivacy.cpp" line="3124"/>
         <source>Default Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>默认预设</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3166"/>
@@ -4003,62 +4006,62 @@ CAUTION: This will disable protection.</source>
     <message>
         <location filename="MajorPrivacy.cpp" line="3231"/>
         <source> Securely Created</source>
-        <translation type="unfinished"></translation>
+        <translation> 安全地被创建的</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3232"/>
         <source> Verified Process</source>
-        <translation type="unfinished"></translation>
+        <translation> 已验证的进程</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3233"/>
         <source> Protected Process</source>
-        <translation type="unfinished"></translation>
+        <translation> 受保护的进程</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3234"/>
         <source> No Untrusted Images</source>
-        <translation type="unfinished"></translation>
+        <translation> 不受信任的映像</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3235"/>
         <source> Has File Object</source>
-        <translation type="unfinished"></translation>
+        <translation> 有文件对象</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3236"/>
         <source> Has Section Object Pointers</source>
-        <translation type="unfinished"></translation>
+        <translation> 有节对象指针</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3237"/>
         <source> No User Writable References</source>
-        <translation type="unfinished"></translation>
+        <translation> 无用户可写引用</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3238"/>
         <source> No Writable File Object</source>
-        <translation type="unfinished"></translation>
+        <translation> 无可写文件对象</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3239"/>
         <source> No File Transaction</source>
-        <translation type="unfinished"></translation>
+        <translation> 无文件事务</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3240"/>
         <source> Not Being Debugged</source>
-        <translation type="unfinished"></translation>
+        <translation> 未被调试</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3245"/>
         <source>&lt;p&gt;User Config Dir: %1&lt;br /&gt;User Interface Level: %2 (PID: %3)&lt;br /&gt;User Interface Status: %4&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;用户配置目录: %1&lt;br /&gt;用户界面级别: %2 (PID: %3)&lt;br /&gt;用户界面状态: %4&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3255"/>
         <source>&lt;p&gt;System Config Dir: %1&lt;br /&gt;System Service Level: %2 (PID: %3)&lt;br /&gt;System Service Status: %4&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;系统配置目录: %1&lt;br /&gt;系统服务级别: %2 (PID: %3)&lt;br /&gt;系统服务状态: %4&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3266"/>
@@ -4068,12 +4071,12 @@ CAUTION: This will disable protection.</source>
     <message>
         <location filename="MajorPrivacy.cpp" line="3270"/>
         <source>MajorPrivacy Diagnostics Information</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy诊断信息</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3291"/>
         <source>Copy</source>
-        <translation type="unfinished"></translation>
+        <translation>复制</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3316"/>
@@ -4200,17 +4203,18 @@ Error: %1</source>
         <location filename="MajorPrivacy.cpp" line="1443"/>
         <source>Enter Secure Configuration Password, to enable config protection.
 Once that is done you can not change rules (except windows firewall) without using the user key.</source>
-        <translation type="unfinished"></translation>
+        <translation>输入安全配置密码以启动规则保护。
+一旦你这么做,你将无法在没有用户密钥的情况下更改规则(除了Windows防火墙)</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1445"/>
         <source>Enter Secure Configuration Password, to disable config protection.</source>
-        <translation type="unfinished"></translation>
+        <translation>输入安全配置密码以禁用配置保护。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1598"/>
         <source>This setting required the service to be restarted to take effect</source>
-        <translation type="unfinished"></translation>
+        <translation>该设置需要服务重启以生效</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1608"/>
@@ -4219,42 +4223,46 @@ Once that is done you can not change rules (except windows firewall) without usi
 Locking down the user key will prevent it from being removed or changed, and config protection cannot be disabled until the system is rebooted.
 
 If the driver is set to auto-start, it will automatically re-lock the key on reboot!</source>
-        <translation type="unfinished"></translation>
+        <translation>是否要锁定用户密钥（是），还是仅启用基于用户密钥签名的配置保护（否）？
+
+锁定用户密钥后，该密钥将无法被移除或更改，且配置保护在系统重启前无法禁用。
+
+如果驱动程序设置为自动启动，系统重启时它将自动重新锁定该密钥！</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1787"/>
         <source>Set a secure Password to protect the new Private User Key.</source>
-        <translation type="unfinished"></translation>
+        <translation>设置一个安全密码以保护新的私有用户密钥。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1885"/>
         <source>Preset Activation Conflict</source>
-        <translation type="unfinished"></translation>
+        <translation>预设激活冲突</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1886"/>
         <source>Preset &apos;%1&apos; has conflicts with items managed by other active Presets.</source>
-        <translation type="unfinished"></translation>
+        <translation>预设&apos;%1&apos;与被其他活动预设管理的项目有冲突。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1888"/>
         <source>Do you want to force activate this Preset and override the conflicts?</source>
-        <translation type="unfinished"></translation>
+        <translation>你想要强制激活该预设并覆盖冲突吗?</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1891"/>
         <source>Yes (Force)</source>
-        <translation type="unfinished"></translation>
+        <translation>是(强制)</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1892"/>
         <source>No (Cancel)</source>
-        <translation type="unfinished"></translation>
+        <translation>否(取消)</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2340"/>
         <source>Program is already in the group.</source>
-        <translation type="unfinished"></translation>
+        <translation>项目已经在组中了。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2341"/>
@@ -4264,24 +4272,26 @@ If the driver is set to auto-start, it will automatically re-lock the key on reb
     <message>
         <location filename="MajorPrivacy.cpp" line="2342"/>
         <source>Firewall rule was only partially applied some fields diverge from the preset</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则仅被部分应用,因为一些区域已从预设中分叉</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2387"/>
         <source>You cannot create any %1 until you have acknowledged the warning and reviewed the recovery instructions in the first-start wizard.
 You can cancel the wizard after the acknowledgment page; then only your acknowledgment will be saved.
 Would you like to start the wizard now?</source>
-        <translation type="unfinished"></translation>
+        <translation>在确认警告并阅读完首次启动向导中的恢复说明之前，你无法创建任何 %1。
+你可以在确认页面后取消向导；届时，只有你的确认会被保存。
+是否现在启动向导？</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2502"/>
         <source>Are you sure you want to clear the All Trace Logs and All Access Records for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要为所有程序项清除全部跟踪日志与全部访问记录吗?</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3330"/>
         <source>&lt;p&gt;MajorPrivacy is a program that helps you to protect your privacy and security.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Visit &lt;a href=&quot;https://xanasoft.com&quot;&gt;xanasoft.com&lt;/a&gt; for more information.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;%1&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;MajorPrivacy是一个帮助你保护你的隐私与安全的程序。&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;访问 &lt;a href=&quot;https://xanasoft.com&quot;&gt;xanasoft.com&lt;/a&gt; 以获取更多信息.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;%1&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;图标来自于 &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3458"/>
@@ -4307,52 +4317,52 @@ Would you like to start the wizard now?</source>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="608"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; Network Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>配置&lt;b&gt;MajorPrivacy&lt;/b&gt;网络保护</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="609"/>
         <source>MajorPrivacy enhance and protect the Windows Firewall and Filter DNS requests.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy增强并保护Windows 防火墙与过滤DNS请求。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="618"/>
         <source>MajorPrivacy can take full control of the Windows Firewall, giving you the power to manage both outbound and inbound network connections. It enhances the firewall with flexible, file-pattern based rule templates and safeguards your configuration against unauthorized changes made by other programs. Every connection attempt can be tracked and aggregated (per domain) into records that clearly show which programs communicated where, and when.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy 可以完全接管 Windows 防火墙，让你能够管理出站和入站网络连接。它通过基于文件模式的灵活规则模板增强了防火墙功能，并保护你的配置免受其他程序的未经授权更改。每次连接尝试都可以被跟踪并（按域名）汇总为记录，清晰显示哪个程序在何时与何处进行了通信。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="624"/>
         <source>Take control of the Windows Firewall</source>
-        <translation type="unfinished"></translation>
+        <translation>接管Windows 防火墙</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="634"/>
         <source>Block all outbound connection attempts by default</source>
-        <translation type="unfinished"></translation>
+        <translation>默认阻止所有出站连接尝试</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="639"/>
         <source>Create recommended windows firewall rules</source>
-        <translation type="unfinished"></translation>
+        <translation>创建受推荐的Windows 防火墙规则</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="644"/>
         <source>Automatically revert all unauthorized rule changes</source>
-        <translation type="unfinished"></translation>
+        <translation>自动回退所有未授权的规则变更</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="649"/>
         <source>Collect File/Folder Accesses Events</source>
-        <translation type="unfinished"></translation>
+        <translation>收集文件/目录访问事件</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="654"/>
         <source>Save Network Traffic Record to Disk (TrafficRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>保存网络通信记录到硬盘(TrafficRecord.dat)</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="659"/>
         <source>Log all Network Access events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>记录所有网络访问事件到内存</translation>
     </message>
 </context>
 <context>
@@ -4523,7 +4533,7 @@ Would you like to start the wizard now?</source>
     <message>
         <location filename="Views/NetTraceView.cpp" line="74"/>
         <source>Hold updates</source>
-        <translation>加载更新</translation>
+        <translation>暂缓更新</translation>
     </message>
     <message>
         <location filename="Views/NetTraceView.cpp" line="81"/>
@@ -4536,112 +4546,112 @@ Would you like to start the wizard now?</source>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="216"/>
         <source>Network Discovery (SSDP-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>网络发现 (SSDP-In) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="220"/>
         <source>Network Discovery (SSDP-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>网络发现 (SSDP-Out) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="225"/>
         <source>Network Discovery (NB-Name-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>网络发现 (NB-Name-In) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="228"/>
         <source>Network Discovery (NB-Name-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>网络发现 (NB-NAME-OUT) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="231"/>
         <source>File and Printer Sharing (NB-Session-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>文件与打印机共享 (NB-Session-Out) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="235"/>
         <source>File and Printer Sharing (SMB-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>文件与打印机共享 (SMB-In) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="238"/>
         <source>File and Printer Sharing (SMB-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>文件与打印机共享 (SMB-Out) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="242"/>
         <source>File and Printer Sharing (Spooler-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>文件与打印机共享 (Spooler-Out) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="247"/>
         <source>Windows Update - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows 更新 - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="251"/>
         <source>Windows Time Service - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows 时间服务 - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="255"/>
         <source>Microsoft WWA Host - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>微软 WWA 主机 - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="260"/>
         <source>Core Networking - Dynamic Host Configuration Protocol (DHCP-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>核心网络 - 动态主机配置协议 (DHCP-Out) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="265"/>
         <source>Core Networking - Domain Name System (DNS-UDP-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>核心网络 - 域名系统 (DNS-UDP-Out) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="269"/>
         <source>Core Networking - Domain Name System (DNS-TCP-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>核心网络 - 域名系统 (DNS-TCP-Out) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="274"/>
         <source>Internet Control Message Protocol (ICMPv6-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>互联网控制消息协议 (ICMPv6-In) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="276"/>
         <source>Internet Control Message Protocol (ICMPv4-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>互联网控制消息协议 (ICMPv4-In) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="278"/>
         <source>Internet Control Message Protocol (ICMPv6-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>互联网控制消息协议 (ICMPv6-Out) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="280"/>
         <source>Internet Control Message Protocol (ICMPv4-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>互联网控制消息协议 (ICMPv4-Out) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="285"/>
         <source>MajorPrivacy Network Access (GUI) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy网络访问(GUI) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="289"/>
         <source>MajorPrivacy Service Network Access (PrivacyAgent) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy服务网络访问(PrivacyAgent) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="293"/>
         <source>MajorPrivacy Local DNS Filter (DNS-Filter-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy本地DNS过滤器 (DNS-Filter-Out) - 默认MajorPrivacy规则</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="297"/>
         <source>MajorPrivacy Local DNS Filter (DNS-Filter-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy本地DNS过滤器(DNS-Filter-In) - 默认MajorPrivacy规则</translation>
     </message>
 </context>
 <context>
@@ -4702,7 +4712,9 @@ Do you still want to update?</source>
         <source>Your MajorPrivacy license is expired, however for the current build you are using it remains active, when you update to a newer build protection features will be disabled.
 
 Do you still want to update?</source>
-        <translation type="unfinished"></translation>
+        <translation>你的MajorPrivacy许可证已过期，但对于你正在使用的当前构建，它仍然可用。当你更新到一个更新的构建，保护功能将被禁用。
+	
+你还是想要更新吗？</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="538"/>
@@ -4811,7 +4823,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="OnlineUpdater.cpp" line="947"/>
         <source>&lt;p&gt;Updates for MajorPrivacy have been downloaded.&lt;/p&gt;&lt;p&gt;Do you want to apply these updates? If any programs are running in secure enclaves, they will be terminated.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;MajorPrivacy更新已下载。&lt;/p&gt;&lt;p&gt;你想要应用这些更新吗？如果任何程序正在安全飞地中运行，它们将被终止!&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="1052"/>
@@ -4821,12 +4833,12 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="OnlineUpdater.cpp" line="1095"/>
         <source>&lt;p&gt;A new MajorPrivacy installer has been downloaded to the following location:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Do you want to begin the installation? If any programs are running in secure enclaves, they will be terminated!&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;一个新的MajorPrivacy安装包已被下载至该位置:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;你想要开始安装吗？如果任何程序正在安全飞地中运行，它们将被终止!&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="1263"/>
         <source>Downloading tweaks...</source>
-        <translation type="unfinished"></translation>
+        <translation>下载微调中...</translation>
     </message>
     <message>
         <source>&lt;p&gt;A new MajorPrivacy installer has been downloaded to the following location:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Do you want to begin the installation? If any programs are running sandboxed, they will be terminated.&lt;/p&gt;</source>
@@ -4876,7 +4888,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="101"/>
         <source>One Time</source>
-        <translation type="unfinished"></translation>
+        <translation>一次</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="102"/>
@@ -4923,12 +4935,12 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="146"/>
         <source>Approve All</source>
-        <translation type="unfinished"></translation>
+        <translation>许可全部</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="152"/>
         <source>Reject All</source>
-        <translation type="unfinished"></translation>
+        <translation>拒绝全部</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="169"/>
@@ -4953,32 +4965,32 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="200"/>
         <source>Allow File</source>
-        <translation type="unfinished"></translation>
+        <translation>允许文件</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="204"/>
         <source>Allow Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>允许证书</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="205"/>
         <source>Allow CA Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>允许CA证书</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="321"/>
         <source>Block in %1</source>
-        <translation type="unfinished"></translation>
+        <translation>在%1之内阻止</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="1386"/>
         <source>Please select a file to add to Allowed Hash Database.</source>
-        <translation type="unfinished"></translation>
+        <translation>请选择一个文件以添加到受允许的哈希数据库。</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="1392"/>
         <source>Do you really want to allow the Issuing Certificate Authoricy Certificate? This will allow all Signign Certificate issued by this CA.</source>
-        <translation type="unfinished"></translation>
+        <translation>你真的想要允许该签发证书权威机构的证书吗？这将允许所有由该CA签发的证书。</translation>
     </message>
     <message>
         <source>Sign Certificate</source>
@@ -5006,52 +5018,52 @@ Note: The update check is often behind the latest GitHub release to ensure that 
         <location filename="Windows/PopUpWindow.cpp" line="999"/>
         <location filename="Windows/PopUpWindow.cpp" line="1285"/>
         <source>%1 (%2)</source>
-        <translation type="unfinished">%1 (%2)</translation>
+        <translation>%1 (%2)</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="573"/>
         <source>Modified</source>
-        <translation type="unfinished"></translation>
+        <translation>已更改的</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="583"/>
         <source>Added</source>
-        <translation type="unfinished"></translation>
+        <translation>已添加的</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="588"/>
         <source>Removed</source>
-        <translation type="unfinished"></translation>
+        <translation>已移除的</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="595"/>
         <source>%1 -&gt; %2 </source>
-        <translation type="unfinished"></translation>
+        <translation>%1 -&gt; %2 </translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="595"/>
         <source>Enabled</source>
-        <translation type="unfinished">启用的</translation>
+        <translation>已启用的</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="595"/>
         <source>Disabled</source>
-        <translation type="unfinished"></translation>
+        <translation>已禁用的</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="600"/>
         <source>%1 -&gt; %2</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 -&gt; %2</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="605"/>
         <source> %1 -&gt; %2</source>
-        <translation type="unfinished"></translation>
+        <translation> %1 -&gt; %2</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="713"/>
         <source>No rules selected, do you want to apply the action to all rules?</source>
-        <translation type="unfinished"></translation>
+        <translation>未选中规则，你想要应用此行为到所有规则吗？</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="1073"/>
@@ -5078,125 +5090,131 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Views/PresetView.cpp" line="18"/>
         <source>Rule Presets:</source>
-        <translation type="unfinished"></translation>
+        <translation>规则预设:</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="26"/>
         <source>Name|Description</source>
-        <translation type="unfinished"></translation>
+        <translation>名称|注释</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="39"/>
         <source>Add Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>添加预设</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="45"/>
         <source>Activate Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>激活预设</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="49"/>
         <source>Deactivate Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>取消激活预设</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="55"/>
         <source>Edit Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>编辑预设</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="59"/>
         <source>Remove Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>移除预设</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="209"/>
         <source>Preset Activation Conflict</source>
-        <translation type="unfinished"></translation>
+        <translation>预设激活冲突</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="210"/>
         <source>Preset &apos;%1&apos; has conflicts with items managed by other active Presets.</source>
-        <translation type="unfinished"></translation>
+        <translation>预设 &apos;%1&apos; 与被另一个激活预设管理的项目有冲突。</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="212"/>
         <source>Do you want to force activate this Preset and override the conflicts?</source>
-        <translation type="unfinished"></translation>
+        <translation>你想要强制激活此预设并覆盖矛盾吗？</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="215"/>
         <source>Apply to all remaining Presets</source>
-        <translation type="unfinished"></translation>
+        <translation>应用到全部剩余预设</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="218"/>
         <source>Yes (Force)</source>
-        <translation type="unfinished"></translation>
+        <translation>是(跳过)</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="219"/>
         <source>No (Skip)</source>
-        <translation type="unfinished"></translation>
+        <translation>不(跳过)</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="220"/>
         <source>Cancel All</source>
-        <translation type="unfinished"></translation>
+        <translation>取消全部</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="258"/>
         <source>Preset activation complete:
 </source>
-        <translation type="unfinished"></translation>
+        <translation>预设激活已完成:
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="260"/>
         <source>  Activated: %1
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  已激活: %1
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="262"/>
         <source>  Skipped: %1
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  跳过: %1
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="264"/>
         <location filename="Views/PresetView.cpp" line="308"/>
         <source>  Failed: %1
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  失败: %1
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="266"/>
         <source>Preset Activation</source>
-        <translation type="unfinished"></translation>
+        <translation>激活预设</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="304"/>
         <source>Preset deactivation complete:
 </source>
-        <translation type="unfinished"></translation>
+        <translation>预设已完成取消激活:
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="306"/>
         <source>  Deactivated: %1
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  已取消激活: %1
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="310"/>
         <location filename="Views/PresetView.cpp" line="314"/>
         <source>Preset Deactivation</source>
-        <translation type="unfinished"></translation>
+        <translation>取消激活预设</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="315"/>
         <source>Failed to deactivate Preset.</source>
-        <translation type="unfinished"></translation>
+        <translation>无法取消激活预设。</translation>
     </message>
 </context>
 <context>
@@ -5204,154 +5222,154 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Windows/PresetWindow.cpp" line="38"/>
         <source>Add Execution Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>添加执行规则</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="40"/>
         <source>Add Resource Access Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>添加资源访问规则</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="42"/>
         <source>Add Firewall Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>添加防火墙规则</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="44"/>
         <source>Add DNS Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>添加DNS规则</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="46"/>
         <source>Add Tweak</source>
-        <translation type="unfinished"></translation>
+        <translation>添加微调项</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="48"/>
         <source>Remove Selected Items</source>
-        <translation type="unfinished"></translation>
+        <translation>移除所选项</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="59"/>
         <source>Change Icon</source>
-        <translation type="unfinished">更改图标</translation>
+        <translation>更改图标</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="61"/>
         <source>Browse for Image</source>
-        <translation type="unfinished">浏览图像</translation>
+        <translation>浏览图像</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="70"/>
         <source>Create Rule Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>创建规则预设</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="70"/>
         <source>Edit Rule Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>编辑规则预设</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="127"/>
         <source>Unknown Program Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>未知程序规则(%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="141"/>
         <source>Unknown Resource Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>未知资源规则(%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="144"/>
         <source>Resource Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>资源规则(%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="157"/>
         <source>Unknown Firewall Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>未知防火墙规则(%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="160"/>
         <source>Firewall Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则(%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="169"/>
         <source>Unknown DNS Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>未知DNS规则(%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="183"/>
         <source>Unknown Tweak (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>未知微调项 (%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="200"/>
         <source>Do Nothing</source>
-        <translation type="unfinished"></translation>
+        <translation>无操作</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="201"/>
         <location filename="Windows/PresetWindow.cpp" line="509"/>
         <source>Enable</source>
-        <translation type="unfinished"></translation>
+        <translation>启用</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="202"/>
         <location filename="Windows/PresetWindow.cpp" line="510"/>
         <source>Disable</source>
-        <translation type="unfinished"></translation>
+        <translation>禁用</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="297"/>
         <source>Select Image File</source>
-        <translation type="unfinished">选择图片文件</translation>
+        <translation>选择图片文件</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="297"/>
         <source>Image Files (*.png)</source>
-        <translation type="unfinished">图片文件 (*.png)</translation>
+        <translation>图片文件 (*.png)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="341"/>
         <source>Sellect a Program Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>选择一个程序规则</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="372"/>
         <source>Sellect a Resource Access Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>选择一个资源访问规则</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="404"/>
         <source>Sellect a Firewall Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>选择一个防火墙规则</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="431"/>
         <source>Sellect a DNS Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>选择一个DNS规则</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="475"/>
         <source>Sellect a Tweak</source>
-        <translation type="unfinished"></translation>
+        <translation>选择一个微调项</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="492"/>
         <source>Remove Items</source>
-        <translation type="unfinished"></translation>
+        <translation>移除项目</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="492"/>
         <source>Are you sure you want to remove the selected items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要移除选中项目吗？</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="508"/>
         <source>Do nothing</source>
-        <translation type="unfinished"></translation>
+        <translation>无操作</translation>
     </message>
 </context>
 <context>
@@ -5427,12 +5445,12 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Models/ProcessModel.cpp" line="280"/>
         <source>Handles</source>
-        <translation type="unfinished"></translation>
+        <translation>句柄</translation>
     </message>
     <message>
         <location filename="Models/ProcessModel.cpp" line="281"/>
         <source>Sockets</source>
-        <translation type="unfinished"></translation>
+        <translation>套接字</translation>
     </message>
     <message>
         <location filename="Models/ProcessModel.cpp" line="282"/>
@@ -5451,14 +5469,14 @@ Note: The update check is often behind the latest GitHub release to ensure that 
         <location filename="Pages/ProcessPage.cpp" line="100"/>
         <location filename="Pages/ProcessPage.cpp" line="109"/>
         <source>Program Rules</source>
-        <translation type="unfinished">进程规则</translation>
+        <translation>进程规则</translation>
     </message>
     <message>
         <location filename="Pages/ProcessPage.cpp" line="34"/>
         <location filename="Pages/ProcessPage.cpp" line="101"/>
         <location filename="Pages/ProcessPage.cpp" line="110"/>
         <source>Hash Database</source>
-        <translation type="unfinished"></translation>
+        <translation>哈希数据库</translation>
     </message>
     <message>
         <location filename="Pages/ProcessPage.cpp" line="40"/>
@@ -5584,22 +5602,22 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="34"/>
         <source>Any Operation</source>
-        <translation type="unfinished"></translation>
+        <translation>任何操作</translation>
     </message>
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="35"/>
         <source>Process Start</source>
-        <translation type="unfinished"></translation>
+        <translation>进程启动</translation>
     </message>
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="36"/>
         <source>Image Load</source>
-        <translation type="unfinished"></translation>
+        <translation>映像加载</translation>
     </message>
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="37"/>
         <source>Process Access</source>
-        <translation type="unfinished">进程访问</translation>
+        <translation>进程访问</translation>
     </message>
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="46"/>
@@ -5609,7 +5627,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="53"/>
         <source>Hold updates</source>
-        <translation>加载更新</translation>
+        <translation>暂缓更新</translation>
     </message>
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="60"/>
@@ -5709,27 +5727,27 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="464"/>
         <source>Developer Signed</source>
-        <translation type="unfinished">开发者签名的</translation>
+        <translation>开发者签名的</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="466"/>
         <source>User Allowed for Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>用户为飞地特许的</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="468"/>
         <source>User Signed</source>
-        <translation type="unfinished">用户签名的</translation>
+        <translation>用户签名的</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="470"/>
         <source>User Allowed</source>
-        <translation type="unfinished"></translation>
+        <translation>用户允许的</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="480"/>
         <source>NONE</source>
-        <translation type="unfinished"></translation>
+        <translation>无</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="481"/>
@@ -5749,102 +5767,102 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="484"/>
         <source>UNKNOWN</source>
-        <translation type="unfinished"></translation>
+        <translation>未知</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="498"/>
         <source>Root: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>根: %1</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="500"/>
         <source>Roots: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>根(多个): %1</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="504"/>
         <source> (Error: %1)</source>
-        <translation type="unfinished"></translation>
+        <translation>(错误: %1)</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="510"/>
         <source>CI: Level 0</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：等级0</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="511"/>
         <source>CI: Enterprise</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：企业</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="512"/>
         <source>CI: Developer</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：开发者</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="513"/>
         <source>CI: Authenticode</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：已认证代码</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="514"/>
         <source>CI: Level 2</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：等级2</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="515"/>
         <source>CI: Store</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：微软商店应用</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="516"/>
         <source>CI: Antimalware</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：反恶意软件</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="517"/>
         <source>CI: Microsoft</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：微软</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="518"/>
         <source>CI: Level 4</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：等级4</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="519"/>
         <source>CI: Level 5</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：等级5</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="520"/>
         <source>CI: Code Gen.</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：代码根</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="521"/>
         <source>CI: Windows</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：Windows系统</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="522"/>
         <source>CI: Level 7</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：等级7</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="523"/>
         <source>CI: Windows TCB</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：Windows系统（核心信任根）</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="524"/>
         <source>CI: Level 6</source>
-        <translation type="unfinished"></translation>
+        <translation>代码完整性：等级6</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="528"/>
         <source>Image INCOCHERENT</source>
-        <translation type="unfinished"></translation>
+        <translation>映像不连贯</translation>
     </message>
     <message>
         <source>Unknown</source>
@@ -5963,7 +5981,10 @@ Note: The update check is often behind the latest GitHub release to ensure that 
 Packet Name: %2
 Packet SID: %3
 Path: %4</source>
-        <translation type="unfinished"></translation>
+        <translation>应用名称: %1
+包名: %2
+包安全标识符: %3
+路径: %4</translation>
     </message>
     <message>
         <location filename="Models/ProgramModel.cpp" line="383"/>
@@ -6107,7 +6128,7 @@ Path: %4</source>
     <message>
         <location filename="Models/ProgramRuleModel.cpp" line="122"/>
         <source>, </source>
-        <translation type="unfinished"></translation>
+        <translation>, </translation>
     </message>
     <message>
         <location filename="Models/ProgramRuleModel.cpp" line="202"/>
@@ -6127,11 +6148,11 @@ Path: %4</source>
     <message>
         <location filename="Models/ProgramRuleModel.cpp" line="205"/>
         <source>Signers</source>
-        <translation type="unfinished"></translation>
+        <translation>签名者</translation>
     </message>
     <message>
         <source>Trust Level</source>
-        <translation type="vanished">信任级别</translation>
+        <translation>信任级别</translation>
     </message>
     <message>
         <location filename="Models/ProgramRuleModel.cpp" line="206"/>
@@ -6229,7 +6250,7 @@ Path: %4</source>
         <location filename="Windows/ProgramRuleWnd.cpp" line="41"/>
         <location filename="Windows/ProgramRuleWnd.cpp" line="425"/>
         <source>None</source>
-        <translation type="unfinished">无</translation>
+        <translation>无</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="55"/>
@@ -6259,32 +6280,32 @@ Path: %4</source>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="90"/>
         <source>Default</source>
-        <translation type="unfinished"></translation>
+        <translation>默认</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="91"/>
         <source>Inject Low (Exclusive)</source>
-        <translation type="unfinished"></translation>
+        <translation>低层注入（独占）</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="92"/>
         <source>Inject High (Sbie+ Compatible)</source>
-        <translation type="unfinished"></translation>
+        <translation>高层注入（SBIE兼容）</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="93"/>
         <source>Disabled</source>
-        <translation type="unfinished"></translation>
+        <translation>禁用</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="418"/>
         <source>Add Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>添加集合</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="418"/>
         <source>Enter the name of the collection:</source>
-        <translation type="unfinished"></translation>
+        <translation>输入集合名称:</translation>
     </message>
     <message>
         <source>Audit</source>
@@ -6324,12 +6345,12 @@ Path: %4</source>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="274"/>
         <source>The Program Path is not valid.</source>
-        <translation type="unfinished"></translation>
+        <translation>程序路径无效。</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="278"/>
         <source>The Program Path may break windows, please use a more specific path.</source>
-        <translation type="unfinished"></translation>
+        <translation>此程序路径可能破坏Windows系统，请使用一个更具体的路径。</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="327"/>
@@ -6433,7 +6454,7 @@ Path: %4</source>
     <message>
         <location filename="Views/ProgramView.cpp" line="193"/>
         <source>Refresh Programs</source>
-        <translation type="unfinished"></translation>
+        <translation>刷新程序</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="200"/>
@@ -6453,7 +6474,7 @@ Path: %4</source>
     <message>
         <location filename="Views/ProgramView.cpp" line="220"/>
         <source>Show Tree</source>
-        <translation type="unfinished">显示树</translation>
+        <translation>显示树</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="234"/>
@@ -6469,11 +6490,11 @@ Path: %4</source>
         <location filename="Views/ProgramView.cpp" line="817"/>
         <location filename="Views/ProgramView.cpp" line="825"/>
         <source>Are you sure you want to clear the the %1 for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要为当前程序项清除%1吗？</translation>
     </message>
     <message>
         <source>Clear Trace</source>
-        <translation type="vanished">清除跟踪</translation>
+        <translation>清除跟踪</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="290"/>
@@ -6498,37 +6519,37 @@ Path: %4</source>
     <message>
         <location filename="Views/ProgramView.cpp" line="280"/>
         <source>Clear Trace Logs</source>
-        <translation type="unfinished"></translation>
+        <translation>清除跟踪日志</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="281"/>
         <source>Execution/Ingress Trace Log</source>
-        <translation type="unfinished"></translation>
+        <translation>执行/入口访问跟踪日志</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="282"/>
         <source>Resource Access Trace Log</source>
-        <translation type="unfinished"></translation>
+        <translation>资源访问跟踪日志</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="283"/>
         <source>Network Access Trace Log</source>
-        <translation type="unfinished"></translation>
+        <translation>网络访问跟踪日志</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="285"/>
         <source>Execution/Ingress Records</source>
-        <translation type="unfinished"></translation>
+        <translation>执行/入口访问记录</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="286"/>
         <source>Resource Access Records</source>
-        <translation type="unfinished"></translation>
+        <translation>资源访问记录</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="287"/>
         <source>Network Access Records</source>
-        <translation type="unfinished"></translation>
+        <translation>网络访问记录</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="291"/>
@@ -6728,37 +6749,37 @@ The selected Item belongs to more than one Group, to delete it from all groups p
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="552"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; Resource Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>配置 &lt;b&gt;MajorPrivacy&lt;/b&gt; 资源保护</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="553"/>
         <source>MajorPrivacy can pritect files and folders on your system from access by rogue applications.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy可保护系统上的文件与目录免受未授权软件的访问</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="562"/>
         <source>MajorPrivacy lets you control how programs interact with your files and folders, you can decide which applications can read, write, modify, or delete protected data. These access events can be aggregated into clear records that show which programs touched which files, when and how often. These records are kept in memory (RAM) and can be saved to disk for long-term insight into data usage. For privacy, you can configure the storage options individually per program. If needed, raw file access events can also be logged in detail, though this will consume a significant amount of memory.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy让你控制程序怎样与你的文件、目录交互，你可以决定哪些应用程序可以读/写/改/删除受保护数据。这些访问事件可以被汇总为清晰的记录着哪个程序何时、如何、触碰了什么文件的记录。这些记录被保存在内存中并可以被转存到硬盘以用于长期数据审计使用。为保证隐私，你可以为每个程序配置独立的存储选项。如有需要，原始文件访问事件也可被详细记录，尽管这可能会导致大量的空间占用。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="568"/>
         <source>Collect File/Folder Accesses Events</source>
-        <translation type="unfinished"></translation>
+        <translation>收集文件/目录访问事件</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="578"/>
         <source>Save File/Folder Accesses Records to Disk (AccessRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>保存文件/目录访问记录到分区(AccessRecord.dat)</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="583"/>
         <source>Log all File/Folder Accesses events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>记录所有文件/目录访问到内存</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="588"/>
         <source>Enable list of all Open Files (increases CPU load)</source>
-        <translation type="unfinished"></translation>
+        <translation>启用所有打开文件的列表（增加CPU载荷）</translation>
     </message>
 </context>
 <context>
@@ -6859,69 +6880,69 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="39"/>
         <source>MajorPrivacy - Script Editor</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy - 脚本编辑器</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="42"/>
         <source>Load from File</source>
-        <translation type="unfinished"></translation>
+        <translation>从文件中加载</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="43"/>
         <source>Save to File</source>
-        <translation type="unfinished"></translation>
+        <translation>保存到文件</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="45"/>
         <source>Run onTest Function</source>
-        <translation type="unfinished"></translation>
+        <translation>运行onTest函数</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="46"/>
         <source>CleanUp Log</source>
-        <translation type="unfinished"></translation>
+        <translation>清空日志</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="149"/>
         <source>Import Script</source>
-        <translation type="unfinished"></translation>
+        <translation>导入脚本</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="149"/>
         <location filename="Windows/ScriptWindow.cpp" line="162"/>
         <source>JavaScript Files (*.js);;All Files (*.*)</source>
-        <translation type="unfinished"></translation>
+        <translation>JavaScript 文件 (*.js);;所有文件 (*.*)</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="154"/>
         <location filename="Windows/ScriptWindow.cpp" line="166"/>
         <source>Error</source>
-        <translation type="unfinished"></translation>
+        <translation>错误</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="154"/>
         <source>Failed to read file &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>无法读取文件 &apos;%1&apos;</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="162"/>
         <source>Export Script</source>
-        <translation type="unfinished"></translation>
+        <translation>导出脚本</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="166"/>
         <source>Failed to write file &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>无法写入文件 &apos;%1&apos;</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="180"/>
         <source>You have unapplied changes. Do you want to apply them before the test?</source>
-        <translation type="unfinished"></translation>
+        <translation>你有未应用的更改。在测试前你想要应用它们吗？</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="181"/>
         <source>Remember this choice.</source>
-        <translation type="unfinished">记住这个选择。</translation>
+        <translation>记住这个选择。</translation>
     </message>
 </context>
 <context>
@@ -7095,158 +7116,159 @@ You can request up to %3 evaluation certificates for each unique hardware ID.</s
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="139"/>
         <source>None</source>
-        <translation type="unfinished">无</translation>
+        <translation>无</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="140"/>
         <source>Native</source>
-        <translation type="unfinished"></translation>
+        <translation>原生</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="141"/>
         <source>Qt</source>
-        <translation type="unfinished"></translation>
+        <translation>Qt</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="145"/>
         <source>%1</source>
-        <translation type="unfinished">%1</translation>
+        <translation>%1</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="149"/>
         <source>Select font</source>
-        <translation type="unfinished"></translation>
+        <translation>选择字体</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="151"/>
         <source>Reset font</source>
-        <translation type="unfinished"></translation>
+        <translation>重设字体</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="163"/>
         <source>Every Day</source>
-        <translation type="unfinished"></translation>
+        <translation>每日</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="164"/>
         <source>Every Week</source>
-        <translation type="unfinished"></translation>
+        <translation>每周</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="165"/>
         <source>Every 2 Weeks</source>
-        <translation type="unfinished"></translation>
+        <translation>每2周</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="166"/>
         <source>Every 30 days</source>
-        <translation type="unfinished"></translation>
+        <translation>每30天</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="168"/>
         <source>Ignore</source>
-        <translation type="unfinished">忽略</translation>
+        <translation>忽略</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="169"/>
         <location filename="Windows/SettingsWindow.cpp" line="174"/>
         <source>Notify</source>
-        <translation type="unfinished"></translation>
+        <translation>通知</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="170"/>
         <location filename="Windows/SettingsWindow.cpp" line="175"/>
         <source>Download &amp; Notify</source>
-        <translation type="unfinished"></translation>
+        <translation>下载 &amp; 通知</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="171"/>
         <location filename="Windows/SettingsWindow.cpp" line="176"/>
         <source>Download &amp; Install</source>
-        <translation type="unfinished"></translation>
+        <translation>下载 &amp; 安装</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="472"/>
         <source>&lt;a href=&quot;check&quot;&gt;Check Now&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;check&quot;&gt;现在检查&lt;/a&gt;</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="541"/>
         <source>Auto Approve</source>
-        <translation type="unfinished"></translation>
+        <translation>自动许可</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="541"/>
         <source>Auto Reject</source>
-        <translation type="unfinished"></translation>
+        <translation>自动拒绝</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="556"/>
         <location filename="Windows/SettingsWindow.cpp" line="565"/>
         <source>Enter file path pattern for the entry</source>
-        <translation type="unfinished"></translation>
+        <translation>为实体项输入文件路径匹配符</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1120"/>
         <source>This license has expired, please &lt;a href=&quot;%1&quot;&gt;get new license&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>此许可证已过期，请 &lt;a href=&quot;%1&quot;&gt;获取新许可证&lt;/a&gt;。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1133"/>
         <source>This license will &lt;font color=&apos;red&apos;&gt;expire in %1 days&lt;/font&gt;, please &lt;a href=&quot;%2&quot;&gt;get new license&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>此证书将在 &lt;font color=&apos;red&apos;&gt; %1天内过期 &lt;/font&gt;，请 &lt;a href=&quot;%2&quot;&gt;获取新许可证&lt;/a&gt;。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1201"/>
         <source>&lt;b&gt;You have used %1/%2 evaluation licenses. No more free licenses can be generated.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;你已经使用了%1/%2评估许可证。没有更多免费许可证可被生成。&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1203"/>
         <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;Get a free evaluation license&lt;/a&gt; and enjoy all premium features for %1 days.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;获取一个免费评估许可证&lt;/a&gt; 并享受%1天所有的高级功能。&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1204"/>
         <source>You can request a free %1-day evaluation license up to %2 times per hardware ID.</source>
-        <translation type="unfinished"></translation>
+        <translation>你可以请求一个免费的%1天评估许可证，每个硬件ID最多%2次。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1220"/>
         <source>This does not look like a MajorPrivacy Serial Number.&lt;br /&gt;If you have attempted to enter the UpdateKey or the Signature from license certificate, that is not correct, please enter the entire license certificate into the text area above instead.</source>
-        <translation type="unfinished"></translation>
+        <translation>这看上去不像一个MajorPrivacy序列号。&lt;br /&gt;如果你在尝试输入更新密钥或者许可证证书中的签名，那并不正确。若要激活，请输入完整的许可证证书到上方的文本框中。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1227"/>
         <source>You are attempting to use a feature Upgrade-Key without having entered a pre-existing license. Please note that this type of key (&lt;b&gt;as it is clearly stated in bold on the website&lt;/b) requires you to have a pre-existing valid base license; it is useless without one.&lt;br /&gt;If you want to use the advanced features, you need to obtain both a base license and the feature upgrade key to unlock advanced functionality.</source>
-        <translation type="unfinished"></translation>
+        <translation>你正在尝试在没有输入一个已存在许可证的情况下使用功能升级密钥。请注意，这个类型的密钥(&lt;b&gt;正如它在网站上被清楚的标记为粗体&lt;/b)需要你有一个现有的有效许可证；如果没有这样的许可证，那么这个密钥是无用的。&lt;br /&gt;如果你想要使用高级功能，你需要同时拥有一个基础许可证以及这个功能升级密钥以解锁高级功能。 </translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1233"/>
         <source>You are attempting to use a Renew-Key without having entered a pre-existing license. Please note that this type of key (&lt;b&gt;as it is clearly stated in bold on the website&lt;/b) requires you to have a pre-existing valid license; it is useless without one.</source>
-        <translation type="unfinished"></translation>
+        <translation>你正在尝试使用一个更新密钥而没有输入一个现有许可证。请注意，这个类型的密钥(&lt;b&gt;正如它在网站上被清楚的标记为粗体&lt;/b)需要你有一个现有的有效许可证；如果没有这样的许可证，那么这个密钥是无用的。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1253"/>
         <location filename="Windows/SettingsWindow.cpp" line="1511"/>
         <source>Retrieving license certificate...</source>
-        <translation type="unfinished"></translation>
+        <translation>检索许可证证书中...</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1269"/>
         <source>MajorPrivacy - Get EVALUATION License</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy - 获取评估证书</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1269"/>
         <source>Please enter your email address to receive a free %1-day evaluation license, which will be issued to %2 and locked to the current hardware.
 You can request up to %3 evaluation licenses for each unique hardware ID.</source>
-        <translation type="unfinished"></translation>
+        <translation>请输入你的邮件地址以接受一个免费的%1天评估证书，将会被签署到%2并锁定到当前硬件，
+对于每个独特的硬件ID，你可以至多申请%3个评估证书。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1281"/>
         <source>Retrieving License Certificate...</source>
-        <translation type="unfinished"></translation>
+        <translation>检索许可证证书中...</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1295"/>
@@ -7336,47 +7358,47 @@ You can request up to %3 evaluation licenses for each unique hardware ID.</sourc
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1428"/>
         <source>This does not look like a license certificate. Please enter the entire data block, not just a portion of it.</source>
-        <translation type="unfinished"></translation>
+        <translation>这看上去不像一个许可证证书，请输入完整数据块而不是它的一部分。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1445"/>
         <source>This license is unfortunately not valid for the current build, you need to get a new license or downgrade to an earlier build.</source>
-        <translation type="unfinished"></translation>
+        <translation>很不幸，该许可证不适用于当前构建，你需要获得一个新许可证或降级到早期版本。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1447"/>
         <source>Although this license has expired, for the currently installed version plus features remain enabled. However, you will no longer have access to updates.</source>
-        <translation type="unfinished"></translation>
+        <translation>尽管该证书已过期，但对于当前已安装版本，附加功能保持开启。但是，你将不再有权限访问更新。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1449"/>
         <source>This license has unfortunately expired, you need to get a new license.</source>
-        <translation type="unfinished"></translation>
+        <translation>很不幸，该许可证已过期，你需要获得一个新许可证。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1453"/>
         <source>The evaluation license has been successfully applied. Enjoy your free trial!</source>
-        <translation type="unfinished"></translation>
+        <translation>评估证书已被成功应用。享受你的免费试用！</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1497"/>
         <source>A mandatory security update for your MajorPrivacy License Certificate is required. Would you like to download the updated certificate now?</source>
-        <translation type="unfinished"></translation>
+        <translation>对于你的MajorPrivacy许可证证书，一个强制性安全检查被要求。你想要现在下载更新后的证书吗？</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1539"/>
         <source>Valid License required for access</source>
-        <translation type="unfinished"></translation>
+        <translation>为了访问，需要有效证书</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1556"/>
         <source>Valid Lciense required for automation</source>
-        <translation type="unfinished"></translation>
+        <translation>为了自动化，需要有效证书</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1589"/>
         <source>%1 (Current)</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 (当前)</translation>
     </message>
     <message>
         <source>This does not look like a certificate. Please enter the entire certificate, not just a portion of it.</source>
@@ -7700,231 +7722,231 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/StatusView.cpp" line="26"/>
         <source>System Status</source>
-        <translation type="unfinished"></translation>
+        <translation>系统状态</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="48"/>
         <source>Process Protection</source>
-        <translation type="unfinished">进程保护</translation>
+        <translation进程保护</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="66"/>
         <source>Resource Protection</source>
-        <translation type="unfinished">资源保护</translation>
+        <translation>资源保护</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="86"/>
         <source>Networking Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>网络保护</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="110"/>
         <source>Privacy Tweaks</source>
-        <translation type="unfinished">隐私微调</translation>
+        <translation>隐私微调</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="171"/>
         <source>Privacy Agent: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Privacy Agent: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="171"/>
         <location filename="Views/StatusView.cpp" line="172"/>
         <source>OK</source>
-        <translation type="unfinished">确定</translation>
+        <translation>确定</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="171"/>
         <location filename="Views/StatusView.cpp" line="172"/>
         <source>Inactive</source>
-        <translation type="unfinished"></translation>
+        <translation>未激活</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="172"/>
         <source>Kernel Isolator: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Kernel Isolator: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="176"/>
         <source>User Key NOT available</source>
-        <translation type="unfinished"></translation>
+        <translation>用户密钥不可能</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="177"/>
         <source>Config Protection NOT available</source>
-        <translation type="unfinished"></translation>
+        <translation>配置保护不可用</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="178"/>
         <source>Unload Protection NOT available</source>
-        <translation type="unfinished"></translation>
+        <translation>卸载保护不可用</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="185"/>
         <source>User Key is NOT configured</source>
-        <translation type="unfinished"></translation>
+        <translation>用户密钥未配置</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="194"/>
         <source>User Key: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>用户密钥: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="198"/>
         <source>SHA256-FP: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>SHA256指纹: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="207"/>
         <source>Config Protection Active</source>
-        <translation type="unfinished"></translation>
+        <translation>配置保护激活</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="209"/>
         <source>Config Protection NOT Active</source>
-        <translation type="unfinished"></translation>
+        <translation>配置保护未激活</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="212"/>
         <source>Unload Protection Active</source>
-        <translation type="unfinished"></translation>
+        <translation>卸载保护激活</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="214"/>
         <source>Unload Protection NOT Active</source>
-        <translation type="unfinished"></translation>
+        <translation>卸载保护未激活</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="221"/>
         <source>Program Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>程序规则: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="222"/>
         <source>Enclaves: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>飞地: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="223"/>
         <location filename="Views/StatusView.cpp" line="251"/>
         <source>Protection active</source>
-        <translation type="unfinished"></translation>
+        <translation>保护激活</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="231"/>
         <source>Program Rules: DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>程序规则: 禁用的</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="232"/>
         <source>Enclaves: DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>飞地: 禁用的</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="233"/>
         <location filename="Views/StatusView.cpp" line="262"/>
         <source>Protection NOT active</source>
-        <translation type="unfinished"></translation>
+        <translation>保护未激活</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="241"/>
         <source>Access Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>访问规则: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="249"/>
         <source>Protected Folders: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>受保护的目录: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="250"/>
         <source>Secure Volumes: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>安全卷: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="259"/>
         <source>Access Rules: DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>访问规则: 禁用的</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="260"/>
         <source>Protected Folders: DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>受保护的目录: 禁用的</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="261"/>
         <source>Secure Volumes: DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>安全卷: 禁用的</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="277"/>
         <source>Windows Firewall DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows 防火墙: 禁用的</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="279"/>
         <source>Windows Firewall Active</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows 防火墙激活</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="280"/>
         <source>Firewall Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="284"/>
         <source>Unapproved Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>未许可规则: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="286"/>
         <source>No Unapproved Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>没有未许可规则</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="290"/>
         <source>Altered Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>被警告的规则: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="292"/>
         <source>No Altered Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>没有被警告的规则</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="296"/>
         <source>Missing Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>丢失规则: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="298"/>
         <source>No Missing Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>没有丢失的规则</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="301"/>
         <source>DNS Filter NOT enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>DNS过滤器未启用</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="303"/>
         <source>DNS Filter NOT installed</source>
-        <translation type="unfinished"></translation>
+        <translation>DNS过滤器未安装</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="305"/>
         <source>DNS Filter installed</source>
-        <translation type="unfinished"></translation>
+        <translation>DNS过滤器已安装</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="310"/>
         <source>Applied Tweaks: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>被应用的微调: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="311"/>
         <source>Failed Tweaks: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>失败的微调: %1</translation>
     </message>
 </context>
 <context>
@@ -7932,27 +7954,27 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="754"/>
         <source>Windows System Configuration</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows系统配置</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="755"/>
         <source>To allow MajorPrivacy provide the up upmost security some system configurations should be changed.</source>
-        <translation type="unfinished"></translation>
+        <translation>为了允许MajorPrivacy提供最大化安全，一些系统配置应该被变更。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="764"/>
         <source>When sensitive data is stored in RAM, it is critical to prevent that information from being written to disk in an unprotected form. Windows may write memory contents into the page file during normal operation or into the hibernation file when the system is suspended, leaving sensitive data exposed to offline analysis or theft. Enabling NTFS page file encryption ensures that any memory pages written to disk are securely encrypted, reducing the risk of leakage. At the same time, disabling hibernation prevents entire memory snapshots from being saved to disk, closing off another major avenue through which sensitive data could persist beyond system uptime.</source>
-        <translation type="unfinished"></translation>
+        <translation>当敏感数据被存储在内存中时，阻止此类信息以未受保护的形式写入到硬盘中是关键的，Windows可能在正常操作期间将内存内容写入页面文件或者在系统被暂停时写入休眠文件，将敏感数据暴露于离线分析或被窃取的风险中。启用NTFS页面文件加密确保任何被写入到硬盘的内存页都被安全加密，减少泄露风险。同时，禁用休眠功能阻止整个内存快照被写入硬盘，阻断了另一个敏感数据可能在系统运行时间之外持续存在的主要途径。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="770"/>
         <source>Enable Virtual Memory Pagefile Encryption</source>
-        <translation type="unfinished"></translation>
+        <translation>启用虚拟内存页面文件加密</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="774"/>
         <source>Prevent Hibernation when Secure Protected Volumes are mounted</source>
-        <translation type="unfinished"></translation>
+        <translation>在安全卷挂载时阻止休眠</translation>
     </message>
 </context>
 <context>
@@ -7965,7 +7987,7 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/TraceView.cpp" line="309"/>
         <source>Are you sure you want to clear the the trace logs for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定你想要为所有程序项清除跟踪日志吗？</translation>
     </message>
     <message>
         <location filename="Views/TraceView.cpp" line="316"/>
@@ -8001,12 +8023,12 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/TrafficView.cpp" line="22"/>
         <source>Block Program in Firewall</source>
-        <translation type="unfinished"></translation>
+        <translation>在防火墙中封禁程序</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="23"/>
         <source>Add Domain to DNS Blocklist</source>
-        <translation type="unfinished"></translation>
+        <translation>添加域到DNS封禁列表</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="37"/>
@@ -8041,17 +8063,17 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/TrafficView.cpp" line="65"/>
         <source>Hold updates</source>
-        <translation type="unfinished"></translation>
+        <translation>暂缓更新</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="71"/>
         <source>Reload</source>
-        <translation type="unfinished"></translation>
+        <translation>重载</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="80"/>
         <source>Clear Records</source>
-        <translation type="unfinished"></translation>
+        <translation>清除记录</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="89"/>
@@ -8061,32 +8083,32 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/TrafficView.cpp" line="245"/>
         <source>Loading %1</source>
-        <translation type="unfinished">加载中 %1</translation>
+        <translation>加载中 %1</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="371"/>
         <source>MajorPrivacy-Rule, %1</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy-规则, %1</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="384"/>
         <source>DNS filtering is not enabled!</source>
-        <translation type="unfinished"></translation>
+        <translation>DNS拦截未被启用！</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="399"/>
         <source>Select host name to block:</source>
-        <translation type="unfinished"></translation>
+        <translation>选择要封禁的主机名：</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="442"/>
         <source>Are you sure you want to clear the all execution and Network records for the ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要为所有程序项清除所有执行与网络记录吗？</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="449"/>
         <source>Are you sure you want to clear the all execution and Network records for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>你确定要为当前程序项清除所有执行与网络记录吗？</translation>
     </message>
 </context>
 <context>
@@ -8120,7 +8142,8 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
         <location filename="Views/TweakInfo.cpp" line="64"/>
         <source>Description: %1 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>注释： %1
+</translation>
     </message>
 </context>
 <context>
@@ -8128,23 +8151,23 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Core/IssueManager.cpp" line="332"/>
         <source>Missing Tweak: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>丢失微调项: %1</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="335"/>
         <source>Ineffective Tweak: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>无作用微调项: %1</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="351"/>
         <source>This issue can not be fixed in this mode!</source>
-        <translation type="unfinished"></translation>
+        <translation>当前模式下此微调无法被修复！</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="354"/>
         <source>When a tweak is inneffective this can not be fixed it means that you windows version does not respect this preset.
 You can undo the tweak from the tweaks page to remowe the warning.</source>
-        <translation type="unfinished"></translation>
+        <translation>当一个微调项是无作用的，这无法被修复。这意味着你的Windows版本并不尊重这个预设。你可以从微调页面撤销次微调以移除此警告。</translation>
     </message>
 </context>
 <context>
@@ -8185,11 +8208,11 @@ You can undo the tweak from the tweaks page to remowe the warning.</source>
     <message>
         <location filename="Models/TweakModel.cpp" line="212"/>
         <source>Description</source>
-        <translation type="unfinished">注释</translation>
+        <translation>注释</translation>
     </message>
     <message>
         <source>Info</source>
-        <translation type="vanished">信息</translation>
+        <translation>信息</translation>
     </message>
 </context>
 <context>
@@ -8270,67 +8293,67 @@ The following operations will be performed:
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="793"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; updater</source>
-        <translation type="unfinished">配置&lt;b&gt;MajorPrivacy&lt;/b&gt;更新程序</translation>
+        <translation>配置&lt;b&gt;MajorPrivacy&lt;/b&gt;更新程序</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="794"/>
         <source>Like with any other security product, it&apos;s important to keep your MajorPrivacy up to date.</source>
-        <translation type="unfinished">与任何其他安全产品一样，保持 MajorPrivacy 为最新版本非常重要。</translation>
+        <translation>与任何其他安全产品一样，保持 MajorPrivacy 为最新版本非常重要。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="803"/>
         <source>Regularly check for all updates to MajorPrivacy and optional components</source>
-        <translation type="unfinished">定期检查 MajorPrivacy 和可选组件的所有更新</translation>
+        <translation>定期检查 MajorPrivacy 和可选组件的所有更新</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="804"/>
         <source>Let MajorPrivacy regularly check for latest updates.</source>
-        <translation type="unfinished"></translation>
+        <translation>让MajorPrivacy定期检查最新更新。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="814"/>
         <source>Check for new MajorPrivacy versions:</source>
-        <translation type="unfinished">检查新的MajorPrivacy版本：</translation>
+        <translation>检查新的MajorPrivacy版本：</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="815"/>
         <source>Check for new MajorPrivacy builds.</source>
-        <translation type="unfinished">检查新的 MajorPrivacy 版本。</translation>
+        <translation>检查新的 MajorPrivacy 版本。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="821"/>
         <source>Select in which update channel to look for new MajorPrivacy builds:</source>
-        <translation type="unfinished">选择在哪个更新频道中查找新的 MajorPrivacy 版本：</translation>
+        <translation>选择在哪个更新频道中查找新的 MajorPrivacy 版本：</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="830"/>
         <source>In the Stable Channel</source>
-        <translation type="unfinished">在稳定频道</translation>
+        <translation>在稳定频道</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="831"/>
         <source>The stable channel contains the latest stable GitHub releases.</source>
-        <translation type="unfinished">稳定频道包含最新的稳定GitHub版本。</translation>
+        <translation>稳定频道包含最新的稳定GitHub版本。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="835"/>
         <source>In the Preview Channel - with newest experimental changes</source>
-        <translation type="unfinished">在预览频道 - 带着最新的实验性更改</translation>
+        <translation>在预览频道 - 带着最新的实验性更改</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="836"/>
         <source>The preview channel contains the latest GitHub pre-releases.</source>
-        <translation type="unfinished">预览频道包含最新的GitHub预发布版本。</translation>
+        <translation>预览频道包含最新的GitHub预发布版本。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="855"/>
         <source>Keep tweak list up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>保持微调列表更新</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="856"/>
         <source>Check for latest privacy tweaks.</source>
-        <translation type="unfinished"></translation>
+        <translation>检查最新的隐私微调。</translation>
     </message>
 </context>
 <context>
@@ -8445,7 +8468,7 @@ The following operations will be performed:
     <message>
         <location filename="Windows/VolumeConfigWnd.cpp" line="36"/>
         <source>Edit Secure Volume Configuration</source>
-        <translation type="unfinished"></translation>
+        <translation>编辑安全卷配置</translation>
     </message>
 </context>
 <context>
@@ -8536,12 +8559,12 @@ The following operations will be performed:
     <message>
         <location filename="Views/VolumeView.cpp" line="34"/>
         <source>Change Volume Configuration</source>
-        <translation type="unfinished"></translation>
+        <translation>更改卷配置</translation>
     </message>
     <message>
         <location filename="Views/VolumeView.cpp" line="35"/>
         <source>Add Volume Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>添加卷飞地</translation>
     </message>
     <message>
         <location filename="Views/VolumeView.cpp" line="182"/>
@@ -8584,7 +8607,7 @@ The following operations will be performed:
     <message>
         <location filename="Views/VolumeView.cpp" line="288"/>
         <source>%1 Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 飞地</translation>
     </message>
     <message>
         <location filename="Views/VolumeView.cpp" line="301"/>
@@ -8712,27 +8735,27 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="289"/>
         <source>Safety and Recovery instructions. &lt;b&gt;Please read carefully&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>安全与恢复指令。&lt;b&gt;请仔细阅读&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="290"/>
         <source>Major Privacy is a powerfull tool, improper operation may break the system.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy是一个强大的工具，不恰当的操作可能损害系统。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="296"/>
         <source>MajorPrivacy allows you to control file access, process execution, and enforce custom code-integrity rules. Incorrect or overly restrictive rules may prevent Windows from booting into the desktop.&lt;br /&gt;&lt;br /&gt;To mitigate this risk, MajorPrivacy automatically disables rule enforcement when Windows starts in recovery mode. Additionally, if repeated boot failures are detected, MajorPrivacy will take corrective action: it will revert to the last known good rule set after the third failed boot, and completely disable all rules after the fifth.&lt;br /&gt;&lt;br /&gt;If recovery fails, you can manually disable MajorPrivacy from the Windows Recovery Environment (WinRE). Open the command prompt, navigate to your installation directory (typically &quot;C:\Program Files\MajorPrivacy&quot;), and rename the driver file - for example, by appending .disabled to its name.&lt;br /&gt;&lt;br /&gt;&lt;b&gt;Disclaimer:&lt;/b&gt; Use of these features is at your own risk. We assume no responsibility for system instability or data loss resulting from user-defined rules.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy允许你控制文件访问、进程执行并强制自定义的代码完整性规则，不正确的或过度限制性的规则可能会阻止Windows启动进入桌面。&lt;br /&gt;&lt;br /&gt;为了缓解此风险，MajorPrivacy在Windows以恢复模式启动时将自动禁用规则强制。另外，如果反复的启动失败被检测到了，MajorPrivacy将采取纠正性的行为：在第三次失败的启动后自动回滚到最终的已知可用规则集，且在第五次失败的启动之后完全禁用所有规则。&lt;br /&gt;&lt;br /&gt;如果恢复失败，你可以从Windows恢复环境(WinRE)手动禁用MajorPrivacy.打开命令提示符，导航到你的安装目录(通常是 &quot;C:\Program Files\MajorPrivacy&quot;)，并重命名驱动文件 - 例如添加.disabled 到它的包含原后缀名的名称后面。&lt;br /&gt;&lt;br /&gt;&lt;b&gt;免责声明:&lt;/b&gt;使用此类功能请自担风险,我们不承担由于用户自行定义的规则而导致的系统不稳定或数据丢失的责任。 </translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="306"/>
         <source>I acknowledge the risks and take full responsibility for teh rules I create.</source>
-        <translation type="unfinished"></translation>
+        <translation>我已知悉风险并对我自己创建的规则完全负责。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="312"/>
         <source> (already acknowledged)</source>
-        <translation type="unfinished"></translation>
+        <translation>(已知悉)</translation>
     </message>
 </context>
 <context>
@@ -8768,17 +8791,17 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="135"/>
         <source>Allowed by User</source>
-        <translation type="unfinished"></translation>
+        <translation>被用户允许</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="164"/>
         <source>Scripting</source>
-        <translation type="unfinished"></translation>
+        <translation>脚本</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="170"/>
         <source>Call script to make decisions</source>
-        <translation type="unfinished"></translation>
+        <translation>调用脚本决策</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="187"/>
@@ -8801,7 +8824,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="20"/>
         <source>Permissions &amp;&amp; Privileges</source>
-        <translation type="unfinished"></translation>
+        <translation>权限 &amp;&amp; 特权</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="26"/>
@@ -8826,52 +8849,52 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="68"/>
         <source>Image Coherency Checking</source>
-        <translation type="unfinished"></translation>
+        <translation>映像连贯性检查</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="81"/>
         <source>Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>集合</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="91"/>
         <source>Signed by Microsoft</source>
-        <translation type="unfinished"></translation>
+        <translation>由微软签名</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="98"/>
         <source>Allowed by User for Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>被用户在飞地中允许</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="105"/>
         <source>Add new Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>新建新集合</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="108"/>
         <source>...</source>
-        <translation type="unfinished">...</translation>
+        <translation>...</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="200"/>
         <source>On Untrusted</source>
-        <translation type="unfinished"></translation>
+        <translation>在不信任时</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="223"/>
         <source>Integration</source>
-        <translation type="unfinished"></translation>
+        <translation>整合</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="235"/>
         <source>Dll Injection</source>
-        <translation type="unfinished"></translation>
+        <translation>Dll注入</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="254"/>
         <source>Secure Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>安全飞地</translation>
     </message>
 </context>
 <context>
@@ -9012,7 +9035,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="493"/>
         <source>Edge Traversal</source>
-        <translation type="unfinished">边缘遍历</translation>
+        <translation>边缘遍历</translation>
     </message>
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="534"/>
@@ -9061,37 +9084,37 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="26"/>
         <source>Hash DB Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>哈希数据库实体</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="38"/>
         <source>Name</source>
-        <translation type="unfinished">名称</translation>
+        <translation>名称</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="106"/>
         <source>Hash Affiliation</source>
-        <translation type="unfinished"></translation>
+        <translation>哈希归属</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="118"/>
         <source>Secure Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>安全飞地</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="134"/>
         <source>Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>集合</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="157"/>
         <source>Add new Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>新建新集合</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="160"/>
         <source>...</source>
-        <translation type="unfinished">...</translation>
+        <translation>...</translation>
     </message>
 </context>
 <context>
@@ -9099,27 +9122,27 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ItemPicker.ui" line="32"/>
         <source>MajorPrivacy - Select Program</source>
-        <translation type="unfinished">MajorPrivacy - 选择程序</translation>
+        <translation>MajorPrivacy - 选择程序</translation>
     </message>
     <message>
         <location filename="Forms/ItemPicker.ui" line="45"/>
         <source>Find Program</source>
-        <translation type="unfinished"></translation>
+        <translation>查找程序</translation>
     </message>
     <message>
         <location filename="Forms/ItemPicker.ui" line="48"/>
         <source>...</source>
-        <translation type="unfinished">...</translation>
+        <translation>...</translation>
     </message>
     <message>
         <location filename="Forms/ItemPicker.ui" line="61"/>
         <source>Select an item from the list</source>
-        <translation type="unfinished"></translation>
+        <translation>从列表中选择一个项目</translation>
     </message>
     <message>
         <location filename="Forms/ItemPicker.ui" line="91"/>
         <source>Name</source>
-        <translation type="unfinished">名称</translation>
+        <translation>名称</translation>
     </message>
 </context>
 <context>
@@ -9142,7 +9165,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/OptionsTransferWnd.ui" line="95"/>
         <source>Configuration Presets</source>
-        <translation type="unfinished"></translation>
+        <translation>配置预设</translation>
     </message>
     <message>
         <location filename="Forms/OptionsTransferWnd.ui" line="116"/>
@@ -9177,12 +9200,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/OptionsTransferWnd.ui" line="109"/>
         <source>User Key (Remains Encrypted with User PW)</source>
-        <translation>用户密钥(仍然被用户密码加密）</translation>
+        <translation>用户密钥(保持被用户密码加密）</translation>
     </message>
     <message>
         <location filename="Forms/OptionsTransferWnd.ui" line="197"/>
         <source>Database with Approved Hashes</source>
-        <translation type="unfinished"></translation>
+        <translation>受许可哈希的数据库</translation>
     </message>
     <message>
         <location filename="Forms/OptionsTransferWnd.ui" line="204"/>
@@ -9335,12 +9358,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/PopUpWindow.ui" line="227"/>
         <source>Event</source>
-        <translation type="unfinished"></translation>
+        <translation>事件</translation>
     </message>
     <message>
         <location filename="Forms/PopUpWindow.ui" line="237"/>
         <source>Firewall Rule Name</source>
-        <translation type="unfinished"></translation>
+        <translation>防火墙规则名称</translation>
     </message>
     <message>
         <location filename="Forms/PopUpWindow.ui" line="572"/>
@@ -9377,7 +9400,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/PopUpWindow.ui" line="817"/>
         <source>Issuer Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>签发者证书</translation>
     </message>
     <message>
         <location filename="Forms/PopUpWindow.ui" line="837"/>
@@ -9432,28 +9455,28 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/PresetWindow.ui" line="26"/>
         <source>Scripting</source>
-        <translation type="unfinished"></translation>
+        <translation>脚本</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="32"/>
         <source>Call script on Activation/Deactivation</source>
-        <translation type="unfinished"></translation>
+        <translation>在激活/反激活时调用脚本</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="55"/>
         <source>Rule Profile Identity</source>
-        <translation type="unfinished"></translation>
+        <translation>规则配置文件校验</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="77"/>
         <location filename="Forms/PresetWindow.ui" line="207"/>
         <source>Name</source>
-        <translation type="unfinished">名称</translation>
+        <translation>名称</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="136"/>
         <source>Rules and Tweaks</source>
-        <translation type="unfinished"></translation>
+        <translation>规则与微调</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="142"/>
@@ -9462,22 +9485,22 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <location filename="Forms/PresetWindow.ui" line="192"/>
         <location filename="Forms/PresetWindow.ui" line="220"/>
         <source>...</source>
-        <translation type="unfinished">...</translation>
+        <translation>...</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="199"/>
         <source>Remove Item</source>
-        <translation type="unfinished"></translation>
+        <translation>移除项目</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="212"/>
         <source>Action</source>
-        <translation type="unfinished">行为</translation>
+        <translation>行为</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="227"/>
         <source>Add Item:</source>
-        <translation type="unfinished"></translation>
+        <translation>添加项目:</translation>
     </message>
 </context>
 <context>
@@ -9495,13 +9518,13 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ProgramPicker.ui" line="60"/>
         <source>Add Program</source>
-        <translation type="unfinished">添加程序</translation>
+        <translation>添加程序</translation>
     </message>
     <message>
         <location filename="Forms/ProgramPicker.ui" line="63"/>
         <location filename="Forms/ProgramPicker.ui" line="89"/>
         <source>...</source>
-        <translation type="unfinished">...</translation>
+        <translation>...</translation>
     </message>
     <message>
         <location filename="Forms/ProgramPicker.ui" line="76"/>
@@ -9511,7 +9534,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ProgramPicker.ui" line="86"/>
         <source>Find Program</source>
-        <translation type="unfinished"></translation>
+        <translation>查找项目</translation>
     </message>
     <message>
         <location filename="Forms/ProgramPicker.ui" line="45"/>
@@ -9520,7 +9543,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     </message>
     <message>
         <source>Add New Program Item</source>
-        <translation type="vanished">添加程序项</translation>
+        <translation>添加新程序项</translation>
     </message>
 </context>
 <context>
@@ -9545,47 +9568,47 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="26"/>
         <source>Code Integrity Presets</source>
-        <translation type="unfinished">代码完整性预设</translation>
+        <translation>代码完整性预设</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="38"/>
         <source>Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>集合</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="48"/>
         <source>Add new Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>新建新集合</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="58"/>
         <source>Allowed by User for Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>被用户允许于飞地</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="78"/>
         <source>Signed by Microsoft</source>
-        <translation type="unfinished"></translation>
+        <translation>由微软签名</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="85"/>
         <source>Allowed by User</source>
-        <translation type="unfinished"></translation>
+        <translation>被用户允许</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="99"/>
         <source>Image Coherency Checking</source>
-        <translation type="unfinished"></translation>
+        <translation>映像完整性检查</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="146"/>
         <source>Scripting</source>
-        <translation type="unfinished"></translation>
+        <translation>脚本</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="152"/>
         <source>Call script to make decisions</source>
-        <translation type="unfinished"></translation>
+        <translation>调用脚本决策</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="240"/>
@@ -9600,12 +9623,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="273"/>
         <source>Integration</source>
-        <translation type="unfinished"></translation>
+        <translation>整合</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="285"/>
         <source>Dll Injection</source>
-        <translation type="unfinished"></translation>
+        <translation>Dll注入</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="304"/>
@@ -9880,12 +9903,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ScriptWindow.ui" line="32"/>
         <source>MajorPrivacy - Script Editor</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy - 脚本编辑器</translation>
     </message>
     <message>
         <location filename="Forms/ScriptWindow.ui" line="52"/>
         <source>Script Log:</source>
-        <translation type="unfinished"></translation>
+        <translation>脚本日志:</translation>
     </message>
 </context>
 <context>
@@ -10171,77 +10194,77 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="93"/>
         <source>Enable Virtual Memory Pagefile Encryption (requires system reboot)</source>
-        <translation type="unfinished"></translation>
+        <translation>启用虚拟内存页面文件加密(需要系统重启)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="145"/>
         <source>More Options</source>
-        <translation type="unfinished"></translation>
+        <translation>更多选项</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="152"/>
         <source>Prevent Hibernation when secure protected volumes are mounted</source>
-        <translation type="unfinished"></translation>
+        <translation>当安全卷挂载时阻止休眠</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="162"/>
         <source>Add Major Privacy GUI to AutoRun</source>
-        <translation type="unfinished"></translation>
+        <translation>添加MajorPrivacy GUI到开机自启</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="186"/>
         <source>Graphic Options</source>
-        <translation type="unfinished"></translation>
+        <translation>图形选项</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="195"/>
         <source>Select Font</source>
-        <translation type="unfinished"></translation>
+        <translation>选择字体</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="205"/>
         <source>Reset Font</source>
-        <translation type="unfinished"></translation>
+        <translation>重设字体</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="230"/>
         <source>High DPI Scaling</source>
-        <translation type="unfinished"></translation>
+        <translation>高DPI缩放</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="259"/>
         <source>UI Font</source>
-        <translation type="unfinished"></translation>
+        <translation>UI字体</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="272"/>
         <source>(Restart required)</source>
-        <translation type="unfinished"></translation>
+        <translation>(需要重启)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="279"/>
         <source>Use the new SandMan style on Windows 11</source>
-        <translation type="unfinished"></translation>
+        <translation>在Windows11上使用新的MajorPrivacy样式</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="345"/>
         <source>Alternate row background in lists</source>
-        <translation type="unfinished"></translation>
+        <translation>在列表上替代行背景</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="365"/>
         <source>#</source>
-        <translation type="unfinished"></translation>
+        <translation>#</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="372"/>
         <source>Font Scaling</source>
-        <translation type="unfinished"></translation>
+        <translation>字体缩放</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="392"/>
         <source>%</source>
-        <translation type="unfinished"></translation>
+        <translation>%</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="436"/>
@@ -10620,12 +10643,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/VolumeConfigWnd.ui" line="46"/>
         <source>Scripting</source>
-        <translation type="unfinished"></translation>
+        <translation>脚本</translation>
     </message>
     <message>
         <location filename="Forms/VolumeConfigWnd.ui" line="52"/>
         <source>Call script on Mount/Unmount</source>
-        <translation type="unfinished"></translation>
+        <translation>在挂载/卸载时调用脚本</translation>
     </message>
 </context>
 <context>
@@ -10672,7 +10695,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/VolumeWindow.ui" line="209"/>
         <source>Load Volume Configuration (Protection Rules and more)</source>
-        <translation type="unfinished"></translation>
+        <translation>加载卷配置(防护规则等)</translation>
     </message>
     <message>
         <location filename="Forms/VolumeWindow.ui" line="84"/>

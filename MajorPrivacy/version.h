@@ -1,8 +1,8 @@
 #pragma once
 
 #define VERSION_MJR		0
-#define VERSION_MIN 	99
-#define VERSION_REV 	6
+#define VERSION_MIN 	100
+#define VERSION_REV 	1
 #define VERSION_UPD 	0
 
 #ifndef STR
@@ -10,15 +10,22 @@
 #define STR(X) STR2(X)
 #endif
 
+#ifndef WSTR
+#define WSTR2(X) L ## X
+#define WSTR(X) WSTR2(X)
+#endif
+
 #if VERSION_UPD > 0
   #define VERSION_BIN VERSION_MJR,VERSION_MIN,VERSION_REV,VERSION_UPD
   #define VERSION_STR STR(VERSION_MJR.VERSION_MIN.VERSION_REV.VERSION_UPD)
+  #define VERSION_WSTR WSTR(STR(VERSION_MJR.VERSION_MIN.VERSION_REV.VERSION_UPD))
 #else
   #define VERSION_BIN VERSION_MJR,VERSION_MIN,VERSION_REV
   #define VERSION_STR STR(VERSION_MJR.VERSION_MIN.VERSION_REV)
+  #define VERSION_WSTR WSTR(STR(VERSION_MJR.VERSION_MIN.VERSION_REV))
 #endif
 
 #define MY_PRODUCT_NAME_STRING  "MajorPrivacy"
 #define MY_COMPANY_NAME_STRING  "xanasoft.com"
-#define MY_COPYRIGHT_STRING     "Copyright (C) 2023-2025 David Xanatos (xanasoft.com)"
+#define MY_COPYRIGHT_STRING     "Copyright (C) 2023-2026 David Xanatos (xanasoft.com)"
 

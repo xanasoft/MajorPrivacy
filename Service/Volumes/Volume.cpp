@@ -2,6 +2,7 @@
 #include "Volume.h"
 #include "../Library/API/PrivacyAPI.h"
 #include "../../Library/Crypto/HashFunction.h"
+#include "../../Library/Helpers/ImDiskHelpers.h"
 
 CVolume::CVolume()
 {
@@ -32,6 +33,24 @@ void CVolume::SetImageDosPath(const std::wstring& ImageDosPath)
 	m_ImageDosPath = ImageDosPath; 
 
     m_Guid = GetGuidFromPath(ImageDosPath);
+}
+
+void CVolume::SetVolumeInfo(const struct SCryptInfo* pInfo, const WCHAR* fs)
+{
+    if (!pInfo) {
+		m_Info = StVariant();
+        return;
+    }
+
+	StVariant Info;
+    Info[API_V_VERSION] = pInfo->version;
+    Info[API_V_VOL_CIPHER] = pInfo->cipher_id;
+    Info[API_V_VOL_KDF] = pInfo->head_kdf;
+	Info[API_V_VOL_HEAD_LEN] = pInfo->head_len;
+	//Info[API_V_VOL_SLOT_COUNT] = pInfo->slot_count;
+	Info[API_V_VOL_FS] = fs;
+
+    m_Info = Info;
 }
 
 CFlexGuid CVolume::GetGuidFromPath(std::wstring Path)
@@ -107,6 +126,7 @@ StVariant CVolume::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMem
 	Volume.Write(API_V_VOL_SIZE, m_VolumeSize);
 	Volume.Write(API_V_USE_SCRIPT, m_bUseScript);
 	Volume.WriteEx(API_V_SCRIPT, m_Script);
+    Volume.WriteVariant(API_V_INFO, m_Info);
 
 	return Volume.Finish();
 }

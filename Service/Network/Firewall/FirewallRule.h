@@ -1,6 +1,17 @@
 #pragma once
 #include "../Library/Common/StVariant.h"
 #include "Programs/ProgramID.h"
+#include <unordered_map>
+
+enum class ESidEntryType : uint8 {
+	eUndefined = 0,
+	eApply,		// Allow ACE - rule applies to this SID
+	eExempt		// Deny ACE - rule does not apply to this SID
+};
+
+struct SSidEntryInfo {
+	ESidEntryType Type = ESidEntryType::eUndefined;
+};
 
 class CFirewallRule
 {
@@ -9,6 +20,8 @@ public:
 	CFirewallRule();
 	CFirewallRule(const std::shared_ptr<struct SWindowsFwRule>& Rule);
 	~CFirewallRule();
+
+	std::shared_ptr<CFirewallRule> Clone(bool CloneGuid = false) const;
 
 	bool Match(const std::shared_ptr<struct SWindowsFwRule>& Rule) const;
 	static bool Match(const std::shared_ptr<struct SWindowsFwRule>& RuleL, const std::shared_ptr<struct SWindowsFwRule>& RuleR);
@@ -23,7 +36,8 @@ public:
 	void SetApproved(bool bApproved)		{ std::unique_lock Lock(m_Mutex); m_State = bApproved ? EFwRuleState::eApproved : EFwRuleState::eUnapproved; }
 	bool IsApproved() const					{ std::shared_lock Lock(m_Mutex); return m_State == EFwRuleState::eApproved; }
 	void SetAsBackup(bool bRemoved, bool bProgramChanged);
-	bool IsBackup() const					{ std::shared_lock Lock(m_Mutex); return m_State == EFwRuleState::eBackup; }
+	//bool IsBackup() const					{ std::shared_lock Lock(m_Mutex); return m_State == EFwRuleState::eBackup; }
+	bool IsBackup() const					{ std::shared_lock Lock(m_Mutex); return !m_OriginalGuid.empty(); }
 	void SetDiverged(bool bDiverged)		{ std::unique_lock Lock(m_Mutex); m_State = bDiverged ? EFwRuleState::eDiverged : EFwRuleState::eApproved; }
 	bool IsDiverged() const					{ std::shared_lock Lock(m_Mutex); return m_State == EFwRuleState::eDiverged; }
 
@@ -51,6 +65,10 @@ public:
 
 	std::shared_ptr<struct SWindowsFwRule> GetFwRule() { std::shared_lock Lock(m_Mutex); return m_FwRule; }
 
+	bool HasPrincipalRestriction() const			{ std::shared_lock Lock(m_Mutex); return m_PrincipalSids && !m_PrincipalSids->empty(); }
+	bool HasPrincipalApplyEntries() const			{ std::shared_lock Lock(m_Mutex); return m_bHasApplyEntries; }
+	std::shared_ptr<std::unordered_map<std::wstring, SSidEntryInfo>> GetPrincipalSids() const { std::shared_lock Lock(m_Mutex); return m_PrincipalSids; }
+
 	void IncrHitCount() { std::unique_lock Lock(m_Mutex); m_HitCount++; }
 
 	void IncrSetErrorCount() { std::unique_lock Lock(m_Mutex); m_SetErrorCount++; }
@@ -69,10 +87,16 @@ protected:
 	virtual void ReadIValue(uint32 Index, const StVariant& Data);
 	virtual void ReadMValue(const SVarName& Name, const StVariant& Data);
 
+	void SetPrincipalSddl(const std::wstring& PrincipalSddl);
+
 	CProgramID m_ProgramID;
 	
 	std::wstring m_BinaryPath;
 	std::shared_ptr<struct SWindowsFwRule> m_FwRule;
+
+	std::wstring m_PrincipalSddl;
+	std::shared_ptr<std::unordered_map<std::wstring, SSidEntryInfo>> m_PrincipalSids;
+	bool m_bHasApplyEntries = false;
 
 	EFwRuleState m_State = EFwRuleState::eUnapproved;
 	std::wstring m_OriginalGuid;

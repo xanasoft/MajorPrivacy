@@ -11,6 +11,7 @@ struct SAccessStats
 	uint32	AccessMask = 0;
 	uint32	NtStatus = 0;
 	bool	IsDirectory = false;
+	uint64  AccessCount = 0;
 };
 
 typedef QSharedPointer<SAccessStats> SAccessStatsPtr;

@@ -68,7 +68,7 @@ static void sha512_compress(sha512_ctx *ctx, const unsigned char *buf)
 	// copy state into S
 	__movsb((unsigned char*)&S, (const unsigned char*)&ctx->hash, sizeof(S));
 	
-	// copy the state into 1024-bits into W[0..15]
+	// copy the state of 1024 bits into W[0..15]
 	for (i = 0; i < 16; i++) {
 		W[i] = _byteswap_uint64(((unsigned __int64*)buf)[i]);
 	}
@@ -107,7 +107,7 @@ void sha512_init(sha512_ctx *ctx)
 }
 
 // Process a block of memory though the hash
-void sha512_add(sha512_ctx *ctx, const unsigned char *in, unsigned long inlen) 
+void sha512_hash(sha512_ctx *ctx, const unsigned char *in, unsigned long inlen) 
 {
 	while (inlen--)
 	{
@@ -145,7 +145,7 @@ void sha512_done(sha512_ctx *ctx, unsigned char *out)
 		ctx->curlen = 0;
 	}
 
-	/* pad up to 120 bytes of zeroes
+	/* pad upto 120 bytes of zeroes
 	 * note: that from 112 to 120 is the 64 MSB of the length.  We assume that you won't hash
 	 * > 2^64 bits of data... :-)
 	 */

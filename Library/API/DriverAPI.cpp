@@ -34,6 +34,7 @@ uint32 ConfigGroupToMsgType(EConfigGroup Config)
     case EConfigGroup::eProgramRules:   return KphMsgProgramRules;
     case EConfigGroup::eAccessRules:    return KphMsgAccessRules;
 	case EConfigGroup::eFirewallRules:  return KphMsgFirewallRules;
+    case EConfigGroup::eDriverConfig:   return KphMsgConfig;
 	}
 	return 0;
 }
@@ -47,6 +48,7 @@ EConfigGroup MsgTypeToConfigGroup(uint32 Type)
 	case KphMsgProgramRules:    return EConfigGroup::eProgramRules;
 	case KphMsgAccessRules:     return EConfigGroup::eAccessRules;
 	case KphMsgFirewallRules:   return EConfigGroup::eFirewallRules;
+    case KphMsgConfig:          return EConfigGroup::eDriverConfig;
 	}
 	return EConfigGroup::eUndefined;
 }
@@ -309,6 +311,7 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
         }
 
 
+        case KphMsgConfig:
         case KphMsgSecureEnclave:
 		case KphMsgHashDB:
         case KphMsgProgramRules:
@@ -316,8 +319,8 @@ extern "C" static VOID NTAPI CDriverAPI__Callback(
 		{
             EConfigGroup Config = MsgTypeToConfigGroup(Message->Header.MessageId);
 			std::wstring Guid = vEvent[API_V_GUID].AsStr();
-            EConfigEvent Event = (EConfigEvent)vEvent[API_V_EVENT_TYPE].To<uint32>(); // todo move to api header
-            uint64 PID = vEvent[API_V_EVENT_ACTOR_PID].To<uint64>();
+            EConfigEvent Event = (EConfigEvent)vEvent[API_V_EVENT_TYPE].To<uint32>();
+            uint64 PID = vEvent.Get(API_V_EVENT_ACTOR_PID).To<uint64>(0);
 			CDriverAPI__EmitConfigEvent(This, Config, Guid, Event, PID);
 			break;
 		}
@@ -355,8 +358,8 @@ STATUS CDriverAPI::InstallDrv(bool bAutoStart, uint32 TraceLogLevel)
     Params["TraceLevel"] = TraceLogLevel;
 #ifdef _DEBUG
     Params["AllowUserDev"] = TRUE;
-    Params["SignProbeAll"] = FALSE;
-    Params["AllowDebugging"] = TRUE;
+    Params["SignProbeAll"] = FALSE; 
+    Params["AllowDebugging"] = TRUE; // Required test signing mode to be enabled
 #endif
 
     uint32 uOptions = OPT_KERNEL_TYPE;
@@ -435,6 +438,11 @@ bool CDriverAPI::IsCurProcHighSecurity() const
 bool CDriverAPI::IsCurProcMaxSecurity() const
 {
     return ((m_CurProcSecState & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM);
+}
+
+bool CDriverAPI::IsCurProcDevTrusted() const
+{
+	return (m_CurProcSecState & 0x80000000) != 0;
 }
 
 RESULT(StVariant) CDriverAPI::Call(uint32 MessageId, const StVariant& Message, SCallParams* pParams)
@@ -588,12 +596,19 @@ STATUS CDriverAPI::SetConfig(const char* Name, const StVariant& Value)
     return Call(API_SET_CONFIG_VALUE, ReqVar);
 }
 
-STATUS CDriverAPI::SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, bool bLock)
+STATUS CDriverAPI::RegisterGUI()
+{
+    StVariant ReqVar;
+	return Call(API_REGISTER_GUI, ReqVar, NULL);
+}
+
+STATUS CDriverAPI::SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, const CBuffer& InfoBlob/*, bool bLock*/)
 {
     StVariant ReqVar;
 	ReqVar[API_V_PUB_KEY] = PubKey;
 	ReqVar[API_V_KEY_BLOB] = EncryptedBlob;
-    ReqVar[API_V_LOCK] = bLock;
+    ReqVar[API_V_INFO] = InfoBlob;
+    //ReqVar[API_V_LOCK] = bLock;
 
 	return Call(API_SET_USER_KEY, ReqVar, NULL);
 }
@@ -611,7 +626,8 @@ RESULT(SUserKeyInfoPtr) CDriverAPI::GetUserKey()
     SUserKeyInfoPtr Info = SUserKeyInfoPtr(new SUserKeyInfo());
     Info->PubKey = ResVar[API_V_PUB_KEY];
     Info->EncryptedBlob = ResVar[API_V_KEY_BLOB];
-    Info->bLocked = ResVar.Get(API_V_LOCK).To<bool>(false);
+    Info->InfoBlob = ResVar.Get(API_V_INFO);
+    //Info->bLocked = ResVar.Get(API_V_LOCK).To<bool>(false);
 
     RETURN(Info);
 }

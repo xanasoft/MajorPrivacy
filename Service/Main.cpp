@@ -9,9 +9,15 @@
 #include "../Library/Helpers/AppUtil.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Helpers/WinUtil.h"
+#include "../Library/Helpers/TokenUtil.h"
 #include "../Library/IPC/AbstractClient.h"
 #include <shellapi.h>
+//#include <shlobj.h>
 #include "Helpers/SecDeskHelper.h"
+#include "../Library/IPC/ServerReadyEvent.h"
+
+#include "../library/Helpers/MiniDumpFilter.h"
+#include "../MajorPrivacy/version.h"
 
 #include <windows.h>
 #include <winsock2.h>
@@ -127,11 +133,103 @@ std::wstring GetArgument(const std::vector<std::wstring>& arguments, std::wstrin
 	return L"";
 }
 
+static int RestartSelf(const wchar_t* arg_tag, bool bAsSystem = false)
+{
+    std::wstring Command = GetCommandLineW();
+    if (arg_tag) { Command += L" -"; Command += arg_tag; }
+
+    bool bSetEvent = false;
+    CServerReadyEvent ReadyEvent;
+    ReadyEvent.ClientCreate(API_WORKER_READY_EVENT);
+
+    CScopedHandle hProcess = CScopedHandle((HANDLE)0, CloseHandle);
+    if (bAsSystem) {
+        if (!RunAsSystem(Command, &hProcess)) { // try run as system tocken based method
+            //
+            // The scheduler method restarts us in session 0 those this helper needs to wait for the global event and set the local event itself.
+            //
+            bSetEvent = true;
+            ReadyEvent.ClientRelease();
+            ReadyEvent.ClientCreate(API_SERVICE_READY_EVENT);
+            if(!RunAsSystemTask(Command, NULL)) // fallback to task scheduler based method
+                return -1;
+        }
+    } else {
+        STARTUPINFOW si = { sizeof(si) };
+        PROCESS_INFORMATION pi = { 0 };
+        if (!CreateProcessW(NULL, (WCHAR*)Command.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+            return -1;
+		hProcess.Set(pi.hProcess);
+        CloseHandle(pi.hThread);    
+    } 
+
+    // Wait for engine to signal ready, but also watch for process exit
+    HANDLE Handles[] = { ReadyEvent.GetHandle(), hProcess };
+    DWORD Ret = WaitForMultipleObjects(hProcess ? 2 : 1, Handles, FALSE, 5 * 60 * 1000);
+
+    if (Ret == WAIT_OBJECT_0) // Event signaled - engine is ready
+    {
+        if (bSetEvent)
+            CServerReadyEvent::WorkerSignal(API_WORKER_READY_EVENT);
+        return 0;
+    }
+    else if (Ret == WAIT_OBJECT_0 + 1) { // Process exited
+        DWORD exitCode;
+        GetExitCodeProcess(hProcess, &exitCode);
+        if (exitCode == 0 && bSetEvent)
+            CServerReadyEvent::WorkerSignal(API_WORKER_READY_EVENT);
+        return exitCode;
+    }
+	return -1; // Timeout or error
+}
+
+EXTERN_C DECLSPEC_IMPORT HRESULT STDAPICALLTYPE SHGetFolderPathW(_Reserved_ HWND hwnd, _In_ int csidl, _In_opt_ HANDLE hToken, _In_ DWORD dwFlags, _Out_writes_(MAX_PATH) LPWSTR pszPath);
+
+//
+// Close any running MajorPrivacy GUI processes.
+// Used when unloading/removing the service so the GUI does not linger without its backend.
+// A WM_CLOSE would only minimize the GUI to the tray, hence we terminate the processes.
+//
+static void CloseGui()
+{
+    std::vector<BYTE> Processes;
+    if (!NT_SUCCESS(MyQuerySystemInformation(Processes, SystemProcessInformation)))
+        return;
+
+    for (PSYSTEM_PROCESS_INFORMATION process = PH_FIRST_PROCESS(Processes.data()); process != NULL; process = PH_NEXT_PROCESS(process))
+    {
+        if (process->UniqueProcessId == 0 || process->ImageName.Buffer == NULL)
+            continue; // skip Idle Process and entries without a name
+
+        std::wstring Name(process->ImageName.Buffer, process->ImageName.Length / sizeof(wchar_t));
+        if (_wcsicmp(Name.c_str(), APP_NAME L".exe") != 0)
+            continue;
+
+        HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, (DWORD)(ULONG_PTR)process->UniqueProcessId);
+        if (hProcess) {
+            TerminateProcess(hProcess, 0);
+            CloseHandle(hProcess);
+        }
+    }
+}
+
 int WinMain(
     HINSTANCE hInstance,
     HINSTANCE hPrevInstance,
     LPSTR lpCmdLine, int nCmdShow)
 {
+	srand((unsigned int)time(NULL));
+
+    if (!IsDebuggerPresent()) {
+        // Dumps go under %ProgramData%\Xanasoft\MajorPrivacy\MiniDump.
+        WCHAR szDumpDir[MAX_PATH] = {0};
+        if (SUCCEEDED(SHGetFolderPathW(NULL, 0x0023/*CSIDL_COMMON_APPDATA*/, NULL, 0, szDumpDir))) {
+            wcscat_s(szDumpDir, MAX_PATH, L"\\Xanasoft\\MajorPrivacy\\MiniDump");
+        }
+        MiniDumpFilter_Init(NULL, L"PrivacyAgent-v" VERSION_WSTR, MDF_TYPE_TRIAGE, NULL,
+                            szDumpDir[0] ? szDumpDir : NULL);
+    }
+
 #ifdef _DEBUG
     MySetThreadDescription(GetCurrentThread(), L"WinMain");
 #endif
@@ -186,32 +284,87 @@ int WinMain(
 
         return ShowSecureMessageBox(TypePrompt.second, L"MajorPrivacy", Type, szPath);
     }
+    //
+    // Password Prompt - uses section-based IPC for secure password transfer
+    //
+    std::wstring PwPrompt = GetArgument(arguments, L"PwPrompt");
+    if (!PwPrompt.empty())
+    {
+        // Enable per-monitor DPI awareness for proper scaling on high-DPI displays
+        SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+        // Parse section handle from command line (format: 0x...)
+        HANDLE hSection = (HANDLE)wcstoull(PwPrompt.c_str() + 2, NULL, 16);
+        if (!hSection)
+            return -1;
+
+        // Map the section
+        SPasswordPromptSection* pSection = (SPasswordPromptSection*)
+            MapViewOfFile(hSection, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, sizeof(SPasswordPromptSection));
+        if (!pSection)
+        {
+            CloseHandle(hSection);
+            return -1;
+        }
+
+        // Get background image path
+        wchar_t szPath[MAX_PATH];
+        GetModuleFileNameW(NULL, szPath, ARRAYSIZE(szPath));
+        *wcsrchr(szPath, L'\\') = L'\0';
+        wcscat_s(szPath, MAX_PATH, L"\\MajorWallpaper.png");
+
+        // Show the password dialog on secure desktop
+        ShowSecurePasswordDialog(NULL, pSection, szPath);
+
+        // Cleanup
+        UnmapViewOfFile(pSection);
+        CloseHandle(hSection);
+        return 0;
+    }
     else if (HasFlag(arguments, L"engine"))
     {
+        //while (! IsDebuggerPresent()) {
+        //    Sleep(1000);
+        //}
+        //MessageBoxW(NULL, GetCommandLineW(), L"PrivacyAgent.exe -engine", MB_OK);
+
+        HANDLE hToken = NULL;
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken) && !HasFlag(arguments, L"sync_tok"))
+        {
+            //
+            // When we are started by ShellExecuteEx while the driver is already loaded, windows fails to set the correct permissions on out process token
+			// We need to restart to fix that
+            // 
+			// Without the right permissions we can't enable require privileges to create a system process and access SCM to start our service and
+            //
+
+            return RestartSelf(L"sync_tok");
+        }
+        NtClose(hToken);
+        hToken = NULL;
+
+        if (!IsRunningAsSystem() && !HasFlag(arguments, L"sync_sys"))
+        {
+            //
+            // We must run as SYSTEM to have full privileges for the engine mode
+            //
+
+            return RestartSelf(L"sync_sys", true);
+        }
+
         Status = CServiceCore::Startup(true);
         if (Status) {
             if (HANDLE hThread = theCore->GetThreadHandle())
                 WaitForSingleObject(hThread, INFINITE);
         }
-        else if (Status.GetStatus() == STATUS_SYNCHRONIZATION_REQUIRED && !HasFlag(arguments, L"sync"))
+        else if (Status.GetStatus() == STATUS_SYNCHRONIZATION_REQUIRED && !HasFlag(arguments, L"sync_drv"))
         {
             //
-            // We want to elevate our integrity level form High to Maximum,
-			// and need to restart while the driver is loaded.
+            // We want to elevate our trust level from High to Maximum,
+            // and need to restart while the driver is loaded.
             //
 
-            wchar_t szPath[MAX_PATH];
-            GetModuleFileNameW(NULL, szPath, ARRAYSIZE(szPath));
-            
-		    std::wstring Command = L"\"" + std::wstring(szPath) + L"\" -engine -sync";
-
-		    STARTUPINFOW si = { sizeof(si) };
-		    PROCESS_INFORMATION pi = { 0 };
-		    if (CreateProcessW(NULL, (WCHAR*)Command.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-				WaitForSingleObject(pi.hProcess, 10000);
-			    CloseHandle(pi.hProcess);
-			    CloseHandle(pi.hThread);
-		    }
+            return RestartSelf(L"sync_drv");
         }
     }
     else if (HasFlag(arguments, L"startup"))
@@ -303,8 +456,9 @@ int WinMain(
                     //Args[API_V_MB_TITLE]
                     Args[API_V_MB_TYPE] = (uint32)MB_YESNO;
                     auto Ret = pSvcAPI->Call(SVC_API_SHOW_SECURE_PROMPT, Args, NULL);
-                    if (!Ret || Ret.GetValue().Get(API_V_MB_CODE).To<uint32>() != IDYES)
+                    if (!Ret || Ret.GetValue().Get(API_V_MB_CODE).To<uint32>() != IDYES) {
                         return -1;
+                    }
                 }
 
                 auto Ret = pSvcAPI->Call(SVC_API_SHUTDOWN, StVariant(), NULL);
@@ -327,6 +481,9 @@ int WinMain(
             if ((SvcState & SVC_RUNNING) == SVC_RUNNING)
                 Status = KillService(API_SERVICE_NAME);
         }
+
+        // The service/driver is going away, so close the GUI as well.
+        CloseGui();
 
         Status = CServiceCore::StopDriver();
 

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "PresetView.h"
+#include "../Models/PresetsModel.h"
 #include "../Core/PrivacyCore.h"
 #include "../Core/Programs/ProgramItem.h"
 #include "../Core/Programs/ProgramManager.h"
@@ -15,70 +16,88 @@ CPresetView::CPresetView(QWidget *parent)
 	m_pMainLayout = new QGridLayout(this);
 	m_pMainLayout->setContentsMargins(0, 0, 0, 0);
 
-	m_pLabel = new QLabel(tr("Rule Presets:"));
-	m_pMainLayout->addWidget(m_pLabel, 0, 0);
+	m_pToolBar = new QToolBar();
+	m_pMainLayout->addWidget(m_pToolBar, 0, 0);
 
-	//m_pPresetToolBar = new QToolBar();
-	//m_pMainLayout->addWidget(m_pPresetToolBar, 1, 0);
+	m_pBtnAdd = new QToolButton();
+	m_pBtnAdd->setIcon(QIcon(":/Icons/Add.png"));
+	m_pBtnAdd->setToolTip(tr("Add Preset"));
+	m_pBtnAdd->setMaximumHeight(22);
+	connect(m_pBtnAdd, SIGNAL(clicked()), this, SLOT(OnAction()));
+	m_pToolBar->addWidget(m_pBtnAdd);
 
-	
-	m_pPresets = new CPanelWidgetEx();
-	m_pPresets->GetTree()->setHeaderLabels(tr("Name|Description").split("|"));
-	m_pPresets->GetTree()->setIndentation(0);
-	m_pPresets->GetTree()->setSortingEnabled(true);
-	m_pPresets->GetTree()->setSelectionBehavior(QAbstractItemView::SelectItems);
-	m_pPresets->GetTree()->setItemDelegate(new CTreeItemDelegate());
-	m_pPresets->GetTree()->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
-	//m_pPresets->GetTree()->setItemDelegate(new CTreeItemDelegate2());
-	//m_pPresets->GetTree()->setIconSize(QSize(32, 32));
-	m_pMainLayout->addWidget(m_pPresets, 2, 0);
+	m_pToolBar->addSeparator();
 
+	m_pBtnActivate = new QToolButton();
+	m_pBtnActivate->setIcon(QIcon(":/Icons/Enable.png"));
+	m_pBtnActivate->setToolTip(tr("Activate Preset"));
+	m_pBtnActivate->setMaximumHeight(22);
+	connect(m_pBtnActivate, SIGNAL(clicked()), this, SLOT(OnAction()));
+	m_pToolBar->addWidget(m_pBtnActivate);
 
-	QAction* pFirst = m_pPresets->GetMenu()->actions().first();
+	m_pBtnDeactivate = new QToolButton();
+	m_pBtnDeactivate->setIcon(QIcon(":/Icons/Disable.png"));
+	m_pBtnDeactivate->setToolTip(tr("Deactivate Preset"));
+	m_pBtnDeactivate->setMaximumHeight(22);
+	connect(m_pBtnDeactivate, SIGNAL(clicked()), this, SLOT(OnAction()));
+	m_pToolBar->addWidget(m_pBtnDeactivate);
 
-	m_pAddPreset = new QAction(QIcon(":/Icons/Add.png"), tr("Add Preset"), this);
-	connect(m_pAddPreset, SIGNAL(triggered()), this, SLOT(OnAction()));
-	m_pPresets->GetMenu()->insertAction(pFirst, m_pAddPreset);
+	QWidget* pSpacer = new QWidget();
+	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	m_pToolBar->addWidget(pSpacer);
 
-	m_pPresets->GetMenu()->insertSeparator(pFirst);
+	m_pModel = new CPresetsModel(this);
 
-	m_pActivate = new QAction(QIcon(":/Icons/Enable.png"), tr("Activate Preset"), this);
-	connect(m_pActivate, SIGNAL(triggered()), this, SLOT(OnAction()));
-	m_pPresets->GetMenu()->insertAction(pFirst, m_pActivate);
+	m_pTreeView = new QTreeViewEx();
+	m_pTreeView->setModel(m_pModel);
+	m_pTreeView->setRootIsDecorated(false);
+	m_pTreeView->setSortingEnabled(true);
+	m_pTreeView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+	m_pTreeView->setContextMenuPolicy(Qt::CustomContextMenu);
+	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
+	m_pMainLayout->addWidget(m_pTreeView, 1, 0);
 
-	m_pDeactivate = new QAction(QIcon(":/Icons/Disable.png"), tr("Deactivate Preset"), this);
-	connect(m_pDeactivate, SIGNAL(triggered()), this, SLOT(OnAction()));
-	m_pPresets->GetMenu()->insertAction(pFirst, m_pDeactivate);
+	m_pFinder = new CFinder(nullptr, m_pTreeView, CFinder::eRegExp | CFinder::eCaseSens);
+	m_pMainLayout->addWidget(m_pFinder, 2, 0);
 
-	m_pPresets->GetMenu()->insertSeparator(pFirst);
+	QAbstractButton* pBtnSearch = m_pFinder->GetToggleButton();
+	pBtnSearch->setIcon(QIcon(":/Icons/Search.png"));
+	pBtnSearch->setMaximumHeight(22);
+	m_pToolBar->addWidget(pBtnSearch);
 
-	m_pEditPreset = new QAction(QIcon(":/Icons/EditIni.png"), tr("Edit Preset"), this);
-	connect(m_pEditPreset, SIGNAL(triggered()), this, SLOT(OnAction()));
-	m_pPresets->GetMenu()->insertAction(pFirst, m_pEditPreset);
+	// Setup context menu
+	m_pMenu = new QMenu(this);
 
-	m_pRemovePreset = new QAction(QIcon(":/Icons/Remove.png"), tr("Remove Preset"), this);
-	connect(m_pRemovePreset, SIGNAL(triggered()), this, SLOT(OnAction()));
-	m_pPresets->GetMenu()->insertAction(pFirst, m_pRemovePreset);
+	m_pAddPreset = m_pMenu->addAction(QIcon(":/Icons/Add.png"), tr("Add Preset"), this, SLOT(OnAction()));
 
-	disconnect(m_pPresets->GetTree(), SIGNAL(customContextMenuRequested(const QPoint&)), m_pPresets, SLOT(OnMenu(const QPoint &)));
-	connect(m_pPresets->GetTree(), SIGNAL(customContextMenuRequested( const QPoint& )), this, SLOT(OnMenu(const QPoint &)));
+	m_pMenu->addSeparator();
 
-	//connect(m_pPresets->GetTree(), SIGNAL(itemClicked(QTreeWidgetItem*, int)), this, SLOT(OnPresetClicked(QTreeWidgetItem*)));
-	connect(m_pPresets->GetTree(), SIGNAL(currentItemChanged(QTreeWidgetItem*, QTreeWidgetItem*)), this, SLOT(OnPresetClicked(QTreeWidgetItem*)));
-	connect(m_pPresets->GetTree(), SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(OnPresetDoubleClicked(QTreeWidgetItem*)));
+	m_pActivate = m_pMenu->addAction(QIcon(":/Icons/Enable.png"), tr("Activate Preset"), this, SLOT(OnAction()));
+	m_pDeactivate = m_pMenu->addAction(QIcon(":/Icons/Disable.png"), tr("Deactivate Preset"), this, SLOT(OnAction()));
+
+	m_pMenu->addSeparator();
+
+	m_pEditPreset = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Edit Preset"), this, SLOT(OnAction()));
+	m_pDuplicatePreset = m_pMenu->addAction(QIcon(":/Icons/Duplicate.png"), tr("Duplicate Preset"), this, SLOT(OnAction()));
+	m_pRemovePreset = m_pMenu->addAction(QIcon(":/Icons/Remove.png"), tr("Remove Preset"), this, SLOT(OnAction()));
+
+	connect(m_pTreeView, SIGNAL(customContextMenuRequested(const QPoint&)), this, SLOT(OnMenu(const QPoint&)));
+	connect(m_pTreeView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection&, const QItemSelection&)),
+		this, SLOT(OnSelectionChanged(const QItemSelection&, const QItemSelection&)));
+	connect(m_pTreeView, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(OnDoubleClicked(const QModelIndex&)));
 
 	connect(theCore->PresetManager(), SIGNAL(PresetsChanged()), this, SLOT(Update()));
 
 	QByteArray Columns = theConf->GetBlob("MainWindow/PresetView_Columns");
 	if (Columns.isEmpty()) {
-		m_pPresets->GetTree()->setColumnWidth(0, 300);
+		m_pTreeView->setColumnWidth(CPresetsModel::eName, 300);
 	} else
-		m_pPresets->GetTree()->header()->restoreState(Columns);
+		m_pTreeView->header()->restoreState(Columns);
 }
 
 CPresetView::~CPresetView()
 {
-	theConf->SetBlob("MainWindow/PresetView_Columns", m_pPresets->GetTree()->header()->saveState());
+	theConf->SetBlob("MainWindow/PresetView_Columns", m_pTreeView->header()->saveState());
 }
 
 
@@ -88,94 +107,72 @@ void CPresetView::Update()
 
 	auto Presets = theCore->PresetManager()->GetPresets();
 
-	QMap<QString, QTreeWidgetItem*> Old;
-	for(int i = 0; i < m_pPresets->GetTree()->topLevelItemCount(); i++) {
-		QTreeWidgetItem* pItem = m_pPresets->GetTree()->topLevelItem(i);
-		QString Guid = pItem->data(eName, Qt::UserRole).toString();
-		Q_ASSERT(!Old.contains(Guid));
-		Old.insert(Guid, pItem);
-	}	
-
-	foreach(const CPresetPtr& pPreset, Presets)
-	{
-		QString Guid = pPreset->GetGuid().ToQS();
-		QTreeWidgetItem* pItem = Old.take(Guid);
-
-		if (!pItem) {
-			pItem = new QTreeWidgetItem();
-			pItem->setData(eName, Qt::UserRole, Guid);
-			m_pPresets->GetTree()->insertTopLevelItem(0, pItem);
-		}
-
-		pItem->setIcon(eName, pPreset->GetIcon());
-		pItem->setText(eName, CMajorPrivacy::GetResourceStr(pPreset->GetName()));
-		pItem->setToolTip(eName, pPreset->GetGuid().ToQS());
-		pItem->setText(eDescription, CMajorPrivacy::GetResourceStr(pPreset->GetDescription()));
-
-		bool bActive = pPreset->IsActive();
-		QFont fnt = pItem->font(eName);
-		fnt.setBold(bActive);
-		pItem->setFont(eName, fnt);
-	}
-
-	foreach(QTreeWidgetItem* pItem, Old)
-		delete pItem;
+	m_pModel->Sync(Presets.values());
 }
 
 void CPresetView::OnMenu(const QPoint& Point)
 {
-	auto Items = m_pPresets->GetTree()->selectedItems();
+	QModelIndexList Selected = m_pTreeView->selectionModel()->selectedRows();
 
-	bool bHasSelection = (Items.size() > 0);
-	bool bSingleSelection = (Items.size() == 1);
+	bool bHasSelection = !Selected.isEmpty();
+	bool bSingleSelection = Selected.size() == 1;
 	bool bHasInactive = false;
 	bool bHasActive = false;
+	bool bAllActive = true;
+	bool bAllInactive = true;
 
 	// Check if we have any active or inactive Presets in selection
-	for (auto pItem : Items)
+	for (const QModelIndex& Index : Selected)
 	{
-		QString Guid = pItem->data(eName, Qt::UserRole).toString();
-		CPresetPtr pPreset = theCore->PresetManager()->GetPreset(Guid);
+		CPresetPtr pPreset = m_pModel->GetItem(Index);
 		if (pPreset)
 		{
-			if (pPreset->IsActive())
+			if (pPreset->IsActive()) {
 				bHasActive = true;
-			else
+				bAllInactive = false;
+			} else {
 				bHasInactive = true;
+				bAllActive = false;
+			}
 		}
 	}
 
-	m_pActivate->setEnabled(bHasInactive);
-	m_pDeactivate->setEnabled(bHasActive);
+	// Activate: enable if any are inactive (disable if all active)
+	m_pActivate->setEnabled(bHasSelection && !bAllActive);
+	// Deactivate: enable if any are active (disable if all inactive)
+	m_pDeactivate->setEnabled(bHasSelection && !bAllInactive);
 	m_pEditPreset->setEnabled(bSingleSelection);
+	m_pDuplicatePreset->setEnabled(bHasSelection);
 	m_pRemovePreset->setEnabled(bHasSelection);
 
-	m_pPresets->OnMenu(Point);
+	m_pMenu->popup(m_pTreeView->viewport()->mapToGlobal(Point));
 }
 
 void CPresetView::OnAction()
 {
 	QAction* pAction = qobject_cast<QAction*>(sender());
 
-	if(pAction == m_pAddPreset)
+	if(pAction == m_pAddPreset || sender() == m_pBtnAdd)
 	{
 		CPresetWindow* pPresetWnd = new CPresetWindow(CPresetPtr(new CPreset()));
 		pPresetWnd->show();
+		return;
 	}
-	else if(pAction == m_pActivate)
+
+	QModelIndexList Selected = m_pTreeView->selectionModel()->selectedRows();
+
+	if(pAction == m_pActivate || sender() == m_pBtnActivate)
 	{
-		auto Items = m_pPresets->GetTree()->selectedItems();
-		if(Items.isEmpty())
+		if(Selected.isEmpty())
 			return;
 
 		// Collect inactive Presets to activate
 		QList<QString> PresetsToActivate;
-		for (auto pItem : Items)
+		for (const QModelIndex& Index : Selected)
 		{
-			QString Guid = pItem->data(eName, Qt::UserRole).toString();
-			CPresetPtr pPreset = theCore->PresetManager()->GetPreset(Guid);
+			CPresetPtr pPreset = m_pModel->GetItem(Index);
 			if (pPreset && !pPreset->IsActive())
-				PresetsToActivate.append(Guid);
+				PresetsToActivate.append(pPreset->GetGuid().ToQS());
 		}
 
 		if (PresetsToActivate.isEmpty())
@@ -218,6 +215,7 @@ retry_activation:
 				QPushButton* pYesButton = msgBox.addButton(tr("Yes (Force)"), QMessageBox::YesRole);
 				QPushButton* pNoButton = msgBox.addButton(tr("No (Skip)"), QMessageBox::NoRole);
 				QPushButton* pCancelButton = msgBox.addButton(tr("Cancel All"), QMessageBox::RejectRole);
+				Q_UNUSED(pCancelButton);
 
 				msgBox.setDefaultButton(pNoButton);
 				msgBox.exec();
@@ -266,20 +264,18 @@ retry_activation:
 			QMessageBox::information(this, tr("Preset Activation"), summary);
 		}
 	}
-	else if(pAction == m_pDeactivate)
+	else if(pAction == m_pDeactivate || sender() == m_pBtnDeactivate)
 	{
-		auto Items = m_pPresets->GetTree()->selectedItems();
-		if(Items.isEmpty())
+		if(Selected.isEmpty())
 			return;
 
 		// Collect active Presets to deactivate
 		QList<QString> PresetsToDeactivate;
-		for (auto pItem : Items)
+		for (const QModelIndex& Index : Selected)
 		{
-			QString Guid = pItem->data(eName, Qt::UserRole).toString();
-			CPresetPtr pPreset = theCore->PresetManager()->GetPreset(Guid);
+			CPresetPtr pPreset = m_pModel->GetItem(Index);
 			if (pPreset && pPreset->IsActive())
-				PresetsToDeactivate.append(Guid);
+				PresetsToDeactivate.append(pPreset->GetGuid().ToQS());
 		}
 
 		if (PresetsToDeactivate.isEmpty())
@@ -317,32 +313,59 @@ retry_activation:
 	}
 	else if(pAction == m_pEditPreset)
 	{
-		auto Items = m_pPresets->GetTree()->selectedItems();
-		if(Items.size() != 1)
+		if(Selected.size() != 1)
 			return;
-		OnPresetDoubleClicked(Items.first());
+		OnDoubleClicked(Selected.first());
+	}
+	else if(pAction == m_pDuplicatePreset)
+	{
+		if(Selected.isEmpty())
+			return;
+
+		QList<STATUS> Results;
+		for (const QModelIndex& Index : Selected)
+		{
+			CPresetPtr pPreset = m_pModel->GetItem(Index);
+			if (pPreset) {
+				CPresetPtr pClone = CPresetPtr(pPreset->Clone());
+				pClone->SetName(pPreset->GetName() + tr(" (Copy)"));
+				Results << theCore->PresetManager()->SetPreset(pClone);
+			}
+		}
+		theGUI->CheckResults(Results, this);
 	}
 	else if(pAction == m_pRemovePreset)
 	{
-		auto Items = m_pPresets->GetTree()->selectedItems();
-		if(Items.isEmpty())
+		if(Selected.isEmpty())
 			return;
-		foreach(QTreeWidgetItem* pItem, Items)
+
+		if (QMessageBox::question(this, tr("Remove Presets"),
+			tr("Are you sure you want to remove the selected presets?"),
+			QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes)
+			return;
+
+		for (const QModelIndex& Index : Selected)
 		{
-			QString Guid = Items.first()->data(eName, Qt::UserRole).toString();
+			QString Guid = m_pModel->GetGuid(Index);
 			theCore->PresetManager()->DelPreset(Guid);
-			delete pItem;
 		}
 	}
 }
 
-void CPresetView::OnPresetClicked(QTreeWidgetItem*)
+void CPresetView::OnSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
 {
+	Q_UNUSED(deselected);
+
+	QModelIndexList Selected = m_pTreeView->selectionModel()->selectedRows();
+	if (Selected.size() == 1) {
+		QString Guid = m_pModel->GetGuid(Selected.first());
+		emit CurrentChanged(Guid);
+	}
 }
 
-void CPresetView::OnPresetDoubleClicked(QTreeWidgetItem* pItem)
+void CPresetView::OnDoubleClicked(const QModelIndex& index)
 {
-	CPresetPtr pPreset = theCore->PresetManager()->GetPreset(pItem->data(eName, Qt::UserRole).toString());
+	CPresetPtr pPreset = m_pModel->GetItem(index);
 	if (pPreset) {
 		CPresetWindow* pPresetWnd = new CPresetWindow(pPreset);
 		pPresetWnd->show();

@@ -127,6 +127,7 @@ void DbgPrint(const wchar_t* format, ...)
 
     _vsnwprintf(tmp1, sizeof(tmp1), format, va_args);
 
+    OutputDebugStringW(L"ImBox: ");
     OutputDebugStringW(tmp1);
 
     va_end(va_args);

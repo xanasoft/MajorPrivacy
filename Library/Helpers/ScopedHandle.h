@@ -35,7 +35,7 @@ public:
 
 	inline T operator->()		{ ASSERT(m_handle); return m_handle; }
 
-	explicit operator bool()	{ return m_handle != NULL; }
+	explicit operator bool()	{ return m_handle != NULL && m_handle != ((HANDLE)(LONG_PTR)-1); }
 
 private:
 	CScopedHandle(const CScopedHandle&) {} // copying is explicitly forbidden

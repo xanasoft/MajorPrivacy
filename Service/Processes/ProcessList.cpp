@@ -280,20 +280,46 @@ void CProcessList::AddProcessImpl(const CProcessPtr& pProcess)
     //}
 }
 
-CProcessPtr CProcessList::GetProcessEx(uint64 Pid, EGetMode Mode)
+CProcessPtr CProcessList::GetProcessEx(uint64 Pid, const std::wstring& FileNameNt, EGetMode Mode)
 {
 	std::unique_lock Lock(m_Mutex);
 
 	auto F = m_ProcessByPID.find(Pid); 
-    if (F != m_ProcessByPID.end())
+    if (F != m_ProcessByPID.end()) {
+        if (Pid != NT_OS_KERNEL_PID && !FileNameNt.empty()) {
+            std::shared_lock ProcLock(F->second->m_Mutex);
+            if (_wcsicmp(F->second->m_NtFilePath.c_str(), FileNameNt.c_str()) != 0) {
+				theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PID_COLISION, L"Found Process PID collision detected: %s (%u) vs %s (%u).", F->second->m_NtFilePath.c_str(), Pid, FileNameNt.c_str(), Pid);
+
+                F = m_ProcessByPID.end();
+            }
+        }
+    }
+    if (F != m_ProcessByPID.end()) {
         return F->second;
+    }
 
     if (Mode == eCanNotAdd)
         return NULL;
 
     CProcessPtr pProcess = CProcessPtr(new CProcess(Pid));
     auto Result = theCore->Driver()->GetProcessInfo(Pid);
-    if (pProcess->Init(Result.GetValue().get()))
+    bool bOk = pProcess->Init(Result.GetValue().get());
+
+    if (Pid != NT_OS_KERNEL_PID && !FileNameNt.empty()) {
+        if (_wcsicmp(pProcess->m_NtFilePath.c_str(), FileNameNt.c_str()) != 0) {
+            theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PID_COLISION, L"New Process PID collision detected: %s (%u) vs %s (%u).", pProcess->m_NtFilePath.c_str(), Pid, FileNameNt.c_str(), Pid);
+
+            // Create dummy
+            pProcess = CProcessPtr(new CProcess(Pid));
+			pProcess->m_NtFilePath = FileNameNt;
+            pProcess->m_Name = GetFileNameFromPath(pProcess->m_NtFilePath);
+
+            bOk = false;
+        }
+    }
+
+    if (bOk)
     {
         AddProcessUnsafe(pProcess);
         theCore->ProgramManager()->AddProcess(pProcess);
@@ -806,9 +832,9 @@ EAccessRuleType CProcessList::GetResourceAccess(const std::wstring& NtPath, uint
         return EAccessRuleType::eNone;
 
 #ifdef DEF_USE_POOL
-    CResLogEntryPtr pLogEntry = pActorProgram->Allocator()->New<CResLogEntry>(pActorProcess->GetEnclave(), NtPath, ActorServiceTag, AccessMask, EEventStatus::eProtected, AccessTime, ActorPid);
+    CResLogEntryPtr pLogEntry = pActorProgram->Allocator()->New<CResLogEntry>(pActorProcess->GetEnclave(), NtPath, pActorProcess->GetUserSid(), ActorServiceTag, AccessMask, EEventStatus::eProtected, AccessTime, ActorPid);
 #else
-    CResLogEntryPtr pLogEntry = CResLogEntryPtr(new CResLogEntry(pActorProcess->GetEnclave(), NtPath, ActorServiceTag, AccessMask, EEventStatus::eProtected, AccessTime, ActorPid));
+    CResLogEntryPtr pLogEntry = CResLogEntryPtr(new CResLogEntry(pActorProcess->GetEnclave(), NtPath, pActorProcess->GetUserSid(), ActorServiceTag, AccessMask, EEventStatus::eProtected, AccessTime, ActorPid));
 #endif
 
     uint64 LogIndex = pActorProgram->AddTraceLogEntry(pLogEntry, ETraceLogs::eResLog);
@@ -877,9 +903,9 @@ void CProcessList::OnResourceAccessed(const std::wstring& NtPath, uint64 ActorPi
     pActorProgram->AddAccess(ActorServiceTag, DosPath, AccessMask, AccessTime, NtStatus, IsDirectory, (Status != EEventStatus::eAllowed));
 
 #ifdef DEF_USE_POOL
-	CResLogEntryPtr pLogEntry = pActorProgram->Allocator()->New<CResLogEntry>(pActorProcess->GetEnclave(), NtPath, ActorServiceTag, AccessMask, Status, AccessTime, ActorPid);
+	CResLogEntryPtr pLogEntry = pActorProgram->Allocator()->New<CResLogEntry>(pActorProcess->GetEnclave(), NtPath, pActorProcess->GetUserSid(), ActorServiceTag, AccessMask, Status, AccessTime, ActorPid);
 #else
-    CResLogEntryPtr pLogEntry = CResLogEntryPtr(new CResLogEntry(pActorProcess->GetEnclave(), NtPath, ActorServiceTag, AccessMask, Status, AccessTime, ActorPid));
+    CResLogEntryPtr pLogEntry = CResLogEntryPtr(new CResLogEntry(pActorProcess->GetEnclave(), NtPath, pActorProcess->GetUserSid(), ActorServiceTag, AccessMask, Status, AccessTime, ActorPid));
 #endif
     
     uint64 LogIndex = pActorProgram->AddTraceLogEntry(pLogEntry, ETraceLogs::eResLog);
@@ -1046,7 +1072,7 @@ NTSTATUS CProcessList::OnProcessDrvEvent(const SProcessEvent* pEvent)
                 OnProcessStarted(pStartEvent->ProcessId, pStartEvent->ParentId, pStartEvent->ActorProcessId, pStartEvent->ActorServiceTag, pStartEvent->EnclaveId, pStartEvent->NtPath, pStartEvent->CommandLine, &pStartEvent->VerifierInfo, pStartEvent->TimeStamp, pStartEvent->Status);
 
             //
-            // Note: this triggers before teh process is started, during early process initialization
+            // Note: this triggers before the process is started, during early process initialization
             // returnign an error could cancel the process creation, if we uncoment the code in the driver and driver interface
             //
 #ifdef _DEBUG
@@ -1162,7 +1188,11 @@ STATUS CProcessList::Load()
         CProgramID ID;
         if(!ID.FromVariant(StVariantReader(Item).Find(API_V_ID)))
 			continue;
-        CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID);
+        CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
+        if (!pItem) {
+            DbgPrint(L"CProcessList::Load() - No program found for access record item with ID %s\n", ID.ToString().c_str());
+            continue;
+        }
         if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
             pProgram->LoadIngress(Item);
         else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))

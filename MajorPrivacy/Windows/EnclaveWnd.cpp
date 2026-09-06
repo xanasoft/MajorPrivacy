@@ -18,6 +18,8 @@
 CEnclaveWnd::CEnclaveWnd(const CEnclavePtr& pEnclave, QWidget* parent)
 	: QDialog(parent)
 {
+	setAttribute(Qt::WA_DeleteOnClose);
+
 	Qt::WindowFlags flags = windowFlags();
 	flags |= Qt::CustomizeWindowHint;
 	//flags &= ~Qt::WindowContextHelpButtonHint;

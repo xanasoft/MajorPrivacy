@@ -45,6 +45,8 @@ enum {
 	API_GET_HANDLE_INFO = 'HNDL',
 	API_REGISTER_FOR_EVENT = 'REVT',
 
+	API_REGISTER_GUI = 'RGUI',
+
 	API_SET_USER_KEY = 'SUKY',
 	API_GET_USER_KEY = 'GUKY',
 	API_CLEAR_USER_KEY = 'CUKY',
@@ -121,6 +123,9 @@ enum {
 #define API_SERVICE_PORT	    L"\\RPC Control\\" API_SERVICE_NAME L"Port"
 
 #define API_SERVICE_PIPE	    L"\\\\.\\pipe\\" API_SERVICE_NAME L"Pipe"
+
+#define API_WORKER_READY_EVENT  L"Local\\" API_SERVICE_NAME L"ReadyEvent"
+#define API_SERVICE_READY_EVENT L"Global\\" API_SERVICE_NAME L"ReadyEvent"
 
 enum {
 	SVC_API_GET_VERSION = 'VERS',
@@ -203,7 +208,11 @@ enum {
 	// Volume Manager
 	SVC_API_VOL_CREATE_IMAGE = 'CVOL',
 	SVC_API_VOL_CHANGE_PASSWORD = 'CPWD',
-	//SVC_API_VOL_DELETE_IMAGE = 'RVOL',
+	SVC_API_VOL_EXPAND = 'EVEX',
+	SVC_API_VOL_SCHRINK = 'SVSH',
+	SVC_API_VOL_DELETE_IMAGE = 'EVOL',
+	SVC_API_VOL_BACKUP_HEADER = 'BVLH',
+	SVC_API_VOL_RESTORE_HEADER = 'RVLH',
 
 	SVC_API_VOL_MOUNT_IMAGE = 'MVOL',
 	SVC_API_VOL_DISMOUNT_VOLUME = 'DVOL',
@@ -226,6 +235,7 @@ enum {
 	SVC_API_DEL_PRESET = 'DPRT',
 	SVC_API_ACTIVATE_PRESET = 'APRT',
 	SVC_API_DEACTIVATE_PRESET = 'UPRT',
+	SVC_API_GET_ITEM_OWNERSHIP = 'GIOW',
 
 	SVC_API_SET_WATCHED_PROG = 'SWAT',
 
@@ -261,6 +271,9 @@ enum {
 	SVC_API_CALL_SCRIPT_FUNC = 'CSCF',
 
 	SVC_API_SHOW_SECURE_PROMPT = 'SSPT',
+
+	// key exchange
+	SVC_API_KEY_EXCHANGE = 'KYEX',
 
 	// shutdown
 	SVC_API_SHUTDOWN = 'SHUT',
@@ -308,6 +321,8 @@ enum {
 #define STATUS_ERR_PROC_EJECTED				0xE000000B
 
 #define STATUS_ERR_RULE_DIVERGENT			0xE000000C
+
+#define STATUS_ERR_PROG_HAS_PROCESSES		0xE000000D
 
 #define STATUS_OK							0x00000000 // same as STATUS_SUCCESS
 
@@ -372,6 +387,7 @@ API_V_VALUES : unsigned long
 	API_V_PUB_KEY = 'pkey',
 	API_V_PRIV_KEY = 'skey',
 	API_V_HASH = 'hash',
+	API_V_KDF = 'kdf',
 	API_V_KEY_BLOB = 'kblo',
 	API_V_LOCK = 'lock',
 	API_V_UNLOCK = 'unlk',
@@ -441,8 +457,10 @@ API_V_VALUES : unsigned long
 	API_V_APP_SID = 'asid', // App Container SI
 	API_V_APP_NAME = 'appn', // App Container Name
 	API_V_PACK_NAME = 'pckg', // Package Name
+	API_V_PACK_FULL_NAME = 'pfnm', // Package Full Name
 	API_V_REG_KEY = 'rkey',
 	API_V_PROG_PATTERN = 'patt', // like API_V_FILE_PATH but with wildcards
+	API_V_AUTH = 'auth', // used by firewall rules
 	API_V_OWNER = 'ownr', // used by firewall rules
 
 
@@ -484,6 +502,9 @@ API_V_VALUES : unsigned long
 
 	API_V_ITEMS = 'itms',
 	API_V_ACTION = 'actn',
+	API_V_ITEM_ENABLED = 'iten',
+	API_V_PRESET_GUID = 'pgid',
+	API_V_WAS_ENABLED = 'waen',
 		// ...
 
 	////////////////////////////
@@ -573,6 +594,7 @@ API_V_VALUES : unsigned long
 
 	API_V_USER = 'user',
 	API_V_USER_SID = 'usid',
+	API_V_PRINCIPAL_SDDL = 'psdl',
 
 	API_V_NUM_IMG = 'nimg',
 	API_V_NUM_MS_IMG = 'nmsi',
@@ -655,6 +677,7 @@ API_V_VALUES : unsigned long
 
 	API_V_OPERATION = 'oper',
 	API_V_ACCESS_MASK = 'amsk',  // desired access
+	API_V_ACCESS_COUNT = 'acnt', // number of accesses at leaf node
 	API_V_STATUS = 'stat', // NTSTATUS
 	API_V_NT_STATUS = 'ntst', // NTSTATUS
 	API_V_EVENT_STATUS = 'ests', // EEventStatus
@@ -745,8 +768,16 @@ API_V_VALUES : unsigned long
 	API_V_VOL_PROTECT = 'vprt',
 	API_V_VOL_LOCKDOWN = 'vlck',
 	API_V_VOL_CIPHER = 'vcip',
+	//API_V_VOL_PIM = 'vpim',
+	API_V_VOL_HEAD_LEN = 'vhln',
+	API_V_VOL_KDF = 'vkdf',
+	API_V_VOL_FS = 'vfs',
+	API_V_VOL_OLD_KDF = 'vokd',
+	API_V_VOL_NEW_KDF = 'vnkd',
 	API_V_VOL_OLD_PASS = 'vold',
 	API_V_VOL_NEW_PASS = 'vnew',
+	//API_V_VOL_OLD_PIM = 'voim',
+	//API_V_VOL_NEW_PIM = 'vnim',
 
 
 	////////////////////////////
@@ -805,8 +836,23 @@ API_V_VALUES : unsigned long
 	API_V_MB_TYPE = 'mbty',
 	API_V_MB_CODE = 'mbec',
 
+	API_V_PASSWORD = 'pass',
+
+	// Password dialog localization (optional)
+	API_V_PW_LBL_PASSWORD = 'pwlp',  // "Password:" label
+	API_V_PW_LBL_CONFIRM  = 'pwlc',  // "Confirm:" label
+	API_V_PW_LBL_SHOW     = 'pwls',  // Show password tooltip
+	API_V_PW_BTN_OK       = 'pwok',  // "OK" button
+	API_V_PW_BTN_CANCEL   = 'pwca',  // "Cancel" button
+	API_V_PW_ERR_MISMATCH = 'pwer',  // "Passwords do not match!" error
+	API_V_PW_ERR_TOLONG   = 'pwtl',  // "Password is too long!" error
+
 	API_V_LAST = 0x80000000
 };
+
+// Password dialog types (for API_V_MB_TYPE in SVC_API_SHOW_SECURE_PROMPT)
+#define PDLG_ENTER_PW    0x100   // Single password entry
+#define PDLG_CONFIRM_PW  0x200   // Password with confirmation field
 
 
 
@@ -825,6 +871,7 @@ API_V_VALUES : unsigned long
 #define SVC_EVENT_GPO_FAILED		0x0109
 #define SVC_EVENT_RULE_NOT_FOUND	0x010A
 #define SVC_EVENT_JSLOG_MSG			0x010B
+#define SVC_EVENT_PID_COLISION		0x010c
 
 
 /////////////////////////////////////////////////////////////////////////////

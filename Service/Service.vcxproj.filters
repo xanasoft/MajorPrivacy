@@ -189,9 +189,6 @@
     <ClCompile Include="Programs\ProgramLibrary.cpp">
       <Filter>Programs</Filter>
     </ClCompile>
-    <ClCompile Include="Volumes\MountManagerHelpers.cpp">
-      <Filter>Volumes</Filter>
-    </ClCompile>
     <ClCompile Include="Volumes\VolumeManager.cpp">
       <Filter>Volumes</Filter>
     </ClCompile>
@@ -302,6 +299,9 @@
     </ClCompile>
     <ClCompile Include="Network\Dns\DnsRule.cpp">
       <Filter>Network\Dns\Filter</Filter>
+    </ClCompile>
+    <ClCompile Include="JSEngine\JSStateManager.cpp">
+      <Filter>JSEngine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -628,6 +628,9 @@
     </ClInclude>
     <ClInclude Include="Network\Dns\DnsRule.h">
       <Filter>Network\Dns\Filter</Filter>
+    </ClInclude>
+    <ClInclude Include="JSEngine\JSStateManager.h">
+      <Filter>JSEngine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
