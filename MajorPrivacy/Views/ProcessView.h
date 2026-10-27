@@ -18,11 +18,16 @@ public:
 protected:
 	virtual void			OnMenu(const QPoint& Point) override;
 	//void					OnDoubleClicked(const QModelIndex& Index) override;
-	
+
+private slots:
+	void					OnCreateProgramRule();
+
 private:
 
 	QToolBar*				m_pToolBar;
 	QComboBox*				m_pCmbScope;
 	QToolButton*			m_pBtnTree;
+
+	QAction*				m_pCreateProgRule;
 
 };

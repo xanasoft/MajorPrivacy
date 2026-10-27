@@ -11,7 +11,7 @@
 #include "../../Library/Helpers/NtUtil.h"
 #include "../../Library/Helpers/AppUtil.h"
 
-CServiceList::CServiceList(std::recursive_mutex& Mutex)
+CServiceList::CServiceList(std::shared_mutex& Mutex)
     : m_Mutex(Mutex)
 {
 }
@@ -143,7 +143,11 @@ void CServiceList::SetProcessUnsafe(const SServicePtr& pService)
     std::wstring Key = MkLower(pService->ServiceTag);
 
     m_Pids.insert(std::make_pair(pService->ProcessId, Key));
-    CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId, true);
+    //
+    // Unsafe: this is called from EnumServices, which holds the lock - and it is the
+    // same lock, the two lists share one. See CServiceList::m_Mutex.
+    //
+    CProcessPtr pProcess = theCore->ProcessList()->GetProcessUnsafe(pService->ProcessId, true);
     if (pProcess) {
         pProcess->AddService(Key);
         CWindowsServicePtr pWinService = theCore->ProgramManager()->GetService(pService->ServiceTag);
@@ -157,7 +161,7 @@ void CServiceList::ClearProcessUnsafe(const SServicePtr& pService)
 
     mmap_erase(m_Pids, pService->ProcessId, Key);
 
-    CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pService->ProcessId);
+    CProcessPtr pProcess = theCore->ProcessList()->GetProcessUnsafe(pService->ProcessId);
     if (pProcess) {
         pProcess->RemoveService(Key);
         CWindowsServicePtr pWinService = theCore->ProgramManager()->GetService(pService->ServiceTag, false);
@@ -168,7 +172,7 @@ void CServiceList::ClearProcessUnsafe(const SServicePtr& pService)
 
 std::set<std::wstring> CServiceList::GetServicesByPid(uint64 Pid) 
 { 
-    std::unique_lock Lock(m_Mutex);
+    std::shared_lock Lock(m_Mutex);
     std::set<std::wstring> Services;
     for (auto I = m_Pids.find(Pid); I != m_Pids.end() && I->first == Pid; ++I)
         Services.insert(I->second);
@@ -177,7 +181,16 @@ std::set<std::wstring> CServiceList::GetServicesByPid(uint64 Pid)
 
 CServiceList::SServicePtr CServiceList::GetService(const std::wstring& ServiceTag) 
 { 
-    std::unique_lock Lock(m_Mutex);
+    std::shared_lock Lock(m_Mutex);
+    return GetServiceUnsafe(ServiceTag);
+}
+
+//
+// For callers already holding the lock - which, this being shared with the process
+// list, includes CProcessList::FindProcesses.
+//
+CServiceList::SServicePtr CServiceList::GetServiceUnsafe(const std::wstring& ServiceTag) 
+{ 
     auto F = m_List.find(MkLower(ServiceTag)); 
     return F != m_List.end() ? F->second : SServicePtr(); 
 }

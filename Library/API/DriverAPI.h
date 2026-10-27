@@ -285,14 +285,15 @@ public:
 
 	STATUS RegisterGUI();
 
-	STATUS SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, const CBuffer& InfoBlob/*, bool bLock = false*/);
+	STATUS SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, const CBuffer& InfoBlob/*, bool bLock = false*/, bool bProvisionEfi = false);
 	RESULT(SUserKeyInfoPtr) GetUserKey();
-	STATUS ClearUserKey(const CBuffer& ChallengeResponse);
+	STATUS ClearUserKey(const CBuffer& ChallengeResponse, bool bClearEfi = false);
+	STATUS ProvisionUserKey(bool bProvision); // provision (true) / deprovision (false) the current key to the pre-boot EFI variable
 
 	STATUS ProtectConfig(const CBuffer& ConfigSignature, bool bHardLock = false);
 	STATUS UnprotectConfig(const CBuffer& ChallengeResponse);
 	uint32 GetConfigStatus();
-	STATUS UnlockConfig(const CBuffer& ChallengeResponse);
+	STATUS UnlockConfig(const CBuffer& ChallengeResponse, bool bResumeIsolator = false, bool bClearSuspend = false);
 	STATUS CommitConfigChanges(const CBuffer& ConfigSignature = CBuffer());
 	STATUS StoreConfigChanges(bool bPreShutdown = false);
 	STATUS DiscardConfigChanges();

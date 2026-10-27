@@ -2,6 +2,7 @@
 
 #include <objbase.h>
 #include <userenv.h>
+#include <aclapi.h>
 
 #include "../Library/Helpers/NtUtil.h"
 #include "../Library/Helpers/AppUtil.h"
@@ -344,8 +345,16 @@ STATUS CServiceCore::RemoveDriver()
 	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"System\\CurrentControlSet\\Services\\" API_DRIVER_NAME L"\\Parameters", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
 		return OK; // no key, nothing to do
 	
+	//
+	// The driver may never have stored a config (nothing committed yet, or it failed to load one).
+	// Converting the missing value to a buffer throws, which killed the agent on exit, and writing
+	// what is left would replace a good KernelIsolator.dat with an empty config. Keep the file as
+	// it is and only remove the service.
+	//
 	StVariant Config = RegQuery(hKey, L"Config", L"Data");
-	CBuffer ConfigBuff = Config;
+	CBuffer ConfigBuff;
+	if (Config.GetBuffer(ConfigBuff, false) != StVariant::eErrNone || ConfigBuff.GetSize() == 0)
+		return RemoveService(API_DRIVER_NAME);
 	StVariant ConfigData;
 	ConfigData.FromPacket(&ConfigBuff, true);
 
@@ -858,19 +867,96 @@ size_t getHeapUsage()
 }
 #endif
 
+
+//
+// The other half of where the time goes.
+//
+// The list replies are only what a connected viewer asks for; this timer runs
+// every DEF_CORE_TIMER_INTERVAL whether anyone is watching or not, and it is the
+// larger of the two. Turn this on to see which of the collectors it is, the same
+// way CACHE_PROFILE does for the replies. Off in anything shipped.
+//
+#ifdef _DEBUG
+//#define CORE_PROFILE
+#endif
+
+#ifdef CORE_PROFILE
+#include "../Library/Common/DbgHelp.h"
+
+struct SCoreProfile
+{
+	uint64	Processes = 0;
+	uint64	Network = 0;
+	uint64	Programs = 0;
+	uint64	Access = 0;
+	uint64	Enclaves = 0;
+	uint64	HashDB = 0;
+	uint64	Total = 0;
+	uint64	Ticks = 0;
+	uint64	LastReport = 0;
+};
+
+static SCoreProfile g_CoreProfile;
+
+#define CPROF_BEGIN(v)	const uint64 v = GetUSTickCount()
+#define CPROF_END(f, v)	g_CoreProfile.f += (GetUSTickCount() - (v)) & 0xffffffff
+#else
+#define CPROF_BEGIN(v)
+#define CPROF_END(f, v)
+#endif
+
 void CServiceCore::OnTimer()
 {
+	CPROF_BEGIN(uTotal);
+
+	CPROF_BEGIN(uProcesses);
 	m_pProcessList->Update();
+	CPROF_END(Processes, uProcesses);
 
+	CPROF_BEGIN(uNetwork);
 	m_pNetworkManager->Update();
+	CPROF_END(Network, uNetwork);
 
+	CPROF_BEGIN(uPrograms);
 	m_pProgramManager->Update();
+	CPROF_END(Programs, uPrograms);
 
+	CPROF_BEGIN(uAccess);
 	m_pAccessManager->Update();
+	CPROF_END(Access, uAccess);
 
+	CPROF_BEGIN(uEnclaves);
 	m_pEnclaveManager->Update();
+	CPROF_END(Enclaves, uEnclaves);
 
+	CPROF_BEGIN(uHashDB);
 	m_pHashDB->Update();
+	CPROF_END(HashDB, uHashDB);
+
+	//
+	// Everything the activity events collected since the last turn, in one message
+	// per viewer. See CServiceCore::QueueBroadcast.
+	//
+	FlushBroadcasts();
+
+	CPROF_END(Total, uTotal);
+
+#ifdef CORE_PROFILE
+	{
+		SCoreProfile& P = g_CoreProfile;
+		P.Ticks++;
+		const uint64 uNow = GetUSTickCount();
+		if (((uNow - P.LastReport) & 0xffffffff) > 2000000)
+		{
+			const uint64 R = P.Ticks ? P.Ticks : 1;
+			DbgPrint(L"MP core: %llu ticks | us/tick: proc %llu net %llu prog %llu acc %llu encl %llu hash %llu = %llu\n",
+				P.Ticks, P.Processes / R, P.Network / R, P.Programs / R,
+				P.Access / R, P.Enclaves / R, P.HashDB / R, P.Total / R);
+			P = SCoreProfile();
+			P.LastReport = uNow;
+		}
+	}
+#endif
 
 	if (m_NextLogTime && m_NextLogTime < GetTickCount64()) {
 		m_NextLogTime = 0;
@@ -1028,6 +1114,69 @@ void CServiceCore::ImpersonateCaller(uint32 CallerPID)
 		CloseHandle(hToken);
 	}
 	CloseHandle(hProcess);
+}
+
+STATUS CServiceCore::CheckCallerFileAccess(uint32 CallerPID, const std::wstring& Path, ULONG DesiredAccess)
+{
+	if (Path.empty())
+		return ERR(STATUS_INVALID_PARAMETER);
+	if (CallerPID == 0)
+		return ERR(STATUS_ACCESS_DENIED);
+
+	std::wstring Target = Path;
+	if (GetFileAttributes(Target.c_str()) == INVALID_FILE_ATTRIBUTES)
+	{
+		size_t pos = Target.find_last_of(L'\\');
+		if (pos == std::wstring::npos)
+			return ERR(STATUS_OBJECT_PATH_INVALID);
+		Target = Target.substr(0, pos);
+		if (Target.empty())
+			return ERR(STATUS_OBJECT_PATH_INVALID);
+
+		//
+		// Creating a file is a right of the directory, not of the file
+		//
+		if (DesiredAccess & GENERIC_WRITE)
+			DesiredAccess = (DesiredAccess & ~GENERIC_WRITE) | FILE_ADD_FILE;
+	}
+
+	PSECURITY_DESCRIPTOR pSD = NULL;
+	DWORD dwRes = GetNamedSecurityInfoW(Target.c_str(), SE_FILE_OBJECT,
+		OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION,
+		NULL, NULL, NULL, NULL, &pSD);
+	if (dwRes != ERROR_SUCCESS)
+		return ERR(STATUS_ACCESS_DENIED);
+
+	STATUS Status = ERR(STATUS_ACCESS_DENIED);
+
+	CScopedHandle hProcess = CScopedHandle(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, CallerPID), CloseHandle);
+	if (hProcess)
+	{
+		CScopedHandle hToken = CScopedHandle((HANDLE)0, CloseHandle);
+		if (OpenProcessToken(hProcess, TOKEN_QUERY | TOKEN_DUPLICATE, &hToken))
+		{
+			CScopedHandle hImpToken = CScopedHandle((HANDLE)0, CloseHandle);
+			if (DuplicateToken(hToken, SecurityIdentification, &hImpToken))
+			{
+				GENERIC_MAPPING Mapping = { FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_GENERIC_EXECUTE, FILE_ALL_ACCESS };
+				MapGenericMask(&DesiredAccess, &Mapping);
+
+				PRIVILEGE_SET PrivilegeSet;
+				DWORD PrivilegeSetLength = sizeof(PrivilegeSet);
+				DWORD GrantedAccess = 0;
+				BOOL bAccess = FALSE;
+
+				if (AccessCheck(pSD, hImpToken, DesiredAccess, &Mapping, &PrivilegeSet, &PrivilegeSetLength, &GrantedAccess, &bAccess))
+					Status = bAccess ? OK : ERR(STATUS_ACCESS_DENIED);
+				else
+					Status = ERR(STATUS_ACCESS_DENIED);
+			}
+		}
+	}
+
+	LocalFree(pSD);
+
+	return Status;
 }
 
 #include <sddl.h> // For ConvertSidToStringSid

@@ -136,6 +136,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -163,6 +164,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
@@ -193,6 +195,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -219,6 +222,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -245,6 +249,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
@@ -274,6 +279,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
@@ -360,6 +366,7 @@
     <ClCompile Include="API_Impl.cpp" />
     <ClCompile Include="Common\AbstractInfo.cpp" />
     <ClCompile Include="Common\EventLog.cpp" />
+    <ClCompile Include="Common\ListReplies.cpp" />
     <ClCompile Include="Enclaves\Enclave.cpp" />
     <ClCompile Include="Enclaves\EnclaveManager.cpp" />
     <ClCompile Include="Etw\EtwEventMonitor.cpp">
@@ -397,6 +404,7 @@
     <ClCompile Include="Network\Socket.cpp" />
     <ClCompile Include="Network\SocketList.cpp" />
     <ClCompile Include="Network\TrafficLog.cpp" />
+    <ClCompile Include="Programs\UsageLog.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -408,6 +416,7 @@
     <ClCompile Include="Processes\AccessLog.cpp" />
     <ClCompile Include="Processes\Process.cpp" />
     <ClCompile Include="Processes\ProcessList.cpp" />
+    <ClCompile Include="Processes\GpuMonitor.cpp" />
     <ClCompile Include="Processes\ExecLogEntry.cpp" />
     <ClCompile Include="Processes\ServiceList.cpp" />
     <ClCompile Include="Presets\Preset.cpp" />
@@ -458,6 +467,7 @@
     <ClInclude Include="Access\ResLogEntry.h" />
     <ClInclude Include="Common\AbstractInfo.h" />
     <ClInclude Include="Common\EventLog.h" />
+    <ClInclude Include="Common\ListReplies.h" />
     <ClInclude Include="Enclaves\Enclave.h" />
     <ClInclude Include="Enclaves\EnclaveManager.h" />
     <ClInclude Include="Etw\EtwEventMonitor.h" />
@@ -518,10 +528,12 @@
     <ClInclude Include="Network\Socket.h" />
     <ClInclude Include="Network\SocketList.h" />
     <ClInclude Include="Network\TrafficLog.h" />
+    <ClInclude Include="Programs\UsageLog.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Processes\AccessLog.h" />
     <ClInclude Include="Processes\Process.h" />
     <ClInclude Include="Processes\ProcessList.h" />
+    <ClInclude Include="Processes\GpuMonitor.h" />
     <ClInclude Include="Processes\ExecLogEntry.h" />
     <ClInclude Include="Processes\ServiceList.h" />
     <ClInclude Include="Presets\Preset.h" />

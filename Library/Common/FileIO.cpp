@@ -195,6 +195,16 @@ bool RenameFile(const std::wstring& OldPath, const std::wstring& NewPath)
 //    return true;
 //}
 
+bool WriteFileSafe(const std::wstring& Path, const CBuffer& Data)
+{
+    if(!WriteFile(Path + L".tmp", Data))
+        return false;
+    RemoveFile(Path + L".bak");
+    if(!RenameFile(Path, Path + L".bak"))
+        RemoveFile(Path);
+    return RenameFile(Path + L".tmp", Path);
+}
+
 bool WriteFile(const std::wstring& path, const StVariant& data) 
 {
     std::ofstream file(path, std::ios::binary);

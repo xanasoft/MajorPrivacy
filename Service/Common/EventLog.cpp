@@ -101,7 +101,7 @@ STATUS CEventLog::Store()
 
 	CBuffer Buffer;
 	Data.ToPacket(&Buffer);
-	WriteFile(theCore->GetDataFolder() + L"\\" API_EVENT_LOG_FILE_NAME, Buffer);
+	WriteFileSafe(theCore->GetDataFolder() + L"\\" API_EVENT_LOG_FILE_NAME, Buffer);
 
 	return OK;
 }

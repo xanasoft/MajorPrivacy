@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -185,6 +185,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>BUILD_DLL;_WINDOWS;_USRDLL;VAR_USE_POOL_ALLOCATOR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -220,6 +221,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
@@ -257,6 +259,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>BUILD_DLL;_WINDOWS;_USRDLL;VAR_USE_POOL_ALLOCATOR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -290,6 +293,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>BUILD_DLL;_WINDOWS;_USRDLL;VAR_USE_POOL_ALLOCATOR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -324,6 +328,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64EC'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>BUILD_DLL;_WINDOWS;_USRDLL;VAR_USE_POOL_ALLOCATOR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -357,6 +362,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
@@ -393,6 +399,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
@@ -430,6 +437,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64EC'">
     <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
@@ -470,17 +478,34 @@
     <ClInclude Include="API\PrivacyAPIs.h" />
     <ClInclude Include="API\PrivacyDefs.h" />
     <ClInclude Include="API\ServiceAPI.h" />
+    <ClInclude Include="Boot\BootPackage.h" />
+    <ClInclude Include="Boot\DcsConfig.h" />
+    <ClInclude Include="Boot\EfiInstall.h" />
+    <ClInclude Include="Boot\EfiVars.h" />
+    <ClInclude Include="Boot\EspLocator.h" />
+    <ClInclude Include="Boot\fs\dcconst.h" />
+    <ClInclude Include="Boot\fs\defines.h" />
+    <ClInclude Include="Boot\fs\fs_sup.h" />
+    <ClInclude Include="Boot\zip\miniz.h" />
+    <ClInclude Include="Boot\zip\zip.h" />
+    <ClInclude Include="Boot\fs\iso_fs.h" />
+    <ClInclude Include="Boot\fs\misc.h" />
+    <ClInclude Include="Boot\GptDisk.h" />
+    <ClInclude Include="Boot\MokManager.h" />
+    <ClInclude Include="Boot\RecoveryMedia.h" />
     <ClInclude Include="Common\Address.h" />
     <ClInclude Include="Common\DbgHelp.h" />
     <ClInclude Include="Common\Exception.h" />
     <ClInclude Include="Common\FileIO.h" />
     <ClInclude Include="Common\FlexGuid.h" />
     <ClInclude Include="Common\MiscStats.h" />
+    <ClInclude Include="Common\UsageStats.h" />
     <ClInclude Include="Common\ObjectTracker.h" />
     <ClInclude Include="Common\Pointers.h" />
     <ClInclude Include="Common\stl_helpers.h" />
     <ClInclude Include="Common\Strings.h" />
     <ClInclude Include="Common\StVariant.h" />
+    <ClInclude Include="Common\VariantCache.h" />
     <ClInclude Include="Common\ThreadPool.h" />
     <ClInclude Include="Common\UIntX.h" />
     <ClInclude Include="Crypto\Argon2\argon2.h" />
@@ -699,6 +724,48 @@
     <ClCompile Include="Common\FlexGuid.cpp" />
     <ClCompile Include="Common\ObjectTracker.cpp" />
     <ClCompile Include="Common\Strings.cpp" />
+    <ClCompile Include="Boot\BootPackage.cpp" />
+    <ClCompile Include="Boot\DcsConfig.cpp" />
+    <ClCompile Include="Boot\EfiInstall.cpp" />
+    <ClCompile Include="Boot\GptDisk.cpp" />
+    <ClCompile Include="Boot\MokManager.cpp" />
+    <ClCompile Include="Boot\RecoveryMedia.cpp" />
+    <!--
+      DiskCryptor's FAT and ISO image writers, compiled as they ship. They are
+      binary format serialisers with no installation logic in them, so they are
+      reused rather than translated - see Boot\fs\dcconst.h. Plain C, and no
+      precompiled header, which is phnt and C++.
+    -->
+    <ClCompile Include="Boot\fs\fat_sup.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAs>CompileAsC</CompileAs>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4996;4013;4133;4244;4267</DisableSpecificWarnings>
+    </ClCompile>
+    <ClCompile Include="Boot\fs\iso_sup.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAs>CompileAsC</CompileAs>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4996;4013;4133;4244;4267</DisableSpecificWarnings>
+    </ClCompile>
+    <!--
+      The zip reader the boot loader package is unpacked with - kuba-/zip over
+      miniz, the same pair DiskCryptor uses, vendored in Boot\zip. Plain C and
+      no precompiled header, which is phnt and C++, exactly like Boot\fs above.
+      Warnings are kept quiet because it is upstream code and is meant to stay
+      diffable against it.
+    -->
+    <ClCompile Include="Boot\zip\zip.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAs>CompileAsC</CompileAs>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4996;4013;4133;4244;4267;4245;4018;4127;4100;4189;4456;4457</DisableSpecificWarnings>
+    </ClCompile>
+    <ClCompile Include="Boot\EfiVars.cpp" />
+    <ClCompile Include="Boot\EspLocator.cpp" />
     <ClCompile Include="Common\StVariant.cpp" />
     <ClCompile Include="Common\ThreadPool.cpp" />
     <ClCompile Include="Common\UIntX.cpp" />

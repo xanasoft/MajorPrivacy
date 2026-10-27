@@ -3,6 +3,9 @@
 #include <QWizard>
 
 #include "../../Library/Crypto/SecurePassword.h"
+#include "../Windows/KeyFilesWnd.h"
+// IMBOX_SLOTS_DEFAULT / IMBOX_SLOTS_MAX, the header format's own limits
+#include "../../ImBox/ImBox.h"
 
 QT_BEGIN_NAMESPACE
 class QCheckBox;
@@ -19,7 +22,11 @@ class CVolumeWizard : public QWizard
     Q_OBJECT
 
 public:
-    enum { Page_Intro, Page_Location, Page_Cipher, Page_Cost, Page_Size, Page_Encryption, Page_Password, Page_Summary };
+    //
+    // Page_Properties is last so that the existing ids do not move; the order
+    // the pages are shown in is decided by nextId(), not by this list.
+    //
+    enum { Page_Intro, Page_Location, Page_Cipher, Page_Cost, Page_Size, Page_Encryption, Page_Password, Page_Summary, Page_Properties };
 
     CVolumeWizard(QWidget *parent = nullptr);
     ~CVolumeWizard();
@@ -32,6 +39,9 @@ public:
     QString GetCipher() const;
     QString GetFileSystem() const;
     int GetKdf() const;
+
+    // How many key slots to lay out in the header, 0 for none.
+    int GetSlotCount() const;
 
 private slots:
     void showHelp();
@@ -179,18 +189,52 @@ private slots:
     void OnShowPassword();
     void OnPasswordChanged();
     void OnSecurePasswordEntry();
+    void OnKeyFiles();
 
 private:
+    void UpdateKeyFilesButton();
+
     QLabel* m_pTopLabel;
     QLineEdit* m_pPassword;
     QLineEdit* m_pConfirmPassword;
-    QCheckBox* m_pShowPassword;
+    QToolButton* m_pShowPasswordBtn;
     QToolButton* m_pSecureEntryBtn;
+    QToolButton* m_pKeyFilesBtn;
     QLabel* m_pStrengthLabel;
     CPasswordStrengthWidget* m_pStrengthWidget;
 
     // Secure password entry state
     CSecurePassword m_SecurePassword;
+
+    // Keyfiles, and the finished password validatePage builds from them
+    SKeyFiles m_KeyFiles;
+    CSecurePassword m_MixedPassword;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////
+// CVolumePropertiesPage
+//
+// Things about the volume itself rather than about the encryption. Only the key
+// slot count so far; the page exists because that list is going to grow.
+//
+
+class CVolumePropertiesPage : public QWizardPage
+{
+    Q_OBJECT
+
+public:
+    CVolumePropertiesPage(QWidget *parent = nullptr);
+
+    int nextId() const override;
+    int GetSlotCount() const;
+
+private slots:
+    void OnSlotCountChanged(int value);
+
+private:
+    QLabel* m_pTopLabel;
+    QSpinBox* m_pSlotCount;
+    QLabel* m_pSlotInfo;
 };
 
 #if 0

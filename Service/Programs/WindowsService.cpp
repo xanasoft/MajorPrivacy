@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "WindowsService.h"
 #include "../../Library/API/PrivacyAPI.h"
+#include "../../Library/Helpers/MiscHelpers.h"
+#include "../ServiceCore.h"
 #include "../Library/Common/Strings.h"
 
 CWindowsService::CWindowsService(const std::wstring& ServiceTag)
@@ -14,6 +16,7 @@ CWindowsService::CWindowsService(const std::wstring& ServiceTag)
 	m_AccessLog.SetPool(m_pMem);
 	m_AccessTree.SetPool(m_pMem);
 	m_TrafficLog.SetPool(m_pMem);
+	m_UsageLog.SetPool(m_pMem);
 #endif
 }
 
@@ -23,6 +26,7 @@ CWindowsService::~CWindowsService()
 	m_AccessLog.Clear();
 	m_AccessTree.Clear();
 	m_TrafficLog.Clear();
+	m_UsageLog.Clear();
 
 	FW::MemoryPool::Destroy(m_pMem);
 #endif
@@ -181,6 +185,32 @@ void CWindowsService::LoadTraffic(const StVariant& Data)
 	m_TrafficLog.LoadTraffic(Data[API_V_TRAFFIC_LOG]);
 }
 
+StVariant CWindowsService::StoreUsage(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
+{
+	StVariant Usage = m_UsageLog.Store(Opts, pMemPool);
+	if (!Usage.IsValid())
+		return StVariant();
+
+	std::unique_lock lock(m_Mutex);
+
+	StVariant Data(pMemPool);
+	Data[API_V_ID] = m_ID.ToVariant(Opts, pMemPool);
+	Data[API_V_USAGE_LOG] = Usage;
+	return Data;
+}
+
+void CWindowsService::LoadUsage(const StVariant& Data)
+{
+	m_UsageLog.Load(Data[API_V_USAGE_LOG]);
+}
+
+void CWindowsService::TruncateUsageLog()
+{
+	uint64 SecondsWindow = theCore->Config()->GetUInt64("Service", "UsageSecondsWindow", 300);
+	uint64 RetentionMinutes = theCore->Config()->GetUInt64("Service", "UsageRetentionMinutes", 60 * 24 * 30);
+	m_UsageLog.Truncate(GetCurTime() * 1000ULL, SecondsWindow, RetentionMinutes);
+}
+
 void CWindowsService::UpdateLastFwActivity(uint64 TimeStamp, bool bBlocked)
 {
 	std::unique_lock lock(m_Mutex);
@@ -208,7 +238,12 @@ void CWindowsService::CollectStats(SStats& Stats) const
 			if (_wcsicmp(pSocket->GetOwnerServiceName().c_str(), m_ServiceTag.c_str()) != 0)
 				continue;
 
-			Stats.SocketRefs.insert((uint64)pSocket.get());
+			//
+			// The socket's own number, the same one it travels under as
+			// API_V_SOCK_REF - these used to be addresses, which made the two
+			// disagree the moment anything tried to line them up.
+			//
+			Stats.SocketRefs.insert(pSocket->GetObjectUid());
 
 			uint64 LastActivity = pSocket->GetLastActivity();
 			if (LastActivity > Stats.LastNetActivity)
@@ -234,6 +269,9 @@ void CWindowsService::ClearRecords(ETraceLogs Log)
 
 	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
 		m_AccessTree.Clear();
+
+	if(Log == ETraceLogs::eLogMax)
+		m_UsageLog.Clear();
 
 #ifdef DEF_USE_POOL
 	m_pMem->CleanUp();

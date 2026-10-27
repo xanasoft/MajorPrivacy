@@ -34,7 +34,7 @@ StVariant CHandle::ToVariant(FW::AbstractMemPool* pMemPool) const
 	StVariantWriter Handle(pMemPool);
 	Handle.BeginIndex();
 
-	Handle.Write(API_V_ACCESS_REF, (uint64)this);
+	Handle.Write(API_V_ACCESS_REF, GetObjectUid());
 	Handle.WriteEx(API_V_ACCESS_PATH, m_FileName);
 	Handle.Write(API_V_PID, m_ProcessId);
 

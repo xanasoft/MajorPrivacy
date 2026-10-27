@@ -40,15 +40,17 @@ bool CProcess::IsProtected(bool bAlsoLite) const
 	return kFlags.Protected && (bAlsoLite || kSFlags.ProtectionLevel == KphFullProtection);
 }
 
-void CProcess::FromVariant(const class QtVariant& Process)
+void CProcess::FromVariant(const class QtVariant& Process, bool bFullSend)
 {
 	QWriteLocker Lock(&m_Mutex);
+
 
 	QtVariantReader(Process).ReadRawIndex([&](uint32 Index, const FW::CVariant& vData) {
 		const QtVariant& Data = *(QtVariant*)&vData;
 
 		switch (Index)
 		{
+		case API_V_PUID:			m_Puid = Data; break;
 		case API_V_CREATE_TIME:		m_CreationTime = Data; break;
 		case API_V_PARENT_PID:		m_ParentPid = Data; break;
 
@@ -102,9 +104,11 @@ void CProcess::FromVariant(const class QtVariant& Process)
 
 		case API_V_SERVICES:	m_ServiceList = Data.AsQList(); break;
 
-		case API_V_HANDLES:		UpdateHandlesUnsafe(Data); break;
+		case API_V_HANDLES:		UpdateHandlesUnsafe(Data, bFullSend); break;
+		case API_V_OLD_HANDLES:	RemoveHandlesUnsafe(Data); break;
 
-		case API_V_SOCKETS:		UpdateSocketsUnsafe(Data); break;
+		case API_V_SOCKETS:		UpdateSocketsUnsafe(Data, bFullSend); break;
+		case API_V_OLD_SOCKETS:	RemoveSocketsUnsafe(Data); break;
 
 		}
 
@@ -118,9 +122,20 @@ void CProcess::OnSidResolved(const QByteArray& SID, const QString& Name)
 	m_UserName = Name;
 }
 
-void CProcess::UpdateHandlesUnsafe(const class QtVariant& Handles)
+//
+// On a complete list anything not mentioned is gone, and an already enlisted
+// handle carries nothing new - its path and owner are fixed when it is opened -
+// so there is no point reading it again.
+//
+// On a delta nothing is swept, because a handle that is absent is one that did
+// not change; what went away is in API_V_OLD_HANDLES. And here an entry only
+// arrived because something about it did change, so it is always read.
+//
+void CProcess::UpdateHandlesUnsafe(const class QtVariant& Handles, bool bFullSend)
 {
-	QHash<quint64, CHandlePtr> OldHandles = m_Handles;
+	QHash<quint64, CHandlePtr> OldHandles;
+	if (bFullSend)
+		OldHandles = m_Handles;
 
 	QtVariantReader(Handles).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Handle = *(QtVariant*)&vData;
@@ -129,25 +144,40 @@ void CProcess::UpdateHandlesUnsafe(const class QtVariant& Handles)
 		FW::CVariantReader::Find(Handle, API_V_ACCESS_REF, vHandleRef);
 		quint64 HandleRef = vHandleRef;
 
-		CHandlePtr pHandle = OldHandles.take(HandleRef);
-		bool bUpdate = false; // we dont have live handle data currently hence we dont update it once its enlisted
-		if (!pHandle) {
+		CHandlePtr pHandle = m_Handles.value(HandleRef);
+		if (pHandle) {
+			OldHandles.remove(HandleRef);
+			if (bFullSend)
+				return; // already enlisted, and it cannot have changed
+		}
+		else {
 			pHandle = CHandlePtr(new CHandle());
 			m_Handles.insert(HandleRef, pHandle);
-			bUpdate = true;
 		} 
 
-		if(bUpdate)
-			pHandle->FromVariant(Handle);
+		pHandle->FromVariant(Handle);
 	});
 
 	foreach(quint64 HandleRef, OldHandles.keys())
-		m_Handles.remove(OldHandles.take(HandleRef)->GetHandleRef());
+		m_Handles.remove(HandleRef);
 }
 
-void CProcess::UpdateSocketsUnsafe(const class QtVariant& Sockets)
+void CProcess::RemoveHandlesUnsafe(const class QtVariant& Handles)
 {
-	QHash<quint64, CSocketPtr> OldSockets = m_Sockets;
+	QtVariantReader(Handles).ReadRawList([&](const FW::CVariant& vData) {
+		m_Handles.remove(((QtVariant*)&vData)->To<quint64>(0));
+	});
+}
+
+//
+// As above, except that a socket does carry live data - its state and its
+// transfer rates - so an enlisted one is read again either way.
+//
+void CProcess::UpdateSocketsUnsafe(const class QtVariant& Sockets, bool bFullSend)
+{
+	QHash<quint64, CSocketPtr> OldSockets;
+	if (bFullSend)
+		OldSockets = m_Sockets;
 
 	QtVariantReader(Sockets).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Socket = *(QtVariant*)&vData;
@@ -156,8 +186,10 @@ void CProcess::UpdateSocketsUnsafe(const class QtVariant& Sockets)
 		FW::CVariantReader::Find(Socket, API_V_SOCK_REF, vSockRef);
 		quint64 SockRef = vSockRef;
 
-		CSocketPtr pSocket = OldSockets.take(SockRef);
-		if (!pSocket) {
+		CSocketPtr pSocket = m_Sockets.value(SockRef);
+		if (pSocket)
+			OldSockets.remove(SockRef);
+		else {
 			pSocket = CSocketPtr(new CSocket());
 			m_Sockets.insert(SockRef, pSocket);
 		} 
@@ -166,7 +198,14 @@ void CProcess::UpdateSocketsUnsafe(const class QtVariant& Sockets)
 	});
 
 	foreach(quint64 SockRef, OldSockets.keys())
-		m_Sockets.remove(OldSockets.take(SockRef)->GetSocketRef());
+		m_Sockets.remove(SockRef);
+}
+
+void CProcess::RemoveSocketsUnsafe(const class QtVariant& Sockets)
+{
+	QtVariantReader(Sockets).ReadRawList([&](const FW::CVariant& vData) {
+		m_Sockets.remove(((QtVariant*)&vData)->To<quint64>(0));
+	});
 }
 
 QString CProcess::GetSecStateStr(uint32 SecState)

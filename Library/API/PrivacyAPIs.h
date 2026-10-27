@@ -345,6 +345,7 @@
 #define API_S_ACCESS_LOG					"AccessLog"
 #define API_S_INGRESS_LOG					"IngressLog"
 #define API_S_TRAFFIC_LOG					"TrafficLog"
+#define API_S_USAGE_LOG						"UsageLog"
 #define API_S_PROG_SOCKETS					"Sockets"
 #define API_S_EVENT_LOG						"EventLog"
 

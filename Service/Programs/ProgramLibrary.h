@@ -10,6 +10,13 @@ public:
 	CProgramLibrary(const std::wstring& Path = L"");
 
 	uint64 GetUID() const { return m_UID; }
+
+	//
+	// Counts up on the one thing about a library that can change after it is
+	// enlisted, its signature. The path and the uid are fixed, so anyone holding a
+	// copy can tell in one comparison whether it is worth building again.
+	//
+	uint64 GetVersion() const { std::unique_lock lock(m_Mutex); return m_Version; }
 	std::wstring GetPath() const { std::unique_lock lock(m_Mutex); return m_Path; }
 
 	virtual void UpdateSignInfo(const struct SVerifierInfo* pVerifyInfo);
@@ -32,6 +39,7 @@ protected:
 	std::wstring 					m_Path;
 
 	CImageSignInfo					m_SignInfo;
+	uint64							m_Version = 0;
 
 };
 

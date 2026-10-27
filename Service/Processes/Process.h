@@ -7,6 +7,7 @@
 #include "../Library/API/PrivacyDefs.h"
 #include "../Programs/ImageSignInfo.h"
 #include "../Library/Common/FlexGuid.h"
+#include "../Library/Common/UsageStats.h"
 
 struct SProcessUID
 {
@@ -42,6 +43,9 @@ public:
 	SProcessUID GetProcessUID() const { std::shared_lock Lock(m_Mutex); return SProcessUID(m_Pid, m_CreateTimeStamp); }
 	std::wstring GetName() const { std::shared_lock Lock(m_Mutex); return m_Name; }
 	std::wstring GetNtFilePath() const { std::shared_lock Lock(m_Mutex); return m_NtFilePath; }
+	bool IsSameImage(const std::wstring& NtFilePath) const; // tolerant of the path form
+	std::wstring GetCommandLine() const { std::shared_lock Lock(m_Mutex); return m_CommandLine; }
+	uint64 GetCreationTime() const { std::shared_lock Lock(m_Mutex); return m_CreationTime; }
 	std::wstring GetWorkDir() const;
 
 	std::wstring GetUserSid() const { std::shared_lock Lock(m_Mutex); return m_UserSid; }
@@ -54,13 +58,36 @@ public:
 
 	bool IsInitDone() const { std::shared_lock Lock(m_Mutex); return m_ParentPid != -1; }
 
+	uint32 GetNumberOfImageLoads() const { std::shared_lock Lock(m_Mutex); return m_NumberOfImageLoads; }
+	uint32 GetNumberOfMicrosoftImageLoads() const { std::shared_lock Lock(m_Mutex); return m_NumberOfMicrosoftImageLoads; }
+	uint32 GetNumberOfAntimalwareImageLoads() const { std::shared_lock Lock(m_Mutex); return m_NumberOfAntimalwareImageLoads; }
+	uint32 GetNumberOfVerifiedImageLoads() const { std::shared_lock Lock(m_Mutex); return m_NumberOfVerifiedImageLoads; }
+	uint32 GetNumberOfSignedImageLoads() const { std::shared_lock Lock(m_Mutex); return m_NumberOfSignedImageLoads; }
+	uint32 GetNumberOfUntrustedImageLoads() const { std::shared_lock Lock(m_Mutex); return m_NumberOfUntrustedImageLoads; }
+
 	void UpdateSignInfo(const struct SVerifierInfo* pVerifyInfo);
 	CImageSignInfo GetSignInfo() const { std::shared_lock Lock(m_Mutex); return m_SignInfo; }
-	void SetSignInfo(const CImageSignInfo& SignInfo) { std::unique_lock Lock(m_Mutex); m_SignInfo = SignInfo; }
+	void SetSignInfo(const CImageSignInfo& SignInfo) { std::unique_lock Lock(m_Mutex); m_SignInfo = SignInfo; m_SignInfoVersion++; }
+
+	//
+	// Counts up whenever the signature is re-examined, which for most processes
+	// happens once and never again. GetSignInfo copies the whole thing under the
+	// lock and it then has to be serialised before anyone can tell whether it
+	// differs, so being able to answer that in one comparison is worth having.
+	//
+	uint64 GetSignInfoVersion() const { std::shared_lock Lock(m_Mutex); return m_SignInfoVersion; }
 	bool HashInfoUnknown() const;
 	static bool FillVerifyInfo(const std::wstring& ModulePath, SVerifierInfo& VerifyInfo);
 
 	std::set<std::wstring> GetServices() const { std::shared_lock Lock(m_Mutex);  return m_ServiceList; }
+
+	//
+	// Counts up on every service added or removed. GetServices copies the whole
+	// set under the lock and it then has to be turned into a list before anyone
+	// can tell whether it differs, which for a process that has not gained or lost
+	// a service - all of them, nearly always - is all for nothing.
+	//
+	uint64 GetServiceListVersion() const { std::shared_lock Lock(m_Mutex); return m_ServiceListVersion; }
 
 	std::wstring GetAppContainerSid() const { std::shared_lock Lock(m_Mutex); return m_AppContainerSid; }
 	std::wstring GetAppContainerName() const { std::shared_lock Lock(m_Mutex); return m_AppContainerName; }
@@ -75,11 +102,30 @@ public:
 	void AddHandle(const CHandlePtr& pHandle);
 	void RemoveHandle(const CHandlePtr& pHandle);
 	std::set<CHandlePtr> GetHandleList() const { std::shared_lock Lock(m_HandleMutex); return m_HandleList;  }
+
+	//
+	// Walks the list in place. GetHandleList copies the whole set, which for a few
+	// hundred processes on every refresh is a few hundred trees rebuilt node by
+	// node for nothing.
+	//
+	template <typename F>
+	void EnumHandles(F&& Func) const { std::shared_lock Lock(m_HandleMutex); for (const CHandlePtr& pHandle : m_HandleList) Func(pHandle); }
 	int GetHandleCount() const { std::shared_lock Lock(m_HandleMutex); return (int)m_HandleList.size(); }
+
+	//
+	// Counts up on every open and every close, so that anyone holding a copy of
+	// this list can find out in one comparison whether it is still current. The
+	// handles themselves never change once opened, so for a process that has not
+	// opened or closed one there is nothing whatever to look at.
+	//
+	uint64 GetHandleListVersion() const { std::shared_lock Lock(m_HandleMutex); return m_HandleListVersion; }
 
 	void AddSocket(const CSocketPtr& pSocket);
 	void RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit = false);
 	std::set<CSocketPtr> GetSocketList() const { std::shared_lock Lock(m_SocketMutex); return m_SocketList;  }
+
+	template <typename F>
+	void EnumSockets(F&& Func) const { std::shared_lock Lock(m_SocketMutex); for (const CSocketPtr& pSocket : m_SocketList) Func(pSocket); }
 	int GetSocketCount() const { std::shared_lock Lock(m_SocketMutex); return (int)m_SocketList.size(); }
 
 	CDnsProcLog* DnsLog()					{ return &m_DnsLog; }
@@ -94,6 +140,15 @@ public:
 
 	void	AddNetworkIO(int Type, uint32 TransferSize);
 
+	//
+	// Usage sampling: UpdateUsage is fed once per sample from CProcessList::UpdateUsage with the
+	// process entry of a SystemProcessInformation snapshot, TakeUsage hands out what accumulated
+	// since the last call. See Library/Common/UsageStats.h.
+	//
+	void	UpdateUsage(const SYSTEM_PROCESS_INFORMATION* pInfo);
+	void	AddGpuUsage(uint64 Gpu100ns, uint64 Npu100ns);
+	bool	TakeUsage(SUsageSample& Sample);
+
 	StVariant ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 
 	static const wchar_t* NtOsKernel_exe; 
@@ -103,8 +158,8 @@ protected:
 	friend class CServiceList;
 	friend class CProgramManager;
 
-	void AddService(const std::wstring& Key) { std::unique_lock Lock(m_Mutex); m_ServiceList.insert(Key); }
-	void RemoveService(const std::wstring& Key) { std::unique_lock Lock(m_Mutex); m_ServiceList.erase(Key); }
+	void AddService(const std::wstring& Key) { std::unique_lock Lock(m_Mutex); m_ServiceList.insert(Key); m_ServiceListVersion++; }
+	void RemoveService(const std::wstring& Key) { std::unique_lock Lock(m_Mutex); m_ServiceList.erase(Key); m_ServiceListVersion++; }
 
 	bool Init(const struct SProcessInfo* Data);
 	bool Init(PSYSTEM_PROCESS_INFORMATION process, bool bFullProcessInfo);
@@ -131,6 +186,7 @@ protected:
 	uint32 m_Flags = 0;
 	uint32 m_SecFlags = 0;
 	CImageSignInfo m_SignInfo;
+	uint64 m_SignInfoVersion = 0;
 	uint32 m_NumberOfImageLoads = 0;
 	uint32 m_NumberOfMicrosoftImageLoads = 0;
 	uint32 m_NumberOfAntimalwareImageLoads = 0;
@@ -140,6 +196,7 @@ protected:
 	std::set<std::shared_ptr<class CProgramLibrary>> m_Libraries;
 
 	std::set<std::wstring>		m_ServiceList;
+	uint64						m_ServiceListVersion = 0;
 
 	std::wstring m_AppContainerSid;
 	std::wstring m_AppContainerName;
@@ -150,6 +207,7 @@ protected:
 
 	mutable std::shared_mutex	m_HandleMutex;
 	std::set<CHandlePtr>		m_HandleList;
+	uint64						m_HandleListVersion = 0;
 
 	mutable std::shared_mutex	m_SocketMutex;
 	std::set<CSocketPtr>		m_SocketList;
@@ -168,6 +226,20 @@ protected:
 	// I/O stats
 	mutable std::shared_mutex	m_StatsMutex;
 	SProcStats					m_Stats;
+
+	// usage sampling, guarded by m_StatsMutex
+	SDelta64					m_UsageKernelTime;		// 100ns
+	SDelta64					m_UsageUserTime;		// 100ns
+	SDelta64					m_UsageIoRead;
+	SDelta64					m_UsageIoWrite;
+	SDelta64					m_UsageIoOther;
+	uint64						m_UsagePendingKernel = 0;	// 100ns, accumulated until taken
+	uint64						m_UsagePendingUser = 0;		// 100ns
+	uint64						m_UsagePendingIoRead = 0;
+	uint64						m_UsagePendingIoWrite = 0;
+	uint64						m_UsagePendingIoOther = 0;
+	uint64						m_UsagePendingGpu = 0;		// 100ns, from CGpuMonitor
+	uint64						m_UsagePendingNpu = 0;		// 100ns
 };
 
 typedef std::shared_ptr<CProcess> CProcessPtr;

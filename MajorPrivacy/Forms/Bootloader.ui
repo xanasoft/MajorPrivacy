@@ -1,0 +1,996 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Bootloader</class>
+ <widget class="QDialog" name="Bootloader">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>760</width>
+    <height>680</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>EFI Boot Loader</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QTabWidget" name="tabs">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tabLoader">
+      <attribute name="title">
+       <string>Boot Loader</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayoutLoader">
+       <item row="0" column="0">
+        <widget class="QTreeWidget" name="treeEsp">
+         <property name="rootIsDecorated">
+          <bool>true</bool>
+         </property>
+         <property name="uniformRowHeights">
+          <bool>true</bool>
+         </property>
+         <property name="alternatingRowColors">
+          <bool>true</bool>
+         </property>
+         <column>
+          <property name="text">
+           <string>Disk / Partition</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Size</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Free</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Label</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Contents</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Drive</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <layout class="QVBoxLayout" name="layoutEspButtons">
+         <item>
+          <widget class="QPushButton" name="btnRefresh">
+           <property name="toolTip">
+            <string>Re-read the EFI partitions and the state of the loader</string>
+           </property>
+           <property name="text">
+            <string>Refresh</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnCreateEsp">
+           <property name="toolTip">
+            <string>Create a second EFI System Partition for the loader, so that the one Windows boots from is left alone.</string>
+           </property>
+           <property name="text">
+            <string>Create Partition...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnRemoveEsp">
+           <property name="toolTip">
+            <string>Delete the selected EFI System Partition.</string>
+           </property>
+           <property name="text">
+            <string>Remove Partition...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnMount">
+           <property name="toolTip">
+            <string>Give the EFI partition a drive letter so its contents can be reached with other tools. Worth taking away again afterwards - while the letter is there the partition is exposed to everything running on the machine.</string>
+           </property>
+           <property name="text">
+            <string>Mount...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="spacerEspButtons">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>10</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <widget class="QGroupBox" name="grpDetails">
+         <property name="title">
+          <string>Selected Partition</string>
+         </property>
+         <layout class="QGridLayout" name="gridDetails">
+          <item row="0" column="0" colspan="4">
+           <widget class="QLabel" name="lblEspInfo">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="lblInstalledCaption">
+            <property name="text">
+             <string>Boot loader:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLabel" name="lblInstalled">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLabel" name="lblVersionCaption">
+            <property name="text">
+             <string>Version:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QLabel" name="lblVersion">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="lblDefaultCaption">
+            <property name="text">
+             <string>Default loader:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="lblDefault">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QLabel" name="lblOriginalCaption">
+            <property name="text">
+             <string>Original loader:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="3">
+           <widget class="QLabel" name="lblOriginal">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="lblConfigCaption">
+            <property name="text">
+             <string>Configuration:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="lblConfig">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="2">
+           <widget class="QLabel" name="lblPartGuidCaption">
+            <property name="text">
+             <string>Partition GUID:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="3">
+           <widget class="QLabel" name="lblPartGuid">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="lblLoaderSbCaption">
+            <property name="text">
+             <string>Loader / Secure Boot:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLabel" name="lblLoaderSb">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="2">
+           <widget class="QLabel" name="lblShimSbCaption">
+            <property name="text">
+             <string>Shim / Secure Boot:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="3">
+           <widget class="QLabel" name="lblShimSb">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0" colspan="4">
+           <widget class="Line" name="lineDetails">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0" colspan="4">
+           <widget class="QCheckBox" name="chkShim">
+            <property name="toolTip">
+             <string>Puts a signed shim in front of the loader. Without it the firmware will refuse to run the loader while Secure Boot is on.</string>
+            </property>
+            <property name="text">
+             <string>Shim in front of the loader (needed for Secure Boot)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0" colspan="4">
+           <widget class="QCheckBox" name="chkBootEntry">
+            <property name="toolTip">
+             <string>An entry in the firmware boot menu, ahead of Windows. Without one the loader is only reached through the fallback boot file, which a Windows update can overwrite.</string>
+            </property>
+            <property name="text">
+             <string>Firmware boot entry, ahead of Windows</string>
+            </property>
+           </widget>
+          </item>
+          <item row="8" column="0" colspan="4">
+           <widget class="QCheckBox" name="chkDiskCryptor">
+            <property name="toolTip">
+             <string>Also install the DiskCryptor full-disk-encryption modules (DcsInt, DcsTpm). MajorPrivacy does not need them; enable this on a machine that also uses DiskCryptor, which shares this same boot loader.</string>
+            </property>
+            <property name="text">
+             <string>DiskCryptor support (full-disk encryption)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="0" colspan="4">
+           <layout class="QHBoxLayout" name="layoutDetailButtons">
+            <item>
+             <widget class="QPushButton" name="btnInstall">
+              <property name="text">
+               <string>Install</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btnUpdate">
+              <property name="toolTip">
+               <string>Replace the installed files with the ones shipping with this build, keeping the configuration and the saved original loader.</string>
+              </property>
+              <property name="text">
+               <string>Update</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btnRemove">
+              <property name="text">
+               <string>Remove</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btnConfigure">
+              <property name="text">
+               <string>Configure...</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="spacerDetailButtons">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btnApply">
+              <property name="toolTip">
+               <string>Apply the changed settings above to the installed loader.</string>
+              </property>
+              <property name="text">
+               <string>Apply</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabSecureBoot">
+      <attribute name="title">
+       <string>Secure Boot / MOK</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayoutSb">
+       <item row="0" column="0">
+        <widget class="QGroupBox" name="grpSbStatus">
+         <property name="title">
+          <string>Status</string>
+         </property>
+         <layout class="QGridLayout" name="gridSbStatus">
+          <item row="0" column="0">
+           <widget class="QLabel" name="lblSecureBootCaption">
+            <property name="text">
+             <string>Secure Boot:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="lblSecureBoot">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="lblSetupModeCaption">
+            <property name="text">
+             <string>Setup mode:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QLabel" name="lblSetupMode">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="lblShimPresentCaption">
+            <property name="text">
+             <string>Shim:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1" colspan="3">
+           <widget class="QLabel" name="lblShimPresent">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="lblMokPasswordCaption">
+            <property name="text">
+             <string>MOK password:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1" colspan="3">
+           <widget class="QLabel" name="lblMokPassword">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="lblPendingCaption">
+            <property name="text">
+             <string>Pending requests:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1" colspan="3">
+           <widget class="QLabel" name="lblPending">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0" colspan="4">
+           <widget class="Line" name="lineSbStatus">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0" colspan="4">
+           <widget class="QCheckBox" name="chkShimValidation">
+            <property name="toolTip">
+             <string>Shim will then load whatever it is pointed at without checking a signature. Secure Boot still covers shim itself, but nothing after it.</string>
+            </property>
+            <property name="text">
+             <string>Disable shim signature checking</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0" colspan="4">
+           <widget class="QCheckBox" name="chkDbUsage">
+            <property name="toolTip">
+             <string>Only keys enrolled here are then trusted. Anything the firmware vouches for - including, on most machines, the Windows boot loader - no longer loads through shim.</string>
+            </property>
+            <property name="text">
+             <string>Ignore the firmware key database</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <layout class="QVBoxLayout" name="layoutSbSide">
+         <item>
+          <widget class="QPushButton" name="btnMokRefresh">
+           <property name="toolTip">
+            <string>Re-read the firmware variables</string>
+           </property>
+           <property name="text">
+            <string>Refresh</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnSetPassword">
+           <property name="toolTip">
+            <string>The password MokManager asks for at the boot screen before it will change anything.</string>
+           </property>
+           <property name="text">
+            <string>Set Password...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnClearPassword">
+           <property name="text">
+            <string>Clear Password</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnMokApply">
+           <property name="toolTip">
+            <string>Queue the changed settings on the left. They take effect at the next boot, once confirmed in MokManager.</string>
+           </property>
+           <property name="text">
+            <string>Apply</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="spacerSbSide">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>10</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <widget class="QTabWidget" name="tabsMok">
+         <property name="currentIndex">
+          <number>0</number>
+         </property>
+         <widget class="QWidget" name="tabMokAllow">
+          <attribute name="title">
+           <string>Enrolled Keys</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="layoutMokAllow">
+           <item>
+            <widget class="QTreeWidget" name="treeMokAllow">
+             <property name="rootIsDecorated">
+              <bool>false</bool>
+             </property>
+             <property name="uniformRowHeights">
+              <bool>true</bool>
+             </property>
+             <column>
+              <property name="text">
+               <string>Type</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Subject</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="layoutMokAllowButtons">
+             <item>
+              <widget class="QPushButton" name="btnEnroll">
+               <property name="toolTip">
+                <string>Queue a certificate for enrollment. It is confirmed at the next boot, in MokManager, on the machine itself.</string>
+               </property>
+               <property name="text">
+                <string>Enroll Key...</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnDelete">
+               <property name="text">
+                <string>Delete Key...</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnExport">
+               <property name="text">
+                <string>Export...</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnRevoke">
+               <property name="toolTip">
+                <string>Withdraw the requests waiting for the next boot.</string>
+               </property>
+               <property name="text">
+                <string>Revoke Pending</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnReset">
+               <property name="toolTip">
+                <string>Queue a request to erase this whole list at the next boot.</string>
+               </property>
+               <property name="text">
+                <string>Reset List</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="spacerMokAllow">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tabMokDeny">
+          <attribute name="title">
+           <string>Blocked Keys</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="layoutMokDeny">
+           <item>
+            <widget class="QTreeWidget" name="treeMokDeny">
+             <property name="rootIsDecorated">
+              <bool>false</bool>
+             </property>
+             <property name="uniformRowHeights">
+              <bool>true</bool>
+             </property>
+             <column>
+              <property name="text">
+               <string>Type</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Subject</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="layoutMokDenyButtons">
+             <item>
+              <widget class="QPushButton" name="btnEnrollX">
+               <property name="toolTip">
+                <string>Queue a certificate to be blocked. Anything signed by it is then refused, whatever else vouches for it.</string>
+               </property>
+               <property name="text">
+                <string>Block Key...</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnDeleteX">
+               <property name="text">
+                <string>Unblock Key...</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnExportX">
+               <property name="text">
+                <string>Export...</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnRevokeX">
+               <property name="toolTip">
+                <string>Withdraw the requests waiting for the next boot.</string>
+               </property>
+               <property name="text">
+                <string>Revoke Pending</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnResetX">
+               <property name="toolTip">
+                <string>Queue a request to erase this whole list at the next boot.</string>
+               </property>
+               <property name="text">
+                <string>Reset List</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="spacerMokDeny">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tabPlatform">
+          <attribute name="title">
+           <string>Platform / KEK</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="layoutPlatform">
+           <item>
+            <widget class="QTreeWidget" name="treePlatform">
+             <property name="rootIsDecorated">
+              <bool>false</bool>
+             </property>
+             <property name="uniformRowHeights">
+              <bool>true</bool>
+             </property>
+             <column>
+              <property name="text">
+               <string>Role</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Type</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Subject</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="lblPlatformNote">
+             <property name="text">
+              <string>The platform key, in bold, is what owns this machine - it is the root the firmware's own trust chain ends at. The key exchange keys below it are what it delegates to, and are what may sign an update to db or dbx. Both are changed in the firmware setup, not from an operating system.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tabDb">
+          <attribute name="title">
+           <string>Firmware db</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="layoutDb">
+           <item>
+            <widget class="QTreeWidget" name="treeDb">
+             <property name="rootIsDecorated">
+              <bool>false</bool>
+             </property>
+             <property name="uniformRowHeights">
+              <bool>true</bool>
+             </property>
+             <column>
+              <property name="text">
+               <string>Type</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Subject</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="lblDbNote">
+             <property name="text">
+              <string>The keys the firmware itself trusts. Shown here for reference - they are changed in the firmware setup, not from an operating system.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tabDbx">
+          <attribute name="title">
+           <string>Firmware dbx</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="layoutDbx">
+           <item>
+            <widget class="QTreeWidget" name="treeDbx">
+             <property name="rootIsDecorated">
+              <bool>false</bool>
+             </property>
+             <property name="uniformRowHeights">
+              <bool>true</bool>
+             </property>
+             <column>
+              <property name="text">
+               <string>Type</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>Subject</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="lblDbxNote">
+             <property name="text">
+              <string>What the firmware refuses outright, whatever else vouches for it. Shown here for reference - it is changed in the firmware setup, not from an operating system.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabMedia">
+      <attribute name="title">
+       <string>External Loader</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayoutMedia">
+       <item row="0" column="0" colspan="3">
+        <widget class="QLabel" name="lblMediaIntro">
+         <property name="text">
+          <string>Writes the same loader to a medium the firmware can boot instead of the EFI partition - a stick to keep aside, or one to boot this machine from without touching its disks at all. Worth making before restarting with the loader installed.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="3">
+        <widget class="QRadioButton" name="radDrive">
+         <property name="text">
+          <string>Removable drive</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="lblDrive">
+         <property name="text">
+          <string>Drive:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="2">
+        <widget class="QComboBox" name="cmbDrive">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0" colspan="3">
+        <widget class="QCheckBox" name="chkFormat">
+         <property name="toolTip">
+          <string>Formats the drive as FAT32 first. Everything on it is lost.</string>
+         </property>
+         <property name="text">
+          <string>Format the drive first (erases everything on it)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="3">
+        <widget class="QRadioButton" name="radIso">
+         <property name="text">
+          <string>ISO image</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0" colspan="3">
+        <widget class="QRadioButton" name="radPxe">
+         <property name="toolTip">
+          <string>Lays the files out in a directory for a network boot server to serve.</string>
+         </property>
+         <property name="text">
+          <string>PXE directory</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="lblPath">
+         <property name="text">
+          <string>Path:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QLineEdit" name="txtPath"/>
+       </item>
+       <item row="6" column="2">
+        <widget class="QToolButton" name="btnBrowse">
+         <property name="text">
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0" colspan="3">
+        <widget class="QCheckBox" name="chkMediaShim">
+         <property name="toolTip">
+          <string>Needed for the medium to boot at all on a machine with Secure Boot on.</string>
+         </property>
+         <property name="text">
+          <string>Include a shim (needed for Secure Boot)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QLabel" name="lblMediaConfigCaption">
+         <property name="text">
+          <string>Configuration:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="QLabel" name="lblMediaConfig">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="2">
+        <widget class="QPushButton" name="btnMediaConfigure">
+         <property name="toolTip">
+          <string>The settings written to DcsProp on the medium - the same ones the loader reads on the EFI partition.</string>
+         </property>
+         <property name="text">
+          <string>Configure...</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="0" colspan="3">
+        <layout class="QHBoxLayout" name="layoutMediaButtons">
+         <item>
+          <spacer name="spacerMedia">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnWrite">
+           <property name="text">
+            <string>Write Loader</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="10" column="0" colspan="3">
+        <spacer name="spacerMediaV">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Close</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

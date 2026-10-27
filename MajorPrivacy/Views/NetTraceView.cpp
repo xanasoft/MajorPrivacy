@@ -61,6 +61,8 @@ CNetTraceView::CNetTraceView(QWidget *parent)
 
 	m_pToolBar->addSeparator();
 
+	m_pToolBar->addWidget(MakePrivateButton());
+
 	m_pBtnScroll = new QToolButton();
 	m_pBtnScroll->setIcon(QIcon(":/Icons/Scroll.png"));
 	m_pBtnScroll->setCheckable(true);

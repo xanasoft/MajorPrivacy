@@ -13,6 +13,7 @@
 #include "../Views/IngressView.h"
 #include "../Views/ExecutionView.h"
 #include "../Views/HashDBView.h"
+#include "../Views/UsageView.h"
 
 CProcessPage::CProcessPage(bool bEmbedded, QWidget* parent)
 	: QWidget(parent)
@@ -73,6 +74,11 @@ CProcessPage::CProcessPage(bool bEmbedded, QWidget* parent)
 	m_pTraceView = new CProcessTraceView();
 	m_pTabs->addTab(m_pTraceView, QIcon(":/Icons/SetLogging.png"), tr("Trace Log"));
 
+	if (!bEmbedded) {
+		m_pCpuView = new CUsageView(EUsageMetric::eCpu);
+		m_pTabs->addTab(m_pCpuView, QIcon(":/Icons/CPU.png"), tr("CPU Usage"));
+	}
+
 	m_pVSplitter = new QSplitter(Qt::Vertical);
 	m_pMainLayout->addWidget(m_pVSplitter);
 	m_pVSplitter->addWidget(m_pRuleTabs);
@@ -129,19 +135,34 @@ void CProcessPage::Update()
 
 	auto Current = theGUI->GetCurrentItems();
 
+	//
+	// Explicitly selected items are always shown. The implicit members of a group or of
+	// "All Programs" with a private execution trace preset only when the trace view's own
+	// "show private" button, or the global one, is on.
+	//
 	bool bShowPrivate = theGUI->GetShowPrivate();
-
-	QSet<CProgramFilePtr> Programs = Current.ProgramsEx;
-	if ( m_pTraceView->isVisible()) {
+	auto Programs = [&](bool bPrivate) {
+		QSet<CProgramFilePtr> Set = Current.ProgramsEx;
 		for (auto& pProgram : Current.ProgramsIm) {
-			if(bShowPrivate || pProgram->GetResTrace() != ETracePreset::ePrivate)
-				Programs.insert(pProgram);
+			if (bShowPrivate || bPrivate || pProgram->GetExecTrace() != ETracePreset::ePrivate)
+				Set.insert(pProgram);
 		}
-	}
+		return Set;
+	};
 
 	if (m_pRuleView->isVisible())
 	{
-		if(Current.bAllPrograms)
+		if (Current.bAllProgramsOnly) {
+			//
+			// The all programs item stands for the rules that apply to every program,
+			// not for the union of what the individual programs have.
+			//
+			QSet<QFlexGuid> RuleIDs;
+			CProgramSetPtr pAll = theCore->ProgramManager()->GetAll();
+			if (pAll) RuleIDs = pAll->GetProgRules();
+			m_pRuleView->Sync(theCore->ProgramManager()->GetProgramRules(RuleIDs));
+		}
+		else if(Current.bAllPrograms)
 			m_pRuleView->Sync(theCore->ProgramManager()->GetProgramRules());
 		else {
 			QSet<QFlexGuid> RuleIDs;
@@ -178,7 +199,13 @@ void CProcessPage::Update()
 
 	if (m_pTraceView->isVisible())
 	{
-		m_pTraceView->Sync(ETraceLogs::eExecLog, Programs, Current.ServicesEx);
+		m_pTraceView->Sync(ETraceLogs::eExecLog, Programs(m_pTraceView->ShowPrivate()), Current.ServicesEx);
+	}
+
+	if (m_pCpuView && m_pCpuView->isVisible())
+	{
+		m_pCpuView->setEnabled(theCore->GetConfigBool("Service/UsageStats", true));
+		m_pCpuView->Sync(Current.ProgramsEx | Current.ProgramsIm, Current.ServicesEx | Current.ServicesIm);
 	}
 }
 
@@ -220,6 +247,8 @@ void CProcessPage::Update(const QFlexGuid& EnclaveGuid)
 
 void CProcessPage::Clear()
 {
+	if (m_pCpuView) m_pCpuView->Clear();
+
 	m_pRuleView->Clear();
 
 	m_pHashDBView->Clear();

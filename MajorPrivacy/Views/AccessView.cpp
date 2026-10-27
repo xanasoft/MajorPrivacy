@@ -16,6 +16,9 @@ CAccessView::CAccessView(QWidget *parent)
 	m_pTreeView->setAlternatingRowColors(theConf->GetBool("Options/AltRowColors", false));
 
 	m_pTreeView->setColumnReset(3);
+	// the model only fills enabled columns, a shown column needs an update even when no data changed
+	connect(m_pTreeView, &QTreeViewEx::ColumnChanged, this, [this]() { m_ForceUpdate = true; });
+	connect(m_pTreeView, &QTreeViewEx::ResetColumns, this, [this]() { m_ForceUpdate = true; });
 	//connect(m_pTreeView, SIGNAL(ResetColumns()), this, SLOT(OnResetColumns()));
 	//connect(m_pTreeView, SIGNAL(ColumnChanged(int, bool)), this, SLOT(OnColumnsChanged()));
 
@@ -54,6 +57,15 @@ CAccessView::CAccessView(QWidget *parent)
 	m_pCmbAction->addItem(QIcon(":/Icons/Go.png"), tr("Allowed"), (qint32)EEventStatus::eAllowed);
 	m_pCmbAction->addItem(QIcon(":/Icons/Disable.png"), tr("Blocked"), (qint32)EEventStatus::eBlocked);
 	m_pToolBar->addWidget(m_pCmbAction);
+
+	m_pToolBar->addSeparator();
+	m_pBtnPrivate = new QToolButton();
+	m_pBtnPrivate->setIcon(QIcon(":/Icons/Invisible.png"));
+	m_pBtnPrivate->setCheckable(true);
+	m_pBtnPrivate->setToolTip(tr("Show Private Entries"));
+	m_pBtnPrivate->setMaximumHeight(22);
+	connect(m_pBtnPrivate, SIGNAL(clicked()), this, SLOT(OnRefresh()));
+	m_pToolBar->addWidget(m_pBtnPrivate);
 
 	m_pToolBar->addSeparator();
 	m_pBtnHold = new QToolButton();
@@ -113,65 +125,12 @@ void CAccessView::OnRefresh()
 	m_FullRefresh = true;
 }
 
-SAccessItemPtr CAccessView::ApplyTreeFilter(const SAccessItemPtr& pItem)
-{
-	if (!pItem)
-		return SAccessItemPtr();
-
-	// Helper function to check if this item or any descendant matches the filter
-	std::function<bool(const SAccessItemPtr&)> HasMatch = [&](const SAccessItemPtr& pNode) -> bool {
-
-		if (pNode->FilterMatch == -1 || m_FilterChanged) 
-		{
-			pNode->FilterMatch = 0;
-			if (!pNode->Name.isEmpty() && pNode->Name.contains(m_FilterExp))
-				pNode->FilterMatch = 1;
-			else for (auto it = pNode->Branches.constBegin(); it != pNode->Branches.constEnd(); ++it) 
-			{
-				if (HasMatch(it.value())) {
-					pNode->FilterMatch = 1;
-					break;
-				}
-			}
-		}
-
-		return pNode->FilterMatch == 1;
-	};
-
-	// Helper function to create a filtered copy of the tree
-	std::function<SAccessItemPtr(const SAccessItemPtr&)> FilterNode = [&](const SAccessItemPtr& pNode) -> SAccessItemPtr {
-
-		// Create a copy of the current node
-		SAccessItemPtr pFiltered = SAccessItemPtr(new SAccessItem());
-		pFiltered->Name = pNode->Name;
-		pFiltered->Type = pNode->Type;
-		pFiltered->Path = pNode->Path;
-		pFiltered->LastAccess = pNode->LastAccess;
-		pFiltered->AccessCount = pNode->AccessCount;
-		pFiltered->AccessMask = pNode->AccessMask;
-		pFiltered->Stats = pNode->Stats;
-
-		// Process children - only include branches that have matches
-		for (auto it = pNode->Branches.constBegin(); it != pNode->Branches.constEnd(); ++it) {
-			if (HasMatch(it.value())) {
-				SAccessItemPtr pFilteredChild = FilterNode(it.value());
-				if (pFilteredChild)
-					pFiltered->Branches.insert(it.key(), pFilteredChild);
-			}
-		}
-
-		return pFiltered;
-	};
-
-	return FilterNode(pItem);
-}
-
 void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, QString RootPath)
 {
 	// Handle filter-only changes without rebuilding the tree
 
 
-	if (m_CurPrograms != Programs || m_CurServices != Services || m_FullRefresh
+	if (!Programs.contains(m_CurPrograms) || !Services.contains(m_CurServices) || m_FullRefresh
 		|| m_iAccessFilter != m_pCmbAccess->currentData().toInt()
 		|| m_iStatusFilter != m_pCmbAction->currentData().toInt()
 		|| m_RecentLimit != theGUI->GetRecentLimit() || m_RootPath != RootPath)
@@ -189,27 +148,26 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		//m_FilterChanged = false;  // Clear filter changed flag on full refresh
 		m_RefreshCount++;
 	}
-	/*else if (m_FilterChanged)
-	{
-	m_FilterChanged = false;
-
-	// Apply filtering and update model only
-	SAccessItemPtr pFilteredRoot = m_CurRoot;
-	if (m_FilterExp.isValid() && !m_FilterExp.pattern().isEmpty()) {
-	pFilteredRoot = ApplyTreeFilter(m_CurRoot);
-	}
-	m_pItemModel->Update(pFilteredRoot);
-	return;
-	}*/
 	else if(m_pBtnHold->isChecked() /*&& !theGUI->m_IgnoreHold*/ && !m_FilterChanged)
 		return;
+
+	//
+	// Only an item leaving the selection needs the rebuild above. Items joining it, which happens all the time
+	// with "All Programs" or a group selected as new programs show up, are simply added, resetting
+	// the view for them cleared the model and collapsed everything the user had expanded.
+	//
+	m_CurPrograms = Programs;
+	m_CurServices = Services;
 
 	RootPath = theCore->NormalizePath(RootPath);
 
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
+	bool bChanged = false; // set when an entry was added, otherwise the model update is skipped
+
 	if (m_CurRoot.isNull())
 	{
+		bChanged = true;
 		m_CurRoot = SAccessItemPtr(new SAccessItem());
 
 		auto addAccessItem = [&](SAccessItemPtr& root, const QString& name, const QString& title, SAccessItem::EType type) {
@@ -233,6 +191,8 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 	std::function<void(const SAccessItemPtr&, SAccessItem::EType, const QString&, int, const CProgramItemPtr&, const SAccessStatsPtr&)> AddTreeEntry = 
 		[&](const SAccessItemPtr& pParent, SAccessItem::EType Type, const QString& Path, int uOffset, const CProgramItemPtr& pProg, const SAccessStatsPtr& pStats) {
 
+		pParent->FilterMatch = -1; // something below may match now
+
 		while (uOffset < Path.length() && Path.at(uOffset) == L'\\')
 			uOffset++;
 
@@ -251,8 +211,15 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 			pParent->Stats[pProg] = pStats;
 			if(pParent->LastAccess < pStats->LastAccessTime)
 				pParent->LastAccess = pStats->LastAccessTime;
-			pParent->AccessMask = pStats->AccessMask;
-			pParent->AccessCount += pStats->AccessCount;
+			pParent->AccessMask |= pStats->AccessMask;
+			// the stats hold running totals and an entry is added again on every change,
+			// recount this node's own part instead of adding the total once more
+			quint64 OwnCount = 0;
+			for (auto I = pParent->Stats.constBegin(); I != pParent->Stats.constEnd(); ++I)
+				OwnCount += I.value()->AccessCount;
+			pParent->AccessCount += OwnCount - pParent->OwnCount;
+			pParent->OwnCount = OwnCount;
+			bChanged = true;
 			return;
 		}
 
@@ -390,21 +357,18 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		qint64 LastAccess = (qint64)qMax(pProgram->GetAccessLastActivity(), pProgram->GetAccessLastEvent());
 		if(Item.LastAccess >= LastAccess)
 			continue;
-		Item.LastAccess = LastAccess;
-
 		if (!ProgressHelper.Next(pProgram->GetName())) {
 			m_pBtnHold->setChecked(true);
 			break;
 		}
+		Item.LastAccess = LastAccess; // only once it is processed, a canceled one is not skipped next time
 
-		QMap<quint64, SAccessStatsPtr> Log = pProgram->GetAccessStats();
-		for (auto I = Log.constBegin(); I != Log.constEnd(); I++) {
-			auto &Value = Item.Items[(quint64)I.value().data()];
-			if(Value.Value >= (qint64)I.value()->LastAccessTime)
-				continue;
-			Value.Value = (qint64)I.value()->LastAccessTime;
+		// keyed by change sequence, only what changed since the last pass, for an item new to the view that is all of it
+		const QMap<quint64, SAccessStatsPtr> Log = pProgram->GetAccessStats();
+		for (auto I = Log.upperBound(Item.LastSeq); I != Log.constEnd(); I++)
 			AddEntry(pProgram, I.value());
-		}
+		if (!Log.isEmpty() && Log.lastKey() > Item.LastSeq)
+			Item.LastSeq = Log.lastKey();
 	}
 	foreach(const CWindowsServicePtr& pService, Services) 
 	{
@@ -412,21 +376,18 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 		qint64 LastAccess = (qint64)qMax(pService->GetAccessLastActivity(), pService->GetAccessLastEvent());
 		if(Item.LastAccess >= LastAccess)
 			continue;
-		Item.LastAccess = LastAccess;
-
 		if (!ProgressHelper.Next(pService->GetName())) {
 			m_pBtnHold->setChecked(true);
 			break;
 		}
+		Item.LastAccess = LastAccess; // only once it is processed, a canceled one is not skipped next time
 
-		QMap<quint64, SAccessStatsPtr> Log = pService->GetAccessStats();
-		for (auto I = Log.constBegin(); I != Log.constEnd(); I++) {
-			auto &Value = Item.Items[(quint64)I.value().data()];
-			if(Value.Value >= (qint64)I.value()->LastAccessTime)
-				continue;
-			Value.Value = (qint64)I.value()->LastAccessTime;
+		// keyed by change sequence, only what changed since the last pass, for an item new to the view that is all of it
+		const QMap<quint64, SAccessStatsPtr> Log = pService->GetAccessStats();
+		for (auto I = Log.upperBound(Item.LastSeq); I != Log.constEnd(); I++)
 			AddEntry(pService, I.value());
-		}
+		if (!Log.isEmpty() && Log.lastKey() > Item.LastSeq)
+			Item.LastSeq = Log.lastKey();
 	}
 
 	if (ProgressHelper.Done()) {
@@ -446,15 +407,20 @@ void CAccessView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindow
 	//foreach(QString Key, OldMap.keys())
 	//	m_CurAccess.remove(Key);
 
-	// Apply filtering if a filter is set
-	SAccessItemPtr pFilteredRoot = m_CurRoot;
-	if (m_FilterExp.isValid() && !m_FilterExp.pattern().isEmpty()) {
-		pFilteredRoot = ApplyTreeFilter(m_CurRoot);
-	}
+	//
+	// The model update walks every row the view has loaded, skip it when nothing changed.
+	// The filter is evaluated by the model, which hides what does not match instead of copying the tree.
+	//
+	if (!bChanged && !m_FilterChanged && !m_ForceUpdate)
+		return;
+
+	if (m_FilterChanged)
+		m_pItemModel->SetFilter(m_FilterExp);
 	m_FilterChanged = false;
+	m_ForceUpdate = false;
 
 	//start = GetUSTickCount();
-	m_pItemModel->Update(pFilteredRoot);
+	m_pItemModel->Update(m_CurRoot);
 	//qDebug() << "Access Tree Update took" << (GetUSTickCount() - start) / 1000000.0 << "s";
 
 	/*if (m_CurPrograms.count() + m_CurServices.count() > 1)

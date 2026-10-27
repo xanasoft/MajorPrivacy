@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3C7A1E42-9B08-4D6F-A15C-2E8D4F60B731}</ProjectGuid>
+    <RootNamespace>volume_lib_km</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <TargetVersion>Windows10</TargetVersion>
+    <DriverType>WDM</DriverType>
+    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
+    <TargetVersion>Windows10</TargetVersion>
+    <DriverType>WDM</DriverType>
+    <Driver_SpectreMitigation>Spectre</Driver_SpectreMitigation>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <!-- Follows what dcapi links. crypto_fast is gone, crypto_lib is the only
+         crypto backend left. volume_lib needs its headers, not its code, and
+         nothing here reaches aes_asm.h, so this holds on Win32 too even though
+         crypto_lib itself builds for amd64 and ARM64 only. -->
+    <DcCryptoDir>crypto_lib</DcCryptoDir>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutDir Condition="'$(Platform)'=='Win32'">$(ProjectDir)..\Bin\$(Configuration)_i386\</OutDir>
+    <IntDir Condition="'$(Platform)'=='Win32'">$(ProjectDir)..\Bin\$(Configuration)_i386\obj\$(ProjectName)\</IntDir>
+    <OutDir Condition="'$(Platform)'=='x64'">$(ProjectDir)..\Bin\$(Configuration)_amd64\</OutDir>
+    <IntDir Condition="'$(Platform)'=='x64'">$(ProjectDir)..\Bin\$(Configuration)_amd64\obj\$(ProjectName)\</IntDir>
+    <OutDir Condition="'$(Platform)'=='ARM64'">$(ProjectDir)..\Bin\$(Configuration)_arm64\</OutDir>
+    <IntDir Condition="'$(Platform)'=='ARM64'">$(ProjectDir)..\Bin\$(Configuration)_arm64\obj\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;IS_DRIVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ControlFlowGuard>false</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\_include_;$(ProjectDir)..\include;$(ProjectDir)..\$(DcCryptoDir);$(ProjectDir)..\crypto;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;IS_DRIVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <StringPooling>true</StringPooling>
+      <ControlFlowGuard>false</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\_include_;$(ProjectDir)..\include;$(ProjectDir)..\$(DcCryptoDir);$(ProjectDir)..\crypto;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <!-- host plumbing -->
+    <ClCompile Include="dc_host.c" />
+    <ClCompile Include="dc_buffer.c" />
+    <!-- moved out of the driver -->
+    <ClCompile Include="crypto_head.c" />
+    <ClCompile Include="header_io.c" />
+    <ClCompile Include="volume_head.c" />
+    <!-- added for the user-mode and EFI consumers -->
+    <ClCompile Include="head_util.c" />
+    <ClCompile Include="keyfile_mix.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="dc_dev.h" />
+    <ClInclude Include="dc_internal.h" />
+    <ClInclude Include="crypto_head.h" />
+    <ClInclude Include="header_io.h" />
+    <ClInclude Include="volume_head.h" />
+    <ClInclude Include="head_util.h" />
+    <ClInclude Include="keyfile_mix.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

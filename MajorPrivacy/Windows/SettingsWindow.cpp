@@ -10,6 +10,7 @@
 #include "../OnlineUpdater.h"
 #include <QFontDialog>
 #include "Helpers/WinAdmin.h"
+#include "FwGuardEntryWnd.h"
 
 void AddIconToLabel(QLabel* pLabel, const QPixmap& Pixmap)
 {
@@ -214,6 +215,7 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	QOperatingSystemVersion current = QOperatingSystemVersion::current();
 	ui.chkUseW11Style->setEnabled(current.majorVersion() == 10 && current.microVersion() >= 22000); // Windows 10 22000+ (Windows 11)
 	connect(ui.chkAltRows, SIGNAL(stateChanged(int)), this, SLOT(OnChangeGUI()));
+	connect(ui.chkShowAllRules, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
 	connect(ui.chkMinimize, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkSingleShow, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
@@ -237,6 +239,10 @@ CSettingsWindow::CSettingsWindow(QWidget* parent)
 	connect(ui.chkFwInOutRules, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkFwShowAlerts, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkGuardFwRules, SIGNAL(stateChanged(int)), this, SLOT(OnFwGuardChanged()));
+	connect(ui.chkFwAllowRemoval, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkFwRecreate, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkFwTemplateGuard, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
+	connect(ui.chkFwAlwaysTemplate, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkFwDelRogue, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 	connect(ui.chkLoadFwLog, SIGNAL(stateChanged(int)), this, SLOT(OnOptChanged()));
 
@@ -535,6 +541,8 @@ void CSettingsWindow::OnOptFwChanged()
 {
 	ui.chkFwInOutRules->setEnabled(ui.chkFwShowPopUp->isEnabled() && ui.chkFwShowPopUp->isChecked());
 	ui.chkFwPlusNotify->setEnabled(ui.chkFwPlus->isChecked());
+	ui.chkFwTemplateGuard->setEnabled(ui.chkFwPlus->isChecked());
+	ui.chkFwAlwaysTemplate->setEnabled(ui.chkFwPlus->isChecked());
 
 	OnOptChanged();
 }
@@ -558,23 +566,40 @@ void CSettingsWindow::AddAutoEntry(QString Path, bool bApprove)
 	ui.treeFwGuard->addTopLevelItem(pItem);
 }
 
-void CSettingsWindow::OnGuardAddApprove()
+void CSettingsWindow::EditAutoEntry(QTreeWidgetItem* pItem, bool bApprove)
 {
-	QString Value = QInputDialog::getText(this, "MajorPrivacy", tr("Enter file path pattern for the entry"), QLineEdit::Normal);
-	
-	AddAutoEntry(Value, true);
+	QString Path = pItem ? pItem->text(1) : QString();
+	if (pItem) bApprove = pItem->data(0, Qt::UserRole).toBool();
+
+	CFwGuardEntryWnd Wnd(Path, bApprove, QStringList(), this);
+	if (theGUI->SafeExec(&Wnd) != QDialog::Accepted)
+		return;
+
+	// the entries of both lists end up in one single tree, so one pattern can only mean one thing
+	for (int i = 0; i < ui.treeFwGuard->topLevelItemCount(); i++) {
+		QTreeWidgetItem* pOther = ui.treeFwGuard->topLevelItem(i);
+		if (pOther != pItem && pOther->text(1).compare(Wnd.GetPattern(), Qt::CaseInsensitive) == 0) {
+			delete pOther;
+			i--;
+		}
+	}
+
+	if (pItem)
+		delete pItem;
+	AddAutoEntry(Wnd.GetPattern(), Wnd.IsApprove());
 
 	if (!m_HoldChange) m_AutoGuardChanged = true;
+	OnOptChanged();
+}
+
+void CSettingsWindow::OnGuardAddApprove()
+{
+	EditAutoEntry(NULL, true);
 }
 
 void CSettingsWindow::OnGuardAddReject()
 {
-	QString Value = QInputDialog::getText(this, "MajorPrivacy", tr("Enter file path pattern for the entry"), QLineEdit::Normal);
-
-	AddAutoEntry(Value, false);
-
-	if (!m_HoldChange) m_AutoGuardChanged = true;
-	OnOptChanged();
+	EditAutoEntry(NULL, false);
 }
 
 void CSettingsWindow::OnGuardRemove()
@@ -602,6 +627,8 @@ void CSettingsWindow::OnFwGuardListClicked(QTreeWidgetItem* pItem, int Column)
 
 void CSettingsWindow::OnFwGuardDoubleClicked(QTreeWidgetItem* pItem, int Column)
 {
+	if (pItem)
+		EditAutoEntry(pItem, true);
 }
 
 void CSettingsWindow::OnOptChanged()
@@ -708,6 +735,8 @@ void CSettingsWindow::LoadSettings()
 
 	ui.chkFwPlus->setChecked(theCore->GetConfigBool("Service/UseFwRuleTemplates", true));
 	ui.chkFwPlusNotify->setChecked(theConf->GetBool("Options/NotifyFwRuleTemplates", true));
+	ui.chkFwTemplateGuard->setChecked(theCore->GetConfigBool("Service/FwTemplateGuard", true));
+	ui.chkFwAlwaysTemplate->setChecked(theCore->GetConfigBool("Service/FwAlwaysMakeTemplate", false));
 	ui.chkFwAutoCleanup->setChecked(theCore->GetConfigBool("Service/AutoCleanUpFwTemplateRules", false));
 	ui.chkNetTrace->setChecked(theCore->GetConfigBool("Service/NetTrace", true));
 	ui.chkTrafficRecord->setChecked(theCore->GetConfigBool("Service/SaveTrafficRecord", false));
@@ -721,6 +750,7 @@ void CSettingsWindow::LoadSettings()
 	ui.chkFusionTheme->setCheckState(CSettingsWindow__Int2Chk(theConf->GetInt("Options/UseFusionTheme", 2)));
 	ui.chkUseW11Style->setChecked(theConf->GetBool("Options/UseW11Style", false));
 	ui.chkAltRows->setChecked(theConf->GetBool("Options/AltRowColors", false));
+	ui.chkShowAllRules->setChecked(theConf->GetBool("Options/ShowAllRules", true));
 
 	ui.chkMinimize->setChecked(theConf->GetBool("Options/MinimizeToTray", false));
 	ui.chkSingleShow->setChecked(theConf->GetBool("Options/TraySingleClick", false));
@@ -751,6 +781,8 @@ void CSettingsWindow::LoadSettings()
 	ui.chkFwShowAlerts->setChecked(theConf->GetBool("NetworkFirewall/ShowChangeAlerts", false));
 	ui.chkGuardFwRules->setChecked(theCore->GetConfigBool("Service/GuardFwRules", false));
 	ui.chkFwDelRogue->setChecked(theCore->GetConfigBool("Service/DeleteRogueFwRules", false));
+	ui.chkFwAllowRemoval->setChecked(theCore->GetConfigBool("Service/FwAutoApproveAllowRemoval", false));
+	ui.chkFwRecreate->setChecked(theCore->GetConfigBool("Service/FwAutoApproveRecreate", true));
 
 	ui.chkLoadFwLog->setChecked(theCore->GetConfigBool("Service/LoadWindowsFirewallLog", false));
 
@@ -792,6 +824,11 @@ void CSettingsWindow::LoadSettings()
 
 	ui.txtLogLimit->setText(QString::number(theCore->GetConfigInt64("Service/TraceLogRetentionCount", 10000)));
 	ui.txtLogRetention->setText(QString::number(theCore->GetConfigInt64("Service/TraceLogRetentionMinutes", 60 * 24 * 14) / 60));
+
+	ui.chkUsageStats->setChecked(theCore->GetConfigBool("Service/UsageStats", true));
+	ui.chkUsageGpu->setChecked(theCore->GetConfigBool("Service/UsageGpuStats", true));
+	ui.txtUsageRetention->setText(QString::number(theCore->GetConfigInt64("Service/UsageRetentionMinutes", 60 * 24 * 30) / (60 * 24)));
+	ui.chkUsageRecord->setChecked(theCore->GetConfigBool("Service/SaveUsageRecord", true));
 	
 	OnFwAuditPolicyChanged();
 
@@ -869,6 +906,8 @@ void CSettingsWindow::SaveSettings()
 
 	theCore->SetConfig("Service/UseFwRuleTemplates", ui.chkFwPlus->isChecked());
 	theConf->SetValue("Options/NotifyFwRuleTemplates", ui.chkFwPlusNotify->isChecked());
+	theCore->SetConfig("Service/FwTemplateGuard", ui.chkFwTemplateGuard->isChecked());
+	theCore->SetConfig("Service/FwAlwaysMakeTemplate", ui.chkFwAlwaysTemplate->isChecked());
 	theCore->SetConfig("Service/AutoCleanUpFwTemplateRules", ui.chkFwAutoCleanup->isChecked());
 	theCore->SetConfig("Service/NetTrace", ui.chkNetTrace->isChecked());
 	theCore->SetConfig("Service/SaveTrafficRecord", ui.chkTrafficRecord->isChecked());
@@ -882,6 +921,7 @@ void CSettingsWindow::SaveSettings()
 	theConf->SetValue("Options/UseFusionTheme", CSettingsWindow__Chk2Int(ui.chkFusionTheme->checkState()));
 	theConf->SetValue("Options/UseW11Style", ui.chkUseW11Style->isChecked());
 	theConf->SetValue("Options/AltRowColors", ui.chkAltRows->isChecked());
+	theConf->SetValue("Options/ShowAllRules", ui.chkShowAllRules->isChecked());
 
 	theConf->SetValue("Options/MinimizeToTray", ui.chkMinimize->isChecked());
 	theConf->SetValue("Options/TraySingleClick", ui.chkSingleShow->isChecked());
@@ -920,6 +960,8 @@ void CSettingsWindow::SaveSettings()
 	theConf->SetValue("NetworkFirewall/ShowChangeAlerts", ui.chkFwShowAlerts->isChecked());
 	theCore->SetConfig("Service/GuardFwRules", ui.chkGuardFwRules->isChecked());
 	theCore->SetConfig("Service/DeleteRogueFwRules", ui.chkFwDelRogue->isChecked());
+	theCore->SetConfig("Service/FwAutoApproveAllowRemoval", ui.chkFwAllowRemoval->isChecked());
+	theCore->SetConfig("Service/FwAutoApproveRecreate", ui.chkFwRecreate->isChecked());
 
 	theCore->SetConfig("Service/LoadWindowsFirewallLog", ui.chkLoadFwLog->isChecked());
 
@@ -964,6 +1006,11 @@ void CSettingsWindow::SaveSettings()
 
 	theCore->SetConfig("Service/TraceLogRetentionCount", ui.txtLogLimit->text().toULongLong());
 	theCore->SetConfig("Service/TraceLogRetentionMinutes", ui.txtLogRetention->text().toULongLong() * 60);
+
+	theCore->SetConfig("Service/UsageStats", ui.chkUsageStats->isChecked());
+	theCore->SetConfig("Service/UsageGpuStats", ui.chkUsageGpu->isChecked());
+	theCore->SetConfig("Service/UsageRetentionMinutes", ui.txtUsageRetention->text().toULongLong() * 60 * 24);
+	theCore->SetConfig("Service/SaveUsageRecord", ui.chkUsageRecord->isChecked());
 
 	if(m_CertChanged)
 		ApplyCert();

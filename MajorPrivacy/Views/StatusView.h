@@ -32,6 +32,8 @@ private:
 	QLabel*			m_pSecKey;
 	QLabel*			m_pSecConfig;
 	QLabel*			m_pSecCore;
+	QLabel*			m_pSecFirmware;
+	QLabel*			m_pSecProvision;
 
 	QGroupBox*		m_pExecBox;
 	QGridLayout*	m_pExecLayout;

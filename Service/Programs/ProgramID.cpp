@@ -59,12 +59,12 @@ CProgramID CProgramID::FromFw(const std::wstring& FilePath, const std::wstring& 
 		ID.m_Type = EProgramType::eAppPackage;
 	else if (!ServiceTag.empty())
 		ID.m_Type = EProgramType::eWindowsService;
+	else if (FilePath.empty() || FilePath.at(0) == L'*')
+		ID.m_Type = EProgramType::eAllPrograms;
 	else if (FilePath.find_first_of(L"*?<>|") != std::wstring::npos)
 		ID.m_Type = EProgramType::eFilePattern;
-	else if (!FilePath.empty())
-		ID.m_Type = EProgramType::eProgramFile;
 	else
-		ID.m_Type = EProgramType::eAllPrograms;
+		ID.m_Type = EProgramType::eProgramFile;
 
 	ID.m_FilePath = theCore->NormalizePath(FilePath);
 	ID.m_ServiceTag = MkLower(ServiceTag);

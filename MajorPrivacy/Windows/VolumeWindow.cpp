@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "VolumeWindow.h"
+#include "KeyFilesWnd.h"
 #include "../Widgets/PasswordStrengthWidget.h"
 #include "../Core/PrivacyCore.h"
 #include "../MajorPrivacy.h"
@@ -30,7 +31,16 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 
 	m_Action = Action;
 
-	connect(ui.chkShow, SIGNAL(clicked(bool)), this, SLOT(OnShowPassword()));
+	//
+	// Two buttons rather than one checkbox below the form: each sits next to the
+	// field it reveals, the way the secure-entry buttons do, and the new password
+	// no longer has to be shown just to check the one being typed in.
+	//
+	ui.btnShowPw->setIcon(QIcon(":/Icons/Invisible.png"));
+	connect(ui.btnShowPw, &QToolButton::clicked, this, &CVolumeWindow::OnShowPassword);
+
+	ui.btnShowNewPw->setIcon(QIcon(":/Icons/Invisible.png"));
+	connect(ui.btnShowNewPw, &QToolButton::clicked, this, &CVolumeWindow::OnShowNewPassword);
 
 	connect(ui.btnMount, SIGNAL(clicked()), this, SLOT(BrowseMountPoint()));
 	connect(ui.txtImageSize, SIGNAL(textChanged(const QString&)), this, SLOT(OnImageSize()));
@@ -49,6 +59,33 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 	ui.btnSecureNewPw->setIcon(QIcon(":/Icons/Shield.png"));
 	connect(ui.btnSecureNewPw, &QToolButton::clicked, this, &CVolumeWindow::OnSecureNewPasswordEntry);
 
+	//
+	// Keyfile buttons, on the KDF row of the password they belong to. Added here
+	// rather than in the .ui because they only exist when dcvolume.dll does -
+	// without it there is nothing to mix keyfiles with, and an enabled button
+	// that cannot work is worse than no button.
+	//
+	if (CKeyFilesWnd::IsAvailable())
+	{
+		QGridLayout* grid = qobject_cast<QGridLayout*>(ui.gridLayout);
+		if (grid)
+		{
+			m_pKeyFilesBtn = new QToolButton();
+			m_pKeyFilesBtn->setIcon(QIcon(":/Icons/VolumePW.png"));
+			m_pKeyFilesBtn->setCheckable(true);
+			m_pKeyFilesBtn->setToolTip(tr("Mix keyfiles into the password"));
+			grid->addWidget(m_pKeyFilesBtn, 2, 6);
+			connect(m_pKeyFilesBtn, &QToolButton::clicked, this, &CVolumeWindow::OnKeyFiles);
+
+			m_pNewKeyFilesBtn = new QToolButton();
+			m_pNewKeyFilesBtn->setIcon(QIcon(":/Icons/VolumePW.png"));
+			m_pNewKeyFilesBtn->setCheckable(true);
+			m_pNewKeyFilesBtn->setToolTip(tr("Mix keyfiles into the new password"));
+			grid->addWidget(m_pNewKeyFilesBtn, 6, 6);
+			connect(m_pNewKeyFilesBtn, &QToolButton::clicked, this, &CVolumeWindow::OnNewKeyFiles);
+		}
+	}
+
 	// Disable OK button initially for modes that require new password
 	if (Action == eNew || Action == eSetPW || Action == eChange)
 		ui.buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
@@ -61,9 +98,11 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 		ui.lblPassword->setVisible(false);
 		ui.txtPassword->setVisible(false);
 		ui.btnSecurePw->setVisible(false);
+		if (m_pKeyFilesBtn) m_pKeyFilesBtn->setVisible(false);
 
 		ui.lblKdf->setVisible(false);
 		ui.cmbKdf->setVisible(false);
+		ui.btnShowPw->setVisible(false);
 
 		ui.lblDummy->setVisible(false);
 
@@ -89,12 +128,14 @@ CVolumeWindow::CVolumeWindow(const QString& Prompt, EAction Action, QWidget *par
 		ui.lblNewPassword->setVisible(false);
 		ui.txtNewPassword->setVisible(false);
 		ui.btnSecureNewPw->setVisible(false);
+		if (m_pNewKeyFilesBtn) m_pNewKeyFilesBtn->setVisible(false);
 
 		ui.lblRepeatPassword->setVisible(false);
 		ui.txtRepeatPassword->setVisible(false);
 
 		ui.lblNewKdf->setVisible(false);
 		ui.cmbNewKdf->setVisible(false);
+		ui.btnShowNewPw->setVisible(false);
 	}
 
 	// Password strength widget for actions that set a new password
@@ -242,9 +283,14 @@ QString CVolumeWindow::GetKdfName(int iKdf)
 
 void CVolumeWindow::OnShowPassword()
 {
-	ui.txtPassword->setEchoMode(ui.chkShow->isChecked() ? QLineEdit::Normal : QLineEdit::Password);
-	ui.txtNewPassword->setEchoMode(ui.chkShow->isChecked() ? QLineEdit::Normal : QLineEdit::Password);
-	ui.txtRepeatPassword->setEchoMode(ui.chkShow->isChecked() ? QLineEdit::Normal : QLineEdit::Password);
+	ui.txtPassword->setEchoMode(ui.btnShowPw->isChecked() ? QLineEdit::Normal : QLineEdit::Password);
+}
+
+void CVolumeWindow::OnShowNewPassword()
+{
+	QLineEdit::EchoMode Mode = ui.btnShowNewPw->isChecked() ? QLineEdit::Normal : QLineEdit::Password;
+	ui.txtNewPassword->setEchoMode(Mode);
+	ui.txtRepeatPassword->setEchoMode(Mode);
 }
 
 void CVolumeWindow::OnImageSize()
@@ -326,6 +372,9 @@ void CVolumeWindow::CheckPassword()
 		}
 	}
 	
+	if (!MixKeyFiles())
+		return;
+
 	if (m_Action == eNew) {
 		if (GetImageSize() < 128 * 1024 * 1024) { // ask for 256 mb but silently accept >= 128 mb
 			QMessageBox::critical(this, "MajorPrivacy", tr("The Box Disk Image must be at least 128 MB in size, 2GB are recommended."));
@@ -394,10 +443,25 @@ void CVolumeWindow::SetNoAutoKdf()
 	SetKdf(5);
 }
 
+void CVolumeWindow::SetNoKdf()
+{
+	ui.lblKdf->setVisible(false);
+	ui.cmbKdf->setVisible(false);
+	ui.lblNewKdf->setVisible(false);
+	ui.cmbNewKdf->setVisible(false);
+
+	if (m_pKeyFilesBtn) m_pKeyFilesBtn->setVisible(false);
+	if (m_pNewKeyFilesBtn) m_pNewKeyFilesBtn->setVisible(false);
+}
+
 CSecurePassword CVolumeWindow::GetPassword() const
 {
 	if (m_Action == eNew || m_Action == eSetPW)
 		return GetNewPassword();
+
+	// what MixKeyFiles built on accept, if keyfiles were named
+	if (!m_MixedPassword.IsEmpty())
+		return m_MixedPassword;
 
 	if (!m_SecurePassword.IsEmpty())
 		return m_SecurePassword;
@@ -407,6 +471,9 @@ CSecurePassword CVolumeWindow::GetPassword() const
 
 CSecurePassword CVolumeWindow::GetNewPassword() const
 {
+	if (!m_MixedNewPassword.IsEmpty())
+		return m_MixedNewPassword;
+
 	if (!m_SecureNewPassword.IsEmpty())
 		return m_SecureNewPassword;
 	QString sPassword = ui.txtNewPassword->text();
@@ -431,6 +498,91 @@ CSecurePassword	 CVolumeWindow::RequestSecurePassword(bool bConfirm)
 	}
 
 	return Ret.GetValue();
+}
+
+void CVolumeWindow::SetKeyFileSet(const SKeyFiles& KeyFiles)
+{
+	m_KeyFiles = KeyFiles;
+	UpdateKeyFileButtons();
+}
+
+void CVolumeWindow::UpdateKeyFileButtons()
+{
+	if (m_pKeyFilesBtn) {
+		m_pKeyFilesBtn->setChecked(!m_KeyFiles.IsEmpty());
+		m_pKeyFilesBtn->setToolTip(m_KeyFiles.IsEmpty()
+			? tr("Mix keyfiles into the password")
+			: tr("%1 keyfile(s) will be mixed into the password").arg(m_KeyFiles.Count()));
+	}
+	if (m_pNewKeyFilesBtn) {
+		m_pNewKeyFilesBtn->setChecked(!m_NewKeyFiles.IsEmpty());
+		m_pNewKeyFilesBtn->setToolTip(m_NewKeyFiles.IsEmpty()
+			? tr("Mix keyfiles into the new password")
+			: tr("%1 keyfile(s) will be mixed into the new password").arg(m_NewKeyFiles.Count()));
+	}
+}
+
+void CVolumeWindow::OnKeyFiles()
+{
+	CKeyFilesWnd Wnd(m_KeyFiles, this, m_bAllowVirtualKeyFiles);
+	if (Wnd.exec() == QDialog::Accepted)
+		m_KeyFiles = Wnd.GetKeyFiles();
+	UpdateKeyFileButtons();
+}
+
+void CVolumeWindow::OnNewKeyFiles()
+{
+	CKeyFilesWnd Wnd(m_NewKeyFiles, this, m_bAllowVirtualKeyFiles);
+	if (Wnd.exec() == QDialog::Accepted)
+		m_NewKeyFiles = Wnd.GetKeyFiles();
+	UpdateKeyFileButtons();
+}
+
+//
+// Fold the keyfiles in, once, as the dialog is accepted.
+//
+// Doing it here rather than in the accessors means a missing or unreadable
+// keyfile is a message in front of the user with the dialog still open, instead
+// of a wrong password reported by whatever ran next.
+//
+bool CVolumeWindow::MixKeyFiles()
+{
+	m_MixedPassword.ClearPassword();
+	m_MixedNewPassword.ClearPassword();
+
+	QString Error;
+
+	if (!m_KeyFiles.IsEmpty() && m_Action != eNew && m_Action != eSetPW)
+	{
+		CSecurePassword Password = m_SecurePassword;
+		if (Password.IsEmpty()) {
+			QString sPassword = ui.txtPassword->text();
+			Password.SetPassword((wchar_t*)sPassword.utf16(), sPassword.length() * sizeof(wchar_t));
+		}
+
+		if (!CKeyFilesWnd::Mix(m_KeyFiles, Password, &Error)) {
+			QMessageBox::critical(this, "MajorPrivacy", tr("The keyfiles could not be applied.\n\n%1").arg(Error));
+			return false;
+		}
+		m_MixedPassword = Password;
+	}
+
+	if (!m_NewKeyFiles.IsEmpty() && m_Action != eMount && m_Action != eGetPW)
+	{
+		CSecurePassword Password = m_SecureNewPassword;
+		if (Password.IsEmpty()) {
+			QString sPassword = ui.txtNewPassword->text();
+			Password.SetPassword((wchar_t*)sPassword.utf16(), sPassword.length() * sizeof(wchar_t));
+		}
+
+		if (!CKeyFilesWnd::Mix(m_NewKeyFiles, Password, &Error)) {
+			QMessageBox::critical(this, "MajorPrivacy", tr("The keyfiles could not be applied to the new password.\n\n%1").arg(Error));
+			return false;
+		}
+		m_MixedNewPassword = Password;
+	}
+
+	return true;
 }
 
 void CVolumeWindow::OnSecurePasswordEntry()

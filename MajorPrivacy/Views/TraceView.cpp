@@ -52,6 +52,16 @@ CTraceView::~CTraceView()
 {
 }
 
+QToolButton* CTraceView::MakePrivateButton()
+{
+	m_pBtnPrivate = new QToolButton();
+	m_pBtnPrivate->setIcon(QIcon(":/Icons/Invisible.png"));
+	m_pBtnPrivate->setCheckable(true);
+	m_pBtnPrivate->setToolTip(tr("Show Private Entries"));
+	m_pBtnPrivate->setMaximumHeight(22);
+	return m_pBtnPrivate;
+}
+
 void CTraceView::OnMenu(const QPoint& Point)
 {
 	CPanelView::OnMenu(Point);

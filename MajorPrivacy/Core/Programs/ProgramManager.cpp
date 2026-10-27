@@ -84,11 +84,27 @@ STATUS CProgramManager::Update()
 
 	//UpdateGroup(m_Root, Ret.GetValue());
 
-	const QtVariant& Items = Ret.GetValue();
+	QtVariant& Reply = Ret.GetValue();
+
+	const QtVariant& Items = Reply.Get(API_V_PROGRAMS);
+
+	//
+	// A delta, as with the process list: an entry that is absent has not changed,
+	// and neither has a field that is absent. What went away is in
+	// API_V_OLD_PROGRAMS, unless the round was a complete list - which is what the
+	// service sends whenever its cache was empty, and what one built without the
+	// caches sends every time - and then anything it did not mention is gone.
+	//
+	// Told apart by the removed list simply not being there: a complete round has
+	// nothing removed to report in the first place.
+	//
+	bool bIsFull = !Reply.Has(API_V_OLD_PROGRAMS);
 
 	QHash<quint64, QSet<quint64>> Tree;
 
-	QHash<quint64, CProgramItemPtr> OldMap = m_Items;
+	QHash<quint64, CProgramItemPtr> OldMap;
+	if (bIsFull)
+		OldMap = m_Items;
 
 	QtVariantReader(Items).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Item = *(QtVariant*)&vData;
@@ -97,8 +113,15 @@ STATUS CProgramManager::Update()
 
 		quint64 uId = Reader.Find(API_V_PROG_UID);
 
-		CProgramItemPtr pItem = OldMap.take(uId);
-		if (!pItem) 
+		//
+		// Looked up in the list and not taken out of OldMap, which on a delta round
+		// is empty - taking from it would make every entry look new and discard what
+		// has been merged into it so far.
+		//
+		CProgramItemPtr pItem = m_Items.value(uId);
+		if (pItem)
+			OldMap.remove(uId);
+		else
 		{
 			CProgramID ID;
 			ID.FromVariant(Reader.Find(API_V_ID));
@@ -125,9 +148,13 @@ STATUS CProgramManager::Update()
 
 		pItem->FromVariant(Item);
 
-		if (pItem->inherits("CProgramSet")) 
+		//
+		// Only when the membership was actually sent. An absent API_V_PROG_ITEMS is
+		// one that did not change; treating it as an empty set would empty the group.
+		//
+		auto Items = Reader.Find(API_V_PROG_ITEMS);
+		if (pItem->inherits("CProgramSet") && Items.IsValid())
 		{
-			auto Items = Reader.Find(API_V_PROG_ITEMS);
 			QSet<quint64> ItemIDs;
 			QtVariantReader(Items).ReadRawList([&](const FW::CVariant& vData) {
 				//Q_ASSERT(!ItemIDs.contains(vData.Get(SVC_API_PROG_UID))); // todo: xxx
@@ -161,6 +188,13 @@ STATUS CProgramManager::Update()
 		}
 	}
 
+	QtVariantReader(Reply.Get(API_V_OLD_PROGRAMS)).ReadRawList([&](const FW::CVariant& vData) {
+		quint64 uId = ((QtVariant*)&vData)->To<quint64>(0);
+		CProgramItemPtr pItem = m_Items.value(uId);
+		if (pItem)
+			OldMap.insert(uId, pItem);
+	});
+
 	OldMap.remove(m_pAll->GetUID()); // just in case
 
 	foreach(const CProgramItemPtr & pItem, OldMap) {
@@ -190,9 +224,21 @@ STATUS CProgramManager::UpdateLibs()
 
 	QWriteLocker Lock(&m_Mutex); 
 
-	const QtVariant& Libraries = Ret.GetValue().Get(API_V_LIBRARIES);
+	QtVariant& Reply = Ret.GetValue();
 
-	QHash<quint64, CProgramLibraryPtr> OldLibraries = m_Libraries;
+	const QtVariant& Libraries = Reply.Get(API_V_LIBRARIES);
+
+	//
+	// A delta. A library never changes once it is enlisted, so in the normal round
+	// this list is empty and there is nothing to do at all.
+	//
+	// As with the programs, a round with no removed list is a complete one.
+	//
+	bool bIsFull = !Reply.Has(API_V_OLD_LIBRARIES);
+
+	QHash<quint64, CProgramLibraryPtr> OldLibraries;
+	if (bIsFull)
+		OldLibraries = m_Libraries;
 
 	QtVariantReader(Libraries).ReadRawList([&](const FW::CVariant& vData) {
 		const QtVariant& Library = *(QtVariant*)&vData;
@@ -201,16 +247,24 @@ STATUS CProgramManager::UpdateLibs()
 		FW::CVariantReader::Find(Library, API_V_PROG_UID, vUID);
 		quint64 UID = vUID;
 
-		CProgramLibraryPtr pLibrary = OldLibraries.take(UID);
-		bool bUpdate = false; // we dont have live library  data currently hence we dont update it once its enlisted
-		if (!pLibrary) {
+		//
+		// This used to skip re-reading an already enlisted library, there being no
+		// live library data and the whole list coming round again every time anyway.
+		// Now an entry only arrives when something about it changed, so skipping it
+		// would drop the one update that was worth sending.
+		//
+		CProgramLibraryPtr pLibrary = m_Libraries.value(UID);
+		if (pLibrary) {
+			OldLibraries.remove(UID);
+			if (bIsFull)
+				return; // already enlisted, and a library cannot change
+		}
+		else {
 			pLibrary = CProgramLibraryPtr(new CProgramLibrary());
 			m_Libraries.insert(UID, pLibrary);
-			bUpdate = true;
 		} 
 
-		if(bUpdate)
-			pLibrary->FromVariant(Library);
+		pLibrary->FromVariant(Library);
 	});
 
 	//m_LibrariesCacheToken = Ret.GetValue().Get(SVC_API_CACHE_TOKEN).To<uint64>(0);
@@ -226,6 +280,10 @@ STATUS CProgramManager::UpdateLibs()
 	//}
 	//else
 	{
+		QtVariantReader(Reply.Get(API_V_OLD_LIBRARIES)).ReadRawList([&](const FW::CVariant& vData) {
+			m_Libraries.remove(((QtVariant*)&vData)->To<quint64>(0));
+		});
+
 		foreach(quint64 UID, OldLibraries.keys())
 			m_Libraries.remove(UID);
 	}
@@ -264,7 +322,7 @@ void CProgramManager::AddProgramUnsafe(const CProgramItemPtr& pItem)
 	case EProgramType::eAppPackage:				m_PackageMap.insert(ID.GetAppContainerSid(), pItem.objectCast<CAppPackage>()); break;
 	case EProgramType::eAppInstallation:		break;
 	case EProgramType::eProgramGroup:			m_Groups.insert(ID.GetGuid(), pItem.objectCast<CProgramGroup>()); break;
-	//case EProgramType::eAllPrograms:			m_pAll = pItem.objectCast<CProgramSet>(); break;
+	case EProgramType::eAllPrograms:			break; //m_pAll = pItem.objectCast<CProgramSet>(); break;
 	default: Q_ASSERT(0);
 	}
 }

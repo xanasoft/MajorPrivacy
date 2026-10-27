@@ -44,7 +44,10 @@ StVariant CDnsCacheEntry::ToVariant(FW::AbstractMemPool* pMemPool) const
 {
 	StVariantWriter Entry(pMemPool);
 	Entry.BeginIndex();
-	Entry.Write(API_V_DNS_CACHE_REF, (uint64)this);
+	//
+	// Its own number and not its address, see CAbstractInfoEx::GetObjectUid.
+	//
+	Entry.Write(API_V_DNS_CACHE_REF, GetObjectUid());
 	Entry.WriteEx(API_V_DNS_HOST, m_HostName);
 	Entry.Write(API_V_DNS_TYPE, m_Type);
 	Entry.WriteEx(API_V_DNS_ADDR, m_Address.ToString());

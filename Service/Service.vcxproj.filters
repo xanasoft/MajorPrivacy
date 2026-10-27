@@ -87,6 +87,9 @@
     <ClCompile Include="Processes\ProcessList.cpp">
       <Filter>Processes</Filter>
     </ClCompile>
+    <ClCompile Include="Processes\GpuMonitor.cpp">
+      <Filter>Processes</Filter>
+    </ClCompile>
     <ClCompile Include="ServiceCore.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -182,6 +185,9 @@
     </ClCompile>
     <ClCompile Include="Network\TrafficLog.cpp">
       <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Programs\UsageLog.cpp">
+      <Filter>Programs</Filter>
     </ClCompile>
     <ClCompile Include="Processes\ExecLogEntry.cpp">
       <Filter>Processes</Filter>
@@ -285,6 +291,9 @@
     <ClCompile Include="Common\EventLog.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Common\ListReplies.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
     <ClCompile Include="HashDB\HashDB.cpp">
       <Filter>HashDB</Filter>
     </ClCompile>
@@ -312,6 +321,9 @@
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="Processes\ProcessList.h">
+      <Filter>Processes</Filter>
+    </ClInclude>
+    <ClInclude Include="Processes\GpuMonitor.h">
       <Filter>Processes</Filter>
     </ClInclude>
     <ClInclude Include="ServiceCore.h">
@@ -500,6 +512,9 @@
     <ClInclude Include="Network\TrafficLog.h">
       <Filter>Network</Filter>
     </ClInclude>
+    <ClInclude Include="Programs\UsageLog.h">
+      <Filter>Programs</Filter>
+    </ClInclude>
     <ClInclude Include="Processes\ExecLogEntry.h">
       <Filter>Processes</Filter>
     </ClInclude>
@@ -612,6 +627,9 @@
       <Filter>JSEngine</Filter>
     </ClInclude>
     <ClInclude Include="Common\EventLog.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ListReplies.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="HashDB\HashDB.h">

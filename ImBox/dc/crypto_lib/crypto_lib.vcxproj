@@ -1,0 +1,167 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{7C4E1A92-3D5B-4F18-9E77-2A61C0D84B10}</ProjectGuid>
+    <RootNamespace>crypto_lib</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir Condition="'$(Platform)'=='x64'">$(ProjectDir)..\Bin\$(Configuration)_amd64\</OutDir>
+    <IntDir Condition="'$(Platform)'=='x64'">$(ProjectDir)..\Bin\$(Configuration)_amd64\obj\$(ProjectName)\</IntDir>
+    <OutDir Condition="'$(Platform)'=='ARM64'">$(ProjectDir)..\Bin\$(Configuration)_arm64\</OutDir>
+    <IntDir Condition="'$(Platform)'=='ARM64'">$(ProjectDir)..\Bin\$(Configuration)_arm64\obj\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;CL_ENABLE_AVX;CL_ENABLE_AVX2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ControlFlowGuard>false</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;CL_ENABLE_AVX;CL_ENABLE_AVX2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <StringPooling>true</StringPooling>
+      <ControlFlowGuard>false</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <!-- portable -->
+    <ClCompile Include="crc32.c" />
+    <ClCompile Include="cl_cpu.c" />
+    <ClCompile Include="aes_key.c" />
+    <ClCompile Include="serpent.c" />
+    <ClCompile Include="twofish.c" />
+    <ClCompile Include="sha512.c" />
+    <ClCompile Include="sha512_hmac.c" />
+    <ClCompile Include="sha512_hmac_drbg.c" />
+    <ClCompile Include="sha512_pkcs5_2.c" />
+    <ClCompile Include="xts_fast.c" />
+    <ClCompile Include="xts_twofish.c" />
+    <!-- amd64 -->
+    <ClCompile Include="xts_aes_ni.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="xts_serpent_sse2.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="xts_serpent_avx.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='ARM64'">true</ExcludedFromBuild>
+      <EnableEnhancedInstructionSet Condition="'$(Platform)'=='x64'">AdvancedVectorExtensions</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <ClCompile Include="xts_serpent_avx2.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='ARM64'">true</ExcludedFromBuild>
+      <EnableEnhancedInstructionSet Condition="'$(Platform)'=='x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <!-- ARM64 -->
+    <ClCompile Include="xts_aes_ce.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="xts_serpent_neon.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <!-- Argon2 -->
+    <ClCompile Include="Argon2\argon2.c" />
+    <ClCompile Include="Argon2\argon2_mt.c" />
+    <ClCompile Include="Argon2\core.c" />
+    <ClCompile Include="Argon2\ref.c" />
+    <ClCompile Include="Argon2\opt_sse2.c" />
+    <ClCompile Include="Argon2\opt_avx2.c">
+      <EnableEnhancedInstructionSet Condition="'$(Platform)'=='x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <ClCompile Include="Argon2\opt_neon.c">
+      <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Argon2\selftest.c" />
+    <ClCompile Include="Argon2\blake2\blake2b.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="amd64\aes_amd64.nasm">
+      <ExcludedFromBuild Condition="'$(Platform)'=='ARM64'">true</ExcludedFromBuild>
+      <Command Condition="'$(Platform)'=='x64'">"$(ProjectDir)..\tools\yasm\yasm.exe" -Xvc -f win64 -m amd64 -o "$(IntDir)%(Filename).obj" "%(FullPath)"</Command>
+      <Outputs Condition="'$(Platform)'=='x64'">$(IntDir)%(Filename).obj</Outputs>
+      <Message Condition="'$(Platform)'=='x64'">yasm %(Filename).nasm</Message>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="cl_alloc.h" />
+    <ClInclude Include="cl_platform.h" />
+    <ClInclude Include="cl_cpu.h" />
+    <ClInclude Include="crc32.h" />
+    <ClInclude Include="aes_asm.h" />
+    <ClInclude Include="aes_key.h" />
+    <ClInclude Include="serpent.h" />
+    <ClInclude Include="serpent_sboxes.h" />
+    <ClInclude Include="serpent_simd.inl" />
+    <ClInclude Include="twofish.h" />
+    <ClInclude Include="sha512.h" />
+    <ClInclude Include="sha512_hmac.h" />
+    <ClInclude Include="sha512_hmac_drbg.h" />
+    <ClInclude Include="sha512_pkcs5_2.h" />
+    <ClInclude Include="xts_fast.h" />
+    <ClInclude Include="xts_twofish.h" />
+    <ClInclude Include="xts_aes_ni.h" />
+    <ClInclude Include="xts_serpent_sse2.h" />
+    <ClInclude Include="xts_serpent_avx.h" />
+    <ClInclude Include="xts_serpent_x86.inl" />
+    <ClInclude Include="xts_serpent_avx2.h" />
+    <ClInclude Include="xts_aes_ce.h" />
+    <ClInclude Include="xts_serpent_neon.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>
+

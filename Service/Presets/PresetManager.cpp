@@ -140,7 +140,7 @@ STATUS CPresetManager::Store()
 
 	CBuffer Buffer;
 	Data.ToPacket(&Buffer);
-	WriteFile(theCore->GetDataFolder() + L"\\" API_DNS_Preset_FILE_NAME, Buffer);
+	WriteFileSafe(theCore->GetDataFolder() + L"\\" API_DNS_Preset_FILE_NAME, Buffer);
 
 	return OK;
 }

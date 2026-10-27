@@ -10,6 +10,7 @@
 #include "../Library/Common/Strings.h"
 #include "../Programs/ProgramManager.h"
 #include "../ServiceCore.h"
+#include "../../Library/Helpers/MiscHelpers.h"
 #include "WindowsService.h"
 
 CProgramFile::CProgramFile(const std::wstring& FileName, bool bInitInfo)
@@ -34,6 +35,7 @@ CProgramFile::CProgramFile(const std::wstring& FileName, bool bInitInfo)
 	m_AccessLog.SetPool(m_pMem);
 	m_AccessTree.SetPool(m_pMem);
 	m_TrafficLog.SetPool(m_pMem);
+	m_UsageLog.SetPool(m_pMem);
 
 	for (int i = 0; i < (int)ETraceLogs::eLogMax; i++)
 		m_TraceLogs[i] = m_pMem->New<STraceLog>();
@@ -46,6 +48,7 @@ CProgramFile::~CProgramFile()
 	m_AccessLog.Clear();
 	m_AccessTree.Clear();
 	m_TrafficLog.Clear();
+	m_UsageLog.Clear();
 
 	for (auto& Record : m_EnclaveRecord)
 		Record.second->AccessLog.Clear();
@@ -59,25 +62,24 @@ CProgramFile::~CProgramFile()
 
 void CProgramFile::AddProcess(const CProcessPtr& pProcess)
 {
-	uint64 pid = pProcess->GetProcessId();
+	uint64 uid = pProcess->GetProcessUID().Get();
 
 	std::unique_lock lock(m_Mutex);
 
-	if(pProcess)
-		m_LastExec = pProcess->GetCreateTimeStamp();
-	m_Processes.insert(std::make_pair(pid, pProcess));
+	m_LastExec = pProcess->GetCreateTimeStamp();
+	m_Processes[uid] = pProcess;
 }
 
 void CProgramFile::RemoveProcess(const CProcessPtr& pProcess)
 {
-	uint64 pid = pProcess->GetProcessId();
+	uint64 uid = pProcess->GetProcessUID().Get();
 	uint64 LastActivity = pProcess->GetLastNetActivity();
 	uint64 Uploaded = pProcess->GetUploaded();
 	uint64 Downloaded = pProcess->GetDownloaded();
 
 	std::unique_lock lock(m_Mutex);
 
-	m_Processes.erase(pid);
+	m_Processes.erase(uid);
 }
 
 std::wstring CProgramFile::GetNameEx() const
@@ -371,7 +373,7 @@ StVariant CProgramFile::DumpExecStats(FW::AbstractMemPool* pMemPool) const
 	ExecChildren.BeginList();
 	StoreExecChildren(ExecChildren, Opts);
 
-	for(auto& pNode : m_Nodes)
+	for(auto& pNode : GetNodes()) // a copy taken under the lock
 	{
 		CWindowsServicePtr pSvc = std::dynamic_pointer_cast<CWindowsService>(pNode);
 		if(!pSvc) continue;
@@ -429,7 +431,7 @@ StVariant CProgramFile::DumpIngress(FW::AbstractMemPool* pMemPool) const
 	IngressTargets.BeginList();
 	StoreIngressTargets(IngressTargets, Opts);
 
-	for(auto pNode : m_Nodes)
+	for(auto pNode : GetNodes()) // a copy taken under the lock
 	{
 		CWindowsServicePtr pSvc = std::dynamic_pointer_cast<CWindowsService>(pNode);
 		if(!pSvc) continue;
@@ -644,6 +646,32 @@ void CProgramFile::LoadTraffic(const StVariant& Data)
 	m_TrafficLog.LoadTraffic(Data[API_V_TRAFFIC_LOG]);
 }
 
+StVariant CProgramFile::StoreUsage(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
+{
+	StVariant Usage = m_UsageLog.Store(Opts, pMemPool);
+	if (!Usage.IsValid())
+		return StVariant();
+
+	std::unique_lock lock(m_Mutex);
+
+	StVariant Data(pMemPool);
+	Data[API_V_ID] = m_ID.ToVariant(Opts, pMemPool);
+	Data[API_V_USAGE_LOG] = Usage;
+	return Data;
+}
+
+void CProgramFile::LoadUsage(const StVariant& Data)
+{
+	m_UsageLog.Load(Data[API_V_USAGE_LOG]);
+}
+
+void CProgramFile::TruncateUsageLog()
+{
+	uint64 SecondsWindow = theCore->Config()->GetUInt64("Service", "UsageSecondsWindow", 300);
+	uint64 RetentionMinutes = theCore->Config()->GetUInt64("Service", "UsageRetentionMinutes", 60 * 24 * 30);
+	m_UsageLog.Truncate(GetCurTime() * 1000ULL, SecondsWindow, RetentionMinutes);
+}
+
 uint64 CProgramFile::AddTraceLogEntry(const CTraceLogEntryPtr& pLogEntry, ETraceLogs Log)
 {
 	ASSERT(pLogEntry->Allocator() == m_pMem);
@@ -793,9 +821,9 @@ void CProgramFile::CollectStats(SStats& Stats) const
 	Stats.Downloaded = m_TrafficLog.GetDownloaded();
 	for (auto I : m_Processes) 
 	{
-		Stats.Pids.insert(I.first);
+		Stats.Pids.insert(I.second->GetProcessId());
 
-		uint64 LastActivity = FILETIME2ms(I.second->GetLastNetActivity());
+		uint64 LastActivity = I.second->GetLastNetActivity(); // already ms
 		if (LastActivity > Stats.LastNetActivity)
 			Stats.LastNetActivity = LastActivity;
 		Stats.Upload += I.second->GetUpload();
@@ -807,7 +835,12 @@ void CProgramFile::CollectStats(SStats& Stats) const
 		std::set<CSocketPtr> Sockets = I.second->GetSocketList();
 		for (auto pSocket : Sockets) 
 		{
-			Stats.SocketRefs.insert((uint64)pSocket.get());
+			//
+			// The socket's own number, the same one it travels under as
+			// API_V_SOCK_REF - these used to be addresses, which made the two
+			// disagree the moment anything tried to line them up.
+			//
+			Stats.SocketRefs.insert(pSocket->GetObjectUid());
 
 			if (pSocket->GetLastActivity() > Stats.LastNetActivity)
 				Stats.LastNetActivity = pSocket->GetLastActivity();
@@ -835,6 +868,9 @@ void CProgramFile::ClearRecords(ETraceLogs Log)
 
 	if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eResLog)
 		m_AccessTree.Clear();
+
+	if(Log == ETraceLogs::eLogMax)
+		m_UsageLog.Clear();
 
 #ifdef DEF_USE_POOL
 	m_pMem->CleanUp();

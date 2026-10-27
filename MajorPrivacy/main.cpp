@@ -22,6 +22,7 @@
 #endif
 
 #include "../Library/Helpers/Service.h"
+#include "Windows/BootloaderWnd.h"
 
 bool HasFlag(const std::vector<std::string>& arguments, std::string name)
 {
@@ -45,10 +46,19 @@ int main(int argc, char *argv[])
 	}
 	//DebugBreak();
 
-	int nArgs = 0;
 	std::vector<std::string> arguments;
-	for (int i = 0; i < nArgs; i++)
+	for (int i = 1; i < argc; i++)
 		arguments.push_back(argv[i]);
+
+	//
+	// Started by the GUI purely to show the boot loader window, elevated. That
+	// window needs administrator rights for firmware variables and EFI
+	// partitions; the rest of this program does not, and should not get them
+	// for its sake. So this process shows one window and exits - no service, no
+	// driver, and no single-instance handover, because the GUI that started it
+	// is the other instance.
+	//
+	bool bBootloader = HasFlag(arguments, "bootloader");
 
 	//NTCRT_DEFINE(MyCRT);
 	//InitGeneralCRT(&MyCRT);
@@ -91,7 +101,7 @@ int main(int argc, char *argv[])
 	//MessageBoxW(NULL, L"MajorPrivacy is starting...", L"MajorPrivacy", MB_OK | MB_ICONINFORMATION);
 
 
-	SVC_STATE SvcState = GetServiceState(API_SERVICE_NAME);
+	SVC_STATE SvcState = bBootloader ? SVC_NOT_FOUND : GetServiceState(API_SERVICE_NAME);
 	if (SvcState == SVC_SCM_ERROR && !HasFlag(arguments, "sync_tok")) 
 	{
 		//
@@ -109,7 +119,8 @@ int main(int argc, char *argv[])
 			return 0;
 	}
 
-	CPrivacyCore::InitHooks();
+	if (!bBootloader)
+		CPrivacyCore::InitHooks();
 
 	QString AppDir = QString::fromStdWString(GetApplicationDirectory());
 	theConf = new CSettings(AppDir, "MajorPrivacy", "Xanasoft");
@@ -143,6 +154,16 @@ int main(int argc, char *argv[])
 	// that causes a lot of log entries, hence we disable the use of windows fonr cache.
 	//
 	qputenv("QT_QPA_PLATFORM", QByteArrayLiteral("windows:nodirectwrite"));
+
+	if (bBootloader)
+	{
+		QApplication BootApp(argc, argv);
+		int ret = CBootloaderWnd::RunStandalone();
+
+		delete theConf;
+		theConf = NULL;
+		return ret;
+	}
 
 	QtSingleApplication App(argc, argv);
 	App.setQuitOnLastWindowClosed(false);

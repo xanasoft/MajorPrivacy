@@ -411,7 +411,24 @@ STATUS CProgramManager::ReGroup()
 {
 	CollectSoftware();
 
-	std::unique_lock lock(m_Mutex); 
+	// Re-attach services to their host binary, services must never be anywhere else (except user groups),
+	// this must be done before we take m_Mutex, see GetServiceParent
+	for (auto& I : GetItems())
+	{
+		CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(I.second);
+		if (!pService)
+			continue;
+
+		CProgramSetPtr pParent;
+		CServiceList::SServicePtr pWinService = theCore->ProcessList()->Services()->GetService(MkLower(pService->GetServiceTag()));
+		if (pWinService && !pWinService->BinaryPath.empty())
+			pParent = GetProgramFile(pWinService->BinaryPath);
+		else
+			pParent = GetServiceParent(pService);
+		AttachService(pService, pParent);
+	}
+
+	std::unique_lock lock(m_Mutex);
 
 	for (auto I = m_Items.begin(); I != m_Items.end(); ++I)
 	{
@@ -452,10 +469,12 @@ DWORD CALLBACK CProgramManager__TruncateLogs(LPVOID lpThreadParameter)
 			pProgram->TruncateTraceLog();
 			pProgram->TruncateAccessLog();
 			pProgram->TruncateAccessTree();
+			pProgram->TruncateUsageLog();
 		}
 		else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second)) {
 			pService->TruncateAccessLog();
 			pService->TruncateAccessTree();
+			pService->TruncateUsageLog();
 		}
 	}
 	DbgPrint(L"CProgramManager__TruncateLogs took %llu ms\n", GetTickCount64() - uStart);
@@ -801,13 +820,7 @@ void CProgramManager::AddService(const CServiceList::SServicePtr& pWinService)
 	{
 		lock.unlock();
 
-		CProgramFilePtr pOldParent = pService->GetProgramFile();
-		CProgramFilePtr pParent = GetProgramFile(pWinService->BinaryPath);
-		if (pOldParent != pParent)
-		{
-			if (pOldParent) RemoveProgramFromGroup(pService, pOldParent);
-			AddProgramToGroup(pService, pParent);
-		}
+		AttachService(pService, GetProgramFile(pWinService->BinaryPath));
 	}
 	pService->SetMissing(false);
 }
@@ -1063,8 +1076,26 @@ STATUS CProgramManager::RemoveProgramFrom(uint64 UID, uint64 ParentUID, bool bDe
 	}
 
 	if (bKeepOne) {
-		AddProgramToGroup(pItem, m_Root);
+		if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+			AttachService(pService, GetServiceParent(pService));
+		else
+			AddProgramToGroup(pItem, m_Root);
 		return OK;
+	}
+
+	// the remaining (missing) services of a removed program file go to all programs
+	if (pProgram) {
+		std::vector<CProgramItemPtr> Nodes;
+		{
+			std::unique_lock lock(pProgram->m_Mutex);
+			Nodes = pProgram->m_Nodes;
+		}
+		for (auto& pNode : Nodes) {
+			if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pNode)) {
+				RemoveProgramFromGroup(pService, pProgram);
+				AttachService(pService, m_pAll);
+			}
+		}
 	}
 
 	// remove the item from all maps
@@ -1199,6 +1230,9 @@ bool CProgramManager::RemoveProgramFromGroupEx(const CProgramItemPtr& pItem, con
 	if(std::dynamic_pointer_cast<CProgramGroup>(pGroup))
 		return true; // don't try to add children to groups
 
+	if(std::dynamic_pointer_cast<CProgramFile>(pItem))
+		return true; // the children of a program file are its services, they stay with the file
+
 	CProgramSetPtr pSet = std::dynamic_pointer_cast<CProgramSet>(pItem);
 	if (pSet) {
 		std::unique_lock lock(m_Mutex);
@@ -1210,8 +1244,46 @@ bool CProgramManager::RemoveProgramFromGroupEx(const CProgramItemPtr& pItem, con
 	return true;
 }
 
+CProgramSetPtr CProgramManager::GetServiceParent(const CWindowsServicePtr& pService)
+{
+	// Note: we do not query the service list here as this may be called with m_Mutex held,
+	// and CServiceList::Update calls AddService while holding its own lock.
+	// keep the service on the binary it is already attached to, if any
+	auto Groups = pService->GetGroups();
+	for (auto& G : Groups) {
+		if (CProgramFilePtr pFile = std::dynamic_pointer_cast<CProgramFile>(G.second.lock()))
+			return pFile;
+	}
+	return m_pAll;
+}
+
+void CProgramManager::AttachService(const CWindowsServicePtr& pService, const CProgramSetPtr& pParent)
+{
+	// A service must have exactly one automatic parent, its host binary (or all programs),
+	// drop all other auto associations, only keep user defined groups
+	auto Groups = pService->GetGroups();
+	for (auto& G : Groups) {
+		CProgramSetPtr pGroup = G.second.lock();
+		if (!pGroup) {
+			std::unique_lock lock(pService->m_Mutex);
+			pService->m_Groups.erase(G.first);
+		}
+		else if (pGroup != pParent && !std::dynamic_pointer_cast<CProgramGroup>(pGroup))
+			RemoveProgramFromGroup(pService, pGroup);
+	}
+
+	if (pParent)
+		AddProgramToGroup(pService, pParent);
+}
+
 void CProgramManager::AddItemToRoot(const CProgramItemPtr& pItem)
 {
+	if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem)) {
+		// services never go to the root
+		AttachService(pService, GetServiceParent(pService));
+		return;
+	}
+
 	AddItemToBranch(pItem, m_Root);
 	if (pItem->GetGroupCount() == 0) {
 		AddProgramToGroup(pItem, m_Root);
@@ -1886,7 +1958,7 @@ STATUS CProgramManager::Store()
 
 	CBuffer Buffer;
 	Data.ToPacket(&Buffer);
-	WriteFile(theCore->GetDataFolder() + L"\\" API_PROGRAMS_FILE_NAME, Buffer);
+	WriteFileSafe(theCore->GetDataFolder() + L"\\" API_PROGRAMS_FILE_NAME, Buffer);
 
 	return OK;
 }

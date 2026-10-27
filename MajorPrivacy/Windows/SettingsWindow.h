@@ -120,6 +120,7 @@ public slots:
 protected:
 
 	void	AddAutoEntry(QString Path, bool bApprove);
+	void	EditAutoEntry(QTreeWidgetItem* pItem, bool bApprove);
 
 	void	InitSupport();
 

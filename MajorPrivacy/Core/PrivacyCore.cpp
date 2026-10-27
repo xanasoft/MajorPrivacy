@@ -136,6 +136,10 @@ CPrivacyCore::CPrivacyCore(QObject* parent)
 
 	m_Service->RegisterEventHandler(SVC_API_EVENT_CLEANUP_PROGRESS, &CPrivacyCore::OnCleanUpDone, this);
 
+	m_Service->RegisterEventHandler(SVC_API_EVENT_CONFIG_CHANGED, &CPrivacyCore::OnConfigChanged, this);
+
+	m_Service->RegisterEventHandler(SVC_API_EVENT_BATCH, &CPrivacyCore::OnSvcEventBatch, this);
+
 	CNtPathMgr::Instance()->RegisterDeviceChangeCallback(DeviceChangedCallback, this);
 }
 
@@ -623,6 +627,41 @@ void CPrivacyCore::OnSvcEvent(uint32 MessageId, const CBuffer* pEvent)
 		return;
 	}
 
+	HandleSvcEvent(MessageId, vEvent);
+}
+
+//
+// A message carrying several events, see SVC_API_EVENT_BATCH. The activity events
+// arrive this way because sending them one at a time cost the service a lock on
+// the connection and a system call for each; they are handed on here exactly as if
+// each had come by itself, and end up in the same queues.
+//
+void CPrivacyCore::OnSvcEventBatch(uint32 MessageId, const CBuffer* pEvent)
+{
+	// WARNING: this function is invoked from a worker thread !!!
+
+	QtVariant vBatch;
+	try {
+		vBatch.FromPacket(pEvent);
+	}
+	catch (const CException&)
+	{
+		ASSERT(0);
+		return;
+	}
+
+	QtVariantReader(vBatch.Get(API_V_EVENTS)).ReadRawList([&](const FW::CVariant& vData) {
+		const QtVariant& Entry = *(QtVariant*)&vData;
+
+		QtVariantReader Reader(Entry);
+		uint32 Id = Reader.Find(API_V_EVENT_MSG_ID).To<uint32>(0);
+		if (Id)
+			HandleSvcEvent(Id, (QtVariant&)Reader.Find(API_V_EVENT_DATA));
+	});
+}
+
+void CPrivacyCore::HandleSvcEvent(uint32 MessageId, const QtVariant& vEvent)
+{
 	switch(MessageId)
 	{
 	case SVC_API_EVENT_ENCLAVE_CHANGED:
@@ -693,6 +732,8 @@ void CPrivacyCore::OnClearRecords(const CProgramItemPtr& pItem, ETraceLogs Log)
 			pProgram->ClearProcessLogs();
 		if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
 			pProgram->ClearTrafficLog();
+		if(Log == ETraceLogs::eLogMax)
+			pProgram->ClearUsage();
 	}
 	if (auto pService = pItem.objectCast<CWindowsService>())
 	{
@@ -702,6 +743,8 @@ void CPrivacyCore::OnClearRecords(const CProgramItemPtr& pItem, ETraceLogs Log)
 			pService->ClearProcessLogs();
 		if(Log == ETraceLogs::eLogMax || Log == ETraceLogs::eNetLog)
 			pService->ClearTrafficLog();
+		if(Log == ETraceLogs::eLogMax)
+			pService->ClearUsage();
 
 	}
 }
@@ -1095,11 +1138,55 @@ RESULT(QStringList) CPrivacyCore::ListConfigFiles(const QString& Name)
 	return Response[API_V_FILES].AsQList();
 }
 
+//
+// Answered from what we were last told wherever possible.
+//
+// The pages read settings on every tick, on the window thread, and the service
+// gives each connection one thread - so every one of those reads had to wait for
+// whatever the refresh had in flight before the window could paint.
+//
+// A setting that is not set is remembered as not set, or every such read would
+// go on asking. What makes this safe to hold on to is that the service tells
+// everyone when the configuration moves, see OnConfigChanged.
+//
 RESULT(QtVariant) CPrivacyCore::GetConfig(const QString& Name) 
 {
+	{
+		QMutexLocker Lock(&m_ConfigCacheMutex);
+		auto I = m_ConfigCache.find(Name);
+		if (I != m_ConfigCache.end())
+			RETURN(*I);
+	}
+
 	QtVariant Request(m_pMemPool);
 	Request[API_V_KEY] = Name;
-	RET_GET_XVARIANT(m_Service->Call(SVC_API_GET_CONFIG, Request), API_V_VALUE);
+	auto Ret = m_Service->Call(SVC_API_GET_CONFIG, Request);
+	if (Ret.IsError())
+		return ERR(Ret.GetStatus());
+
+	//
+	// Assigned and not referenced: what Get hands back points into the reply, which
+	// goes when this call does, and assignment clones anything derived.
+	//
+	const QtVariant& Reply = (const FW::CVariant&)Ret.GetValue();
+	QtVariant Value(m_pMemPool);
+	Value = Reply.Get(API_V_VALUE);
+
+	QMutexLocker Lock(&m_ConfigCacheMutex);
+	m_ConfigCache.insert(Name, Value);
+	RETURN(Value);
+}
+
+void CPrivacyCore::OnConfigChanged(uint32 MessageId, const CBuffer* pEvent)
+{
+	QMutexLocker Lock(&m_ConfigCacheMutex);
+	m_ConfigCache.clear();
+}
+
+void CPrivacyCore::ForgetConfig(const QString& Name)
+{
+	QMutexLocker Lock(&m_ConfigCacheMutex);
+	m_ConfigCache.remove(Name);
 }
 
 STATUS CPrivacyCore::SetConfig(const QString& Name, const QtVariant& Value)
@@ -1152,10 +1239,16 @@ STATUS CPrivacyCore::SetDrvConfig(const QtVariant& Data)
 }
 
 // Process Manager
-RESULT(QtVariant) CPrivacyCore::GetProcesses()
+//
+// Returns the whole reply and not just API_V_PROCESSES: it is a delta, so the
+// caller also needs API_V_OLD_PROCESSES, whose absence marks a complete list.
+//
+RESULT(QtVariant) CPrivacyCore::GetProcesses(bool bReload)
 {
 	QtVariant Request(m_pMemPool);
-	RET_GET_XVARIANT(m_Service->Call(SVC_API_GET_PROCESSES, Request), API_V_PROCESSES);
+	if (bReload)
+		Request[API_V_RELOAD] = true;
+	RET_AS_XVARIANT(m_Service->Call(SVC_API_GET_PROCESSES, Request));
 }
 
 RESULT(QtVariant) CPrivacyCore::GetProcess(uint64 Pid)
@@ -1334,10 +1427,16 @@ STATUS CPrivacyCore::DelHashEntry(const QByteArray& HashValue)
 }
 
 // Program Manager
-RESULT(QtVariant) CPrivacyCore::GetPrograms()
+//
+// Returns the whole reply and not just API_V_PROGRAMS: it is a delta, so the
+// caller also needs API_V_OLD_PROGRAMS, whose absence marks a complete list.
+//
+RESULT(QtVariant) CPrivacyCore::GetPrograms(bool bReload)
 {
 	QtVariant Request(m_pMemPool);
-	RET_GET_XVARIANT(m_Service->Call(SVC_API_GET_PROGRAMS, Request), API_V_PROGRAMS);
+	if (bReload)
+		Request[API_V_RELOAD] = true;
+	RET_AS_XVARIANT(m_Service->Call(SVC_API_GET_PROGRAMS, Request));
 }
 
 RESULT(QtVariant) CPrivacyCore::GetProgram(const class CProgramID& ID)
@@ -1354,11 +1453,13 @@ RESULT(QtVariant) CPrivacyCore::GetProgram(uint64 UID)
 	RET_AS_XVARIANT(m_Service->Call(SVC_API_GET_PROGRAM, Request));
 }
 
-RESULT(QtVariant) CPrivacyCore::GetLibraries(uint64 CacheToken)
+RESULT(QtVariant) CPrivacyCore::GetLibraries(uint64 CacheToken, bool bReload)
 {
 	QtVariant Request(m_pMemPool);
 	if(CacheToken != -1)
 		Request[API_V_CACHE_TOKEN] = CacheToken;
+	if (bReload)
+		Request[API_V_RELOAD] = true;
 	RET_AS_XVARIANT(m_Service->Call(SVC_API_GET_LIBRARIES, Request));
 }
 
@@ -1510,10 +1611,17 @@ RESULT(QtVariant) CPrivacyCore::GetAllFwRules(bool bReLoad)
 	RET_GET_XVARIANT(m_Service->Call(SVC_API_GET_FW_RULES, Request), API_V_RULES);
 }
 
-RESULT(QFlexGuid) CPrivacyCore::SetFwRule(const QtVariant& FwRule)
+RESULT(QFlexGuid) CPrivacyCore::SetFwRule(const QtVariant& FwRule, const QStringList& TakeOver)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_RULE] = FwRule;
+	if (!TakeOver.isEmpty()) {
+		QtVariantWriter List;
+		List.BeginList();
+		foreach(const QString& Guid, TakeOver)
+			List.WriteEx(Guid);
+		Request[API_V_RULES] = List.Finish();
+	}
 	auto Ret = m_Service->Call(SVC_API_SET_FW_RULE, Request);
 	if (Ret.IsError())
 		return Ret;
@@ -1527,10 +1635,12 @@ RESULT(QtVariant) CPrivacyCore::GetFwRule(const QFlexGuid& Guid)
 	RET_GET_XVARIANT(m_Service->Call(SVC_API_GET_FW_RULE, Request), API_V_RULE);
 }
 
-STATUS CPrivacyCore::DelFwRule(const QFlexGuid& Guid)
+STATUS CPrivacyCore::DelFwRule(const QFlexGuid& Guid, bool bWithDerived)
 {
 	QtVariant Request(m_pMemPool);
 	Request[API_V_GUID] = Guid.ToVariant(true);
+	if (bWithDerived)
+		Request[API_V_DEL_WITH_RULES] = true;
 	return m_Service->Call(SVC_API_DEL_FW_RULE, Request);
 }
 
@@ -1751,6 +1861,62 @@ RESULT(QtVariant) CPrivacyCore::GetTraceLog(const class CProgramID& ID, ETraceLo
 	RET_AS_XVARIANT(m_Service->Call(SVC_API_GET_TRACE_LOG, Request));	
 }
 
+RESULT(QtVariant) CPrivacyCore::GetUsageStats(EUsageTier Tier, const QtVariant& Items, quint32 Since)
+{
+	QtVariant Request(m_pMemPool);
+	Request[API_V_USAGE_TIER] = (quint32)Tier;
+	if (Items.IsValid())
+		Request[API_V_USAGE_ITEMS] = Items;
+	else
+		Request[API_V_USAGE_SINCE] = Since;
+	RET_GET_XVARIANT(m_Service->Call(SVC_API_GET_USAGE_STATS, Request), API_V_USAGE_ITEMS);
+}
+
+STATUS CPrivacyCore::UpdateUsageStats(EUsageTier Tier, const QList<CProgramItemPtr>& Items)
+{
+	//
+	// One batched call per 200 items, each with the time of the newest bucket we have, so only
+	// new (or still growing) buckets travel. With "All Programs" that is a dozen or so small
+	// calls; the one call form of SVC_API_GET_USAGE_STATS without an item list is not used,
+	// every item then goes through the same path and keeps its own watermark.
+	//
+	const int ChunkSize = 200;
+	for (int Pos = 0; Pos < Items.count(); Pos += ChunkSize)
+	{
+		QtVariantWriter List(m_pMemPool);
+		List.BeginList();
+		for (int i = Pos; i < Items.count() && i < Pos + ChunkSize; i++) {
+			QtVariant Item(m_pMemPool);
+			Item[API_V_PROG_UID] = Items[i]->GetUID();
+			Item[API_V_USAGE_SINCE] = Items[i]->GetUsageWatermark(Tier);
+			List.WriteVariant(Item);
+		}
+		QtVariant ItemList = List.Finish();
+		auto Res = GetUsageStats(Tier, ItemList, 0);
+		if (Res.IsError())
+			return Res.GetStatus();
+
+		const QtVariant& Reply = Res.GetValue();
+		for (uint32 i = 0; i < Reply.Count(); i++) {
+			QtVariant Entry = Reply[i];
+			CProgramItemPtr pItem = m_pProgramManager->GetProgramByUID(Entry[API_V_PROG_UID].To<quint64>(0));
+			if (pItem)
+				pItem->MergeUsage(Tier, Entry[API_V_USAGE_LOG]);
+		}
+	}
+
+	// drop what the service no longer keeps either
+	quint64 Now = QDateTime::currentSecsSinceEpoch();
+	quint64 Keep = Tier == EUsageTier::eSeconds
+		? (quint64)GetConfigInt64("Service/UsageSecondsWindow", 300)
+		: (quint64)GetConfigInt64("Service/UsageRetentionMinutes", 60 * 24 * 30) * 60;
+	quint32 OlderThan = Now > Keep ? (quint32)(Now - Keep) : 0;
+	foreach(const CProgramItemPtr& pItem, Items)
+		pItem->TrimUsage(Tier, OlderThan);
+
+	return OK;
+}
+
 // Volume Manager
 RESULT(QtVariant) CPrivacyCore::GetVolumes()
 {
@@ -1803,15 +1969,25 @@ STATUS CPrivacyCore::DismountAllVolumes()
 	return GetServicePort()->Call(SVC_API_VOL_DISMOUNT_ALL, Request);
 }
 
-STATUS CPrivacyCore::CreateVolume(const QString& Path, const CSecurePassword& Password, quint64 ImageSize, const QString& Cipher, int iKdf, const QString& FS)
+STATUS CPrivacyCore::NegotiateSharedSecret(std::shared_ptr<CServiceAPI>& pService)
 {
-	std::shared_ptr<CServiceAPI> pService = GetServicePort();
+	pService = GetServicePort();
 	const CBuffer& SharedSecret = pService->GetSharedSecret();
 	if (SharedSecret.GetSize() == 0) {
 		STATUS Status = pService->NegotiateKey();
 		if (!Status)
 			return ERR(Status, L"Key Exchange Failed");
 	}
+	return OK;
+}
+
+STATUS CPrivacyCore::CreateVolume(const QString& Path, const CSecurePassword& Password, quint64 ImageSize, const QString& Cipher, int iKdf, const QString& FS, int iSlots)
+{
+	std::shared_ptr<CServiceAPI> pService;
+	STATUS Status = NegotiateSharedSecret(pService);
+	if (!Status)
+		return Status;
+	const CBuffer& SharedSecret = pService->GetSharedSecret();
 
 	QtVariant Request(m_pMemPool);
 	Request[API_V_VOL_PATH] = QString(Path).replace("/","\\");
@@ -1820,6 +1996,8 @@ STATUS CPrivacyCore::CreateVolume(const QString& Path, const CSecurePassword& Pa
 	if(!Cipher.isEmpty()) Request[API_V_VOL_CIPHER] = Cipher;
 	if(iKdf) Request[API_V_VOL_KDF] = iKdf;
 	if(!FS.isEmpty()) Request[API_V_VOL_FS] = FS;
+	// -1 leaves it to ImBox's own default; 0 is a container without key slots
+	if(iSlots >= 0) Request[API_V_VOL_SLOTS] = iSlots;
 	return pService->Call(SVC_API_VOL_CREATE_IMAGE, Request);
 }
 

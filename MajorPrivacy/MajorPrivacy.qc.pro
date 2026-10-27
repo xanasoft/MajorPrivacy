@@ -7,6 +7,8 @@ QT += core gui network widgets widgets-private concurrent core-private qml qml-p
 
 CONFIG += lrelease
 
+DEFINES += QWT_DLL
+
 MY_ARCH=$$(build_arch)
 equals(MY_ARCH, ARM64) {
 #  message("Building ARM64")
@@ -28,7 +30,7 @@ equals(MY_ARCH, ARM64) {
 CONFIG(debug, debug|release):!contains(QMAKE_HOST.arch, x86_64):LIBS += -L../Build/Debug
 CONFIG(release, debug|release):!contains(QMAKE_HOST.arch, x86_64):LIBS += -L../Build/Release
 
-LIBS += -lNtdll -lAdvapi32 -lOle32 -lUser32 -lShell32 -lGdi32 -lNetapi32 -lIphlpapi -lws2_32 -lbcrypt -lVersion -ltaskschd -lMiscHelpers -lqtsingleapp -lUGlobalHotkey -lGeneralLibrary
+LIBS += -lNtdll -lAdvapi32 -lOle32 -lUser32 -lShell32 -lGdi32 -lNetapi32 -lIphlpapi -lws2_32 -lbcrypt -lVersion -ltaskschd -lMiscHelpers -lqtsingleapp -lUGlobalHotkey -lGeneralLibrary -lqwt
 
 CONFIG(release, debug|release):{
 QMAKE_CXXFLAGS_RELEASE = $$QMAKE_CFLAGS_RELEASE_WITH_DEBUGINFO
@@ -53,6 +55,12 @@ equals(MY_ARCH, ARM64) {
 
 INCLUDEPATH += .
 INCLUDEPATH += ../phnt/include
+INCLUDEPATH += ../qwt/src
+INCLUDEPATH += ../ImBox/dc/include
+INCLUDEPATH += ../ImBox/dc/_include_
+INCLUDEPATH += ../ImBox/dc/dcvolume
+INCLUDEPATH += ../ImBox/dc/crypto_lib
+INCLUDEPATH += ../ImBox/dc/volume_lib
 DEPENDPATH += .
 MOC_DIR += .
 OBJECTS_DIR += debug

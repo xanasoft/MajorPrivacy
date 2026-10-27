@@ -87,7 +87,11 @@ protected:
 	friend LRESULT CALLBACK HiddenWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	void RegisterForDeviceNotifications();
-	void UnRegisterForDeviceNotifications();
+	//
+	// Returns whether the notification thread actually stopped. See Dispose: if it
+	// did not, this object must not be freed.
+	//
+	bool UnRegisterForDeviceNotifications();
 
 	HANDLE m_NotificationThread = NULL;
 	HWND m_HiddenWindow = NULL;

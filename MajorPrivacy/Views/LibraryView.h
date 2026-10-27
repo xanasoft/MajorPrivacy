@@ -59,4 +59,7 @@ protected:
 	int 					m_RefreshCount = 0;
 
 	int 					m_SlowCount = 0;
+
+	QHash<const CProgramItem*, quint32> m_Revisions; // list revisions the current rows were built from
+	quint64					m_LastRebuild = 0;
 };

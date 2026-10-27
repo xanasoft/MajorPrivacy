@@ -1,0 +1,89 @@
+;
+; dcvolume.dll exports.
+;
+; A .def rather than __declspec(dllexport), because almost everything here is
+; DiskCryptor's own source compiled in unchanged, and decorating those
+; declarations would mean editing crypto_lib and volume_lib - libraries that
+; also build into a kernel driver and an EFI bootloader, where dllexport is
+; meaningless. Listing the names here leaves those files untouched.
+;
+; Undecorated names are correct because this DLL builds for x64 and ARM64 only,
+; where __stdcall carries no decoration. crypto_lib refuses to compile for x86
+; at all (crypto_lib/aes_asm.h), so there is no 32 bit case to answer for.
+;
+LIBRARY dcvolume
+
+EXPORTS
+
+; --- the single entry point a dynamic consumer needs -------------------------
+    dcvol_get_api
+
+; --- host services ----------------------------------------------------------
+    secure_alloc
+    secure_free
+    burn
+    make_rand
+    dc_init_crypto
+
+; --- whole-header operations ------------------------------------------------
+    dc_get_min_header_len
+    dc_decrypt_header
+    dc_encrypt_header
+    cp_encrypt_header
+    cp_decrypt_header_with_key
+    cp_decrypt_header
+    cp_set_header_key
+    cp_get_min_header_len
+    cp_try_decrypt_header
+
+; --- header validation ------------------------------------------------------
+    calculate_header_crc
+    is_volume_header_correct
+
+; --- key derivation ---------------------------------------------------------
+    dc_derive_key
+    argon2_mk_params
+    cp_kdf_list
+    dc_default_kdfs        DATA
+    dc_all_kdfs            DATA
+
+; --- key slots --------------------------------------------------------------
+    cp_has_key_slots
+    cp_get_slot_info
+    cp_get_slot_payload
+    cp_set_slot
+    cp_get_key_slot_size
+    cp_wrap_header_key
+    cp_swap_slot_key
+    cp_copy_keylots
+    dc_change_slot_pass
+    dc_update_key_slots
+
+; --- extended header --------------------------------------------------------
+    get_ext_header
+    cp_ext_header_crc
+
+; --- keyfiles ---------------------------------------------------------------
+    cp_kf_hash_data
+    cp_kf_mixer_init
+    cp_kf_mixer_free
+    cp_kf_mixer_add_hash
+    cp_kf_mixer_add_data
+    cp_kf_mixer_combine
+    cp_kf_mixer_finish
+    cp_kf_mix_additive
+
+; --- a header in a buffer ---------------------------------------------------
+    dc_dev_from_buffer
+    dc_buffer_rw
+    io_read_header
+    io_read_header_full
+    io_write_header
+    dc_lib_init
+
+; --- crypto_lib -------------------------------------------------------------
+    xts_init
+    xts_set_key
+    crc32
+    crc32_combine
+    sha512_pkcs5_2

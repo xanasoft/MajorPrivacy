@@ -16,6 +16,7 @@ LIBRARY_EXPORT bool RenameFile(const std::wstring& OldPath, const std::wstring& 
 //LIBRARY_EXPORT bool ReadFile(const std::wstring& Path, std::string& Data);
 LIBRARY_EXPORT bool WriteFile(const std::wstring& Path, const StVariant& Data);
 LIBRARY_EXPORT bool ReadFile(const std::wstring& Path, StVariant& Data);
+LIBRARY_EXPORT bool WriteFileSafe(const std::wstring& Path, const CBuffer& Data);
 LIBRARY_EXPORT bool WriteFile(const std::wstring& Path, const CBuffer& Data, uint64 Offset = -1);
 LIBRARY_EXPORT bool ReadFile(const std::wstring& Path, CBuffer& Data, uint64 Offset = -1);
 LIBRARY_EXPORT bool WriteFile(const std::wstring& Path, const std::vector<BYTE>& Data);

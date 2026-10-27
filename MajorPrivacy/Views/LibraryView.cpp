@@ -147,16 +147,58 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, const QFlexGuid& 
 	EEventStatus Status = (EEventStatus)m_pCmbAction->currentData().toInt();
 	bool bHideMS = m_pBtnHideWin->isChecked();
 
-	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_FullRefresh) {
+	if (!Programs.contains(m_CurPrograms) || m_CurEnclaveGuid != EnclaveGuid || m_FullRefresh) {
 		m_CurPrograms = Programs;
 		m_CurEnclaveGuid = EnclaveGuid;
 		m_LibraryMap.clear();
 		m_pItemModel->Clear();
 		m_FullRefresh = false;
 		m_RefreshCount++;
+		m_Revisions.clear();
 	}
 	else if(m_pBtnHold->isChecked() /*&& !theGUI->m_IgnoreHold*/)
 		return;
+
+	//
+	// Only an item leaving the selection needs the rebuild above. Items joining it, which happens all the time
+	// with "All Programs" or a group selected as new programs show up, are simply added, resetting
+	// the view for them cleared the model and collapsed everything the user had expanded.
+	//
+	m_CurPrograms = Programs;
+
+	//
+	// Fetch first, a list is only fetched again when it was marked as changed. When no list got a new revision
+	// since the last rebuild there is nothing to do, apart from a periodic rebuild for what has no revision
+	// (the recent limit moving on, hash db entries, program settings).
+	//
+	QList<QPair<CProgramFilePtr, QMultiMap<quint64, SLibraryInfo>>> ProgLogs;
+	QHash<const CProgramItem*, quint32> Revisions;
+
+	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Programs.count(), theGUI);
+	bool bCanceled = false;
+	foreach(const CProgramFilePtr& pProgram, Programs) {
+		if (!ProgressHelper.Next(pProgram->GetName())) {
+			bCanceled = true;
+			break;
+		}
+		ProgLogs.append(qMakePair(pProgram, pProgram->GetLibraries()));
+		Revisions.insert(pProgram.data(), pProgram->GetLibrariesRevision());
+	}
+	if (bCanceled)
+		m_pBtnHold->setChecked(true);
+
+	if (ProgressHelper.Done()) {
+		if (/*!theGUI->m_IgnoreHold &&*/ ++m_SlowCount == 3) {
+			m_SlowCount = 0;
+			m_pBtnHold->setChecked(true);
+		}
+	} else
+		m_SlowCount = 0;
+
+	if (Revisions == m_Revisions && GetCurTick() - m_LastRebuild < PROG_VIEW_REBUILD_INTERVAL)
+		return;
+	m_Revisions = Revisions;
+	m_LastRebuild = GetCurTick();
 
 	auto OldMap = m_LibraryMap;
 	QSet<SLibraryKey> Handled;
@@ -234,8 +276,8 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, const QFlexGuid& 
 		if(pItem.isNull())
 		{
 			pItem = SLibraryItemPtr(new SLibraryItem());
+			pItem->ID = QString("%1_%2").arg((uint64)pLibrary.get()).arg(0);
 			pItem->pLibrary = pLibrary;
-			m_LibraryMap.insert(qMakePair((uint64)pLibrary.get(), 0), pItem);
 		}
 		else
 			OldMap.remove(qMakePair((uint64)pLibrary.get(), 0));
@@ -247,6 +289,7 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, const QFlexGuid& 
 		SLibraryItemPtr pSubItem = OldMap.take(qMakePair((uint64)pLibrary.get(), (uint64)pProg.get()));
 		if (!pSubItem) {
 			pSubItem = SLibraryItemPtr(new SLibraryItem());
+			pSubItem->ID = QString("%1_%2").arg((uint64)pLibrary.get()).arg((uint64)pProg.get());
 			pSubItem->pProg = pProg;
 			pSubItem->Parent = QString("%1_%2").arg((uint64)pLibrary.get()).arg(0);
 			m_LibraryMap.insert(qMakePair((uint64)pLibrary.get(), (uint64)pProg.get()), pSubItem);
@@ -262,16 +305,9 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, const QFlexGuid& 
 		}
 	};
 
-	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Programs.count(), theGUI);
-
-	foreach(const CProgramFilePtr& pProgram, Programs) {
-
-		if (!ProgressHelper.Next(pProgram->GetName())) {
-			m_pBtnHold->setChecked(true);
-			break;
-		}
-
-		QMultiMap<quint64, SLibraryInfo> Log = pProgram->GetLibraries();
+	for (const auto& ProgLog : ProgLogs) {
+		const CProgramFilePtr& pProgram = ProgLog.first;
+		const auto& Log = ProgLog.second;
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			CProgramLibraryPtr pLibrary = theCore->ProgramManager()->GetLibraryByUID(I.key());
 			if(!pLibrary) continue; // todo 
@@ -289,13 +325,6 @@ void CLibraryView::Sync(const QSet<CProgramFilePtr>& Programs, const QFlexGuid& 
 		}
 	}
 
-	if (ProgressHelper.Done()) {
-		if (/*!theGUI->m_IgnoreHold &&*/ ++m_SlowCount == 3) {
-			m_SlowCount = 0;
-			m_pBtnHold->setChecked(true);
-		}
-	} else
-		m_SlowCount = 0;
 
 	foreach(SLibraryKey Key, OldMap.keys())
 		m_LibraryMap.remove(Key);

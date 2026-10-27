@@ -3,11 +3,6 @@
 #include "../Library/API/PrivacyAPI.h"
 #include "../MiscHelpers/Common/Common.h"
 
-CTrafficEntry::CTrafficEntry(QObject* parent)
-	: QObject(parent)
-{
-}
-
 void CTrafficEntry::Reset()
 {
 	m_LastActivity = 0;
@@ -23,6 +18,16 @@ void CTrafficEntry::Merge(const QSharedPointer<CTrafficEntry>& pOther)
 
 	m_UploadTotal += pOther->m_UploadTotal;
 	m_DownloadTotal += pOther->m_DownloadTotal;
+}
+
+void CTrafficEntry::AddDelta(quint64 LastActivity, qint64 UploadDelta, qint64 DownloadDelta)
+{
+	if (LastActivity > m_LastActivity)
+		m_LastActivity = LastActivity;
+
+	// the deltas may be negative, the totals stay correct as long as they are the sum of all deltas
+	m_UploadTotal += (quint64)UploadDelta;
+	m_DownloadTotal += (quint64)DownloadDelta;
 }
 
 void CTrafficEntry::FromVariant(const class QtVariant& TrafficEntry)
@@ -126,11 +131,10 @@ void CTrafficEntry::SetIpAddress(const QString& IpAddress)
     m_Type = GetNetType(QHostAddress(IpAddress));
 }
 
-quint64 CTrafficEntry__LoadList(QHash<QString, CTrafficEntryPtr>& List, QHash<QHostAddress, QSet<CTrafficEntryPtr>>& Unresolved, const class QtVariant& TrafficList)
+quint64 CTrafficEntry__LoadList(QHash<QString, CTrafficEntryPtr>& List, QHash<QHostAddress, QSet<CTrafficEntryPtr>>& Unresolved, const class QtVariant& TrafficList, QList<CTrafficEntryPtr>* pChanged)
 {
 	quint64 LastActivity = 0;
 
-	QHash<QString, CTrafficEntryPtr> OldList = List;
 	QSet<QHostAddress> OldUnresolved = ListToSet(Unresolved.keys());
 
     QtVariantReader(TrafficList).ReadRawList([&](const FW::CVariant& vData) {
@@ -140,13 +144,14 @@ quint64 CTrafficEntry__LoadList(QHash<QString, CTrafficEntryPtr>& List, QHash<QH
         FW::CVariantReader::Find(TrafficEntry, API_V_SOCK_RHOST, vHostName);
 		QString HostName = vHostName.AsQStr();
 
-		CTrafficEntryPtr pEntry = OldList.take(HostName);
-		if (!pEntry) {
+		// the list is updated incrementally, entries not in this response stay as they are
+		CTrafficEntryPtr& pEntry = List[HostName];
+		if (!pEntry)
 			pEntry = CTrafficEntryPtr(new CTrafficEntry());
-			List.insert(HostName, pEntry);
-		}
 
 		pEntry->FromVariant(TrafficEntry);
+		if (pChanged)
+			pChanged->append(pEntry);
 
 		if (pEntry->GetLastActivity() > LastActivity)
 			LastActivity = pEntry->GetLastActivity();
@@ -164,10 +169,6 @@ quint64 CTrafficEntry__LoadList(QHash<QString, CTrafficEntryPtr>& List, QHash<QH
                 List.remove(pUnresolved->GetHostName());
         }
 	});
-
-	// we update the list incrementaly
-	//foreach(const QString& HostName, OldList.keys())
-	//	List.remove(HostName);
 
     foreach(const QHostAddress& Address, OldUnresolved)
         Unresolved.remove(Address);

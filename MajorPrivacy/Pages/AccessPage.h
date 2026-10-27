@@ -7,6 +7,7 @@ class CHandleView;
 class CAccessView;
 class CAccessListView;
 class CAccessTraceView;
+class CUsageView;
 
 class CAccessPage : public QWidget
 {
@@ -43,5 +44,6 @@ private:
 	CAccessView*			m_pAccessView;
 	CAccessListView*		m_pAccessListView;
 	CAccessTraceView*		m_pTraceView;
+	CUsageView*				m_pIoView = nullptr;
 };
 

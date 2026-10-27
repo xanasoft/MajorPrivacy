@@ -24,17 +24,20 @@ public:
 	virtual void CountStats();
 
 	QMap<quint64, CProgramFile::SExecutionInfo> GetExecStats();
+	quint32 GetExecRevision() const { QReadLocker Lock(&m_Mutex); return m_ExecRevision; }
 
 	QMap<quint64, CProgramFile::SIngressInfo> GetIngressStats();
+	quint32 GetIngressRevision() const { QReadLocker Lock(&m_Mutex); return m_IngressRevision; }
 
-	virtual QMap<quint64, SAccessStatsPtr>	GetAccessStats();
+	virtual QMap<quint64, SAccessStatsPtr>	GetAccessStats(); // keyed by change sequence, see SAccessLog
 
 	quint64 GetAccessLastActivity() const { return m_AccessLastActivity; }
 	quint64 GetAccessLastEvent() const { return m_AccessLastEvent; }
 	quint32 GetAccessCount() const { return m_AccessCount; }
 	quint32 GetHandleCount() const { return m_HandleCount; }
 
-	virtual QHash<QString, CTrafficEntryPtr> GetTrafficLog();
+	virtual QHash<QString, CTrafficEntryPtr> GetTrafficLog(QList<CTrafficEntryPtr>* pChanged = nullptr);
+	quint32 GetTrafficLogGeneration() const { return m_TrafficLogGeneration; }
 
 	virtual void ClearAccessLog();
 	virtual void ClearProcessLogs();
@@ -55,12 +58,16 @@ protected:
 	quint64						m_ProcessId = 0;
 
 	QMap<quint64, CProgramFile::SExecutionInfo> m_ExecStats;
-	bool						m_ExecChanged = true;
+	std::atomic<bool>			m_ExecChanged{ true };
+	quint64						m_ExecFetched = 0;
+	quint32						m_ExecRevision = 0;
 
 	QMap<quint64, CProgramFile::SIngressInfo> m_Ingress;
-	bool						m_IngressChanged = true;
+	std::atomic<bool>			m_IngressChanged{ true };
+	quint64						m_IngressFetched = 0;
+	quint32						m_IngressRevision = 0;
 
-	QMap<quint64, SAccessStatsPtr> m_AccessStats;
+	SAccessLog					m_AccessLog;
 	quint64						m_AccessLastActivity = 0;
 	quint64						m_AccessLastEvent = 0;
 	quint32						m_AccessCount = 0;
@@ -71,6 +78,7 @@ protected:
 	QHash<QString, CTrafficEntryPtr> m_TrafficLog;
 	QHash<QHostAddress, QSet<CTrafficEntryPtr>> m_Unresolved;
 	quint64						m_TrafficLogLastActivity = 0;
+	quint32						m_TrafficLogGeneration = 0; // incremented on every clear, so views know their aggregates are stale
 };
 
 typedef QSharedPointer<CWindowsService> CWindowsServicePtr;

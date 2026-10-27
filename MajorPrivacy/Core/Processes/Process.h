@@ -16,6 +16,7 @@ public:
 	static QIcon DefaultIcon();
 
 	quint64 GetProcessId() const { return m_Pid; }
+	quint64 GetProcessUID() const { return m_Puid; }
 	quint64 GetCreationTime() const { return m_CreationTime; }
 	quint64 GetParentId() const { return m_ParentPid; }
 	QString GetName() const { QReadLocker Lock(&m_Mutex); return m_Name; }
@@ -52,19 +53,22 @@ public:
 	QList<CSocketPtr> GetSockets() const { QReadLocker Lock(&m_Mutex); return m_Sockets.values(); }
 	int GetSocketCount() const { QReadLocker Lock(&m_Mutex); return m_Sockets.count(); }
 
-	void FromVariant(const class QtVariant& Process);
+	void FromVariant(const class QtVariant& Process, bool bFullSend = false);
 
 private slots:
 	void OnSidResolved(const QByteArray& SID, const QString& Name);
 
 protected:
 
-	void UpdateHandlesUnsafe(const class QtVariant& Handles);
+	void UpdateHandlesUnsafe(const class QtVariant& Handles, bool bFullSend);
+	void RemoveHandlesUnsafe(const class QtVariant& Handles);
 
-	void UpdateSocketsUnsafe(const class QtVariant& Sockets);
+	void UpdateSocketsUnsafe(const class QtVariant& Sockets, bool bFullSend);
+	void RemoveSocketsUnsafe(const class QtVariant& Sockets);
 
 	mutable QReadWriteLock m_Mutex;
 
+	quint64 m_Puid = 0;
 	quint64 m_Pid = 0;
 	quint64 m_CreationTime = 0;
 	quint64 m_ParentPid = 0;

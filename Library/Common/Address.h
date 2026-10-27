@@ -60,6 +60,7 @@ protected:
 };
 
 LIBRARY_EXPORT bool IsLanIPv4(uint32 IPv4);
+LIBRARY_EXPORT bool IsLanAddress(const CAddress& Address); // private, loopback, link local and multicast ranges, v4 and v6
 
 LIBRARY_EXPORT char* _inet_ntop(int af, const void* src, char* dst, int size);
 LIBRARY_EXPORT wchar_t* _winet_ntop(int af, const void* src, wchar_t* dst, size_t size);

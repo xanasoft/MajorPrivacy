@@ -60,7 +60,12 @@ public:
 	void SetKeepAlive(bool bKeepAlive)				{ m_KeepAlive = bKeepAlive; }
 
 	void AddProcess(CProcessPtr Process)			{ m_Processes.insert(Process->GetProcessId(), Process); }
-	void RemoveProcess(CProcessPtr Process)			{ m_Processes.remove(Process->GetProcessId()); }
+	//
+	// Still keyed by pid, and a pid can be claimed by two entries at once - a
+	// terminated process is kept around for a while - so only remove the slot if it
+	// still holds this very process, or a dead one would evict its live successor.
+	//
+	void RemoveProcess(CProcessPtr Process)			{ auto I = m_Processes.find(Process->GetProcessId()); if (I != m_Processes.end() && I.value() == Process) m_Processes.erase(I); }
 	QMap<quint64, CProcessPtr> GetProcesses()		{ return m_Processes; }
 
 	//static QString GetSignatureLevelStr(KPH_VERIFY_AUTHORITY SignAuthority);

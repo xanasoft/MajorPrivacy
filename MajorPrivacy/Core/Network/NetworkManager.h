@@ -23,9 +23,9 @@ public:
 	QList<CFwRulePtr> GetFwRules(const QSet<QFlexGuid> &FwRuleIDs);
 	CFwRulePtr GetFwRule(const QFlexGuid& Guid);
 
-	RESULT(QFlexGuid) SetFwRule(const CFwRulePtr& pRule);
+	RESULT(QFlexGuid) SetFwRule(const CFwRulePtr& pRule, const QStringList& TakeOver = QStringList()); // TakeOver: for a template, guids of existing rules it is to stand for
 	//RESULT(CFwRulePtr) GetFwRule(const QFlexGuid& Guid);
-	STATUS DelFwRule(const CFwRulePtr& pRule);
+	STATUS DelFwRule(const CFwRulePtr& pRule, bool bWithDerived = false); // bWithDerived: for a template, the rules made from it go as well
 
 	STATUS RestoreDefaultFwRules();
 	STATUS CreateFwRule(const QFlexGuid& Id, const QString& Name, const QString& Description, const CProgramID& ProgramID, EFwActions Action, EFwDirections Direction, EFwKnownProtocols Protocol, EFwProfiles Profile, const QStringList& LPort = QStringList(), const QStringList& RPort = QStringList(), const QStringList& RAddr = QStringList());

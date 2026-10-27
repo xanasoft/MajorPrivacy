@@ -114,7 +114,8 @@ void CEventView::OnNewEntry(const CEventLogEntryPtr& pEntry)
 	case eLogFwRuleRestored:
 	case eLogFwRuleRejected:
 		if(theConf->GetBool("Options/NotifyFwGuardAction", true))
-			theGUI->ShowNotification(tr("Firewall Rule Guard"), CEventLog::GetEventInfoStr(pEntry), QSystemTrayIcon::Information);
+			theGUI->ShowNotification(tr("Firewall Rule Guard"), CEventLog::GetEventInfoStr(pEntry),
+				pEntry->GetEventLevel() >= ELogLevels::eError ? QSystemTrayIcon::Warning : QSystemTrayIcon::Information);
 		break;
 	}
 }

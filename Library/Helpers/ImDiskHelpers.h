@@ -2,18 +2,6 @@
 /*
  * Copyright 2023-2025 David Xanatos, xanasoft.com
  *
- * This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "../lib_global.h"
@@ -97,3 +85,60 @@ LIBRARY_EXPORT NTSTATUS UpdateCommandLine(HANDLE hProcess, NTSTATUS(*Update)(std
 LIBRARY_EXPORT NTSTATUS CreateSecureSection(HANDLE* phSection, PVOID* ppMapping, SIZE_T uSize);
 
 LIBRARY_EXPORT NTSTATUS ExecImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iKdf, const std::wstring& Command, bool bWrite = false, CBuffer* pBuffer = NULL, USHORT uId = 0);
+
+//
+// One run of ImBox.exe, or several against the same shared section.
+//
+// ExecImDisk creates a section, fills it, runs ImBox once and throws it away,
+// which is all a mount or a password change needs. The header editor needs
+// more: it reads a header out, works on it, and writes it back, and the header
+// carries the volume's master key.
+//
+// Keeping the section open across all of that is what keeps that key out of
+// ordinary process memory. The section is page-locked when it is created and
+// wiped when it is closed, the editor works in place inside it, and nothing is
+// ever copied to the heap. That also makes the section long enough to hold a
+// 64 KiB header, which the fixed 4 KiB SSection is not - see SHeaderData.
+//
+// Run() may be called more than once. Each run overwrites SSection's first
+// kilobyte, because the password going in and the SCryptInfo coming out share
+// it, so SetPassword() belongs before every call rather than once at the start.
+//
+class LIBRARY_EXPORT CImBoxSession
+{
+public:
+	CImBoxSession();
+	~CImBoxSession();
+
+	CImBoxSession(const CImBoxSession&) = delete;
+	CImBoxSession& operator=(const CImBoxSession&) = delete;
+
+	// uHeaderLen 0 gives a plain 4 KiB SSection, anything else adds room for a
+	// header of that length behind it.
+	NTSTATUS			Create(ULONG uHeaderLen = 0);
+
+	bool				IsValid() const { return m_pSection != NULL; }
+	struct SSection*	Section() const { return m_pSection; }
+	struct SHeaderData*	Header() const;
+	ULONG				Size() const { return m_uSize; }
+
+	// All three go straight into the locked section and nowhere else; the
+	// caller's own copy is its own to clear.
+	void				SetPassword(const struct SPassword* pPassword);
+	void				SetPassword(const wchar_t* pPassword, size_t uSize, int iKdf, int iSlot = SPASS_SLOT_ANY);
+
+	//
+	// Hand over an already derived key rather than a password, so that ImBox
+	// does not run the KDF again. Only useful to a caller that has just run it
+	// itself - the header editor, between reading a header and writing it back.
+	//
+	void				SetRawKey(const void* pKey, size_t uSize);
+
+	NTSTATUS			Run(const std::wstring& ImageFile, const std::wstring& Command);
+
+protected:
+	HANDLE				m_hSection = NULL;
+	PVOID				m_pMapping = NULL;
+	struct SSection*	m_pSection = NULL;
+	ULONG				m_uSize = 0;
+};

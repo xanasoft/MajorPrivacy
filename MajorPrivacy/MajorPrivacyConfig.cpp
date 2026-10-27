@@ -450,6 +450,56 @@ void CMajorPrivacy::OnUnlockConfig()
 	CheckResults(QList<STATUS>() << Status, this);
 }
 
+void CMajorPrivacy::OnProvisionUserKey()
+{
+	bool bProvision = m_pProvisionKey->isChecked();
+
+	if (bProvision && QMessageBox::question(this, "MajorPrivacy", tr(
+		"Provision the user key to the pre-boot (firmware) protected EFI variable?\n\n"
+		"The key is committed after you confirm the change during the next boot. From then on the "
+		"firmware-protected key is authoritative, and MajorPrivacy warns if it no longer matches the "
+		"stored key.")) != QMessageBox::Yes)
+	{
+		UpdateLockStatus(); // user declined - resync the checkbox to the real state
+		return;
+	}
+
+	STATUS Status = theCore->Driver()->ProvisionUserKey(bProvision);
+
+	UpdateLockStatus();
+	CheckResults(QList<STATUS>() << Status, this);
+}
+
+void CMajorPrivacy::OnResumeIsolator()
+{
+	// Three choices:
+	//   Yes    - enable enforcement now AND clear the pre-boot suspend (stays off after the
+	//            next boot, once you confirm the change in the pre-boot prompt)
+	//   No     - enable enforcement now only (the next boot is suspended again)
+	//   Cancel - do nothing
+	QMessageBox::StandardButton Ret = QMessageBox::question(this, "MajorPrivacy", tr(
+		"Re-enable Kernel Isolator enforcement?\n\n"
+		"Enforcement was suspended before boot (recovery mode). Make sure you have corrected the "
+		"rule that caused the problem first, otherwise it may take effect again immediately.\n\n"
+		"Yes - enable now and clear the pre-boot suspend (you will be asked to confirm the change "
+		"during the next boot, after which the system boots normally).\n"
+		"No - enable now only (the next boot will be suspended again).\n"
+		"Cancel - do nothing."),
+		QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel, QMessageBox::Yes);
+
+	if (Ret == QMessageBox::Cancel)
+		return;
+
+	bool bClearSuspend = (Ret == QMessageBox::Yes);
+
+	// While suspended the user certificate is not active, so no challenge is required.
+	STATUS Status = theCore->Driver()->UnlockConfig(CBuffer(), true, bClearSuspend);
+
+	UpdateLockStatus();
+	UpdateTitle();
+	CheckResults(QList<STATUS>() << Status, this);
+}
+
 void CMajorPrivacy::OnCommitConfig()
 {
 	// Check if there are any changes to commit

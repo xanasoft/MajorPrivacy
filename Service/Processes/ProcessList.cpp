@@ -23,6 +23,9 @@
 #include "../Library/Helpers/CertUtil.h"
 #include "../Enclaves/EnclaveManager.h"
 #include "../Library/Helpers/WinUtil.h"
+#include "../Library/Helpers/MiscHelpers.h"
+#include "../Programs/WindowsService.h"
+#include "../Network/Socket.h"
 
 extern "C" {
 #include "../../Driver/KSI/include/kphmsg.h"
@@ -30,6 +33,9 @@ extern "C" {
 
 #define API_INGRESS_RECORD_FILE_NAME L"IngressRecord.dat"
 #define API_INGRESS_RECORD_FILE_VERSION 1
+
+#define API_USAGE_RECORD_FILE_NAME L"UsageRecord.dat"
+#define API_USAGE_RECORD_FILE_VERSION 1
 
 CProcessList::CProcessList()
 {
@@ -133,6 +139,8 @@ void CProcessList::Update()
 
 	//uStart = GetTickCount64();
     m_Services->EnumServices();
+
+    UpdateUsage();
 	//DbgPrint(L"CProcessList::EnumServices() took %llu ms\n", GetTickCount64() - uStart);
 }
 
@@ -150,15 +158,45 @@ STATUS CProcessList::EnumProcesses()
     uint64 start = GetTickCount64();
 #endif
 
+    //
+    // The snapshot of what we had is taken first and under its own short lock, so
+    // that a process which starts while we are talking to the driver below is not
+    // in it - it will simply not be in the driver's list either, and must not be
+    // taken for one that has gone.
+    //
     std::unique_lock Lock(m_Mutex);
 
     std::map<SProcessUID, CProcessPtr> OldList(m_ProcessMap);
+
+    Lock.unlock();
+
+    //
+    // A process is enlisted and given its program under the lock, so that it is
+    // never visible without one - see AddProcessImpl. Reading the libraries it has
+    // loaded is left until afterwards: that opens the process and walks its whole
+    // address space a region at a time, hundreds of system calls, and holding the
+    // lock through it stalled every event thread trying to read the list.
+    //
+    std::vector<CProcessPtr> NewProcesses;
 
     if (theCore->Driver()->IsConnected())
     {
         auto Pids = theCore->Driver()->EnumProcesses();
         if(Pids.IsError())
             return Pids.GetStatus();
+
+        //
+        // Asked for unlocked, all of it, before anything is touched.
+        //
+        // This used to be done with the list lock held: a few hundred round trips
+        // into the kernel inside one critical section, four times a second. Every
+        // driver event arriving in that window queued behind it, and they were
+        // found doing exactly that - waiting in GetProcessEx for this very lock,
+        // in as many samples as they were found running.
+        //
+        // SProcessInfo carries no pid of its own, so it is kept alongside.
+        std::vector<std::pair<uint64, SProcessInfoPtr> > Infos;
+        Infos.reserve(Pids.GetValue()->size());
 
         for (uint64 Pid : *Pids.GetValue())
         {
@@ -169,7 +207,17 @@ STATUS CProcessList::EnumProcesses()
             if(Result.IsError())
 				continue; // process already terminated
 
-            SProcessUID UID(Pid, FILETIME2ms(Result.GetValue()->CreateTime));
+            Infos.push_back(std::make_pair(Pid, Result.GetValue()));
+        }
+
+        Lock.lock();
+
+        for (const auto& I : Infos)
+        {
+            const uint64 Pid = I.first;
+            const SProcessInfoPtr& pInfo = I.second;
+
+            SProcessUID UID(Pid, FILETIME2ms(pInfo->CreateTime));
 
             auto F = OldList.find(UID);
             CProcessPtr pProcess;
@@ -178,20 +226,25 @@ STATUS CProcessList::EnumProcesses()
                 pProcess = F->second;
                 OldList.erase(F);
                 if(pProcess->GetParentId() == -1) // reinitialize process info if we had a partial init before
-					pProcess->Init(Result.GetValue().get());
+					pProcess->Init(pInfo.get());
             }
             else
             {
                 pProcess = CProcessPtr(new CProcess(Pid));
-                pProcess->Init(Result.GetValue().get());
+                pProcess->Init(pInfo.get());
                 AddProcessImpl(pProcess);
+                NewProcesses.push_back(pProcess);
             }
 
-            pProcess->Update(Result.GetValue().get());	
+            pProcess->Update(pInfo.get());	
         }
     }
     else
     {
+        //
+        // Unlocked as well: this walks every process in the kernel and fills a
+        // buffer, and touches nothing of ours while it does.
+        //
         std::vector<BYTE> Processes;
         //MyQuerySystemInformation(Processes, SystemExtendedProcessInformation);
         bool bFullProcessInfo = true;
@@ -202,6 +255,8 @@ STATUS CProcessList::EnumProcesses()
         }
         if (!NT_SUCCESS(status))
             return ERR(status);
+
+        Lock.lock();
 
         for (PSYSTEM_PROCESS_INFORMATION process = PH_FIRST_PROCESS(Processes.data()); process != NULL; process = PH_NEXT_PROCESS(process))
         {
@@ -224,6 +279,7 @@ STATUS CProcessList::EnumProcesses()
                 pProcess->Init(process, bFullProcessInfo);
 
                 AddProcessImpl(pProcess);
+                NewProcesses.push_back(pProcess);
             }
 
             pProcess->Update(process, bFullProcessInfo);
@@ -231,6 +287,9 @@ STATUS CProcessList::EnumProcesses()
     }
 
     Lock.unlock();
+
+    for (const CProcessPtr& pNew : NewProcesses)
+        LoadProcessLibs(pNew);
 
     for (auto E : OldList)
     {
@@ -257,10 +316,20 @@ STATUS CProcessList::EnumProcesses()
 void CProcessList::AddProcessImpl(const CProcessPtr& pProcess)
 {
     AddProcessUnsafe(pProcess);
-    CProgramFilePtr pProgram = theCore->ProgramManager()->AddProcess(pProcess);
+    theCore->ProgramManager()->AddProcess(pProcess);
+}
+
+//
+// The slow part of taking on a new process, kept out of the lock: InitLibs opens
+// the process and walks its whole address space a region at a time. The program is
+// already assigned by the time this runs, see AddProcessImpl.
+//
+void CProcessList::LoadProcessLibs(const CProcessPtr& pProcess)
+{
     pProcess->InitLibs();
 
-    if (pProcess->HashInfoUnknown()) {
+    CProgramFilePtr pProgram = pProcess->GetProgram();
+    if (pProgram && pProcess->HashInfoUnknown()) {
         if (!pProgram->HashInfoUnknown())
             pProcess->SetSignInfo(pProgram->GetSignInfo());
         //else
@@ -280,45 +349,83 @@ void CProcessList::AddProcessImpl(const CProcessPtr& pProcess)
     //}
 }
 
-CProcessPtr CProcessList::GetProcessEx(uint64 Pid, const std::wstring& FileNameNt, EGetMode Mode)
+//
+// Looks a process up by pid, taking a pid collision - the number handed on to
+// something else entirely - for a miss. The lock must be held.
+//
+// The map is ordered by pid and then by creation time, so the entry just below the
+// pid's upper bound is the newest process that ever had the number. A terminated
+// process stays listed while it owns sockets, and a new process may already carry
+// its pid; the newest is the one that is, or was last, running under it. With an
+// event time the bound moves down to it: the newest process created by then.
+//
+CProcessPtr CProcessList::FindByPidUnsafe(uint64 Pid, const std::wstring& FileNameNt, bool bLogCollision, uint64 NotAfterMs)
 {
-	std::unique_lock Lock(m_Mutex);
-
-	auto F = m_ProcessByPID.find(Pid); 
-    if (F != m_ProcessByPID.end()) {
-        if (Pid != NT_OS_KERNEL_PID && !FileNameNt.empty()) {
-            std::shared_lock ProcLock(F->second->m_Mutex);
-            if (_wcsicmp(F->second->m_NtFilePath.c_str(), FileNameNt.c_str()) != 0) {
-				theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PID_COLISION, L"Found Process PID collision detected: %s (%u) vs %s (%u).", F->second->m_NtFilePath.c_str(), Pid, FileNameNt.c_str(), Pid);
-
-                F = m_ProcessByPID.end();
-            }
-        }
-    }
-    if (F != m_ProcessByPID.end()) {
-        return F->second;
-    }
-
-    if (Mode == eCanNotAdd)
+    auto I = m_ProcessMap.upper_bound(SProcessUID(Pid, NotAfterMs ? NotAfterMs : 0x000003FFFFFFFFFFull));
+    if (I == m_ProcessMap.begin())
+        return NULL;
+    --I;
+    const CProcessPtr& pProcess = I->second;
+    if (pProcess->m_Pid != Pid)
         return NULL;
 
-    CProcessPtr pProcess = CProcessPtr(new CProcess(Pid));
-    auto Result = theCore->Driver()->GetProcessInfo(Pid);
-    bool bOk = pProcess->Init(Result.GetValue().get());
-
-    if (Pid != NT_OS_KERNEL_PID && !FileNameNt.empty()) {
-        if (_wcsicmp(pProcess->m_NtFilePath.c_str(), FileNameNt.c_str()) != 0) {
-            theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PID_COLISION, L"New Process PID collision detected: %s (%u) vs %s (%u).", pProcess->m_NtFilePath.c_str(), Pid, FileNameNt.c_str(), Pid);
-
-            // Create dummy
-            pProcess = CProcessPtr(new CProcess(Pid));
-			pProcess->m_NtFilePath = FileNameNt;
-            pProcess->m_Name = GetFileNameFromPath(pProcess->m_NtFilePath);
-
-            bOk = false;
-        }
+    if (Pid != NT_OS_KERNEL_PID && !FileNameNt.empty() && !pProcess->IsSameImage(FileNameNt)) {
+        if (bLogCollision)
+            theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PID_COLISION, L"Found Process PID collision detected: %s (%u) vs %s (%u).", pProcess->GetNtFilePath().c_str(), Pid, FileNameNt.c_str(), Pid);
+        return NULL;
     }
 
+    return pProcess;
+}
+
+//
+// Builds a process from what the driver knows about it, and tells the caller
+// whether it is really there. Takes no lock of its own - see the two callers.
+//
+CProcessPtr CProcessList::MakeProcess(uint64 Pid, const std::wstring& FileNameNt, SProcessInfoPtr& Info, bool& bOk, uint64 NotAfterMs)
+{
+    CProcessPtr pProcess = CProcessPtr(new CProcess(Pid));
+    auto Result = theCore->Driver()->GetProcessInfo(Pid);
+    Info = Result.GetValue();
+    bOk = pProcess->Init(Info.get());
+
+    //
+    // What the driver has under the pid is not the one meant when it runs another image, or
+    // when it was created after the event being attributed (the pid was handed on since).
+    //
+    bool bOther = false;
+    if (Pid != NT_OS_KERNEL_PID && !FileNameNt.empty() && !pProcess->IsSameImage(FileNameNt)) {
+        theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_PID_COLISION, L"New Process PID collision detected: %s (%u) vs %s (%u).", pProcess->m_NtFilePath.c_str(), Pid, FileNameNt.c_str(), Pid);
+        bOther = true;
+    }
+    else if (bOk && NotAfterMs && pProcess->GetCreateTimeStamp() > NotAfterMs)
+        bOther = true;
+
+    if (bOther) {
+        // Create dummy
+        pProcess = CProcessPtr(new CProcess(Pid));
+        pProcess->m_NtFilePath = FileNameNt;
+        pProcess->m_Name = GetFileNameFromPath(pProcess->m_NtFilePath);
+
+        bOk = false;
+    }
+
+    //
+    // A placeholder for something that is not running (or that the driver could not tell
+    // about) must not shadow a real process of the same pid: the lookup takes the newest
+    // creation time, so it gets none.
+    //
+    if (!bOk)
+        pProcess->m_CreateTimeStamp = 0;
+
+    return pProcess;
+}
+
+//
+// Enlists what MakeProcess built. The lock must be held.
+//
+CProcessPtr CProcessList::InsertProcessUnsafe(const CProcessPtr& pProcess, bool bOk, const SProcessInfoPtr& Info, EGetMode Mode)
+{
     if (bOk)
     {
         AddProcessUnsafe(pProcess);
@@ -327,7 +434,7 @@ CProcessPtr CProcessList::GetProcessEx(uint64 Pid, const std::wstring& FileNameN
         //if (!theCore->AppIsolator()->AllowProcessStart(pProcess))
         //    TerminateProcess(Pid, pProcess->GetFileName());
 
-        pProcess->Update(Result.GetValue().get());
+        pProcess->Update(Info.get());
     }
     else 
     {
@@ -336,16 +443,105 @@ CProcessPtr CProcessList::GetProcessEx(uint64 Pid, const std::wstring& FileNameN
             return nullptr;
 
 		m_ProcessMap.insert(std::make_pair(pProcess->GetProcessUID(), pProcess));
-        m_ProcessByPID.insert(std::make_pair(pProcess->GetProcessId(), pProcess));
     }
     
 	return pProcess; 
 }
 
+//
+// For callers that already hold the lock, which is why the driver is asked with it
+// held - there is no way around that from in here. The paths that come this way are
+// rare: a service being linked to its process, and a process being told about its
+// own parent. See CServiceList::SetProcessUnsafe and CProcessList::OnProcessStarted.
+//
+CProcessPtr CProcessList::GetProcessExUnsafe(uint64 Pid, const std::wstring& FileNameNt, EGetMode Mode, uint64 NotAfterMs)
+{
+    CProcessPtr pFound = FindByPidUnsafe(Pid, FileNameNt, true, NotAfterMs);
+    if (pFound && !pFound->IsMarkedForRemoval())
+        return pFound;
+
+    if (Mode == eCanNotAdd)
+        return pFound;
+
+    SProcessInfoPtr Info;
+    bool bOk = false;
+    CProcessPtr pProcess = MakeProcess(Pid, FileNameNt, Info, bOk, NotAfterMs);
+
+    return ResolveProcessUnsafe(pFound, pProcess, bOk, Info, Mode);
+}
+
+//
+// What a lookup found may be a process that has terminated, kept for its sockets,
+// while the pid has since been handed on. The driver was asked what runs under the
+// pid now; this decides between the two. The lock must be held.
+//
+CProcessPtr CProcessList::ResolveProcessUnsafe(const CProcessPtr& pFound, const CProcessPtr& pProcess, bool bOk, const SProcessInfoPtr& Info, EGetMode Mode)
+{
+    if (pFound)
+    {
+        if (!bOk) // nothing runs under the pid, the terminated process is the best answer
+            return pFound;
+
+        if (pFound->GetProcessUID() == pProcess->GetProcessUID()) // the same process, still there
+            return pFound;
+    }
+
+    return InsertProcessUnsafe(pProcess, bOk, Info, Mode);
+}
+
+CProcessPtr CProcessList::GetProcessEx(uint64 Pid, const std::wstring& FileNameNt, EGetMode Mode, uint64 NotAfterMs)
+{
+    //
+    // The common case by far, and all that most callers ever need: the process is
+    // already known and this is one lookup.
+    //
+    {
+        //
+        // Shared: this only reads the map, and while it was exclusive every event
+        // thread doing the same lookup excluded all the others.
+        //
+        std::shared_lock Lock(m_Mutex);
+
+        CProcessPtr pFound = FindByPidUnsafe(Pid, FileNameNt, true, NotAfterMs);
+        if (pFound && !pFound->IsMarkedForRemoval())
+            return pFound;
+
+        //
+        // Known only as terminated, or not at all. Without the driver that is the
+        // answer; with it, the pid may have been handed on since, so ask below.
+        //
+        if (Mode == eCanNotAdd)
+            return pFound;
+    }
+
+    //
+    // Asking the driver is a round trip into the kernel, and it used to be made with
+    // the list lock held - on the driver event path, so every other event coming in
+    // waited behind it. Done here with nothing held; if two threads ask about the
+    // same process at once they both do the work and the second one throws its
+    // answer away below, which is cheaper than everyone queueing for the first.
+    //
+    SProcessInfoPtr Info;
+    bool bOk = false;
+    CProcessPtr pProcess = MakeProcess(Pid, FileNameNt, Info, bOk, NotAfterMs);
+
+    std::unique_lock Lock(m_Mutex);
+
+    //
+    // Looked up again: another event thread may have gone through all of the above
+    // while we were in the kernel, and there must only ever be one of each process.
+    // Not logged this time, the first look already did that.
+    //
+    CProcessPtr pFound = FindByPidUnsafe(Pid, FileNameNt, false, NotAfterMs);
+    if (pFound && !pFound->IsMarkedForRemoval())
+        return pFound;
+
+    return ResolveProcessUnsafe(pFound, pProcess, bOk, Info, Mode);
+}
+
 void CProcessList::AddProcessUnsafe(const CProcessPtr& pProcess)
 {
     m_ProcessMap.insert(std::make_pair(pProcess->GetProcessUID(), pProcess));
-    m_ProcessByPID.insert(std::make_pair(pProcess->GetProcessId(), pProcess));
 
     std::wstring AppContainerSID = pProcess->GetAppContainerSid();
     if (!AppContainerSID.empty())
@@ -359,9 +555,6 @@ void CProcessList::RemoveProcessUnsafe(const CProcessPtr& pProcess)
 {
     m_ProcessMap.erase(pProcess->GetProcessUID());
 
-	auto F = m_ProcessByPID.find(pProcess->GetProcessId());
-    if(F != m_ProcessByPID.end() && F->second == pProcess)
-		m_ProcessByPID.erase(F);
 
     std::wstring AppContainerSID = pProcess->GetAppContainerSid();
     if (!AppContainerSID.empty())
@@ -373,7 +566,7 @@ void CProcessList::RemoveProcessUnsafe(const CProcessPtr& pProcess)
 
 std::map<SProcessUID, CProcessPtr> CProcessList::FindProcesses(const CProgramID& ID)
 {
-	std::unique_lock Lock(m_Mutex);
+	std::shared_lock Lock(m_Mutex);	// reads only
 
 	std::map<SProcessUID, CProcessPtr> Found;
 
@@ -388,10 +581,17 @@ std::map<SProcessUID, CProcessPtr> CProcessList::FindProcesses(const CProgramID&
         }
 	    case EProgramType::eWindowsService:
         {
-            auto pService = m_Services->GetService(ID.GetServiceTag());
+            //
+            // Unsafe: the lock is held here, and it is the one the service list
+            // shares with us.
+            //
+            auto pService = m_Services->GetServiceUnsafe(ID.GetServiceTag());
             if (!pService || !pService->ProcessId)
                 break;
-            CProcessPtr pProcess = GetProcess(pService->ProcessId);
+            //
+            // Unsafe: FindProcesses holds the lock.
+            //
+            CProcessPtr pProcess = GetProcessUnsafe(pService->ProcessId);
             if (!pProcess)
                 break;
             
@@ -464,13 +664,12 @@ std::wstring CProcessList::GetPathFromCmd(const std::wstring &CommandLine, const
     if (!PathIsRelativeW(filePath.c_str()))
         return filePath;
 
-    std::unique_lock Lock(m_Mutex);
+    std::shared_lock Lock(m_Mutex);	// reads only
 
     // check relative paths based on the parrent process working directory
     std::wstring workingDir;
-	auto F = m_ProcessByPID.find(ParentID); 
-    if (F != m_ProcessByPID.end())
-        workingDir = F->second->GetWorkDir();
+    if (CProcessPtr pParent = FindByPidUnsafe(ParentID, L"", false))
+        workingDir = pParent->GetWorkDir();
     if (!workingDir.empty())
     {
         std::wstring curPath = FindExe(std::filesystem::absolute(workingDir + L"\\" + filePath));
@@ -607,6 +806,10 @@ bool CProcessList::OnProcessStarted(uint64 Pid, uint64 ParentPid, uint64 ActorPi
         }
     }
 
+    //
+    // No lock is held at this point - the one above is scoped to the block it is
+    // declared in - so this is the ordinary locking form.
+    //
     CProcessPtr pParentProcess = GetProcess(ActorPid, true);
     CProgramFilePtr pActorProgram = pParentProcess ? pParentProcess->GetProgram() : NULL;
     if (pProgram && pActorProgram)
@@ -644,10 +847,9 @@ void CProcessList::OnProcessStopped(uint64 Pid, uint32 ExitCode)
 {
 	std::unique_lock Lock(m_Mutex);
 
-    auto F = m_ProcessByPID.find(Pid);
-    if (F == m_ProcessByPID.end())
+    CProcessPtr pProcess = FindByPidUnsafe(Pid, L"", false);
+    if (!pProcess)
         return;
-    CProcessPtr pProcess = F->second;
 
     if (!pProcess->IsMarkedForRemoval())
 	    pProcess->MarkForRemoval();
@@ -917,9 +1119,9 @@ void CProcessList::OnResourceAccessed(const std::wstring& NtPath, uint64 ActorPi
     Event[API_V_EVENT_DATA]	    = pLogEntry->ToVariant();
 
     if(pLogEntry->GetStatus() != EEventStatus::eAllowed)
-        theCore->BroadcastMessage(SVC_API_EVENT_RES_ACTIVITY, Event); // always breadcast suspiciosue activity
+        theCore->QueueBroadcast(SVC_API_EVENT_RES_ACTIVITY, Event); // always breadcast suspiciosue activity
     else
-        theCore->BroadcastMessage(SVC_API_EVENT_RES_ACTIVITY, Event, pActorProgram);
+        theCore->QueueBroadcast(SVC_API_EVENT_RES_ACTIVITY, Event, pActorProgram);
 }
 
 void CProcessList::AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram, const CExecLogEntryPtr& pLogEntry)
@@ -933,9 +1135,9 @@ void CProcessList::AddExecLogEntry(const std::shared_ptr<CProgramFile>& pProgram
     Event[API_V_EVENT_DATA]	    = pLogEntry->ToVariant();
 
     if(pLogEntry->GetStatus() != EEventStatus::eAllowed)
-		theCore->BroadcastMessage(SVC_API_EVENT_EXEC_ACTIVITY, Event); // always breadcast suspiciosue activity
+		theCore->QueueBroadcast(SVC_API_EVENT_EXEC_ACTIVITY, Event); // always breadcast suspiciosue activity
 	else
-        theCore->BroadcastMessage(SVC_API_EVENT_EXEC_ACTIVITY, Event, pProgram);
+        theCore->QueueBroadcast(SVC_API_EVENT_EXEC_ACTIVITY, Event, pProgram);
 }
 
 ULONG InjectDllLow(uint64 Pid, ULONG flags)
@@ -1155,7 +1357,7 @@ void CProcessList::OnProcessEtwEvent(const struct SEtwProcessEvent* pEvent)
 //////////////////////////////////////////////////////////////////////////
 // Load/Store
 
-STATUS CProcessList::Load()
+STATUS CProcessList::LoadIngress()
 {
     CBuffer Buffer;
     if (!ReadFile(theCore->GetDataFolder() + L"\\" API_INGRESS_RECORD_FILE_NAME, Buffer)) {
@@ -1202,7 +1404,7 @@ STATUS CProcessList::Load()
     return OK;
 }
 
-STATUS CProcessList::Store()
+STATUS CProcessList::StoreIngress()
 {
     SVarWriteOpt Opts;
     Opts.Format = SVarWriteOpt::eIndex;
@@ -1232,7 +1434,239 @@ STATUS CProcessList::Store()
 
     CBuffer Buffer;
     Data.ToPacket(&Buffer);
-    WriteFile(theCore->GetDataFolder() + L"\\" API_INGRESS_RECORD_FILE_NAME, Buffer);
+    WriteFileSafe(theCore->GetDataFolder() + L"\\" API_INGRESS_RECORD_FILE_NAME, Buffer);
 
     return OK;
+}
+
+STATUS CProcessList::Load()
+{
+    LoadIngress();
+    LoadUsage();
+    return OK;
+}
+
+STATUS CProcessList::Store()
+{
+    StoreIngress();
+    StoreUsage();
+    return OK;
+}
+
+STATUS CProcessList::LoadUsage()
+{
+    STATUS Status = LoadUsageImpl();
+    m_bUsageLoaded = true; // whatever the outcome, there is nothing more to wait for
+    return Status;
+}
+
+STATUS CProcessList::LoadUsageImpl()
+{
+    CBuffer Buffer;
+    if (!ReadFile(theCore->GetDataFolder() + L"\\" API_USAGE_RECORD_FILE_NAME, Buffer)) {
+        theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, API_USAGE_RECORD_FILE_NAME L" not found");
+        return ERR(STATUS_NOT_FOUND);
+    }
+
+    StVariant Data;
+    auto ret = Data.FromPacket(&Buffer, true);
+    if (ret != StVariant::eErrNone) {
+        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Failed to parse " API_USAGE_RECORD_FILE_NAME);
+        return ERR(STATUS_UNSUCCESSFUL);
+    }
+
+    if (Data[API_S_VERSION].To<uint32>() != API_USAGE_RECORD_FILE_VERSION) {
+        theCore->Log()->LogEventLine(EVENTLOG_ERROR_TYPE, 0, SVC_EVENT_SVC_INIT_FAILED, L"Encountered unsupported " API_USAGE_RECORD_FILE_NAME);
+        return ERR(STATUS_UNSUCCESSFUL);
+    }
+
+    StVariant List = Data[API_S_USAGE_LOG];
+
+    for (uint32 i = 0; i < List.Count(); i++)
+    {
+        StVariant Item = List[i];
+
+        CProgramID ID;
+        if(!ID.FromVariant(StVariantReader(Item).Find(API_V_ID)))
+            continue;
+        CProgramItemPtr pItem = theCore->ProgramManager()->GetProgramByID(ID, false);
+        if (!pItem) {
+            DbgPrint(L"CProcessList::LoadUsage() - No program found for usage record item with ID %s\n", ID.ToString().c_str());
+            continue;
+        }
+        if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+            pProgram->LoadUsage(Item);
+        else if(CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+            pService->LoadUsage(Item);
+    }
+
+    return OK;
+}
+
+STATUS CProcessList::StoreUsage()
+{
+    SVarWriteOpt Opts;
+    Opts.Format = SVarWriteOpt::eIndex;
+    Opts.Flags = SVarWriteOpt::eSaveToFile;
+
+    StVariantWriter List;
+    List.BeginList();
+
+    bool bSave = theCore->Config()->GetBool("Service", "SaveUsageRecord", true);
+
+    for (auto pItem : theCore->ProgramManager()->GetItems())
+    {
+        ESavePreset ePreset = pItem.second->GetSaveTrace();
+        if (ePreset == ESavePreset::eDontSave || (ePreset == ESavePreset::eDefault && !bSave))
+            continue;
+
+        // StoreUsage saves API_V_ID, and returns an invalid variant when there is nothing to save
+        StVariant Entry;
+        if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem.second))
+            Entry = pProgram->StoreUsage(Opts);
+        else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem.second))
+            Entry = pService->StoreUsage(Opts);
+        if (Entry.IsValid())
+            List.WriteVariant(Entry);
+    }
+
+    StVariant Data;
+    Data[API_S_VERSION] = API_USAGE_RECORD_FILE_VERSION;
+    Data[API_S_USAGE_LOG] = List.Finish();
+
+    CBuffer Buffer;
+    Data.ToPacket(&Buffer);
+    WriteFileSafe(theCore->GetDataFolder() + L"\\" API_USAGE_RECORD_FILE_NAME, Buffer);
+
+    return OK;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Usage sampling
+
+void CProcessList::UpdateUsage()
+{
+    if (!theCore->Config()->GetBool("Service", "UsageStats", true))
+        return;
+
+    uint64 uNow = GetTickCount64();
+    uint64 uInterval = theCore->Config()->GetUInt64("Service", "UsageSampleInterval", 1000);
+    if (m_LastUsageSample && uNow - m_LastUsageSample < uInterval)
+        return;
+    uint64 uElapsed = m_LastUsageSample ? uNow - m_LastUsageSample : uInterval;
+    m_LastUsageSample = uNow;
+
+    //
+    // One snapshot gives the cumulative CPU times and I/O byte counts of every process,
+    // the driver does not report those. Taken without the lock, like EnumProcesses does.
+    //
+    std::vector<BYTE> Processes;
+    NTSTATUS status = MyQuerySystemInformation(Processes, SystemProcessInformation);
+    if (!NT_SUCCESS(status))
+        return;
+
+    uint64 NowMs = GetCurTime() * 1000ULL;
+
+    std::vector<CProcessPtr> Known;
+    {
+        std::shared_lock Lock(m_Mutex);
+
+        for (PSYSTEM_PROCESS_INFORMATION process = PH_FIRST_PROCESS(Processes.data()); process != NULL; process = PH_NEXT_PROCESS(process))
+        {
+            uint64 Pid = (uint64)process->UniqueProcessId;
+            if (Pid == 0)
+                continue; // skip Idle Process
+
+            auto F = m_ProcessMap.find(SProcessUID(Pid, FILETIME2ms(process->CreateTime.QuadPart)));
+            if (F == m_ProcessMap.end())
+                continue; // not (yet) known, it will be picked up by the next sample
+            F->second->UpdateUsage(process);
+        }
+
+        Known.reserve(m_ProcessMap.size());
+        for (auto& I : m_ProcessMap)
+            Known.push_back(I.second);
+    }
+
+    //
+    // GPU and NPU time comes from dxgkrnl, per process and adapter node, see CGpuMonitor.
+    // Adapters are enumerated on first use and again every few minutes when none was found.
+    //
+    if (theCore->Config()->GetBool("Service", "UsageGpuStats", true))
+    {
+        if (!m_GpuMonitor.IsReady() && (m_GpuMonitorRetry == 0 || uNow - m_GpuMonitorRetry > 5 * 60 * 1000)) {
+            m_GpuMonitorRetry = uNow;
+            m_GpuMonitor.SetLogger([](const std::wstring& Msg) {
+                theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"%s", Msg.c_str());
+            });
+            m_GpuMonitor.Init();
+        }
+
+        if (m_GpuMonitor.IsReady())
+        {
+            std::map<uint32, CGpuMonitor::SProcessUsage> GpuUsage;
+            m_GpuMonitor.Sample(GpuUsage);
+
+            if (!GpuUsage.empty())
+            {
+                // a terminated process may still be listed under the same id as a new one, the newest wins
+                std::map<uint32, CProcessPtr> ByPid;
+                for (const CProcessPtr& pProcess : Known) {
+                    CProcessPtr& pSlot = ByPid[(uint32)pProcess->GetProcessId()];
+                    if (!pSlot || pSlot->GetCreationTime() < pProcess->GetCreationTime())
+                        pSlot = pProcess;
+                }
+                for (auto& I : GpuUsage) {
+                    auto F = ByPid.find(I.first);
+                    if (F != ByPid.end())
+                        F->second->AddGpuUsage(I.second.Time[CGpuMonitor::eGpu], I.second.Time[CGpuMonitor::eNpu]);
+                }
+            }
+        }
+    }
+    else if (m_GpuMonitor.IsReady())
+        m_GpuMonitor.Reset();
+
+    //
+    // Open connections are a gauge: each process' sockets are counted now and booked as
+    // connection seconds (count times the seconds since the last sample) to the usage log of
+    // the socket's owner, like its bytes. See CSocket::BookUsageConnections and SUsageSample.
+    //
+    uint32 ConnSeconds = (uint32)std::min<uint64>(std::max<uint64>((uElapsed + 500) / 1000, 1), 60);
+    for (const CProcessPtr& pProcess : Known)
+        CSocket::BookUsageConnections(pProcess->GetSocketList(), ConnSeconds);
+
+    //
+    // Book the deltas. Each sample goes to exactly one item, the same way the other records
+    // are routed: a process that hosts exactly one service books to that service, every other
+    // process to its program file. Pending network bytes are committed on every item of the
+    // process, so a shared service host gets its sockets' traffic on the right service.
+    //
+    for (const CProcessPtr& pProcess : Known)
+    {
+        CProgramFilePtr pProgram = pProcess->GetProgram();
+        if (!pProgram)
+            continue;
+
+        SUsageSample Sample;
+        bool bHasSample = pProcess->TakeUsage(Sample);
+
+        std::set<std::wstring> SvcTags = pProcess->GetServices();
+        CWindowsServicePtr pTarget;
+        if (SvcTags.size() == 1)
+            pTarget = pProgram->GetService(*SvcTags.begin());
+
+        if (pTarget) {
+            pTarget->UsageLog()->Commit(NowMs, bHasSample ? &Sample : nullptr);
+            pProgram->UsageLog()->Commit(NowMs, nullptr);
+        }
+        else {
+            pProgram->UsageLog()->Commit(NowMs, bHasSample ? &Sample : nullptr);
+            for (const std::wstring& SvcTag : SvcTags) {
+                CWindowsServicePtr pService = pProgram->GetService(SvcTag);
+                if (pService)
+                    pService->UsageLog()->Commit(NowMs, nullptr);
+            }
+        }
+    }
 }

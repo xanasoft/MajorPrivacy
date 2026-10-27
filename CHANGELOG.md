@@ -4,6 +4,83 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 
 
+
+## [0.101.0] - 2026-10-27
+
+### Added
+- added incremental data update mechanism
+- added firewall mode indicator to tray
+- added key files support
+- added key slots support
+- added firewall rule templates by path pattern, to stop repeated prompts when an updated program (e.g. a store app) moves to a new folder
+  - Allow/Block on the connection prompt offers to remember the decision as a rule template when the program looks like a new version of one already decided about
+  - Approve/Reject on the rule change prompt offers to make a rule template and carry out the changes (Yes / No / Cancel)
+  - new dropdown entries "Create Allow/Block Rule Template...", "Allow/Block this Program only" and "Add Auto Approve/Reject Entry..."
+  - a path pattern is suggested from the existing rules, wildcarding only the version, and can be edited before saving
+  - new small editors for rule templates (with "More Settings..." into the full rule editor) and for auto approve/reject entries
+- rule templates now answer unauthorized firewall rule changes: a matching template approves the change, a block template rejects an allow rule
+- a firewall rule moved from one path to another is approved when both paths are covered by the same template
+- a firewall rule deleted and recreated identically (e.g. by browsers) is approved without asking, a removal is held back for 5 seconds to wait for its replacement
+- answering a prompt now also clears other pending prompts it covers
+- new options: "Apply Templates to Unauthorized Rule Changes" (on), "Always Approve the Removal of Allow Rules" (off), "Approve a Rule Replaced by an Identical One" (on), "Always make a Rule Template where one would cover more" (off)
+- added usage graphs: "CPU Usage" (Process Security), "I/O Usage" (Resource Protection) and "Traffic Usage" (Network Firewall) tabs plot the selected programs' usage over the time range of the toolbar combo
+  - the service samples CPU time and I/O bytes once a second and records network bytes per socket, summed into 1 minute buckets per program/service kept for 30 days (UsageRecord.dat), plus a 5 minute live view at 1 second resolution
+  - the CPU graph also shows GPU and NPU usage per program, sampled from the graphics kernel's per process node statistics (the same source Task Manager uses), with an option to turn it off
+  - the traffic graph separates internet from LAN traffic (private, loopback, link local and multicast addresses), four lines: internet up/down and LAN up/down; a "Hide LAN Traffic" button switches the LAN lines off, remembered across sessions
+  - the traffic graph also plots the number of open connections on a second axis on the right, scaled on its own; the tooltip and the summary split them into inbound and outbound, the direction comes from the firewall log events
+  - a zoom rectangle zooms both axes together, the mouse wheel scales the data rate axis only
+  - hovering the graph shows the top 10 programs for that point in time
+  - the graphs can be zoomed: drag a rectangle to zoom in, right-click / double-click to go back, Ctrl+right-click or the "Fit all" button to show everything; the mouse wheel scales the value axis only, so a single spike no longer hides the rest of the graph
+  - the plotted time span starts with the first recorded sample, not with the start of the selected range
+  - the time combo is now always enabled, it drives the graphs; the filter button still gates the lists and logs as before
+  - the I/O and traffic graphs include programs with a private trace preset by default, they show volumes only, and have a "Hide Private Entries" button to leave them out
+  - new options "Collect CPU, I/O and network usage statistics", "Usage Statistics Retention Time" and "Save Usage Statistics to Disk"
+  - uses the Qwt plotting library (qwt.dll)
+- added a "Show Private Entries" button to the traffic, access and trace views, like the ingress view has; implicit members of a selection (a group or all programs) with a private trace preset are left out unless it is pressed, the global button in the main tool bar still shows them everywhere
+
+### Changed
+- improved process list handling
+- data files are now writen safely
+- one question is asked for a whole batch of rule changes to a program instead of one per change
+- improved traffic view performance, only changed entries are processed
+- improved loaded modules, execution and ingress view performance, views are only rebuilt when the data changed
+- modules, execution and ingress data is refetched at most once per second per program
+- the service no longer sends memory addresses as execution and ingress entry references
+- improved access tree view performance, only changed entries are processed and the view is only updated when something changed
+- access tree search no longer copies the tree on every update
+
+### Fixed 
+- fixed all programs firewall rule creation
+- fixed path pattern matching giving false positives (and an out of bounds read) in some cases
+- fixed smart path patterns not matching a single "*" path element
+- fixed the process last network activity being a FILETIME when it came from the firewall log and milliseconds otherwise
+- fixed closing a socket testing the resource trace preset instead of the network trace preset
+- fixed network byte counters being updated under a shared lock
+- fixed a reused process id resolving to a terminated process that was kept listed for its sockets, so new sockets and network events were booked to the old process and its program (common on long running systems with browsers); processes are now looked up by pid and creation time
+- fixed the upload/download rate of TCP sockets never being updated (only UDP pseudo connections had one)
+- fixed firewall log events, which are read seconds after the fact, being attributed to a process that was handed the event's pid in the meantime; the image path the event carries and the event time are now checked against the process found by pid
+- fixed the execution trace view hiding private entries by the resource trace preset instead of the execution trace preset
+- fixed auto revert of unauthorized firewall rule changes reverting a rule replaced by an identical one (e.g. by browsers), which left disabled duplicates or deleted the rule every time
+- fixed auto revert restoring a rejected firewall rule as approved when it was removed before being disabled
+- fixed rejecting a firewall rule moved to another program deleting the rule instead of moving it back, such a move is now shown as one modification
+- fixed suggested path patterns for store apps with a dot in their name keeping part of the version literal
+- fixed traffic view counting the same traffic multiple times in domain and program rows
+- fixed traffic view leaf entries not updating
+- fixed traffic and access data being fetched in full again after an update without changes
+- fixed loaded modules view grouped by library having no row ids
+- fixed execution and ingress data of services not being refreshed
+- fixed execution and ingress updates getting lost when arriving during a fetch
+- fixed traffic, access, loaded modules, execution and ingress views collapsing when a new program joined the selection
+- fixed access tree counting the same accesses multiple times
+- fixed access tree showing only one program's access mask on entries used by several programs
+- fixed access tree search not showing new matches until the search text was changed
+- fixed BSOD (SYSTEM_SERVICE_EXCEPTION in Npfs.sys) when a file or named pipe open was redirected via a reparse point (STATUS_REPARSE), e.g. named pipe symlinks on Insider builds [#116](https://github.com/xanasoft/MajorPrivacy/issues/116)
+- fixed enum rules possibly cancelling a not yet opened file on redirected opens
+- fixed possible NULL pointer dereference in the driver when emitting a blocking access event without a thread context
+
+
+
+
 ## [0.100.1] - 2026-07-26
 
 ### Added

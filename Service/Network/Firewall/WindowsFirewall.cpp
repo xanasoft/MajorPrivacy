@@ -1229,8 +1229,21 @@ STATUS CWindowsFirewall::RemoveRule(const std::wstring RuleId)
         return OK; // already removed
 
     ULONG result = m->pFWDeleteFirewallRule(m->hPolicyHandle, (WCHAR*)RuleId.c_str());
+
+    //
+    // The cache only learns of a removal when the event for it is processed, so a program can
+    // delete its own rule just before we are asked to. Gone is what was wanted either way.
+    //
+    if (result == ERROR_RULE_NOT_FOUND)
+        result = ERROR_SUCCESS;
+
     if (result != ERROR_SUCCESS)
+    {
+        WCHAR message[0x400];
+        if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, result, 0, message, ARRAYSIZE(message), NULL))
+            return ERR(STATUS_UNSUCCESSFUL, message);
         return ERR(STATUS_UNSUCCESSFUL);
+    }
 
     m_FwRules.erase(F);
     return OK;

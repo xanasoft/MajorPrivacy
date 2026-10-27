@@ -1,0 +1,597 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\qwt.cpp" />
+    <ClCompile Include="..\src\qwt_abstract_legend.cpp" />
+    <ClCompile Include="..\src\qwt_abstract_scale.cpp" />
+    <ClCompile Include="..\src\qwt_abstract_scale_draw.cpp" />
+    <ClCompile Include="..\src\qwt_abstract_slider.cpp" />
+    <ClCompile Include="..\src\qwt_analog_clock.cpp" />
+    <ClCompile Include="..\src\qwt_arrow_button.cpp" />
+    <ClCompile Include="..\src\qwt_bezier.cpp" />
+    <ClCompile Include="..\src\qwt_clipper.cpp" />
+    <ClCompile Include="..\src\qwt_color_map.cpp" />
+    <ClCompile Include="..\src\qwt_column_symbol.cpp" />
+    <ClCompile Include="..\src\qwt_compass.cpp" />
+    <ClCompile Include="..\src\qwt_compass_rose.cpp" />
+    <ClCompile Include="..\src\qwt_counter.cpp" />
+    <ClCompile Include="..\src\qwt_curve_fitter.cpp" />
+    <ClCompile Include="..\src\qwt_date.cpp" />
+    <ClCompile Include="..\src\qwt_date_scale_draw.cpp" />
+    <ClCompile Include="..\src\qwt_date_scale_engine.cpp" />
+    <ClCompile Include="..\src\qwt_dial.cpp" />
+    <ClCompile Include="..\src\qwt_dial_needle.cpp" />
+    <ClCompile Include="..\src\qwt_dyngrid_layout.cpp" />
+    <ClCompile Include="..\src\qwt_event_pattern.cpp" />
+    <ClCompile Include="..\src\qwt_graphic.cpp" />
+    <ClCompile Include="..\src\qwt_interval.cpp" />
+    <ClCompile Include="..\src\qwt_interval_symbol.cpp" />
+    <ClCompile Include="..\src\qwt_knob.cpp" />
+    <ClCompile Include="..\src\qwt_legend.cpp" />
+    <ClCompile Include="..\src\qwt_legend_data.cpp" />
+    <ClCompile Include="..\src\qwt_legend_label.cpp" />
+    <ClCompile Include="..\src\qwt_magnifier.cpp" />
+    <ClCompile Include="..\src\qwt_math.cpp" />
+    <ClCompile Include="..\src\qwt_matrix_raster_data.cpp" />
+    <ClCompile Include="..\src\qwt_null_paintdevice.cpp" />
+    <ClCompile Include="..\src\qwt_painter.cpp" />
+    <ClCompile Include="..\src\qwt_painter_command.cpp" />
+    <ClCompile Include="..\src\qwt_panner.cpp" />
+    <ClCompile Include="..\src\qwt_picker.cpp" />
+    <ClCompile Include="..\src\qwt_picker_machine.cpp" />
+    <ClCompile Include="..\src\qwt_pixel_matrix.cpp" />
+    <ClCompile Include="..\src\qwt_plot.cpp" />
+    <ClCompile Include="..\src\qwt_plot_abstract_barchart.cpp" />
+    <ClCompile Include="..\src\qwt_plot_abstract_canvas.cpp" />
+    <ClCompile Include="..\src\qwt_plot_axis.cpp" />
+    <ClCompile Include="..\src\qwt_plot_barchart.cpp" />
+    <ClCompile Include="..\src\qwt_plot_canvas.cpp" />
+    <ClCompile Include="..\src\qwt_plot_curve.cpp" />
+    <ClCompile Include="..\src\qwt_plot_dict.cpp" />
+    <ClCompile Include="..\src\qwt_plot_directpainter.cpp" />
+    <ClCompile Include="..\src\qwt_plot_graphicitem.cpp" />
+    <ClCompile Include="..\src\qwt_plot_grid.cpp" />
+    <ClCompile Include="..\src\qwt_plot_histogram.cpp" />
+    <ClCompile Include="..\src\qwt_plot_intervalcurve.cpp" />
+    <ClCompile Include="..\src\qwt_plot_item.cpp" />
+    <ClCompile Include="..\src\qwt_plot_layout.cpp" />
+    <ClCompile Include="..\src\qwt_plot_legenditem.cpp" />
+    <ClCompile Include="..\src\qwt_plot_magnifier.cpp" />
+    <ClCompile Include="..\src\qwt_plot_marker.cpp" />
+    <ClCompile Include="..\src\qwt_plot_multi_barchart.cpp" />
+    <ClCompile Include="..\src\qwt_plot_panner.cpp" />
+    <ClCompile Include="..\src\qwt_plot_picker.cpp" />
+    <ClCompile Include="..\src\qwt_plot_rasteritem.cpp" />
+    <ClCompile Include="..\src\qwt_plot_renderer.cpp" />
+    <ClCompile Include="..\src\qwt_plot_rescaler.cpp" />
+    <ClCompile Include="..\src\qwt_plot_scaleitem.cpp" />
+    <ClCompile Include="..\src\qwt_plot_seriesitem.cpp" />
+    <ClCompile Include="..\src\qwt_plot_shapeitem.cpp" />
+    <ClCompile Include="..\src\qwt_plot_spectrocurve.cpp" />
+    <ClCompile Include="..\src\qwt_plot_spectrogram.cpp" />
+    <ClCompile Include="..\src\qwt_plot_textlabel.cpp" />
+    <ClCompile Include="..\src\qwt_plot_tradingcurve.cpp" />
+    <ClCompile Include="..\src\qwt_plot_vectorfield.cpp" />
+    <ClCompile Include="..\src\qwt_plot_zoneitem.cpp" />
+    <ClCompile Include="..\src\qwt_plot_zoomer.cpp" />
+    <ClCompile Include="..\src\qwt_point_3d.cpp" />
+    <ClCompile Include="..\src\qwt_point_data.cpp" />
+    <ClCompile Include="..\src\qwt_point_mapper.cpp" />
+    <ClCompile Include="..\src\qwt_point_polar.cpp" />
+    <ClCompile Include="..\src\qwt_polar_canvas.cpp" />
+    <ClCompile Include="..\src\qwt_polar_curve.cpp" />
+    <ClCompile Include="..\src\qwt_polar_fitter.cpp" />
+    <ClCompile Include="..\src\qwt_polar_grid.cpp" />
+    <ClCompile Include="..\src\qwt_polar_item.cpp" />
+    <ClCompile Include="..\src\qwt_polar_itemdict.cpp" />
+    <ClCompile Include="..\src\qwt_polar_layout.cpp" />
+    <ClCompile Include="..\src\qwt_polar_magnifier.cpp" />
+    <ClCompile Include="..\src\qwt_polar_marker.cpp" />
+    <ClCompile Include="..\src\qwt_polar_panner.cpp" />
+    <ClCompile Include="..\src\qwt_polar_picker.cpp" />
+    <ClCompile Include="..\src\qwt_polar_plot.cpp" />
+    <ClCompile Include="..\src\qwt_polar_renderer.cpp" />
+    <ClCompile Include="..\src\qwt_polar_spectrogram.cpp" />
+    <ClCompile Include="..\src\qwt_raster_data.cpp" />
+    <ClCompile Include="..\src\qwt_round_scale_draw.cpp" />
+    <ClCompile Include="..\src\qwt_sampling_thread.cpp" />
+    <ClCompile Include="..\src\qwt_scale_div.cpp" />
+    <ClCompile Include="..\src\qwt_scale_draw.cpp" />
+    <ClCompile Include="..\src\qwt_scale_engine.cpp" />
+    <ClCompile Include="..\src\qwt_scale_map.cpp" />
+    <ClCompile Include="..\src\qwt_scale_widget.cpp" />
+    <ClCompile Include="..\src\qwt_series_data.cpp" />
+    <ClCompile Include="..\src\qwt_slider.cpp" />
+    <ClCompile Include="..\src\qwt_spline.cpp" />
+    <ClCompile Include="..\src\qwt_spline_basis.cpp" />
+    <ClCompile Include="..\src\qwt_spline_cubic.cpp" />
+    <ClCompile Include="..\src\qwt_spline_curve_fitter.cpp" />
+    <ClCompile Include="..\src\qwt_spline_local.cpp" />
+    <ClCompile Include="..\src\qwt_spline_parametrization.cpp" />
+    <ClCompile Include="..\src\qwt_spline_pleasing.cpp" />
+    <ClCompile Include="..\src\qwt_spline_polynomial.cpp" />
+    <ClCompile Include="..\src\qwt_symbol.cpp" />
+    <ClCompile Include="..\src\qwt_system_clock.cpp" />
+    <ClCompile Include="..\src\qwt_text.cpp" />
+    <ClCompile Include="..\src\qwt_text_engine.cpp" />
+    <ClCompile Include="..\src\qwt_text_label.cpp" />
+    <ClCompile Include="..\src\qwt_thermo.cpp" />
+    <ClCompile Include="..\src\qwt_transform.cpp" />
+    <ClCompile Include="..\src\qwt_vectorfield_symbol.cpp" />
+    <ClCompile Include="..\src\qwt_weeding_curve_fitter.cpp" />
+    <ClCompile Include="..\src\qwt_wheel.cpp" />
+    <ClCompile Include="..\src\qwt_widget_overlay.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\qwt.h" />
+    <ClInclude Include="..\src\qwt_abstract_scale_draw.h" />
+    <ClInclude Include="..\src\qwt_arrow_button.h" />
+    <ClInclude Include="..\src\qwt_axis.h" />
+    <ClInclude Include="..\src\qwt_axis_id.h" />
+    <ClInclude Include="..\src\qwt_bezier.h" />
+    <ClInclude Include="..\src\qwt_clipper.h" />
+    <ClInclude Include="..\src\qwt_color_map.h" />
+    <ClInclude Include="..\src\qwt_column_symbol.h" />
+    <ClInclude Include="..\src\qwt_compass_rose.h" />
+    <ClInclude Include="..\src\qwt_curve_fitter.h" />
+    <ClInclude Include="..\src\qwt_date.h" />
+    <ClInclude Include="..\src\qwt_date_scale_draw.h" />
+    <ClInclude Include="..\src\qwt_date_scale_engine.h" />
+    <ClInclude Include="..\src\qwt_dial_needle.h" />
+    <ClInclude Include="..\src\qwt_event_pattern.h" />
+    <ClInclude Include="..\src\qwt_global.h" />
+    <ClInclude Include="..\src\qwt_graphic.h" />
+    <ClInclude Include="..\src\qwt_interval.h" />
+    <ClInclude Include="..\src\qwt_interval_symbol.h" />
+    <ClInclude Include="..\src\qwt_legend_data.h" />
+    <ClInclude Include="..\src\qwt_math.h" />
+    <ClInclude Include="..\src\qwt_matrix_raster_data.h" />
+    <ClInclude Include="..\src\qwt_null_paintdevice.h" />
+    <ClInclude Include="..\src\qwt_painter.h" />
+    <ClInclude Include="..\src\qwt_painter_command.h" />
+    <ClInclude Include="..\src\qwt_picker_machine.h" />
+    <ClInclude Include="..\src\qwt_pixel_matrix.h" />
+    <ClInclude Include="..\src\qwt_plot_abstract_barchart.h" />
+    <ClInclude Include="..\src\qwt_plot_abstract_canvas.h" />
+    <ClInclude Include="..\src\qwt_plot_barchart.h" />
+    <ClInclude Include="..\src\qwt_plot_curve.h" />
+    <ClInclude Include="..\src\qwt_plot_dict.h" />
+    <ClInclude Include="..\src\qwt_plot_directpainter.h" />
+    <ClInclude Include="..\src\qwt_plot_graphicitem.h" />
+    <ClInclude Include="..\src\qwt_plot_grid.h" />
+    <ClInclude Include="..\src\qwt_plot_histogram.h" />
+    <ClInclude Include="..\src\qwt_plot_intervalcurve.h" />
+    <ClInclude Include="..\src\qwt_plot_item.h" />
+    <ClInclude Include="..\src\qwt_plot_layout.h" />
+    <ClInclude Include="..\src\qwt_plot_legenditem.h" />
+    <ClInclude Include="..\src\qwt_plot_marker.h" />
+    <ClInclude Include="..\src\qwt_plot_multi_barchart.h" />
+    <ClInclude Include="..\src\qwt_plot_rasteritem.h" />
+    <ClInclude Include="..\src\qwt_plot_scaleitem.h" />
+    <ClInclude Include="..\src\qwt_plot_seriesitem.h" />
+    <ClInclude Include="..\src\qwt_plot_shapeitem.h" />
+    <ClInclude Include="..\src\qwt_plot_spectrocurve.h" />
+    <ClInclude Include="..\src\qwt_plot_spectrogram.h" />
+    <ClInclude Include="..\src\qwt_plot_textlabel.h" />
+    <ClInclude Include="..\src\qwt_plot_tradingcurve.h" />
+    <ClInclude Include="..\src\qwt_plot_vectorfield.h" />
+    <ClInclude Include="..\src\qwt_plot_zoneitem.h" />
+    <ClInclude Include="..\src\qwt_point_3d.h" />
+    <ClInclude Include="..\src\qwt_point_data.h" />
+    <ClInclude Include="..\src\qwt_point_mapper.h" />
+    <ClInclude Include="..\src\qwt_point_polar.h" />
+    <ClInclude Include="..\src\qwt_polar.h" />
+    <ClInclude Include="..\src\qwt_polar_curve.h" />
+    <ClInclude Include="..\src\qwt_polar_fitter.h" />
+    <ClInclude Include="..\src\qwt_polar_grid.h" />
+    <ClInclude Include="..\src\qwt_polar_item.h" />
+    <ClInclude Include="..\src\qwt_polar_itemdict.h" />
+    <ClInclude Include="..\src\qwt_polar_layout.h" />
+    <ClInclude Include="..\src\qwt_polar_marker.h" />
+    <ClInclude Include="..\src\qwt_polar_spectrogram.h" />
+    <ClInclude Include="..\src\qwt_raster_data.h" />
+    <ClInclude Include="..\src\qwt_round_scale_draw.h" />
+    <ClInclude Include="..\src\qwt_samples.h" />
+    <ClInclude Include="..\src\qwt_scale_div.h" />
+    <ClInclude Include="..\src\qwt_scale_draw.h" />
+    <ClInclude Include="..\src\qwt_scale_engine.h" />
+    <ClInclude Include="..\src\qwt_scale_map.h" />
+    <ClInclude Include="..\src\qwt_series_data.h" />
+    <ClInclude Include="..\src\qwt_series_store.h" />
+    <ClInclude Include="..\src\qwt_spline.h" />
+    <ClInclude Include="..\src\qwt_spline_basis.h" />
+    <ClInclude Include="..\src\qwt_spline_cubic.h" />
+    <ClInclude Include="..\src\qwt_spline_curve_fitter.h" />
+    <ClInclude Include="..\src\qwt_spline_local.h" />
+    <ClInclude Include="..\src\qwt_spline_parametrization.h" />
+    <ClInclude Include="..\src\qwt_spline_pleasing.h" />
+    <ClInclude Include="..\src\qwt_spline_polynomial.h" />
+    <ClInclude Include="..\src\qwt_symbol.h" />
+    <ClInclude Include="..\src\qwt_system_clock.h" />
+    <ClInclude Include="..\src\qwt_text.h" />
+    <ClInclude Include="..\src\qwt_text_engine.h" />
+    <ClInclude Include="..\src\qwt_transform.h" />
+    <ClInclude Include="..\src\qwt_vectorfield_symbol.h" />
+    <ClInclude Include="..\src\qwt_weeding_curve_fitter.h" />
+    <QtMoc Include="..\src\qwt_widget_overlay.h" />
+    <QtMoc Include="..\src\qwt_wheel.h" />
+    <QtMoc Include="..\src\qwt_thermo.h" />
+    <QtMoc Include="..\src\qwt_text_label.h" />
+    <QtMoc Include="..\src\qwt_slider.h" />
+    <QtMoc Include="..\src\qwt_scale_widget.h" />
+    <QtMoc Include="..\src\qwt_sampling_thread.h" />
+    <QtMoc Include="..\src\qwt_polar_renderer.h" />
+    <QtMoc Include="..\src\qwt_polar_plot.h" />
+    <QtMoc Include="..\src\qwt_polar_picker.h" />
+    <QtMoc Include="..\src\qwt_polar_panner.h" />
+    <QtMoc Include="..\src\qwt_polar_magnifier.h" />
+    <QtMoc Include="..\src\qwt_polar_canvas.h" />
+    <QtMoc Include="..\src\qwt_plot_zoomer.h" />
+    <QtMoc Include="..\src\qwt_plot_rescaler.h" />
+    <QtMoc Include="..\src\qwt_plot_renderer.h" />
+    <QtMoc Include="..\src\qwt_plot_picker.h" />
+    <QtMoc Include="..\src\qwt_plot_panner.h" />
+    <QtMoc Include="..\src\qwt_plot_magnifier.h" />
+    <QtMoc Include="..\src\qwt_plot_canvas.h" />
+    <QtMoc Include="..\src\qwt_plot.h" />
+    <QtMoc Include="..\src\qwt_picker.h" />
+    <QtMoc Include="..\src\qwt_panner.h" />
+    <QtMoc Include="..\src\qwt_magnifier.h" />
+    <QtMoc Include="..\src\qwt_legend_label.h" />
+    <QtMoc Include="..\src\qwt_legend.h" />
+    <QtMoc Include="..\src\qwt_knob.h" />
+    <QtMoc Include="..\src\qwt_dyngrid_layout.h" />
+    <QtMoc Include="..\src\qwt_dial.h" />
+    <QtMoc Include="..\src\qwt_counter.h" />
+    <QtMoc Include="..\src\qwt_compass.h" />
+    <QtMoc Include="..\src\qwt_analog_clock.h" />
+    <QtMoc Include="..\src\qwt_abstract_slider.h" />
+    <QtMoc Include="..\src\qwt_abstract_scale.h" />
+    <QtMoc Include="..\src\qwt_abstract_legend.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{7F6D2442-3BC4-4936-B75E-85A77B412A18}</ProjectGuid>
+    <Keyword>QtVS_v304</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(QtMsBuild)'=='' or !Exists('$(QtMsBuild)\qt.targets')">
+    <QtMsBuild>$(MSBuildProjectDirectory)\QtMsBuild</QtMsBuild>
+  </PropertyGroup>
+  <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
+    <Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." />
+  </Target>
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt_defaults.props')">
+    <Import Project="$(QtMsBuild)\qt_defaults.props" />
+  </ImportGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules />
+    <CodeAnalysisRuleAssemblies />
+    <OutDir>$(SolutionDir)Build\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules />
+    <CodeAnalysisRuleAssemblies />
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules />
+    <CodeAnalysisRuleAssemblies />
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules />
+    <CodeAnalysisRuleAssemblies />
+    <OutDir>$(SolutionDir)Build\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules />
+    <CodeAnalysisRuleAssemblies />
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules />
+    <CodeAnalysisRuleAssemblies />
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <QtInstall>6.8.3_msvc2022_64</QtInstall>
+    <QtModules>core;gui;widgets;concurrent</QtModules>
+    <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="QtSettings">
+    <QtInstall>msvc2019_64</QtInstall>
+    <QtModules>core;gui;widgets;concurrent</QtModules>
+  </PropertyGroup>
+  <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <QtInstall>5.15.16_msvc2022</QtInstall>
+    <QtModules>core;gui;widgets;concurrent</QtModules>
+  </PropertyGroup>
+  <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <QtInstall>6.8.3_msvc2022_64</QtInstall>
+    <QtModules>core;gui;widgets;concurrent</QtModules>
+    <QtExcludedOptions>-Zc:strictStrings</QtExcludedOptions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="QtSettings">
+    <QtInstall>msvc2019_64</QtInstall>
+    <QtModules>core;gui;widgets;concurrent</QtModules>
+  </PropertyGroup>
+  <PropertyGroup Label="QtSettings" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <QtInstall>5.15.16_msvc2022</QtInstall>
+    <QtModules>core;gui;widgets;concurrent</QtModules>
+  </PropertyGroup>
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.props')">
+    <Import Project="$(QtMsBuild)\qt.props" />
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>UNICODE;WIN32;QWT_DLL;QWT_MAKEDLL;QWT_NO_SVG;QT_NO_PRINTER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;.\$(PlatformName)\GeneratedFiles\$(ConfigurationName);.\$(PlatformName)\GeneratedFiles;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <DynamicSource>output</DynamicSource>
+      <QtMocDir>.\$(PlatformName)\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <PostBuildEvent>
+      <Command></Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>UNICODE;WIN32;QWT_DLL;QWT_MAKEDLL;QWT_NO_SVG;QT_NO_PRINTER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;.\$(PlatformName)\GeneratedFiles\$(ConfigurationName);.\$(PlatformName)\GeneratedFiles;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <DynamicSource>output</DynamicSource>
+      <QtMocDir>.\$(PlatformName)\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)SignFile.cmd $(SolutionDir)Build\$(Configuration)\$(ProjectName).dll</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <PreprocessorDefinitions>UNICODE;WIN32;QWT_DLL;QWT_MAKEDLL;QWT_NO_SVG;QT_NO_PRINTER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;.\$(PlatformName)\GeneratedFiles\$(ConfigurationName);.\$(PlatformName)\GeneratedFiles;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <DynamicSource>output</DynamicSource>
+      <QtMocDir>.\$(PlatformName)\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>UNICODE;WIN32;QT_NO_DEBUG;NDEBUG;QWT_DLL;QWT_MAKEDLL;QWT_NO_SVG;QT_NO_PRINTER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;.\$(PlatformName)\GeneratedFiles\$(ConfigurationName);.\$(PlatformName)\GeneratedFiles;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <DynamicSource>output</DynamicSource>
+      <QtMocDir>.\$(PlatformName)\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <PostBuildEvent>
+      <Command></Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>UNICODE;WIN32;QT_NO_DEBUG;NDEBUG;QWT_DLL;QWT_MAKEDLL;QWT_NO_SVG;QT_NO_PRINTER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;.\$(PlatformName)\GeneratedFiles\$(ConfigurationName);.\$(PlatformName)\GeneratedFiles;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <Optimization>MaxSpeed</Optimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <DynamicSource>output</DynamicSource>
+      <QtMocDir>.\$(PlatformName)\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)SignFile.cmd $(SolutionDir)Build\$(Configuration)\$(ProjectName).dll</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <PreprocessorDefinitions>UNICODE;WIN32;QT_NO_DEBUG;NDEBUG;QWT_DLL;QWT_MAKEDLL;QWT_NO_SVG;QT_NO_PRINTER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\GeneratedFiles\$(ConfigurationName);.\GeneratedFiles;.;.\$(PlatformName)\GeneratedFiles\$(ConfigurationName);.\$(PlatformName)\GeneratedFiles;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <Optimization>MaxSpeed</Optimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).dll</OutputFile>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <QtMoc>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <DynamicSource>output</DynamicSource>
+      <QtMocDir>.\$(PlatformName)\GeneratedFiles\$(ConfigurationName)</QtMocDir>
+      <QtMocFileName>moc_%(Filename).cpp</QtMocFileName>
+    </QtMoc>
+    <PostBuildEvent>
+      <Command>$(SolutionDir)$(Platform)\$(Configuration)\CustomSignTool.exe sign -k $(SolutionDir)$(Platform)\$(Configuration)\private.key -s $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll.mpsig $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).dll</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties QtVersion_x0020_Win32="$(DefaultQtVersion)" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

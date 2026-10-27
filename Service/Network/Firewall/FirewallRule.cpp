@@ -67,17 +67,27 @@ bool CFirewallRule::Match(const std::shared_ptr<struct SWindowsFwRule>& Rule)con
 
 bool CFirewallRule::Match(const std::shared_ptr<struct SWindowsFwRule>& RuleL, const std::shared_ptr<struct SWindowsFwRule>& RuleR)
 {
+	return MatchDiff(RuleL, RuleR).empty();
+}
+
+//
+// Whether two rules are the same rule, and where they part company when they are not. Asking it
+// this way round means the yes or no answer and the reason behind it can never drift apart, and
+// a program which puts back almost what it took away can say which field it changed on the way.
+//
+std::wstring CFirewallRule::MatchDiff(const std::shared_ptr<struct SWindowsFwRule>& RuleL, const std::shared_ptr<struct SWindowsFwRule>& RuleR)
+{
 	if (RuleL->Name != RuleR->Name)
-		return false; // metadata only
+		return L"Name"; // metadata only
 	if (RuleL->Grouping != RuleR->Grouping)
-		return false; // metadata only
+		return L"Grouping"; // metadata only
 	if (RuleL->Description != RuleR->Description)
-		return false; // metadata only
+		return L"Description"; // metadata only
 
 	if (_wcsicmp(RuleL->BinaryPath.c_str(), RuleR->BinaryPath.c_str()) != 0)
-		return false;
+		return L"BinaryPath";
 	if (_wcsicmp(RuleL->ServiceTag.c_str(), RuleR->ServiceTag.c_str()) != 0)
-		return false;
+		return L"ServiceTag";
 
 	// Only AppContainerSid or PackageFamilyName should be set in a rule and the API wrapper SWindowsFirewall::SaveRule obays this,
 	// but our UI and potentially other comonents will not be aware of the rule scheme capabilities and attempt to set booth,
@@ -89,49 +99,49 @@ bool CFirewallRule::Match(const std::shared_ptr<struct SWindowsFwRule>& RuleL, c
 	bool AppPFNMissmatch = _wcsicmp(RuleL->PackageFamilyName.c_str(), RuleR->PackageFamilyName.c_str()) != 0;
 	if (AppSidSet && AppPFNSet) {
 		if (AppSidMissmatch && AppPFNMissmatch)
-			return false;
+			return L"AppContainer";
 	} else {
 		if (AppSidMissmatch || AppPFNMissmatch)
-			return false;
+			return L"AppContainer";
 	}
 
 	if (_wcsicmp(RuleL->LocalUserAuthorizationList.c_str(), RuleR->LocalUserAuthorizationList.c_str()) != 0)
-		return false;
+		return L"LocalUserAuthorizationList";
 
 	//if (_wcsicmp(RuleL->LocalUserOwner.c_str(), RuleR->LocalUserOwner.c_str()) != 0)
 	//	return false; // this is metadata only (has no effect on fitlering) and we can NOT set it
 
 	if (RuleL->Enabled != RuleR->Enabled)
-		return false;
+		return L"Enabled";
 	if (RuleL->Action != RuleR->Action)
-		return false;
+		return L"Action";
 	if (RuleL->Direction != RuleR->Direction)
-		return false;
+		return L"Direction";
 	if (RuleL->Profile != RuleR->Profile)
-		return false;
+		return L"Profile";
 
 	if (RuleL->Protocol != RuleR->Protocol)
-		return false;
+		return L"Protocol";
 	if (RuleL->Interface != RuleR->Interface)
-		return false;
+		return L"Interface";
 	if (RuleL->LocalAddresses != RuleR->LocalAddresses)
-		return false;
+		return L"LocalAddresses";
 	if (RuleL->LocalPorts != RuleR->LocalPorts)
-		return false;
+		return L"LocalPorts";
 	if (RuleL->RemoteAddresses != RuleR->RemoteAddresses)
-		return false;
+		return L"RemoteAddresses";
 	if (RuleL->RemotePorts != RuleR->RemotePorts)
-		return false;
+		return L"RemotePorts";
 	if (RuleL->IcmpTypesAndCodes != RuleR->IcmpTypesAndCodes)
-		return false;
+		return L"IcmpTypesAndCodes";
 
 	if (RuleL->OsPlatformValidity != RuleR->OsPlatformValidity)
-		return false; // metadata has effect on loading but not on filetring
+		return L"OsPlatformValidity"; // metadata has effect on loading but not on filetring
 
 	if (RuleL->EdgeTraversal != RuleR->EdgeTraversal)
-		return false;
+		return L"EdgeTraversal";
 
-	return true;
+	return std::wstring();
 }
 
 void CFirewallRule::Update(const std::shared_ptr<struct SWindowsFwRule>& Rule)
@@ -160,6 +170,32 @@ void CFirewallRule::Update(const std::shared_ptr<CFirewallRule>& pRule)
 	m_uTimeOut = pRule->m_uTimeOut;
 }
 
+//
+// Unlike Update this leaves the identity alone, the guid and the backup link stay those of this
+// rule. Only the verdict and our own bookkeeping move over: a rule deleted and recreated by its
+// program is the same rule to the user, approved if it was, unapproved if it was not.
+//
+void CFirewallRule::TakeOver(const std::shared_ptr<CFirewallRule>& pRule)
+{
+	EFwRuleState State;
+	EFwRuleSource Source;
+	std::wstring TemplateGuid;
+	uint64 uTimeOut;
+	{
+		std::shared_lock Lock(pRule->m_Mutex);
+		State = pRule->m_State;
+		Source = pRule->m_Source;
+		TemplateGuid = pRule->m_TemplateGuid;
+		uTimeOut = pRule->m_uTimeOut;
+	}
+
+	std::unique_lock Lock(m_Mutex);
+	m_State = State;
+	m_Source = Source;
+	m_TemplateGuid = TemplateGuid;
+	m_uTimeOut = uTimeOut;
+}
+
 std::wstring CFirewallRule::GetGuidStr() const
 {
 	std::shared_lock Lock(m_Mutex);
@@ -179,14 +215,13 @@ void CFirewallRule::SetAsBackup(bool bRemoved, bool bProgramChanged)
 	std::unique_lock Lock(m_Mutex);
 	//m_State = EFwRuleState::eBackup;
 	//
-	// Special case when the program of a rule changed,
-	// in such scenario we behave as if a new rule for the new program woudl have been created
-	// and the original rule removed.
+	// The backup stays linked to the rule it was taken from, also when the program of that rule
+	// changed. It used to get a guid of its own then, as if a new rule had been created and the
+	// original removed, but that cut the link: the UI could not find the backup to offer it, and
+	// restoring it made a second rule at the old path instead of moving the rule back.
 	//
-	if(bProgramChanged)
-		m_OriginalGuid = MkGuid();
-	else
-		m_OriginalGuid = m_FwRule->Guid;
+	UNREFERENCED_PARAMETER(bProgramChanged);
+	m_OriginalGuid = m_FwRule->Guid;
 	// Generate a new random GUID for the backup rule.
 	m_FwRule->Guid = MkGuid();
 }
@@ -260,10 +295,12 @@ bool CFirewallRule::FromVariant(const StVariant& Rule)
 	if(AppContainerSid.empty() && !m_FwRule->PackageFamilyName.empty())
 		AppContainerSid = GetAppContainerSidFromName(m_FwRule->PackageFamilyName);
 	m_ProgramID = CProgramID::FromFw(m_BinaryPath, m_FwRule->ServiceTag, AppContainerSid);
-
-	m_FwRule->BinaryPath = m_BinaryPath;
-	if (theCore->ProgramManager()->IsNtOsKrnl(m_BinaryPath))
+	if(m_ProgramID.GetType() == EProgramType::eAllPrograms)
+		m_FwRule->BinaryPath= L"";
+	else if (theCore->ProgramManager()->IsNtOsKrnl(m_BinaryPath))
 		m_FwRule->BinaryPath = L"system";
+	else
+		m_FwRule->BinaryPath = m_BinaryPath;
 
 	SetPrincipalSddl(m_PrincipalSddl);
 

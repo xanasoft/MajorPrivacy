@@ -16,6 +16,7 @@ public:
     void SetSource(EFwRuleSource Source)    { m_Source = Source; }
 
 	EFwRuleState GetState() const           { if(IsTemplate()) return EFwRuleState::eApproved; return m_State; }
+    int GetStateEx() const                  { if(IsTemplate()) return (int)EFwRuleState::eApproved; return (int)m_State | (IsBackup() ? 0x1000 : 0x0000); }
     QString GetStateStr() const;
 	QVariant GetStateColor() const;
     void SetApproved()                      { m_State = EFwRuleState::eApproved; }
@@ -35,6 +36,7 @@ public:
     QString GetAppPFN() const               { return m_PackageFamilyName; }
 
     bool IsTemplate() const					{ return m_ProgramID.GetType() == EProgramType::eFilePattern; }
+    QString GetTemplateGuid() const         { return m_TemplateGuid; } // the template this rule was made from, if any
 
     QString GetProgram() const;
 
@@ -68,7 +70,9 @@ public:
 
     int GetEdgeTraversal() const            { return m_EdgeTraversal; }
 
-    CFwRule* Clone(bool CloneGuid = false) const;
+    CFwRule* Clone(bool CloneGuid = false, const CProgramID* pID = NULL) const;
+    // a new rule template saying everything this rule says, for the programs PatternID covers instead of this one
+    CFwRule* CloneAsTemplate(const CProgramID& PatternID) const; // pID: the copy is for another program, a template made from a rule for instance
 
     static QString StateToStr(EFwEventStates State);
     static QString ActionToStr(EFwActions Action);

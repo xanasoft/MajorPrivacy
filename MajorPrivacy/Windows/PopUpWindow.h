@@ -6,6 +6,7 @@
 #include "../MiscHelpers/Common/PanelView.h"
 #include "../MiscHelpers/Common/Common.h"
 #include "../Core/Network/NetworkManager.h"
+#include "../Helpers/PathPattern.h"
 
 
 
@@ -17,7 +18,7 @@ public:
 	~CPopUpWindow();
 
 	void				PushFwEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
-	void				PushFwRuleEvent(EConfigEvent EventType, const CFwRulePtr& pFwRule);
+	void				PushFwRuleEvent(EConfigEvent EventType, const CFwRulePtr& pFwRule, CProgramItemPtr pProgram = CProgramItemPtr());
 
 	void				PushExecEvent(const CProgramFilePtr& pProgram, const CLogEntryPtr& pEntry);
 
@@ -114,6 +115,44 @@ protected:
 		bool operator==(const SFwRuleEvent& other) const {return EventType == other.EventType && pFwRule == other.pFwRule;}
 	};
 	void				UpdateFwRule(const SFwRuleEvent& Event, QTreeWidgetItem* pItem);
+	// drops all pending connection attempts which are already covered by one of the given rules
+	int					ClearCoveredFwEvents(const QList<CFwRulePtr>& Rules);
+
+	//
+	// Windows changes binary paths on every update, store apps worst of all, which turns the
+	// prompts into a formality nobody reads anymore. So whenever the program at hand looks like a
+	// new version of something already decided about we offer to make the decision by path pattern,
+	// either as a rule template or as a guard entry, instead of for this one single path.
+	//
+	void				UpdateFwPattern(const CProgramItemPtr& pProgram);
+	void				UpdateFwOffers(const CProgramItemPtr& pProgram);
+	EFwDirections		GetFwEventDirections(const CProgramItemPtr& pProgram);
+	CProgramItemPtr		GetFwPatternItem(const QString& Pattern);
+	// shows the deduced pattern as a template, saves it, and hands the rule back
+	bool				MakeFwTemplate(bool bAllow, EFwDirections Direction, const CProgramItemPtr& pProgram, CFwRulePtr* ppRule = NULL, int Lifetime = -1);
+	bool				MakeFwGuardEntry(bool bApprove);
+	bool				MakeFwRuleTemplate(bool bApprove, CFwRulePtr* ppRule = NULL);
+	// a template which already stands for this program, only not in this direction, is extended to both
+	bool				WidenFwTemplate(const CFwRulePtr& pTemplate, CFwRulePtr* ppRule = NULL);
+	// whether pressing allow or block should make a template of it, asking the user if need be
+	bool				WantFwTemplate(const CProgramItemPtr& pProgram, bool bAllow);
+	// which way a new template made from the connection prompt has to point
+	EFwDirections		GetFwTemplateDirection(const CProgramItemPtr& pProgram, bool bAllow);
+	// nothing is selected, so this asks about all of them, and about a standing answer if one fits
+	bool				AskAboutAllFwRules(bool bApprove, bool& bAlsoTemplate);
+	// what a template has to say for a change like the one on screen to be decided the same way again
+	bool				GetFwRuleTemplateAction(const CProgramItemPtr& pProgram, bool bApprove, EFwActions& Action, EFwDirections& Direction);
+
+	SPathPattern		m_FwPattern;
+	bool				m_bFwTemplateOffer = false;	// a template could be made of this one
+	bool				m_bFwGuardOffer = false;	// a guard entry could be written for it
+	bool				m_bFwTemplateApprove = false;	// a template could approve what is pending
+	bool				m_bFwTemplateReject = false;	// and one could turn it down
+	// a template for this program which lacks only the direction at hand, to be widened rather than added to
+	CFwRulePtr			m_pFwAllowWiden;
+	CFwRulePtr			m_pFwBlockWiden;
+	CFwRulePtr			m_pFwApproveWiden;
+	CFwRulePtr			m_pFwRejectWiden;
 
 	int					m_iFwIndex = -1;
 	QList<SFwProgram> m_FwPrograms;
@@ -170,8 +209,16 @@ private:
 	QAction*			m_pFwAlwaysIgnoreApp;
 	QAction*			m_pFwCustom;
 	//QAction*			m_pFwLanOnly;
+	QAction*			m_pFwAllowTemplate;
+	QAction*			m_pFwBlockTemplate;
+	QAction*			m_pFwAllowOnly;
+	QAction*			m_pFwBlockOnly;
 	QAction*			m_pFwApproveAll;
 	QAction*			m_pFwRejectAll;
+	QAction*			m_pFwApproveAuto;
+	QAction*			m_pFwRejectAuto;
+	QAction*			m_pFwApproveTemplate;
+	QAction*			m_pFwRejectTemplate;
 
 	// Resources
 	enum EResColumns

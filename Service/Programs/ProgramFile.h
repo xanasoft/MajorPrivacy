@@ -5,6 +5,7 @@
 #include "TraceLogEntry.h"
 #include "../Network/Firewall/FirewallDefs.h"
 #include "../Network/TrafficLog.h"
+#include "UsageLog.h"
 #include "ProgramLibrary.h"
 #include "..\Processes\ExecLogEntry.h"
 #include "../Access/AccessTree.h"
@@ -82,6 +83,12 @@ public:
 	virtual StVariant StoreTraffic(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual void LoadTraffic(const StVariant& Data);
 
+	virtual CUsageLog* UsageLog()								{ return &m_UsageLog; }
+
+	virtual StVariant StoreUsage(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
+	virtual void LoadUsage(const StVariant& Data);
+	virtual void TruncateUsageLog();
+
 #ifdef DEF_USE_POOL
 	struct STraceLog : FW::Object
 #else
@@ -142,7 +149,7 @@ protected:
 
 	uint64							m_LastExec = 0;
 
-	std::map<uint64, CProcessPtr>	m_Processes; // key: PID
+	std::map<uint64, CProcessPtr>	m_Processes; // key: process UID (pid + creation time, see SProcessUID), a pid alone is reused while a terminated process is still listed
 
 	std::map<uint64, SLibraryInfo>	m_Libraries; // key: Librars UUID
 
@@ -151,6 +158,8 @@ protected:
 	CAccessTree						m_AccessTree;
 
 	CTrafficLog						m_TrafficLog;
+
+	CUsageLog						m_UsageLog;
 
 	uint64							m_LastFwAllowed = 0;
 	uint64							m_LastFwBlocked = 0;

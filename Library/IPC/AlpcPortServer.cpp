@@ -478,15 +478,37 @@ int CAlpcPortServer::BroadcastMessage(uint32 msgId, const CBuffer* msg, uint64 R
     // Broadcast the message to all conencted clients
     //
 
-    CSectionLock Lock(&m_Lock);
+    //
+    // The list is copied and the lock dropped before anything is sent.
+    //
+    // PortDatagram is a syscall, and it used to be made with m_Lock held - so every
+    // event going out to any client blocked every other one, however many threads
+    // were producing them. It was the single biggest thing the driver event threads
+    // were found waiting on once the client mutex above it had been dealt with.
+    //
+    // Safe because the map holds shared pointers, so a client cannot go away while
+    // we still hold one, and because PortDatagram takes that client's own WriteLock
+    // - two threads sending to the same client still take turns, but two sending to
+    // different clients no longer do.
+    //
+    std::vector<SPortClientPtr> Clients;
+    {
+        CSectionLock Lock(&m_Lock);
+
+        Clients.reserve(m_Clients.size());
+        for (auto I : m_Clients)
+        {
+            if(Ref != -1 && I.second->Info.Ref != Ref)
+                continue;
+            Clients.push_back(I.second);
+        }
+    }
 
     int Success = 0;
 
-    for (auto I : m_Clients)
+    for (const SPortClientPtr& pClient : Clients)
     {
-        if(Ref != -1 && I.second->Info.Ref != Ref)
-            continue;
-        if (PortDatagram(sendBuff, I.second) == OK)
+        if (PortDatagram(sendBuff, pClient) == OK)
             Success++;
     }
 

@@ -15,14 +15,17 @@ public:
 	virtual ~CAccessView();
 
 	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, QString RootPath = QString());
+	bool					ShowPrivate() const { return m_pBtnPrivate->isChecked(); }
 	void					Clear();
 
 	QList<SAccessItemPtr>	GetSelectedItemsWithChildren() override
 	{
 		std::function<void(const SAccessItemPtr&, QList<SAccessItemPtr>&)> AddWitnChildren = [&](const SAccessItemPtr& pItem, QList<SAccessItemPtr>& List) {
 			List.append(pItem);
-			foreach(const SAccessItemPtr & pChild, pItem->Branches)
-				AddWitnChildren(pChild, List);
+			foreach(const SAccessItemPtr & pChild, pItem->Branches) {
+				if (m_pItemModel->FilterAccepts(pChild)) // only what the view shows
+					AddWitnChildren(pChild, List);
+			}
 		};
 
 		QList<SAccessItemPtr> List;
@@ -56,8 +59,6 @@ private slots:
 
 	void					SetFilter(const QRegularExpression& Exp, int iOptions, int Column);
 
-	SAccessItemPtr			ApplyTreeFilter(const SAccessItemPtr& pItem);
-
 protected:
 
 	QAction*				m_pCopyPath;
@@ -68,6 +69,7 @@ protected:
 
 	QToolButton*			m_pBtnHold;
 	QToolButton*			m_pBtnRefresh;
+	QToolButton*			m_pBtnPrivate;
 	QToolButton*			m_pBtnCleanUp;
 	QToolButton*			m_pBtnClear;
 
@@ -77,12 +79,11 @@ protected:
 	struct SItem
 	{
 		qint64 LastAccess = -1;
-		struct SInt64 {
-			qint64 Value = -1;
-		};
-		QHash<quint64, SInt64> Items;
+		quint64 LastSeq = 0; // newest change of the program item's access log already added
 	};
 	QHash<quint64, SItem>			m_CurItems;
+	quint64							m_LastUpdate = 0;
+	bool							m_ForceUpdate = false;
 
 	int						m_iAccessFilter = 0;
 	int						m_iStatusFilter = 0;

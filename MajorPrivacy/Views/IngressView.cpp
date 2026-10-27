@@ -139,7 +139,7 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 	qint32 FilterAction = m_pCmbAction->currentData().toInt();
 	qint32 FilterOperation = m_pCmbOperation->currentData().toInt();
 
-	if (m_CurPrograms != Programs || m_CurEnclaveGuid != EnclaveGuid || m_CurServices != Services || m_FullRefresh
+	if (!Programs.contains(m_CurPrograms) || m_CurEnclaveGuid != EnclaveGuid || !Services.contains(m_CurServices) || m_FullRefresh
 	 || m_FilterRole != FilterRole 
 	 || m_FilterAction != FilterAction 
 	 || m_FilterOperation != FilterOperation
@@ -156,9 +156,18 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		m_pItemModel->Clear();
 		m_FullRefresh = false;
 		m_RefreshCount++;
+		m_Revisions.clear();
 	}
 	else if(m_pBtnHold->isChecked() /*&& !theGUI->m_IgnoreHold*/)
 		return;
+
+	//
+	// Only an item leaving the selection needs the rebuild above. Items joining it, which happens all the time
+	// with "All Programs" or a group selected as new programs show up, are simply added, resetting
+	// the view for them cleared the model and collapsed everything the user had expanded.
+	//
+	m_CurPrograms = Programs;
+	m_CurServices = Services;
 
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 
@@ -167,6 +176,51 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 	m_FilterOperation = FilterOperation;
 	m_FilterPrivate = !m_pBtnPrivate->isChecked();
 	m_FilterAll = m_pBtnAll->isChecked();
+
+	//
+	// Fetch first, a list is only fetched again when it was marked as changed. When no list got a new revision
+	// since the last rebuild there is nothing to do, apart from a periodic rebuild for what has no revision
+	// (the recent limit moving on, hash db entries, program settings).
+	//
+	QList<QPair<CProgramFilePtr, QMap<quint64, CProgramFile::SIngressInfo>>> ProgLogs;
+	QList<QPair<CWindowsServicePtr, QMap<quint64, CProgramFile::SIngressInfo>>> SvcLogs;
+	QHash<const CProgramItem*, quint32> Revisions;
+
+	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Programs.count() + Services.count(), theGUI);
+	bool bCanceled = false;
+	foreach(const CProgramFilePtr& pProgram, Programs) {
+		if (!ProgressHelper.Next(pProgram->GetName())) {
+			bCanceled = true;
+			break;
+		}
+		ProgLogs.append(qMakePair(pProgram, pProgram->GetIngressStats()));
+		Revisions.insert(pProgram.data(), pProgram->GetIngressRevision());
+	}
+	if (!bCanceled) {
+		foreach(const CWindowsServicePtr& pService, Services) {
+			if (!ProgressHelper.Next(pService->GetName())) {
+				bCanceled = true;
+				break;
+			}
+			SvcLogs.append(qMakePair(pService, pService->GetIngressStats()));
+			Revisions.insert(pService.data(), pService->GetIngressRevision());
+		}
+	}
+	if (bCanceled)
+		m_pBtnHold->setChecked(true);
+
+	if (ProgressHelper.Done()) {
+		if (/*!theGUI->m_IgnoreHold &&*/ ++m_SlowCount == 3) {
+			m_SlowCount = 0;
+			m_pBtnHold->setChecked(true);
+		}
+	} else
+		m_SlowCount = 0;
+
+	if (Revisions == m_Revisions && GetCurTick() - m_LastRebuild < PROG_VIEW_REBUILD_INTERVAL)
+		return;
+	m_Revisions = Revisions;
+	m_LastRebuild = GetCurTick();
 
 	auto OldMap = m_IngressMap;
 
@@ -237,16 +291,9 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		return true;
 	};
 
-	CProgressDialogHelper ProgressHelper(tr("Loading %1"), Programs.count() + Services.count(), theGUI);
-
-	foreach(const CProgramFilePtr & pProgram, Programs) {
-
-		if (!ProgressHelper.Next(pProgram->GetName())) {
-			m_pBtnHold->setChecked(true);
-			break;
-		}
-
-		QMap<quint64, CProgramFile::SIngressInfo> Log = pProgram->GetIngressStats();
+	for (const auto& ProgLog : ProgLogs) {
+		const CProgramFilePtr& pProgram = ProgLog.first;
+		const auto& Log = ProgLog.second;
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			if (!FilterEntry(I.value()))
 				continue;
@@ -257,14 +304,9 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 			AddEntry(pProgram, pProgram2, I.value());
 		}
 	}
-	foreach(const CWindowsServicePtr& pService, Services) {
-
-		if (!ProgressHelper.Next(pService->GetName())) {
-			m_pBtnHold->setChecked(true);
-			break;
-		}
-
-		QMap<quint64, CProgramFile::SIngressInfo> Log = pService->GetIngressStats();
+	for (const auto& SvcLog : SvcLogs) {
+		const CWindowsServicePtr& pService = SvcLog.first;
+		const auto& Log = SvcLog.second;
 		for (auto I = Log.begin(); I != Log.end(); I++) {
 			if (!FilterEntry(I.value()))
 				continue;
@@ -278,13 +320,6 @@ void CIngressView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		}
 	}
 
-	if (ProgressHelper.Done()) {
-		if (/*!theGUI->m_IgnoreHold &&*/ ++m_SlowCount == 3) {
-			m_SlowCount = 0;
-			m_pBtnHold->setChecked(true);
-		}
-	} else
-		m_SlowCount = 0;
 
 	foreach(SIngressKey Key, OldMap.keys())
 		m_IngressMap.remove(Key);

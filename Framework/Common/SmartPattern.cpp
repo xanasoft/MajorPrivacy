@@ -115,10 +115,16 @@ static size_t CSmartPattern__MatchSuffix(const wchar_t* pSuffix, size_t uSuffixL
 	const wchar_t* pStrEnd = pStr + uStrLen - uSuffixLen + 1;
 	for (const wchar_t* pPtr = pStr + uStrPos; pPtr < pStrEnd; pPtr++)
 	{
-		if (Separator && pPtr[uSuffixLen] == Separator)
-			break;
 		if (CSmartPattern__MatchString(pSuffix, pPtr, uSuffixLen))
 			return (pPtr - pStr) - uStrPos; // Suffix matched
+
+		//
+		// The wildcard in front of this suffix is what swallows everything up to here, so a
+		// single one of them has to stop before it would swallow a separator. Checked after the
+		// attempt, as a suffix which ends right in front of a separator is a perfectly good match.
+		//
+		if (Separator && *pPtr == Separator)
+			break;
 	}
 	return FW::StringW::NPos; // no match
 }

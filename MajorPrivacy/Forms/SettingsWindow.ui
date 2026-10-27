@@ -181,7 +181,7 @@
         <layout class="QGridLayout" name="gridLayout_17">
          <item row="0" column="0">
           <layout class="QGridLayout" name="gridLayout">
-           <item row="9" column="1">
+           <item row="10" column="1">
             <widget class="QLabel" name="label_24">
              <property name="text">
               <string>Font Scaling</string>
@@ -194,14 +194,14 @@
              </property>
             </widget>
            </item>
-           <item row="9" column="3">
+           <item row="10" column="3">
             <widget class="QLabel" name="label_13">
              <property name="text">
               <string>%</string>
              </property>
             </widget>
            </item>
-           <item row="8" column="3">
+           <item row="9" column="3">
             <layout class="QHBoxLayout" name="horizontalLayout_7">
              <item>
               <widget class="QPushButton" name="btnSelectUiFont">
@@ -251,10 +251,10 @@
              </property>
             </widget>
            </item>
-           <item row="7" column="2">
+           <item row="8" column="2">
             <widget class="QComboBox" name="cmbDPI"/>
            </item>
-           <item row="10" column="3">
+           <item row="11" column="3">
             <spacer name="horizontalSpacer_12">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
@@ -267,7 +267,7 @@
              </property>
             </spacer>
            </item>
-           <item row="4" column="0">
+           <item row="5" column="0">
             <widget class="QLabel" name="lblSysTray">
              <property name="font">
               <font>
@@ -280,7 +280,7 @@
              </property>
             </widget>
            </item>
-           <item row="7" column="1">
+           <item row="8" column="1">
             <widget class="QLabel" name="label_23">
              <property name="text">
               <string>High DPI Scaling</string>
@@ -293,14 +293,14 @@
              </property>
             </widget>
            </item>
-           <item row="7" column="3">
+           <item row="8" column="3">
             <widget class="QLabel" name="label_8">
              <property name="text">
               <string>(Restart required)</string>
              </property>
             </widget>
            </item>
-           <item row="6" column="0">
+           <item row="7" column="0">
             <widget class="QLabel" name="lblDisplay">
              <property name="font">
               <font>
@@ -313,7 +313,7 @@
              </property>
             </widget>
            </item>
-           <item row="8" column="1">
+           <item row="9" column="1">
             <widget class="QLabel" name="label_33">
              <property name="text">
               <string>UI Font</string>
@@ -326,6 +326,16 @@
              </property>
             </widget>
            </item>
+           <item row="4" column="1" colspan="3">
+            <widget class="QCheckBox" name="chkShowAllRules">
+             <property name="toolTip">
+              <string>When disabled, selecting the All Programs item shows only the rules which apply to all programs.</string>
+             </property>
+             <property name="text">
+              <string>Show all rules when the All Programs item is selected</string>
+             </property>
+            </widget>
+           </item>
            <item row="3" column="1" colspan="3">
             <widget class="QCheckBox" name="chkAltRows">
              <property name="text">
@@ -333,7 +343,7 @@
              </property>
             </widget>
            </item>
-           <item row="10" column="4">
+           <item row="11" column="4">
             <spacer name="horizontalSpacer_13">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
@@ -346,21 +356,21 @@
              </property>
             </spacer>
            </item>
-           <item row="8" column="2">
+           <item row="9" column="2">
             <widget class="QLabel" name="lblUiFont">
              <property name="text">
               <string>#</string>
              </property>
             </widget>
            </item>
-           <item row="9" column="2">
+           <item row="10" column="2">
             <widget class="QComboBox" name="cmbFontScale">
              <property name="editable">
               <bool>true</bool>
              </property>
             </widget>
            </item>
-           <item row="10" column="0">
+           <item row="11" column="0">
             <spacer name="verticalSpacer">
              <property name="orientation">
               <enum>Qt::Orientation::Vertical</enum>
@@ -373,7 +383,7 @@
              </property>
             </spacer>
            </item>
-           <item row="10" column="2">
+           <item row="11" column="2">
             <spacer name="horizontalSpacer_11">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
@@ -393,14 +403,14 @@
              </property>
             </widget>
            </item>
-           <item row="5" column="3" colspan="2">
+           <item row="6" column="3" colspan="2">
             <widget class="QCheckBox" name="chkSingleShow">
              <property name="text">
               <string>Open/Close from/to tray with a single click</string>
              </property>
             </widget>
            </item>
-           <item row="5" column="1" colspan="2">
+           <item row="6" column="1" colspan="2">
             <widget class="QCheckBox" name="chkMinimize">
              <property name="text">
               <string>Minimize to tray</string>
@@ -699,7 +709,7 @@
             <layout class="QGridLayout" name="gridLayout_18">
              <item row="0" column="0">
               <layout class="QGridLayout" name="gridLayout_2">
-               <item row="12" column="2" colspan="2">
+               <item row="14" column="2" colspan="2">
                 <widget class="QCheckBox" name="chkTrafficRecord">
                  <property name="text">
                   <string>Save Network Traffic Record to Disk (TrafficRecord.dat)</string>
@@ -726,7 +736,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="15" column="3">
+               <item row="17" column="3">
                 <spacer name="horizontalSpacer_2">
                  <property name="orientation">
                   <enum>Qt::Orientation::Horizontal</enum>
@@ -738,6 +748,26 @@
                   </size>
                  </property>
                 </spacer>
+               </item>
+               <item row="11" column="2" colspan="2">
+                <widget class="QCheckBox" name="chkFwTemplateGuard">
+                 <property name="text">
+                  <string>Apply Templates to Unauthorized Rule Changes</string>
+                 </property>
+                 <property name="toolTip">
+                  <string>When a rule appears or changes behind your back, the Rule Templates answer for it instead of you. A template of the same action covering the rule approves it, which is what carries installers and store updates through. A Block template covering a rule which would Allow rejects it, as such a rule goes against what you set. An Allow template says nothing about a new Block rule, since reverting that would take protection away rather than grant it.</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="12" column="2" colspan="2">
+                <widget class="QCheckBox" name="chkFwAlwaysTemplate">
+                 <property name="text">
+                  <string>Always make a Rule Template where one would cover more</string>
+                 </property>
+                 <property name="toolTip">
+                  <string>Windows moves a program to a new folder on every update, and each move asks you the same question again, which is how prompts stop being read. Where the program being asked about looks like a new version of one you have already decided on, a rule template covering both can be made instead, and the next version is covered without asking. With this on, Allow and Block make that template straight away; with it off you are asked each time. Either way the template is shown to you before it takes effect, and the dropdown on each button can still decide this one program alone.</string>
+                 </property>
+                </widget>
                </item>
                <item row="10" column="2" colspan="2">
                 <widget class="QCheckBox" name="chkFwPlusNotify">
@@ -770,7 +800,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="14" column="1" colspan="3">
+               <item row="16" column="1" colspan="3">
                 <widget class="QCheckBox" name="chkLoadFwLog">
                  <property name="text">
                   <string>Load Windows Firewall Log on start (can be very slow)</string>
@@ -784,7 +814,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="13" column="2" colspan="2">
+               <item row="15" column="2" colspan="2">
                 <widget class="QCheckBox" name="chkFwLog">
                  <property name="text">
                   <string>Log all Network Access events to Memory</string>
@@ -841,14 +871,14 @@
                  </property>
                 </widget>
                </item>
-               <item row="11" column="1" colspan="3">
+               <item row="13" column="1" colspan="3">
                 <widget class="QCheckBox" name="chkNetTrace">
                  <property name="text">
                   <string>Record Network Traffic</string>
                  </property>
                 </widget>
                </item>
-               <item row="15" column="1">
+               <item row="17" column="1">
                 <spacer name="verticalSpacer_3">
                  <property name="orientation">
                   <enum>Qt::Orientation::Vertical</enum>
@@ -861,7 +891,7 @@
                  </property>
                 </spacer>
                </item>
-               <item row="15" column="2">
+               <item row="17" column="2">
                 <spacer name="horizontalSpacer">
                  <property name="orientation">
                   <enum>Qt::Orientation::Horizontal</enum>
@@ -898,7 +928,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="7" column="3">
+               <item row="8" column="3">
                 <widget class="QToolButton" name="btnFwGuardApprove">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -911,7 +941,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="6" column="0" colspan="3">
+               <item row="7" column="0" colspan="3">
                 <widget class="QLabel" name="label_14">
                  <property name="text">
                   <string>You can specify guidelines below which rule changes to auto accept or revert based on the subject application file path.</string>
@@ -921,7 +951,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="5" column="2">
+               <item row="6" column="2">
                 <spacer name="horizontalSpacer_14">
                  <property name="orientation">
                   <enum>Qt::Orientation::Horizontal</enum>
@@ -934,7 +964,7 @@
                  </property>
                 </spacer>
                </item>
-               <item row="8" column="3">
+               <item row="9" column="3">
                 <widget class="QToolButton" name="btnFwGuardReject">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -957,7 +987,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="9" column="3">
+               <item row="10" column="3">
                 <spacer name="verticalSpacer_10">
                  <property name="orientation">
                   <enum>Qt::Orientation::Vertical</enum>
@@ -970,7 +1000,7 @@
                  </property>
                 </spacer>
                </item>
-               <item row="10" column="3">
+               <item row="11" column="3">
                 <widget class="QToolButton" name="btnFwGuardRemove">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -990,6 +1020,26 @@
                  </property>
                 </widget>
                </item>
+               <item row="4" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkFwAllowRemoval">
+                 <property name="text">
+                  <string>Always Approve the Removal of Allow Rules</string>
+                 </property>
+                 <property name="toolTip">
+                  <string>Taking an Allow rule away only ever removes access, so letting it happen unattended can not grant anything. Together with an Allow rule template this covers installers and store updates, which delete the rule of the old version and create one for the new path. Note that it also lets anything else on the system delete your Allow rules without telling you.</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1" colspan="3">
+                <widget class="QCheckBox" name="chkFwRecreate">
+                 <property name="text">
+                  <string>Approve a Rule Replaced by an Identical One</string>
+                 </property>
+                 <property name="toolTip">
+                  <string>Programs are fond of deleting a rule only to put the very same one back an instant later, which on its own asks you twice about something whose two answers cancel out. Where the rule which goes and the rule which comes differ in nothing but their identity, approving both leaves the firewall exactly as it stands, so this does that without asking. Any difference at all, in action, ports, addresses or name, and you are asked as before.</string>
+                 </property>
+                </widget>
+               </item>
                <item row="2" column="1" colspan="3">
                 <widget class="QCheckBox" name="chkGuardFwRules">
                  <property name="text">
@@ -997,7 +1047,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="5" column="1">
+               <item row="6" column="1">
                 <widget class="QLabel" name="label_10">
                  <property name="minimumSize">
                   <size>
@@ -1010,7 +1060,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="5" column="0">
+               <item row="6" column="0">
                 <widget class="QLabel" name="lblFwAutoGuard">
                  <property name="font">
                   <font>
@@ -1023,7 +1073,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="7" column="0" rowspan="4" colspan="3">
+               <item row="8" column="0" rowspan="4" colspan="3">
                 <widget class="QTreeWidget" name="treeFwGuard">
                  <column>
                   <property name="text">
@@ -1037,7 +1087,7 @@
                  </column>
                 </widget>
                </item>
-               <item row="11" column="0" colspan="4">
+               <item row="12" column="0" colspan="4">
                 <widget class="QCheckBox" name="btnFwGuardNotify">
                  <property name="text">
                   <string>Show system notification when a rule is rejected or approved</string>
@@ -1264,7 +1314,7 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="2">
+           <item row="9" column="2">
             <spacer name="horizontalSpacer_9">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
@@ -1276,6 +1326,60 @@
               </size>
              </property>
             </spacer>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="lblUsage">
+             <property name="font">
+              <font>
+               <bold>true</bold>
+               <kerning>true</kerning>
+              </font>
+             </property>
+             <property name="text">
+              <string>Usage Statistics (CPU / I/O / Network Graphs)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0" colspan="3">
+            <widget class="QCheckBox" name="chkUsageStats">
+             <property name="text">
+              <string>Collect CPU, I/O and network usage statistics per program</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="lblUsageRetention">
+             <property name="text">
+              <string>Usage Statistics Retention Time:</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <widget class="QLineEdit" name="txtUsageRetention"/>
+           </item>
+           <item row="6" column="2">
+            <widget class="QLabel" name="lblUsageDays">
+             <property name="text">
+              <string>Days</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="0" colspan="3">
+            <widget class="QCheckBox" name="chkUsageRecord">
+             <property name="text">
+              <string>Save Usage Statistics to Disk (UsageRecord.dat)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="0" colspan="3">
+            <widget class="QCheckBox" name="chkUsageGpu">
+             <property name="text">
+              <string>Include GPU and NPU usage (per process graphics kernel statistics)</string>
+             </property>
+            </widget>
            </item>
            <item row="2" column="1">
             <widget class="QLineEdit" name="txtLogRetention"/>
@@ -1303,7 +1407,7 @@
            <item row="1" column="1">
             <widget class="QLineEdit" name="txtLogLimit"/>
            </item>
-           <item row="3" column="0">
+           <item row="9" column="0">
             <spacer name="verticalSpacer_7">
              <property name="orientation">
               <enum>Qt::Orientation::Vertical</enum>
@@ -1316,7 +1420,7 @@
              </property>
             </spacer>
            </item>
-           <item row="3" column="3">
+           <item row="9" column="3">
             <spacer name="horizontalSpacer_8">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>

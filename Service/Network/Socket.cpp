@@ -6,6 +6,8 @@
 #include "../Library/Helpers/Service.h"
 #include "../Library/Helpers/NtUtil.h"
 #include "../Processes/Process.h"
+#include "../Programs/ProgramFile.h"
+#include "../Programs/WindowsService.h"
 #include "../../Library/API/PrivacyAPI.h"
 #include "NetworkManager.h"
 #include "Dns/DnsInspector.h"
@@ -231,7 +233,7 @@ uint64 CSocket::GetIdleTime() const
 
 void CSocket::AddNetworkIO(int Type, uint32 TransferSize)
 {
-	std::shared_lock StatsLock(m_StatsMutex);
+	std::unique_lock StatsLock(m_StatsMutex);
 
 	m_LastActivity = GetCurTime() * 1000ULL;
 	m_RemoveTimeStamp = 0;
@@ -243,6 +245,118 @@ void CSocket::AddNetworkIO(int Type, uint32 TransferSize)
 	}
 }
 
+bool CSocket::GetUsageTarget(CProgramFilePtr& pProgram, CWindowsServicePtr& pService) const
+{
+	//
+	// Same routing as the traffic log: the owning service when there is one, else the
+	// program file. Resolved from the process on every call rather than captured once
+	// when the socket was added: a program reference taken then went stale when the
+	// process link was corrected later, and the bytes were dropped without a trace.
+	//
+	CProcessPtr pProcess;
+	std::wstring SvcTag;
+	{
+		std::shared_lock Lock(m_Mutex);
+		pProcess = m_pProcess.lock();
+		SvcTag = m_OwnerService;
+	}
+	if (!pProcess)
+		return false;
+
+	pProgram = pProcess->GetProgram();
+	if (!pProgram)
+		return false;
+
+	if (!SvcTag.empty())
+		pService = pProgram->GetService(SvcTag);
+	return true;
+}
+
+void CSocket::AddUsageIO(int Type, uint32 TransferSize, bool bLan)
+{
+	CProgramFilePtr pProgram;
+	CWindowsServicePtr pService;
+	if (!GetUsageTarget(pProgram, pService))
+		return;
+	if (pService)
+		pService->UsageLog()->AddNetworkIO(Type, TransferSize, bLan);
+	else
+		pProgram->UsageLog()->AddNetworkIO(Type, TransferSize, bLan);
+}
+
+void CSocket::AddUsageConnections(bool bInbound, uint32 Seconds)
+{
+	CProgramFilePtr pProgram;
+	CWindowsServicePtr pService;
+	if (!GetUsageTarget(pProgram, pService))
+		return;
+	if (pService)
+		pService->UsageLog()->AddConnections(bInbound, Seconds);
+	else
+		pProgram->UsageLog()->AddConnections(bInbound, Seconds);
+}
+
+bool CSocket::IsConnection() const
+{
+	std::shared_lock Lock(m_Mutex);
+
+	if (m_State == (uint32)-1)	// blocked by the firewall, never was a connection
+		return false;
+	if (m_RemotePort == 0)		// bound only, or a listener
+		return false;
+
+	switch (m_ProtocolType)
+	{
+	case IPPROTO_TCP:
+		switch (m_State)
+		{
+		case MIB_TCP_STATE_LISTEN:
+		case MIB_TCP_STATE_CLOSED:
+		case MIB_TCP_STATE_TIME_WAIT:
+		case MIB_TCP_STATE_DELETE_TCB:
+			return false;
+		}
+		return true;
+	case IPPROTO_UDP:
+		// a pseudo connection, listed while it is active (UdpPersistenceTime) and closed afterwards
+		return true;
+	}
+	return false;
+}
+
+void CSocket::BookUsageConnections(const std::set<CSocketPtr>& Sockets, uint32 Seconds)
+{
+	//
+	// Open connections are a gauge, sampled once per usage sample and booked as connection
+	// seconds, which sum like the bytes do (see SUsageSample). The direction is the firewall
+	// log's; a TCP socket that never got an event is inbound when the same process listens on
+	// its local port, everything else counts as outbound, which nearly all of them are.
+	//
+	if (Sockets.empty())
+		return;
+
+	std::set<uint16> ListenPorts;
+	for (const CSocketPtr& pSocket : Sockets) {
+		if (pSocket->GetProtocolType() == IPPROTO_TCP && pSocket->GetState() == MIB_TCP_STATE_LISTEN)
+			ListenPorts.insert(pSocket->GetLocalPort());
+	}
+
+	for (const CSocketPtr& pSocket : Sockets)
+	{
+		if (pSocket->IsMarkedForRemoval() || !pSocket->IsConnection())
+			continue;
+
+		bool bInbound;
+		switch (pSocket->GetDirection())
+		{
+		case EFwDirections::Inbound:	bInbound = true; break;
+		case EFwDirections::Outbound:	bInbound = false; break;
+		default:						bInbound = pSocket->GetProtocolType() == IPPROTO_TCP && ListenPorts.count(pSocket->GetLocalPort()) > 0; break;
+		}
+		pSocket->AddUsageConnections(bInbound, Seconds);
+	}
+}
+
 StVariant CSocket::ToVariant(FW::AbstractMemPool* pMemPool) const
 {
 	std::shared_lock Lock(m_Mutex);
@@ -250,7 +364,7 @@ StVariant CSocket::ToVariant(FW::AbstractMemPool* pMemPool) const
 	StVariantWriter Socket(pMemPool);
 	Socket.BeginIndex();
 
-	Socket.Write(API_V_SOCK_REF, (uint64)this);
+	Socket.Write(API_V_SOCK_REF, GetObjectUid());
 	//m_HashID; // not guaranteed unique
 
 	Socket.Write(API_V_SOCK_TYPE, m_ProtocolType);

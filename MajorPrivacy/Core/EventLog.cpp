@@ -190,6 +190,16 @@ QString CEventLog::GetFwRuleEventInfoStr(ELogEventType Type, const QtVariant& Da
 {
 	//CFwRulePtr pRule = theCore->NetworkManager()->GetFwRule(Data[API_V_GUID].To<QString>());
     QString Name = Data[API_V_NAME].To<QString>();
+
+	// the guard reports what it tried as well as what it managed, an event saying "Rejected" for a rule it could not touch would be a lie
+	sint32 Status = Data[API_V_STATUS].To<sint32>();
+	if (Status != 0 && (Type == eLogFwRuleRestored || Type == eLogFwRuleRejected)) {
+		if (Type == eLogFwRuleRestored && Status == (sint32)STATUS_ERR_RULE_DIVERGENT)
+			return tr("Firewall Rule '%1' only partly Restored, some fields differ from the backup").arg(Name);
+		return tr("Firewall Rule '%1' could not be %2 (0x%3)").arg(Name)
+			.arg(Type == eLogFwRuleRestored ? tr("Restored") : tr("Rejected")).arg((quint32)Status, 8, 16, QChar('0'));
+	}
+
     switch (Type)
     {
 	case eLogFwRuleAdded:           return tr("Firewall Rule '%1' Added").arg(Name);

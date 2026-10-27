@@ -6,6 +6,8 @@
 #include "../Framework/Core/Object.h"
 #include "../Framework/Core/Map.h"
 
+#include "../Common/AbstractInfo.h"
+
 class CAccessTree
 {
 	TRACK_OBJECT(CAccessTree)
@@ -49,9 +51,9 @@ public:
 	{
 		//TRACK_OBJECT(SPathNode)
 #ifdef DEF_USE_POOL
-		SPathNode(FW::AbstractMemPool* pMem) : FW::Object(pMem), Name(pMem), Branches(pMem) {}
+		SPathNode(FW::AbstractMemPool* pMem) : FW::Object(pMem), Name(pMem), Branches(pMem) { Uid = MakeObjectUid(); }
 #else
-		SPathNode() {}
+		SPathNode() { Uid = MakeObjectUid(); }
 #endif
 		~SPathNode() {}
 #ifdef DEF_USE_POOL
@@ -63,6 +65,17 @@ public:
 #endif
 		SAccessStats Stats;
 		uint32 TotalCount = 0;
+
+		//
+		// What a viewer knows this node by, see StoreNode. It used to be the address
+		// of the node itself, which is wrong the same way it was for handles and
+		// sockets: the allocator hands freed blocks back in preference to fresh ones,
+		// so a new node very commonly lands on a dead one and the viewer goes on
+		// adding the new node's accesses to the dead one's tally - and a service
+		// running as SYSTEM has no business telling anyone where its heap is, least
+		// of all by writing it into a file that is kept.
+		//
+		uint64 Uid = 0;
 	};
 
 #ifdef DEF_USE_POOL

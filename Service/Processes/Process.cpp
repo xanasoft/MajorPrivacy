@@ -376,6 +376,7 @@ void CProcess::UpdateSignInfo(const struct SVerifierInfo* pVerifyInfo)
 	std::unique_lock lock(m_Mutex);
 
 	m_SignInfo.Update(pVerifyInfo);
+	m_SignInfoVersion++;
 }
 
 bool CProcess::HashInfoUnknown() const
@@ -549,12 +550,14 @@ void CProcess::AddHandle(const CHandlePtr& pHandle)
 {
 	std::unique_lock Lock(m_HandleMutex);
 	m_HandleList.insert(pHandle);
+	m_HandleListVersion++;
 }
 
 void CProcess::RemoveHandle(const CHandlePtr& pHandle)
 {
 	std::unique_lock Lock(m_HandleMutex);
 	m_HandleList.erase(pHandle);
+	m_HandleListVersion++;
 }
 
 void CProcess::AddSocket(const CSocketPtr& pSocket)
@@ -565,7 +568,7 @@ void CProcess::AddSocket(const CSocketPtr& pSocket)
 	std::wstring SvcTag = pSocket->GetOwnerServiceName();
 	if (!SvcTag.empty() && pProg)
 		pSvc = pProg->GetService(SvcTag);
-	
+
 	std::unique_lock Lock(m_SocketMutex);
 	m_SocketList.insert(pSocket);
 
@@ -588,9 +591,9 @@ void CProcess::RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit)
 
 	bool bSave = theCore->Config()->GetBool("Service", "NetTrace", true);
 	if (pProg) {
-		ETracePreset ePreset = pProg->GetResTrace();
+		ETracePreset ePreset = pProg->GetNetTrace();
 		if (!pProg->TrafficLog()->RemoveSocket(pSocket, bNoCommit || ePreset == ETracePreset::eNoTrace || (ePreset == ETracePreset::eDefault && !bSave)) && pSvc) {
-			ePreset = pSvc->GetResTrace();
+			ePreset = pSvc->GetNetTrace();
 			pSvc->TrafficLog()->RemoveSocket(pSocket, bNoCommit|| ePreset == ETracePreset::eNoTrace || (ePreset == ETracePreset::eDefault && !bSave));
 		}
 	}
@@ -598,7 +601,7 @@ void CProcess::RemoveSocket(const CSocketPtr& pSocket, bool bNoCommit)
 
 void CProcess::AddNetworkIO(int Type, uint32 TransferSize)
 {
-	std::shared_lock StatsLock(m_StatsMutex);
+	std::unique_lock StatsLock(m_StatsMutex);
 
 	m_LastNetActivity = GetCurTime() * 1000ULL;
 
@@ -609,12 +612,77 @@ void CProcess::AddNetworkIO(int Type, uint32 TransferSize)
 	}
 }
 
+void CProcess::UpdateUsage(const SYSTEM_PROCESS_INFORMATION* pInfo)
+{
+	std::unique_lock StatsLock(m_StatsMutex);
+
+	//
+	// The first Update() of a delta only records the base value, so a process that is
+	// seen for the first time does not get its whole lifetime booked into one bucket.
+	//
+	m_UsageKernelTime.Update(pInfo->KernelTime.QuadPart);
+	m_UsageUserTime.Update(pInfo->UserTime.QuadPart);
+	m_UsageIoRead.Update(pInfo->ReadTransferCount.QuadPart);
+	m_UsageIoWrite.Update(pInfo->WriteTransferCount.QuadPart);
+	m_UsageIoOther.Update(pInfo->OtherTransferCount.QuadPart);
+
+	m_UsagePendingKernel += m_UsageKernelTime.Delta;
+	m_UsagePendingUser += m_UsageUserTime.Delta;
+	m_UsagePendingIoRead += m_UsageIoRead.Delta;
+	m_UsagePendingIoWrite += m_UsageIoWrite.Delta;
+	m_UsagePendingIoOther += m_UsageIoOther.Delta;
+
+	// the per process I/O counters were never filled before, feed them as well
+	m_Stats.Io.SetRead(pInfo->ReadTransferCount.QuadPart, pInfo->ReadOperationCount.QuadPart);
+	m_Stats.Io.SetWrite(pInfo->WriteTransferCount.QuadPart, pInfo->WriteOperationCount.QuadPart);
+	m_Stats.Io.SetOther(pInfo->OtherTransferCount.QuadPart, pInfo->OtherOperationCount.QuadPart);
+}
+
+void CProcess::AddGpuUsage(uint64 Gpu100ns, uint64 Npu100ns)
+{
+	std::unique_lock StatsLock(m_StatsMutex);
+	m_UsagePendingGpu += Gpu100ns;
+	m_UsagePendingNpu += Npu100ns;
+}
+
+bool CProcess::TakeUsage(SUsageSample& Sample)
+{
+	std::unique_lock StatsLock(m_StatsMutex);
+
+	// CPU time stays in 100ns units until a full millisecond has accumulated, so nothing is lost to rounding
+	Sample.CpuKernel = (uint32)(m_UsagePendingKernel / 10000); m_UsagePendingKernel %= 10000;
+	Sample.CpuUser = (uint32)(m_UsagePendingUser / 10000); m_UsagePendingUser %= 10000;
+	Sample.GpuTime = (uint32)(m_UsagePendingGpu / 10000); m_UsagePendingGpu %= 10000;
+	Sample.NpuTime = (uint32)(m_UsagePendingNpu / 10000); m_UsagePendingNpu %= 10000;
+	Sample.IoRead = m_UsagePendingIoRead; m_UsagePendingIoRead = 0;
+	Sample.IoWrite = m_UsagePendingIoWrite; m_UsagePendingIoWrite = 0;
+	Sample.IoOther = m_UsagePendingIoOther; m_UsagePendingIoOther = 0;
+	Sample.NetUpload = 0;
+	Sample.NetDownload = 0;
+
+	return !Sample.IsZero();
+}
+
+//
+// WARNING: BuildProcessDelta in Service/Common/ListReplies.cpp writes the same
+// field list through the per client cache, and is what SVC_API_GET_PROCESSES
+// uses; this one is left for SVC_API_GET_PROCESS, which fetches a single process
+// and has no cache to delta against. A field added here has to be added there.
+//
+
 StVariant CProcess::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool) const
 {
 	std::shared_lock Lock(m_Mutex);
 
 	StVariantWriter Process(pMemPool);
 	Process.BeginIndex();
+
+	//
+	// The pid is what the user sees, the PUID is what identifies the process:
+	// pids get recycled, PUIDs do not. Note that GetProcessUID() must not be used
+	// here, we are already holding m_Mutex and it takes it again.
+	//
+	Process.Write(API_V_PUID, SProcessUID(m_Pid, m_CreateTimeStamp).Get());
 
 	Process.Write(API_V_PID, m_Pid);
 	Process.Write(API_V_CREATE_TIME, m_CreationTime);
@@ -686,4 +754,19 @@ StVariant CProcess::ToVariant(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMe
 	SocketLock.unlock();
 
 	return Process.Finish();
+}
+
+//
+// Whether this process runs the given image. A plain compare first; the paths come in
+// different forms (\Device\HarddiskVolumeN\..., \??\C:\..., C:\...) depending on who
+// reported them, so on a mismatch both are normalized to a lower case DOS path first.
+//
+bool CProcess::IsSameImage(const std::wstring& NtFilePath) const
+{
+	std::wstring MyPath = GetNtFilePath();
+	if (_wcsicmp(MyPath.c_str(), NtFilePath.c_str()) == 0)
+		return true;
+	if (MyPath.empty() || NtFilePath.empty())
+		return false;
+	return theCore->NormalizePath(MyPath) == theCore->NormalizePath(NtFilePath);
 }

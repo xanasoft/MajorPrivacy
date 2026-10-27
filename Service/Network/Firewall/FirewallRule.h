@@ -25,9 +25,13 @@ public:
 
 	bool Match(const std::shared_ptr<struct SWindowsFwRule>& Rule) const;
 	static bool Match(const std::shared_ptr<struct SWindowsFwRule>& RuleL, const std::shared_ptr<struct SWindowsFwRule>& RuleR);
+	// names the first field the two disagree on, empty when they are the same rule in all but identity
+	static std::wstring MatchDiff(const std::shared_ptr<struct SWindowsFwRule>& RuleL, const std::shared_ptr<struct SWindowsFwRule>& RuleR);
 
 	void Update(const std::shared_ptr<struct SWindowsFwRule>& Rule);
 	void Update(const std::shared_ptr<CFirewallRule>& pRule);
+	// what we know about a rule which went away, handed on to the identical one that took its place
+	void TakeOver(const std::shared_ptr<CFirewallRule>& pRule);
 
 	std::wstring GetGuidStr() const;
 
@@ -35,6 +39,7 @@ public:
 	
 	void SetApproved(bool bApproved)		{ std::unique_lock Lock(m_Mutex); m_State = bApproved ? EFwRuleState::eApproved : EFwRuleState::eUnapproved; }
 	bool IsApproved() const					{ std::shared_lock Lock(m_Mutex); return m_State == EFwRuleState::eApproved; }
+	bool IsTurnedDown() const				{ std::shared_lock Lock(m_Mutex); return m_State == EFwRuleState::eUnapprovedDisabled; } // the guard disabled it
 	void SetAsBackup(bool bRemoved, bool bProgramChanged);
 	//bool IsBackup() const					{ std::shared_lock Lock(m_Mutex); return m_State == EFwRuleState::eBackup; }
 	bool IsBackup() const					{ std::shared_lock Lock(m_Mutex); return !m_OriginalGuid.empty(); }

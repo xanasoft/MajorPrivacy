@@ -17,6 +17,10 @@ public:
 
 	QList<QModelIndex>	Sync(const QList<CFwRulePtr>& RuleList);
 
+	// rules made from a template shown under it rather than next to it
+	void			SetTemplateTree(bool bTree)	{ m_bTemplateTree = bTree; }
+	bool			IsTemplateTree() const		{ return m_bTemplateTree; }
+
 	CFwRulePtr		GetItem(const QModelIndex& index);
 
 	int				columnCount(const QModelIndex& parent = QModelIndex()) const;
@@ -61,6 +65,8 @@ protected:
 
 		bool IsMissing = false;
 	};
+
+	bool				m_bTemplateTree = false;
 
 	virtual STreeNode*	MkNode(const QVariant& Id) { return new SRuleNode(/*this,*/ Id); }
 	virtual STreeNode*	MkVirtualNode(const QVariant& Id, STreeNode* pParent);

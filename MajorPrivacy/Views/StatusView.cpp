@@ -13,6 +13,7 @@
 #include "../../MiscHelpers/Common/Common.h"
 #include "../../MiscHelpers/Common/OtherFunctions.h"
 #include "../Library/Crypto/Encryption.h"
+#include "../../Library/Boot/EfiVars.h"
 #include "../Library/Crypto/HashFunction.h"
 
 CStatusView::CStatusView(QWidget *parent)
@@ -21,7 +22,7 @@ CStatusView::CStatusView(QWidget *parent)
 	m_pMainLayout = new QFlowLayout(this);
 	setLayout(m_pMainLayout);
 
-	int height = 200;
+	int height = 240;
 
 	m_pSecBox = new QGroupBox(tr("System Status"), this);
 	m_pSecLayout = new QGridLayout(m_pSecBox);
@@ -39,9 +40,13 @@ CStatusView::CStatusView(QWidget *parent)
 	m_pSecLayout->addWidget(m_pSecConfig, 4, 0, 1, 2);
 	m_pSecCore = new QLabel(this);
 	m_pSecLayout->addWidget(m_pSecCore, 5, 0, 1, 2);
+	m_pSecFirmware = new QLabel(this);
+	m_pSecLayout->addWidget(m_pSecFirmware, 6, 0, 1, 2);
+	m_pSecProvision = new QLabel(this);
+	m_pSecLayout->addWidget(m_pSecProvision, 7, 0, 1, 2);
 	QWidget* pSpacer = new QWidget();
 	pSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	m_pSecLayout->addWidget(pSpacer, 6, 0);
+	m_pSecLayout->addWidget(pSpacer, 8, 0);
 	m_pMainLayout->addWidget(m_pSecBox);
 	m_pSecBox->setFixedHeight(height);
 
@@ -153,6 +158,8 @@ void CStatusView::Update()
 
 	bool bSvc = theCore->Service()->IsConnected();
 	bool bDrv = theCore->Driver()->IsConnected();
+	bool bSuspended = false;
+	bool bKeyMismatch = false;
 
 	auto Icon = Major;
 	if(!bSvc)
@@ -165,14 +172,24 @@ void CStatusView::Update()
 	m_pSecService->setText(tr("Privacy Agent: %1").arg(bSvc ? tr("OK") : tr("Inactive")));
 	m_pSecDriver->setText(tr("Kernel Isolator: %1").arg(bDrv ? tr("OK") : tr("Inactive")));
 
-	if (!bDrv) 
+	if (!bDrv)
 	{
 		m_pSecKey->setText(tr("User Key NOT available"));
 		m_pSecConfig->setText(tr("Config Protection NOT available"));
 		m_pSecCore->setText(tr("Unload Protection NOT available"));
+		//
+		// Both of these are read through the driver, so without it there is
+		// nothing to report either way - and the tooltips are cleared so that
+		// a reading from when it was connected cannot linger on them.
+		//
+		m_pSecFirmware->setText(tr("Bootloader: n/a"));
+		m_pSecFirmware->setToolTip(tr("The state of the pre-boot loader is read through the "
+			"kernel isolator, which is not connected."));
+		m_pSecProvision->setText("");
+		m_pSecProvision->setToolTip(QString());
 		m_bHasKey = false;
-	} 
-	else 
+	}
+	else
 	{
 		auto Ret = theCore->Driver()->GetUserKey();
 		if (Ret.IsError()) {
@@ -197,7 +214,17 @@ void CStatusView::Update()
 		uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
 		//uConfigStatus |= theCore->Service()->GetConfigStatus();
 		bool bProtected = (uConfigStatus & CONFIG_STATUS_PROTECTED) != 0;
-		if (theCore->Driver()->GetConfigBool("UnloadProtection", false))
+		bSuspended = (uConfigStatus & CONFIG_STATUS_SUSPENDED) != 0;
+		bKeyMismatch = (uConfigStatus & CONFIG_STATUS_KEYMISMATCH) != 0;
+
+		if (bKeyMismatch) {
+			m_pSecKey->setText(tr("User Key MISMATCH (EFI vs registry)!"));
+			m_pSecKey->setToolTip(tr("The pre-boot protected UserPubKey EFI variable does not match the user key in the protected registry."));
+		}
+
+		if (bSuspended)
+			m_pSecConfig->setText(tr("Enforcement SUSPENDED (pre-boot recovery)"));
+		else if (theCore->Driver()->GetConfigBool("UnloadProtection", false))
 			m_pSecConfig->setText(tr("Config Protection Active"));
 		else
 			m_pSecConfig->setText(tr("Config Protection NOT Active"));
@@ -206,6 +233,91 @@ void CStatusView::Update()
 			m_pSecCore->setText(tr("Unload Protection Active"));
 		else
 			m_pSecCore->setText(tr("Unload Protection NOT Active"));
+
+		//
+		// Pre-boot firmware protection (DiskCryptor DcsOwner) + user-key provisioning state.
+		//
+		bool bFwAvail = (uConfigStatus & CONFIG_STATUS_FWAVAIL) != 0;
+		bool bProvisioned = (uConfigStatus & CONFIG_STATUS_KEYPROVISIONED) != 0; // UserPubKey_RT mirror set
+		bool bCommitted = (uConfigStatus & CONFIG_STATUS_KEYCOMMITTED) != 0;     // committed/enforced this boot
+
+		//
+		// Secure Boot is the other half of this line. The loader being there
+		// says a user key can be committed before Windows starts; Secure Boot
+		// says whether the firmware checks that the loader is still ours.
+		//
+		// Tri-state, and the third state matters: 1 on, 0 off, -1 could not be
+		// determined. Only 1 may be reported as secure.
+		//
+		int iSecureBoot = CEfiVars::GetSecureBootStatus();
+
+		if (!bFwAvail) {
+			m_pSecFirmware->setText(tr("Bootloader: NOT installed"));
+			m_pSecFirmware->setToolTip(tr(
+				"The DCS pre-boot loader is not on this machine's EFI partition. Without it a user "
+				"key cannot be committed before Windows starts, and pre-boot recovery through the "
+				"suspend switch is not available.\n\n"
+				"Install it under Tools > Advanced Tools > EFI Boot Loader."));
+		}
+		else if (iSecureBoot != 1) {
+			m_pSecFirmware->setText(tr("Bootloader: installed"));
+			m_pSecFirmware->setToolTip(iSecureBoot == 0
+				? tr("The pre-boot loader is installed, so DcsOwner can hold the user key and the "
+					 "suspend switch in firmware variables that Windows cannot write to.\n\n"
+					 "Secure Boot is off, so the firmware does not verify the loader before "
+					 "running it - anything able to write to the EFI partition could replace it.")
+				: tr("The pre-boot loader is installed, so DcsOwner can hold the user key and the "
+					 "suspend switch in firmware variables that Windows cannot write to.\n\n"
+					 "Whether Secure Boot is on could not be determined on this machine."));
+		}
+		else {
+			m_pSecFirmware->setText(tr("Secure Bootloader: installed"));
+			m_pSecFirmware->setToolTip(tr(
+				"The pre-boot loader is installed and Secure Boot is on, so the firmware verifies "
+				"the loader before running it - a replaced loader will not start.\n\n"
+				"DcsOwner holds the user key and the suspend switch in firmware variables that "
+				"Windows cannot write to."));
+		}
+
+		//
+		// Short enough to fit the panel; what a pending state means goes in the
+		// tooltip rather than onto the line.
+		//
+		QString Provision, Tip;
+		if (!bFwAvail) {
+			Provision = tr("unavailable");
+			Tip = tr("Without the pre-boot loader there is nothing to protect a firmware "
+				"variable, so the user key cannot be committed before Windows starts.");
+		}
+		else if (bKeyMismatch) {
+			Provision = tr("MISMATCH");
+			Tip = tr("The user key committed before boot is not the one in the protected "
+				"registry. One of the two has been changed behind the other's back, and the "
+				"isolator is treating the key as untrusted until they agree again.");
+		}
+		else if (bProvisioned && bCommitted) {
+			Provision = tr("provisioned");
+			Tip = tr("The user key was committed before Windows started and DcsOwner is "
+				"enforcing it this boot - the operating system cannot change it.");
+		}
+		else if (bProvisioned && !bCommitted) {
+			Provision = tr("provision pending");
+			Tip = tr("The key is written to the pre-boot mirror but not yet committed.\n\n"
+				"Restart and confirm it at the boot screen; until then it is not enforced.");
+		}
+		else if (!bProvisioned && bCommitted) {
+			Provision = tr("removal pending");
+			Tip = tr("A committed key is still being enforced this boot, but the mirror has "
+				"been cleared.\n\nRestart and confirm the removal at the boot screen.");
+		}
+		else {
+			Provision = tr("not provisioned");
+			Tip = tr("The pre-boot loader is installed but no user key has been committed to "
+				"firmware, so the isolator relies on the protected registry alone.");
+		}
+
+		m_pSecProvision->setText(tr("EFI Key: %1").arg(Provision));
+		m_pSecProvision->setToolTip(Tip);
 	}
 
 	if (g_CertInfo.active)
@@ -214,7 +326,7 @@ void CStatusView::Update()
 
 		m_pExecRules->setText(tr("Program Rules: %1").arg(theCore->ProgramManager()->GetProgramRules().count()));
 		m_pExecEnclaves->setText(tr("Enclaves: %1").arg(theCore->EnclaveManager()->GetAllEnclaves().count()));
-		m_pExecStatus->setText(tr("Protection active"));
+		m_pExecStatus->setText(bSuspended ? tr("Enforcement SUSPENDED") : tr("Protection active"));
 	}
 	else
 	{
@@ -242,7 +354,7 @@ void CStatusView::Update()
 		}
 		m_pResFolders->setText(tr("Protected Folders: %1").arg(Folders));
 		m_pResVolumes->setText(tr("Secure Volumes: %1").arg(Volumes));
-		m_pResStatus->setText(tr("Protection active"));
+		m_pResStatus->setText(bSuspended ? tr("Enforcement SUSPENDED") : tr("Protection active"));
 	}
 	else
 	{

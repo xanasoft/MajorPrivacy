@@ -45,6 +45,18 @@ CProgramView::CProgramView(QWidget* parent)
 	m_pMainLayout->addWidget(m_pTreeList);
 	m_pTreeList->setMinimumHeight(50);
 
+	//
+	// Escape drops the selection, which the pages read as nothing being picked and
+	// fall back to showing everything. The finder filters only its own widget, so the
+	// key is free while the tree has the focus.
+	//
+#ifdef SPLIT_TREE
+	m_pTreeList->GetView()->installEventFilter(this);
+	m_pTreeList->GetTree()->installEventFilter(this);
+#else
+	m_pTreeList->installEventFilter(this);
+#endif
+
 	QStyle* pStyle = QStyleFactory::create("windows");
 	m_pTreeList->setStyle(pStyle);
 #ifdef SPLIT_TREE
@@ -588,6 +600,21 @@ void CProgramView::Update()
 void CProgramView::Clear()
 {
 	m_pProgramModel->Clear();
+}
+
+bool CProgramView::eventFilter(QObject* source, QEvent* event)
+{
+	if (event->type() == QEvent::KeyPress && ((QKeyEvent*)event)->key() == Qt::Key_Escape
+		&& ((QKeyEvent*)event)->modifiers() == Qt::NoModifier)
+	{
+		QAbstractItemView* pView = qobject_cast<QAbstractItemView*>(source);
+		if (pView && pView->selectionModel()->hasSelection()) {
+			pView->selectionModel()->clearSelection();
+			return true; // cancel event
+		}
+	}
+
+	return CPanelView::eventFilter(source, event);
 }
 
 void CProgramView::OnProgramChanged(const QModelIndexList& Selection)

@@ -1,0 +1,227 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    dcvolume.dll - DiskCryptor's crypto_lib and volume_lib as one shared library.
+
+    The source list is ImBox's old one, moved here wholesale: ImBox used to
+    compile all of this into its own executable. The per-file conditions
+    (ARM64 excludes the SSE/AVX paths, x64 excludes the NEON and crypto-extension
+    ones, two files want an explicit /arch) are carried over unchanged - they
+    describe crypto_lib, not the consumer.
+
+    x86 is absent on purpose rather than by omission: crypto_lib/aes_asm.h stops
+    the build with an #error on any platform that is not amd64 or ARM64. The
+    Win32 configurations exist only so that a solution-wide Win32 build fails
+    the same way it did before, in crypto_lib, rather than on a missing project
+    configuration.
+  -->
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{5e2c1a74-3b90-4f1d-a6c7-8d41e0b2f593}</ProjectGuid>
+    <RootNamespace>dcvolume</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <!--
+    The same OutDir rule ImBox uses, so that dcvolume.dll lands beside
+    ImBox.exe and ImBox finds dcvolume.lib in its own $(OutDir).
+  -->
+  <PropertyGroup Condition="'$(Platform)'=='x64'">
+    <OutDir>$(SolutionDir)Build\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\include;$(ProjectDir)..\_include_;$(ProjectDir)..\crypto_lib;$(ProjectDir)..\volume_lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Platform)'=='x64'">CL_ENABLE_AVX;CL_ENABLE_AVX2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <SupportJustMyCode>false</SupportJustMyCode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ModuleDefinitionFile>dcvolume.def</ModuleDefinitionFile>
+      <AdditionalDependencies>Advapi32.lib;Bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">$(SolutionDir)SignFile.cmd $(SolutionDir)Build\$(Configuration)\$(Platform)\$(ProjectName).dll</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)SignFile.cmd $(SolutionDir)Build\$(Configuration)\$(Platform)\$(ProjectName).dll</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)SignFile.cmd $(SolutionDir)Build\$(Configuration)\$(ProjectName).dll</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\include;$(ProjectDir)..\_include_;$(ProjectDir)..\crypto_lib;$(ProjectDir)..\volume_lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Platform)'=='x64'">CL_ENABLE_AVX;CL_ENABLE_AVX2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ModuleDefinitionFile>dcvolume.def</ModuleDefinitionFile>
+      <AdditionalDependencies>Advapi32.lib;Bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(SolutionDir)SignFile.cmd $(SolutionDir)Build\$(Configuration)\$(Platform)\$(ProjectName).dll</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)SignFile.cmd $(SolutionDir)Build\$(Configuration)\$(Platform)\$(ProjectName).dll</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)SignFile.cmd $(SolutionDir)Build\$(Configuration)\$(ProjectName).dll</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="dcvolume.h" />
+    <ClInclude Include="..\include\dc_header.h" />
+    <ClInclude Include="..\include\defines.h" />
+    <ClInclude Include="..\_include_\volume_header.h" />
+    <ClInclude Include="..\crypto_lib\cl_platform.h" />
+    <ClInclude Include="..\crypto_lib\cl_alloc.h" />
+    <ClInclude Include="..\crypto_lib\xts_fast.h" />
+    <ClInclude Include="..\crypto_lib\crc32.h" />
+    <ClInclude Include="..\volume_lib\dc_dev.h" />
+    <ClInclude Include="..\volume_lib\dc_internal.h" />
+    <ClInclude Include="..\volume_lib\dc_status.h" />
+    <ClInclude Include="..\volume_lib\crypto_head.h" />
+    <ClInclude Include="..\volume_lib\head_util.h" />
+    <ClInclude Include="..\volume_lib\header_io.h" />
+    <ClInclude Include="..\volume_lib\volume_head.h" />
+    <ClInclude Include="..\volume_lib\keyfile_mix.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\crypto_lib\amd64\aes_amd64.nasm">
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
+      <Command Condition="'$(Platform)'=='x64'">"$(ProjectDir)..\tools\yasm\yasm.exe" -Xvc -f win64 -m amd64 -o "$(IntDir)%(Filename).obj" "%(FullPath)"</Command>
+      <Outputs Condition="'$(Platform)'=='x64'">$(IntDir)%(Filename).obj</Outputs>
+      <Message Condition="'$(Platform)'=='x64'">yasm %(Filename).nasm</Message>
+    </CustomBuild>
+    <!-- dcvolume itself -->
+    <ClCompile Include="dcvolume.c" />
+    <!-- ImBox's adapter onto volume_lib; it owns dc_init_crypto and the host -->
+    <ClCompile Include="..\dc_header.c" />
+    <!-- DiskCryptor crypto_lib -->
+    <ClCompile Include="..\crypto_lib\crc32.c" />
+    <ClCompile Include="..\crypto_lib\cl_cpu.c" />
+    <ClCompile Include="..\crypto_lib\aes_key.c" />
+    <ClCompile Include="..\crypto_lib\serpent.c" />
+    <ClCompile Include="..\crypto_lib\twofish.c" />
+    <ClCompile Include="..\crypto_lib\sha512.c" />
+    <ClCompile Include="..\crypto_lib\sha512_hmac.c" />
+    <ClCompile Include="..\crypto_lib\sha512_hmac_drbg.c" />
+    <ClCompile Include="..\crypto_lib\sha512_pkcs5_2.c" />
+    <ClCompile Include="..\crypto_lib\xts_fast.c" />
+    <ClCompile Include="..\crypto_lib\xts_twofish.c" />
+    <ClCompile Include="..\crypto_lib\xts_aes_ni.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\crypto_lib\xts_serpent_sse2.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\crypto_lib\xts_serpent_avx.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='ARM64'">true</ExcludedFromBuild>
+      <EnableEnhancedInstructionSet Condition="'$(Platform)'=='x64'">AdvancedVectorExtensions</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <ClCompile Include="..\crypto_lib\xts_serpent_avx2.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='ARM64'">true</ExcludedFromBuild>
+      <EnableEnhancedInstructionSet Condition="'$(Platform)'=='x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <ClCompile Include="..\crypto_lib\xts_aes_ce.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\crypto_lib\xts_serpent_neon.c">
+      <ExcludedFromBuild Condition="'$(Platform)'=='x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\crypto_lib\Argon2\argon2.c" />
+    <ClCompile Include="..\crypto_lib\Argon2\argon2_mt.c" />
+    <ClCompile Include="..\crypto_lib\Argon2\core.c" />
+    <ClCompile Include="..\crypto_lib\Argon2\ref.c" />
+    <ClCompile Include="..\crypto_lib\Argon2\opt_sse2.c" />
+    <ClCompile Include="..\crypto_lib\Argon2\selftest.c" />
+    <ClCompile Include="..\crypto_lib\Argon2\blake2\blake2b.c" />
+    <ClCompile Include="..\crypto_lib\Argon2\opt_avx2.c">
+      <EnableEnhancedInstructionSet Condition="'$(Platform)'=='x64'">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <!-- DiskCryptor volume_lib -->
+    <ClCompile Include="..\volume_lib\dc_host.c" />
+    <ClCompile Include="..\volume_lib\dc_buffer.c" />
+    <ClCompile Include="..\volume_lib\crypto_head.c" />
+    <ClCompile Include="..\volume_lib\head_util.c" />
+    <ClCompile Include="..\volume_lib\header_io.c" />
+    <ClCompile Include="..\volume_lib\volume_head.c" />
+    <ClCompile Include="..\volume_lib\keyfile_mix.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="dcvolume.def" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

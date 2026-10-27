@@ -64,17 +64,21 @@ void CWindowsService::CountStats()
 
 QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 {
-	QReadLocker Lock(&m_Mutex); 
-	if (m_ExecChanged)
+	QWriteLocker Lock(&m_Mutex);
+	// at most one fetch per interval, while the flag stays set the next call tries again
+	if (m_ExecChanged && GetCurTick() - m_ExecFetched >= PROG_STATS_REFETCH_INTERVAL)
 	{
+		// cleared before the request, so an event arriving while it is in flight sets it again
+		m_ExecChanged = false;
+		m_ExecFetched = GetCurTick();
 		Lock.unlock();
 		auto Res = theCore->GetExecStats(m_ID);
-		if (!Res.IsError())
+		Lock.relock();
+		if (Res.IsError())
+			m_ExecChanged = true;
+		else
 		{
-			QWriteLocker Lock(&m_Mutex); 
-
 			m_ExecStats.clear();
-			m_ExecChanged = false;
 
 			auto Data = Res.GetValue();
 
@@ -82,14 +86,13 @@ QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 			QtVariantReader(Targets).ReadRawList([&](const FW::CVariant& vData) {
 				const QtVariant& Data = *(QtVariant*)&vData;
 
-				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
-
 				CProgramFile::SExecutionInfo Info;
 				Info.Role = EExecLogRole::eTarget;
 
 				Info.EnclaveGuid.FromVariant(Data.Get(API_V_EVENT_ACTOR_EID));
 
 				Info.SubjectUID = Data.Get(API_V_EVENT_TARGET_UID).To<uint64>(0);
+				Info.SubjectPID = Data.Get(API_V_PID).To<uint64>(0);
 				Info.SubjectEnclave.FromVariant(Data.Get(API_V_EVENT_TARGET_EID));
 				Info.ActorSvcTag = Data.Get(API_V_SERVICE_TAG).AsQStr();
 
@@ -97,10 +100,10 @@ QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 				Info.bBlocked = Data.Get(API_V_WAS_BLOCKED).To<bool>(false);
 				Info.CommandLine = Data.Get(API_V_CMD_LINE).AsQStr();
 
-				m_ExecStats[Ref] = Info;
+				m_ExecStats.insert(m_ExecStats.size(), Info);
 			});
+			m_ExecRevision++;
 		}
-		Lock.relock();
 	}
 
 	return m_ExecStats;
@@ -108,18 +111,21 @@ QMap<quint64, CProgramFile::SExecutionInfo> CWindowsService::GetExecStats()
 
 QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
 {
-	QReadLocker Lock(&m_Mutex);
-
-	if(m_IngressChanged)
+	QWriteLocker Lock(&m_Mutex);
+	// at most one fetch per interval, while the flag stays set the next call tries again
+	if (m_IngressChanged && GetCurTick() - m_IngressFetched >= PROG_STATS_REFETCH_INTERVAL)
 	{
+		// cleared before the request, so an event arriving while it is in flight sets it again
+		m_IngressChanged = false;
+		m_IngressFetched = GetCurTick();
 		Lock.unlock();
 		auto Res = theCore->GetIngressStats(m_ID);
-		if (!Res.IsError())
+		Lock.relock();
+		if (Res.IsError())
+			m_IngressChanged = true;
+		else
 		{
-			QWriteLocker Lock(&m_Mutex);
-
 			m_Ingress.clear();
-			m_IngressChanged = false;
 
 			auto Data = Res.GetValue();
 
@@ -127,14 +133,13 @@ QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
 			QtVariantReader(Targets).ReadRawList([&](const FW::CVariant& vData) {
 				const QtVariant& Data = *(QtVariant*)&vData;
 
-				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
-
 				CProgramFile::SIngressInfo Info;
 				Info.Role = EExecLogRole::eTarget;
 
 				Info.EnclaveGuid.FromVariant(Data.Get(API_V_EVENT_ACTOR_EID));
 
 				Info.SubjectUID = Data.Get(API_V_EVENT_TARGET_UID).To<uint64>(0);
+				Info.SubjectPID = Data.Get(API_V_PID).To<uint64>(0);
 				Info.SubjectEnclave.FromVariant(Data.Get(API_V_EVENT_TARGET_EID));
 				Info.ActorSvcTag = Data.Get(API_V_SERVICE_TAG).AsQStr();
 
@@ -143,10 +148,10 @@ QMap<quint64, CProgramFile::SIngressInfo> CWindowsService::GetIngressStats()
 				Info.ThreadAccessMask = Data.Get(API_V_THREAD_ACCESS_MASK).To<uint32>(0);
 				Info.ProcessAccessMask = Data.Get(API_V_PROCESS_ACCESS_MASK).To<uint32>(0);
 
-				m_Ingress[Ref] = Info;
+				m_Ingress.insert(m_Ingress.size(), Info);
 			});
+			m_IngressRevision++;
 		}
-		Lock.relock();
 	}	
 
 	return m_Ingress;
@@ -158,17 +163,24 @@ QMap<quint64, SAccessStatsPtr> CWindowsService::GetAccessStats()
 	QWriteLocker Lock(&m_Mutex);
 	if (!Res.IsError()) {
 		QtVariant Root = Res.GetValue();
-		m_AccessLastActivity = ReadAccessBranch(m_AccessStats, Root);
+		// same as for the traffic log, an empty dump must not reset the watermark
+		quint64 LastActivity = ReadAccessBranch(m_AccessLog, Root);
+		if (LastActivity > m_AccessLastActivity)
+			m_AccessLastActivity = LastActivity;
 	}
-	return m_AccessStats;
+	return m_AccessLog.Changes;
 }
 
-QHash<QString, CTrafficEntryPtr> CWindowsService::GetTrafficLog()
+QHash<QString, CTrafficEntryPtr> CWindowsService::GetTrafficLog(QList<CTrafficEntryPtr>* pChanged)
 {
 	auto Res = theCore->GetTrafficLog(m_ID, m_TrafficLogLastActivity);
 	QWriteLocker Lock(&m_Mutex);
-	if (!Res.IsError())
-		m_TrafficLogLastActivity = CTrafficEntry__LoadList(m_TrafficLog, m_Unresolved, Res.GetValue());
+	if (!Res.IsError()) {
+		// an empty reply returns 0, which must not reset the watermark or the next call fetches the whole log again
+		quint64 LastActivity = CTrafficEntry__LoadList(m_TrafficLog, m_Unresolved, Res.GetValue(), pChanged);
+		if (LastActivity > m_TrafficLogLastActivity)
+			m_TrafficLogLastActivity = LastActivity;
+	}
 	return m_TrafficLog;
 }
 
@@ -178,16 +190,19 @@ void CWindowsService::ClearProcessLogs()
 
 	m_ExecStats.clear();
 	m_ExecChanged = true;
+	m_ExecRevision++;
 
 	m_Ingress.clear();
 	m_IngressChanged = true;
+	m_IngressRevision++;
 }
 
 void CWindowsService::ClearAccessLog()
 {
 	QWriteLocker Lock(&m_Mutex);
 
-	m_AccessStats.clear();
+	m_AccessLog.Stats.clear();
+	m_AccessLog.Changes.clear();
 	m_AccessLastActivity = 0;
 }
 
@@ -198,5 +213,6 @@ void CWindowsService::ClearTrafficLog()
 	m_TrafficLog.clear();
 	m_Unresolved.clear();
 	m_TrafficLogLastActivity = 0;
+	m_TrafficLogGeneration++;
 }
 

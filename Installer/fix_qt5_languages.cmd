@@ -9,7 +9,7 @@ if %1 == Win32 if exist %~dp0..\..\Qt\%qt_version%\msvc2022\bin\lrelease.exe set
 mkdir %~dp0qttranslations
 mkdir %~dp0qttranslations\ts
 mkdir %~dp0qttranslations\qm
-set fileName=qttranslations-everywhere-src-%qt6_version%.zip
+set fileName=%qtTranslations_file%
 set downloadUrl=https://download.qt.io/archive/qt/%qt6_version:~0,3%/%qt6_version%/submodules/%filename%
 curl -LsSO --output-dir %~dp0qttranslations\ %downloadUrl%
 "C:\Program Files\7-Zip\7z.exe" e -i!*\translations\qt_*.ts -i!*\translations\qtbase_*.ts -i!*\translations\qtmultimedia_*.ts %~dp0qttranslations\%filename% -bd -o%~dp0qttranslations\ts\

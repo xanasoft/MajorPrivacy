@@ -18,7 +18,7 @@ public:
 
 	STATUS Update();
 
-	STATUS CreateImage(const std::wstring& Path, const CSecurePassword& Password, uint64 uSize = 0, const std::wstring& Cipher = L"AES", int iKdf = 0, const std::wstring& FS = L"");
+	STATUS CreateImage(const std::wstring& Path, const CSecurePassword& Password, uint64 uSize = 0, const std::wstring& Cipher = L"AES", int iKdf = 0, const std::wstring& FS = L"", int iSlots = -1);
 	//STATUS ChangeImagePassword(const std::wstring& Path, const std::wstring& OldPassword, const std::wstring& NewPassword, int iOldKdf = 0, int iNewKdf = 0);
 	//STATUS DeleteImage(const std::wstring& Path);
 	//STATUS BackupHeader(const std::wstring& Path, const std::wstring& BackupPath, const std::wstring& Password, int iKdf = 0);

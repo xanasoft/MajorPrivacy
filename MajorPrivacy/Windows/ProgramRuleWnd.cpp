@@ -15,6 +15,7 @@
 #include "../MiscHelpers/Common/WinboxMultiCombo.h"
 #include "../Windows/ScriptWindow.h"
 #include "../Windows/SettingsWindow.h"
+#include "../Windows/EnclaveWnd.h"
 
 CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItemPtr> Items, QWidget* parent)
 	: QDialog(parent)
@@ -59,11 +60,9 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	} else
 		m_NameChanged = true;
 
-	ui.cmbEnclave->addItem(tr("Global (Any/No Enclave)"));
-	foreach(auto& pEnclave, theCore->EnclaveManager()->GetAllEnclaves()) {
-		if(pEnclave->IsSystem()) continue;
-		ui.cmbEnclave->addItem(pEnclave->GetName(), pEnclave->GetGuid().ToQV());
-	}
+	LoadEnclaves();
+	connect(ui.cmbEnclave, SIGNAL(currentIndexChanged(int)), this, SLOT(OnEnclaveChanged()));
+	connect(ui.btnEnclave, SIGNAL(clicked()), this, SLOT(OnEnclaveButton()));
 
 	connect(ui.txtName, SIGNAL(textChanged(const QString&)), this, SLOT(OnNameChanged(const QString&)));
 	connect(ui.btnMkName, &QToolButton::clicked, this, [&]() {
@@ -140,6 +139,8 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	else if(!bNew)
 		pItem = theCore->ProgramManager()->GetProgramByID(m_pRule->m_ProgramID);
 	int Index = m_Items.indexOf(pItem);
+	if (bNew && Index == -1 && m_Items.count() == 1)
+		Index = 0; // new rule for a single given program, preselect it
 	ui.cmbProgram->setCurrentIndex(Index);
 	if(bNew)
 		OnProgramChanged();
@@ -150,6 +151,7 @@ CProgramRuleWnd::CProgramRuleWnd(const CProgramRulePtr& pRule, QSet<CProgramItem
 	}
 
 	SetComboBoxValue(ui.cmbEnclave, QFlexGuid(m_pRule->m_Enclave).ToQV());
+	OnEnclaveChanged();
 
 	//ui.txtScript->setPlainText(m_pRule->m_Script);
 	m_Script = m_pRule->m_Script;
@@ -217,8 +219,30 @@ bool CProgramRuleWnd::AddProgramItem(const CProgramItemPtr& pItem)
 		return false;
 	}
 
-	m_Items.append(pItem);
-	ui.cmbProgram->addItem(pItem->GetNameEx());
+	//
+	// All programs first, the rest by name. The combo does no sorting of its own and
+	// the item list runs parallel to it, so the entry goes into both at the same spot.
+	// Searched rather than scanned as the caller can hand us the entire program tree.
+	//
+	QString Name = pItem->GetNameEx();
+	int Pos = 0;
+	if (pItem->GetID().GetType() != EProgramType::eAllPrograms)
+	{
+		int Begin = (!m_Items.isEmpty() && m_Items[0]->GetID().GetType() == EProgramType::eAllPrograms) ? 1 : 0;
+		int End = m_Items.count();
+		while (Begin < End)
+		{
+			int Mid = (Begin + End) / 2;
+			if (QString::compare(ui.cmbProgram->itemText(Mid), Name, Qt::CaseInsensitive) < 0)
+				Begin = Mid + 1;
+			else
+				End = Mid;
+		}
+		Pos = Begin;
+	}
+
+	m_Items.insert(Pos, pItem);
+	ui.cmbProgram->insertItem(Pos, Name);
 	return true;
 }
 
@@ -445,6 +469,57 @@ void CProgramRuleWnd::OnProgramPathChanged()
 {
 	if(m_HoldProgramPath) return;
 	ui.cmbProgram->setCurrentIndex(-1);
+}
+
+void CProgramRuleWnd::LoadEnclaves()
+{
+	ui.cmbEnclave->blockSignals(true);
+	ui.cmbEnclave->clear();
+	ui.cmbEnclave->addItem(tr("Global (Any/No Enclave)"));
+	foreach(auto& pEnclave, theCore->EnclaveManager()->GetAllEnclaves()) {
+		if(pEnclave->IsSystem()) continue;
+		ui.cmbEnclave->addItem(pEnclave->GetName(), pEnclave->GetGuid().ToQV());
+	}
+	ui.cmbEnclave->blockSignals(false);
+}
+
+void CProgramRuleWnd::OnEnclaveChanged()
+{
+	if (QFlexGuid(GetComboBoxValue(ui.cmbEnclave)).IsNull()) {
+		ui.btnEnclave->setIcon(QIcon(":/Icons/Add.png"));
+		ui.btnEnclave->setToolTip(tr("Create a new Secure Enclave"));
+	} else {
+		ui.btnEnclave->setIcon(QIcon(":/Icons/EditIni.png"));
+		ui.btnEnclave->setToolTip(tr("Edit the selected Secure Enclave"));
+	}
+}
+
+void CProgramRuleWnd::OnEnclaveButton()
+{
+	QFlexGuid Guid(GetComboBoxValue(ui.cmbEnclave));
+
+	CEnclavePtr pEnclave;
+	if (Guid.IsNull())
+		pEnclave = CEnclavePtr(new CEnclave());
+	else {
+		pEnclave = theCore->EnclaveManager()->GetEnclave(Guid);
+		if (!pEnclave) {
+			QMessageBox::warning(this, "MajorPrivacy", tr("The selected enclave could not be found!"));
+			return;
+		}
+	}
+
+	CEnclaveWnd* pEnclaveWnd = new CEnclaveWnd(pEnclave, this);
+	if (pEnclaveWnd->exec() != QDialog::Accepted)
+		return;
+
+	QFlexGuid NewGuid = pEnclave->GetGuid();
+	LoadEnclaves();
+	// a newly created enclave may not have been synced to the enclave manager yet
+	if (!NewGuid.IsNull() && ui.cmbEnclave->findData(NewGuid.ToQV()) == -1)
+		ui.cmbEnclave->addItem(pEnclave->GetName(), NewGuid.ToQV());
+	SetComboBoxValue(ui.cmbEnclave, NewGuid.ToQV());
+	OnEnclaveChanged();
 }
 
 void CProgramRuleWnd::OnActionChanged()

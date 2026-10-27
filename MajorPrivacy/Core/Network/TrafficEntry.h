@@ -11,12 +11,11 @@ enum class ENetProtocols
 	eUDP,
 };
 
-class CTrafficEntry : public QObject
+class CTrafficEntry
 {
-	Q_OBJECT
 	TRACK_OBJECT(CTrafficEntry)
 public:
-	CTrafficEntry(QObject* parent = NULL);
+	CTrafficEntry() {}
 
 	void SetHostName(const QString& HostName)	{ m_HostName = HostName; }
 	QString GetHostName() const			{ return m_HostName; }
@@ -43,6 +42,7 @@ public:
 
 	void Reset();
 	void Merge(const QSharedPointer<CTrafficEntry>& pOther);
+	void AddDelta(quint64 LastActivity, qint64 UploadDelta, qint64 DownloadDelta);
 
 	void FromVariant(const class QtVariant& TrafficEntry);
 
@@ -59,4 +59,4 @@ protected:
 
 typedef QSharedPointer<CTrafficEntry> CTrafficEntryPtr;
 
-quint64 CTrafficEntry__LoadList(QHash<QString, CTrafficEntryPtr>& List, QHash<QHostAddress, QSet<CTrafficEntryPtr>>& Unresolved, const class QtVariant& TrafficList);
+quint64 CTrafficEntry__LoadList(QHash<QString, CTrafficEntryPtr>& List, QHash<QHostAddress, QSet<CTrafficEntryPtr>>& Unresolved, const class QtVariant& TrafficList, QList<CTrafficEntryPtr>* pChanged = nullptr);

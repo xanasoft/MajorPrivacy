@@ -50,6 +50,7 @@ enum {
 	API_SET_USER_KEY = 'SUKY',
 	API_GET_USER_KEY = 'GUKY',
 	API_CLEAR_USER_KEY = 'CUKY',
+	API_PROVISION_USER_KEY = 'PUKY', // provision/deprovision the current user key to the pre-boot protected UserPubKey EFI variable
 	API_GET_CHALLENGE = 'CHAL',
 
 	API_PROTECT_CONFIG = 'PCFG',
@@ -197,6 +198,7 @@ enum {
 	SVC_API_CLEANUP_LIBS = 'CLIB',
 
 	SVC_API_GET_ACCESS_STATS = 'GAST',
+	SVC_API_GET_USAGE_STATS = 'GUSG',
 
 	// Access Manager
 	SVC_API_GET_HANDLES = 'GHND',
@@ -260,6 +262,33 @@ enum {
 	SVC_API_EVENT_RES_ACTIVITY = 'ERES',
 
 	SVC_API_EVENT_CLEANUP_PROGRESS = 'ECLN',
+
+	//
+	// Sent to every connected client whenever anything in the configuration moves,
+	// so that a viewer holding a copy of a setting knows to forget it. It has to be
+	// a broadcast and not something the setter works out for itself: there can be
+	// more than one viewer, and the configuration also changes under SET_CONFIG_FILE,
+	// DEL_CONFIG_FILE, COMMIT_CONFIG and DISCARD_CHANGES, not only SET_CONFIG.
+	//
+	SVC_API_EVENT_CONFIG_CHANGED = 'ECFG',
+
+	//
+	// Several of the above, collected and sent as one.
+	//
+	// The activity events - network, execution, resource access - arrive in the
+	// hundreds per second, and each one used to be a message of its own: a lock on
+	// the connection and a system call per event per client. A stream can only be
+	// written one message at a time, so that lock cannot be removed, only asked
+	// for less often. The viewer already collects events and works through them in
+	// batches, so nothing is lost by sending them that way.
+	//
+	// Carries API_V_EVENTS: a list of entries, each holding the message id it
+	// would have been sent under and the payload it would have carried.
+	//
+	// Not everything can go this way - an event the service waits on for an answer
+	// must still go by itself, see CProcessList::OnResourceAccessed.
+	//
+	SVC_API_EVENT_BATCH = 'EBAT',
 
 	// other
 	SVC_API_GET_EVENT_LOG = 'GELG',
@@ -385,12 +414,15 @@ API_V_VALUES : unsigned long
 	////////////////////////////
 	// Crypto & Protection
 	API_V_PUB_KEY = 'pkey',
+	API_V_EFI_PROVISION = 'efip', // API_SET_USER_KEY / API_CLEAR_USER_KEY: also provision/clear the pre-boot protected UserPubKey EFI variable
 	API_V_PRIV_KEY = 'skey',
 	API_V_HASH = 'hash',
 	API_V_KDF = 'kdf',
 	API_V_KEY_BLOB = 'kblo',
 	API_V_LOCK = 'lock',
 	API_V_UNLOCK = 'unlk',
+	API_V_RESUME = 'resm', // API_UNLOCK_CONFIG: also lift a pre-boot isolator suspension for this driver runtime
+	API_V_RESUME_PERSIST = 'rpst', // API_UNLOCK_CONFIG + API_V_RESUME: also clear the pre-boot SuspendIsolator so it stays off after the next (confirmed) boot
 	API_V_RAND = 'rand',
 	API_V_SIGNATURE = 'sign',
 	API_V_ENCLAVES = 'encs',
@@ -570,10 +602,24 @@ API_V_VALUES : unsigned long
 	////////////////////////////
 	// Process Info
 	API_V_PROCESSES = 'prcs', // Process List
+	//
+	// The removed entry lists below double as the mark of a delta: if one is not
+	// there the reply is a complete list and whatever it does not mention is gone,
+	// if it is there - empty or not - the reply is a delta and only says what
+	// changed. A complete round has nothing to report as removed in the first
+	// place, so the field carries that without ever having to lie about it, and a
+	// service built without the caches needs no flag of its own.
+	//
+	API_V_OLD_PROCESSES = 'oprc', // Process List, removed entries - keys only, see CVariantCacheT
+	API_V_OLD_HANDLES = 'ohnd', // Handle List, removed entries - keys only, see CVariantCacheT
+	API_V_OLD_SOCKETS = 'osok', // Socket List, removed entries - keys only, see CVariantCacheT
+	API_V_OLD_PROGRAMS = 'oprg', // Program List, removed entries - keys only, see CVariantCacheT
+	API_V_OLD_LIBRARIES = 'olib', // Library List, removed entries - keys only, see CVariantCacheT
 	API_V_PROCESS_REF = 'pref', // Inernal Process Reference
 
 	API_V_PID = 'pid',
 	API_V_PIDS = 'pids',
+	API_V_PUID = 'puid', // Process UID, pid + creation time, unlike the pid it is not recycled
 	API_V_TID = 'tid',
 	API_V_TIDS = 'tids',
 	API_V_ENCLAVE = 'encl',
@@ -652,12 +698,23 @@ API_V_VALUES : unsigned long
 	API_V_SOCK_DOWNLOADED = 'dwlt',
 	API_V_SOCK_RHOST = 'rhst',
 
+	// Usage statistics (CPU / I/O / network history), see Library/Common/UsageStats.h
+	API_V_USAGE_LOG = 'ulog',
+	API_V_USAGE_ITEMS = 'uitm',
+	API_V_USAGE_TIER = 'utir',
+	API_V_USAGE_SINCE = 'usnc',
+	API_V_USAGE_INTERVAL = 'uivl',
+	API_V_USAGE_REC_SIZE = 'ursz',
+	API_V_USAGE_DATA = 'udat',
+
 
 	////////////////////////////
 	// Event Info
 	API_V_EVENT_REF = 'eref',
 	API_V_EVENT_LEVEL = 'elev',
 	API_V_EVENT_TYPE = 'etyp',
+	API_V_EVENTS = 'evts',		// SVC_API_EVENT_BATCH: the collected events
+	API_V_EVENT_MSG_ID = 'emid',	// SVC_API_EVENT_BATCH: what one of them would have been sent as
 	API_V_EVENT_SUB_TYPE = 'estp',
 	API_V_EVENT_EXPECTED = 'eexp',
 	API_V_EVENT_INDEX = 'eidx',
@@ -771,11 +828,13 @@ API_V_VALUES : unsigned long
 	//API_V_VOL_PIM = 'vpim',
 	API_V_VOL_HEAD_LEN = 'vhln',
 	API_V_VOL_KDF = 'vkdf',
+	API_V_VOL_SLOTS = 'vslt',
 	API_V_VOL_FS = 'vfs',
 	API_V_VOL_OLD_KDF = 'vokd',
 	API_V_VOL_NEW_KDF = 'vnkd',
 	API_V_VOL_OLD_PASS = 'vold',
 	API_V_VOL_NEW_PASS = 'vnew',
+	API_V_VOL_HEADER = 'vhdr',
 	//API_V_VOL_OLD_PIM = 'voim',
 	//API_V_VOL_NEW_PIM = 'vnim',
 
@@ -882,6 +941,13 @@ API_V_VALUES : unsigned long
 #define CONFIG_STATUS_PROTECTED	0x00000002 // config is signature protected
 #define CONFIG_STATUS_LOCKED	0x00000004 // config is locked and can not be changed
 #define CONFIG_STATUS_KEYLOCKED	0x00000008 // the registry key is locked and can not be changed without a reboot
+#define CONFIG_STATUS_SUSPENDED	0x00000010 // enforcement was suspended pre-boot via the protected SuspendIsolator EFI variable (isolator runs as if no certificate was installed)
+#define CONFIG_STATUS_KEYMISMATCH 0x00000020 // the protected UserPubKey EFI variable does not match the user key in the protected registry
+#define CONFIG_STATUS_FWAVAIL	0x00000040 // pre-boot firmware protection (DiskCryptor DcsOwner) is present, so the user key can be provisioned to EFI
+#define CONFIG_STATUS_KEYPROVISIONED 0x00000080 // the user key is provisioned to the pre-boot UserPubKey EFI mirror (committed or pending this boot)
+#define CONFIG_STATUS_KEYCOMMITTED 0x00000100 // a protected UserPubKey EFI variable is committed (enforced pre-boot by DcsOwner this boot)
+#define CONFIG_STATUS_DEVMODE	0x00000200 // PrivacyDeveloper bit 1: own images may be signed with the user key (it acts as a developer key)
+#define CONFIG_STATUS_DBGMODE	0x00000400 // PrivacyDeveloper bit 2: own components may be debugged (self-protection relaxed)
 
 #define CONFIG_STATUS_BAD		0x00FF0000
 #define CONFIG_STATUS_NO_SIG	0x00010000 // config is not signed

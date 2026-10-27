@@ -4,6 +4,7 @@
 #include "../Core/Volumes/VolumeManager.h"
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include "Windows/VolumeWindow.h"
+#include "../Windows/HeaderEditorWnd.h"
 #include "Windows/VolumeConfigWnd.h"
 #include "../MajorPrivacy.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
@@ -36,6 +37,7 @@ CVolumeView::CVolumeView(QWidget *parent)
 	m_pChangeVolumePassword = m_pMenu->addAction(QIcon(":/Icons/VolumePW.png"), tr("Change Volume Password"), this, SLOT(OnChangeVolumePassword()));
 	m_pBackupVolumeHeader = m_pMenu->addAction(QIcon(":/Icons/Export.png"), tr("Backup Volume Header"), this, SLOT(OnBackupVolumeHeader()));
 	m_pRestoreVolumeHeader = m_pMenu->addAction(QIcon(":/Icons/Import.png"), tr("Restore Volume Header"), this, SLOT(OnRestoreVolumeHeader()));
+	m_pEditVolumeHeader = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Edit Volume Header"), this, SLOT(OnEditVolumeHeader()));
 	m_pExpandVolume = m_pMenu->addAction(QIcon(":/Icons/Expand.png"), tr("Expand Volume"), this, SLOT(OnExpandVolume()));
 	m_pChangeVolumeConfig = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Change Volume Configuration"), this, SLOT(OnChangeVolumeConfig()));
 	m_pAddVolumeEnclave = m_pMenu->addAction(QIcon(":/Icons/Enclave.png"), tr("Add Volume Enclave"), this, SLOT(OnAddVolumeEnclave()));
@@ -48,6 +50,7 @@ CVolumeView::CVolumeView(QWidget *parent)
 	m_pCreateVolume = m_pMenu->addAction(QIcon(":/Icons/AddVolume.png"), tr("Create Volume"), this, SLOT(OnCreateVolume()));
 	m_pMountAndAddVolume = m_pMenu->addAction(QIcon(":/Icons/MountVolume.png"), tr("Add and Mount Volume Image"), this, SLOT(MountVolume()));
 	m_pAddFolder = m_pMenu->addAction(QIcon(":/Icons/AddFolder.png"), tr("Add Folder"), this, SLOT(OnAddFolder()));
+	m_pEditHeaderFile = m_pMenu->addAction(QIcon(":/Icons/EditIni.png"), tr("Edit Header Backup File"), this, SLOT(OnEditHeaderFile()));
 
 	QByteArray Columns = theConf->GetBlob("MainWindow/VolumeView_Columns");
 	if (Columns.isEmpty()) {
@@ -178,6 +181,8 @@ void CVolumeView::OnMenu(const QPoint& Point)
 	m_pChangeVolumePassword->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
 	m_pBackupVolumeHeader->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
 	m_pRestoreVolumeHeader->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
+	// the editor works on the container directly, so it is for unmounted volumes only
+	m_pEditVolumeHeader->setEnabled(iBusyCount == 0 && iMountedCount == 0 && iVolumeCount == 1 && iFolderCount == 0);
 	m_pExpandVolume->setEnabled(iBusyCount == 0 && iMountedCount == 1 && iFolderCount == 0 && Volumes.first()->GetFS() == "NTFS");
 	m_pAddVolumeEnclave->setEnabled(iBusyCount == 0 && iMountedCount > 0);
 	m_pChangeVolumeConfig->setEnabled(iBusyCount == 0 && iMountedCount == 1);
@@ -307,6 +312,26 @@ void CVolumeView::OnChangeVolumePassword()
 	RunVolumeOperation(tr("Changing volume password..."), [=]() {
 		return theCore->ChangeVolumePassword(Path, OldPassword, NewPassword, iOldKdf, iNewKdf);
 	}, nullptr, QList<CVolumePtr>() << pVolume);
+}
+
+void CVolumeView::OnEditHeaderFile()
+{
+	QString BackupPath = QFileDialog::getOpenFileName(this, tr("Select Header Backup File"),
+		QString(), tr("Volume Header Backup (*.pvh);;All Files (*)"));
+	if (BackupPath.isEmpty())
+		return;
+
+	CHeaderEditorWnd::EditFile(BackupPath.replace("/", "\\"), this);
+}
+
+void CVolumeView::OnEditVolumeHeader()
+{
+	QString VolumePath = GetSelectedVolumeImage();
+	if (VolumePath.isEmpty())
+		return;
+
+	if (CHeaderEditorWnd::Edit(VolumePath, this))
+		Sync();
 }
 
 void CVolumeView::OnBackupVolumeHeader()

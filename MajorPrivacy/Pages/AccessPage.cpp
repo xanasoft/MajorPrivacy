@@ -10,6 +10,7 @@
 #include "../Views/AccessView.h"
 #include "../Views/AccessListView.h"
 #include "../Views/HandleView.h"
+#include "../Views/UsageView.h"
 
 
 CAccessPage::CAccessPage(bool bEmbedded, QWidget* parent)
@@ -52,6 +53,11 @@ CAccessPage::CAccessPage(bool bEmbedded, QWidget* parent)
 
 	m_pTraceView = new CAccessTraceView();
 	m_pTabs->addTab(m_pTraceView, QIcon(":/Icons/SetLogging.png"), tr("Trace Log"));
+
+	if (!bEmbedded) {
+		m_pIoView = new CUsageView(EUsageMetric::eIo);
+		m_pTabs->addTab(m_pIoView, QIcon(":/Icons/Disk.png"), tr("I/O Usage"));
+	}
 
 
 	m_pVSplitter = new QSplitter(Qt::Vertical);
@@ -108,26 +114,42 @@ void CAccessPage::Update()
 
 	auto Current = theGUI->GetCurrentItems();
 
+	//
+	// Explicitly selected items are always shown. The implicit members of a group or of
+	// "All Programs" with a private trace preset only when the view's own "show private"
+	// button, or the global one, is on. The usage graphs get everything, see CUsageView.
+	//
 	bool bShowPrivate = theGUI->GetShowPrivate();
-
-	QSet<CProgramFilePtr> Programs = Current.ProgramsEx;
-	if (m_pAccessView->isVisible() || m_pTraceView->isVisible()) {
+	auto Programs = [&](bool bPrivate) {
+		QSet<CProgramFilePtr> Set = Current.ProgramsEx;
 		for (auto& pProgram : Current.ProgramsIm) {
-			if(bShowPrivate || pProgram->GetResTrace() != ETracePreset::ePrivate)
-				Programs.insert(pProgram);
+			if (bShowPrivate || bPrivate || pProgram->GetResTrace() != ETracePreset::ePrivate)
+				Set.insert(pProgram);
 		}
-	}
-	QSet<CWindowsServicePtr> Services = Current.ServicesEx;
-	if (m_pAccessView->isVisible()) {
+		return Set;
+	};
+	auto Services = [&](bool bPrivate) {
+		QSet<CWindowsServicePtr> Set = Current.ServicesEx;
 		for (auto& pService : Current.ServicesIm) {
-			if (bShowPrivate || pService->GetResTrace() != ETracePreset::ePrivate)
-				Services.insert(pService);
+			if (bShowPrivate || bPrivate || pService->GetResTrace() != ETracePreset::ePrivate)
+				Set.insert(pService);
 		}
-	}
+		return Set;
+	};
 
 	if (m_pRuleView->isVisible())
 	{
-		if(Current.bAllPrograms)
+		if (Current.bAllProgramsOnly) {
+			//
+			// The all programs item stands for the rules that apply to every program,
+			// not for the union of what the individual programs have.
+			//
+			QSet<QFlexGuid> RuleIDs;
+			CProgramSetPtr pAll = theCore->ProgramManager()->GetAll();
+			if (pAll) RuleIDs = pAll->GetResRules();
+			m_pRuleView->Sync(theCore->AccessManager()->GetAccessRules(RuleIDs));
+		}
+		else if(Current.bAllPrograms)
 			m_pRuleView->Sync(theCore->AccessManager()->GetAccessRules());
 		else {
 			QSet<QFlexGuid> RuleIDs;
@@ -144,12 +166,18 @@ void CAccessPage::Update()
 
 	if (m_pAccessView->isVisible())
 	{
-		m_pAccessView->Sync(Programs, Services);
+		bool bPrivate = m_pAccessView->ShowPrivate();
+		m_pAccessView->Sync(Programs(bPrivate), Services(bPrivate));
 	}
 
 	if (m_pTraceView->isVisible())
 	{
-		m_pTraceView->Sync(ETraceLogs::eResLog, Programs, Current.ServicesEx);
+		m_pTraceView->Sync(ETraceLogs::eResLog, Programs(m_pTraceView->ShowPrivate()), Current.ServicesEx);
+	}
+
+	if (m_pIoView && m_pIoView->isVisible())
+	{
+		m_pIoView->Sync(Current.ProgramsEx | Current.ProgramsIm, Current.ServicesEx | Current.ServicesIm);
 	}
 }
 
@@ -184,6 +212,8 @@ void CAccessPage::Update(const QString& VolumeRoot, const QString& VolumeImage, 
 
 void CAccessPage::Clear()
 {
+	if (m_pIoView) m_pIoView->Clear();
+
 	m_pRuleView->Clear();
 
 	m_pHandleView->Clear();
@@ -200,4 +230,5 @@ void CAccessPage::UpdateEnabled()
 	m_pHandleView->setEnabled(theCore->GetConfigBool("Service/EnumAllOpenFiles", false));
 	m_pAccessView->setEnabled(theCore->GetConfigBool("Service/ResTrace", true));
 	m_pTraceView->setEnabled(theCore->GetConfigBool("Service/ResLog", false));
+	if (m_pIoView) m_pIoView->setEnabled(theCore->GetConfigBool("Service/UsageStats", true));
 }

@@ -6,6 +6,7 @@ class CFwRuleView;
 class CSocketView;
 class CNetTraceView;
 class CTrafficView;
+class CUsageView;
 
 class CNetworkPage : public QWidget
 {
@@ -37,5 +38,6 @@ private:
 	CSocketView*			m_pSocketView;
 	CNetTraceView*			m_pTraceView;
 	CTrafficView*			m_pTrafficView;
+	CUsageView*				m_pUsageView = nullptr;
 };
 

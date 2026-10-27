@@ -166,9 +166,18 @@ typedef void (*callback_ex)(void*,void*);
 #pragma warning(default:4995)
 #endif
 
- PVOID secure_alloc(SIZE_T size);
- void secure_free(PVOID ptr);
- void burn(PVOID ptr, SIZE_T size);
- void make_rand(void* ptr, size_t size);
+/*
+ * The host hooks, defined in CryptoIO.cpp.
+ *
+ * secure_alloc and secure_free are spelled exactly as
+ * crypto_lib/cl_alloc.h declares them - Argon2 allocates through those
+ * two names, and the two declarations have to agree. They were
+ * PVOID(SIZE_T) here, which on x64 meant the callee read a 64-bit
+ * register the caller had filled 32 bits of.
+ */
+ void *secure_alloc(unsigned long length);
+ void  secure_free(void *ptr);
+ void  burn(void *ptr, size_t size);
+ void  make_rand(void *ptr, size_t size);
 
 #endif

@@ -26,6 +26,47 @@ void CAccessModel::Update(const SAccessItemPtr& pRoot)
 	CAbstractTreeModel::Update(&pRoot);
 }
 
+void CAccessModel::SetFilter(const QRegularExpression& Exp)
+{
+	m_FilterExp = Exp;
+	m_FilterGen++; // invalidates every cached FilterMatch
+}
+
+bool CAccessModel::FilterAccepts(const SAccessItemPtr& pItem) const
+{
+	if (!m_FilterExp.isValid() || m_FilterExp.pattern().isEmpty())
+		return true;
+
+	// an item is shown when its name or the name of anything below it matches
+	if (pItem->FilterMatch == -1 || pItem->FilterGen != m_FilterGen)
+	{
+		pItem->FilterGen = m_FilterGen;
+		pItem->FilterMatch = 0;
+		if (!pItem->Name.isEmpty() && pItem->Name.contains(m_FilterExp))
+			pItem->FilterMatch = 1;
+		else for (auto I = pItem->Branches.constBegin(); I != pItem->Branches.constEnd(); ++I) {
+			if (FilterAccepts(I.value())) {
+				pItem->FilterMatch = 1;
+				break;
+			}
+		}
+	}
+	return pItem->FilterMatch == 1;
+}
+
+int CAccessModel::VisibleChildCount(const SAccessItemPtr& pItem) const
+{
+	if (!m_FilterExp.isValid() || m_FilterExp.pattern().isEmpty())
+		return pItem->Branches.size();
+
+	int Count = 0;
+	for (auto I = pItem->Branches.constBegin(); I != pItem->Branches.constEnd(); ++I) {
+		if (FilterAccepts(I.value()))
+			Count++;
+	}
+	return Count;
+}
+
 CAbstractTreeModel::SAbstractTreeNode* CAccessModel::MkNode(const void* data, const QVariant& key, SAbstractTreeNode* parent)
 {
 	SAccessModelNode* pNode = new SAccessModelNode;
@@ -40,8 +81,10 @@ CAbstractTreeModel::SAbstractTreeNode* CAccessModel::MkNode(const void* data, co
 void CAccessModel::ForEachChild(SAbstractTreeNode* parentNode, const std::function<void(const QVariant& key, const void* data)>& func)
 {
 	SAccessModelNode* node = (SAccessModelNode*)parentNode;
-	for (auto I = node->data->Branches.begin(); I != node->data->Branches.end(); ++I)
-		func(I.key(), &I.value());
+	for (auto I = node->data->Branches.begin(); I != node->data->Branches.end(); ++I) {
+		if (FilterAccepts(I.value())) // must match VisibleChildCount
+			func(I.key(), &I.value());
+	}
 }
 
 void CAccessModel::updateNodeData(SAbstractTreeNode* node, const void* data, const QModelIndex& nodeIndex)
@@ -122,9 +165,10 @@ void CAccessModel::updateNodeData(SAbstractTreeNode* node, const void* data, con
 
 	// Check if hasChildren() status has changed
 	bool hadChildren = node->childCount > 0;
-	bool hasChildrenNow = !pNode->data->Branches.isEmpty();
 
-	node->childCount = pNode->data->Branches.size();
+	node->childCount = VisibleChildCount(pNode->data);
+
+	bool hasChildrenNow = node->childCount > 0;
 
 	// Emit dataChanged() if necessary to update the expand/collapse indicator
 	if (hadChildren != hasChildrenNow && nodeIndex.isValid())

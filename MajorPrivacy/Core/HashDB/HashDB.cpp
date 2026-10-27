@@ -153,7 +153,7 @@ STATUS CHashDB::AllowFile(QString FilePath, const QFlexGuid& EnclaveId, const QS
 
 		if (!EnclaveId.IsNull()) {
 			CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(EnclaveId);
-			if (!pEnclave->GetVolumeGuid().IsNull())
+			if (pEnclave && !pEnclave->GetVolumeGuid().IsNull())
 				pHash->SetTemporary(true);
 		}
 
@@ -175,7 +175,7 @@ STATUS CHashDB::AllowCert(const QByteArray& HashValue, const QString& Subject, c
 
 		if (!EnclaveId.IsNull()) {
 			CEnclavePtr pEnclave = theCore->EnclaveManager()->GetEnclave(EnclaveId);
-			if (!pEnclave->GetVolumeGuid().IsNull())
+			if (pEnclave && !pEnclave->GetVolumeGuid().IsNull())
 				pHash->SetTemporary(true);
 		}
 

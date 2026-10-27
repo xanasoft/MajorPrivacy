@@ -47,6 +47,8 @@ private slots:
 protected:
 	friend class CMajorPrivacy;
 
+	virtual bool				eventFilter(QObject* source, QEvent* event);
+
 	//virtual void				OnMenu(const QPoint& Point);
 #ifdef SPLIT_TREE
 	virtual QTreeView*			GetView() 				{ return m_pTreeList->GetView(); }

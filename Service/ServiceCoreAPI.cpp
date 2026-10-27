@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../Library/Helpers/MiscHelpers.h"
 #include <psapi.h>
 #include <wtsapi32.h>
 #include <userenv.h>
@@ -31,6 +32,18 @@
 #include "Presets/PresetManager.h"
 #include "../Library/Helpers/ImDiskHelpers.h"
 #include "Helpers/SecDeskHelper.h"
+#include "Common/ListReplies.h"
+
+//
+// Answer the list requests with a delta against what each client already holds,
+// see ListReplies.cpp and Library/Common/VariantCache.h.
+//
+// Comment this out to go back to sending every list in full on every request,
+// the way it was before the caches, for comparing the two. Nothing on the other
+// side has to change: a reply without a removed entry list is a complete list,
+// which is exactly what these then are.
+//
+//#define USE_CACHE
 
 void CServiceCore::RegisterUserAPI()
 {
@@ -114,6 +127,7 @@ void CServiceCore::RegisterUserAPI()
 	server->RegisterHandler(SVC_API_GET_INGRESS_STATS, &CServiceCore::OnRequest, this);
 	server->RegisterHandler(SVC_API_CLEANUP_LIBS, &CServiceCore::OnRequest, this);
 	server->RegisterHandler(SVC_API_GET_ACCESS_STATS, &CServiceCore::OnRequest, this);
+	server->RegisterHandler(SVC_API_GET_USAGE_STATS, &CServiceCore::OnRequest, this);
 
 	// Access Manager
 	server->RegisterHandler(SVC_API_GET_HANDLES, &CServiceCore::OnRequest, this);
@@ -321,6 +335,8 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				});
 
 			}
+
+			theCore->BroadcastMessage(SVC_API_EVENT_CONFIG_CHANGED, StVariant(m_pMemPool));
 			return STATUS_SUCCESS;
 		}
 
@@ -356,7 +372,11 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				return STATUS_UNSUCCESSFUL;
 
 			std::vector<BYTE> Data = vReq[API_V_DATA].AsBytes();
-			return WriteFile(FilePath, Data) ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
+			if (!WriteFile(FilePath, Data))
+				return STATUS_UNSUCCESSFUL;
+
+			theCore->BroadcastMessage(SVC_API_EVENT_CONFIG_CHANGED, StVariant(m_pMemPool));
+			return STATUS_SUCCESS;
 		}
 		case SVC_API_GET_CONFIG_FILE:
 		{
@@ -394,10 +414,17 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			if (FilePath.at(FilePath.length() - 1) == L'\\')
 			{
 				SNtObject ntOld(L"\\??\\" + FilePath);
-				return NtIo_DeleteFolderRecursively(&ntOld.attr, NULL, NULL);
+				NTSTATUS NtStatus = NtIo_DeleteFolderRecursively(&ntOld.attr, NULL, NULL);
+				if (NT_SUCCESS(NtStatus))
+				theCore->BroadcastMessage(SVC_API_EVENT_CONFIG_CHANGED, StVariant(m_pMemPool));
+				return NtStatus;
 			}
 
-			return RemoveFile(FilePath) ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
+			if (!RemoveFile(FilePath))
+				return STATUS_UNSUCCESSFUL;
+
+			theCore->BroadcastMessage(SVC_API_EVENT_CONFIG_CHANGED, StVariant(m_pMemPool));
+			return STATUS_SUCCESS;
 		}
 		case SVC_API_LIST_CONFIG_FILES:
 		{
@@ -438,11 +465,13 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		case SVC_API_COMMIT_CONFIG:
 		{
 			STATUS Status = theCore->CommitConfig();
+			theCore->BroadcastMessage(SVC_API_EVENT_CONFIG_CHANGED, StVariant(m_pMemPool));
 			RETURN_STATUS(Status);
 		}
 		case SVC_API_DISCARD_CHANGES:
 		{
 			STATUS Status = theCore->DiscardConfig();
+			theCore->BroadcastMessage(SVC_API_EVENT_CONFIG_CHANGED, StVariant(m_pMemPool));
 			RETURN_STATUS(Status);
 		}
 
@@ -488,7 +517,13 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			CFirewallRulePtr pFwRule = std::make_shared<CFirewallRule>();
 			pFwRule->FromVariant(vReq[API_V_RULE]);
 
-			STATUS Status = m_pNetworkManager->Firewall()->SetRule(pFwRule);
+			// for a template: existing rules it is to stand for from now on
+			std::vector<std::wstring> TakeOver;
+			StVariant vTakeOver = vReq.Get(API_V_RULES);
+			for (uint32 i = 0; i < vTakeOver.Count(); i++)
+				TakeOver.push_back(vTakeOver[i].AsStr());
+
+			STATUS Status = m_pNetworkManager->Firewall()->SetRule(pFwRule, TakeOver);
 			if(Status)
 				theCore->SetConfigDirty(true);
 			RETURN_STATUS(Status);
@@ -512,7 +547,7 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
-			STATUS Status = m_pNetworkManager->Firewall()->DelRule(vReq[API_V_GUID].AsStr());
+			STATUS Status = m_pNetworkManager->Firewall()->DelRule(vReq[API_V_GUID].AsStr(), vReq.Get(API_V_DEL_WITH_RULES).To<bool>(false));
 			if(Status)
 				theCore->SetConfigDirty(true);
 			RETURN_STATUS(Status);
@@ -612,6 +647,69 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			return STATUS_SUCCESS;
 		}
 
+		case SVC_API_GET_USAGE_STATS:
+		{
+			//
+			// Batched on purpose: the usage graphs ask for every selected item at once, which with
+			// "All Programs" is every item there is. Each entry carries the time of the newest bucket
+			// the client already has, only newer (or still open) buckets are sent back.
+			//
+			StVariant vReq(m_pMemPool);
+			vReq.FromPacket(req);
+
+			EUsageTier Tier = (EUsageTier)vReq[API_V_USAGE_TIER].To<uint32>(0);
+			if (Tier >= EUsageTier::eMax)
+				return STATUS_INVALID_PARAMETER;
+
+			// not before the stored history is in, see CProcessList::IsUsageLoaded
+			if (!theCore->ProcessList()->IsUsageLoaded())
+				return STATUS_DEVICE_NOT_READY;
+
+			uint64 NowMs = GetCurTime() * 1000ULL;
+
+			StVariantWriter List(m_pMemPool);
+			List.BeginList();
+
+			auto DumpItem = [&](const CProgramItemPtr& pItem, uint32 Since) {
+				CUsageLog* pLog = nullptr;
+				if (CProgramFilePtr pProgram = std::dynamic_pointer_cast<CProgramFile>(pItem))
+					pLog = pProgram->UsageLog();
+				else if (CWindowsServicePtr pService = std::dynamic_pointer_cast<CWindowsService>(pItem))
+					pLog = pService->UsageLog();
+				if (!pLog)
+					return;
+				StVariant Data = pLog->Dump(Tier, Since, NowMs, m_pMemPool);
+				if (!Data.IsValid())
+					return;
+				StVariant Entry(m_pMemPool);
+				Entry[API_V_PROG_UID] = pItem->GetUID();
+				Entry[API_V_USAGE_LOG] = Data;
+				List.WriteVariant(Entry);
+			};
+
+			if (vReq.Has(API_V_USAGE_ITEMS))
+			{
+				StVariant Items = vReq[API_V_USAGE_ITEMS];
+				for (uint32 i = 0; i < Items.Count(); i++) {
+					StVariant Item = Items[i];
+					CProgramItemPtr pItem = theCore->ProgramManager()->GetItem(Item[API_V_PROG_UID].To<uint64>(0));
+					if (pItem)
+						DumpItem(pItem, Item[API_V_USAGE_SINCE].To<uint32>(0));
+				}
+			}
+			else
+			{
+				uint32 Since = vReq[API_V_USAGE_SINCE].To<uint32>(0);
+				for (auto pItem : theCore->ProgramManager()->GetItems())
+					DumpItem(pItem.second, Since);
+			}
+
+			StVariant vRpl(m_pMemPool);
+			vRpl[API_V_USAGE_ITEMS] = List.Finish();
+			vRpl.ToPacket(rpl);
+			return STATUS_SUCCESS;
+		}
+
 		case SVC_API_GET_DNC_CACHE:
 		{
 			StVariant vRpl(m_pMemPool);
@@ -690,12 +788,59 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 		// Process Manager
 		case SVC_API_GET_PROCESSES:
 		{
+			//
+			// Built out of this client's own pool and not the service wide one, which
+			// locks on every allocation - see SClient. Nothing here outlives the reply
+			// except what the caches keep, and that belongs to the connection anyway.
+			//
+			FW::AbstractMemPool* pMemPool = pClientData->m_pMemPool;
+
+			StVariant vReq(pMemPool);
+			vReq.FromPacket(req);
+
+			StVariant vRpl(pMemPool);
+
+#ifdef USE_CACHE
+			//
+			// A delta against what this client already holds, see ListReplies.cpp.
+			// The reply carries only the entries that changed and only the fields
+			// of them that did, so the reader must merge rather than replace; what
+			// is gone is named in API_V_OLD_PROCESSES and nowhere else.
+			//
+			// A client that has lost its copy asks for it back with API_V_RELOAD.
+			//
+			std::unique_lock Lock(pClientData->ListsMutex);
+
+			if (vReq.Get(API_V_RELOAD).To<bool>(false))
+				pClientData->Lists->Clear();
+
+			//
+			// A cache that has never sent anything answers with everything, so the
+			// round is a complete list and the reader may sweep whatever it does not
+			// mention. That is what resynchronises a viewer whose service restarted
+			// underneath it, without either side having to track reconnects.
+			//
+			// It is told apart by the removed list simply not being there - a complete
+			// round has nothing removed to report anyway - so no flag of its own is
+			// needed, and the uncached reply below is a complete one for free.
+			//
+			bool bIsFull = pClientData->Lists->Processes.IsEmpty();
+
+			StVariant Removed(pMemPool);
+			StVariant Processes = BuildProcessDelta(*pClientData->Lists, Removed, pMemPool);
+
+			Lock.unlock();
+
+			vRpl[API_V_PROCESSES] = Processes;
+			if (!bIsFull)
+				vRpl[API_V_OLD_PROCESSES] = Removed;
+#else
 			StVariant Processes(m_pMemPool);
 			for (auto pProcess: theCore->ProcessList()->List())
 				Processes.Append(pProcess.second->ToVariant(SVarWriteOpt(), m_pMemPool));
 
-			StVariant vRpl(m_pMemPool);
 			vRpl[API_V_PROCESSES] = Processes;
+#endif
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
@@ -716,18 +861,49 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_PROGRAMS:
 		{
-			StVariant vRpl(m_pMemPool);
+			//
+			// Built out of this client's own pool and not the service wide one, which
+			// locks on every allocation - see SClient. Nothing here outlives the reply
+			// except what the caches keep, and that belongs to the connection anyway.
+			//
+			FW::AbstractMemPool* pMemPool = pClientData->m_pMemPool;
+
+			StVariant vReq(pMemPool);
+			vReq.FromPacket(req);
 
 			//vRpl[API_V_PROGRAMS] = theCore->ProgramManager()->GetRoot()->ToVariant();
 
-			// todo restrict to a certain type by argument
+			StVariant vRpl(pMemPool);
 
+#ifdef USE_CACHE
+			//
+			// A delta, like the process list - see ListReplies.cpp and the note at
+			// SVC_API_GET_PROCESSES about merging rather than replacing, and about
+			// the removed list being what tells a delta from a complete round.
+			//
+			std::unique_lock Lock(pClientData->ListsMutex);
+
+			if (vReq.Get(API_V_RELOAD).To<bool>(false))
+				pClientData->Lists->Programs.Clear();
+
+			bool bIsFull = pClientData->Lists->Programs.IsEmpty();
+
+			StVariant Removed(pMemPool);
+			StVariant Programs = BuildProgramDelta(pClientData->Lists->Programs, Removed, pMemPool);
+
+			Lock.unlock();
+
+			vRpl[API_V_PROGRAMS] = Programs;
+			if (!bIsFull)
+				vRpl[API_V_OLD_PROGRAMS] = Removed;
+#else
 			StVariantWriter Programs(m_pMemPool);
 			Programs.BeginList();
 			for (auto pItem: theCore->ProgramManager()->GetItems())
 				Programs.WriteVariant(pItem.second->ToVariant(SVarWriteOpt(), m_pMemPool));
 
 			vRpl[API_V_PROGRAMS] = Programs.Finish();
+#endif
 			vRpl.ToPacket(rpl);
 			return STATUS_SUCCESS;
 		}
@@ -757,7 +933,17 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 		case SVC_API_GET_LIBRARIES:
 		{
-			StVariant vRpl(m_pMemPool);
+			//
+			// Built out of this client's own pool and not the service wide one, which
+			// locks on every allocation - see SClient. Nothing here outlives the reply
+			// except what the caches keep, and that belongs to the connection anyway.
+			//
+			FW::AbstractMemPool* pMemPool = pClientData->m_pMemPool;
+
+			StVariant vRpl(pMemPool);
+
+			StVariant vReq(pMemPool);
+			vReq.FromPacket(req);
 
 			//StVariant vReq;
 			//vReq.FromPacket(req);
@@ -772,17 +958,17 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 
 			//std::map<uint64, uint64> OldCache = pClientData->LibraryCache;
 
-			StVariantWriter Libraries(m_pMemPool);
-			Libraries.BeginList();
-			for (auto pItem : theCore->ProgramManager()->GetLibraries()) {
+			//StVariantWriter Libraries(m_pMemPool);
+			//Libraries.BeginList();
+			//for (auto pItem : theCore->ProgramManager()->GetLibraries()) {
 				//auto F = OldCache.find(pItem.first);
 				//if (F != OldCache.end()) {
 				//	OldCache.erase(F);
 				//	continue;
 				//}
 				//pClientData->LibraryCache[pItem.first] = 0;
-				Libraries.WriteVariant(pItem.second->ToVariant(SVarWriteOpt(), m_pMemPool));
-			}
+			//	Libraries.WriteVariant(pItem.second->ToVariant(SVarWriteOpt(), m_pMemPool));
+			//}
 
 			//StVariantWriter OldLibraries(m_pMemPool);
 			//OldLibraries.BeginList();
@@ -791,7 +977,35 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			//	OldLibraries.Write(I.first);
 			//}
 
+#ifdef USE_CACHE
+			//
+			// A delta as well. The commented out block above was the first attempt at
+			// this, with a token to tell one client's cache from another; a cache that
+			// lives and dies with the connection needs no token.
+			//
+			std::unique_lock Lock(pClientData->ListsMutex);
+
+			if (vReq.Get(API_V_RELOAD).To<bool>(false))
+				pClientData->Lists->Libraries.Clear();
+
+			bool bIsFull = pClientData->Lists->Libraries.IsEmpty();
+
+			StVariant Removed(pMemPool);
+			StVariant LibraryList = BuildLibraryDelta(pClientData->Lists->Libraries, Removed, pMemPool);
+
+			Lock.unlock();
+
+			vRpl[API_V_LIBRARIES] = LibraryList;
+			if (!bIsFull)
+				vRpl[API_V_OLD_LIBRARIES] = Removed;
+#else
+			StVariantWriter Libraries(m_pMemPool);
+			Libraries.BeginList();
+			for (auto pItem : theCore->ProgramManager()->GetLibraries())
+				Libraries.WriteVariant(pItem.second->ToVariant(SVarWriteOpt(), m_pMemPool));
+
 			vRpl[API_V_LIBRARIES] = Libraries.Finish();
+#endif
 			//vRpl[API_V_OLD_LIBRARIES] = OldLibraries.Finish();
 			//vRpl[API_V_CACHE_TOKEN] = CacheToken;
 			vRpl.ToPacket(rpl);
@@ -898,8 +1112,9 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 				EnclaveGuid.FromVariant(vReq[API_V_ENCLAVE]);
 
 				Status = theCore->Driver()->PrepareEnclave(EnclaveGuid);
-				if (Status.IsError())
+				if (Status.IsError()) {
 					RETURN_STATUS(Status);
+				}
 			}
 
 			std::wstring path = vReq[API_V_CMD_LINE];
@@ -1367,10 +1582,16 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
+			std::wstring Path = vReq[API_V_VOL_PATH].ToWString();
+			STATUS Access = CheckCallerFileAccess(pClient.PID, Path, GENERIC_READ | GENERIC_WRITE);
+			if (Access.IsError()) {
+				RETURN_STATUS(Access);
+			}
+
 			CSecurePassword Password;
 			Password.FromVariant(vReq[API_V_VOL_PASSWORD], pClientData->SharedSecret);
 
-			STATUS Status = m_pVolumeManager->CreateImage(vReq[API_V_VOL_PATH], Password, vReq.Get(API_V_VOL_SIZE).To<uint64>(0), vReq.Get(API_V_VOL_CIPHER).AsStr(), vReq.Get(API_V_VOL_KDF).To<uint32>(0), vReq.Get(API_V_VOL_FS).AsStr());
+			STATUS Status = m_pVolumeManager->CreateImage(Path, Password, vReq.Get(API_V_VOL_SIZE).To<uint64>(0), vReq.Get(API_V_VOL_CIPHER).AsStr(), vReq.Get(API_V_VOL_KDF).To<uint32>(0), vReq.Get(API_V_VOL_FS).AsStr(), vReq.Get(API_V_VOL_SLOTS).To<sint32>(-1));
 			RETURN_STATUS(Status);
 		}
 		//case SVC_API_VOL_CHANGE_PASSWORD:
@@ -1427,10 +1648,16 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 			StVariant vReq(m_pMemPool);
 			vReq.FromPacket(req);
 
+			std::wstring Path = vReq[API_V_VOL_PATH].ToWString();
+			STATUS Access = CheckCallerFileAccess(pClient.PID, Path, GENERIC_READ | GENERIC_WRITE);
+			if (Access.IsError()) {
+				RETURN_STATUS(Access);
+			}
+
 			CSecurePassword Password;
 			Password.FromVariant(vReq[API_V_VOL_PASSWORD], pClientData->SharedSecret);
 
-			STATUS Status = m_pVolumeManager->MountImage(vReq[API_V_VOL_PATH], vReq[API_V_VOL_MOUNT_POINT], Password, vReq.Get(API_V_VOL_PROTECT).To<bool>(), vReq.Get(API_V_VOL_LOCKDOWN).To<bool>(), vReq.Get(API_V_VOL_KDF).To<uint32>(0));
+			STATUS Status = m_pVolumeManager->MountImage(Path, vReq[API_V_VOL_MOUNT_POINT], Password, vReq.Get(API_V_VOL_PROTECT).To<bool>(), vReq.Get(API_V_VOL_LOCKDOWN).To<bool>(), vReq.Get(API_V_VOL_KDF).To<uint32>(0));
 			RETURN_STATUS(Status);
 		}
 		case SVC_API_VOL_DISMOUNT_VOLUME:
@@ -1988,6 +2215,112 @@ uint32 CServiceCore::OnRequest(uint32 msgId, const CBuffer* req, CBuffer* rpl, c
 	}
 }
 
+//
+// Collected now, sent on the next turn of the timer. See FlushBroadcasts.
+//
+// The variant is taken as it is rather than copied: CVariant containers are
+// counted, and one built without a pool of its own simply adopts the source's, so
+// this costs a reference and not a clone.
+//
+void CServiceCore::QueueBroadcast(uint32 MessageID, const StVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram)
+{
+	bool bFlushNow = false;
+	{
+		std::unique_lock Lock(m_EventQueueMutex);
+
+		SQueuedEvent Event;
+		Event.MessageID = MessageID;
+		Event.Data = MessageData;
+		Event.pProgram = pProgram;
+		m_EventQueue.push_back(Event);
+
+		//
+		// A viewer that has stopped reading, or simply a burst, must not be able to
+		// grow this without bound - so past a point the thread that filled it up sends
+		// it itself rather than waiting for the timer. Nothing is dropped: these are
+		// the records of what happened on the machine.
+		//
+		bFlushNow = m_EventQueue.size() >= 1000;
+	}
+
+	if (bFlushNow)
+		FlushBroadcasts();
+}
+
+//
+// Sends everything collected since the last time, as one message per client.
+//
+// Which events a client gets still depends on what it is watching, so the list is
+// assembled per client - with one viewer that is one message, which is the whole
+// point: one lock on the connection and one system call instead of one of each per
+// event.
+//
+void CServiceCore::FlushBroadcasts()
+{
+	//
+	// One flush at a time, or the timer and a thread that filled the queue could
+	// each take half of it and deliver them out of order.
+	//
+	std::unique_lock FlushLock(m_FlushMutex);
+
+	std::vector<SQueuedEvent> Events;
+	{
+		std::unique_lock Lock(m_EventQueueMutex);
+		if (m_EventQueue.empty())
+			return;
+		Events.swap(m_EventQueue);
+	}
+
+	std::unique_lock ClientsLock(m_ClientsMutex);
+	auto Clients = m_Clients;
+	ClientsLock.unlock();
+
+	for (auto& I : Clients)
+	{
+		SClientPtr pClientData = I.second;
+
+		StVariantWriter List(m_pMemPool);
+		List.BeginList();
+		uint32 Count = 0;
+
+		{
+			//
+			// Shared, and taken once for the whole batch rather than once per event.
+			//
+			std::shared_lock Lock(pClientData->Mutex);
+
+			for (const SQueuedEvent& Event : Events)
+			{
+				if (Event.pProgram && !pClientData->bWatchAllPrograms
+				 && pClientData->WatchedPrograms.find(Event.pProgram->GetUID()) == pClientData->WatchedPrograms.end())
+					continue;
+
+				StVariantWriter Entry(m_pMemPool);
+				Entry.BeginIndex();
+				Entry.Write(API_V_EVENT_MSG_ID, Event.MessageID);
+				Entry.WriteVariant(API_V_EVENT_DATA, Event.Data);
+				List.WriteVariant(Entry.Finish());
+				Count++;
+			}
+		}
+
+		if (!Count)
+			continue;
+
+		StVariant Batch(m_pMemPool);
+		Batch[API_V_EVENTS] = List.Finish();
+
+		CBuffer MessageBuffer(m_pMemPool);
+		Batch.ToPacket(&MessageBuffer);
+
+#ifdef USE_ALPC
+		theCore->UserPort()->BroadcastMessage(SVC_API_EVENT_BATCH, &MessageBuffer, I.first);
+#else
+		theCore->UserPipe()->BroadcastMessage(SVC_API_EVENT_BATCH, &MessageBuffer, I.first);
+#endif
+	}
+}
+
 int CServiceCore::BroadcastMessage(uint32 MessageID, const StVariant& MessageData, const std::shared_ptr<class CProgramFile>& pProgram)
 {
 	CBuffer MessageBuffer;
@@ -2007,7 +2340,12 @@ int CServiceCore::BroadcastMessage(uint32 MessageID, const StVariant& MessageDat
 	int Success = 0;
 	for(auto& I : Clients) {
 		SClientPtr pClientData = I.second;
-		std::unique_lock Lock(pClientData->Mutex);
+		//
+		// Shared, and on Mutex rather than ListsMutex: this only reads the watched
+		// set, and it runs for every event of every client - it must not queue behind
+		// another event doing the same, nor behind a list request building a delta.
+		//
+		std::shared_lock Lock(pClientData->Mutex);
 		if(!pClientData->bWatchAllPrograms && pClientData->WatchedPrograms.find(pProgram->GetUID()) == pClientData->WatchedPrograms.end())
 			continue;
 #ifdef USE_ALPC

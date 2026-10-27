@@ -21,6 +21,12 @@ protected:
 
 	void					OpenRullDialog(const CFwRulePtr& pRule);
 
+	bool					AskDeleteRules(bool& bWithDerived);
+	void					NoteTemplateSwitch(bool bEnable);
+
+	static bool				CanMakeTemplateFrom(const CFwRulePtr& pRule);
+	void					MakeTemplateFrom(const CFwRulePtr& pRule);
+
 private slots:
 	//void					OnResetColumns();
 	//void					OnColumnsChanged();
@@ -30,6 +36,7 @@ private slots:
 
 	void					Refresh();
 	void					CleanTemp();
+	void					OnTemplateTree(bool bTree);
 
 protected:
 	QList<CFwRulePtr>		m_RuleList;
@@ -42,6 +49,8 @@ private:
 	QComboBox*				m_pCmbAction;
 	QToolButton*			m_pBtnEnabled;
 	QToolButton*			m_pBtnHideWin;
+	QToolButton*			m_pBtnHideDerived;
+	QToolButton*			m_pBtnTree;
 	QToolButton*			m_pBtnRefresh;
 	QToolButton*			m_pBtnCleanUp;
 
@@ -55,6 +64,7 @@ private:
 	QAction*				m_pRemoveRule;
 	QAction*				m_pEditRule;
 	QAction*				m_pCloneRule;
+	QAction*				m_pMakeTemplate;
 	QAction*				m_pImportRules;
 	QAction*				m_pExportRules;
 };

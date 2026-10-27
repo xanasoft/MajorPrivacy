@@ -27,9 +27,11 @@ struct SAccessItem
 		eRegistry,
 	} Type = eDevice;
 	QHash<CProgramItemPtr, SAccessStatsPtr> Stats;
+	quint64 OwnCount = 0; // part of AccessCount from Stats, the rest comes from Branches
 	QHash<QString, QSharedPointer<SAccessItem>> Branches;
 
-	mutable int FilterMatch = -1;
+	mutable int FilterMatch = -1; // cached by CAccessModel::FilterAccepts, -1 to evaluate again
+	mutable quint32 FilterGen = 0;
 };
 
 typedef QSharedPointer<SAccessItem> SAccessItemPtr;
@@ -43,6 +45,9 @@ public:
 	typedef SAccessItemPtr ItemType;
 
 	void			Update(const SAccessItemPtr& pRoot);
+
+	void			SetFilter(const QRegularExpression& Exp);
+	bool			FilterAccepts(const SAccessItemPtr& pItem) const;
 
 	SAccessItemPtr	GetItem(const QModelIndex& index);
 	
@@ -58,6 +63,8 @@ public:
 	};
 
 protected:
+
+	int				VisibleChildCount(const SAccessItemPtr& pItem) const;
 
 	struct SAccessModelNode : SAbstractTreeNode
 	{
@@ -75,6 +82,9 @@ protected:
 	QVariant data(SAbstractTreeNode* node, int column, int role = Qt::DisplayRole) const override;
 
 private:
+	QRegularExpression m_FilterExp;
+	quint32 m_FilterGen = 1;
+
 	QIcon m_DeviceIcon;
 	QIcon m_MonitorIcon;
 	QIcon m_DiskIcon;

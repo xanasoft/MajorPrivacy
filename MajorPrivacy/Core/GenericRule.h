@@ -30,6 +30,8 @@ public:
 	virtual void SetTemporary(bool bTemporary)		{ m_bTemporary = bTemporary; }
 
 	virtual void SetTimeOut(quint64 uTimeOutSec)	{ SetTemporary(true); m_uTimeOut = QDateTime::currentDateTime().toSecsSinceEpoch() + uTimeOutSec; }
+	virtual quint64 GetTimeOut() const				{ return m_uTimeOut; } // seconds since the epoch, -1 for none
+	virtual void ClearTimeOut()						{ m_uTimeOut = -1; }
 
 	virtual QString GetName() const					{ return m_Name; }
 	virtual void SetName(const QString& Name)		{ m_Name = Name; }

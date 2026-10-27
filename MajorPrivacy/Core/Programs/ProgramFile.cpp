@@ -35,16 +35,21 @@ QString CProgramFile::GetPublisher() const
 
 QMultiMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
 {
-	QReadLocker Lock(&m_Mutex); 
-	if (m_LibrariesChanged)
+	QWriteLocker Lock(&m_Mutex);
+	// at most one fetch per interval, while the flag stays set the next call tries again
+	if (m_LibrariesChanged && GetCurTick() - m_LibrariesFetched >= PROG_STATS_REFETCH_INTERVAL)
 	{
+		// cleared before the request, so an event arriving while it is in flight sets it again
+		m_LibrariesChanged = false;
+		m_LibrariesFetched = GetCurTick();
 		Lock.unlock();
 		auto Res = theCore->GetLibraryStats(m_ID);
-		if (!Res.IsError())
+		Lock.relock();
+		if (Res.IsError())
+			m_LibrariesChanged = true;
+		else
 		{
-			QWriteLocker WriteLock(&m_Mutex);
 			m_Libraries.clear();
-			m_LibrariesChanged = false;
 
 			QtVariantReader(Res.GetValue()).ReadRawList([&](const FW::CVariant& vData) {
 				const QtVariant& Data = *(QtVariant*)&vData;
@@ -59,8 +64,8 @@ QMultiMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
 				Info.LastStatus = (EEventStatus)Data.Get(API_V_LIB_STATUS).To<uint32>();
 				m_Libraries.insert(LibraryRef, Info);
 			});
+			m_LibrariesRevision++;
 		}
-		Lock.relock();
 	}
 
 	return m_Libraries;
@@ -68,16 +73,21 @@ QMultiMap<quint64, SLibraryInfo> CProgramFile::GetLibraries()
 
 QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 {
-	QReadLocker Lock(&m_Mutex);
-	if (m_ExecChanged)
+	QWriteLocker Lock(&m_Mutex);
+	// at most one fetch per interval, while the flag stays set the next call tries again
+	if (m_ExecChanged && GetCurTick() - m_ExecFetched >= PROG_STATS_REFETCH_INTERVAL)
 	{
+		// cleared before the request, so an event arriving while it is in flight sets it again
+		m_ExecChanged = false;
+		m_ExecFetched = GetCurTick();
 		Lock.unlock();
 		auto Res = theCore->GetExecStats(m_ID);
-		if (!Res.IsError())
+		Lock.relock();
+		if (Res.IsError())
+			m_ExecChanged = true;
+		else
 		{
-			QWriteLocker WriteLock(&m_Mutex);
 			m_ExecStats.clear();
-			m_ExecChanged = false;
 
 			auto Data = Res.GetValue();
 
@@ -85,8 +95,6 @@ QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 			QtVariantReader(Targets).ReadRawList([&](const FW::CVariant& vData) {
 				const QtVariant& Data = *(QtVariant*)&vData;
 
-				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
-
 				SExecutionInfo Info;
 				Info.Role = EExecLogRole::eTarget;
 
@@ -101,14 +109,12 @@ QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 				Info.bBlocked = Data.Get(API_V_WAS_BLOCKED).To<bool>(false);
 				Info.CommandLine = Data.Get(API_V_CMD_LINE).AsQStr();
 
-				m_ExecStats[Ref] = Info;
+				m_ExecStats.insert(m_ExecStats.size(), Info);
 			});
 
 			auto Actors = Data.Get(API_V_PROG_EXEC_PARENTS);
 			QtVariantReader(Actors).ReadRawList([&](const FW::CVariant& vData) {
 				const QtVariant& Data = *(QtVariant*)&vData;
-
-				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
 				SExecutionInfo Info;
 				Info.Role = EExecLogRole::eActor;
@@ -124,11 +130,11 @@ QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 				Info.bBlocked = Data.Get(API_V_WAS_BLOCKED).To<bool>(false);
 				Info.CommandLine = Data.Get(API_V_CMD_LINE).AsQStr();
 
-				m_ExecStats[Ref] = Info;
+				m_ExecStats.insert(m_ExecStats.size(), Info);
 			});	
 
+			m_ExecRevision++;
 		}
-		Lock.relock();
 	}
 
 	return m_ExecStats;
@@ -136,24 +142,27 @@ QMap<quint64, CProgramFile::SExecutionInfo> CProgramFile::GetExecStats()
 
 QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 {
-	QReadLocker Lock(&m_Mutex);
-	if(m_IngressChanged)
+	QWriteLocker Lock(&m_Mutex);
+	// at most one fetch per interval, while the flag stays set the next call tries again
+	if (m_IngressChanged && GetCurTick() - m_IngressFetched >= PROG_STATS_REFETCH_INTERVAL)
 	{
+		// cleared before the request, so an event arriving while it is in flight sets it again
+		m_IngressChanged = false;
+		m_IngressFetched = GetCurTick();
 		Lock.unlock();
 		auto Res = theCore->GetIngressStats(m_ID);
-		if (!Res.IsError())
+		Lock.relock();
+		if (Res.IsError())
+			m_IngressChanged = true;
+		else
 		{
-			QWriteLocker WriteLock(&m_Mutex);
 			m_Ingress.clear();
-			m_IngressChanged = false;
 
 			auto Data = Res.GetValue();
 
 			auto Targets = Data.Get(API_V_PROG_INGRESS_TARGETS);
 			QtVariantReader(Targets).ReadRawList([&](const FW::CVariant& vData) {
 				const QtVariant& Data = *(QtVariant*)&vData;
-
-				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
 				SIngressInfo Info;
 				Info.Role = EExecLogRole::eTarget;
@@ -170,14 +179,12 @@ QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 				Info.ThreadAccessMask = Data.Get(API_V_THREAD_ACCESS_MASK).To<uint32>(0);
 				Info.ProcessAccessMask = Data.Get(API_V_PROCESS_ACCESS_MASK).To<uint32>(0);
 
-				m_Ingress[Ref] = Info;
+				m_Ingress.insert(m_Ingress.size(), Info);
 			});
 
 			auto Actors = Data.Get(API_V_PROG_INGRESS_ACTORS);
 			QtVariantReader(Actors).ReadRawList([&](const FW::CVariant& vData) {
 				const QtVariant& Data = *(QtVariant*)&vData;
-
-				quint64 Ref = Data.Get(API_V_PROCESS_REF).To<uint64>(0);
 
 				SIngressInfo Info;
 				Info.Role = EExecLogRole::eActor;
@@ -194,10 +201,10 @@ QMap<quint64, CProgramFile::SIngressInfo> CProgramFile::GetIngressStats()
 				Info.ThreadAccessMask = Data.Get(API_V_THREAD_ACCESS_MASK).To<uint32>(0);
 				Info.ProcessAccessMask = Data.Get(API_V_PROCESS_ACCESS_MASK).To<uint32>(0);
 
-				m_Ingress[Ref] = Info;
+				m_Ingress.insert(m_Ingress.size(), Info);
 			});
+			m_IngressRevision++;
 		}
-		Lock.relock();
 	}	
 
 	return m_Ingress;
@@ -219,12 +226,21 @@ void CProgramFile::TraceLogAdd(ETraceLogs Log, const CLogEntryPtr& pEntry, quint
 		const CExecLogEntry* pExecEntry = dynamic_cast<const CExecLogEntry*>(pEntry.constData());
 		if (pExecEntry)
 		{
+			// a service hosted in this program keeps its own exec and ingress records, it must be refetched as well
+			CWindowsServicePtr pActorService = GetService(pEntry->GetOwnerService());
+
 			if(pExecEntry->GetType() == EExecLogType::eImageLoad)
 				m_LibrariesChanged = true;
-			else if(pExecEntry->GetType() == EExecLogType::eProcessStarted)
+			else if (pExecEntry->GetType() == EExecLogType::eProcessStarted) {
 				m_ExecChanged = true;
-			else //if(pExecEntry->GetType() == EExecLogType::eProcessAccess || pExecEntry->GetType() == EExecLogType::eThreadAccess)
+				if (pActorService)
+					pActorService->m_ExecChanged = true;
+			}
+			else { //if(pExecEntry->GetType() == EExecLogType::eProcessAccess || pExecEntry->GetType() == EExecLogType::eThreadAccess)
 				m_IngressChanged = true;
+				if (pActorService)
+					pActorService->m_IngressChanged = true;
+			}
 		}
 	}
 
@@ -339,15 +355,18 @@ void CProgramFile::ClearProcessLogs()
 	QWriteLocker Lock(&m_Mutex);
 	m_ExecStats.clear();
 	m_ExecChanged = true;
+	m_ExecRevision++;
 
 	m_Ingress.clear();
 	m_IngressChanged = true;
+	m_IngressRevision++;
 }
 
 void CProgramFile::ClearAccessLog()
 {
 	QWriteLocker Lock(&m_Mutex);
-	m_AccessStats.clear();
+	m_AccessLog.Stats.clear();
+	m_AccessLog.Changes.clear();
 	m_AccessLastActivity = 0;
 }
 
@@ -357,6 +376,7 @@ void CProgramFile::ClearTrafficLog()
 	m_TrafficLog.clear();
 	m_Unresolved.clear();
 	m_TrafficLogLastActivity = 0;
+	m_TrafficLogGeneration++;
 }
 
 void CProgramFile::CountStats()
@@ -397,21 +417,28 @@ QMap<quint64, SAccessStatsPtr> CProgramFile::GetAccessStats()
 //#ifdef _DEBUG
 //		int oldCount = m_AccessStats.count();
 //#endif
-		m_AccessLastActivity = ReadAccessBranch(m_AccessStats, Root);
+		// same as for the traffic log, an empty dump must not reset the watermark
+		quint64 LastActivity = ReadAccessBranch(m_AccessLog, Root);
+		if (LastActivity > m_AccessLastActivity)
+			m_AccessLastActivity = LastActivity;
 //#ifdef _DEBUG
 //		if (oldCount < m_AccessStats.count())
 //			qDebug() << "AccessStats count for" << GetName() << "added" << m_AccessStats.count() - oldCount;
 //#endif
 	}
-	return m_AccessStats;
+	return m_AccessLog.Changes;
 }
 
-QHash<QString, CTrafficEntryPtr> CProgramFile::GetTrafficLog()
+QHash<QString, CTrafficEntryPtr> CProgramFile::GetTrafficLog(QList<CTrafficEntryPtr>* pChanged)
 {
 	auto Res = theCore->GetTrafficLog(m_ID, m_TrafficLogLastActivity);
 	QWriteLocker Lock(&m_Mutex);
-	if (!Res.IsError())
-		m_TrafficLogLastActivity = CTrafficEntry__LoadList(m_TrafficLog, m_Unresolved, Res.GetValue());
+	if (!Res.IsError()) {
+		// an empty reply returns 0, which must not reset the watermark or the next call fetches the whole log again
+		quint64 LastActivity = CTrafficEntry__LoadList(m_TrafficLog, m_Unresolved, Res.GetValue(), pChanged);
+		if (LastActivity > m_TrafficLogLastActivity)
+			m_TrafficLogLastActivity = LastActivity;
+	}
 	return m_TrafficLog;
 }
 

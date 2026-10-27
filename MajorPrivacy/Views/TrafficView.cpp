@@ -93,6 +93,14 @@ CTrafficView::CTrafficView(QWidget *parent)
 	m_pToolBar->addWidget(m_pBtnExpand);
 
 	m_pToolBar->addSeparator();
+	m_pBtnPrivate = new QToolButton();
+	m_pBtnPrivate->setIcon(QIcon(":/Icons/Invisible.png"));
+	m_pBtnPrivate->setCheckable(true);
+	m_pBtnPrivate->setToolTip(tr("Show Private Entries"));
+	m_pBtnPrivate->setMaximumHeight(22);
+	m_pToolBar->addWidget(m_pBtnPrivate);
+
+	m_pToolBar->addSeparator();
 	m_pBtnHold = new QToolButton();
 	m_pBtnHold->setIcon(QIcon(":/Icons/Hold.png"));
 	m_pBtnHold->setCheckable(true);
@@ -172,8 +180,7 @@ void CTrafficView::OnAreaFilter()
 
 	m_CurPrograms.clear();
 	m_CurServices.clear();
-	m_CachedTrafficMap.clear();
-	m_TrafficLogTimestamps.clear();
+	ResetCache();
 }
 
 void CTrafficView::OnRefresh()
@@ -184,8 +191,7 @@ void CTrafficView::OnRefresh()
 	foreach(const CWindowsServicePtr& pService, m_CurServices)
 		pService->ClearTrafficLog();
 
-	m_CachedTrafficMap.clear();
-	m_TrafficLogTimestamps.clear();
+	ResetCache();
 	m_FullRefresh = true;
 }
 
@@ -195,7 +201,7 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 	bool bTreeDomains = m_pBtnTree->isChecked();
 
 	// Check if we need to clear cache and force full rebuild
-	if (m_CurPrograms != Programs || m_CurServices != Services || m_FullRefresh || bGroupByProgram != m_bGroupByProgram || bTreeDomains != m_bTreeDomains || m_RecentLimit != theGUI->GetRecentLimit()) {
+	if (!Programs.contains(m_CurPrograms) || !Services.contains(m_CurServices) || m_FullRefresh || bGroupByProgram != m_bGroupByProgram || bTreeDomains != m_bTreeDomains || m_RecentLimit != theGUI->GetRecentLimit()) {
 		m_CurPrograms = Programs;
 		m_CurServices = Services;
 		m_RecentLimit = theGUI->GetRecentLimit();
@@ -203,20 +209,42 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		m_pItemModel->Clear();
 		m_FullRefresh = false;
 		m_RefreshCount++;
-		m_CachedTrafficMap.clear();
-		m_TrafficLogTimestamps.clear();
+		ResetCache();
 	}
 	else if(m_pBtnHold->isChecked())
 		return;
 
+	//
+	// Only an item leaving the selection needs the rebuild above. Items joining it, which happens all the time
+	// with "All Programs" or a group selected as new programs show up, are simply added, resetting
+	// the view for them cleared the model and collapsed everything the user had expanded.
+	//
+	m_CurPrograms = Programs;
+	m_CurServices = Services;
+
 	//uint64 uStart = GetTickCount64();
+
+	// a log cleared since it was added means the aggregates still hold its old totals, start over
+	bool bStale = false;
+	auto CheckStale = [&](const CProgramItem* pItem, quint32 Generation) {
+		auto F = m_SyncedItems.constFind(pItem);
+		if (F != m_SyncedItems.constEnd() && F.value() != Generation)
+			bStale = true;
+	};
+	foreach(const CProgramFilePtr& pProgram, Programs)
+		CheckStale(pProgram.data(), pProgram->GetTrafficLogGeneration());
+	foreach(const CWindowsServicePtr& pService, Services)
+		CheckStale(pService.data(), pService->GetTrafficLogGeneration());
+	if (bStale) {
+		m_pTreeView->collapseAll();
+		m_pItemModel->Clear();
+		m_RefreshCount++;
+		ResetCache();
+	}
 
 	quint64 uRecentLimit = m_RecentLimit ? QDateTime::currentMSecsSinceEpoch() - m_RecentLimit : 0;
 	m_bGroupByProgram = bGroupByProgram;
 	m_bTreeDomains = bTreeDomains;
-
-	QMap<QVariant, CTrafficEntryPtr> AggregatedEntries; // For aggregating stats
-	QMap<QVariant, CTrafficEntry::ENetType> AggregatedNetTypes; // Track network types
 
 	// Helper to extract multiple hostnames from a single entry
 	// Handles cases like "(host1 | host2)" or "host1, host2"
@@ -254,41 +282,6 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		}
 
 		return result;
-	};
-
-	// Helper to get or create aggregated traffic entry
-	auto GetOrCreateAggregatedEntry = [&](const QVariant& id) -> CTrafficEntryPtr {
-		if (!AggregatedEntries.contains(id)) {
-			AggregatedEntries[id] = CTrafficEntryPtr(new CTrafficEntry());
-		}
-		return AggregatedEntries[id];
-	};
-
-	// Helper to merge entry and track network type
-	auto MergeEntryWithNetType = [&](const QVariant& id, const CTrafficEntryPtr& aggregated, const CTrafficEntryPtr& source) {
-		aggregated->Merge(source);
-
-		// Track the most restrictive network type
-		// Priority: LocalHost > LocalArea > Internet
-		CTrafficEntry::ENetType sourceType = source->GetNetType();
-		if (!AggregatedNetTypes.contains(id)) {
-			AggregatedNetTypes[id] = sourceType;
-		} else {
-			CTrafficEntry::ENetType currentType = AggregatedNetTypes[id];
-			// LocalHost is most restrictive
-			if (sourceType == CTrafficEntry::eLocalHost) {
-				AggregatedNetTypes[id] = CTrafficEntry::eLocalHost;
-			}
-			// LocalArea types are next
-			else if ((sourceType & CTrafficEntry::eLocalAreaEx) && currentType == CTrafficEntry::eInternet) {
-				AggregatedNetTypes[id] = sourceType;
-			}
-		}
-
-		// Set the IP address from the source to ensure NetType is properly set
-		if (aggregated->GetIpAddress().isEmpty() && !source->GetIpAddress().isEmpty()) {
-			aggregated->SetIpAddress(source->GetIpAddress());
-		}
 	};
 
 	// Helper to split hostname into domain parts in reverse order
@@ -339,35 +332,41 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 		return parts;
 	};
 
+	//
+	// Every row has its own entry holding the sum of what its sources contributed.
+	// A source adds its full totals once and afterwards only the change since its last update,
+	// merging its cumulative totals again on every change would count the same traffic over and over.
+	//
+	// Nodes collects the entries of all rows a source contributes to, each one only once, so a source
+	// listing several host names under the same domain does not count twice for that domain.
+	//
+	auto GetOrCreateItem = [&](const QString& ID, const QVariant& ParentID, const CProgramItemPtr& pProg, const QString& HostName, const CTrafficEntryPtr& pSource, QList<CTrafficEntryPtr>& Nodes) {
+		STrafficItemPtr& pItem = m_CachedTrafficMap[ID];
+		if (pItem.isNull()) {
+			pItem = STrafficItemPtr(new STrafficItem());
+			pItem->pProg = pProg;
+			pItem->pEntry = CTrafficEntryPtr(new CTrafficEntry());
+			pItem->pEntry->SetHostName(HostName);
+			pItem->pEntry->SetIpAddress(pSource->GetIpAddress()); // sets the NetType
+			pItem->Parent = ParentID;
+		}
+		if (!Nodes.contains(pItem->pEntry))
+			Nodes.append(pItem->pEntry);
+	};
+
 	// Build hierarchy for Domain-First view
 	// Root: domain.com -> www -> abc -> 123 -> programs
-	auto BuildDomainHierarchy = [&](const CProgramItemPtr& pProg, const CTrafficEntryPtr& pEntry) {
-		QString hostName = pEntry->GetHostName();
+	auto BuildDomainHierarchy = [&](const CProgramItemPtr& pProg, const QString& hostName, const CTrafficEntryPtr& pSource, QList<CTrafficEntryPtr>& Nodes) {
 		QStringList domainParts = m_bTreeDomains ? SplitHostName(hostName) : QStringList();
 
 		if (domainParts.isEmpty()) {
 			// Use raw hostname for IPs or unparseable names
 			QString rootID = QString("domain_%1").arg(hostName);
-
-			// Create domain entry and merge stats
-			STrafficItemPtr& pDomainItem = m_CachedTrafficMap[rootID];
-			if (pDomainItem.isNull()) {
-				pDomainItem = STrafficItemPtr(new STrafficItem());
-				pDomainItem->pEntry = GetOrCreateAggregatedEntry(rootID);
-				pDomainItem->pEntry->SetHostName(hostName);
-				pDomainItem->Parent = QVariant();
-			}
-			MergeEntryWithNetType(rootID, pDomainItem->pEntry, pEntry);
+			GetOrCreateItem(rootID, QVariant(), CProgramItemPtr(), hostName, pSource, Nodes);
 
 			// Create program leaf
 			QString progID = QString("domain_%1_prog_%2").arg(hostName).arg((quint64)pProg.data());
-			STrafficItemPtr& pProgItem = m_CachedTrafficMap[progID];
-			if (pProgItem.isNull()) {
-				pProgItem = STrafficItemPtr(new STrafficItem());
-				pProgItem->pProg = pProg;
-				pProgItem->pEntry = pEntry;
-				pProgItem->Parent = rootID;
-			}
+			GetOrCreateItem(progID, rootID, pProg, hostName, pSource, Nodes);
 		}
 		else {
 			// Build domain hierarchy
@@ -387,57 +386,30 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 				}
 
 				QString nodeID = QString("domain_%1").arg(pathSoFar);
-
-				STrafficItemPtr& pDomainItem = m_CachedTrafficMap[nodeID];
-				if (pDomainItem.isNull()) {
-					pDomainItem = STrafficItemPtr(new STrafficItem());
-					pDomainItem->pEntry = GetOrCreateAggregatedEntry(nodeID);
-					pDomainItem->pEntry->SetHostName(fullDomainSoFar);
-					pDomainItem->Parent = parentID;
-				}
-				MergeEntryWithNetType(nodeID, pDomainItem->pEntry, pEntry);
+				GetOrCreateItem(nodeID, parentID, CProgramItemPtr(), fullDomainSoFar, pSource, Nodes);
 
 				parentID = nodeID;
 			}
 
 			// Add program as leaf node
 			QString progID = QString("domain_%1_prog_%2").arg(pathSoFar).arg((quint64)pProg.data());
-			STrafficItemPtr& pProgItem = m_CachedTrafficMap[progID];
-			if (pProgItem.isNull()) {
-				pProgItem = STrafficItemPtr(new STrafficItem());
-				pProgItem->pProg = pProg;
-				pProgItem->pEntry = pEntry;
-				pProgItem->Parent = parentID;
-			}
+			GetOrCreateItem(progID, parentID, pProg, hostName, pSource, Nodes);
 		}
 	};
 
 	// Build hierarchy for Program-First view
 	// Root: program -> domain.com -> www -> abc -> 123
-	auto BuildProgramHierarchy = [&](const CProgramItemPtr& pProg, const CTrafficEntryPtr& pEntry) {
+	auto BuildProgramHierarchy = [&](const CProgramItemPtr& pProg, const QString& hostName, const CTrafficEntryPtr& pSource, QList<CTrafficEntryPtr>& Nodes) {
 		// Create program root node
 		QString progID = QString("prog_%1").arg((quint64)pProg.data());
-		STrafficItemPtr& pProgItem = m_CachedTrafficMap[progID];
-		if (pProgItem.isNull()) {
-			pProgItem = STrafficItemPtr(new STrafficItem());
-			pProgItem->pProg = pProg;
-			pProgItem->pEntry = GetOrCreateAggregatedEntry(progID);
-			pProgItem->Parent = QVariant();
-		}
-		MergeEntryWithNetType(progID, pProgItem->pEntry, pEntry);
+		GetOrCreateItem(progID, QVariant(), pProg, QString(), pSource, Nodes);
 
-		QString hostName = pEntry->GetHostName();
 		QStringList domainParts = m_bTreeDomains ? SplitHostName(hostName) : QStringList();
 
 		if (domainParts.isEmpty()) {
 			// Use raw hostname for IPs
 			QString entryID = QString("prog_%1_domain_%2").arg((quint64)pProg.data()).arg(hostName);
-			STrafficItemPtr& pDomainItem = m_CachedTrafficMap[entryID];
-			if (pDomainItem.isNull()) {
-				pDomainItem = STrafficItemPtr(new STrafficItem());
-				pDomainItem->pEntry = pEntry;
-				pDomainItem->Parent = progID;
-			}
+			GetOrCreateItem(entryID, progID, CProgramItemPtr(), hostName, pSource, Nodes);
 		}
 		else {
 			// Build domain hierarchy under program
@@ -457,18 +429,58 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 				}
 
 				QString nodeID = QString("prog_%1_domain_%2").arg((quint64)pProg.data()).arg(pathSoFar);
-
-				STrafficItemPtr& pDomainItem = m_CachedTrafficMap[nodeID];
-				if (pDomainItem.isNull()) {
-					pDomainItem = STrafficItemPtr(new STrafficItem());
-					pDomainItem->pEntry = GetOrCreateAggregatedEntry(nodeID);
-					pDomainItem->pEntry->SetHostName(fullDomainSoFar);
-					pDomainItem->Parent = parentID;
-				}
-				MergeEntryWithNetType(nodeID, pDomainItem->pEntry, pEntry);
+				GetOrCreateItem(nodeID, parentID, CProgramItemPtr(), fullDomainSoFar, pSource, Nodes);
 
 				parentID = nodeID;
 			}
+		}
+	};
+
+	auto AddSource = [&](const CProgramItemPtr& pProg, const CTrafficEntryPtr& pEntry) {
+		auto I = m_Sources.find(pEntry.data());
+		if (I == m_Sources.end())
+		{
+			// the filters only depend on values which do not change or only ever become more recent,
+			// so a source once accepted stays accepted and one rejected is checked again when it changes
+			if (uRecentLimit && pEntry->GetLastActivity() < uRecentLimit)
+				return;
+			if (m_AreaFilter && (m_AreaFilter & pEntry->GetNetType()) == 0)
+				return;
+
+			I = m_Sources.insert(pEntry.data(), SSource());
+			I->pEntry = pEntry;
+			foreach(const QString& HostName, ExtractHostNames(pEntry->GetHostName())) {
+				if (m_bGroupByProgram)
+					BuildProgramHierarchy(pProg, HostName, pEntry, I->Nodes);
+				else
+					BuildDomainHierarchy(pProg, HostName, pEntry, I->Nodes);
+			}
+		}
+		else if (I->LastActivity == pEntry->GetLastActivity() && I->Uploaded == pEntry->GetUploadTotal() && I->Downloaded == pEntry->GetDownloadTotal())
+			return; // unchanged
+
+		qint64 UploadDelta = (qint64)(pEntry->GetUploadTotal() - I->Uploaded);
+		qint64 DownloadDelta = (qint64)(pEntry->GetDownloadTotal() - I->Downloaded);
+		foreach(const CTrafficEntryPtr& pNode, I->Nodes)
+			pNode->AddDelta(pEntry->GetLastActivity(), UploadDelta, DownloadDelta);
+
+		I->LastActivity = pEntry->GetLastActivity();
+		I->Uploaded = pEntry->GetUploadTotal();
+		I->Downloaded = pEntry->GetDownloadTotal();
+	};
+
+	// The first time an item is shown all its entries are added, afterwards only the ones the last poll returned
+	auto SyncItem = [&](const CProgramItemPtr& pProg, auto pItem) {
+		QList<CTrafficEntryPtr> Changed;
+		QHash<QString, CTrafficEntryPtr> Log = pItem->GetTrafficLog(&Changed);
+		if (!m_SyncedItems.contains(pProg.data())) {
+			m_SyncedItems.insert(pProg.data(), pItem->GetTrafficLogGeneration());
+			for (auto I = Log.constBegin(); I != Log.constEnd(); ++I)
+				AddSource(pProg, I.value());
+		}
+		else {
+			foreach(const CTrafficEntryPtr& pEntry, Changed)
+				AddSource(pProg, pEntry);
 		}
 	};
 
@@ -481,43 +493,7 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 			break;
 		}
 
-		QHash<QString, CTrafficEntryPtr> Log = pProgram->GetTrafficLog();
-		for (auto I = Log.begin(); I != Log.end(); I++) {
-			if (uRecentLimit && I.value()->GetLastActivity() < uRecentLimit)
-				continue;
-			if (m_AreaFilter && (m_AreaFilter & I.value()->GetNetType()) == 0)
-				continue;
-
-			// Check if this entry has changed using timestamp
-			QString cacheKey = QString("%1_%2").arg((quint64)pProgram.data()).arg(I.key());
-			quint64 lastActivity = I.value()->GetLastActivity();
-
-			if (m_TrafficLogTimestamps.contains(cacheKey) &&
-				m_TrafficLogTimestamps[cacheKey] == lastActivity) {
-				// Entry hasn't changed, skip rebuilding
-				continue;
-			}
-
-			// Update timestamp
-			m_TrafficLogTimestamps[cacheKey] = lastActivity;
-
-			// Extract individual hostnames from the entry
-			QStringList hostNames = ExtractHostNames(I.value()->GetHostName());
-
-			// Create entries for each individual hostname
-			for (const QString& individualHost : hostNames) {
-				// Create a copy of the entry with the individual hostname
-				CTrafficEntryPtr pIndividualEntry = CTrafficEntryPtr(new CTrafficEntry());
-				pIndividualEntry->SetHostName(individualHost);
-				pIndividualEntry->SetIpAddress(I.value()->GetIpAddress()); // Copy IP to preserve network type
-				pIndividualEntry->Merge(I.value());
-
-				if (m_bGroupByProgram)
-					BuildProgramHierarchy(pProgram, pIndividualEntry);
-				else
-					BuildDomainHierarchy(pProgram, pIndividualEntry);
-			}
-		}
+		SyncItem(pProgram, pProgram);
 	}
 
 	foreach(const CWindowsServicePtr& pService, Services) {
@@ -526,43 +502,7 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 			break;
 		}
 
-		QHash<QString, CTrafficEntryPtr> Log = pService->GetTrafficLog();
-		for (auto I = Log.begin(); I != Log.end(); I++) {
-			if (uRecentLimit && I.value()->GetLastActivity() < uRecentLimit)
-				continue;
-			if (m_AreaFilter && (m_AreaFilter & I.value()->GetNetType()) == 0)
-				continue;
-
-			// Check if this entry has changed using timestamp
-			QString cacheKey = QString("%1_%2").arg((quint64)pService.data()).arg(I.key());
-			quint64 lastActivity = I.value()->GetLastActivity();
-
-			if (m_TrafficLogTimestamps.contains(cacheKey) &&
-				m_TrafficLogTimestamps[cacheKey] == lastActivity) {
-				// Entry hasn't changed, skip rebuilding
-				continue;
-			}
-
-			// Update timestamp
-			m_TrafficLogTimestamps[cacheKey] = lastActivity;
-
-			// Extract individual hostnames from the entry
-			QStringList hostNames = ExtractHostNames(I.value()->GetHostName());
-
-			// Create entries for each individual hostname
-			for (const QString& individualHost : hostNames) {
-				// Create a copy of the entry with the individual hostname
-				CTrafficEntryPtr pIndividualEntry = CTrafficEntryPtr(new CTrafficEntry());
-				pIndividualEntry->SetHostName(individualHost);
-				pIndividualEntry->SetIpAddress(I.value()->GetIpAddress()); // Copy IP to preserve network type
-				pIndividualEntry->Merge(I.value());
-
-				if (m_bGroupByProgram)
-					BuildProgramHierarchy(pService, pIndividualEntry);
-				else
-					BuildDomainHierarchy(pService, pIndividualEntry);
-			}
-		}
+		SyncItem(pService, pService);
 	}
 
 	if (ProgressHelper.Done()) {
@@ -592,12 +532,18 @@ void CTrafficView::Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindo
 	}
 }
 
+void CTrafficView::ResetCache()
+{
+	m_CachedTrafficMap.clear();
+	m_Sources.clear();
+	m_SyncedItems.clear();
+}
+
 void CTrafficView::Clear()
 {
 	m_CurPrograms.clear();
 	m_CurServices.clear();
-	m_CachedTrafficMap.clear();
-	m_TrafficLogTimestamps.clear();
+	ResetCache();
 	m_pItemModel->Clear();
 }
 
@@ -711,8 +657,7 @@ void CTrafficView::OnCleanUpDone()
 	// refresh
 	m_CurPrograms.clear();
 	m_CurServices.clear();
-	m_CachedTrafficMap.clear();
-	m_TrafficLogTimestamps.clear();
+	ResetCache();
 	m_FullRefresh = true;
 }
 

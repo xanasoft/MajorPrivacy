@@ -80,9 +80,9 @@ QString CFwRule::GetProgram() const
     return m_BinaryPath;
 }
 
-CFwRule* CFwRule::Clone(bool CloneGuid) const
+CFwRule* CFwRule::Clone(bool CloneGuid, const CProgramID* pID) const
 {
-    CFwRule* pRule = new CFwRule(m_ProgramID);
+    CFwRule* pRule = new CFwRule(pID ? *pID : m_ProgramID);
     CopyTo(pRule, CloneGuid);
     if (CloneGuid) {
         pRule->m_Index = m_Index;
@@ -492,4 +492,20 @@ QString CFwRule::ProtocolToStr(EFwKnownProtocols Protocol)
     case 256: return tr("Any");
     default: return QString("#%1").arg((int)Protocol);
     }
+}
+//
+// The template keeps the rule's action, direction, scope, ports and addresses, it only stops
+// being about the one binary. How long it lasts is left to whoever makes it: a temporary rule
+// does not make a temporary template, so the marker in the grouping does not come along.
+//
+CFwRule* CFwRule::CloneAsTemplate(const CProgramID& PatternID) const
+{
+    CFwRule* pRule = Clone(false, &PatternID);
+    pRule->m_BinaryPath = PatternID.GetFilePath();
+    pRule->m_ServiceTag.clear();
+    pRule->m_AppContainerSid.clear();
+    pRule->m_PackageFamilyName.clear();
+    if (pRule->m_Grouping.startsWith("#Temporary"))
+        pRule->m_Grouping.clear();
+    return pRule;
 }

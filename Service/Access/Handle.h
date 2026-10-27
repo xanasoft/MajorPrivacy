@@ -12,6 +12,7 @@ public:
 	~CHandle();
 
 	std::wstring		GetFileName() const				{ std::shared_lock Lock(m_Mutex); return m_FileName; }
+	bool				HasFileName() const				{ std::shared_lock Lock(m_Mutex); return !m_FileName.empty(); }
 
 	uint64				GetProcessId() const			{ std::shared_lock Lock(m_Mutex); return m_ProcessId; }
 	std::shared_ptr<class CProcess> GetProcess() const	{ std::shared_lock Lock(m_Mutex); return m_pProcess.lock(); }

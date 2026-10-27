@@ -10,6 +10,7 @@ class CExecutionView;
 class CIngressView;
 class CProcessTraceView;
 class CHashDBView;
+class CUsageView;
 
 class CProcessPage : public QWidget
 {
@@ -49,5 +50,6 @@ private:
 	CExecutionView*			m_pExecutionView = nullptr;
 	CIngressView*			m_pIngressView = nullptr;
 	CProcessTraceView*		m_pTraceView = nullptr;
+	CUsageView*				m_pCpuView = nullptr;
 };
 

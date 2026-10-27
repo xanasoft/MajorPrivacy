@@ -206,7 +206,7 @@ STATUS CTweakManager::Store()
 
 	CBuffer Buffer;
 	Data.ToPacket(&Buffer);
-	WriteFile(theCore->GetDataFolder() + L"\\" API_TWEAK_LIST_FILE_NAME, Buffer);
+	WriteFileSafe(theCore->GetDataFolder() + L"\\" API_TWEAK_LIST_FILE_NAME, Buffer);
 
 	m_bTweaksDirty = false;
 	return OK;

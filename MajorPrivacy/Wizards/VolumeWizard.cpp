@@ -20,6 +20,7 @@ CVolumeWizard::CVolumeWizard(QWidget *parent)
     //setPage(Page_Cipher, new CVolumeCipherPage);
     setPage(Page_Size, new CVolumeSizePage);
     setPage(Page_Encryption, new CVolumeEncryptionPage);
+    setPage(Page_Properties, new CVolumePropertiesPage);
     setPage(Page_Password, new CVolumePasswordPage);
     //setPage(Page_Cost, new CVolumeCostPage);
     setPage(Page_Summary, new CVolumeSummaryPage);
@@ -107,6 +108,7 @@ bool CVolumeWizard::ShowWizard(QWidget* parent)
     QString Cipher = wizard.GetCipher();
     QString FS = wizard.GetFileSystem();
     int iKdf = wizard.GetKdf();
+    int iSlots = wizard.GetSlotCount();
 
     // Show progress dialog and run operation in background
     CProgressDialog* pProgress = new CProgressDialog(QObject::tr("Creating encrypted volume..."), parent ? parent : theGUI);
@@ -123,7 +125,7 @@ bool CVolumeWizard::ShowWizard(QWidget* parent)
     });
 
     QFuture<STATUS> future = QtConcurrent::run([=]() {
-        return theCore->CreateVolume(Path, Password, ImageSize, Cipher, iKdf, FS);
+        return theCore->CreateVolume(Path, Password, ImageSize, Cipher, iKdf, FS, iSlots);
     });
     pWatcher->setFuture(future);
 
@@ -183,6 +185,12 @@ int CVolumeWizard::GetKdf() const
 {
     int iKdf = field("kdfValue").toInt();
     return iKdf;
+}
+
+int CVolumeWizard::GetSlotCount() const
+{
+    CVolumePropertiesPage* pPage = qobject_cast<CVolumePropertiesPage*>(page(Page_Properties));
+    return pPage ? pPage->GetSlotCount() : IMBOX_SLOTS_DEFAULT;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -456,7 +464,7 @@ void CVolumeEncryptionPage::OnKdfChanged(int index)
 
 int CVolumeEncryptionPage::nextId() const
 {
-    return CVolumeWizard::Page_Password;
+    return CVolumeWizard::Page_Properties;
 }
 
 #if 0
@@ -746,11 +754,38 @@ CVolumePasswordPage::CVolumePasswordPage(QWidget *parent)
     pwLayout->addWidget(m_pConfirmPassword, 1, 1);
 
     QHBoxLayout* optionsLayout = new QHBoxLayout;
-    m_pShowPassword = new QCheckBox(tr("Show password"));
-    connect(m_pShowPassword, &QCheckBox::toggled, this, &CVolumePasswordPage::OnShowPassword);
-    optionsLayout->addWidget(m_pShowPassword);
+
+    //
+    // The same shape as the secure-entry button below - icon and label, not a
+    // bare square - so the three sit together as one row of choices rather than
+    // a checkbox and two mystery glyphs.
+    //
+    m_pShowPasswordBtn = new QToolButton;
+    m_pShowPasswordBtn->setIcon(QIcon(":/Icons/Invisible.png"));
+    m_pShowPasswordBtn->setText(tr("Show Password"));
+    m_pShowPasswordBtn->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    m_pShowPasswordBtn->setToolTip(tr("Show the password as it is typed"));
+    m_pShowPasswordBtn->setCheckable(true);
+    connect(m_pShowPasswordBtn, &QToolButton::clicked, this, &CVolumePasswordPage::OnShowPassword);
+    optionsLayout->addWidget(m_pShowPasswordBtn);
 
     optionsLayout->addStretch();
+
+    //
+    // Keyfiles only when dcvolume.dll is there to mix them; without it the
+    // button would open a dialog that cannot finish what it starts.
+    //
+    m_pKeyFilesBtn = nullptr;
+    if (CKeyFilesWnd::IsAvailable())
+    {
+        m_pKeyFilesBtn = new QToolButton;
+        m_pKeyFilesBtn->setIcon(QIcon(":/Icons/VolumePW.png"));
+        m_pKeyFilesBtn->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+        m_pKeyFilesBtn->setCheckable(true);
+        connect(m_pKeyFilesBtn, &QToolButton::clicked, this, &CVolumePasswordPage::OnKeyFiles);
+        optionsLayout->addWidget(m_pKeyFilesBtn);
+        UpdateKeyFilesButton();
+    }
 
     m_pSecureEntryBtn = new QToolButton;
     m_pSecureEntryBtn->setIcon(QIcon(":/Icons/Shield.png"));
@@ -787,7 +822,7 @@ CVolumePasswordPage::CVolumePasswordPage(QWidget *parent)
 
 void CVolumePasswordPage::OnShowPassword()
 {
-    QLineEdit::EchoMode mode = m_pShowPassword->isChecked() ? QLineEdit::Normal : QLineEdit::Password;
+    QLineEdit::EchoMode mode = m_pShowPasswordBtn->isChecked() ? QLineEdit::Normal : QLineEdit::Password;
     m_pPassword->setEchoMode(mode);
     m_pConfirmPassword->setEchoMode(mode);
 }
@@ -841,8 +876,34 @@ void CVolumePasswordPage::OnSecurePasswordEntry()
     }
 }
 
+void CVolumePasswordPage::UpdateKeyFilesButton()
+{
+    if (!m_pKeyFilesBtn)
+        return;
+
+    m_pKeyFilesBtn->setChecked(!m_KeyFiles.IsEmpty());
+    m_pKeyFilesBtn->setText(m_KeyFiles.IsEmpty()
+        ? tr("Keyfiles")
+        : tr("Keyfiles (%1)").arg(m_KeyFiles.Count()));
+    m_pKeyFilesBtn->setToolTip(m_KeyFiles.IsEmpty()
+        ? tr("Mix keyfiles into the password")
+        : tr("%1 keyfile(s) will be mixed into the password").arg(m_KeyFiles.Count()));
+}
+
+void CVolumePasswordPage::OnKeyFiles()
+{
+    CKeyFilesWnd Wnd(m_KeyFiles, this);
+    if (Wnd.exec() == QDialog::Accepted)
+        m_KeyFiles = Wnd.GetKeyFiles();
+    UpdateKeyFilesButton();
+}
+
 CSecurePassword CVolumePasswordPage::GetPassword() const
 {
+    // what validatePage built, when keyfiles were named
+    if (!m_MixedPassword.IsEmpty())
+        return m_MixedPassword;
+
     if (!m_SecurePassword.IsEmpty())
         return m_SecurePassword;
     QString sPassword = m_pPassword->text();
@@ -954,6 +1015,23 @@ bool CVolumePasswordPage::validatePage()
             return false;
     }
 
+    //
+    // Fold the keyfiles in here rather than in GetPassword, so that an
+    // unreadable one is a message with the page still open instead of a volume
+    // created with a password nobody can reproduce.
+    //
+    m_MixedPassword.ClearPassword();
+    if (!m_KeyFiles.IsEmpty())
+    {
+        QString Error;
+        if (!CKeyFilesWnd::Mix(m_KeyFiles, pw, &Error)) {
+            QMessageBox::critical(this, tr("Volume Creation"),
+                tr("The keyfiles could not be applied.\n\n%1").arg(Error));
+            return false;
+        }
+        m_MixedPassword = pw;
+    }
+
     return true;
 }
 
@@ -1060,6 +1138,71 @@ bool CVolumeCostPage::isComplete() const
 #endif
 
 //////////////////////////////////////////////////////////////////////////////////////////
+// CVolumePropertiesPage
+//
+
+CVolumePropertiesPage::CVolumePropertiesPage(QWidget *parent)
+    : QWizardPage(parent)
+{
+    setTitle(tr("Volume Properties"));
+    setSubTitle(tr("How the volume header itself is laid out."));
+
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->setSpacing(4);
+
+    m_pTopLabel = new QLabel(tr(
+        "A key slot holds the volume's key wrapped under a password of its own, so several "
+        "different passwords can open the same volume without any of them being the volume's "
+        "own password. Slots can be filled in later from the header editor; what is fixed now "
+        "is how many there is room for."));
+    m_pTopLabel->setWordWrap(true);
+    layout->addWidget(m_pTopLabel);
+
+    QGridLayout *grid = new QGridLayout;
+    grid->setSpacing(4);
+    grid->setContentsMargins(0, 8, 0, 0);
+
+    grid->addWidget(new QLabel(tr("Key Slots:")), 0, 0);
+    m_pSlotCount = new QSpinBox;
+    m_pSlotCount->setRange(0, IMBOX_SLOTS_MAX);
+    m_pSlotCount->setValue(IMBOX_SLOTS_DEFAULT);
+    connect(m_pSlotCount, QOverload<int>::of(&QSpinBox::valueChanged), this, &CVolumePropertiesPage::OnSlotCountChanged);
+    grid->addWidget(m_pSlotCount, 0, 1);
+    grid->setColumnStretch(2, 1);
+
+    layout->addLayout(grid);
+
+    m_pSlotInfo = new QLabel;
+    m_pSlotInfo->setWordWrap(true);
+    layout->addWidget(m_pSlotInfo);
+
+    OnSlotCountChanged(m_pSlotCount->value());
+
+    layout->addStretch();
+    setLayout(layout);
+}
+
+void CVolumePropertiesPage::OnSlotCountChanged(int value)
+{
+    if (value == 0)
+        m_pSlotInfo->setText(tr("<i>No key slots. Only the volume password will ever open this volume, "
+            "and slots cannot be added afterwards without rewriting the header.</i>"));
+    else
+        m_pSlotInfo->setText(tr("<i>Room for %1 additional passwords. Empty slots are filled with random data, "
+            "so an unused slot is indistinguishable from one in use.</i>").arg(value));
+}
+
+int CVolumePropertiesPage::GetSlotCount() const
+{
+    return m_pSlotCount->value();
+}
+
+int CVolumePropertiesPage::nextId() const
+{
+    return CVolumeWizard::Page_Password;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
 // CVolumeSummaryPage
 //
 
@@ -1108,6 +1251,10 @@ void CVolumeSummaryPage::initializePage()
 
     int iKdf = field("kdfValue").toInt();
 
+    int iSlots = IMBOX_SLOTS_DEFAULT;
+    if (CVolumePropertiesPage* pProps = qobject_cast<CVolumePropertiesPage*>(wizard()->page(CVolumeWizard::Page_Properties)))
+        iSlots = pProps->GetSlotCount();
+
     QString summary = tr(
         "<table>"
         "<tr><td><b>Volume Location:</b></td><td>%1</td></tr>"
@@ -1115,12 +1262,14 @@ void CVolumeSummaryPage::initializePage()
         "<tr><td><b>File System:</b></td><td>%3</td></tr>"
         "<tr><td><b>Encryption Algorithm:</b></td><td>%4</td></tr>"
         "<tr><td><b>Key Derivation:</b></td><td>%5</td></tr>"
+        "<tr><td><b>Key Slots:</b></td><td>%6</td></tr>"
         "</table>")
         .arg(volumePath)
         .arg(sizeStr)
         .arg(fileSystem)
         .arg(cipher)
-        .arg(CVolumeWindow::GetKdfName(iKdf));
+        .arg(CVolumeWindow::GetKdfName(iKdf))
+        .arg(iSlots ? QString::number(iSlots) : tr("none"));
 
     m_pSummaryLabel->setText(summary);
 }

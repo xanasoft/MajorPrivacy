@@ -310,7 +310,7 @@ bool RemoveJunction(const std::wstring& FileRootPath)
     return ok;
 }
 
-RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iKdf, const std::wstring& Cipher, ULONG64 sizeKb, const std::wstring& MountPoint = L"", ULONG DeviceNumber = 0, const std::wstring& FS = L"")
+RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iKdf, const std::wstring& Cipher, ULONG64 sizeKb, const std::wstring& MountPoint = L"", ULONG DeviceNumber = 0, const std::wstring& FS = L"", int iSlots = -1)
 {
     std::shared_ptr<CVolume> pMount = std::make_shared<CVolume>();
 
@@ -350,6 +350,8 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
     if (ImageFile.empty()) cmd = L"ImBox type=ram";
     else cmd = L"ImBox \"image=" + ImageFile + L"\"";
     if (pPassword && *pPassword) cmd += L" cipher=" + (Cipher.empty() ? L"AES" : Cipher);
+    // only meaningful when a container is being created; ignored on a mount
+    if (iSlots >= 0) cmd += L" slots=" + std::to_wstring(iSlots);
     //cmd += L" size=" + std::to_wstring(sizeKb) + L" mount=" + std::wstring(Drive) + L" format=ntfs:" DISK_LABEL;
     cmd += L" size=" + std::to_wstring(sizeKb) + L" mount=" + std::wstring(Drive);
     cmd += L" format=" + (FS.empty() ? L"NTFS" : FS);
@@ -405,7 +407,9 @@ RESULT(std::shared_ptr<CVolume>) MountImDisk(const std::wstring& ImageFile, cons
             pSection->in.pw.size = (int)(wcslen(pPassword) * sizeof(wchar_t));
             memcpy(pSection->in.pw.pass, pPassword, pSection->in.pw.size);
             pSection->in.pw.kdf = iKdf;
-            //pSection->in.pw.slot = -KEY_SLOT_MAX;
+            // try the header password first, then every key slot - a container
+            // may just as well be opened with a slot password
+            pSection->in.pw.slot = SPASS_SLOT_ANY;
 
             status = NtWriteVirtualMemory(pi.hProcess, pMem, (PVOID)pSpace, sizeof(pSpace), NULL);
         }
@@ -615,12 +619,12 @@ STATUS CVolumeManager::Update()
     return STATUS_SUCCESS;
 }
 
-STATUS CVolumeManager::CreateImage(const std::wstring& Path, const CSecurePassword& Password, uint64 uSize, const std::wstring& Cipher, int iKdf, const std::wstring& FS)
+STATUS CVolumeManager::CreateImage(const std::wstring& Path, const CSecurePassword& Password, uint64 uSize, const std::wstring& Cipher, int iKdf, const std::wstring& FS, int iSlots)
 {
     if(Password.IsEmpty())
         return STATUS_INVALID_PARAMETER;
 
-    auto Res = MountImDisk(Path, Password.GetPassword(), iKdf, Cipher, uSize, L"", 0, FS);
+    auto Res = MountImDisk(Path, Password.GetPassword(), iKdf, Cipher, uSize, L"", 0, FS, iSlots);
     if(Res.IsError())
         return Res;
 
@@ -1192,7 +1196,7 @@ STATUS CVolumeManager::LoadVolumeData(const std::shared_ptr<CVolume>& pMount, bo
 		CHashPtr pEntry = theCore->HashDB()->GetEntry(HashValue);
         if (pEntry)
         {
-            StVariant Enclaves = Data[API_S_ENCLAVES];
+            StVariant Enclaves = Entry[API_S_ENCLAVES];
             for (uint32 i = 0; i < Enclaves.Count(); i++)
                 pEntry->AddEnclave(Enclaves[i].AsStr());
         }

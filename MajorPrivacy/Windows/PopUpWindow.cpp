@@ -10,6 +10,10 @@
 #include "../Library/Helpers/NtPathMgr.h"
 #include "../Core/Network/NetLogEntry.h"
 #include "FirewallRuleWnd.h"
+#include "FwGuardEntryWnd.h"
+#include "FwTemplateWnd.h"
+#include "RuleLifetime.h"
+#include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include "AccessRuleWnd.h"
 #include "ProgramRuleWnd.h"
 #include "../Core/PrivacyCore.h"
@@ -20,6 +24,7 @@
 #include "../Core/Programs/ProgramManager.h"
 #include "../Library/Helpers/NtObj.h"
 #include <QFileIconProvider>
+#include <QHostAddress>
 #include "../Core/Volumes/VolumeManager.h"
 #include "../Core/Processes/ProcessList.h"
 #include "../Core/Enclaves/EnclaveManager.h"
@@ -138,10 +143,20 @@ CPopUpWindow::CPopUpWindow(QWidget* parent) : QMainWindow(parent)
 	m_pFwCustom = pFwAllow->addAction(tr("Create Custom Rule"), this, SLOT(OnFwAction()));
 	//pFwIgnore->addSeparator();
 	//m_pFwLanOnly = pFwAllow->addAction(tr("Allow LAN only"), this, SLOT(OnFwAction()));
+	pFwAllow->addSeparator();
+	m_pFwAllowTemplate = pFwAllow->addAction(tr("Create Allow Rule Template..."), this, SLOT(OnFwAction()));
+	m_pFwAllowOnly = pFwAllow->addAction(tr("Allow this Program only"), this, SLOT(OnFwAction()));
+	pFwAllow->setToolTipsVisible(true);
 	ui.btnFwAllow->setPopupMode(QToolButton::MenuButtonPopup);
 	ui.btnFwAllow->setMenu(pFwAllow);
 
 	connect(ui.btnFwBlock, SIGNAL(clicked(bool)), this, SLOT(OnFwAction()));
+	QMenu* pFwBlock = new QMenu(ui.btnFwBlock);
+	m_pFwBlockTemplate = pFwBlock->addAction(tr("Create Block Rule Template..."), this, SLOT(OnFwAction()));
+	m_pFwBlockOnly = pFwBlock->addAction(tr("Block this Program only"), this, SLOT(OnFwAction()));
+	pFwBlock->setToolTipsVisible(true);
+	ui.btnFwBlock->setPopupMode(QToolButton::MenuButtonPopup);
+	ui.btnFwBlock->setMenu(pFwBlock);
 
 
 	connect(ui.btnFwDiscard, SIGNAL(clicked(bool)), this, SLOT(OnFwRule()));
@@ -149,17 +164,35 @@ CPopUpWindow::CPopUpWindow(QWidget* parent) : QMainWindow(parent)
 	connect(ui.btnFwApprove, SIGNAL(clicked(bool)), this, SLOT(OnFwRule()));
 	QMenu* pFwApprove = new QMenu(ui.btnFwApprove);
 	m_pFwApproveAll = pFwApprove->addAction(tr("Approve All"), this, SLOT(OnFwRule()));
+	pFwApprove->addSeparator();
+	m_pFwApproveAuto = pFwApprove->addAction(tr("Add Auto Approve Entry..."), this, SLOT(OnFwRule()));
+	m_pFwApproveTemplate = pFwApprove->addAction(tr("Create Rule Template..."), this, SLOT(OnFwRule()));
+	pFwApprove->setToolTipsVisible(true);
 	ui.btnFwApprove->setPopupMode(QToolButton::MenuButtonPopup);
 	ui.btnFwApprove->setMenu(pFwApprove);
 
 	connect(ui.btnFwReject, SIGNAL(clicked(bool)), this, SLOT(OnFwRule()));
 	QMenu* pFwReject = new QMenu(ui.btnFwReject);
 	m_pFwRejectAll = pFwReject->addAction(tr("Reject All"), this, SLOT(OnFwRule()));
+	pFwReject->addSeparator();
+	m_pFwRejectAuto = pFwReject->addAction(tr("Add Auto Reject Entry..."), this, SLOT(OnFwRule()));
+	m_pFwRejectTemplate = pFwReject->addAction(tr("Create Rule Template..."), this, SLOT(OnFwRule()));
+	pFwReject->setToolTipsVisible(true);
 	ui.btnFwReject->setPopupMode(QToolButton::MenuButtonPopup);
 	ui.btnFwReject->setMenu(pFwReject);
 
 
 	connect(ui.treeFwRules, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(OnFwRuleDblClick(QTreeWidgetItem*)));
+
+	// enabled by UpdateFwPattern once there is an entry to derive a path pattern from
+	m_pFwAllowTemplate->setEnabled(false);
+	m_pFwBlockTemplate->setEnabled(false);
+	m_pFwAllowOnly->setEnabled(false);
+	m_pFwBlockOnly->setEnabled(false);
+	m_pFwApproveAuto->setEnabled(false);
+	m_pFwRejectAuto->setEnabled(false);
+	m_pFwApproveTemplate->setEnabled(false);
+	m_pFwRejectTemplate->setEnabled(false);
 
 	// Resources
 	connect(ui.btnResPrev, SIGNAL(clicked(bool)), this, SLOT(OnResPrev()));
@@ -383,9 +416,10 @@ void CPopUpWindow::PushFwEvent(const CProgramFilePtr& pProgram, const CLogEntryP
 	PushFwEvent(Prog);
 }
 
-void CPopUpWindow::PushFwRuleEvent(EConfigEvent EventType, const CFwRulePtr& pFwRule)
+void CPopUpWindow::PushFwRuleEvent(EConfigEvent EventType, const CFwRulePtr& pFwRule, CProgramItemPtr pProgram)
 {
-	CProgramItemPtr pProgram = theCore->ProgramManager()->GetProgramByID(pFwRule->GetProgramID());
+	if (pProgram.isNull())
+		pProgram = theCore->ProgramManager()->GetProgramByID(pFwRule->GetProgramID());
 
 	SFwProgram Prog = { SFwProgram::eRuleEvent, pProgram };
 	QList<SFwRuleEvent>& List = m_FwRuleEvents[pProgram];
@@ -499,7 +533,11 @@ void CPopUpWindow::LoadFwEntry(bool bUpdate)
 		ui.lblFwAux->setText(pProgram->GetPublisher());
 		ui.lblFwIcon->setPixmap(pProgram->GetIcon().pixmap(32, 32));
 		((CPathLabel*)ui.lblFwPath)->setPath(pProgram->GetPath());
+
+		UpdateFwPattern(pProgram);
 	}
+	else
+		UpdateFwOffers(pProgram); // more events came in, or a template went up, the pattern stays
 
 	switch (m_FwPrograms[m_iFwIndex].Type)
 	{
@@ -610,12 +648,912 @@ void CPopUpWindow::UpdateFwRule(const SFwRuleEvent& Event, QTreeWidgetItem* pIte
 		else
 			Action += tr(" %1 -> %2").arg(pFwRuleOld->GetDirectionStr()).arg(pFwRule->GetDirectionStr());
 
+		if (pFwRule->GetProgramID() != pFwRuleOld->GetProgramID())
+			Action += tr(", moved from %1").arg(pFwRuleOld->GetProgramID().GetFilePath());
+
 		pItem->setText(eFwAction, Action);
 	}
 	else
 		pItem->setText(eFwAction, pFwRule->GetActionStr() + " " + pFwRule->GetDirectionStr());
 	pItem->setText(eFwRuleName, CMajorPrivacy::GetResourceStr(pFwRule->GetName()));
 	pItem->setToolTip(eFwRuleName, pFwRule->GetName());
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Firewall path patterns
+//
+// Windows changes binary paths on every update, store apps worst of all, and every such change
+// produces the very same prompt again. Deciding the same thing over and over is what makes a user
+// stop reading the prompts, which is a security problem in itself, so where a program looks like a
+// new version of something which was already decided about we offer to make the decision by path
+// pattern instead, as a rule template for the allow/block prompt and as a guard entry for the
+// approve/reject prompt. The pattern is only ever derived from paths which already carry a
+// firewall decision, never guessed, and the user gets to see and edit it before it takes effect.
+//
+
+// everything we have already made a firewall decision about, the backups of rules which were just
+// replaced included, as those carry the path of the version the user did approve of
+static QStringList CPopUpWindow__GetKnownFwPaths(const QString& Exclude)
+{
+	QStringList Paths;
+	QSet<QString> Seen;
+	foreach(const CFwRulePtr& pFwRule, theCore->NetworkManager()->GetFwRules())
+	{
+		if (pFwRule->IsTemplate())
+			continue; // a pattern tells us nothing about what varies
+
+		QString Path = pFwRule->GetProgramID().GetFilePath();
+		if (Path.isEmpty())
+			Path = pFwRule->GetBinaryPath();
+		if (Path.isEmpty() || Path == "*" || Path.compare(Exclude, Qt::CaseInsensitive) == 0)
+			continue;
+
+		QString Key = Path.toLower();
+		if (Seen.contains(Key))
+			continue;
+		Seen.insert(Key);
+		Paths.append(Path);
+	}
+	return Paths;
+}
+
+static bool CPopUpWindow__CoversDirection(EFwDirections Template, EFwDirections Wanted)
+{
+	// the directions are bits, bidirectional being both of them
+	return Wanted != EFwDirections::Unknown && ((int)Wanted & ~(int)Template) == 0;
+}
+
+// the enabled templates whose pattern takes in this path, of one action or of any
+static QList<CFwRulePtr> CPopUpWindow__GetTemplates(const QString& Path, EFwActions Action = EFwActions::Undefined)
+{
+	QList<CFwRulePtr> Templates;
+	if (Path.isEmpty())
+		return Templates;
+	foreach(const CFwRulePtr& pFwRule, theCore->NetworkManager()->GetFwRules()) {
+		if (!pFwRule->IsTemplate() || !pFwRule->IsEnabled())
+			continue;
+		if (Action != EFwActions::Undefined && pFwRule->GetAction() != Action)
+			continue;
+		if (MatchPathPattern(pFwRule->GetProgramID().GetFilePath(), Path))
+			Templates.append(pFwRule);
+	}
+	return Templates;
+}
+
+//
+// Whether a template already decides what is on screen, and if not, whether there is one which
+// would if only it pointed both ways. The service holds a template against a connection or a rule
+// by direction as well as by path, so the path alone says too little: an outbound template says
+// nothing about the program accepting a connection, and the prompt about that is a real one. The
+// answer to it is then to extend that template, rather than to put a second one next to it.
+//
+enum class EFwTemplateFit
+{
+	eNone = 0,	// nothing for this path, a new template would be needed
+	eCovered,	// a template already stands for this
+	eWiden,		// one stands for this path, only not in this direction
+};
+
+static EFwTemplateFit CPopUpWindow__FitTemplate(const QString& Path, EFwActions Action, EFwDirections Direction, CFwRulePtr* ppWiden = NULL)
+{
+	EFwTemplateFit Fit = EFwTemplateFit::eNone;
+	foreach(const CFwRulePtr& pTemplate, CPopUpWindow__GetTemplates(Path, Action)) {
+		if (CPopUpWindow__CoversDirection(pTemplate->GetDirection(), Direction)) {
+			if (ppWiden) ppWiden->clear(); // one seen before may have lacked the direction, this one does not
+			return EFwTemplateFit::eCovered;
+		}
+		if (Fit == EFwTemplateFit::eNone) {
+			Fit = EFwTemplateFit::eWiden;
+			if (ppWiden) *ppWiden = pTemplate;
+		}
+	}
+	return Fit;
+}
+
+static QString CPopUpWindow__WidenTip(const CFwRulePtr& pTemplate)
+{
+	return CPopUpWindow::tr("The %1 rule template for\n%2\nonly covers %3 connections. This extends it to both directions, so that it covers this one as well.")
+		.arg(pTemplate->GetActionStr().toLower()).arg(pTemplate->GetProgramID().GetFilePath()).arg(pTemplate->GetDirectionStr().toLower());
+}
+
+// which ways the connection attempts waiting on this program go
+EFwDirections CPopUpWindow::GetFwEventDirections(const CProgramItemPtr& pProgram)
+{
+	int Directions = 0;
+	foreach(const SLogEntry& Entry, m_FwEvents.value(pProgram.objectCast<CProgramFile>())) {
+		const CNetLogEntry* pEntry = dynamic_cast<const CNetLogEntry*>(Entry.pPtr.constData());
+		if (pEntry)
+			Directions |= (int)pEntry->GetDirection();
+	}
+	return (EFwDirections)Directions;
+}
+
+//
+// What was observed is what is proposed: the directions the waiting connections go, both only
+// where both were seen. It used to point both ways whenever something came in, on the grounds
+// that a program accepting connections makes them as well, but that decides more than was asked.
+// The template window shows it and the user widens it there if they want to.
+//
+EFwDirections CPopUpWindow::GetFwTemplateDirection(const CProgramItemPtr& pProgram, bool bAllow)
+{
+	Q_UNUSED(bAllow);
+	EFwDirections Observed = GetFwEventDirections(pProgram);
+	return Observed != EFwDirections::Unknown ? Observed : EFwDirections::Outbound;
+}
+
+void CPopUpWindow::UpdateFwPattern(const CProgramItemPtr& pProgram)
+{
+	m_FwPattern = SPathPattern();
+
+	QString Path = pProgram.isNull() ? QString() : pProgram->GetPath();
+	if (!Path.isEmpty() && !Path.contains('*') && !Path.contains('?'))
+	{
+		m_FwPattern = MakePathPattern(Path, CPopUpWindow__GetKnownFwPaths(Path));
+
+		//
+		// Nothing to compare against, the first time a store app asks for instance. The user may
+		// still want to decide every version of it at once, so the dropdowns offer a pattern read
+		// off the path alone. Only offer: the questions which come up by themselves stay with a
+		// deduced pattern, as they say this looks like something already decided about.
+		//
+		if (!m_FwPattern.IsValid())
+			m_FwPattern = GuessPathPattern(Path);
+	}
+
+	UpdateFwOffers(pProgram);
+}
+
+//
+// What the dropdowns offer depends on the pattern, which only changes with the program, and on
+// the events waiting and the templates standing, which change while the page is shown.
+//
+void CPopUpWindow::UpdateFwOffers(const CProgramItemPtr& pProgram)
+{
+	QString Path = pProgram.isNull() ? QString() : pProgram->GetPath();
+
+	QString Found;
+	if (!m_FwPattern.IsValid())
+		Found = tr("This program has no path a pattern could be made of.");
+	else if (m_FwPattern.Guessed && m_FwPattern.Pattern.compare(Path, Qt::CaseInsensitive) == 0)
+		Found = tr("No program with a similar path has a firewall rule yet, and no version number was found in this path, so the pattern starts out as the path itself:\n%1\n\nEdit it before saving to cover more than this one binary.").arg(m_FwPattern.Pattern);
+	else if (m_FwPattern.Guessed)
+		Found = tr("Covers %1\n\nNo program with a similar path has a firewall rule yet, so this was read off the path alone, with the version number wildcarded. Check it before saving.").arg(m_FwPattern.Pattern);
+	else
+		Found = tr("Covers %1\n\nDerived from:\n%2").arg(m_FwPattern.Pattern).arg(m_FwPattern.Similar.join("\n"));
+
+	bool bTemplates = theCore->GetConfigBool("Service/UseFwRuleTemplates", true);
+	QString OffTip = tr("Firewall rule templates are turned off in the options.");
+	QString CoveredTip = tr("A rule template covering this program already exists.");
+
+	m_pFwAllowWiden.clear();
+	m_pFwBlockWiden.clear();
+	m_pFwApproveWiden.clear();
+	m_pFwRejectWiden.clear();
+
+	bool bTemplate = bTemplates && m_FwPattern.IsValid(); // a new template could be made
+	QString TemplateTip = bTemplates ? Found : OffTip;
+
+	//
+	// Any template covering the direction of the connections waiting decides them, whatever its
+	// action. One which only lacks the direction can be widened, but only into the decision being
+	// made: allowing does not extend a block template.
+	//
+	EFwDirections Needed = GetFwEventDirections(pProgram);
+	if (bTemplates && CPopUpWindow__FitTemplate(Path, EFwActions::Undefined, Needed) == EFwTemplateFit::eCovered) {
+		TemplateTip = CoveredTip;
+		bTemplate = false;
+	}
+	else if (bTemplates) {
+		CPopUpWindow__FitTemplate(Path, EFwActions::Allow, Needed, &m_pFwAllowWiden);
+		CPopUpWindow__FitTemplate(Path, EFwActions::Block, Needed, &m_pFwBlockWiden);
+	}
+
+	bool bAllowTmpl = bTemplate || m_pFwAllowWiden;
+	bool bBlockTmpl = bTemplate || m_pFwBlockWiden;
+
+	// what Allow and Block may do by themselves, a pattern guessed with nothing to go on is only ever offered
+	bool bDeduced = bTemplate && !m_FwPattern.Guessed;
+	bool bAllowAuto = bDeduced || m_pFwAllowWiden;
+	bool bBlockAuto = bDeduced || m_pFwBlockWiden;
+
+	m_pFwAllowTemplate->setText(m_pFwAllowWiden ? tr("Extend Allow Rule Template to Both Directions") : tr("Create Allow Rule Template..."));
+	m_pFwBlockTemplate->setText(m_pFwBlockWiden ? tr("Extend Block Rule Template to Both Directions") : tr("Create Block Rule Template..."));
+	m_pFwAllowTemplate->setEnabled(bAllowTmpl);
+	m_pFwBlockTemplate->setEnabled(bBlockTmpl);
+	m_pFwAllowTemplate->setToolTip(m_pFwAllowWiden ? CPopUpWindow__WidenTip(m_pFwAllowWiden) : TemplateTip);
+	m_pFwBlockTemplate->setToolTip(m_pFwBlockWiden ? CPopUpWindow__WidenTip(m_pFwBlockWiden) : TemplateTip);
+
+	//
+	// Allow and Block may end up making a template rather than a rule for this one binary, so a
+	// way to say "just this one" has to be at hand wherever that can happen.
+	//
+	QString OnlyTip = tr("Decides this program alone and leaves the path pattern out of it.");
+	QString PlainTip = tr("Allow and Block decide this program alone already, nothing similar is known to offer a template for.");
+	m_pFwAllowOnly->setEnabled(bAllowAuto);
+	m_pFwBlockOnly->setEnabled(bBlockAuto);
+	m_pFwAllowOnly->setToolTip(bAllowAuto ? OnlyTip : bTemplate ? PlainTip : TemplateTip);
+	m_pFwBlockOnly->setToolTip(bBlockAuto ? OnlyTip : bTemplate ? PlainTip : TemplateTip);
+
+	m_bFwTemplateOffer = bDeduced;
+
+	bool bGuard = m_FwPattern.IsValid();
+	QString GuardTip = Found;
+	if (bGuard && CFwGuardEntryWnd::IsCovered(Path)) {
+		GuardTip = tr("The firewall guard already has an entry covering this program.");
+		bGuard = false;
+	}
+
+	m_pFwApproveAuto->setEnabled(bGuard);
+	m_pFwRejectAuto->setEnabled(bGuard);
+	m_pFwApproveAuto->setToolTip(GuardTip);
+	m_pFwRejectAuto->setToolTip(GuardTip);
+
+	m_bFwGuardOffer = bGuard;
+
+	//
+	// The same decision offered as a rule template instead of as a guard entry. The two are not
+	// interchangeable: a guard entry waves a change through whatever it is, while a template is a
+	// statement about rules and is held against each one. So a template can only be offered where
+	// there is a rule for it to agree or disagree with. A removal is not one, it is settled by the
+	// removal option on its own, and turning a rule down needs a block template, because an allow
+	// template deliberately says nothing about a block rule.
+	//
+	// here the rules pending give the action and the direction, so only a template agreeing on both decides them
+	auto RuleOffer = [&](bool bApprove, EFwActions& Action, CFwRulePtr& pWiden, QString& Tip) -> bool
+	{
+		if (!bTemplates) {
+			Tip = OffTip;
+			return false;
+		}
+		EFwDirections Direction = EFwDirections::Bidirectional;
+		if (!GetFwRuleTemplateAction(pProgram, bApprove, Action, Direction)) {
+			Tip = bApprove
+				? tr("A rule template speaks about rules which turn up or change, not about one being taken away, and it can only stand for several at once when they all say the same thing.")
+				: tr("Only a block rule template can turn a rule down, which needs the rules in question to be allow rules.");
+			return false;
+		}
+		switch (CPopUpWindow__FitTemplate(Path, Action, Direction, &pWiden))
+		{
+		case EFwTemplateFit::eCovered:	Tip = CoveredTip; return false;
+		case EFwTemplateFit::eWiden:	Tip = CPopUpWindow__WidenTip(pWiden); return true;
+		default:						Tip = Found; return m_FwPattern.IsValid();
+		}
+	};
+
+	EFwActions Action = EFwActions::Undefined;
+	QString ApproveTip;
+	bool bApproveTmpl = RuleOffer(true, Action, m_pFwApproveWiden, ApproveTip);
+
+	EFwActions RejectAction = EFwActions::Undefined;
+	QString RejectTip;
+	bool bRejectTmpl = RuleOffer(false, RejectAction, m_pFwRejectWiden, RejectTip);
+
+	// the entry says which way the template will stand, there is no guessing left for the user
+	bool bBlock = bApproveTmpl && Action == EFwActions::Block;
+	if (m_pFwApproveWiden)
+		m_pFwApproveTemplate->setText(bBlock ? tr("Extend Block Rule Template to Both Directions") : tr("Extend Allow Rule Template to Both Directions"));
+	else
+		m_pFwApproveTemplate->setText(bBlock ? tr("Create Block Rule Template...") : tr("Create Allow Rule Template..."));
+	m_pFwRejectTemplate->setText(m_pFwRejectWiden ? tr("Extend Block Rule Template to Both Directions") : tr("Create Block Rule Template..."));
+
+	m_pFwApproveTemplate->setEnabled(bApproveTmpl);
+	m_pFwRejectTemplate->setEnabled(bRejectTmpl);
+
+	m_bFwTemplateApprove = bApproveTmpl;
+	m_bFwTemplateReject = bRejectTmpl;
+
+	m_pFwApproveTemplate->setToolTip(ApproveTip);
+	m_pFwRejectTemplate->setToolTip(RejectTip);
+}
+
+//
+// Which action and direction a template has to carry so that a change like the one on screen is
+// decided the same way the next time round. Approving means a change like this is wanted, which a
+// template says by agreeing with the rule; rejecting means it is not, and only a block template
+// says that. Returns false where no template can stand for what is pending.
+//
+bool CPopUpWindow::GetFwRuleTemplateAction(const CProgramItemPtr& pProgram, bool bApprove, EFwActions& Action, EFwDirections& Direction)
+{
+	bool bFound = false;
+	foreach(const SFwRuleEvent& Event, m_FwRuleEvents.value(pProgram))
+	{
+		CFwRulePtr pFwRule = Event.pFwRule;
+		if (pFwRule.isNull())
+			continue;
+
+		EConfigEvent EventType = Event.EventType;
+		if (EventType == EConfigEvent::eModified) {
+			// the event carries the backup, the rule as it stands now hangs off the original guid
+			CFwRulePtr pLive = theCore->NetworkManager()->GetFwRules().value(pFwRule->GetOriginalGuid());
+			if (pLive.isNull())
+				EventType = EConfigEvent::eRemoved;
+			else
+				pFwRule = pLive;
+		}
+
+		if (EventType == EConfigEvent::eRemoved)
+			return false; // no template has a say in a rule being taken away
+
+		EFwActions RuleAction = pFwRule->GetAction();
+		if (RuleAction != EFwActions::Allow && RuleAction != EFwActions::Block)
+			return false;
+		if (!bApprove && RuleAction != EFwActions::Allow)
+			return false; // an allow template would not turn this down, it would say nothing at all
+
+		EFwActions Wanted = bApprove ? RuleAction : EFwActions::Block;
+		EFwDirections RuleDirection = pFwRule->GetDirection();
+
+		if (bFound && (Action != Wanted || Direction != RuleDirection))
+			return false; // what is pending does not agree, one template can not stand for all of it
+
+		Action = Wanted;
+		Direction = RuleDirection;
+		bFound = true;
+	}
+	return bFound;
+}
+
+//
+// Puts the deduced pattern in front of the user as a rule template, pre filled and open for
+// editing, the same way the allow and block prompts do it.
+//
+bool CPopUpWindow::MakeFwRuleTemplate(bool bApprove, CFwRulePtr* ppRule)
+{
+	CProgramItemPtr pProgram = m_FwPrograms[m_iFwIndex].pItem;
+
+	CFwRulePtr pWiden = bApprove ? m_pFwApproveWiden : m_pFwRejectWiden;
+	if (pWiden)
+		return WidenFwTemplate(pWiden, ppRule);
+
+	EFwActions Action = EFwActions::Undefined;
+	EFwDirections Direction = EFwDirections::Bidirectional;
+	if (!GetFwRuleTemplateAction(pProgram, bApprove, Action, Direction))
+		return false;
+
+	return MakeFwTemplate(Action == EFwActions::Allow, Direction, pProgram, ppRule);
+}
+
+CProgramItemPtr CPopUpWindow::GetFwPatternItem(const QString& Pattern)
+{
+	return CFwTemplateWnd::GetPatternItem(Pattern, this);
+}
+
+//
+// Puts the deduced pattern in front of the user before it takes effect. A template is a path
+// pattern and an action and not much besides, so it gets a window of that size; the rest of the
+// rule editor is a button away for anyone who wants to set ports or addresses as well.
+//
+bool CPopUpWindow::MakeFwTemplate(bool bAllow, EFwDirections Direction, const CProgramItemPtr& pProgram, CFwRulePtr* ppRule, int Lifetime)
+{
+	if (!m_FwPattern.IsValid())
+		return false;
+
+	CFwTemplateWnd Wnd(m_FwPattern.Pattern, bAllow, Direction, m_FwPattern.Similar, this, Lifetime);
+	if (theGUI->SafeExec(&Wnd) != QDialog::Accepted)
+		return false;
+
+	CProgramItemPtr pPattern = GetFwPatternItem(Wnd.GetPattern());
+	if (pPattern.isNull())
+		return false;
+
+	CFwRulePtr pRule = CFwRulePtr(new CFwRule(pPattern->GetID()));
+	pRule->SetApproved();
+	pRule->SetSource(EFwRuleSource::eMajorPrivacy);
+	pRule->SetEnabled(true);
+	pRule->SetName(QString("MajorPrivacy-Template, %1").arg(pProgram->GetNameEx()));
+	pRule->SetProfile((int)EFwProfiles::All);
+	pRule->SetProtocol(EFwKnownProtocols::Any);
+	pRule->SetInterface((int)EFwInterfaces::All);
+	pRule->SetAction(Wnd.IsAllow() ? EFwActions::Allow : EFwActions::Block);
+	pRule->SetDirection(Wnd.GetDirection());
+	ApplyRuleLifetime(pRule.data(), Wnd.GetLifetime());
+
+	if (Wnd.WantsFullEditor())
+	{
+		QSet<CProgramItemPtr> Items;
+		Items.insert(pProgram);
+		Items.insert(pPattern); // preselected, the program itself stays available as a fallback
+		CFirewallRuleWnd* pFirewallRuleWnd = new CFirewallRuleWnd(pRule, Items);
+		if (!pFirewallRuleWnd->exec())
+			return false;
+	}
+	else
+	{
+		STATUS Status = theCore->NetworkManager()->SetFwRule(pRule);
+		if (theGUI->CheckResults(QList<STATUS>() << Status, this) != 0)
+			return false;
+	}
+
+	if (ppRule) *ppRule = pRule;
+	return true;
+}
+
+//
+// The template stays what it was, pattern, action and all, it only stops saying nothing about
+// the other direction. No editor for that: the pattern is not new, and the entry or question
+// which led here already said what is going to change.
+//
+bool CPopUpWindow::WidenFwTemplate(const CFwRulePtr& pTemplate, CFwRulePtr* ppRule)
+{
+	CFwRulePtr pRule = CFwRulePtr(pTemplate->Clone(true)); // with its guid, so it replaces the one standing
+	pRule->SetDirection(EFwDirections::Bidirectional);
+
+	STATUS Status = theCore->NetworkManager()->SetFwRule(pRule);
+	if (theGUI->CheckResults(QList<STATUS>() << Status, this) != 0)
+		return false;
+
+	if (ppRule) *ppRule = pRule;
+	return true;
+}
+
+//
+// Pressing allow or block settles one binary. Where that binary looks like a new version of one
+// already decided about, the same decision can be made by path pattern instead and the version
+// after this one will not ask at all. That is the whole point of the templates, and a feature
+// nobody opens a dropdown to find is a feature nobody has, so it is put in front of the user.
+//
+bool CPopUpWindow::WantFwTemplate(const CProgramItemPtr& pProgram, bool bAllow)
+{
+	CFwRulePtr pWiden = bAllow ? m_pFwAllowWiden : m_pFwBlockWiden;
+	if (!m_bFwTemplateOffer && !pWiden)
+		return false; // there is nothing to derive a pattern from, or a template already covers it
+
+	if (theCore->GetConfigBool("Service/FwAlwaysMakeTemplate", false))
+		return true;
+	if (theConf->GetBool("NetworkFirewall/NeverOfferTemplate", false))
+		return false;
+
+	QString Name = pProgram.isNull() ? QString() : pProgram->GetNameEx();
+	QString Text;
+	if (pWiden)
+		Text = tr("A %1 rule template already covers <b>%2</b>, but only for %3 connections, so it does not decide this one.<br /><br />"
+			"Shall it be extended to both directions, covering<br /><b>%4</b><br />"
+			"so that this program and the next versions of it do not ask about this again?")
+			.arg(pWiden->GetActionStr().toLower()).arg(Name).arg(pWiden->GetDirectionStr().toLower()).arg(pWiden->GetProgramID().GetFilePath());
+	else
+		Text = tr("<b>%1</b> looks like a new version of a program you have already decided about.<br /><br />"
+			"Shall this be remembered as a rule template covering<br /><b>%2</b><br />"
+			"so that the next version of it is covered too and does not ask again?<br /><br />"
+			"You get to see and change the pattern before it takes effect.")
+			.arg(Name).arg(m_FwPattern.Pattern);
+
+	bool bRemember = false;
+	QDialogButtonBox::StandardButton Ret = CCheckableMessageBox::question(this, "MajorPrivacy", Text,
+		tr("Don't ask again"), &bRemember,
+		QDialogButtonBox::Yes | QDialogButtonBox::No, QDialogButtonBox::Yes);
+
+	bool bWant = (Ret == QDialogButtonBox::Yes);
+	if (bRemember)
+	{
+		// the same answer from here on, said once rather than asked every time
+		if (bWant)
+			theCore->SetConfig("Service/FwAlwaysMakeTemplate", true);
+		else
+			theConf->SetValue("NetworkFirewall/NeverOfferTemplate", true);
+	}
+	return bWant;
+}
+
+//
+// Nothing in the list is picked out, so the question is what to do with all of it. Where the
+// program also happens to be one a standing answer could be written for, that is worth asking in
+// the same breath rather than leaving it to a dropdown.
+//
+// What is offered is a rule template rather than a guard entry, although either could carry the
+// decision. A template is itself a rule: it sits in the rule list where it can be seen, asked
+// about and changed. A guard entry lives in a settings page and nowhere else, so a firewall that
+// grew one every time somebody clicked yes would be deciding things somewhere nobody looks. The
+// entries stay as they were, they are simply asked for on purpose instead of arrived at by default.
+//
+bool CPopUpWindow::AskAboutAllFwRules(bool bApprove, bool& bAlsoTemplate)
+{
+	bAlsoTemplate = false;
+
+	QString Question = tr("No rules selected, do you want to apply the action to all rules?");
+
+	// a guessed pattern is in the dropdown, it is not put in front of the user unasked
+	CFwRulePtr pWiden = bApprove ? m_pFwApproveWiden : m_pFwRejectWiden;
+	if (!(bApprove ? m_bFwTemplateApprove : m_bFwTemplateReject) || (m_FwPattern.Guessed && !pWiden))
+		return QMessageBox::question(this, "MajorPrivacy", Question, QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes;
+
+	//
+	// Three answers are wanted here, not two: write the standing answer, do not write it, or step
+	// back from the whole thing. A checkbox can only carry two of those, and reading "no" as
+	// "leave it all alone" is not what anyone means by it, so each answer gets its own button.
+	//
+	QString Text = Question;
+	if (pWiden)
+		Text += tr("<br /><br />The %1 rule template for<br /><b>%2</b><br />only covers %3 rules, so it does not "
+			"answer for these. Extended to both directions it can answer for rules like these from now on.")
+			.arg(pWiden->GetActionStr().toLower()).arg(pWiden->GetProgramID().GetFilePath()).arg(pWiden->GetDirectionStr().toLower());
+	else
+		Text += tr("<br /><br />This program looks like a new version of one already decided about, so a "
+			"rule template covering<br /><b>%1</b><br />can answer for rules like these from now on. "
+			"A template is a rule itself, listed with the others, where you can see and change it.")
+			.arg(m_FwPattern.Pattern);
+	Text += tr("<br /><br /><b>Yes</b> - %2 and %1 the listed changes"
+			"<br /><b>No</b> - %1 the listed changes and nothing further"
+			"<br /><b>Cancel</b> - leave everything as it is")
+			.arg(bApprove ? tr("approve") : tr("reject"))
+			.arg(pWiden ? tr("extend that template") : tr("make that template"));
+
+	switch (QMessageBox::question(this, "MajorPrivacy", Text,
+		QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel, QMessageBox::Yes))
+	{
+	case QMessageBox::Yes:	bAlsoTemplate = true; return true;
+	case QMessageBox::No:	return true;
+	default:				return false;
+	}
+}
+
+bool CPopUpWindow::MakeFwGuardEntry(bool bApprove)
+{
+	if (!m_FwPattern.IsValid())
+		return false;
+
+	CFwGuardEntryWnd Wnd(m_FwPattern.Pattern, bApprove, m_FwPattern.Similar, this);
+	if (theGUI->SafeExec(&Wnd) != QDialog::Accepted)
+		return false;
+
+	STATUS Status = CFwGuardEntryWnd::StoreEntry(Wnd.GetPattern(), Wnd.IsApprove());
+	return theGUI->CheckResults(QList<STATUS>() << Status, this) == 0;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Firewall rule matching
+//
+// Once a rule has been approved, or a new one has been created, all pending connection attempts which
+// are covered by it are already decided and no longer require the users attention, hence they can be
+// dropped silently instead of asking the user again about something which has just been ruled on.
+//
+// Note: this is a simplified variant of CFirewall::MatchRulesWithEvent, the GUI has no adapter
+// information at hand, hence everything which depends on it is treated as inconclusive and never matches.
+//
+
+enum class EFwMatch
+{
+	eNo = 0,	// the rule definitively does not apply
+	eYes,		// the rule definitively applies
+	eUnknown	// the rule contains something which can not be evaluated here
+};
+
+static bool CPopUpWindow__IsEmptyOrStar(const QStringList& List)
+{
+	return List.isEmpty() || (List.size() == 1 && (List.first().isEmpty() || List.first() == "*"));
+}
+
+static QHostAddress CPopUpWindow__NormAddress(const QHostAddress& Address)
+{
+	bool bIsIPv4 = false;
+	quint32 uIPv4 = Address.toIPv4Address(&bIsIPv4);
+	return bIsIPv4 ? QHostAddress(uIPv4) : Address; // unify IPv4 mapped IPv6 addresses with plain IPv4 ones
+}
+
+// returns -1, 0 or 1 like memcmp does, or 2 when the two addresses can not be compared at all
+static int CPopUpWindow__CmpAddress(const QHostAddress& Left, const QHostAddress& Right)
+{
+	if (Left.isNull() || Right.isNull() || Left.protocol() != Right.protocol())
+		return 2;
+	if (Left.protocol() == QAbstractSocket::IPv4Protocol) {
+		quint32 uLeft = Left.toIPv4Address();
+		quint32 uRight = Right.toIPv4Address();
+		return uLeft < uRight ? -1 : (uLeft > uRight ? 1 : 0);
+	}
+	if (Left.protocol() == QAbstractSocket::IPv6Protocol) {
+		Q_IPV6ADDR uLeft = Left.toIPv6Address();
+		Q_IPV6ADDR uRight = Right.toIPv6Address();
+		int iCmp = memcmp(&uLeft, &uRight, sizeof(Q_IPV6ADDR));
+		return iCmp < 0 ? -1 : (iCmp > 0 ? 1 : 0);
+	}
+	return 2;
+}
+
+// returns true when Name is a windows address keyword, Ranges stays empty when it depends on the current adapter configuration
+static bool CPopUpWindow__GetSpecialNet(const QString& Name, QStringList& Ranges)
+{
+	if (Name.compare(QString("LocalSubnet"), Qt::CaseInsensitive) == 0 || Name.compare(QString("LocalIntranet"), Qt::CaseInsensitive) == 0)
+	{
+		Ranges << "10.0.0.0-10.255.255.255" << "127.0.0.0-127.255.255.255" << "172.16.0.0-172.31.255.255"
+			<< "192.168.0.0-192.168.255.255" << "224.0.0.0-239.255.255.255";
+		Ranges << "::1" << "fc00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff" << "fe80::-fe80::ffff:ffff:ffff:ffff"
+			<< "ff00::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
+		return true;
+	}
+
+	if (Name.compare(QString("Internet"), Qt::CaseInsensitive) == 0)
+	{
+		Ranges << "0.0.0.0-9.255.255.255" << "11.0.0.0-126.255.255.255" << "128.0.0.0-172.15.255.255"
+			<< "172.32.0.0-192.167.255.255" << "192.169.0.0-223.255.255.255" << "240.0.0.0-255.255.255.255";
+		Ranges << "::2-fc00::" << "fc00::ffff:ffff:ffff:ffff-fe80::" << "fe80::ffff:ffff:ffff:ffff-ff00::";
+		return true;
+	}
+
+	static const QStringList Keywords = QStringList() << "DNS" << "DHCP" << "WINS" << "DefaultGateway"
+		<< "RemoteIntranet" << "Ply2Renders" << "CaptivePortal";
+	foreach(const QString& Keyword, Keywords) {
+		if (Name.compare(Keyword, Qt::CaseInsensitive) == 0)
+			return true; // a known keyword but one we can not resolve here
+	}
+	return false;
+}
+
+static EFwMatch CPopUpWindow__MatchAddress(const QHostAddress& Address, const QStringList& Addresses)
+{
+	bool bUnknown = false;
+	foreach(const QString& Entry, Addresses)
+	{
+		QString Range = Entry.trimmed();
+		if (Range.isEmpty())
+			continue;
+
+		int iSep = (int)Range.indexOf('-');
+		if (iSep != -1) // begin-end
+		{
+			QHostAddress Begin = CPopUpWindow__NormAddress(QHostAddress(Range.left(iSep).trimmed()));
+			QHostAddress End = CPopUpWindow__NormAddress(QHostAddress(Range.mid(iSep + 1).trimmed()));
+			if (Begin.isNull() || End.isNull())
+				bUnknown = true;
+			else if (CPopUpWindow__CmpAddress(Begin, Address) <= 0 && CPopUpWindow__CmpAddress(Address, End) <= 0)
+				return EFwMatch::eYes;
+		}
+		else if (Range.contains('/')) // ip/net
+		{
+			QPair<QHostAddress, int> SubNet = QHostAddress::parseSubnet(Range);
+			if (SubNet.second == -1)
+				bUnknown = true;
+			else if (Address.isInSubnet(SubNet))
+				return EFwMatch::eYes;
+		}
+		else
+		{
+			QStringList Special;
+			if (CPopUpWindow__GetSpecialNet(Range, Special))
+			{
+				if (Special.isEmpty())
+					bUnknown = true;
+				else {
+					EFwMatch Match = CPopUpWindow__MatchAddress(Address, Special);
+					if (Match == EFwMatch::eYes)
+						return EFwMatch::eYes;
+					if (Match == EFwMatch::eUnknown)
+						bUnknown = true;
+				}
+			}
+			else
+			{
+				QHostAddress Single = CPopUpWindow__NormAddress(QHostAddress(Range));
+				if (Single.isNull())
+					bUnknown = true;
+				else if (CPopUpWindow__CmpAddress(Single, Address) == 0)
+					return EFwMatch::eYes;
+			}
+		}
+	}
+	return bUnknown ? EFwMatch::eUnknown : EFwMatch::eNo;
+}
+
+static EFwMatch CPopUpWindow__MatchPort(quint16 Port, const QStringList& Ports)
+{
+	bool bUnknown = false;
+	foreach(const QString& Entry, Ports)
+	{
+		QString Range = Entry.trimmed();
+		if (Range.isEmpty())
+			continue;
+
+		int iSep = (int)Range.indexOf('-');
+		if (iSep == -1)
+		{
+			bool bOk = false;
+			uint uPort = Range.toUInt(&bOk);
+			if (!bOk || uPort > 0xFFFF) // some rules use keywords like RPC, RPC-EPMap, Teredo or IPHTTPS instead of numbers
+				bUnknown = true;
+			else if (uPort == Port)
+				return EFwMatch::eYes;
+		}
+		else
+		{
+			bool bOkBegin = false, bOkEnd = false;
+			uint uBegin = Range.left(iSep).trimmed().toUInt(&bOkBegin);
+			uint uEnd = Range.mid(iSep + 1).trimmed().toUInt(&bOkEnd);
+			if (!bOkBegin || !bOkEnd || uBegin > 0xFFFF || uEnd > 0xFFFF)
+				bUnknown = true;
+			else if (uBegin <= Port && Port <= uEnd)
+				return EFwMatch::eYes;
+		}
+	}
+	return bUnknown ? EFwMatch::eUnknown : EFwMatch::eNo;
+}
+
+static EFwMatch CPopUpWindow__MatchEndpoint(const QStringList& Addresses, const QStringList& Ports, const QHostAddress& Address, quint16 Port)
+{
+	if (!CPopUpWindow__IsEmptyOrStar(Ports)) {
+		EFwMatch Match = CPopUpWindow__MatchPort(Port, Ports);
+		if (Match != EFwMatch::eYes)
+			return Match;
+	}
+	if (!Address.isNull() && !CPopUpWindow__IsEmptyOrStar(Addresses)) {
+		EFwMatch Match = CPopUpWindow__MatchAddress(CPopUpWindow__NormAddress(Address), Addresses);
+		if (Match != EFwMatch::eYes)
+			return Match;
+	}
+	return EFwMatch::eYes;
+}
+
+// note: CProgramManager::GetProgramByID does not handle all program types, hence we resolve the item ourselves
+static CProgramItemPtr CPopUpWindow__GetRuleItem(const CProgramID& ID)
+{
+	switch (ID.GetType())
+	{
+	case EProgramType::eAllPrograms:
+	case EProgramType::eProgramFile:
+	case EProgramType::eWindowsService:
+	case EProgramType::eAppPackage:		return theCore->ProgramManager()->GetProgramByID(ID);
+	case EProgramType::eProgramGroup:	return theCore->ProgramManager()->GetGroups().value(ID.GetGuid());
+	default:							return CProgramItemPtr(); // patterns and the like are expanded by the service
+	}
+}
+
+//
+// A rule written for a path pattern has no program item of its own, the service expands it into
+// one rule per binary it matches. Which binaries those are is no mystery though, it is the very
+// same match the pattern was offered on, so a template can be held against a pending connection
+// here as well. That matters because answering several prompts at once is what a template is for.
+//
+static bool CPopUpWindow__PatternCoversProgram(const CFwRulePtr& pFwRule, const CProgramFilePtr& pProgram)
+{
+	if (!pFwRule->IsTemplate() || pProgram.isNull())
+		return false;
+	QString Path = pProgram->GetPath();
+	return !Path.isEmpty() && MatchPathPattern(pFwRule->GetProgramID().GetFilePath(), Path);
+}
+
+// checks if a rule which was made for pRuleItem covers a connection of pProgram
+static bool CPopUpWindow__RuleAppliesTo(const CProgramItemPtr& pRuleItem, const CProgramFilePtr& pProgram, const CNetLogEntry* pEntry)
+{
+	if (pRuleItem.isNull() || pProgram.isNull())
+		return false;
+	if (pRuleItem == pProgram)
+		return true;
+	if (pRuleItem->GetType() == EProgramType::eAllPrograms)
+		return true;
+
+	// a rule made for a service covers only the traffic of that very service
+	CWindowsServicePtr pService = pRuleItem.objectCast<CWindowsService>();
+	if (pService)
+		return !pEntry->GetOwnerService().isEmpty() && pService->GetServiceTag().compare(pEntry->GetOwnerService(), Qt::CaseInsensitive) == 0;
+
+	// walk up the group hierarchy and look if the rules item is one of the programs ancestors
+	QSet<const CProgramItem*> Visited;
+	QList<CProgramItemPtr> Todo;
+	Todo.append(pProgram);
+	while (!Todo.isEmpty())
+	{
+		CProgramItemPtr pCurrent = Todo.takeFirst();
+		if (Visited.contains(pCurrent.data()))
+			continue;
+		Visited.insert(pCurrent.data());
+
+		foreach(const QWeakPointer<QObject>& Group, pCurrent->GetGroups()) {
+			CProgramItemPtr pGroup = Group.lock().objectCast<CProgramItem>();
+			if (pGroup.isNull())
+				continue;
+			if (pGroup == pRuleItem)
+				return true;
+			Todo.append(pGroup);
+		}
+	}
+	return false;
+}
+
+// checks everything about a rule which does not depend on a particular connection attempt
+static bool CPopUpWindow__IsRuleConclusive(const CFwRulePtr& pFwRule)
+{
+	if (pFwRule.isNull() || !pFwRule->IsEnabled() || pFwRule->IsUnapproved())
+		return false;
+	if (pFwRule->GetAction() != EFwActions::Allow && pFwRule->GetAction() != EFwActions::Block)
+		return false;
+	if (!pFwRule->GetPrincipalSddl().isEmpty()) // user restrictions can not be evaluated here
+		return false;
+
+	// without adapter information we can only be sure about rules which apply to all profiles and interfaces
+	const int AllProfiles = (int)EFwProfiles::Domain | (int)EFwProfiles::Private | (int)EFwProfiles::Public;
+	if ((pFwRule->GetProfile() & AllProfiles) != AllProfiles)
+		return false;
+	if (pFwRule->GetInterface() != (int)EFwInterfaces::All)
+		return false;
+	return true;
+}
+
+static bool CPopUpWindow__RuleCoversEvent(const CFwRulePtr& pFwRule, const CProgramItemPtr& pRuleItem, const CProgramFilePtr& pProgram, const CNetLogEntry* pEntry)
+{
+	if (pFwRule->GetDirection() != EFwDirections::Bidirectional && pFwRule->GetDirection() != pEntry->GetDirection())
+		return false;
+	if (pFwRule->GetProtocol() != EFwKnownProtocols::Any && (quint32)pFwRule->GetProtocol() != pEntry->GetProtocolType())
+		return false;
+	if (CPopUpWindow__MatchEndpoint(pFwRule->GetRemoteAddresses(), pFwRule->GetRemotePorts(), pEntry->GetRemoteAddress(), pEntry->GetRemotePort()) != EFwMatch::eYes)
+		return false;
+	if (CPopUpWindow__MatchEndpoint(pFwRule->GetLocalAddresses(), pFwRule->GetLocalPorts(), pEntry->GetLocalAddress(), pEntry->GetLocalPort()) != EFwMatch::eYes)
+		return false;
+	if (pRuleItem.isNull()) // a template, the pattern itself says what it covers
+		return CPopUpWindow__PatternCoversProgram(pFwRule, pProgram);
+	return CPopUpWindow__RuleAppliesTo(pRuleItem, pProgram, pEntry);
+}
+
+int CPopUpWindow::ClearCoveredFwEvents(const QList<CFwRulePtr>& Rules)
+{
+	if (m_FwEvents.isEmpty())
+		return 0;
+
+	// resolve the program items only once, the lookup may have to ask the service
+	QList<QPair<CFwRulePtr, CProgramItemPtr>> Active;
+	foreach(const CFwRulePtr& pFwRule, Rules) {
+		if (!CPopUpWindow__IsRuleConclusive(pFwRule))
+			continue;
+		CProgramItemPtr pRuleItem = CPopUpWindow__GetRuleItem(pFwRule->GetProgramID());
+		if (!pRuleItem.isNull() || pFwRule->IsTemplate()) // a template stays, it is matched by path
+			Active.append(qMakePair(pFwRule, pRuleItem));
+	}
+	if (Active.isEmpty())
+		return 0;
+
+	int Cleared = 0;
+	QList<CProgramFilePtr> Obsolete;
+
+	for (auto I = m_FwEvents.begin(); I != m_FwEvents.end(); ++I)
+	{
+		QList<SLogEntry>& List = I.value();
+		for (auto J = List.begin(); J != List.end(); )
+		{
+			const CNetLogEntry* pEntry = dynamic_cast<const CNetLogEntry*>(J->pPtr.constData());
+			bool bCovered = false;
+			for (auto K = Active.begin(); pEntry && K != Active.end() && !bCovered; ++K)
+				bCovered = CPopUpWindow__RuleCoversEvent(K->first, K->second, I.key(), pEntry);
+
+			if (!bCovered) {
+				++J;
+				continue;
+			}
+			J = List.erase(J);
+			Cleared++;
+		}
+		if (List.isEmpty())
+			Obsolete.append(I.key());
+	}
+
+	if (Cleared == 0)
+		return 0;
+
+	// remember what is currently on screen so that we can keep showing it if it is still around
+	SFwProgram Current;
+	bool bHasCurrent = (m_iFwIndex >= 0 && m_iFwIndex < m_FwPrograms.size());
+	if (bHasCurrent) Current = m_FwPrograms[m_iFwIndex];
+
+	foreach(const CProgramFilePtr& pProgram, Obsolete) {
+		m_FwEvents.remove(pProgram);
+		SFwProgram Prog = { SFwProgram::eNetworkEvent, pProgram };
+		m_FwPrograms.removeOne(Prog);
+	}
+
+	if (m_FwPrograms.isEmpty()) {
+		m_iFwIndex = -1;
+		ui.treeFw->clear();
+		UpdateFwCount();
+		TryHide();
+		return Cleared;
+	}
+
+	int index = (int)(bHasCurrent ? m_FwPrograms.indexOf(Current) : -1);
+	if (index != -1)
+		m_iFwIndex = index;
+	else if (m_iFwIndex >= m_FwPrograms.size())
+		m_iFwIndex = (int)m_FwPrograms.size() - 1;
+	else if (m_iFwIndex < 0)
+		m_iFwIndex = 0;
+
+	UpdateFwCount();
+	LoadFwEntry(); // the event list of the shown program may have changed, reload it entirely
+	return Cleared;
 }
 
 void CPopUpWindow::OnFwAction()
@@ -643,6 +1581,38 @@ void CPopUpWindow::OnFwAction()
 		//	bOutbound = true;
 	}
 	
+	//
+	// A template rule is bound to a path pattern rather than to one single binary, the service
+	// expands it into a real rule for every program the pattern covers, which is what keeps the
+	// next update of this very program from asking all over again.
+	//
+	bool bTemplate = (pSender == m_pFwAllowTemplate || pSender == m_pFwBlockTemplate);
+	if (pSender == ui.btnFwAllow || pSender == ui.btnFwBlock)
+		bTemplate = WantFwTemplate(pProgram, pSender == ui.btnFwAllow);
+
+	QList<CFwRulePtr> NewRules;
+
+	if (bTemplate)
+	{
+		//
+		// A template stands on its own: one pattern, one action, saved from its own small window.
+		// Nothing below applies to it, as it is not a rule about this one binary.
+		//
+		CFwRulePtr pTemplateRule;
+		bool bAllow = (pSender == m_pFwAllowTemplate || pSender == ui.btnFwAllow);
+		CFwRulePtr pWiden = bAllow ? m_pFwAllowWiden : m_pFwBlockWiden;
+		if (pWiden ? !WidenFwTemplate(pWiden, &pTemplateRule)
+				   : !MakeFwTemplate(bAllow, GetFwTemplateDirection(pProgram, bAllow), pProgram, &pTemplateRule, ui.cmbFwTime->currentData().toInt()))
+			return;
+		NewRules.append(pTemplateRule);
+
+		PopFwEvent();
+
+		// other pending connection attempts may be covered by it as well, there is no point in still asking about those
+		ClearCoveredFwEvents(NewRules);
+		return;
+	}
+
 	CFwRulePtr pRule = CFwRulePtr(new CFwRule(pProgram->GetID()));
 	pRule->SetApproved();
 	pRule->SetSource(EFwRuleSource::eMajorPrivacy);
@@ -662,31 +1632,37 @@ void CPopUpWindow::OnFwAction()
 
 	if (pSender == m_pFwCustom)
 	{
-		CFirewallRuleWnd* pFirewallRuleWnd = new CFirewallRuleWnd(pRule, QSet<CProgramItemPtr>() << pProgram);
+		QSet<CProgramItemPtr> Items;
+		Items.insert(pProgram);
+
+		CFirewallRuleWnd* pFirewallRuleWnd = new CFirewallRuleWnd(pRule, Items);
 		if (!pFirewallRuleWnd->exec())
 			return;
+		NewRules.append(pRule);
 	}
 	else 
 	{
-		if (pSender == ui.btnFwAllow)
+		if (pSender == ui.btnFwAllow || pSender == m_pFwAllowOnly)
 			pRule->SetAction(EFwActions::Allow);
 		/*else if (pSender == m_pFwLanOnly)
 		{
 			pRule->SetAction(SVC_API_FW_ALLOW);
 			// todo set remote addresses for LAN
 		}*/
-		else if (pSender == ui.btnFwBlock)
+		else if (pSender == ui.btnFwBlock || pSender == m_pFwBlockOnly)
 			pRule->SetAction(EFwActions::Block);
 
 		QList<STATUS> Statuses;
 
 		//if (bOutbound) {
 			pRule->SetDirection(EFwDirections::Outbound);
+			NewRules.append(CFwRulePtr(pRule->Clone(true))); // the rule is reused for the other direction, keep a snapshot
 			Statuses << theCore->NetworkManager()->SetFwRule(pRule);
 		//}
 
 		if (bInbound || theConf->GetBool("NetworkFirewall/MakeInOutRules", false)) {
 			pRule->SetDirection(EFwDirections::Inbound);
+			NewRules.append(CFwRulePtr(pRule->Clone(true)));
 			Statuses << theCore->NetworkManager()->SetFwRule(pRule);
 		}
 
@@ -695,6 +1671,9 @@ void CPopUpWindow::OnFwAction()
 	}
 
 	PopFwEvent();
+
+	// other pending connection attempts may be covered by the new rules as well, there is no point in still asking about those
+	ClearCoveredFwEvents(NewRules);
 }
 
 void CPopUpWindow::OnFwRule()
@@ -709,17 +1688,51 @@ void CPopUpWindow::OnFwRule()
 		return;
 	}
 
-	QList<SFwRuleEvent>& List = m_FwRuleEvents[pProgram];
+	bool bApprove = (pSender == ui.btnFwApprove || pSender == m_pFwApproveAll || pSender == m_pFwApproveAuto || pSender == m_pFwApproveTemplate);
+	bool bReject = (pSender == ui.btnFwReject || pSender == m_pFwRejectAll || pSender == m_pFwRejectAuto || pSender == m_pFwRejectTemplate);
+	bool bAuto = (pSender == m_pFwApproveAuto || pSender == m_pFwRejectAuto);
+	bool bTemplate = (pSender == m_pFwApproveTemplate || pSender == m_pFwRejectTemplate);
+	if (!bApprove && !bReject)
+		return;
 
+	//
+	// Which of the listed changes this applies to, everything when nothing is picked out. That
+	// has to be settled before any editor opens, because the list is rebuilt once one has run.
+	//
+	bool bAll = (pSender == m_pFwApproveAll || pSender == m_pFwRejectAll || bAuto || bTemplate);
+	bool bAlsoTemplate = false;
 	QList<QTreeWidgetItem*> Items;
-	if (!(pSender == m_pFwApproveAll || pSender == m_pFwRejectAll))
+	if (!bAll)
 	{
 		Items = ui.treeFwRules->selectedItems();
-		if (Items.isEmpty()) {
-			if(QMessageBox::question(this, "MajorPrivacy", tr("No rules selected, do you want to apply the action to all rules?"), QMessageBox::Yes | QMessageBox::No) != QMessageBox::Yes) 
-				return;
-		}
+		if (Items.isEmpty() && !AskAboutAllFwRules(bApprove, bAlsoTemplate))
+			return;
 	}
+
+	CFwRulePtr pNewTemplate;
+	if (bAuto || bTemplate || bAlsoTemplate)
+	{
+		//
+		// Neither a guard entry nor a template reaches back to the change which is on screen right
+		// now, both only speak for what comes after it, so the standing answer is put in place
+		// first and the change at hand is then carried out as it would have been without it.
+		//
+		// only the dropdown asks for a guard entry, everything else makes a template
+		SFwProgram Current = m_FwPrograms[m_iFwIndex];
+		if (!(bAuto ? MakeFwGuardEntry(bApprove) : MakeFwRuleTemplate(bApprove, &pNewTemplate)))
+			return;
+
+		// the editor ran an event loop of its own, make sure we are still on the same entry
+		int index = (int)m_FwPrograms.indexOf(Current);
+		if (index == -1)
+			return;
+		m_iFwIndex = index;
+		pProgram = m_FwPrograms[m_iFwIndex].pItem;
+
+		Items.clear(); // the list was rebuilt along with it, what was picked out before is gone
+	}
+
+	QList<SFwRuleEvent>& List = m_FwRuleEvents[pProgram];
 
 	if (Items.isEmpty())
 	{
@@ -741,6 +1754,9 @@ void CPopUpWindow::OnFwRule()
 	}
 
 	QList<STATUS> Statuses;
+	QList<CFwRulePtr> ActiveRules; // rules which are in effect once the user made their choice
+	if (!pNewTemplate.isNull())
+		ActiveRules.append(pNewTemplate); // including a template just written, it covers whole paths
 	foreach(const SFwRuleEvent& Event, Events)
 	{
 		STATUS Status;
@@ -758,7 +1774,7 @@ void CPopUpWindow::OnFwRule()
 			}
 		}
 
-		if (pSender == ui.btnFwApprove || pSender == m_pFwApproveAll)
+		if (bApprove)
 		{
 			switch (EventType)
 			{
@@ -771,6 +1787,7 @@ void CPopUpWindow::OnFwRule()
 					pFwRule->SetEnabled(true);
 				pFwRule->SetApproved();
 				Status = theCore->NetworkManager()->SetFwRule(pFwRule);
+				if(!Status.IsError()) ActiveRules.append(pFwRule);
 				break;
 			case EConfigEvent::eRemoved:
 				ASSERT(pFwRule->IsBackup());
@@ -778,7 +1795,7 @@ void CPopUpWindow::OnFwRule()
 				break;
 			}
 		}
-		else if (pSender == ui.btnFwReject || pSender == m_pFwRejectAll)
+		else
 		{
 			switch (EventType)
 			{
@@ -786,6 +1803,7 @@ void CPopUpWindow::OnFwRule()
 				ASSERT(pFwRuleOld->IsBackup());
 				pFwRuleOld->SetApproved();
 				Status = theCore->NetworkManager()->SetFwRule(pFwRuleOld);
+				if(!Status.IsError()) ActiveRules.append(pFwRuleOld); // the previous version has been restored
 				break;
 			case EConfigEvent::eAdded:
 				Status = theCore->NetworkManager()->DelFwRule(pFwRule);
@@ -794,6 +1812,7 @@ void CPopUpWindow::OnFwRule()
 				ASSERT(pFwRule->IsBackup());
 				pFwRule->SetApproved();
 				Status = theCore->NetworkManager()->SetFwRule(pFwRule);
+				if(!Status.IsError()) ActiveRules.append(pFwRule); // the removed rule has been restored
 				break;
 			}
 		}
@@ -808,6 +1827,9 @@ void CPopUpWindow::OnFwRule()
 		PopFwEvent();
 	else
 		LoadFwEntry();
+
+	// pending connection attempts which are covered by the now active rules are already decided, drop them
+	ClearCoveredFwEvents(ActiveRules);
 }
 
 void CPopUpWindow::OnFwRuleDblClick(QTreeWidgetItem* pItem)
@@ -1374,8 +2396,10 @@ void CPopUpWindow::OnExecAction()
 		QString Collection;
 	};
 
-	QMap<QString, SSignTask> FileTasks;
-	QMap<QByteArray, SSignTask> CertTasks;
+	// keyed by hash/path + enclave, the same file or cert may show up in multiple rows with different enclaves
+	// and each of them must be approved for its own enclave, not just for the enclave of the first row encountered
+	QMap<QPair<QString, QString>, SSignTask> FileTasks;
+	QMap<QPair<QByteArray, QString>, SSignTask> CertTasks;
 
 	/*if (pSender == m_pExecSignAll)
 	{
@@ -1406,17 +2430,21 @@ void CPopUpWindow::OnExecAction()
 			QFlexGuid EnclaveId(Guid);
 
 			QString Path = pItem->data(eExecPath, Qt::UserRole).toString();
-			if (!FileTasks.contains(Path)) {
-				SSignTask& FileTask = FileTasks[Path];
+			if (Path.isEmpty())
+				continue;
+			auto FileKey = qMakePair(Path.toLower(), EnclaveId.ToQS());
+			if (!FileTasks.contains(FileKey)) {
+				SSignTask& FileTask = FileTasks[FileKey];
 				FileTask.Path = Path;
 				FileTask.EnclaveId = EnclaveId;
-				//FileTask.Collection = 
+				//FileTask.Collection =
 			}
 
 			QByteArray Cert = pItem->data(pSender == m_pExecSignCA ? eExecIssuer : eExecSigner, Qt::UserRole).toByteArray();
 			QString CertName = pItem->text(pSender == m_pExecSignCA ? eExecIssuer : eExecSigner);
-			if (!Cert.isEmpty() && !CertTasks.contains(Cert)) {
-				SSignTask& CertTask = CertTasks[Cert];
+			auto CertKey = qMakePair(Cert, EnclaveId.ToQS());
+			if (!Cert.isEmpty() && !CertTasks.contains(CertKey)) {
+				SSignTask& CertTask = CertTasks[CertKey];
 				CertTask.Path = Path;
 				CertTask.Cert = Cert;
 				CertTask.CertName = CertName;
@@ -1435,7 +2463,7 @@ void CPopUpWindow::OnExecAction()
 	}
 
 	STATUS Status;
-	if (pSender == m_pExecSignCert)
+	if (pSender == m_pExecSignCert || pSender == m_pExecSignCA)
 	{
 		if (CertTasks.isEmpty()) {
 			QMessageBox::critical(this, "MajorPrivacy", tr("Selected Items do not have Certificates!"));
@@ -1460,5 +2488,10 @@ void CPopUpWindow::OnExecAction()
 	if(theGUI->CheckResults(QList<STATUS>() << Status, this) != 0)
 		return;
 
-	PopExecEvent(FileTasks.keys());
+	QStringList Paths;
+	foreach(const SSignTask& Task, FileTasks) {
+		if (!Paths.contains(Task.Path, Qt::CaseInsensitive))
+			Paths.append(Task.Path);
+	}
+	PopExecEvent(Paths);
 }

@@ -248,5 +248,5 @@ void CPackageList::StoreToCache()
 
     CBuffer Buffer;
     List.ToPacket(&Buffer);
-    WriteFile(theCore->GetDataFolder() + L"\\AppPackages.dat", Buffer); 
+    WriteFileSafe(theCore->GetDataFolder() + L"\\AppPackages.dat", Buffer); 
 }

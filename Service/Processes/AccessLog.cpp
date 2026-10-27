@@ -76,11 +76,14 @@ void CAccessLog::StoreAllExecParents(StVariantWriter& List, const CFlexGuid& Enc
 				vActor.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts, vActor.Allocator()));
 			}
 			else {
+				//
+				// No API_V_PROCESS_REF here, it used to be the address of the entry, which identifies nothing once
+				// the entry is freed and tells the client where our heap is. The entry is identified by
+				// the program UID and the process UID (API_V_PID) we send anyway.
+				//
 #ifdef DEF_USE_POOL
-				vActor.Write(API_V_PROCESS_REF, (uint64)&Entry);
 				vActor.Write(API_V_EVENT_ACTOR_UID, I.Key()); // Program UID
 #else
-				vActor.Write(API_V_PROCESS_REF, (uint64)&J->second);
 				vActor.Write(API_V_EVENT_ACTOR_UID, I->first); // Program UID
 #endif
 			}
@@ -208,7 +211,6 @@ void CAccessLog::StoreAllExecChildren(StVariantWriter& List, const CFlexGuid& En
 				vTarget.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts, vTarget.Allocator()));
 			}
 			else {
-				vTarget.Write(API_V_PROCESS_REF, (uint64)&Entry);
 #ifdef DEF_USE_POOL
 				vTarget.Write(API_V_EVENT_TARGET_UID, I.Key()); // Program UID
 #else
@@ -339,7 +341,6 @@ void CAccessLog::StoreAllIngressActors(StVariantWriter& List, const CFlexGuid& E
 				vActor.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts, vActor.Allocator()));
 			}
 			else {
-				vActor.Write(API_V_PROCESS_REF, (uint64)&Entry);
 #ifdef DEF_USE_POOL
 				vActor.Write(API_V_EVENT_ACTOR_UID, I.Key()); // Program UID
 #else
@@ -467,7 +468,6 @@ void CAccessLog::StoreAllIngressTargets(StVariantWriter& List, const CFlexGuid& 
 				vTarget.WriteVariant(API_V_ID, pProg->GetID().ToVariant(Opts, vTarget.Allocator()));
 			}
 			else {
-				vTarget.Write(API_V_PROCESS_REF, (uint64)&Entry);
 #ifdef DEF_USE_POOL
 				vTarget.Write(API_V_EVENT_TARGET_UID, I.Key()); // Program UID
 #else

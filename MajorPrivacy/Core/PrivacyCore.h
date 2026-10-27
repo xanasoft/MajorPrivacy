@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../MiscHelpers/Common/Settings.h"
+#include "../Library/Common/UsageStats.h"
 #include "../../Library/API/DriverAPI.h"
 #include "../../Library/API/ServiceAPI.h"
 #include "./Common/QtVariant.h"
@@ -137,6 +138,13 @@ public:
 
 	RESULT(QtVariant)	GetConfig(const QString& Name);
 
+	//
+	// Forgets one cached value. The config cache is normally invalidated by the services change
+	// broadcast, which arrives a moment after SetConfig returns, so a caller which has to read
+	// back a value it just wrote itself needs this to not get the old one.
+	//
+	void				ForgetConfig(const QString& Name);
+
 	QString GetConfigStr(const QString& Name, const QString& defaultValue = QString()) {
 		auto value = GetConfig(Name);
 		if(!value.GetValue().IsValid())
@@ -203,7 +211,7 @@ public:
 	STATUS				SetDrvConfig(const QtVariant& Data);
 
 	// Process Manager
-	RESULT(QtVariant)	GetProcesses();
+	RESULT(QtVariant)	GetProcesses(bool bReload = false);
 	RESULT(QtVariant)	GetProcess(uint64 Pid);
 	STATUS				StartProcessBySvc(const QString& Command);
 	STATUS				TerminateProcess(uint64 Pid);
@@ -226,10 +234,10 @@ public:
 
 
 	// ProgramManager
-	RESULT(QtVariant)	GetPrograms();
+	RESULT(QtVariant)	GetPrograms(bool bReload = false);
 	RESULT(QtVariant)	GetProgram(const class CProgramID& ID);
 	RESULT(QtVariant)	GetProgram(uint64 UID);
-	RESULT(QtVariant)	GetLibraries(uint64 CacheToken = -1);
+	RESULT(QtVariant)	GetLibraries(uint64 CacheToken = -1, bool bReload = false);
 
 	RESULT(quint64)		SetProgram(const CProgramItemPtr& pItem);
 	STATUS				AddProgramTo(uint64 UID, uint64 ParentUID);
@@ -256,9 +264,9 @@ public:
 	// Network Manager
 	RESULT(QtVariant)	GetFwRulesFor(const QList<const class CProgramItem*>& Nodes);
 	RESULT(QtVariant)	GetAllFwRules(bool bReLoad = false);
-	RESULT(QFlexGuid)	SetFwRule(const QtVariant& Rule);
+	RESULT(QFlexGuid)	SetFwRule(const QtVariant& Rule, const QStringList& TakeOver = QStringList());
 	RESULT(QtVariant)	GetFwRule(const QFlexGuid& Guid);
-	STATUS				DelFwRule(const QFlexGuid& Guid);
+	STATUS				DelFwRule(const QFlexGuid& Guid, bool bWithDerived = false);
 
 	STATUS				RestoreDefaultFwRules();
 
@@ -302,6 +310,10 @@ public:
 
 	RESULT(QtVariant)	GetTraceLog(const class CProgramID& ID, ETraceLogs Log);
 
+	// usage history (CPU / I/O / network), see Library/Common/UsageStats.h
+	RESULT(QtVariant)	GetUsageStats(EUsageTier Tier, const QtVariant& Items, quint32 Since);
+	STATUS				UpdateUsageStats(EUsageTier Tier, const QList<CProgramItemPtr>& Items);
+
 	// Volume Manager
 	RESULT(QtVariant)	GetVolumes();
 	RESULT(QtVariant)	GetVolume(const QFlexGuid& Guid);
@@ -309,7 +321,7 @@ public:
 	STATUS				MountVolume(const QString& Path, const QString& MountPoint, const CSecurePassword& Password, bool bProtect, bool bLockdown, int iKfd = 0);
 	STATUS				DismountVolume(const QString& MountPoint);
 	STATUS				DismountAllVolumes();
-	STATUS				CreateVolume(const QString& Path, const CSecurePassword& Password, quint64 ImageSize = 0, const QString& Cipher = QString(), int iKfd = 0, const QString& FS = QString());
+	STATUS				CreateVolume(const QString& Path, const CSecurePassword& Password, quint64 ImageSize = 0, const QString& Cipher = QString(), int iKfd = 0, const QString& FS = QString(), int iSlots = -1);
 	STATUS				ChangeVolumePassword(const QString& Path, const CSecurePassword& OldPassword, const CSecurePassword& NewPassword, int iKfd = 0, int iNewKfd = 0);
 	STATUS				ExpandVolume(const QString& MountPoint, quint64 uAddSize);
 	STATUS				BackupVolumeHeader(const QString& Path, const QString& BackupPath, const CSecurePassword& Password, int iKfd);
@@ -336,6 +348,8 @@ public:
 	void				ClearPrivacyLog();
 
 	RESULT(QtVariant)	GetServiceStats();
+
+	STATUS				NegotiateSharedSecret(std::shared_ptr<class CServiceAPI>& pService);
 
 	RESULT(CSecurePassword) RequestSecurePassword(const QString& Prompt, const QString& Title = QString(), bool bConfirm = false);
 
@@ -403,11 +417,26 @@ protected:
 	void OnProgEvent(uint32 MessageId, const CBuffer* pEvent);
 
 	void				OnSvcEvent(uint32 MessageId, const CBuffer* pEvent);
+
+	//
+	// Several events in one message, see SVC_API_EVENT_BATCH. Each one is handed to
+	// HandleSvcEvent exactly as if it had arrived on its own.
+	//
+	void				OnSvcEventBatch(uint32 MessageId, const CBuffer* pEvent);
+	void				HandleSvcEvent(uint32 MessageId, const QtVariant& vEvent);
 	void				OnDrvEvent(const std::wstring& Guid, enum class EConfigEvent Event, enum class EConfigGroup Type, uint64 PID);
 
 	QString				GetSignatureFilePath(const QString& Path, QByteArray Hash = QByteArray());
 
 	void				OnCleanUpDone(uint32 MessageId, const CBuffer* pEvent);
+
+	//
+	// Throws away what we remember of the configuration. Driven by
+	// SVC_API_EVENT_CONFIG_CHANGED rather than by our own SetConfig, because there
+	// can be a second viewer changing it and because it also moves under the config
+	// file calls and a commit or a discard.
+	//
+	void				OnConfigChanged(uint32 MessageId, const CBuffer* pEvent);
 	
 	static void			DeviceChangedCallback(void* param);
 
@@ -450,6 +479,14 @@ protected:
 	quint64 m_LogMemoryUsed = 0;
 
 	QMutex m_EventQueueMutex;
+
+	//
+	// What the service last told us a setting was. Read on every tick by the pages
+	// and by the handle view, and every read used to be a round trip on the same
+	// pipe the refresh is queued on - so the window stalled behind its own refresh.
+	//
+	mutable QMutex m_ConfigCacheMutex;
+	QMap<QString, QtVariant> m_ConfigCache;
 	QMap<quint32, QQueue<QtVariant>> m_SvcEventQueue;
 	//struct SDrvRuleEvent
 	//{

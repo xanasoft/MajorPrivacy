@@ -12,6 +12,7 @@
 #include "../Views/SocketView.h"
 #include "../Views/NetTraceView.h"
 #include "../Views/TrafficView.h"
+#include "../Views/UsageView.h"
 
 CNetworkPage::CNetworkPage(QWidget* parent)
 	: QWidget(parent)
@@ -41,6 +42,9 @@ CNetworkPage::CNetworkPage(QWidget* parent)
 
 	m_pTraceView = new CNetTraceView();
 	m_pTabs->addTab(m_pTraceView, QIcon(":/Icons/SetLogging.png"), tr("Connection Log"));
+
+	m_pUsageView = new CUsageView(EUsageMetric::eNet);
+	m_pTabs->addTab(m_pUsageView, QIcon(":/Icons/Stats.png"), tr("Traffic Usage"));
 
 
 	m_pVSplitter = new QSplitter(Qt::Vertical);
@@ -94,29 +98,46 @@ void CNetworkPage::Update()
 	if (!isVisible())
 		return;
 	m_pTraceView->setEnabled(theCore->GetConfigBool("Service/NetLog", false));
+	m_pUsageView->setEnabled(theCore->GetConfigBool("Service/UsageStats", true));
 
 	auto Current = theGUI->GetCurrentItems();
 
+	//
+	// Explicitly selected items are always shown. The implicit members of a group or of
+	// "All Programs" with a private trace preset only when the view's own "show private"
+	// button, or the global one, is on. The usage graphs get everything, see CUsageView.
+	//
 	bool bShowPrivate = theGUI->GetShowPrivate();
-
-	QSet<CProgramFilePtr> Programs = Current.ProgramsEx;
-	if (m_pTrafficView->isVisible() ||m_pTraceView->isVisible()) {
+	auto Programs = [&](bool bPrivate) {
+		QSet<CProgramFilePtr> Set = Current.ProgramsEx;
 		for (auto& pProgram : Current.ProgramsIm) {
-			if(bShowPrivate || pProgram->GetNetTrace() != ETracePreset::ePrivate)
-				Programs.insert(pProgram);
+			if (bShowPrivate || bPrivate || pProgram->GetNetTrace() != ETracePreset::ePrivate)
+				Set.insert(pProgram);
 		}
-	}
-	QSet<CWindowsServicePtr> Services = Current.ServicesEx;
-	if (m_pTrafficView->isVisible()) {
+		return Set;
+	};
+	auto Services = [&](bool bPrivate) {
+		QSet<CWindowsServicePtr> Set = Current.ServicesEx;
 		for (auto& pService : Current.ServicesIm) {
-			if (bShowPrivate || pService->GetNetTrace() != ETracePreset::ePrivate)
-				Services.insert(pService);
+			if (bShowPrivate || bPrivate || pService->GetNetTrace() != ETracePreset::ePrivate)
+				Set.insert(pService);
 		}
-	}
+		return Set;
+	};
 
 	if (m_pRuleView->isVisible())
 	{
-		if(Current.bAllPrograms)
+		if (Current.bAllProgramsOnly) {
+			//
+			// The all programs item stands for the rules that apply to every program,
+			// not for the union of what the individual programs have.
+			//
+			QSet<QFlexGuid> RuleIDs;
+			CProgramSetPtr pAll = theCore->ProgramManager()->GetAll();
+			if (pAll) RuleIDs = pAll->GetFwRules();
+			m_pRuleView->Sync(theCore->NetworkManager()->GetFwRules(RuleIDs));
+		}
+		else if(Current.bAllPrograms)
 			m_pRuleView->Sync(theCore->NetworkManager()->GetFwRules().values());
 		else {
 			QSet<QFlexGuid> RuleIDs;
@@ -133,17 +154,25 @@ void CNetworkPage::Update()
 
 	if (m_pTrafficView->isVisible())
 	{
-		m_pTrafficView->Sync(Programs, Services);
+		bool bPrivate = m_pTrafficView->ShowPrivate();
+		m_pTrafficView->Sync(Programs(bPrivate), Services(bPrivate));
 	}
 
 	if (m_pTraceView->isVisible())
 	{
-		m_pTraceView->Sync(ETraceLogs::eNetLog, Programs, Current.ServicesEx);
+		m_pTraceView->Sync(ETraceLogs::eNetLog, Programs(m_pTraceView->ShowPrivate()), Current.ServicesEx);
+	}
+
+	if (m_pUsageView->isVisible())
+	{
+		m_pUsageView->Sync(Current.ProgramsEx | Current.ProgramsIm, Current.ServicesEx | Current.ServicesIm);
 	}
 }
 
 void CNetworkPage::Clear()
 {
+	m_pUsageView->Clear();
+
 	m_pSocketView->Clear();
 
 	m_pTrafficView->Clear();

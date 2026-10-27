@@ -3,6 +3,7 @@
 //#include "../Process.h"
 #include "ProgramID.h"
 #include "./Common/QtFlexGuid.h"
+#include "UsageHistory.h"
 
 struct SProgramStats
 {
@@ -94,6 +95,14 @@ public:
 
 	virtual size_t GetLogMemUsage() const			{ return m_LogMemoryUsed; }
 
+	// usage history (CPU / I/O / network), see Library/Common/UsageStats.h
+	SUsageHistory::STier GetUsage(EUsageTier Tier) const	{ QReadLocker Lock(&m_Mutex); return m_Usage.Tiers[(int)Tier]; }
+	quint32 GetUsageWatermark(EUsageTier Tier) const		{ QReadLocker Lock(&m_Mutex); return m_Usage.Tiers[(int)Tier].Watermark; }
+	quint32 GetUsageRevision(EUsageTier Tier) const		{ QReadLocker Lock(&m_Mutex); return m_Usage.Tiers[(int)Tier].Revision; }
+	bool MergeUsage(EUsageTier Tier, const QtVariant& Data)	{ QWriteLocker Lock(&m_Mutex); return m_Usage.Merge(Tier, Data); }
+	void TrimUsage(EUsageTier Tier, quint32 OlderThan)		{ QWriteLocker Lock(&m_Mutex); m_Usage.Trim(Tier, OlderThan); }
+	void ClearUsage()										{ QWriteLocker Lock(&m_Mutex); m_Usage.Clear(); }
+
 	virtual QtVariant ToVariant(const SVarWriteOpt& Opts) const;
 	virtual NTSTATUS FromVariant(const QtVariant& Data);
 
@@ -134,6 +143,8 @@ protected:
 	SProgramStats						m_Stats;
 
 	size_t								m_LogMemoryUsed = 0;		
+
+	SUsageHistory						m_Usage;
 };
 
 typedef QSharedPointer<CProgramItem> CProgramItemPtr;

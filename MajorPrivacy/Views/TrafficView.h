@@ -15,6 +15,7 @@ public:
 	virtual ~CTrafficView();
 
 	void					Sync(const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services);
+	bool					ShowPrivate() const { return m_pBtnPrivate->isChecked(); }
 	void					Clear();
 
 protected:
@@ -38,8 +39,20 @@ protected:
 	QSet<CProgramFilePtr>			m_CurPrograms;
 	QSet<CWindowsServicePtr>		m_CurServices;
 
+	void					ResetCache();
+
 	QMap<QVariant, STrafficItemPtr>	m_CachedTrafficMap;
-	QHash<QString, quint64>			m_TrafficLogTimestamps; // hostname -> last timestamp
+
+	struct SSource
+	{
+		CTrafficEntryPtr pEntry;		// keeps the entry alive, so its address can not be reused while it is a key
+		quint64 LastActivity = 0;		// values already added to the rows
+		quint64 Uploaded = 0;
+		quint64 Downloaded = 0;
+		QList<CTrafficEntryPtr> Nodes;	// entries of all rows this source contributes to
+	};
+	QHash<const CTrafficEntry*, SSource>	m_Sources;
+	QHash<const CProgramItem*, quint32>		m_SyncedItems; // item -> traffic log generation it was added at
 
 private:
 
@@ -54,6 +67,7 @@ private:
 	QAction*				m_pLocalHost = nullptr;
 	QToolButton*			m_pBtnHold = nullptr;
 	QToolButton*			m_pBtnRefresh = nullptr;
+	QToolButton*			m_pBtnPrivate = nullptr;
 	QToolButton*			m_pBtnClear = nullptr;
 
 	QAction*				m_pFilterDNS = nullptr;

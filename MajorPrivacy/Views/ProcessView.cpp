@@ -2,6 +2,9 @@
 #include "ProcessView.h"
 #include "../Core/PrivacyCore.h"
 #include "../MiscHelpers/Common/CustomStyles.h"
+#include "../Core/Programs/ProgramManager.h"
+#include "../Windows/ProgramRuleWnd.h"
+#include "../MajorPrivacy.h"
 
 enum class EProcessScope
 {
@@ -63,6 +66,9 @@ CProcessView::CProcessView(QWidget *parent)
 	pBtnSearch->setMaximumHeight(22);
 	m_pToolBar->addWidget(pBtnSearch);
 
+	m_pCreateProgRule = m_pMenu->addAction(QIcon(":/Icons/Add.png"), tr("Create Program Rule"), this, SLOT(OnCreateProgramRule()));
+	m_pMenu->addSeparator();
+
 	AddPanelItemsToMenu();
 }
 
@@ -115,5 +121,29 @@ void CProcessView::Clear()
 
 void CProcessView::OnMenu(const QPoint& Point)
 {
+	m_pCreateProgRule->setEnabled(m_SelectedItems.count() == 1);
+
 	CPanelView::OnMenu(Point);
+}
+
+void CProcessView::OnCreateProgramRule()
+{
+	if (m_SelectedItems.count() != 1)
+		return;
+	CProcessPtr pProcess = m_SelectedItems.first();
+
+	QString Path = theCore->NormalizePath(pProcess->GetNtPath());
+	CProgramFilePtr pProgram = Path.isEmpty() ? CProgramFilePtr() : theCore->ProgramManager()->GetProgramFile(Path);
+	if (!pProgram) {
+		QMessageBox::warning(this, "MajorPrivacy", tr("Could not find the program item for %1").arg(pProcess->GetName()));
+		return;
+	}
+
+	if (!theGUI->CheckAcknowledgement("Program Execution Rule"))
+		return;
+
+	QSet<CProgramItemPtr> Items;
+	Items.insert(pProgram);
+	CProgramRuleWnd* pProgramRuleWnd = new CProgramRuleWnd(CProgramRulePtr(new CProgramRule()), Items);
+	pProgramRuleWnd->show();
 }

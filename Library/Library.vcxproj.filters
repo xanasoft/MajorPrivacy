@@ -46,6 +46,15 @@
     <Filter Include="Crypto\Argon2\blake2">
       <UniqueIdentifier>{72606966-3df0-4db4-ae7b-d7ce88b23a08}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Boot">
+      <UniqueIdentifier>{16fd8d57-243c-4b6a-8be2-a0be5d5b9a1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Boot\fs">
+      <UniqueIdentifier>{7143fb57-6a2d-4f3c-ba83-b08e14368f98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Boot\zip">
+      <UniqueIdentifier>{3b9f41d2-8c57-4ea6-9d14-2f7c6a0b58e4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -198,6 +207,9 @@
     <ClInclude Include="Common\MiscStats.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Common\UsageStats.h">
+      <Filter>Common</Filter>
+    </ClInclude>
     <ClInclude Include="Common\UIntX.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -315,6 +327,9 @@
     <ClInclude Include="Common\StVariant.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Common\VariantCache.h">
+      <Filter>Common</Filter>
+    </ClInclude>
     <ClInclude Include="Hooking\injdll.h">
       <Filter>Hooking</Filter>
     </ClInclude>
@@ -359,6 +374,51 @@
     </ClInclude>
     <ClInclude Include="Helpers\MiniDumpFilter.h">
       <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\BootPackage.h">
+      <Filter>Boot</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\DcsConfig.h">
+      <Filter>Boot</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\EfiInstall.h">
+      <Filter>Boot</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\EfiVars.h">
+      <Filter>Boot</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\EspLocator.h">
+      <Filter>Boot</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\GptDisk.h">
+      <Filter>Boot</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\MokManager.h">
+      <Filter>Boot</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\RecoveryMedia.h">
+      <Filter>Boot</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\fs\dcconst.h">
+      <Filter>Boot\fs</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\fs\defines.h">
+      <Filter>Boot\fs</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\fs\fs_sup.h">
+      <Filter>Boot\fs</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\fs\iso_fs.h">
+      <Filter>Boot\fs</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\fs\misc.h">
+      <Filter>Boot\fs</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\zip\miniz.h">
+      <Filter>Boot\zip</Filter>
+    </ClInclude>
+    <ClInclude Include="Boot\zip\zip.h">
+      <Filter>Boot\zip</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -661,6 +721,39 @@
     </ClCompile>
     <ClCompile Include="Helpers\MiniDumpFilter.cpp">
       <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\BootPackage.cpp">
+      <Filter>Boot</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\DcsConfig.cpp">
+      <Filter>Boot</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\EfiInstall.cpp">
+      <Filter>Boot</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\EfiVars.cpp">
+      <Filter>Boot</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\EspLocator.cpp">
+      <Filter>Boot</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\GptDisk.cpp">
+      <Filter>Boot</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\MokManager.cpp">
+      <Filter>Boot</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\RecoveryMedia.cpp">
+      <Filter>Boot</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\fs\fat_sup.c">
+      <Filter>Boot\fs</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\fs\iso_sup.c">
+      <Filter>Boot\fs</Filter>
+    </ClCompile>
+    <ClCompile Include="Boot\zip\zip.c">
+      <Filter>Boot\zip</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

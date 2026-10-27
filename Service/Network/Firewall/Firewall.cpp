@@ -32,8 +32,14 @@ EFwProfiles CFirewall__Profiles[] = { EFwProfiles::Private, EFwProfiles::Public,
 CFirewall::CFirewall()
 	: m_FwRuleTemplates(&g_DefaultMemPool), m_FwTemplatesTree(&g_DefaultMemPool), m_AutoGuardTree(&g_DefaultMemPool)
 {
-	m_FwTemplatesTree.SetSimplePattern(true);
-	m_AutoGuardTree.SetSimplePattern(true);
+	//
+	// Both trees match whole path elements, a single '*' stays inside one element and '**' is
+	// what crosses them. A rule template or a guard entry decides whether a binary is trusted,
+	// so a wildcard which silently reached into sub directories would give away more than the
+	// user ever wrote down.
+	//
+	m_FwTemplatesTree.SetSimplePattern(false);
+	m_AutoGuardTree.SetSimplePattern(false);
 
 	m_pLog = new CWindowsFwLog();
 	m_pLog->RegisterHandler(&CFirewall::OnFwLogEvent, this);
@@ -103,6 +109,10 @@ STATUS CFirewall::ReLoad()
 	// Clear pending reversion queues to prevent stale operations
 	m_RulesToRemove.clear();
 	m_RulesToRevert.clear();
+	// and what was waiting for its twin, the rules it points at are about to be replaced by those from disk
+	m_WithdrawnRules.clear();
+	m_HeldRules.clear();
+	m_SettledRemovals.clear();
 
 	//
 	// Phase 1: Load rules from disk into temporary collection
@@ -403,7 +413,7 @@ STATUS CFirewall::Store()
 
 	CBuffer Buffer;
 	Data.ToPacket(&Buffer);
-	WriteFile(theCore->GetDataFolder() + L"\\" API_FIREWALL_FILE_NAME, Buffer);
+	WriteFileSafe(theCore->GetDataFolder() + L"\\" API_FIREWALL_FILE_NAME, Buffer);
 
 	return OK;
 }
@@ -471,7 +481,186 @@ void CFirewall::Update()
 	if (m_LastRulePurge + 60 * 1000 < GetTickCount64())
 		PurgeExpired(false);
 
+	AskAboutWithdrawnRules(); // first, so a removal which ran out of time is reverted in this same pass
+	ReleaseHeldRules(); // and an addition turned down
+
 	RevertChanges();
+}
+
+//
+// How long a rule which went away is kept quiet, waiting to see whether the same one comes back.
+// A program which replaces a rule by an identical one does so in one go, so this only has to
+// outlast the gap between the two halves, not any real decision the user might be making.
+//
+#define FW_RECREATE_GRACE_MS 5000
+
+//
+// A rule has just turned up. If it is the one a removal is being held back for, down to the last
+// field, then saying yes to the removal and yes to this leaves the firewall exactly as it was.
+// There is nothing in that worth asking about, so the pair is settled and the backup handed back
+// so the caller can let go of it.
+//
+CFirewallRulePtr CFirewall::TakeWithdrawnTwinUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule)
+{
+	for (auto I = m_WithdrawnRules.begin(); I != m_WithdrawnRules.end(); ++I)
+	{
+		std::wstring Diff = CFirewallRule::MatchDiff(I->pBackup->GetFwRule(), pRule);
+		if (Diff.empty())
+		{
+			CFirewallRulePtr pBackup = I->pBackup;
+			m_WithdrawnRules.erase(I);
+			return pBackup;
+		}
+
+		//
+		// The same rule by name, but not the same rule. That is the difference between a program
+		// putting back what it took and one changing something while it was at it, and the user
+		// is about to be asked about both halves, so it is worth saying which field made it so.
+		//
+		if (I->pBackup->GetName() == pRule->Name)
+			theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, 1,
+				L"Firewall Rule '%s' came back differing in %s, so it is not the one that went away",
+				pRule->Name.c_str(), Diff.c_str());
+	}
+	return CFirewallRulePtr();
+}
+
+//
+// The other way round: a rule is going away and an identical one already stands in its place.
+// Whether that twin has been agreed to yet makes no difference, because both halves are settled
+// together below; what must not happen is settling the removal and leaving the twin undecided,
+// as turning that down afterwards would leave neither.
+//
+CFirewallRulePtr CFirewall::FindLiveTwinUnsafe(const CFirewallRulePtr& pGoing)
+{
+	for (auto I : m_FwRules)
+	{
+		const CFirewallRulePtr& pOther = I.second;
+		if (pOther == pGoing || pOther->IsBackup() || pOther->IsTemplate())
+			continue;
+		if (pOther->Match(pGoing->GetFwRule()))
+			return pOther;
+	}
+	return CFirewallRulePtr();
+}
+
+//
+// A rule has just turned up identical to one which still stands. That is the first half of a
+// replacement done the other way round, the copy going in before the original goes out. The
+// copy grants nothing the original does not already grant, so it can wait for the removal as
+// safely as a removal can wait for its replacement.
+//
+CFirewallRulePtr CFirewall::FindLiveTwinUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pComing)
+{
+	for (auto I : m_FwRules)
+	{
+		const CFirewallRulePtr& pOther = I.second;
+		if (pOther->IsBackup() || pOther->IsTemplate())
+			continue;
+		if (pOther->Match(pComing))
+			return pOther;
+	}
+	return CFirewallRulePtr();
+}
+
+//
+// A rule has just turned up identical to one whose removal was already let through, by a guard
+// entry or the removal option. Nothing was held back then, as there was nothing to ask, but the
+// two are still one replacement. Without this the copy was a rule of its own: asked about, or
+// under the blanket guard turned down, which left the program with neither.
+//
+CFirewallRulePtr CFirewall::TakeSettledTwinUnsafe(const std::shared_ptr<struct SWindowsFwRule>& pRule)
+{
+	uint64 uNow = GetTickCount64();
+	for (auto I = m_SettledRemovals.begin(); I != m_SettledRemovals.end(); ++I)
+	{
+		if (I->uRemoved + FW_RECREATE_GRACE_MS <= uNow)
+			continue; // too late to be the same replacement, ReleaseHeldRules clears it out
+		if (CFirewallRule::MatchDiff(I->pRule->GetFwRule(), pRule).empty())
+		{
+			CFirewallRulePtr pGone = I->pRule;
+			m_SettledRemovals.erase(I);
+			return pGone;
+		}
+	}
+	return CFirewallRulePtr();
+}
+
+bool CFirewall::TakeHeldRuleUnsafe(const CFirewallRulePtr& pRule)
+{
+	for (auto I = m_HeldRules.begin(); I != m_HeldRules.end(); ++I) {
+		if (I->pRule == pRule) {
+			m_HeldRules.erase(I);
+			return true;
+		}
+	}
+	return false;
+}
+
+//
+// The original stayed, so the copy was not a replacement after all but a rule of its own, and it
+// is dealt with as it would have been on arrival: asked about, or turned down by the blanket guard.
+//
+void CFirewall::ReleaseHeldRules()
+{
+	std::vector<SHeldRule> Expired;
+
+	{
+		std::unique_lock Lock(m_RulesMutex);
+
+		uint64 uNow = GetTickCount64();
+		for (auto I = m_HeldRules.begin(); I != m_HeldRules.end(); )
+		{
+			if (I->uHeld + FW_RECREATE_GRACE_MS > uNow) {
+				++I;
+				continue;
+			}
+			if (I->bReject)
+				m_RulesToRemove.insert(I->pRule); // what the blanket guard would have done straight away
+			else
+				Expired.push_back(*I);
+			I = m_HeldRules.erase(I);
+		}
+
+		// nothing came back for these, there is nothing to do about them either
+		m_SettledRemovals.erase(std::remove_if(m_SettledRemovals.begin(), m_SettledRemovals.end(),
+			[&](const SSettledRemoval& Entry) { return Entry.uRemoved + FW_RECREATE_GRACE_MS <= uNow; }), m_SettledRemovals.end());
+	}
+
+	for (const SHeldRule& Entry : Expired)
+		EmitChangeEvent(Entry.pRule->GetGuidStr(), Entry.pRule->GetName(), EConfigEvent::eAdded, false, true);
+}
+
+//
+// Nothing came back in time, so the removals held back until now are real after all and the user
+// is asked about them, exactly as they would have been without the wait. Under the blanket guard
+// they are reverted instead, which is likewise what would have happened without the wait.
+//
+void CFirewall::AskAboutWithdrawnRules()
+{
+	std::vector<SWithdrawnRule> Expired;
+
+	{
+		std::unique_lock Lock(m_RulesMutex);
+
+		uint64 uNow = GetTickCount64();
+		for (auto I = m_WithdrawnRules.begin(); I != m_WithdrawnRules.end(); )
+		{
+			if (I->uWithdrawn + FW_RECREATE_GRACE_MS > uNow) {
+				++I;
+				continue;
+			}
+			if (I->bRevert)
+				m_RulesToRevert.insert(I->pBackup); // what the blanket guard would have done straight away
+			else
+				Expired.push_back(*I);
+			I = m_WithdrawnRules.erase(I);
+		}
+	}
+
+	// the original guid, that is what the rule was known by and what the UI finds the backup with
+	for (const SWithdrawnRule& Entry : Expired)
+		EmitChangeEvent(Entry.pBackup->GetOriginalGuid(), Entry.pBackup->GetName(), EConfigEvent::eRemoved, false, true);
 }
 
 STATUS CFirewall::UpdateRules()
@@ -563,12 +752,28 @@ void CFirewall::UpdateDefaults()
 void CFirewall::PurgeExpired(bool All)
 {
 	std::unique_lock Lock(m_RulesMutex);
-	for (auto I = m_FwRules.begin(); I != m_FwRules.end(); ) {
-		auto J = I++;
-		if (All ? J->second->IsTemporary() : J->second->IsExpired()) {
-			theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, 1, StrLine(L"Removed expired Firewall Rule: %s", J->second->GetFwRule()->Name.c_str()).c_str());
-			DelRule(J->first);
+
+	//
+	// Gathered first: a template takes the rules made from it along, so deleting while walking the
+	// list would pull entries out from under the walk. Those rules are left out here for the same
+	// reason, their template sees to them.
+	//
+	std::vector<CFirewallRulePtr> Expired;
+	std::set<std::wstring> ExpiredTemplates;
+	for (const auto& [Guid, pRule] : m_FwRules) {
+		if (All ? pRule->IsTemporary() : pRule->IsExpired()) {
+			Expired.push_back(pRule);
+			if (pRule->IsTemplate())
+				ExpiredTemplates.insert(pRule->GetGuidStr());
 		}
+	}
+
+	for (const CFirewallRulePtr& pRule : Expired) {
+		std::wstring TemplateGuid = pRule->GetTemplateGuid();
+		if (!pRule->IsTemplate() && !TemplateGuid.empty() && ExpiredTemplates.count(TemplateGuid))
+			continue;
+		theCore->Log()->LogEvent(EVENTLOG_INFORMATION_TYPE, 0, 1, StrLine(L"Removed expired Firewall Rule: %s", pRule->GetFwRule()->Name.c_str()).c_str());
+		DelRule(pRule->GetGuidStr(), true);
 	}
 
 	m_LastRulePurge = GetTickCount64();
@@ -609,7 +814,7 @@ void CFirewall::RevertChanges()
 		Data[API_V_NAME] = pFwRule->GetName(); 
 		Data[API_V_ID] = pFwRule->GetProgramID().ToVariant(SVarWriteOpt());
 		Data[API_V_STATUS] = Status.GetStatus();
-		theCore->EmitEvent(Status.IsError() ? ELogLevels::eInfo : ELogLevels::eError, eLogFwRuleRejected, Data);
+		theCore->EmitEvent(Status.IsError() ? ELogLevels::eError : ELogLevels::eInfo, eLogFwRuleRejected, Data); // the guard doing its job is no error, it failing at it is
 	}
 	m_RulesToRemove.clear();
 
@@ -618,14 +823,14 @@ void CFirewall::RevertChanges()
 		if(pFwRuleBackup->GetSetErrorCount() > 0)
 			continue;
 
-		STATUS Status = RestoreRule(pFwRuleBackup);
+		STATUS Status = RestoreRule(pFwRuleBackup, false);
 
 		StVariant Data;
 		Data[API_V_GUID] = pFwRuleBackup->GetOriginalGuid();
 		Data[API_V_NAME] = pFwRuleBackup->GetName(); 
 		Data[API_V_ID] = pFwRuleBackup->GetProgramID().ToVariant(SVarWriteOpt());
 		Data[API_V_STATUS] = Status.GetStatus();
-		theCore->EmitEvent(Status.IsError() ? ELogLevels::eInfo : ELogLevels::eError, eLogFwRuleRestored, Data);
+		theCore->EmitEvent(Status.IsError() ? ELogLevels::eError : ELogLevels::eInfo, eLogFwRuleRestored, Data);
 	}
 	m_RulesToRevert.clear();
 }
@@ -692,13 +897,18 @@ void CFirewall::CleanupOldTemplateRules()
 		theCore->Log()->LogEventLine(EVENTLOG_INFORMATION_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Cleaned up %d obsolete template-generated firewall rule(s)", (int)RulesToRemove.size());
 }
 
-STATUS CFirewall::RestoreRule(const CFirewallRulePtr& pFwRuleBackup)
+//
+// bApprove is for the user putting a rule back, which says yes to what comes back. The guard
+// putting it back only undoes a change, and leaves the rule as approved, or not, as it was.
+//
+STATUS CFirewall::RestoreRule(const CFirewallRulePtr& pFwRuleBackup, bool bApprove)
 {
 	SWindowsFwRulePtr pData = std::make_shared<SWindowsFwRule>(*pFwRuleBackup->GetFwRule());
 	auto pFwRule = std::make_shared<CFirewallRule>(pData);
 	pFwRule->Update(pFwRuleBackup);
 
-	pFwRule->m_State = EFwRuleState::eApproved;
+	if (bApprove)
+		pFwRule->m_State = EFwRuleState::eApproved;
 	pFwRule->m_FwRule->Guid = pFwRuleBackup->m_OriginalGuid; // pData->Guid = ...
 	pFwRule->m_OriginalGuid.clear();
 
@@ -902,11 +1112,11 @@ std::vector<CFirewallRulePtr> CFirewall::GetRulesFromTemplate(const CFlexGuid& T
 	return DerivedRules;
 }
 
-STATUS CFirewall::SetRule(const CFirewallRulePtr& pFwRule)
+STATUS CFirewall::SetRule(const CFirewallRulePtr& pFwRule, const std::vector<std::wstring>& TakeOver)
 {
 	if (pFwRule->IsTemplate())
 	{
-		SetTempalte(pFwRule);
+		SetTempalte(pFwRule, TakeOver);
 		return OK;
 	}
 
@@ -1007,15 +1217,27 @@ CFirewallRulePtr CFirewall::GetRule(const CFlexGuid& Guid)
 	return pFwRule;
 }
 
-STATUS CFirewall::DelRule(const CFlexGuid& Guid)
+STATUS CFirewall::DelRule(const CFlexGuid& Guid, bool bWithDerived)
 {
-	if (TryRemoveTemplate(Guid))
+	if (TryRemoveTemplate(Guid, bWithDerived))
 		return OK;
 
 	std::unique_lock Lock(m_RulesMutex);
-	STATUS Status = CWindowsFirewall::Instance()->RemoveRule(Guid.ToWString());
-	if (!Status)
-		return Status;
+
+	//
+	// A backup is only a record of what a rule looked like before something changed it, it was
+	// never written to the windows firewall and there is nothing there to take away. Asking the
+	// firewall to remove it fails, which used to leave the backup in the list for good with no
+	// way of getting rid of it.
+	//
+	auto F = m_FwRules.find(Guid);
+	bool bBackup = (F != m_FwRules.end() && F->second->IsBackup());
+
+	if (!bBackup) {
+		STATUS Status = CWindowsFirewall::Instance()->RemoveRule(Guid.ToWString());
+		if (!Status)
+			return Status;
+	}
 
 	CFirewallRulePtr pFwRule = UpdateFWRuleUnsafe(NULL, Guid);
 
@@ -1025,25 +1247,199 @@ STATUS CFirewall::DelRule(const CFlexGuid& Guid)
 	return OK;
 }
 
-void CFirewall::SetTempalte(const CFirewallRulePtr& pFwRule)
+//
+// The rule a template makes for one binary: everything the template says, for this one path and,
+// where the template points both ways, for the one direction at hand.
+//
+SWindowsFwRulePtr CFirewall::MakeDerivedRuleData(const SWindowsFwRulePtr& pTemplate, const std::wstring& BinaryPath, EFwDirections Direction)
+{
+	SWindowsFwRulePtr pData = std::make_shared<struct SWindowsFwRule>(*pTemplate); // copy the ruledata
+
+	pData->Guid.clear(); // clear the guid
+	pData->BinaryPath = BinaryPath; // set exact pact
+	pData->Name = StrReplaceAll(pData->Name, L"MajorPrivacy-Template", L"MajorPrivacy-Rule");
+	if (pData->Direction == EFwDirections::Bidirectional)
+		pData->Direction = Direction;
+	return pData;
+}
+
+std::vector<CFirewallRulePtr> CFirewall::GetDerivedRulesUnsafe(const std::wstring& TemplateGuid)
+{
+	std::vector<CFirewallRulePtr> Derived;
+	for (const auto& [Guid, pRule] : m_FwRules) {
+		if (!pRule->IsTemplate() && !pRule->IsBackup() && pRule->GetTemplateGuid() == TemplateGuid)
+			Derived.push_back(pRule);
+	}
+	return Derived;
+}
+
+bool CFirewall::RemoveDerivedRuleUnsafe(const CFirewallRulePtr& pRule)
+{
+	std::wstring Guid = pRule->GetGuidStr();
+	STATUS Status = CWindowsFirewall::Instance()->RemoveRule(Guid);
+	if (Status.IsError()) {
+		theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Failed to remove the template rule '%s': %s", pRule->GetName().c_str(), Status.GetMessageText());
+		return false;
+	}
+	UpdateFWRuleUnsafe(NULL, Guid);
+	return true;
+}
+
+//
+// A template stands for a wildcard rule the windows firewall does not have, the rules made from it
+// are how it takes effect. So what the template says, they say: its action, its scope, its ports
+// and addresses, whether it is on, and how long it lasts, all but the one path each was made for.
+// A rule the template no longer reaches, by direction or by pattern, has nothing behind it any
+// more and goes, the same way a windows rule would stop applying.
+//
+void CFirewall::SyncDerivedRulesUnsafe(const CFirewallRulePtr& pTemplateRule, std::vector<SRuleChange>& Changes)
+{
+	SWindowsFwRulePtr pTemplate = pTemplateRule->GetFwRule();
+
+	uint64 uTimeOut;
+	bool bTemporary;
+	{
+		std::shared_lock Lock(pTemplateRule->m_Mutex);
+		uTimeOut = pTemplateRule->m_uTimeOut;
+		bTemporary = pTemplateRule->m_bTemporary;
+	}
+
+	for (const CFirewallRulePtr& pDerived : GetDerivedRulesUnsafe(pTemplateRule->GetGuidStr()))
+	{
+		SWindowsFwRulePtr pCur = pDerived->GetFwRule();
+
+		bool bCovered = pTemplate->Direction == EFwDirections::Bidirectional || pTemplate->Direction == pCur->Direction;
+		if (bCovered && pTemplateRule->IsEnabled()) // a switched off template is not in the tree, and its pattern did not change for being switched off
+		{
+			//
+			// Matched by the program's path, not the rule's: a rule an installer wrote often spells
+			// its binary "%ProgramFiles%\..." where the tree, like the rules a template makes, has
+			// the path as the program knows it.
+			//
+			std::wstring Path = pDerived->GetProgramID().GetFilePath();
+			bCovered = false;
+			for (auto Found : m_FwTemplatesTree.GetEntries(FW::StringW(&g_DefaultMemPool, Path.c_str()))) {
+				auto pEntry = Found.pEntry.Cast<CFwRuleTemplate>();
+				if (pEntry && pEntry->GetRule() == pTemplateRule) {
+					bCovered = true;
+					break;
+				}
+			}
+		}
+
+		if (!bCovered)
+		{
+			//
+			// One the template made goes, there is nothing behind it any more. One it took over was
+			// there before it and stays, only no longer under it: the template letting go of a rule
+			// must not delete what the user or a program had put there.
+			//
+			if (pDerived->GetSource() != EFwRuleSource::eAutoTemplate) {
+				pDerived->SetTemplateGuid(L"");
+				Changes.push_back({ pCur->Guid, pCur->Name, EConfigEvent::eModified });
+			}
+			else if (RemoveDerivedRuleUnsafe(pDerived))
+				Changes.push_back({ pCur->Guid, pCur->Name, EConfigEvent::eRemoved });
+			continue;
+		}
+
+		SWindowsFwRulePtr pData = MakeDerivedRuleData(pTemplate, pCur->BinaryPath, pCur->Direction);
+		pData->Guid = pCur->Guid;
+		// what a rule is called is its own, one taken over keeps the name it came with and a made one the name it was made with
+		pData->Name = pCur->Name;
+		pData->Description = pCur->Description;
+
+		CFirewallRulePtr pRule = pDerived;
+		if (!CFirewallRule::Match(pCur, pData))
+		{
+			STATUS Status = UpdateRuleAndTest(pData);
+			if (Status.GetStatus() == STATUS_ERR_RULE_DIVERGENT)
+			{
+				// written, but not quite as asked; what we keep has to be what windows holds, or the guard takes it for a change
+				std::vector<std::wstring> RuleIds;
+				RuleIds.push_back(pData->Guid);
+				auto ret = CWindowsFirewall::Instance()->LoadRules(RuleIds);
+				SWindowsFwRulePtr pWritten = ret.GetValue() ? (*ret.GetValue())[pData->Guid] : SWindowsFwRulePtr();
+				if (!pWritten)
+					continue;
+				theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Template rule '%s' was only partly updated", pCur->Name.c_str());
+				pData = pWritten;
+			}
+			else if (Status.IsError()) {
+				theCore->Log()->LogEventLine(EVENTLOG_WARNING_TYPE, 0, SVC_EVENT_SVC_STATUS_MSG, L"Failed to update the template rule '%s': %s", pCur->Name.c_str(), Status.GetMessageText());
+				continue;
+			}
+			pRule = UpdateFWRuleUnsafe(pData, pData->Guid);
+			Changes.push_back({ pData->Guid, pData->Name, EConfigEvent::eModified });
+		}
+
+		std::unique_lock Lock(pRule->m_Mutex);
+		pRule->m_uTimeOut = uTimeOut;
+		pRule->m_bTemporary = bTemporary;
+	}
+}
+
+void CFirewall::SetTempalte(const CFirewallRulePtr& pFwRule, const std::vector<std::wstring>& TakeOver)
 {
 	SWindowsFwRulePtr pData = pFwRule->GetFwRule();
 
-	bool bAdded = false;
-	if (pData->Guid.empty()) {
-		pData->Guid = MkGuid();
-		bAdded = true;
-	}
+	std::vector<SRuleChange> Changes;
 
 	std::unique_lock Lock(m_RulesMutex);
+
+	// the UI may name a new template itself, so that it knows it by that name before it exists
+	if (pData->Guid.empty())
+		pData->Guid = MkGuid();
+	bool bAdded = m_FwRules.find(pData->Guid) == m_FwRules.end();
+
 	CFirewallRulePtr pRule = UpdateFWRuleUnsafe(pData, pData->Guid);
 	pRule->Update(pFwRule);
+
+	//
+	// Rules which already exist for programs the template covers can be put under it, as though it
+	// had made them. From then on they follow it like the rules it makes. Only what it could have
+	// made qualifies: a rule for a binary by path, of its action, in a direction it covers. A rule
+	// for a service or an app package says more than a path pattern can carry, and following the
+	// template would lose that.
+	//
+	int TakenOver = 0;
+	for (const std::wstring& Guid : TakeOver)
+	{
+		auto F = m_FwRules.find(Guid);
+		if (F == m_FwRules.end())
+			continue;
+		CFirewallRulePtr pTaken = F->second;
+		if (pTaken->IsTemplate() || pTaken->IsBackup())
+			continue;
+		SWindowsFwRulePtr pTakenData = pTaken->GetFwRule();
+		if (!pTakenData->ServiceTag.empty() || !pTakenData->AppContainerSid.empty() || !pTakenData->PackageFamilyName.empty())
+			continue;
+		if (pTakenData->Action != pData->Action)
+			continue;
+		if (pData->Direction != EFwDirections::Bidirectional && pData->Direction != pTakenData->Direction)
+			continue;
+		pTaken->SetTemplateGuid(pRule->GetGuidStr());
+		TakenOver++;
+		// reported even if the sync below finds nothing else to change, or the UI never learns of the link
+		Changes.push_back({ pTakenData->Guid, pTakenData->Name, EConfigEvent::eModified });
+	}
+
+	// the sync also drops any taken over rule whose path the pattern does not cover after all
+	if (!bAdded || TakenOver > 0)
+		SyncDerivedRulesUnsafe(pRule, Changes);
 	Lock.unlock();
 
 	EmitChangeEvent(pData->Guid, pData->Name, bAdded ? EConfigEvent::eAdded : EConfigEvent::eModified, true);
+	for (const SRuleChange& Change : Changes)
+		EmitChangeEvent(Change.Guid, Change.Name, Change.Event, true);
 }
 
-bool CFirewall::TryRemoveTemplate(const CFlexGuid& Guid)
+//
+// Removing a template leaves the rules made from it either gone with it or standing on their
+// own. Standing on their own they no longer have a template behind them, so the link is cut, and
+// they are rules like any other from then on.
+//
+bool CFirewall::TryRemoveTemplate(const CFlexGuid& Guid, bool bWithDerived)
 {
 	std::unique_lock Lock(m_RulesMutex);
 
@@ -1055,12 +1451,27 @@ bool CFirewall::TryRemoveTemplate(const CFlexGuid& Guid)
 	}
 	if (!pFwRule || !pFwRule->IsTemplate())
 		return false;
-	
+
 	SWindowsFwRulePtr pData = pFwRule->GetFwRule();
+
+	std::vector<SRuleChange> Changes;
+	for (const CFirewallRulePtr& pDerived : GetDerivedRulesUnsafe(pFwRule->GetGuidStr()))
+	{
+		if (!bWithDerived) {
+			pDerived->SetTemplateGuid(L"");
+			Changes.push_back({ pDerived->GetGuidStr(), pDerived->GetName(), EConfigEvent::eModified }); // the link is gone, the UI has to hear of it
+		}
+		else if (RemoveDerivedRuleUnsafe(pDerived))
+			Changes.push_back({ pDerived->GetGuidStr(), pDerived->GetName(), EConfigEvent::eRemoved });
+	}
 
 	RemoveRuleUnsafe(pFwRule);
 
+	Lock.unlock();
+
 	EmitChangeEvent(pData->Guid, pData->Name, EConfigEvent::eRemoved, true);
+	for (const SRuleChange& Change : Changes)
+		EmitChangeEvent(Change.Guid, Change.Name, Change.Event, true);
 
 	return true;
 }
@@ -1136,6 +1547,198 @@ CFirewallRulePtr CFirewall::UpdateFWRuleUnsafe(const std::shared_ptr<struct SWin
 	return pFwRule;
 }
 
+static bool CFirewall__IsNumber(const std::wstring& Value)
+{
+	if (Value.empty())
+		return false;
+	for (auto Char : Value) {
+		if (Char < L'0' || Char > L'9')
+			return false;
+	}
+	return true;
+}
+
+bool CFirewall::ListCoversList(const std::vector<std::wstring>& Template, const std::vector<std::wstring>& Rule, bool bPorts)
+{
+	if (IsEmptyOrStar(Template))
+		return true; // the template puts no limit here, so nothing can step outside of it
+	if (IsEmptyOrStar(Rule))
+		return false; // the rule however does not either, hence it reaches further
+
+	for (auto& Entry : Rule)
+	{
+		//
+		// A plain single value can be held against the template with the same matcher the rule
+		// evaluation uses. Ranges, subnets and keywords are not worth guessing at, those have to
+		// be spelled the same way on both sides for us to call it covered.
+		//
+		bool bCovered = false;
+		if (bPorts) {
+			if (CFirewall__IsNumber(Entry))
+				bCovered = MatchPort((uint16)_wtoi(Entry.c_str()), Template);
+		}
+		else if (Entry.find_first_of(L"-/") == std::wstring::npos) {
+			CAddress Address(Entry);
+			if (!Address.IsNull())
+				bCovered = MatchAddress(Address, Template);
+		}
+
+		if (!bCovered) {
+			for (auto& Allowed : Template) {
+				if (_wcsicmp(Allowed.c_str(), Entry.c_str()) == 0) {
+					bCovered = true;
+					break;
+				}
+			}
+		}
+
+		if (!bCovered)
+			return false;
+	}
+	return true;
+}
+
+//
+// Everything except the action. Whether the action then means approve or reject is for
+// AskTemplatesUnsafe to work out, this only answers whether the template reaches the rule at all.
+//
+bool CFirewall::TemplateAppliesToRule(const SWindowsFwRulePtr& pTemplate, const SWindowsFwRulePtr& pRule)
+{
+	if (!pTemplate || !pRule)
+		return false;
+
+	if (pTemplate->Direction != EFwDirections::Bidirectional && pTemplate->Direction != pRule->Direction)
+		return false;
+	if (pTemplate->Protocol != EFwKnownProtocols::Any && pTemplate->Protocol != pRule->Protocol)
+		return false;
+
+	// everything the rule reaches has to lie inside what the template stands for
+	if ((pRule->Profile & ~pTemplate->Profile) != 0)
+		return false;
+	if (pTemplate->Interface != (int)EFwInterfaces::All && pTemplate->Interface != pRule->Interface)
+		return false;
+
+	if (!ListCoversList(pTemplate->RemoteAddresses, pRule->RemoteAddresses, false))
+		return false;
+	if (!ListCoversList(pTemplate->LocalAddresses, pRule->LocalAddresses, false))
+		return false;
+	if (!ListCoversList(pTemplate->RemotePorts, pRule->RemotePorts, true))
+		return false;
+	if (!ListCoversList(pTemplate->LocalPorts, pRule->LocalPorts, true))
+		return false;
+
+	return true;
+}
+
+CFirewall::ETemplateVerdict CFirewall::AskTemplatesUnsafe(const std::wstring& DosPath, const SWindowsFwRulePtr& pRule, FW::SharedPtr<CFwRuleTemplate>* ppTemplate)
+{
+	if (ppTemplate) *ppTemplate = FW::SharedPtr<CFwRuleTemplate>();
+	if (DosPath.empty() || !pRule)
+		return ETemplateVerdict::eUnknown;
+
+	//
+	// All matching templates are asked, not just the closest one by path, as a template which
+	// sits nearer to the binary may well have nothing to say about this particular rule.
+	//
+	ETemplateVerdict Verdict = ETemplateVerdict::eUnknown;
+	FW::SharedPtr<CFwRuleTemplate> pFound;
+
+	auto Entries = m_FwTemplatesTree.GetEntries(FW::StringW(&g_DefaultMemPool, DosPath.c_str()));
+	for (auto Found : Entries)
+	{
+		auto pTemplate = Found.pEntry.Cast<CFwRuleTemplate>();
+		if (!pTemplate)
+			continue;
+		CFirewallRulePtr pTemplateRule = pTemplate->GetRule();
+		if (!pTemplateRule || !pTemplateRule->IsEnabled())
+			continue;
+
+		SWindowsFwRulePtr pTemplateData = pTemplateRule->GetFwRule();
+		if (!TemplateAppliesToRule(pTemplateData, pRule))
+			continue;
+
+		if (pTemplateData->Action == pRule->Action)
+		{
+			if (Verdict == ETemplateVerdict::eUnknown) {
+				Verdict = ETemplateVerdict::eApprove;
+				pFound = pTemplate;
+			}
+			continue;
+		}
+
+		//
+		// The template forbids what this rule would allow. Block takes precedence over allow in
+		// the firewall itself, and it does so here as well, so this ends the search.
+		//
+		if (pTemplateData->Action == EFwActions::Block && pRule->Action == EFwActions::Allow)
+		{
+			if (ppTemplate) *ppTemplate = pTemplate;
+			return ETemplateVerdict::eReject;
+		}
+
+		//
+		// An allow template says nothing about a block rule. Reverting that would take protection
+		// away rather than grant it, which is not a call to make without asking.
+		//
+	}
+
+	if (ppTemplate) *ppTemplate = pFound;
+	return Verdict;
+}
+
+//
+// Decides whether a change to the windows firewall needs no asking, because the user has already
+// made that very decision in the shape of a rule template, or has asked for allow rule removals
+// to go through unattended.
+//
+CFwAutoGuardEntry::EMode CFirewall::DecideRuleChangeUnsafe(const SWindowsFwRulePtr& pRule, const CFirewallRulePtr& pFwRule, bool bProgramChanged, const std::wstring& OldPath, const std::wstring& NewPath)
+{
+	if (!pRule) // the rule is going away
+	{
+		//
+		// Taking an allow rule away only ever removes access, so where the user asked for it we
+		// let that happen quietly. Together with an allow template this is what carries a store
+		// update through, which drops the rule of the old version and adds one for the new path.
+		//
+		if (pFwRule && pFwRule->GetFwRule() && pFwRule->GetFwRule()->Action == EFwActions::Allow
+		 && theCore->Config()->GetBool("Service", "FwAutoApproveAllowRemoval", false))
+			return CFwAutoGuardEntry::eApprove;
+		return CFwAutoGuardEntry::eNone;
+	}
+
+	if (!theCore->Config()->GetBool("Service", "UseFwRuleTemplates", true)
+	 || !theCore->Config()->GetBool("Service", "FwTemplateGuard", true))
+		return CFwAutoGuardEntry::eNone;
+
+	FW::SharedPtr<CFwRuleTemplate> pTemplate;
+	ETemplateVerdict Verdict = AskTemplatesUnsafe(NewPath, pRule, &pTemplate);
+
+	//
+	// A template which forbids what this rule would allow is an answer in its own right. Where the
+	// rule came from does not change that, so unlike an approval this needs no further checking.
+	//
+	if (Verdict == ETemplateVerdict::eReject)
+		return CFwAutoGuardEntry::eReject;
+
+	if (Verdict != ETemplateVerdict::eApprove)
+		return CFwAutoGuardEntry::eNone;
+
+	if (!bProgramChanged)
+		return CFwAutoGuardEntry::eApprove; // a new rule, or one which stays with its program
+
+	//
+	// The rule was moved to a different binary. Letting that pass on the strength of the new path
+	// alone would hand the trust of one program over to another, so the path it comes from has to
+	// be covered as well, and by the very same template, or the move leaves what the template means.
+	//
+	FW::SharedPtr<CFwRuleTemplate> pOldTemplate;
+	ETemplateVerdict OldVerdict = AskTemplatesUnsafe(OldPath, pFwRule ? pFwRule->GetFwRule() : nullptr, &pOldTemplate);
+	if (OldVerdict == ETemplateVerdict::eApprove && pOldTemplate && pTemplate && pOldTemplate->GetRule() == pTemplate->GetRule())
+		return CFwAutoGuardEntry::eApprove;
+
+	return CFwAutoGuardEntry::eNone;
+}
+
 void CFirewall::InitAutoGuard()
 {
 	std::unique_lock Lock(m_RulesMutex);
@@ -1172,42 +1775,125 @@ bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>
 			return false; // nothing changed
 	}
 
+	//
+	// Which program the rule belonged to before, and which one it belongs to now. On a plain add
+	// or remove only one of the two exists, and when a rule is moved from one binary to another,
+	// as a store update does, the two differ and both sides have to be accounted for.
+	//
+	std::wstring OldPath, NewPath;
+	if (pFwRule)
+		OldPath = pFwRule->GetProgramID().GetFilePath();
+	if (pRule)
+	{
+		std::wstring BinaryPath = pRule->BinaryPath;
+		if (_wcsicmp(BinaryPath.c_str(), L"system") == 0)
+			BinaryPath = CProcess::NtOsKernel_exe;
+
+		//std::wstring AppContainerSid = pRule->AppContainerSid;
+		//if(AppContainerSid.empty() && !pRule->PackageFamilyName.empty())
+		//	AppContainerSid = GetAppContainerSidFromName(pRule->PackageFamilyName);
+
+		NewPath = CProgramID::FromFw(BinaryPath, pRule->ServiceTag, L"").GetFilePath();
+	}
+
 	FW::SharedPtr<CFwAutoGuardEntry> pGuardEntry;
 
-	if (!bProgramChanged) 
+	if (!bProgramChanged)
 	{
 		// TODO: add support for not only path based macthing
 
-		CProgramID ProgID;
-		if(pFwRule)
-			ProgID = pFwRule->GetProgramID();
-		else
-		{
-			std::wstring BinaryPath = pRule->BinaryPath;
-			if (_wcsicmp(BinaryPath.c_str(), L"system") == 0)
-				BinaryPath = CProcess::NtOsKernel_exe;
-
-			//std::wstring AppContainerSid = pRule->AppContainerSid;
-			//if(AppContainerSid.empty() && !pRule->PackageFamilyName.empty())
-			//	AppContainerSid = GetAppContainerSidFromName(pRule->PackageFamilyName);
-
-			ProgID = CProgramID::FromFw(BinaryPath, pRule->ServiceTag, L"");
-		}
-
-		auto& DosPath = ProgID.GetFilePath();
+		const std::wstring& DosPath = pFwRule ? OldPath : NewPath;
 		pGuardEntry = m_AutoGuardTree.GetBestEntry(FW::StringW(&g_DefaultMemPool, DosPath.c_str())).Cast<CFwAutoGuardEntry>();
 	}
 
 	CFwAutoGuardEntry::EMode GuardAction = CFwAutoGuardEntry::eNone;
 	if (pGuardEntry)
-		GuardAction = pGuardEntry->GetMode();
-	else if(theCore->Config()->GetBool("Service", "GuardFwRules", false))
+		GuardAction = pGuardEntry->GetMode(); // an entry the user wrote for this very path has the final say
+	else
+		GuardAction = DecideRuleChangeUnsafe(pRule, pFwRule, bProgramChanged, OldPath, NewPath);
+
+	//
+	// A rule the guard had already turned down, but which was not yet disabled or deleted, is no
+	// longer there to act on in that form. And if it is now gone altogether, that is the very
+	// outcome the guard was after, so putting it back would be the wrong way round.
+	//
+	// The same goes for one it did disable. Nothing else remembers that it was turned down, so
+	// without this its removal was reverted like any other, and the rejected rule came back.
+	// This outranks a guard entry as well: rejecting a rule and then reverting its removal is
+	// the same entry contradicting itself.
+	//
+	bool bTurnedDown = pFwRule && m_RulesToRemove.erase(pFwRule) > 0;
+	if (pFwRule && pFwRule->IsTurnedDown())
+		bTurnedDown = true;
+
+	//
+	// A copy held back for its original to go, which went or changed first itself. Nothing was
+	// decided about it yet, and it going away leaves the firewall as it was before it came.
+	//
+	bool bWasHeld = pFwRule && TakeHeldRuleUnsafe(pFwRule);
+
+	if (!pRule && (bTurnedDown || bWasHeld))
+		GuardAction = CFwAutoGuardEntry::eApprove;
+
+	//
+	// A rule replaced by one which is the same in every field is not a change at all, it only
+	// looks like two of them. Saying yes to both halves is the one answer which leaves the
+	// firewall as it stands, so it is given here instead of being asked for twice.
+	//
+	// This comes before the blanket guard: reverting both halves would put back the rule which
+	// went away and take away the identical one which replaced it, every time the program does it.
+	//
+	// Either half may come first, so either one waits a moment for the other: a removal with
+	// nothing standing in for it yet (bHoldBack), and an addition while its original still
+	// stands (bHoldAdd). Waiting is what lets a service tick fall between the two halves.
+	//
+	bool bGuardAll = theCore->Config()->GetBool("Service", "GuardFwRules", false);
+	CFirewallRulePtr pTwin;
+	CFirewallRulePtr pSettled; // the original of this addition, whose removal went through already
+	bool bHoldBack = false;
+	bool bHoldAdd = false;
+	if (GuardAction == CFwAutoGuardEntry::eNone && !bProgramChanged
+	 && theCore->Config()->GetBool("Service", "FwAutoApproveRecreate", true))
+	{
+		if (pRule)
+			pTwin = TakeWithdrawnTwinUnsafe(pRule); // the one a removal is being held back for
+		else if (pFwRule && !pFwRule->IsBackup())
+			pTwin = FindLiveTwinUnsafe(pFwRule); // an identical one already stands in for it
+
+		if (pTwin)
+			GuardAction = CFwAutoGuardEntry::eApprove;
+		else if (pRule && !pFwRule && (pSettled = TakeSettledTwinUnsafe(pRule)))
+			GuardAction = CFwAutoGuardEntry::eApprove;
+		else if (pRule)
+			bHoldAdd = !pFwRule && FindLiveTwinUnsafe(pRule); // a plain addition, its original still there
+		else
+			bHoldBack = pFwRule && !pFwRule->IsBackup();
+	}
+
+	//
+	// A removal let through on other grounds, by a guard entry or the removal option, can still be
+	// the second half of a replacement. A copy held back for it is settled with it, rather than
+	// asked about once its time runs out as though the original had stayed.
+	//
+	if (!pRule && !pTwin && pFwRule && !pFwRule->IsBackup() && GuardAction == CFwAutoGuardEntry::eApprove)
+	{
+		for (const SHeldRule& Held : m_HeldRules) {
+			if (Held.pRule->Match(pFwRule->GetFwRule())) {
+				pTwin = Held.pRule;
+				break;
+			}
+		}
+	}
+
+	if (GuardAction == CFwAutoGuardEntry::eNone && bGuardAll && !bHoldBack && !bHoldAdd)
 		GuardAction = CFwAutoGuardEntry::eReject;
 
 	if (pFwRule && pFwRule->IsBackup())
 	{
-		// we arrive here only from UpdateRules() 
-		if (GuardAction == CFwAutoGuardEntry::eReject)
+		// we arrive here only from UpdateRules()
+		bool bWithdrawn = std::any_of(m_WithdrawnRules.begin(), m_WithdrawnRules.end(),
+			[&](const SWithdrawnRule& Entry) { return Entry.pBackup == pFwRule; }); // still waiting for its twin
+		if (GuardAction == CFwAutoGuardEntry::eReject && !bWithdrawn)
 			m_RulesToRevert.insert(pFwRule);
 		return false; // nothing changed
 	}
@@ -1218,7 +1904,33 @@ bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>
 		ASSERT(!pFwRule->IsTemplate()); // should not happen
 
 		if (/*!pFwRule->IsApproved() ||*/ GuardAction == CFwAutoGuardEntry::eApprove)
+		{
 			RemoveRuleUnsafe(pFwRule); // a non approved rule chaneg or the rule is to be auto approved
+
+			if (!pRule) // a removal is settled right here, there is no new rule to report it on
+			{
+				bExpected = true;
+
+				// paired with a twin nothing was decided, the rule only changed its guid, and an unapproved one is not reported approved for it
+				if (!pTwin || pFwRule->IsApproved())
+				{
+					StVariant Data;
+					Data[API_V_GUID] = pFwRule->GetGuidStr();
+					Data[API_V_NAME] = pFwRule->GetName();
+					Data[API_V_ID] = pFwRule->GetProgramID().ToVariant(SVarWriteOpt());
+					theCore->EmitEvent(ELogLevels::eInfo, eLogFwRuleApproved, Data);
+				}
+
+				// let through without a twin, so the twin may yet follow; a held copy was never a rule anyone decided about
+				if (!pTwin && !bWasHeld)
+				{
+					SSettledRemoval Settled;
+					Settled.pRule = pFwRule;
+					Settled.uRemoved = GetTickCount64();
+					m_SettledRemovals.push_back(Settled);
+				}
+			}
+		}
 		else
 		{
 			RemoveRuleUnsafeImpl(pFwRule);
@@ -1234,6 +1946,66 @@ bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>
 				m_RulesToRevert.insert(pFwRule);
 				bExpected = true;
 			}
+			else if (bHoldBack)
+			{
+				// not settled, only kept quiet, the question (or the revert) follows if nothing takes its place
+				SWithdrawnRule Withdrawn;
+				Withdrawn.pBackup = pFwRule;
+				Withdrawn.uWithdrawn = GetTickCount64();
+				Withdrawn.bRevert = bGuardAll;
+				m_WithdrawnRules.push_back(Withdrawn);
+				bExpected = true;
+			}
+		}
+	}
+
+	if (!pRule && pTwin)
+	{
+		//
+		// The removal is being let through because this twin says the same thing, so the twin has
+		// to be settled in the same breath. Leaving it pending would mean one answer could still
+		// undo what the other was allowed on the strength of.
+		//
+		// Settled means it takes the place of the original, verdict included: approved if that
+		// was, unapproved if that was. It used to be approved either way, so a program deleting
+		// and recreating a rule nobody had looked at got it approved for nothing. One which was
+		// approved in its own right, by a template say, stays so.
+		//
+		bool bWasApproved = pTwin->IsApproved();
+		if (!bWasApproved)
+			pTwin->TakeOver(pFwRule);
+
+		// it was waiting for this very removal, or the blanket guard turned it down on arrival and that has not been carried out yet
+		TakeHeldRuleUnsafe(pTwin);
+		m_RulesToRemove.erase(pTwin);
+
+		if (!bWasApproved && pTwin->IsApproved())
+		{
+			StVariant Data;
+			Data[API_V_GUID] = pTwin->GetGuidStr();
+			Data[API_V_NAME] = pTwin->GetName();
+			Data[API_V_ID] = pTwin->GetProgramID().ToVariant(SVarWriteOpt());
+			theCore->EmitEvent(ELogLevels::eInfo, eLogFwRuleApproved, Data);
+		}
+	}
+
+	if (pRule && pTwin) // the replacement for a rule a removal was being held back for
+	{
+		//
+		// The removal was never put to the user and now it does not have to be: what it took away
+		// is exactly what is being put back. The backup goes, and the new rule takes over what was
+		// known about the old one below.
+		//
+		RemoveRuleUnsafe(pTwin);
+		EmitChangeEvent(pTwin->GetGuidStr(), pTwin->GetName(), EConfigEvent::eRemoved, true, true);
+
+		if (pTwin->IsApproved())
+		{
+			StVariant Data;
+			Data[API_V_GUID] = pTwin->GetOriginalGuid();
+			Data[API_V_NAME] = pTwin->GetName();
+			Data[API_V_ID] = pTwin->GetProgramID().ToVariant(SVarWriteOpt());
+			theCore->EmitEvent(ELogLevels::eInfo, eLogFwRuleApproved, Data);
 		}
 	}
 
@@ -1241,16 +2013,40 @@ bool CFirewall::FWRuleChangedUnsafe(const std::shared_ptr<struct SWindowsFwRule>
 	{
 		CFirewallRulePtr pNewRule = std::make_shared<CFirewallRule>(pRule);
 		AddRuleUnsafe(pNewRule);
-		if (GuardAction == CFwAutoGuardEntry::eApprove)
+		if (pTwin || pSettled)
+		{
+			pNewRule->TakeOver(pTwin ? pTwin : pSettled); // the backup, or the rule gone, carries the verdict the original had
+			bExpected = true;
+
+			if (pNewRule->IsApproved())
+			{
+				StVariant Data;
+				Data[API_V_GUID] = pNewRule->GetOriginalGuid();
+				Data[API_V_NAME] = pNewRule->GetName();
+				Data[API_V_ID] = pNewRule->GetProgramID().ToVariant(SVarWriteOpt());
+				theCore->EmitEvent(ELogLevels::eInfo, eLogFwRuleApproved, Data);
+			}
+		}
+		else if (GuardAction == CFwAutoGuardEntry::eApprove)
 		{
 			pNewRule->SetApproved(true);
 			bExpected = true;
 
 			StVariant Data;
 			Data[API_V_GUID] = pNewRule->GetOriginalGuid();
-			Data[API_V_NAME] = pNewRule->GetName(); 
+			Data[API_V_NAME] = pNewRule->GetName();
 			Data[API_V_ID] = pNewRule->GetProgramID().ToVariant(SVarWriteOpt());
 			theCore->EmitEvent(ELogLevels::eInfo, eLogFwRuleApproved, Data);
+		}
+		else if (bHoldAdd)
+		{
+			// not settled, only kept quiet, the question (or the reject) follows if the original stays
+			SHeldRule Held;
+			Held.pRule = pNewRule;
+			Held.uHeld = GetTickCount64();
+			Held.bReject = bGuardAll;
+			m_HeldRules.push_back(Held);
+			bExpected = true;
 		}
 		else if (GuardAction == CFwAutoGuardEntry::eReject && !bExpected)
 		{
@@ -1368,7 +2164,16 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 	}
 	else if (pSocket != (CSocket*)-1)
 	{
-		pProcess = pSocket ? pSocket->GetProcess() : theCore->ProcessList()->GetProcess(pEvent->ProcessId, pEvent->ProcessFileName, true); // todo socket should always have a process
+		pProcess = pSocket ? pSocket->GetProcess() : theCore->ProcessList()->GetProcess(pEvent->ProcessId, pEvent->ProcessFileName, true, FILETIME2ms(pEvent->TimeStamp)); // todo socket should always have a process
+
+		//
+		// The event is read from the log seconds after the fact and names its image. A process
+		// found by pid that runs something else was handed the pid since; then nothing it says
+		// (program, package, services) applies and the program is taken from the path below.
+		//
+		if (pProcess && !pProcess->IsSameImage(pEvent->ProcessFileName))
+			pProcess.reset();
+
 		if (pProcess)
 		{
 			pProgram = pProcess->GetProgram();
@@ -1387,7 +2192,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 	}
 
 	if (pProcess)
-		pProcess->UpdateLastNetActivity(pEvent->TimeStamp); // pEvent->Type
+		pProcess->UpdateLastNetActivity(FILETIME2ms(pEvent->TimeStamp)); // m_LastNetActivity is kept in ms, see CProcess::AddNetworkIO
 
 	//
 	// If we were unable to determine exact informations by querying the running process,
@@ -1524,6 +2329,28 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 			EventState = EFwEventStates::RuleBlocked;
 	}
 
+	//
+	// A rule made from a template is the template at work for one binary, so a hit on it is a hit
+	// on the template as well. That is where the user looks to see whether a template is in use.
+	//
+	if (!AllowRules.empty() || !BlockRules.empty())
+	{
+		std::unique_lock Lock(m_RulesMutex);
+		auto CountForTemplate = [&](const CFlexGuid& Guid) {
+			auto F = m_FwRules.find(Guid);
+			if (F == m_FwRules.end())
+				return;
+			std::wstring TemplateGuid = F->second->GetTemplateGuid();
+			if (TemplateGuid.empty())
+				return;
+			auto T = m_FwRules.find(TemplateGuid);
+			if (T != m_FwRules.end() && T->second->IsTemplate())
+				T->second->IncrHitCount();
+		};
+		for (const CFlexGuid& Guid : AllowRules) CountForTemplate(Guid);
+		for (const CFlexGuid& Guid : BlockRules) CountForTemplate(Guid);
+	}
+
 	if (EventState == EFwEventStates::UnRuled && theCore->Config()->GetBool("Service", "UseFwRuleTemplates", true))
 	{
 		auto DosPath = pProgram->GetPath();
@@ -1531,18 +2358,14 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 		if (Entry)
 		{
 			auto pFwRule = Entry.Cast<CFwRuleTemplate>()->GetRule();
-			
+
 			SWindowsFwRulePtr pTemplate = pFwRule->GetFwRule();
 
 			if (pTemplate->Direction == EFwDirections::Bidirectional || pTemplate->Direction == pEvent->Direction)
 			{
-				SWindowsFwRulePtr pData = std::make_shared<struct SWindowsFwRule>(*pTemplate); // copy the ruledata
+				SWindowsFwRulePtr pData = MakeDerivedRuleData(pTemplate, DosPath, pEvent->Direction);
 
-				pData->Guid.clear(); // clear the guid
-				pData->BinaryPath = DosPath; // set exact pact
-				pData->Name = StrReplaceAll(pData->Name, L"MajorPrivacy-Template", L"MajorPrivacy-Rule");
-				if(pData->Direction == EFwDirections::Bidirectional)
-					pData->Direction = pEvent->Direction;
+				pFwRule->IncrHitCount(); // the template decided this connection, the rule it makes now only carries that out
 
 				std::unique_lock Lock(m_RulesMutex);
 				STATUS Status = UpdateRuleAndTest(pData); // this may set the GUID member
@@ -1581,7 +2404,7 @@ void CFirewall::ProcessFwEvent(const struct SWinFwLogEvent* pEvent, class CSocke
 	Event[API_V_EVENT_INDEX]	= LogIndex;
 	Event[API_V_EVENT_DATA]		= pLogEntry->ToVariant();
 
-	theCore->BroadcastMessage(SVC_API_EVENT_NET_ACTIVITY, Event); //, pProgram); - always bradcast network activity wven if the process is not actively watched
+	theCore->QueueBroadcast(SVC_API_EVENT_NET_ACTIVITY, Event); //, pProgram); - always bradcast network activity wven if the process is not actively watched
 }
 
 EFwActions CFirewall::GetDefaultAction(EFwDirections Direction, EFwProfiles Profiles)

@@ -61,6 +61,13 @@ CSocketPtr CSocketList::FindSocket(uint64 ProcessId,
 	return I->second;
 }
 
+static CAddress UnmapAddress(CAddress Address)
+{
+	if (Address.IsMappedIPv4())
+		Address.Convert(CAddress::EAF::INET);
+	return Address;
+}
+
 STATUS CSocketList::EnumSockets()
 {
     std::vector<SNetworkSocket> Sockets;
@@ -112,10 +119,15 @@ STATUS CSocketList::EnumSockets()
 
             pSocket->ProtocolType = IPPROTO_TCP;
 
-            pSocket->LocalAddress = CAddress(tcp6Table->table[i].ucLocalAddr);
+            //
+            // A dual stack socket talking to an IPv4 peer is listed here as ::ffff:a.b.c.d, while
+            // the ETW events for it carry plain IPv4 addresses. Unmapped, so the two match and the
+            // traffic lands on this entry instead of on a short lived duplicate made from the event.
+            //
+            pSocket->LocalAddress = UnmapAddress(CAddress(tcp6Table->table[i].ucLocalAddr));
             pSocket->LocalPort = _byteswap_ushort((USHORT)tcp6Table->table[i].dwLocalPort);
 
-            pSocket->RemoteAddress = CAddress(tcp6Table->table[i].ucRemoteAddr);
+            pSocket->RemoteAddress = UnmapAddress(CAddress(tcp6Table->table[i].ucRemoteAddr));
             pSocket->RemotePort = _byteswap_ushort((USHORT)tcp6Table->table[i].dwRemotePort);
 
             pSocket->State = tcp6Table->table[i].dwState;
@@ -168,7 +180,7 @@ STATUS CSocketList::EnumSockets()
 
             pSocket->ProtocolType = IPPROTO_UDP;
 
-            pSocket->LocalAddress = CAddress(udp6Table->table[i].ucLocalAddr);
+            pSocket->LocalAddress = UnmapAddress(CAddress(udp6Table->table[i].ucLocalAddr));
             pSocket->LocalPort = _byteswap_ushort((USHORT)udp6Table->table[i].dwLocalPort);
 
             //pSocket->RemoteAddress = 
@@ -228,6 +240,7 @@ STATUS CSocketList::EnumSockets()
 		}
 
 		pSocket->UpdateDynamicData(&(Sockets[i]));
+		pSocket->UpdateStats(); // the transfer rates, once per enumeration like the UDP pseudo connections below
 	}
 
 	uint64 UdpPersistenceTime = theCore->Config()->GetUInt64("Service", "UdpPersistenceTime", 300);
@@ -276,7 +289,7 @@ STATUS CSocketList::EnumSockets()
 }
 
 CSocketPtr CSocketList::OnNetworkEvent(EEventType Type, uint64 ProcessId, const std::wstring& ProcessFileName, uint32 ProtocolType, uint32 TransferSize,
-    CAddress LocalAddress, uint16 LocalPort, CAddress RemoteAddress, uint16 RemotePort, uint64 TimeStamp)
+    CAddress LocalAddress, uint16 LocalPort, CAddress RemoteAddress, uint16 RemotePort, uint64 TimeStamp, uint64 NotAfterMs)
 {
 	std::unique_lock Lock(m_Mutex);
 
@@ -288,8 +301,23 @@ CSocketPtr CSocketList::OnNetworkEvent(EEventType Type, uint64 ProcessId, const 
 	auto I = FindSocketEntry(m_List, ProcessId, 
 		ProtocolType, LocalAddress, LocalPort, RemoteAddress, RemotePort, Mode);
 	if (I != m_List.end())
+	{
 		pSocket = I->second;
-	else
+
+		//
+		// A firewall log event arrives seconds late and names its image. The socket found by
+		// pid and ports may by then belong to a process that was handed the same pid, so the
+		// path decides: on a mismatch the event gets a socket of its own, linked below to the
+		// process that was meant (or to a placeholder carrying the path).
+		//
+		if (!ProcessFileName.empty() && ProcessId != NT_OS_KERNEL_PID) {
+			CProcessPtr pProcess = pSocket->GetProcess();
+			if (pProcess && !pProcess->IsSameImage(ProcessFileName))
+				pSocket.reset();
+		}
+	}
+
+	if (!pSocket)
 	{
 		pSocket = std::make_shared<CSocket>();
 		pSocket->InitStaticData(ProcessId, 
@@ -311,7 +339,7 @@ CSocketPtr CSocketList::OnNetworkEvent(EEventType Type, uint64 ProcessId, const 
 		}
 
 		if (pSocket->m_ProcessId) {
-			CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pSocket->m_ProcessId, ProcessFileName, true); // Note: this will add the process and load some basic data if it does not already exist
+			CProcessPtr pProcess = theCore->ProcessList()->GetProcess(pSocket->m_ProcessId, ProcessFileName, true, NotAfterMs); // Note: this will add the process and load some basic data if it does not already exist
 			pSocket->LinkProcess(pProcess);
 			pProcess->AddSocket(pSocket);
 		}
@@ -327,6 +355,7 @@ CSocketPtr CSocketList::OnNetworkEvent(EEventType Type, uint64 ProcessId, const 
     if (pProcess)
 		pProcess->AddNetworkIO((int)Type, TransferSize);
 	pSocket->AddNetworkIO((int)Type, TransferSize);
+	pSocket->AddUsageIO((int)Type, TransferSize, IsLanAddress(RemoteAddress)); // the event's address, a UDP socket talks to many peers
 
 	std::shared_lock StatsLock(m_StatsMutex);
 	switch ((CSocketList::EEventType)Type)
@@ -346,7 +375,11 @@ CSocketPtr CSocketList::OnFwLogEvent(const struct SWinFwLogEvent* pEvent)
     case EFwActions::Allow: EventType = EEventType::Allow; break;
     case EFwActions::Block: EventType = EEventType::Block; break;
     }
-    return OnNetworkEvent(EventType, pEvent->ProcessId, pEvent->ProcessFileName, (uint32)pEvent->ProtocolType, 0, pEvent->LocalAddress, pEvent->LocalPort, pEvent->RemoteAddress, pEvent->RemotePort, pEvent->TimeStamp);
+    // the event is read from the log seconds after the fact, its time bounds the process lookup
+    CSocketPtr pSocket = OnNetworkEvent(EventType, pEvent->ProcessId, pEvent->ProcessFileName, (uint32)pEvent->ProtocolType, 0, pEvent->LocalAddress, pEvent->LocalPort, pEvent->RemoteAddress, pEvent->RemotePort, pEvent->TimeStamp, FILETIME2ms(pEvent->TimeStamp));
+    if (pSocket) // the only source that knows the direction, the usage graph counts connections by it
+        pSocket->SetDirection(pEvent->Direction);
+    return pSocket;
 }
 
 void CSocketList::OnEtwNetEvent(const struct SEtwNetworkEvent* pEvent)

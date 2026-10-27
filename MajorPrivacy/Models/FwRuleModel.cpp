@@ -30,19 +30,41 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 #pragma warning(pop)
 	QHash<QVariant, STreeNode*> Old = m_Map;
 
+	//
+	// In tree mode a rule made from a template hangs under it. Only under one that is in the list
+	// as well, else the branch would have to be made up and would show nothing but a guid; such a
+	// rule stays at the top, as it does when not in tree mode.
+	//
+	QHash<QString, QVariant> Templates; // by the guid as the derived rules spell it
+	if (m_bTemplateTree) {
+		foreach(const CFwRulePtr& pRule, RuleList) {
+			if (pRule->IsTemplate())
+				Templates.insert(pRule->GetGuid().ToQS().toLower(), pRule->GetGuid().ToQV());
+		}
+	}
+
 	foreach(const CFwRulePtr& pRule, RuleList)
 	{
 		QVariant Guid = pRule->GetGuid().ToQV();
+
+		QList<QVariant> Path;
+		if (!Templates.isEmpty() && !pRule->IsTemplate() && !pRule->GetTemplateGuid().isEmpty()) {
+			QVariant Parent = Templates.value(QFlexGuid(pRule->GetTemplateGuid()).ToQS().toLower());
+			if (Parent.isValid())
+				Path.append(Parent);
+		}
 
 		QModelIndex Index;
 
 		QHash<QVariant, STreeNode*>::iterator I = Old.find(Guid);
 		SRuleNode* pNode = I != Old.end() ? static_cast<SRuleNode*>(I.value()) : NULL;
+		if (pNode && pNode->Path != Path)
+			pNode = NULL; // it moves: the old node goes with the purge, and a new one is filled in where it belongs now
 		if (!pNode)
 		{
 			pNode = static_cast<SRuleNode*>(MkNode(Guid));
 			pNode->Values.resize(columnCount());
-			//pNode->Path = Path;
+			pNode->Path = Path;
 			pNode->pRule = pRule;
 			New[pNode->Path.count()][pNode->Path].append(pNode);
 		}
@@ -94,7 +116,7 @@ QList<QModelIndex>	CFwRuleModel::Sync(const QList<CFwRulePtr>& RuleList)
 			case eName:				Value = tr("%1 - %2").arg(pRule->GetName()).arg(pRule->GetGuid().ToQS()); break;
 			case eGrouping:			Value = pRule->GetGrouping(); break;
 			case eIndex:			Value = pRule->GetIndex(); break;
-			case eState:			Value = (int)pRule->GetState(); break;
+			case eState:			Value = (int)pRule->GetStateEx(); break;
 			case eSource:			Value = (int)pRule->GetSource(); break;
 			case eEnabled:			Value = pRule->IsEnabled(); break;
 			case eHitCount:			Value = pRule->GetHitCount(); break;

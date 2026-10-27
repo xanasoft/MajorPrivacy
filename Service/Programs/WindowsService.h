@@ -2,6 +2,7 @@
 #include "ProgramItem.h"
 #include "../Processes/Process.h"
 #include "../Network/TrafficLog.h"
+#include "UsageLog.h"
 #include "ProgramFile.h"
 
 class CWindowsService : public CProgramItem
@@ -47,6 +48,12 @@ public:
 	virtual StVariant StoreTraffic(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
 	virtual void LoadTraffic(const StVariant& Data);
 
+	virtual CUsageLog* UsageLog()								{ return &m_UsageLog; }
+
+	virtual StVariant StoreUsage(const SVarWriteOpt& Opts, FW::AbstractMemPool* pMemPool = nullptr) const;
+	virtual void LoadUsage(const StVariant& Data);
+	virtual void TruncateUsageLog();
+
 	virtual void ClearRecords(ETraceLogs Log);
 
 	virtual void TruncateAccessLog();
@@ -85,6 +92,8 @@ public:
 	CAccessTree						m_AccessTree;
 
 	CTrafficLog						m_TrafficLog;
+
+	CUsageLog						m_UsageLog;
 
 	uint64							m_LastFwAllowed = 0;
 	uint64							m_LastFwBlocked = 0;

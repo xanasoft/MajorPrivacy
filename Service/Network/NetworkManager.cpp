@@ -516,7 +516,7 @@ STATUS CNetworkManager::Store()
 
     CBuffer Buffer;
     Data.ToPacket(&Buffer);
-    WriteFile(theCore->GetDataFolder() + L"\\" API_TRAFFIC_RECORD_FILE_NAME, Buffer);
+    WriteFileSafe(theCore->GetDataFolder() + L"\\" API_TRAFFIC_RECORD_FILE_NAME, Buffer);
 
     return OK;
 }

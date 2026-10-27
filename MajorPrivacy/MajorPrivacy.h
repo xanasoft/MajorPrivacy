@@ -46,6 +46,7 @@ public:
 		QSet<CWindowsServicePtr> ServicesIm; // implicitly selected services
 
 		bool bAllPrograms = false;
+		bool bAllProgramsOnly = false; // the all programs item is the entire selection
 	};
 
 	STATUS				MakeKeyPair(class CPrivateKey* pPrivateKey = nullptr);
@@ -101,6 +102,7 @@ public:
 	static QString		GetResourceStr(const QString& Name);
 
 	quint64				GetRecentLimit() const { return m_pBtnTime->isChecked() ? m_pCmbRecent->currentData().toULongLong() : 0; }
+	quint64				GetGraphLimit() const { return m_pCmbRecent->currentData().toULongLong(); } // the graphs always follow the combo, 0 = any time
 	bool				GetShowPrivate() const { return m_pBtnPrivate->isChecked(); }	
 
 	QString				GetLanguage() const { return m_Language; }
@@ -175,11 +177,13 @@ private slots:
 	void				OnProtectConfig();
 	void				OnUnprotectConfig();
 	void				OnUnlockConfig();
+	void				OnResumeIsolator();
 	void				OnCommitConfig();
 	void				OnDiscardConfig();
 	void				OnMakeKeyPair();
 	void				OnChangePassword();
 	void				OnClearKeys();
+	void				OnProvisionUserKey();
 	void				OnSignFile();
 
 	void				OnToggleTree();
@@ -215,6 +219,7 @@ protected:
 
 	void				CreateTrayIcon();
 	void				CreateTrayMenu();
+	void				UpdateTrayIcon();
 	void				CreateLabel();
 
 	SCurrentItems		MakeCurrentItems() const;
@@ -317,11 +322,13 @@ private:
 	QAction*			m_pProtectConfig = nullptr;
 	QAction*			m_pUnprotectConfig = nullptr;
 	QAction*			m_pUnlockConfig = nullptr;
+	QAction*			m_pResumeIsolator = nullptr;
 	QAction*			m_pCommitConfig = nullptr;
 	QAction*			m_pDiscardConfig = nullptr;
 	QAction*			m_pMakeKeyPair = nullptr;
 	QAction*			m_pChangePassword = nullptr;
 	QAction*			m_pClearKeys = nullptr;
+	QAction*			m_pProvisionKey = nullptr;
 	QAction*			m_pSignFile = nullptr;
 	//QAction*			m_pSignDb = nullptr;
 
@@ -333,6 +340,7 @@ private:
 	QAction*			m_pFwCreateRules = nullptr;
 	QMenu*				m_pExpTools = nullptr;
 	QAction*			m_pMountMgr = nullptr;
+	QAction*			m_pBootloader = nullptr;
 	QAction*			m_pImDiskCpl = nullptr;
 	QAction*			m_pClearLogs = nullptr;
 
@@ -371,6 +379,8 @@ private:
 	CPopUpWindow*		m_pPopUpWindow = nullptr;
 
 	QSystemTrayIcon*	m_pTrayIcon = nullptr;
+	QString				m_TrayOverlay;
+	quint64				m_NextFwCheck = 0;
 	QMenu*				m_pTrayMenu = nullptr;
 	QMenu*				m_pPresetMenu = nullptr;
 	QAction*			m_pExecShowPopUp = nullptr;

@@ -42,6 +42,32 @@
        </property>
       </widget>
      </item>
+     <item row="1" column="6">
+      <widget class="QToolButton" name="btnShowPw">
+       <property name="toolTip">
+        <string>Show the password</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="6">
+      <widget class="QToolButton" name="btnShowNewPw">
+       <property name="toolTip">
+        <string>Show the new password</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
      <item row="1" column="5">
       <widget class="QToolButton" name="btnSecurePw">
        <property name="toolTip">
@@ -222,13 +248,6 @@
       <widget class="QLabel" name="lblDummy">
        <property name="text">
         <string/>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="4" colspan="2">
-      <widget class="QCheckBox" name="chkShow">
-       <property name="text">
-        <string>Show Password</string>
        </property>
       </widget>
      </item>

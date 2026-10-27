@@ -313,6 +313,48 @@ bool CAddress::IsLocalHost() const
 	}
 }
 
+bool IsLanAddress(const CAddress& Address)
+{
+	//
+	// What the firewall's "LocalSubnet" keyword covers (CFirewall::GetSpecialNet): the private
+	// ranges, loopback, link local and multicast. Everything else is the internet.
+	//
+	if (Address.IsNull())
+		return true; // no remote address, local traffic
+
+	if (Address.Type() == CAddress::EAF::INET || Address.IsMappedIPv4())
+	{
+		uint32 IP;
+		if (Address.Type() == CAddress::EAF::INET)
+			IP = Address.ToIPv4(); // host order
+		else {
+			const unsigned char* pData = Address.Data() + 12; // ::ffff:a.b.c.d, network order
+			IP = ((uint32)pData[0] << 24) | ((uint32)pData[1] << 16) | ((uint32)pData[2] << 8) | (uint32)pData[3];
+		}
+		unsigned char First = (unsigned char)(IP >> 24);
+		unsigned char Second = (unsigned char)(IP >> 16);
+		if (IsLanIPv4(IP))
+			return true;
+		if (First == 127)							return true; // loopback
+		if (First == 169 && Second == 254)			return true; // link local
+		if (First >= 224 && First <= 239)			return true; // multicast
+		if (IP == 0xFFFFFFFF)						return true; // broadcast
+		return false;
+	}
+
+	if (Address.Type() == CAddress::EAF::INET6)
+	{
+		const unsigned char* IP = Address.Data();
+		if (Address.IsLocalHost())					return true; // ::1
+		if ((IP[0] & 0xFE) == 0xFC)					return true; // fc00::/7 unique local
+		if (IP[0] == 0xFE && (IP[1] & 0xC0) == 0x80) return true; // fe80::/10 link local
+		if (IP[0] == 0xFF)							return true; // multicast
+		return false;
+	}
+
+	return true;
+}
+
 bool IsLanIPv4(uint32 IPv4)
 {
 	byte uIP[4];

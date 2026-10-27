@@ -143,7 +143,19 @@ HEADERS += ./version.h \
     ./Models/PresetItemsModel.h \
     ./Models/PresetsModel.h \
     ./Pages/PresetPage.h \
-    ./Views/PresetProperties.h
+    ./Views/PresetProperties.h \
+    ./Helpers/PathPattern.h \
+    ./Helpers/VolumeLib.h \
+    ./Core/Programs/UsageHistory.h \
+    ./Views/UsageView.h \
+    ./Widgets/UsageGraph.h \
+    ./Windows/RuleLifetime.h \
+    ./Windows/BootloaderWnd.h \
+    ./Windows/CertDetailsWnd.h \
+    ./Windows/FwGuardEntryWnd.h \
+    ./Windows/FwTemplateWnd.h \
+    ./Windows/HeaderEditorWnd.h \
+    ./Windows/KeyFilesWnd.h
 
 SOURCES += ./main.cpp \
     ./pch.cpp \
@@ -286,7 +298,18 @@ SOURCES += ./main.cpp \
     ./Models/PresetItemsModel.cpp \
     ./Models/PresetsModel.cpp \
     ./Pages/PresetPage.cpp \
-    ./Views/PresetProperties.cpp
+    ./Views/PresetProperties.cpp \
+    ./Helpers/PathPattern.cpp \
+    ./Helpers/VolumeLib.cpp \
+    ./Core/Programs/UsageHistory.cpp \
+    ./Views/UsageView.cpp \
+    ./Widgets/UsageGraph.cpp \
+    ./Windows/BootloaderWnd.cpp \
+    ./Windows/CertDetailsWnd.cpp \
+    ./Windows/FwGuardEntryWnd.cpp \
+    ./Windows/FwTemplateWnd.cpp \
+    ./Windows/HeaderEditorWnd.cpp \
+    ./Windows/KeyFilesWnd.cpp
 
 FORMS += ./Forms/AccessRuleWnd.ui \
     ./Forms/EnclaveWnd.ui \
@@ -302,7 +325,15 @@ FORMS += ./Forms/AccessRuleWnd.ui \
     ./Forms/VolumeConfigWnd.ui \
     ./Forms/VolumeWindow.ui \
     ./Forms/PresetWindow.ui \
-    ./Forms/ItemPicker.ui
+    ./Forms/ItemPicker.ui \
+    ./Forms/Bootloader.ui \
+    ./Forms/BootloaderConfig.ui \
+    ./Forms/BootloaderEsp.ui \
+    ./Forms/CertDetails.ui \
+    ./Forms/FwGuardEntryWnd.ui \
+    ./Forms/FwTemplateWnd.ui \
+    ./Forms/HeaderEditor.ui \
+    ./Forms/KeyFiles.ui
     
 TRANSLATIONS += MajorPrivacy_de.ts \
     MajorPrivacy_es.ts \

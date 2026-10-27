@@ -11,6 +11,7 @@
 #include "../MiscHelpers/Common/Common.h"
 #include "../MajorPrivacy.h"
 #include "../Windows/ProgramPicker.h"
+#include "RuleLifetime.h"
 #include "../Helpers/SidResolver.h"
 #include <sddl.h>
 #include <Lm.h>
@@ -118,6 +119,7 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 
 	connect(ui.btnProg, SIGNAL(clicked()), this, SLOT(OnPickProgram()));
 	connect(ui.cmbProgram, SIGNAL(currentIndexChanged(int)), this, SLOT(OnProgramChanged()));
+	//connect(ui.chkAllPrograms, SIGNAL(toggled(bool)), this, SLOT(OnAllPrograms()));
 
 	connect(ui.cmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
 
@@ -196,6 +198,16 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	SetComboBoxValue(ui.cmbGroup, m_pRule->m_Grouping);
 	ui.txtInfo->setPlainText(m_pRule->m_Description);
 
+	// how long the rule lasts; the form has no row for it, so it goes in below the description
+	QLabel* pLifetimeLabel = new QLabel(tr("Lifetime"));
+	pLifetimeLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+	m_pCmbLifetime = new QComboBox();
+	PopulateRuleLifetime(m_pCmbLifetime, m_pRule.data());
+	if (m_pRule->IsTemplate())
+		m_pCmbLifetime->setToolTip(tr("The rules made from this template go when it does."));
+	ui.gridLayout_2->addWidget(pLifetimeLabel, 3, 0);
+	ui.gridLayout_2->addWidget(m_pCmbLifetime, 3, 1, 1, 2);
+
 	ui.cmbProgram->setEditable(true);
 	ui.cmbProgram->lineEdit()->setReadOnly(true);
 	CProgramItemPtr pItem;
@@ -203,7 +215,16 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 		pItem = theCore->ProgramManager()->GetAll();
 	else if(!bNew)
 		pItem = theCore->ProgramManager()->GetProgramByID(m_pRule->m_ProgramID);
-	int Index = m_Items.indexOf(pItem);
+	else {
+		// a new rule may already know which program it is meant for, preselect that one
+		foreach(const CProgramItemPtr& pCurrent, m_Items) {
+			if (pCurrent->GetID() == m_pRule->m_ProgramID) {
+				pItem = pCurrent;
+				break;
+			}
+		}
+	}
+	int Index = (int)m_Items.indexOf(pItem);
 	ui.cmbProgram->setCurrentIndex(Index);
 
 	ui.txtPath->setText(m_pRule->GetBinaryPath());
@@ -211,6 +232,11 @@ CFirewallRuleWnd::CFirewallRuleWnd(const CFwRulePtr& pRule, QSet<CProgramItemPtr
 	QString AppSID = m_pRule->GetAppPkgId();
 	QString AppPFN = m_pRule->GetAppPFN();
 	ui.txtApp->setText(AppPFN.isEmpty() ? AppSID : AppPFN);
+
+	//ui.chkAllPrograms->blockSignals(true); // just reflecting what the rule already is
+	//ui.chkAllPrograms->setChecked(m_pRule->m_ProgramID.GetType() == EProgramType::eAllPrograms);
+	//ui.chkAllPrograms->blockSignals(false);
+	//UpdateAllPrograms();
 
 	SetComboBoxValue(ui.cmbAction, (uint32)m_pRule->m_Action);
 
@@ -322,8 +348,30 @@ bool CFirewallRuleWnd::AddProgramItem(const CProgramItemPtr& pItem)
 		return false;
 	}
 
-	m_Items.append(pItem);
-	ui.cmbProgram->addItem(pItem->GetNameEx());
+	//
+	// All programs first, the rest by name. The combo does no sorting of its own and
+	// the item list runs parallel to it, so the entry goes into both at the same spot.
+	// Searched rather than scanned as the caller can hand us the entire program tree.
+	//
+	QString Name = pItem->GetNameEx();
+	int Pos = 0;
+	if (pItem->GetID().GetType() != EProgramType::eAllPrograms)
+	{
+		int Begin = (!m_Items.isEmpty() && m_Items[0]->GetID().GetType() == EProgramType::eAllPrograms) ? 1 : 0;
+		int End = m_Items.count();
+		while (Begin < End)
+		{
+			int Mid = (Begin + End) / 2;
+			if (QString::compare(ui.cmbProgram->itemText(Mid), Name, Qt::CaseInsensitive) < 0)
+				Begin = Mid + 1;
+			else
+				End = Mid;
+		}
+		Pos = Begin;
+	}
+
+	m_Items.insert(Pos, pItem);
+	ui.cmbProgram->insertItem(Pos, Name);
 	return true;
 }
 
@@ -379,6 +427,7 @@ bool CFirewallRuleWnd::Save()
 	m_pRule->m_Name = ui.txtName->text();
 	m_pRule->m_Grouping = GetComboBoxValue(ui.cmbGroup).toString();
 	m_pRule->m_Description = ui.txtInfo->toPlainText();
+	ApplyRuleLifetime(m_pRule.data(), m_pCmbLifetime->currentData().toInt()); // after the group, a temporary rule is marked in it
 
 	int Index = ui.cmbProgram->currentIndex();
 	if (Index == -1) 
@@ -505,6 +554,56 @@ void CFirewallRuleWnd::OnPickProgram()
 	}
 }
 
+//
+// The all programs item sits in the combo like any other, the box is only a shortcut
+// to it. With it picked there is nothing left to choose - the rule matches every
+// program - so the picker and the fields it fills go dead.
+//
+/*void CFirewallRuleWnd::UpdateAllPrograms()
+{
+	bool bAll = ui.chkAllPrograms->isChecked();
+
+	ui.cmbProgram->setEnabled(!bAll);
+	ui.btnProg->setEnabled(!bAll);
+	ui.txtPath->setEnabled(!bAll);
+	ui.txtService->setEnabled(!bAll);
+	ui.txtApp->setEnabled(!bAll);
+}
+
+void CFirewallRuleWnd::OnAllPrograms()
+{
+	if (ui.chkAllPrograms->isChecked())
+	{
+		CProgramItemPtr pAll = theCore->ProgramManager()->GetAll();
+		int Index = m_Items.indexOf(pAll);
+		if (Index == -1 && AddProgramItem(pAll))
+			Index = m_Items.indexOf(pAll);
+
+		m_PrevProgram = ui.cmbProgram->currentIndex(); // after the insert, which shifts the indices
+		if (Index != -1) {
+			ui.cmbProgram->setCurrentIndex(Index);
+			OnProgramChanged();
+		}
+	}
+	else
+	{
+		//
+		// Back to whatever was picked before, which for a new rule is nothing.
+		//
+		ui.cmbProgram->setCurrentIndex(m_PrevProgram);
+		if (m_PrevProgram != -1)
+			OnProgramChanged();
+		else {
+			ui.txtPath->clear();
+			ui.txtService->clear();
+			ui.txtApp->clear();
+		}
+		m_PrevProgram = -1;
+	}
+
+	UpdateAllPrograms();
+}*/
+
 void CFirewallRuleWnd::OnProgramChanged()
 {
 	int Index = ui.cmbProgram->currentIndex();
@@ -513,6 +612,12 @@ void CFirewallRuleWnd::OnProgramChanged()
 	CProgramItemPtr pItem = m_Items[Index];
 	//if (pItem) ui.cmbProgram->setCurrentText(pItem->GetName());
 	//CProgramID ID = pItem->GetID();
+
+	//ui.chkAllPrograms->blockSignals(true); // the box follows the picked item
+	//ui.chkAllPrograms->setChecked(pItem->GetID().GetType() == EProgramType::eAllPrograms);
+	//ui.chkAllPrograms->blockSignals(false);
+	//UpdateAllPrograms();
+
 	CWindowsServicePtr pSvc = pItem.objectCast<CWindowsService>();
 	CAppPackagePtr pApp = pItem.objectCast<CAppPackage>();
 	ui.txtPath->setText(pApp ? "" : pItem->GetPath());

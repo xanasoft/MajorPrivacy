@@ -28,6 +28,8 @@ private slots:
 	void OnProgramChanged();
 	void OnProgramPathChanged();
 	void OnActionChanged();
+	void OnEnclaveChanged();
+	void OnEnclaveButton();
 
 	void OnSaveAndClose();
 	bool OnSave();
@@ -49,6 +51,8 @@ protected:
 	bool AddProgramItem(const CProgramItemPtr& pItem);
 
 	bool Save();
+
+	void LoadEnclaves();
 
 	void LoadParentsList();
 	void LoadChildrenList();

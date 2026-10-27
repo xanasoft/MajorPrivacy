@@ -312,7 +312,13 @@ private slots:
 	void EmitSelectionChanged() { emit SelectionChanged(selectedRows()); m_SelectionPending = false; }
 
 	void OnCurrentChanged(const QModelIndex& current, const QModelIndex& previous) { ScheduleSelectionChanged(); }
-	void OnSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected) { if (!selected.isEmpty()) ScheduleSelectionChanged(); }
+	//
+	// An empty selection is a selection too: clicking into the void clears it and the
+	// owner must hear about it, else it keeps showing whatever was picked last. The
+	// guard only skipped the deselect half of a click that moves the selection, which
+	// still arrives through the select half.
+	//
+	void OnSelectionChanged(const QItemSelection& selected, const QItemSelection& deselected) { if (!selected.isEmpty() || !selectionModel()->hasSelection()) ScheduleSelectionChanged(); }
 
 protected:
 

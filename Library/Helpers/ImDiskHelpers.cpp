@@ -1,18 +1,6 @@
 /*
  * Copyright 2023-2026 David Xanatos, xanasoft.com
  *
- * This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "pch.h"
@@ -557,137 +545,205 @@ cleanup:
     return status;
 }
 
+/* ---------------------------------------------------------------------------
+ * CImBoxSession - see ImDiskHelpers.h
+ * ------------------------------------------------------------------------ */
+
+CImBoxSession::CImBoxSession()
+{
+}
+
+CImBoxSession::~CImBoxSession()
+{
+	if (m_pMapping) {
+		//
+		// The section has held a password, and for the header editor a volume's
+		// master key. Wiping before unmapping is the whole reason this class
+		// owns the lifetime rather than leaving it to a caller.
+		//
+		SecureZeroMemory(m_pMapping, m_uSize);
+		NtUnmapViewOfSection(GetCurrentProcess(), m_pMapping);
+	}
+	if (m_hSection)
+		NtClose(m_hSection);
+}
+
+NTSTATUS CImBoxSession::Create(ULONG uHeaderLen)
+{
+	if (m_pSection)
+		return STATUS_INVALID_DEVICE_STATE;
+
+	ULONG uSize = uHeaderLen ? (ULONG)SECTION_SIZE_FOR_HEADER(uHeaderLen) : (ULONG)sizeof(SSection);
+
+	NTSTATUS status = CreateSecureSection(&m_hSection, &m_pMapping, uSize);
+	if (!NT_SUCCESS(status))
+		return status;
+
+	m_uSize = uSize;
+	m_pSection = (SSection*)m_pMapping;
+	memset(m_pSection, 0, uSize);
+	return STATUS_SUCCESS;
+}
+
+SHeaderData* CImBoxSession::Header() const
+{
+	if (!m_pSection || m_uSize < sizeof(SSection) + sizeof(SHeaderData))
+		return NULL;
+	return SECTION_HEADER_DATA(m_pSection);
+}
+
+void CImBoxSession::SetPassword(const SPassword* pPassword)
+{
+	if (!m_pSection)
+		return;
+
+	//
+	// in.pw and out.info are the same kilobyte, so a previous run's results go
+	// with it. That is deliberate: nothing from an earlier run should survive
+	// into the next one by accident.
+	//
+	memset(&m_pSection->in, 0, sizeof(m_pSection->in));
+	if (pPassword)
+		memcpy(&m_pSection->in.pw, pPassword, sizeof(SPassword));
+}
+
+void CImBoxSession::SetPassword(const wchar_t* pPassword, size_t uSize, int iKdf, int iSlot)
+{
+	if (!m_pSection)
+		return;
+
+	memset(&m_pSection->in, 0, sizeof(m_pSection->in));
+
+	if (uSize > sizeof(m_pSection->in.pw.pass))
+		uSize = sizeof(m_pSection->in.pw.pass);
+	if (pPassword && uSize)
+		memcpy(m_pSection->in.pw.pass, pPassword, uSize);
+
+	m_pSection->in.pw.size = (int)uSize;
+	m_pSection->in.pw.kdf = iKdf;
+	m_pSection->in.pw.slot = iSlot;
+}
+
+void CImBoxSession::SetRawKey(const void* pKey, size_t uSize)
+{
+	if (!m_pSection)
+		return;
+
+	memset(&m_pSection->in, 0, sizeof(m_pSection->in));
+
+	if (uSize > sizeof(m_pSection->in.pw.pass))
+		uSize = sizeof(m_pSection->in.pw.pass);
+	if (pKey && uSize)
+		memcpy(m_pSection->in.pw.pass, pKey, uSize);
+
+	//
+	// The size is the full key length whatever was copied: that is what tells
+	// the derivation this is a raw key and not a short password.
+	//
+	m_pSection->in.pw.size = SPASS_RAW_KEY_SIZE;
+	m_pSection->in.pw.kdf = SPASS_KDF_RAW;
+	m_pSection->in.pw.slot = SPASS_SLOT_HEADER;
+}
+
+NTSTATUS CImBoxSession::Run(const std::wstring& ImageFile, const std::wstring& Command)
+{
+	if (!m_pSection)
+		return STATUS_INVALID_DEVICE_STATE;
+
+	NTSTATUS status = STATUS_UNSUCCESSFUL;
+
+	//
+	// Build the command line. The section travels as an inherited handle value
+	// and its length alongside it, because a mapped view cannot be asked how
+	// long it is.
+	//
+	WCHAR sSection[64];
+	wsprintf(sSection, L" section=0x%p sec_size=0x%X", m_hSection, m_uSize);
+
+	std::wstring cmd = L"ImBox \"image=" + ImageFile + L"\" " + Command + sSection;
+
+	std::wstring app = GetApplicationDirectory() + L"\\ImBox.exe";
+	PROCESS_INFORMATION pi = { 0 };
+
+	//
+	// STARTUPINFOEX with PROC_THREAD_ATTRIBUTE_HANDLE_LIST, so that the child
+	// inherits this one handle and nothing else that happens to be inheritable.
+	//
+	SIZE_T attrListSize = 0;
+	InitializeProcThreadAttributeList(NULL, 1, 0, &attrListSize);
+
+	LPPROC_THREAD_ATTRIBUTE_LIST pAttrList = (LPPROC_THREAD_ATTRIBUTE_LIST)HeapAlloc(GetProcessHeap(), 0, attrListSize);
+	if (!pAttrList)
+		return STATUS_INSUFFICIENT_RESOURCES;
+
+	STARTUPINFOEXW siex = { 0 };
+	siex.StartupInfo.cb = sizeof(STARTUPINFOEXW);
+	siex.lpAttributeList = pAttrList;
+
+	BOOL bAttrOk = FALSE;
+	if (InitializeProcThreadAttributeList(pAttrList, 1, 0, &attrListSize)) {
+		SetHandleInformation(m_hSection, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
+		if (UpdateProcThreadAttribute(pAttrList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, &m_hSection, sizeof(HANDLE), NULL, NULL))
+			bAttrOk = TRUE;
+	}
+
+	BOOL bCreated = bAttrOk && CreateProcessW(app.c_str(), (WCHAR*)cmd.c_str(), NULL, NULL, TRUE,
+		CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT, NULL, NULL, &siex.StartupInfo, &pi);
+
+	// inheritable only for the length of that call
+	SetHandleInformation(m_hSection, HANDLE_FLAG_INHERIT, 0);
+
+	if (bCreated)
+	{
+		ResumeThread(pi.hThread);
+
+		HANDLE hEvents[] = { pi.hProcess };
+		WaitForMultipleObjects(ARRAYSIZE(hEvents), hEvents, FALSE, 15 * 60 * 1000); // 15 minutes
+
+		DWORD ret;
+		GetExitCodeProcess(pi.hProcess, &ret);
+		if (ret == STILL_ACTIVE)
+			status = STATUS_TIMEOUT;
+		else if (ret != ERR_OK)
+			status = STATUS_UNSUCCESSFUL;
+		else
+			status = STATUS_SUCCESS;
+
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
+
+	if (bAttrOk)
+		DeleteProcThreadAttributeList(pAttrList);
+	HeapFree(GetProcessHeap(), 0, pAttrList);
+
+	return status;
+}
+
+/* ------------------------------------------------------------------------ */
+
 NTSTATUS ExecImDisk(const std::wstring& ImageFile, const wchar_t* pPassword, int iKdf, const std::wstring& Command, bool bWrite, CBuffer* pBuffer, USHORT uId)
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+	CImBoxSession Session;
 
-    const size_t uMemSize = sizeof(SSection);
+	NTSTATUS status = Session.Create();
+	if (!NT_SUCCESS(status))
+		return status;
 
-    HANDLE hSection = NULL;
-    PVOID pMapping = NULL;
+	SSection* pSection = Session.Section();
 
-    //
-    // Create a secure unnamed section, the section handle will be inherited by the child process.
-    //
-    status = CreateSecureSection(&hSection, &pMapping, uMemSize);
-    if (!NT_SUCCESS(status))
-        return status;
+	pSection->in.pw.size = (int)(wcslen(pPassword) * sizeof(wchar_t));
+	memcpy(pSection->in.pw.pass, pPassword, pSection->in.pw.size);
+	pSection->in.pw.kdf = iKdf;
+	// try the header password first, then every key slot
+	pSection->in.pw.slot = SPASS_SLOT_ANY;
 
-    //
-    // Prepare the section data
-    //
-    SSection* pSection = (SSection*)pMapping;
-    memset(pSection, 0, uMemSize);
+	if (pBuffer && bWrite)
+	{
+		pSection->id = uId;
+		pSection->size = (USHORT)pBuffer->GetSize();
+		memcpy(pSection->data, pBuffer->GetBuffer(), pSection->size);
+	}
 
-    pSection->in.pw.size = (int)(wcslen(pPassword) * sizeof(wchar_t));
-    memcpy(pSection->in.pw.pass, pPassword, pSection->in.pw.size);
-    pSection->in.pw.kdf = iKdf;
-
-    if (pBuffer && bWrite)
-    {
-        pSection->id = uId;
-        pSection->size = (USHORT)pBuffer->GetSize();
-        memcpy(pSection->data, pBuffer->GetBuffer(), pSection->size);
-    }
-
-    //
-    // Build the command line with the section handle value.
-    //
-    std::wstring cmd;
-    cmd = L"ImBox \"image=" + ImageFile + L"\"";
-    cmd += L" " + Command;
-
-    WCHAR sSection[32];
-    wsprintf(sSection, L" section=0x%p", hSection);
-    cmd += sSection;
-
-    std::wstring app = GetApplicationDirectory() + L"\\ImBox.exe";
-    PROCESS_INFORMATION pi = { 0 };
-
-    //
-    // Use STARTUPINFOEX with PROC_THREAD_ATTRIBUTE_HANDLE_LIST to inherit
-    // only the section handle, not all inheritable handles in the process.
-    //
-    SIZE_T attrListSize = 0;
-    InitializeProcThreadAttributeList(NULL, 1, 0, &attrListSize);
-
-    LPPROC_THREAD_ATTRIBUTE_LIST pAttrList = (LPPROC_THREAD_ATTRIBUTE_LIST)HeapAlloc(GetProcessHeap(), 0, attrListSize);
-    if (!pAttrList) {
-        SecureZeroMemory(pMapping, uMemSize);
-        NtUnmapViewOfSection(GetCurrentProcess(), pMapping);
-        NtClose(hSection);
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-
-    STARTUPINFOEXW siex = { 0 };
-    siex.StartupInfo.cb = sizeof(STARTUPINFOEXW);
-    siex.lpAttributeList = pAttrList;
-
-    BOOL bAttrOk = FALSE;
-    if (InitializeProcThreadAttributeList(pAttrList, 1, 0, &attrListSize)) {
-        //
-        // Mark handle as inheritable for the CreateProcess call.
-        //
-        SetHandleInformation(hSection, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
-
-        if (UpdateProcThreadAttribute(pAttrList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, &hSection, sizeof(HANDLE), NULL, NULL)) {
-            bAttrOk = TRUE;
-        }
-    }
-
-    //
-    // Create child process. Only the section handle in the attribute list will be inherited.
-    //
-    BOOL bCreated = bAttrOk && CreateProcessW(app.c_str(), (WCHAR*)cmd.c_str(), NULL, NULL, TRUE, CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT, NULL, NULL, &siex.StartupInfo, &pi);
-
-    //
-    // Immediately remove inheritable flag after CreateProcess.
-    //
-    SetHandleInformation(hSection, HANDLE_FLAG_INHERIT, 0);
-
-    if (bCreated)
-    {
-        ResumeThread(pi.hThread);
-
-        HANDLE hEvents[] = { pi.hProcess };
-        WaitForMultipleObjects(ARRAYSIZE(hEvents), hEvents, FALSE, 15 * 60 * 1000); // 15 minutes
-
-        DWORD ret;
-        GetExitCodeProcess(pi.hProcess, &ret);
-        if (ret == STILL_ACTIVE)
-            status = STATUS_TIMEOUT;
-        else if(ret != ERR_OK)
-            status = STATUS_UNSUCCESSFUL;
-        else
-        {
-            /*if (pBuffer && !bWrite) 
-            {
-                pSection->out.
-            }*/
-            status = STATUS_SUCCESS;
-        }
-
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
-    }
-    else
-    {
-        status = STATUS_UNSUCCESSFUL;
-    }
-
-    //
-    // Cleanup attribute list
-    //
-    if (bAttrOk)
-        DeleteProcThreadAttributeList(pAttrList);
-    HeapFree(GetProcessHeap(), 0, pAttrList);
-
-    //
-    // Securely clear the section data before unmapping
-    //
-    SecureZeroMemory(pMapping, uMemSize);
-    NtUnmapViewOfSection(GetCurrentProcess(), pMapping);
-    NtClose(hSection);
-
-    return status;
+	return Session.Run(ImageFile, Command);
 }

@@ -465,11 +465,12 @@ StVariant CAccessTree::StoreNode(const SPathNodePtr& pParent, const StVariant& C
 	StVariantWriter Node(pMemPool);
 	Node.BeginIndex();
 
-#ifdef DEF_USE_POOL
-	Node.Write(API_V_ACCESS_REF, (uint64)pParent.Get());
-#else
-	Node.Write(API_V_ACCESS_REF, (uint64)pParent.get());
-#endif
+	//
+	// The node's own number and not its address, see SPathNode::Uid. The two
+	// spellings that were here differed only in which smart pointer was in use;
+	// neither of them identified anything for longer than the allocation lasted.
+	//
+	Node.Write(API_V_ACCESS_REF, pParent->Uid);
 	Node.WriteEx(API_V_ACCESS_NAME, pParent->Name);
 
 	if (pParent->Stats.LastAccessTime)

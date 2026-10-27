@@ -27,6 +27,7 @@ private slots:
 	void OnNameChanged(const QString& Text);
 	void OnPickProgram();
 	void OnProgramChanged();
+	//void OnAllPrograms();
 	void OnActionChanged();
 	void OnProfilesChanged();
 	void OnInterfacesChanged();
@@ -75,7 +76,12 @@ protected:
 private:
 	Ui::FirewallRuleWnd ui;
 
+	QComboBox* m_pCmbLifetime = nullptr;
+
 	void TryMakeName();
 	bool m_NameHold = true;
 	bool m_NameChanged = false;
+
+	//void UpdateAllPrograms();
+	//int m_PrevProgram = -1;
 };

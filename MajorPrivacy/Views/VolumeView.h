@@ -39,6 +39,8 @@ private slots:
 	void					OnChangeVolumePassword();
 	void					OnBackupVolumeHeader();
 	void					OnRestoreVolumeHeader();
+	void					OnEditVolumeHeader();
+	void					OnEditHeaderFile();
 	void					OnExpandVolume();
 	void					OnChangeVolumeConfig();
 	void					OnAddVolumeEnclave();
@@ -62,6 +64,8 @@ private:
 	QAction*				m_pChangeVolumePassword;
 	QAction*				m_pBackupVolumeHeader;
 	QAction*				m_pRestoreVolumeHeader;
+	QAction*				m_pEditVolumeHeader;
+	QAction*				m_pEditHeaderFile;
 	QAction*				m_pExpandVolume;
 	QAction*				m_pChangeVolumeConfig;
 	QAction*				m_pAddVolumeEnclave;

@@ -73,7 +73,14 @@ void CNtPathMgr::Dispose()
 {
     if (m_pInstance)
     {
-        delete m_pInstance;
+        //
+        // Freed only once the notification thread has really stopped. If it has not
+        // the instance is deliberately left behind: this runs on the way out of
+        // WinMain, so leaking it costs nothing, whereas freeing it while the thread
+        // is still writing m_HiddenWindow and m_DeviceNotifyHandle costs a crash.
+        //
+        if (m_pInstance->UnRegisterForDeviceNotifications())
+            delete m_pInstance;
         m_pInstance = NULL;
     }
 }
@@ -864,16 +871,41 @@ void CNtPathMgr::RegisterForDeviceNotifications()
     m_NotificationThread = CreateThread(NULL, 0, NotificationThread, this, 0, NULL);
 }
 
-void CNtPathMgr::UnRegisterForDeviceNotifications()
+bool CNtPathMgr::UnRegisterForDeviceNotifications()
 {
-    // Send a message to close the hidden window and terminate the thread
-    if (m_HiddenWindow)
-        PostMessage(m_HiddenWindow, WM_CLOSE, 0, 0);
+    if (!m_NotificationThread)
+        return true;
 
-    if (m_NotificationThread) {
-        WaitForSingleObject(m_NotificationThread, INFINITE);
-        CloseHandle(m_NotificationThread);
+    //
+    // The hidden window is created by the notification thread itself, so when we
+    // get here it may not exist yet - which is exactly what happens when the agent
+    // restarts itself moments after starting, see RestartSelf in Main.cpp. Posting
+    // once to a window that is not there yet and then waiting for ever is what used
+    // to leave the old instance wedged in here while the new one waited for it to
+    // go, with another one started on every attempt.
+    //
+    // So the message is sent again on every turn, until the thread goes or we give
+    // up. Shutting down must not depend on a window message being delivered.
+    //
+    const ULONG TimeOut = 5000;
+    const ULONGLONG Deadline = GetTickCount64() + TimeOut;
+
+    for (;;)
+    {
+        // Send a message to close the hidden window and terminate the thread
+        if (m_HiddenWindow)
+            PostMessage(m_HiddenWindow, WM_CLOSE, 0, 0);
+
+        if (WaitForSingleObject(m_NotificationThread, 100) == WAIT_OBJECT_0)
+            break;
+
+        if (GetTickCount64() >= Deadline)
+            return false; // the pump never answered, we are not safe to free
     }
+
+    CloseHandle(m_NotificationThread);
+    m_NotificationThread = NULL;
+    return true;
 }
 
 void CNtPathMgr::RegisterDeviceChangeCallback(void (*func)(void*), void* param)

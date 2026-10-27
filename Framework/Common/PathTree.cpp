@@ -273,12 +273,16 @@ void CPathTree::GetEntries(FW::List<SFoundEntry>& Entries, const SPathNode* pPar
 
 		CSmartPattern::SFragment::EType LastFragmentType = CSmartPattern::SFragment::eText;
 		size_t uMatch = pSmartPattern->RawMatch(pPathLeft, uLenLeft, LastFragmentType);
-		if (uPos == FW::StringW::NPos)
-			continue;
+		if (uMatch == FW::StringW::NPos)
+			continue; // this branch does not match, anything below it is out of the question
 		size_t uPathPos = uOffset + uMatch;
 
 		if (LastFragmentType == CSmartPattern::SFragment::eDblAsterisk || (m_bSimplePattern && LastFragmentType == CSmartPattern::SFragment::eAsterisk))
 		{
+			//
+			// The wildcard crosses separators, so it may end at any separator from here on,
+			// and the branch below it has to be tried at every one of those positions.
+			//
 			GetEntries(Entries, pBranch, Flags, Path, Path.Length());
 
 			for (; ; )
@@ -288,6 +292,18 @@ void CPathTree::GetEntries(FW::List<SFoundEntry>& Entries, const SPathNode* pPar
 					break;
 				GetEntries(Entries, pBranch, Flags, Path, uPathPos);
 			}
+		}
+		else if (LastFragmentType == CSmartPattern::SFragment::eAsterisk)
+		{
+			//
+			// A single wildcard at the end of a branch takes the rest of this path element and
+			// nothing beyond it. RawMatch stops in front of it as it consumes no text of its own,
+			// so we have to skip ahead to the end of the element ourselves.
+			//
+			size_t uElementEnd = Path.Find(m_Separator, uPathPos);
+			if (uElementEnd == FW::StringW::NPos)
+				uElementEnd = Path.Length();
+			GetEntries(Entries, pBranch, Flags, Path, uElementEnd);
 		}
 		else if (pPathLeft[uMatch] == 0 || pPathLeft[uMatch] == m_Separator)
 		{

@@ -158,12 +158,12 @@ CFwRulePtr CNetworkManager::GetFwRule(const QFlexGuid& Guid)
 	return pFwRule;
 }
 
-RESULT(QFlexGuid) CNetworkManager::SetFwRule(const CFwRulePtr& pRule)
+RESULT(QFlexGuid) CNetworkManager::SetFwRule(const CFwRulePtr& pRule, const QStringList& TakeOver)
 {
 	SVarWriteOpt Opts;
 	Opts.Flags = SVarWriteOpt::eTextGuids;
 
-	return theCore->SetFwRule(pRule->ToVariant(Opts));
+	return theCore->SetFwRule(pRule->ToVariant(Opts), TakeOver);
 }
 
 //RESULT(CFwRulePtr) CNetworkManager::GetFwRule(const QFlexGuid& Guid)
@@ -183,9 +183,9 @@ RESULT(QFlexGuid) CNetworkManager::SetFwRule(const CFwRulePtr& pRule)
 //	RETURN(pRule);
 //}
 
-STATUS CNetworkManager::DelFwRule(const CFwRulePtr& pRule)
+STATUS CNetworkManager::DelFwRule(const CFwRulePtr& pRule, bool bWithDerived)
 {
-	return theCore->DelFwRule(pRule->GetGuid());
+	return theCore->DelFwRule(pRule->GetGuid(), bWithDerived);
 }
 
 STATUS CNetworkManager::RestoreDefaultFwRules()

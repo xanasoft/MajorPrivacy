@@ -154,6 +154,7 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 
 	connect(ui.btnProg, SIGNAL(clicked()), this, SLOT(OnPickProgram()));
 	connect(ui.cmbProgram, SIGNAL(currentIndexChanged(int)), this, SLOT(OnProgramChanged()));
+	//connect(ui.chkAllPrograms, SIGNAL(toggled(bool)), this, SLOT(OnAllPrograms()));
 	connect(ui.txtProgPath, SIGNAL(textChanged(const QString&)), this, SLOT(OnProgramPathChanged()));
 	connect(ui.cmbAction, SIGNAL(currentIndexChanged(int)), this, SLOT(OnActionChanged()));
 	connect(ui.chkScript, SIGNAL(stateChanged(int)), this, SLOT(OnActionChanged()));
@@ -205,6 +206,11 @@ CAccessRuleWnd::CAccessRuleWnd(const CAccessRulePtr& pRule, QSet<CProgramItemPtr
 		ui.txtProgPath->setText(m_pRule->GetProgramPath());
 		m_HoldProgramPath = false;
 	}
+
+	//ui.chkAllPrograms->blockSignals(true); // just reflecting what the rule already is
+	//ui.chkAllPrograms->setChecked(m_pRule->m_ProgramID.GetType() == EProgramType::eAllPrograms);
+	//ui.chkAllPrograms->blockSignals(false);
+	//UpdateAllPrograms();
 
 	SetComboBoxValue(ui.cmbEnclave, QFlexGuid(m_pRule->m_Enclave).ToQV());
 
@@ -296,8 +302,30 @@ bool CAccessRuleWnd::AddProgramItem(const CProgramItemPtr& pItem)
 		return false;
 	}
 
-	m_Items.append(pItem);
-	ui.cmbProgram->addItem(pItem->GetNameEx());
+	//
+	// All programs first, the rest by name. The combo does no sorting of its own and
+	// the item list runs parallel to it, so the entry goes into both at the same spot.
+	// Searched rather than scanned as the caller can hand us the entire program tree.
+	//
+	QString Name = pItem->GetNameEx();
+	int Pos = 0;
+	if (pItem->GetID().GetType() != EProgramType::eAllPrograms)
+	{
+		int Begin = (!m_Items.isEmpty() && m_Items[0]->GetID().GetType() == EProgramType::eAllPrograms) ? 1 : 0;
+		int End = m_Items.count();
+		while (Begin < End)
+		{
+			int Mid = (Begin + End) / 2;
+			if (QString::compare(ui.cmbProgram->itemText(Mid), Name, Qt::CaseInsensitive) < 0)
+				Begin = Mid + 1;
+			else
+				End = Mid;
+		}
+		Pos = Begin;
+	}
+
+	m_Items.insert(Pos, pItem);
+	ui.cmbProgram->insertItem(Pos, Name);
 	return true;
 }
 
@@ -820,6 +848,62 @@ void CAccessRuleWnd::OnPickProgram()
 	}
 }
 
+//
+// The all programs item sits in the combo like any other, the box is only a shortcut
+// to it. With it picked there is nothing left to choose - the rule matches every
+// program - so the picker and the path it fills go dead.
+//
+/*void CAccessRuleWnd::UpdateAllPrograms()
+{
+	bool bAll = ui.chkAllPrograms->isChecked();
+
+	ui.cmbProgram->setEnabled(!bAll);
+	ui.btnProg->setEnabled(!bAll);
+	ui.txtProgPath->setEnabled(!bAll);
+}
+
+void CAccessRuleWnd::OnAllPrograms()
+{
+	if (ui.chkAllPrograms->isChecked())
+	{
+		CProgramItemPtr pAll = theCore->ProgramManager()->GetAll();
+		int Index = m_Items.indexOf(pAll);
+		if (Index == -1 && AddProgramItem(pAll))
+			Index = m_Items.indexOf(pAll);
+
+		m_PrevProgram = ui.cmbProgram->currentIndex(); // after the insert, which shifts the indices
+		if (Index != -1) {
+			ui.cmbProgram->setCurrentIndex(Index);
+			OnProgramChanged();
+		}
+
+		//
+		// The rule carries the path, not the item, and for all programs that is the
+		// wildcard - set here as well in case the item itself could not be offered.
+		//
+		m_HoldProgramPath = true;
+		ui.txtProgPath->setText("*");
+		m_HoldProgramPath = false;
+	}
+	else
+	{
+		//
+		// Back to whatever was picked before, which for a new rule is nothing.
+		//
+		ui.cmbProgram->setCurrentIndex(m_PrevProgram);
+		if (m_PrevProgram != -1)
+			OnProgramChanged();
+		else {
+			m_HoldProgramPath = true;
+			ui.txtProgPath->clear();
+			m_HoldProgramPath = false;
+		}
+		m_PrevProgram = -1;
+	}
+
+	UpdateAllPrograms();
+}*/
+
 void CAccessRuleWnd::OnProgramChanged()
 {
 	int Index = ui.cmbProgram->currentIndex();
@@ -828,6 +912,12 @@ void CAccessRuleWnd::OnProgramChanged()
 	CProgramItemPtr pItem = m_Items[Index];
 	//if (pItem) ui.cmbProgram->setCurrentText(pItem->GetName());
 	CProgramID ID = pItem->GetID();
+
+	//ui.chkAllPrograms->blockSignals(true); // the box follows the picked item
+	//ui.chkAllPrograms->setChecked(ID.GetType() == EProgramType::eAllPrograms);
+	//ui.chkAllPrograms->blockSignals(false);
+	//UpdateAllPrograms();
+
 	m_HoldProgramPath = true;
 	ui.txtProgPath->setText(pItem->GetPath());
 	m_HoldProgramPath = false;

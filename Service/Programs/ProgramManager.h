@@ -127,6 +127,8 @@ protected:
 	bool RemoveProgramFromGroup(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
 	bool RemoveProgramFromGroupEx(const CProgramItemPtr& pItem, const CProgramSetPtr& pGroup);
 	void AddItemToRoot(const CProgramItemPtr& pItem);
+	void AttachService(const CWindowsServicePtr& pService, const CProgramSetPtr& pParent);
+	CProgramSetPtr GetServiceParent(const CWindowsServicePtr& pService);
 	bool AddItemToBranch(const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
 	int AddItemToBranch2(const std::wstring& FilePath, const CProgramItemPtr& pItem, const CProgramSetPtr& pBranch);
 	void TryAddChildren(const CProgramListPtr& pGroup, const CProgramPatternPtr& pPattern, bool bRemove = false);

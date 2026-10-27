@@ -360,6 +360,7 @@ STATUS CDriverAPI::InstallDrv(bool bAutoStart, uint32 TraceLogLevel)
     Params["AllowUserDev"] = TRUE;
     Params["SignProbeAll"] = FALSE; 
     Params["AllowDebugging"] = TRUE; // Required test signing mode to be enabled
+    Params["AllowUiAutomation"] = TRUE; 
 #endif
 
     uint32 uOptions = OPT_KERNEL_TYPE;
@@ -602,13 +603,15 @@ STATUS CDriverAPI::RegisterGUI()
 	return Call(API_REGISTER_GUI, ReqVar, NULL);
 }
 
-STATUS CDriverAPI::SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, const CBuffer& InfoBlob/*, bool bLock*/)
+STATUS CDriverAPI::SetUserKey(const CBuffer& PubKey, const CBuffer& EncryptedBlob, const CBuffer& InfoBlob/*, bool bLock*/, bool bProvisionEfi)
 {
     StVariant ReqVar;
 	ReqVar[API_V_PUB_KEY] = PubKey;
 	ReqVar[API_V_KEY_BLOB] = EncryptedBlob;
     ReqVar[API_V_INFO] = InfoBlob;
     //ReqVar[API_V_LOCK] = bLock;
+    if (bProvisionEfi)
+        ReqVar[API_V_EFI_PROVISION] = true;
 
 	return Call(API_SET_USER_KEY, ReqVar, NULL);
 }
@@ -632,12 +635,22 @@ RESULT(SUserKeyInfoPtr) CDriverAPI::GetUserKey()
     RETURN(Info);
 }
 
-STATUS CDriverAPI::ClearUserKey(const CBuffer& ChallengeResponse)
+STATUS CDriverAPI::ClearUserKey(const CBuffer& ChallengeResponse, bool bClearEfi)
 {
     StVariant ReqVar;
     ReqVar[API_V_SIGNATURE] = ChallengeResponse;
+    if (bClearEfi)
+        ReqVar[API_V_EFI_PROVISION] = true;
 
     return Call(API_CLEAR_USER_KEY, ReqVar, NULL);
+}
+
+STATUS CDriverAPI::ProvisionUserKey(bool bProvision)
+{
+    StVariant ReqVar;
+    ReqVar[API_V_EFI_PROVISION] = bProvision;
+
+    return Call(API_PROVISION_USER_KEY, ReqVar, NULL);
 }
 
 STATUS CDriverAPI::ProtectConfig(const CBuffer& ConfigSignature, bool bHardLock)
@@ -670,10 +683,14 @@ uint32 CDriverAPI::GetConfigStatus()
     return ResVar.To<uint32>();
 }
 
-STATUS CDriverAPI::UnlockConfig(const CBuffer& ChallengeResponse)
+STATUS CDriverAPI::UnlockConfig(const CBuffer& ChallengeResponse, bool bResumeIsolator, bool bClearSuspend)
 {
     StVariant ReqVar;
     ReqVar[API_V_SIGNATURE] = ChallengeResponse;
+    if (bResumeIsolator)
+        ReqVar[API_V_RESUME] = true;
+    if (bClearSuspend)
+        ReqVar[API_V_RESUME_PERSIST] = true;
 
     return Call(API_UNLOCK_CONFIG, ReqVar, NULL);
 }

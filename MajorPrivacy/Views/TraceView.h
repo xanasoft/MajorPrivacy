@@ -16,6 +16,9 @@ public:
 	void						Sync(ETraceLogs Log, const QSet<CProgramFilePtr>& Programs, const QSet<CWindowsServicePtr>& Services, const QFlexGuid& EnclaveGuid = QString());
 	void						Clear();
 
+	// the view\'s own "show private" toggle, see CNetworkPage::Sync and friends
+	bool						ShowPrivate() const { return m_pBtnPrivate && m_pBtnPrivate->isChecked(); }
+
 public slots:
 	void						SetFilter(const QRegularExpression& RegExp, int iOptions = 0, int Column = -1);
 
@@ -49,6 +52,9 @@ protected:
 	QToolButton*				m_pBtnScroll = nullptr;
 	QToolButton*				m_pBtnHold = nullptr;
 	QToolButton*				m_pBtnRefresh = nullptr;
+	QToolButton*				m_pBtnPrivate = nullptr;
+
+	QToolButton*				MakePrivateButton();
 	//QRegularExpression		m_FilterExp;
 	QString						m_FilterExp;
 	bool						m_bHighLight;

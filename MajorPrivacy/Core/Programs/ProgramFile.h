@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include "ProgramGroup.h"
 
 #include "../Processes/Process.h"
@@ -6,6 +7,9 @@
 #include "../Network/TrafficEntry.h"
 #include "../Processes/ExecLogEntry.h"
 #include "../Access/AccessEntry.h"
+
+#define PROG_STATS_REFETCH_INTERVAL 1000 // ms, a list marked changed is fetched again at most this often
+#define PROG_VIEW_REBUILD_INTERVAL 5000 // ms, views rebuild at least this often even when no list changed
 
 class CProgramFile: public CProgramSet
 {
@@ -29,6 +33,7 @@ public:
 
 	QMultiMap<quint64, SLibraryInfo> GetLibraries();
 	void SetLibrariesChanged() { m_LibrariesChanged = true; }
+	quint32 GetLibrariesRevision() const { QReadLocker Lock(&m_Mutex); return m_LibrariesRevision; }
 
 	static QString GetSignatureInfoStr(const CImageSignInfo& SignInfo);
 
@@ -49,7 +54,8 @@ public:
 		QString						CommandLine;
 	};
 
-	QMap<quint64, SExecutionInfo> GetExecStats();
+	QMap<quint64, SExecutionInfo> GetExecStats(); // keys are only positions, the entries are identified by SubjectUID and SubjectPID
+	quint32 GetExecRevision() const { QReadLocker Lock(&m_Mutex); return m_ExecRevision; }
 
 	struct SIngressInfo: SInfo
 	{
@@ -59,16 +65,18 @@ public:
 		uint32						ProcessAccessMask = 0;
 	};
 
-	QMap<quint64, SIngressInfo> GetIngressStats();
+	QMap<quint64, SIngressInfo> GetIngressStats(); // keys are only positions, the entries are identified by SubjectUID and SubjectPID
+	quint32 GetIngressRevision() const { QReadLocker Lock(&m_Mutex); return m_IngressRevision; }
 
-	virtual QMap<quint64, SAccessStatsPtr>	GetAccessStats();
+	virtual QMap<quint64, SAccessStatsPtr>	GetAccessStats(); // keyed by change sequence, see SAccessLog
 
 	quint64 GetAccessLastActivity() const { return m_AccessLastActivity; }
 	quint64 GetAccessLastEvent() const { return m_AccessLastEvent; }
 	quint32 GetAccessCount() const { return m_AccessCount; }
 	quint32 GetHandleCount() const { return m_HandleCount; }
 
-	virtual QHash<QString, CTrafficEntryPtr> GetTrafficLog();
+	virtual QHash<QString, CTrafficEntryPtr> GetTrafficLog(QList<CTrafficEntryPtr>* pChanged = nullptr);
+	quint32 GetTrafficLogGeneration() const { return m_TrafficLogGeneration; }
 
 	virtual void TraceLogAdd(ETraceLogs Log, const CLogEntryPtr& pEntry, quint64 Index);
 	virtual STraceLogList* GetTraceLog(ETraceLogs Log);
@@ -96,16 +104,27 @@ protected:
 
 	QSet<quint64>				m_ProcessPids;
 
+	//
+	// The *Changed flags are set from the event handlers, the *Revision counters go up whenever
+	// the list actually got refetched (or cleared), so views can skip rebuilding when nothing changed.
+	//
+
 	QMultiMap<quint64, SLibraryInfo> m_Libraries;
-	bool						m_LibrariesChanged = true;
+	std::atomic<bool>			m_LibrariesChanged{ true };
+	quint64						m_LibrariesFetched = 0;
+	quint32						m_LibrariesRevision = 0;
 
 	QMap<quint64, SExecutionInfo> m_ExecStats;
-	bool						m_ExecChanged = true;
+	std::atomic<bool>			m_ExecChanged{ true };
+	quint64						m_ExecFetched = 0;
+	quint32						m_ExecRevision = 0;
 
 	QMap<quint64, SIngressInfo>	m_Ingress;
-	bool						m_IngressChanged = true;
+	std::atomic<bool>			m_IngressChanged{ true };
+	quint64						m_IngressFetched = 0;
+	quint32						m_IngressRevision = 0;
 
-	QMap<quint64, SAccessStatsPtr> m_AccessStats;
+	SAccessLog					m_AccessLog;
 	quint64						m_AccessLastActivity = 0;
 	quint64						m_AccessLastEvent = 0;
 	quint32						m_AccessCount = 0;
@@ -116,6 +135,7 @@ protected:
 	QHash<QString, CTrafficEntryPtr> m_TrafficLog;
 	QHash<QHostAddress, QSet<CTrafficEntryPtr>> m_Unresolved;
 	quint64						m_TrafficLogLastActivity = 0;
+	quint32						m_TrafficLogGeneration = 0; // incremented on every clear, so views know their aggregates are stale
 
 	STraceLogList				m_Logs[(int)ETraceLogs::eLogMax];
 

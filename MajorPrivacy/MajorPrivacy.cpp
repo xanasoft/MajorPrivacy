@@ -41,6 +41,7 @@
 #include "Core/Network/NetLogEntry.h"
 #include "../MiscHelpers/Common/CheckableMessageBox.h"
 #include "Windows/MountMgrWnd.h"
+#include "Windows/BootloaderWnd.h"
 #include "Windows/SignatureDbWnd.h"
 #include "../QtSingleApp/src/qtsingleapplication.h"
 #include "../MiscHelpers/Archive/ArchiveFS.h"
@@ -199,6 +200,14 @@ void CMajorPrivacy::UpdateTitle()
 	
 	if (theCore->Driver()->IsConnected())
 	{
+		uint32 uConfigStatus = theCore->Driver()->GetConfigStatus();
+		if (uConfigStatus & CONFIG_STATUS_SUSPENDED)
+			Title += tr("   -   !!! ISOLATOR SUSPENDED: enforcement disabled (pre-boot recovery) !!!");
+		if (uConfigStatus & CONFIG_STATUS_KEYMISMATCH)
+			Title += tr("   -   !!! WARNING: User Key MISMATCH (EFI vs registry) !!!");
+		if (uConfigStatus & CONFIG_STATUS_DBGMODE)
+			Title += tr("   -   !!! DEBUG MODE (pre-boot): self-protection relaxed, components can be debugged !!!");
+
 		if (!g_CertInfo.active)
 		{
 			if(theCore->HasDriverRules())
@@ -224,11 +233,18 @@ void CMajorPrivacy::UpdateTitle()
 				// We want to show the private key fingerprint in the title bar
 				//
 
+				//
+				// In developer mode (PrivacyDeveloper bit 1) the user key also signs our own
+				// images, so it is acting as a developer key - say so in the title.
+				//
+				QString KeyLabel = (uConfigStatus & CONFIG_STATUS_DEVMODE)
+					? tr("   -   DEVELOPER KEY: ") : tr("   -   USER KEY: ");
+
 				if (theConf->GetBool("Options/ShowShortKey", true))
 				{
 
 					//
-					// We want it to be short enough to be easily recognizable. 
+					// We want it to be short enough to be easily recognizable.
 					// Hence we use a 64 bit hash of the private key as the fingerprint.
 					// To improve security we use a key derivation function to make it harder to brute force.
 					//
@@ -236,18 +252,18 @@ void CMajorPrivacy::UpdateTitle()
 					CBuffer FP(8); // 64 bits
 					CEncryption::GetKeyFromPWOld(pInfo->PubKey, CBuffer(), FP, 1048576); // 2^20 iterations
 
-					Title += tr("   -   USER KEY: ") + QByteArray((char*)FP.GetBuffer(), (int)FP.GetSize()).toHex().toUpper();
+					Title += KeyLabel + QByteArray((char*)FP.GetBuffer(), (int)FP.GetSize()).toHex().toUpper();
 				}
 				else
 				{
 					//
-					// Alternatively we can also show the full SHA246 Hash of the private key.
+					// Alternatively we can also show the full SHA256 Hash of the private key.
 					//
 
 					CBuffer Hash(64);
 					CHashFunction::Hash(pInfo->PubKey, Hash);
 
-					Title += tr("   -   USER KEY: ") + QByteArray((char*)Hash.GetBuffer(), (int)Hash.GetSize()).toHex().toUpper();
+					Title += KeyLabel + QByteArray((char*)Hash.GetBuffer(), (int)Hash.GetSize()).toHex().toUpper();
 				}
 			}
 		}
@@ -425,6 +441,23 @@ void CMajorPrivacy::UpdateLockStatus(bool bOnConnect)
 	bool bLocked = (uConfigStatus & CONFIG_STATUS_LOCKED) != 0;
 	m_pUnlockConfig->setEnabled(bConnected && m_HasUserKey && bProtected && bLocked);
 	m_DrvConfigLocked = bLocked;
+
+	// Pre-boot recovery: offer to turn enforcement back on for this runtime. Only shown
+	// while actually suspended.
+	bool bSuspended = (uConfigStatus & CONFIG_STATUS_SUSPENDED) != 0;
+	m_pResumeIsolator->setVisible(bSuspended);
+	m_pResumeIsolator->setEnabled(bConnected && bSuspended);
+
+	// Pre-boot firmware key protection: always visible; checked reflects whether the key is
+	// provisioned to the EFI mirror. Enabled when DcsOwner is present and either a user key exists
+	// (to provision) OR something is already set in firmware (provisioned/committed) so it can
+	// always be un-set - e.g. an orphaned committed key left behind when the user removed the key
+	// but then denied the removal at the next-boot prompt.
+	bool bFwAvail = (uConfigStatus & CONFIG_STATUS_FWAVAIL) != 0;
+	bool bKeyProvisioned = (uConfigStatus & CONFIG_STATUS_KEYPROVISIONED) != 0;
+	bool bKeyCommitted = (uConfigStatus & CONFIG_STATUS_KEYCOMMITTED) != 0;
+	m_pProvisionKey->setEnabled(bConnected && bFwAvail && (m_HasUserKey || bKeyProvisioned || bKeyCommitted));
+	m_pProvisionKey->setChecked(bKeyProvisioned); // setChecked does not emit triggered(), so no feedback loop
 
 	bool bDirty = (uConfigStatus & CONFIG_STATUS_DIRTY) != 0 || (uConfigStatus & CONFIG_STATUS_RESTORED) != 0;
 	m_pCommitConfig->setEnabled(bConnected && bDirty);
@@ -735,6 +768,15 @@ void CMajorPrivacy::timerEvent(QTimerEvent* pEvent)
 
 	quint64 CurTime = QDateTime::currentSecsSinceEpoch();
 
+	//
+	// Rarely, this runs a few times a second while the firewall mode hardly ever moves
+	// and asking for it is a round trip to the service.
+	//
+	if (m_NextFwCheck < CurTime) {
+		m_NextFwCheck = CurTime + 5;
+		UpdateTrayIcon();
+	}
+
 	if (m_AutoCommitConf && m_AutoCommitConf < CurTime){
 		if (bConnected) {
 			STATUS Status = CommitDrvConfig();
@@ -968,6 +1010,9 @@ void CMajorPrivacy::BuildMenu()
 	m_pMakeKeyPair = m_pSecurity->addAction(QIcon(":/Icons/AddKey.png"), tr("Setup User Key"), this, SLOT(OnMakeKeyPair()));
 	m_pChangePassword = m_pSecurity->addAction(QIcon(":/Icons/ChangeKey.png"), tr("Change Key Password"), this, SLOT(OnChangePassword()));
 	m_pClearKeys = m_pSecurity->addAction(QIcon(":/Icons/RemoveKey.png"), tr("Remove User Key"), this, SLOT(OnClearKeys()));
+	m_pProvisionKey = m_pSecurity->addAction(QIcon(":/Icons/Shield11.png"), tr("Protect User Key in Firmware"), this, SLOT(OnProvisionUserKey()));
+	m_pProvisionKey->setCheckable(true);
+	m_pProvisionKey->setToolTip(tr("Commit the user key to the pre-boot protected EFI variable (requires the DiskCryptor DcsOwner firmware driver)."));
 
 
 	m_pTools = menuBar()->addMenu(tr("Tools"));
@@ -996,6 +1041,15 @@ void CMajorPrivacy::BuildMenu()
 			pWnd->show();
 		});
 
+		//
+		// Everything behind this needs administrator rights, and the GUI usually
+		// has none - CBootloaderWnd::Open starts a second copy for it rather
+		// than elevating this process. See Windows\BootloaderWnd.h.
+		//
+		m_pBootloader = m_pExpTools->addAction(QIcon(":/Icons/SecureDisk.png"), tr("EFI Boot Loader"), this, [this]() {
+			CBootloaderWnd::Open(this);
+		});
+
 		QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 		QString ImDiskCpl = env.value("SystemRoot") + "\\system32\\imdisk.cpl";
 		if (QFile::exists(ImDiskCpl)) {
@@ -1014,6 +1068,8 @@ void CMajorPrivacy::BuildMenu()
 	m_pSettings = m_pOptions->addAction(QIcon(":/Icons/Settings.png"), tr("Settings"), this, SLOT(OpenSettings()));
 	m_pOptions->addSeparator();
 	m_pUnlockConfig = m_pOptions->addAction(QIcon(":/Icons/LockOpen.png"), tr("Unlock Config"), this, SLOT(OnUnlockConfig()));
+	m_pResumeIsolator = m_pOptions->addAction(QIcon(":/Icons/Shield11.png"), tr("Resume Enforcement"), this, SLOT(OnResumeIsolator()));
+	m_pResumeIsolator->setVisible(false); // only shown while the isolator is suspended
 	m_pCommitConfig = m_pOptions->addAction(QIcon(":/Icons/Approve.png"), tr("Commit Changes"), this, SLOT(OnCommitConfig()));
 	m_pDiscardConfig = m_pOptions->addAction(QIcon(":/Icons/Uninstall.png"), tr("Discard Changes"), this, SLOT(OnDiscardConfig()));
 	m_pOptions->addSeparator();
@@ -1170,9 +1226,8 @@ void CMajorPrivacy::BuildGUI()
 
 	m_pBtnTime = new QToolButton();
 	m_pBtnTime->setIcon(QIcon(":/Icons/Time.png"));
-	m_pBtnTime->setToolTip(tr("Set Time Filter"));
+	m_pBtnTime->setToolTip(tr("Apply the time filter to the lists and logs (the usage graphs always use it)"));
 	m_pBtnTime->setCheckable(true);
-	connect(m_pBtnTime, &QToolButton::toggled, this, [&](bool checked) { m_pCmbRecent->setEnabled(checked); });
 	m_pToolBar->addWidget(m_pBtnTime);
 
 	m_pCmbRecent = new QComboBox();
@@ -1193,11 +1248,13 @@ void CMajorPrivacy::BuildGUI()
 	m_pCmbRecent->addItem(tr("Last Week"),		7*24*60*60*1000ull);
 	m_pCmbRecent->addItem(tr("Last 2 Weeks"),	2*7*24*60*60*1000ull);
 	m_pCmbRecent->addItem(tr("Last Month"),		30*24*60*60*1000ull);
-	m_pCmbRecent->setEnabled(false);
+	m_pCmbRecent->setToolTip(tr("Time range of the usage graphs, and of the lists and logs when the time filter button is checked"));
 	m_pToolBar->addWidget(m_pCmbRecent);
 	QFont font = m_pCmbRecent->font();
 	font.setPointSizeF(font.pointSizeF() * 1.5);
 	m_pCmbRecent->setFont(font);
+	m_pCmbRecent->setSizeAdjustPolicy(QComboBox::AdjustToContents); // wide enough for the longest entry in the larger font
+	m_pCmbRecent->setMinimumContentsLength(14);
 
 	m_pBtnPrivate = new QToolButton();
 	m_pBtnPrivate->setIcon(QIcon(":/Icons/Invisible.png"));
@@ -1397,6 +1454,8 @@ void CMajorPrivacy::CreateTrayIcon()
 
 	m_pTrayIcon = new QSystemTrayIcon(QIcon(":/MajorPrivacy.png"), this);
 	m_pTrayIcon->setToolTip("MajorPrivacy");
+	m_TrayOverlay.clear(); // what the plain icon above shows
+	UpdateTrayIcon();
 	connect(m_pTrayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(OnSysTray(QSystemTrayIcon::ActivationReason)));
 
 	CreateTrayMenu();
@@ -1406,6 +1465,41 @@ void CMajorPrivacy::CreateTrayIcon()
 	m_pTrayIcon->show(); // Note: qt bug; hide does not work if not showing first :/
 	if(!bAutoRun && theConf->GetInt("Options/SysTrayIcon", 1) == 0)
 		m_pTrayIcon->hide();
+}
+
+//
+// The firewall mode goes onto the tray icon, taking up its bottom right quarter. The
+// mode is the windows firewall's own and can be changed from outside MajorPrivacy, so
+// it is polled rather than listened for, see the timer.
+//
+void CMajorPrivacy::UpdateTrayIcon()
+{
+	QString Overlay;
+	if (theCore->Service()->IsConnected())
+	{
+		if (auto Result = theCore->GetFwProfile())
+		{
+			switch (Result.GetValue())
+			{
+			case FwFilteringModes::AllowList:	Overlay = ":/Icons/Check.png"; break;
+			case FwFilteringModes::BlockList:	Overlay = ":/Icons/Hold.png"; break;
+			case FwFilteringModes::NoFiltering:	Overlay = ":/Icons/Error.png"; break;
+			}
+		}
+	}
+
+	if (m_TrayOverlay == Overlay)
+		return;
+	m_TrayOverlay = Overlay;
+
+	//
+	// Scaled down first, the icon is 512x512 while the tray shows it at 16 to 32, and
+	// the overlay is to cover a quarter of it, not to be blown up to a quarter of 512.
+	//
+	QImage Icon = QPixmap(":/MajorPrivacy.png").toImage().scaled(64, 64, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+	if (!Overlay.isEmpty())
+		Icon = ImageAddOverlay(Icon, Overlay, Icon.width() / 2);
+	m_pTrayIcon->setIcon(QIcon(QPixmap::fromImage(Icon)));
 }
 
 void CMajorPrivacy::CreateTrayMenu()
@@ -1778,6 +1872,18 @@ STATUS CMajorPrivacy::MakeKeyPair(CPrivateKey* pPrivateKey)
 		PublicKey.GetPublicKey(PubKey);
 
 		Status = CMajorPrivacy__SetUserKey(Password, iKdf, PrivKey, PubKey);
+		if (Status.IsError()) break;
+
+		// If pre-boot firmware protection (DcsOwner) is present, offer to also provision the
+		// new key to the protected EFI variable.
+		if (theCore->Driver()->GetConfigStatus() & CONFIG_STATUS_FWAVAIL)
+		{
+			if (QMessageBox::question(this, "MajorPrivacy", tr(
+				"Pre-boot (firmware) protection is available. Provision this user key to the protected "
+				"EFI variable as well?\n\nThe key is committed after you confirm the change during the "
+				"next boot.")) == QMessageBox::Yes)
+				theCore->Driver()->ProvisionUserKey(true);
+		}
 	} while(0);
 
 	UpdateTitle();
@@ -1877,7 +1983,8 @@ void CMajorPrivacy::OnClearKeys()
 		CBuffer Response;
 		PrivateKey.Sign(Hash, Response);
 
-		Status = theCore->Driver()->ClearUserKey(Response);
+		// Removing the key always also deprovisions the pre-boot protected EFI copy.
+		Status = theCore->Driver()->ClearUserKey(Response, true);
 	}
 	CheckResults(QList<STATUS>() << Status, this);
 
@@ -2132,6 +2239,12 @@ CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems() const
 	bool bShowAll = !m_pProgramView->isVisible();// || (m_pProgramSplitter->sizes().at(0) < 10);
 	if (bShowAll || (!m_pProgramView->HasFinder() && Progs.isEmpty()))
 	{
+		//
+		// Nothing is picked, so we stand in the all programs item to get the whole
+		// tree. Remembered as such because an item the user actually clicked on means
+		// something narrower - see bShowAll in SCurrentItems.
+		//
+		bShowAll = true;
 		Progs.clear();
 		auto pAll = theCore->ProgramManager()->GetAll();
 		if(pAll) Progs.append(pAll);
@@ -2152,6 +2265,14 @@ CMajorPrivacy::SCurrentItems CMajorPrivacy::MakeCurrentItems() const
 		{
 			Current = MakeCurrentItems(QList<CProgramItemPtr>() << theCore->ProgramManager()->GetRoot());
 			Current.bAllPrograms = true;
+
+			//
+			// Only when that item is the whole selection does the user mean the rules
+			// that apply to every program; having it along with others - or through the
+			// stand in above - still means everything. Whether that narrowing happens
+			// at all is up to the user, by default it does not.
+			//
+			Current.bAllProgramsOnly = !bShowAll && Progs.count() == 1 && !theConf->GetBool("Options/ShowAllRules", true);
 
 			/*SCurrentItems All = MakeCurrentItems(QList<CProgramItemPtr>() << theCore->ProgramManager()->GetRoot());
 
@@ -2683,10 +2804,15 @@ void CMajorPrivacy::OnFwChangeEvent(const QString& RuleId, qint32 iEventType)
 
 	if (pFwRule) {
 		if (pFwRuleBackup) {
-			if (pFwRule->GetProgramID() != pFwRuleBackup->GetProgramID()) {
-				m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eRemoved, pFwRuleBackup);
-				m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eAdded, pFwRule);
-			} else
+			//
+			// A rule moved to another program is one change, not a removal and an addition. Shown as
+			// two, on two pages, rejecting the addition alone deleted the rule outright. As one, a
+			// reject puts the backup back over the very same rule, which moves it back. It is listed
+			// with the program it moved to, as that is the one asking.
+			//
+			if (pFwRule->GetProgramID() != pFwRuleBackup->GetProgramID())
+				m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eModified, pFwRuleBackup, theCore->ProgramManager()->GetProgramByID(pFwRule->GetProgramID()));
+			else
 				m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eModified, pFwRuleBackup);
 		} else
 			m_pPopUpWindow->PushFwRuleEvent(EConfigEvent::eAdded, pFwRule);
@@ -2724,6 +2850,8 @@ void CMajorPrivacy::UpdateSettings(bool bRebuildUI)
 
 		BuildGUI();
 	}
+
+	m_CurrentItems = MakeCurrentItems(); // the rule lists depend on Options/ShowAllRules
 }
 
 void CMajorPrivacy::ClearIgnoreLists()
@@ -2754,6 +2882,9 @@ void CMajorPrivacy::ResetPrompts()
 	theConf->DelValue("Options/WarnBreakingTweaks");
 	theConf->DelValue("Options/DblClickFixQuick");
 	theConf->DelValue("Options/AskApplyScript");
+	theConf->DelValue("Options/DeleteTemplateDerived");
+	theConf->DelValue("Options/InfoTemplateSwitch");
+	theConf->DelValue("NetworkFirewall/NeverOfferTemplate");
 }
 
 void CMajorPrivacy::OnMaintenance()

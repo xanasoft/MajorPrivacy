@@ -139,6 +139,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Programs\UsageHistory.cpp">
+      <Filter>Core\Programs</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\UsageGraph.cpp">
+      <Filter>Core\Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Views\UsageView.cpp">
+      <Filter>Views\Network</Filter>
+    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -565,8 +574,35 @@
     <ClCompile Include="Models\PresetItemsModel.cpp">
       <Filter>Models\Presets</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\HeaderEditorWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\KeyFilesWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\BootloaderWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\CertDetailsWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\VolumeLib.cpp">
+      <Filter>Core\Volumes</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\FwTemplateWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\FwGuardEntryWnd.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\PathPattern.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\Programs\UsageHistory.h">
+      <Filter>Core\Programs</Filter>
+    </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -583,6 +619,9 @@
       <Filter>Helpers</Filter>
     </ClInclude>
     <ClInclude Include="Core\Network\NetLogEntry.h">
+      <Filter>Core\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Network\TrafficEntry.h">
       <Filter>Core\Network</Filter>
     </ClInclude>
     <ClInclude Include="Core\TraceLogEntry.h">
@@ -620,6 +659,15 @@
     </ClInclude>
     <ClInclude Include="Helpers\Highliter\qsourcehighliterthemes.h">
       <Filter>Helpers\Highliter</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\VolumeLib.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\PathPattern.h">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\RuleLifetime.h">
+      <Filter>Windows</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -668,8 +716,38 @@
     <QtUic Include="Forms\ItemPicker.ui">
       <Filter>Form Files</Filter>
     </QtUic>
+    <QtUic Include="Forms\KeyFiles.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\HeaderEditor.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\Bootloader.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\CertDetails.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\BootloaderConfig.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\BootloaderEsp.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\FwGuardEntryWnd.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="Forms\FwTemplateWnd.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="Widgets\UsageGraph.h">
+      <Filter>Core\Widgets</Filter>
+    </QtMoc>
+    <QtMoc Include="Views\UsageView.h">
+      <Filter>Views\Network</Filter>
+    </QtMoc>
     <QtMoc Include="MajorPrivacy.h">
       <Filter>GUI</Filter>
     </QtMoc>
@@ -732,9 +810,6 @@
     </QtMoc>
     <QtMoc Include="Core\Tweaks\TweakManager.h">
       <Filter>Core\Tweaks</Filter>
-    </QtMoc>
-    <QtMoc Include="Core\Network\TrafficEntry.h">
-      <Filter>Core\Network</Filter>
     </QtMoc>
     <QtMoc Include="Windows\SettingsWindow.h">
       <Filter>Windows</Filter>
@@ -1044,6 +1119,24 @@
     </QtMoc>
     <QtMoc Include="Models\PresetItemsModel.h">
       <Filter>Models\Presets</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\HeaderEditorWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\KeyFilesWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\BootloaderWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\CertDetailsWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\FwTemplateWnd.h">
+      <Filter>Windows</Filter>
+    </QtMoc>
+    <QtMoc Include="Windows\FwGuardEntryWnd.h">
+      <Filter>Windows</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
