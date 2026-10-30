@@ -11,7 +11,7 @@
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="81"/>
         <source>Hold the access attempt during prompt</source>
-        <translation type="unfinished"></translation>
+        <translation>プロンプト表示中はアクセス試行を保留する</translation>
     </message>
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="111"/>
@@ -37,17 +37,17 @@
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="253"/>
         <source>User</source>
-        <translation type="unfinished">ユーザー</translation>
+        <translation>ユーザー</translation>
     </message>
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="272"/>
         <source>Scripting</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプト</translation>
     </message>
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="278"/>
         <source>Call script to make decisions</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプトを呼び出して判断する</translation>
     </message>
     <message>
         <location filename="Forms/AccessRuleWnd.ui" line="95"/>
@@ -232,7 +232,7 @@
     <message>
         <location filename="Views/AccessListView.cpp" line="67"/>
         <source>Loading %1</source>
-        <translation type="unfinished">%1 を読み込み中</translation>
+        <translation>%1 を読み込み中</translation>
     </message>
 </context>
 <context>
@@ -240,7 +240,7 @@
     <message>
         <location filename="Core/Access/AccessManager.cpp" line="148"/>
         <source>Invalid User Name in access rule</source>
-        <translation type="unfinished"></translation>
+        <translation>アクセスルールのユーザー名が無効です</translation>
     </message>
 </context>
 <context>
@@ -463,7 +463,7 @@
     <message>
         <location filename="Views/AccessRuleView.cpp" line="198"/>
         <source>Resource Access Rule</source>
-        <translation type="unfinished">リソースアクセスルール</translation>
+        <translation>リソースアクセスルール</translation>
     </message>
     <message>
         <location filename="Views/AccessRuleView.cpp" line="239"/>
@@ -481,17 +481,17 @@
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="23"/>
         <source>Unspecified (Any)</source>
-        <translation type="unfinished"></translation>
+        <translation>指定なし (すべて)</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="32"/>
         <source>%1</source>
-        <translation type="unfinished">%1</translation>
+        <translation>%1</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="46"/>
         <source>[%1]</source>
-        <translation type="unfinished"></translation>
+        <translation>[%1]</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="74"/>
@@ -568,12 +568,12 @@
         <location filename="Windows/AccessRuleWnd.cpp" line="370"/>
         <location filename="Windows/AccessRuleWnd.cpp" line="374"/>
         <source>Error</source>
-        <translation type="unfinished">エラー</translation>
+        <translation>エラー</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="352"/>
         <source>The Program Path is not valid.</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムのパスが無効です。</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="364"/>
@@ -583,12 +583,12 @@
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="370"/>
         <source>The File Path is not valid.</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイルのパスが無効です。</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="374"/>
         <source>The File Path may break windows, please use a more specific path.</source>
-        <translation type="unfinished"></translation>
+        <translation>このファイルパスはWindowsを破損させる可能性があります。より具体的なパスを使用してください。</translation>
     </message>
     <message>
         <location filename="Windows/AccessRuleWnd.cpp" line="436"/>
@@ -722,7 +722,7 @@
     <message>
         <location filename="Views/AccessView.cpp" line="70"/>
         <source>Clear Records</source>
-        <translation type="unfinished"></translation>
+        <translation>記録を消去</translation>
     </message>
     <message>
         <location filename="Views/AccessView.cpp" line="84"/>
@@ -762,12 +762,12 @@
     <message>
         <location filename="Views/AccessView.cpp" line="429"/>
         <source>Are you sure you want to clear the all Access records for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのプログラム項目のアクセス記録をすべて消去しますか?</translation>
     </message>
     <message>
         <location filename="Views/AccessView.cpp" line="436"/>
         <source>Are you sure you want to clear the all Access records for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>現在のプログラム項目のアクセス記録をすべて消去しますか?</translation>
     </message>
     <message>
         <location filename="Views/AccessView.cpp" line="47"/>
@@ -801,7 +801,7 @@
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="399"/>
         <source>You can request a free %1-day evaluation certificate up to %2 times per hardware ID.</source>
-        <translation>ハードウェアIDごとに、無料の%1日間評価証明書を最大%2回まで要求できます。</translation>
+        <translation>ハードウェア ID ごとに、%1 日間の無料評価証明書を最大 %2 回までリクエストできます。</translation>
     </message>
     <message>
         <source>To use &lt;b&gt;MajorPrivacy&lt;/b&gt; in a business setting, an appropriate &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-get-cert&quot;&gt;support certificate&lt;/a&gt; for business use is required. If you do not yet have the required certificate(s), you can get those from the &lt;a href=&quot;https://xanasoft.com/shop/&quot;&gt;xanasoft.com web shop&lt;/a&gt;.</source>
@@ -814,32 +814,32 @@
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="357"/>
         <source>Install your &lt;b&gt;MajorPrivacy&lt;/b&gt; License Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt; ライセンス証明書をインストールします</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="358"/>
         <source>To use most advanced protection features a License Certificate must be installed.</source>
-        <translation type="unfinished"></translation>
+        <translation>高度な保護機能のほとんどを使用するには、ライセンス証明書をインストールする必要があります。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="364"/>
         <source>&lt;b&gt;MajorPrivacy&lt;/b&gt; offers powerful features to safeguard your data. To unlock these features, you&apos;ll need a valid license.If you don&apos;t have one yet, please consider &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-get-cert&quot;&gt;getting a license&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt; は、データを保護する強力な機能を提供します。これらの機能を利用するには、有効なライセンスが必要です。まだお持ちでない場合は、&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-get-cert&quot;&gt;ライセンスの取得&lt;/a&gt;をご検討ください。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="383"/>
         <source>Retrieve License Certificate using a Serial Number:</source>
-        <translation type="unfinished"></translation>
+        <translation>シリアル番号を使用してライセンス証明書を取得:</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="398"/>
         <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;Get a free evaluation certificate&lt;/font&gt;&lt;/a&gt; and enjoy all features for %1 days.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;&lt;font color=&apos;red&apos;&gt;無料の評価用証明書を入手&lt;/font&gt;&lt;/a&gt;して、%1日間すべての機能をお楽しみください。&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="440"/>
         <source>Without an active License Certificate, MajorPrivacy runs in demo mode and does not enforce any rules. You can get a free %1-day evaluation certificate to unlock all features. Are you sure you want to continue without one?</source>
-        <translation type="unfinished"></translation>
+        <translation>ライセンス証明書がない場合、MajorPrivacy はデモモードで動作し、ルールを一切適用しません。すべての機能を利用できる%1日間の無料評価用証明書を入手できます。証明書なしで続行しますか?</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="456"/>
@@ -864,27 +864,27 @@ Error: %1</source>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="692"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; Config Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt; 設定保護の構成</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="693"/>
         <source>To make MajorPrivacy truly secure its configuration must be protected.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacyを真に安全にするには、その設定を保護する必要があります。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="702"/>
         <source>The security-relevant configuration of MajorPrivacy (Process Protection rules, Secure Enclave settings, the Allowed Image Hash Database, and File/Folder access rules) is stored in the Windows registry. While MajorPrivacy is running, this data is protected against tampering, and the software itself can prevent unauthorized termination. However, when MajorPrivacy is not active, the registry remains vulnerable. To address this, the configuration can be protected with a digital signature, with the last valid revision locked in a read-only state that is only cleared on system shutdown. It will be re-locked automatically as soon as the KernelIsolator driver loads early in the boot process. The trade-off is that while this protection is engaged, the software cannot be uninstalled. To uninstall, the protection must first be disabled and the system rebooted.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacyのセキュリティ関連の設定 (プロセス保護ルール、セキュアエンクレーブの設定、許可イメージハッシュデータベース、ファイル/フォルダーアクセスルール) は、Windowsレジストリに保存されます。MajorPrivacy の実行中は、このデータは改ざんから保護され、ソフトウェア自体も不正な終了を防止できます。しかし、MajorPrivacy が動作していないときは、レジストリは無防備なままです。これに対処するため、設定をデジタル署名で保護し、最後の有効なリビジョンを読み取り専用状態でロックできます。このロックはシステムのシャットダウン時にのみ解除されます。ロックは、起動の早い段階で KernelIsolator ドライバーが読み込まれると同時に自動的に再設定されます。トレードオフとして、この保護が有効な間はソフトウェアをアンインストールできません。アンインストールするには、まず保護を無効にしてシステムを再起動する必要があります。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="709"/>
         <source>Enable Unload Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>アンロード保護を有効にする</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="713"/>
         <source>Enable Config Protection and set up User Key</source>
-        <translation type="unfinished"></translation>
+        <translation>設定保護を有効にしてユーザーキーを設定する</translation>
     </message>
 </context>
 <context>
@@ -892,22 +892,22 @@ Error: %1</source>
     <message>
         <location filename="Core/IssueManager.cpp" line="182"/>
         <source>No user key is set, some features may not work!</source>
-        <translation type="unfinished"></translation>
+        <translation>ユーザーキーが設定されていないため、一部の機能が動作しない可能性があります!</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="186"/>
         <source>Existing Windows Firewall rules have not been approved yet!</source>
-        <translation type="unfinished"></translation>
+        <translation>既存の Windows ファイアウォールルールがまだ承認されていません!</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="208"/>
         <source>This issue can not be fixed in this mode!</source>
-        <translation type="unfinished"></translation>
+        <translation>この問題はこのモードでは修正できません!</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="230"/>
         <source>This issue can not be fixed!</source>
-        <translation type="unfinished"></translation>
+        <translation>この問題は修正できません!</translation>
     </message>
 </context>
 <context>
@@ -1051,7 +1051,7 @@ Error: %1</source>
     <message>
         <location filename="Views/DnsCacheView.cpp" line="54"/>
         <source>Clear System DNS Cache</source>
-        <translation>システムDNSキャッシュのクリア</translation>
+        <translation>システム DNS キャッシュのクリア</translation>
     </message>
 </context>
 <context>
@@ -1061,12 +1061,12 @@ Error: %1</source>
         <location filename="Pages/DnsPage.cpp" line="57"/>
         <location filename="Pages/DnsPage.cpp" line="65"/>
         <source>Dns Rules</source>
-        <translation>DNSルール</translation>
+        <translation>DNS ルール</translation>
     </message>
     <message>
         <location filename="Pages/DnsPage.cpp" line="28"/>
         <source>DnsCache</source>
-        <translation>DNSキャッシュ</translation>
+        <translation>DNS キャッシュ</translation>
     </message>
 </context>
 <context>
@@ -1196,7 +1196,7 @@ Error: %1</source>
     <message>
         <location filename="Views/DnsRuleView.cpp" line="151"/>
         <source>Edit Dns Rule</source>
-        <translation>DNSルールの編集</translation>
+        <translation>DNS ルールの編集</translation>
     </message>
     <message>
         <location filename="Views/DnsRuleView.cpp" line="151"/>
@@ -1264,7 +1264,7 @@ Error: %1</source>
     <message>
         <location filename="Core/Enclaves/EnclaveManager.cpp" line="14"/>
         <source>MajorPrivacy&apos;s Private Enclave</source>
-        <translation>MajorPrivacyのプライベートエンクレーブ</translation>
+        <translation>MajorPrivacy のプライベートエンクレーブ</translation>
     </message>
 </context>
 <context>
@@ -1272,7 +1272,7 @@ Error: %1</source>
     <message>
         <location filename="Models/EnclaveModel.cpp" line="138"/>
         <source>, </source>
-        <translation type="unfinished"></translation>
+        <translation>, </translation>
     </message>
     <message>
         <location filename="Models/EnclaveModel.cpp" line="325"/>
@@ -1287,7 +1287,7 @@ Error: %1</source>
     <message>
         <location filename="Models/EnclaveModel.cpp" line="327"/>
         <source>Signers</source>
-        <translation type="unfinished"></translation>
+        <translation>署名者</translation>
     </message>
     <message>
         <source>Trust Level</source>
@@ -1296,7 +1296,7 @@ Error: %1</source>
     <message>
         <location filename="Models/EnclaveModel.cpp" line="328"/>
         <source>Trusted Spawn/UnTrusted</source>
-        <translation>信頼済みの生成／未信頼</translation>
+        <translation>信頼済みの生成 / 未信頼</translation>
     </message>
     <message>
         <location filename="Models/EnclaveModel.cpp" line="329"/>
@@ -1419,7 +1419,7 @@ Error: %1</source>
         <location filename="Windows/EnclaveWnd.cpp" line="49"/>
         <location filename="Windows/EnclaveWnd.cpp" line="279"/>
         <source>None</source>
-        <translation type="unfinished">なし</translation>
+        <translation>なし</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="60"/>
@@ -1449,22 +1449,22 @@ Error: %1</source>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="78"/>
         <source>Default</source>
-        <translation type="unfinished"></translation>
+        <translation>既定</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="79"/>
         <source>Inject Low (Exclusive)</source>
-        <translation type="unfinished"></translation>
+        <translation>低インジェクト (排他)</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="80"/>
         <source>Inject High (Sbie+ Compatible)</source>
-        <translation type="unfinished"></translation>
+        <translation>高インジェクト (Sbie+ 互換)</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="81"/>
         <source>Disabled</source>
-        <translation type="unfinished"></translation>
+        <translation>無効</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="83"/>
@@ -1517,12 +1517,12 @@ Error: %1</source>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="272"/>
         <source>Add Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>コレクションを追加</translation>
     </message>
     <message>
         <location filename="Windows/EnclaveWnd.cpp" line="272"/>
         <source>Enter the name of the collection:</source>
-        <translation type="unfinished"></translation>
+        <translation>コレクションの名前を入力してください :</translation>
     </message>
 </context>
 <context>
@@ -1530,122 +1530,122 @@ Error: %1</source>
     <message>
         <location filename="Core/EventLog.cpp" line="67"/>
         <source>Info</source>
-        <translation type="unfinished">情報</translation>
+        <translation>情報</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="68"/>
         <source>Success</source>
-        <translation type="unfinished">成功</translation>
+        <translation>成功</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="69"/>
         <source>Warning</source>
-        <translation type="unfinished">警告</translation>
+        <translation>警告</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="70"/>
         <source>Error</source>
-        <translation type="unfinished">エラー</translation>
+        <translation>エラー</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="71"/>
         <source>Critical</source>
-        <translation type="unfinished"></translation>
+        <translation>重大</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="72"/>
         <source>Unknown</source>
-        <translation type="unfinished">不明</translation>
+        <translation>不明</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="101"/>
         <source>Firewall Mode Changed to NO Filtering.</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールモードがフィルタリングなしに変更されました。</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="102"/>
         <source>Firewall Mode Changed to Block List.</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールモードがブロックリストに変更されました。</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="103"/>
         <source>Firewall Mode Changed to Allow List.</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールモードが許可リストに変更されました。</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="104"/>
         <source>Firewall Mode Changed to Unknown.</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールモードが不明に変更されました。</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="125"/>
         <source>Startup was blocked, Program &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>起動がブロックされました。プログラム &apos;%1&apos;</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="130"/>
         <source>Program no longer present &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムが存在しなくなりました &apos;%1&apos;</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="135"/>
         <source>Removed no longer existign Program &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>存在しなくなったプログラム &apos;%1&apos; を削除しました</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="141"/>
         <source>Program failed Coherency Check and was blocked &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムが一貫性チェックに失敗したためブロックされました &apos;%1&apos;</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="143"/>
         <source>Program had insificient Signature leven and was blocked &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムの署名レベルが不十分なためブロックされました &apos;%1&apos;</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="153"/>
         <source>Unknown Event: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>不明なイベント: %1</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="165"/>
         <source>Firewall Rule &apos;%1&apos; Added</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール &apos;%1&apos; が追加されました</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="166"/>
         <source>Firewall Rule &apos;%1&apos; Modified</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール &apos;%1&apos; が変更されました</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="167"/>
         <source>Firewall Rule &apos;%1&apos; Removed</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール &apos;%1&apos; が削除されました</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="168"/>
         <source>Firewall Rule &apos;%1&apos; Generated from Template</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール &apos;%1&apos; がテンプレートから生成されました</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="169"/>
         <source>Firewall Rule &apos;%1&apos; Approved</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール &apos;%1&apos; が承認されました</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="170"/>
         <source>Firewall Rule &apos;%1&apos; Restored</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール &apos;%1&apos; が復元されました</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="171"/>
         <source>Firewall Rule &apos;%1&apos; Rejected</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール &apos;%1&apos; が拒否されました</translation>
     </message>
     <message>
         <location filename="Core/EventLog.cpp" line="172"/>
         <source>Firewall Rule &apos;%1&apos; Unknown Event</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール &apos;%1&apos; 不明なイベント</translation>
     </message>
 </context>
 <context>
@@ -1654,27 +1654,27 @@ Error: %1</source>
         <location filename="Views/EventView.cpp" line="24"/>
         <location filename="Views/EventView.cpp" line="54"/>
         <source>Clear Privacy Event Log</source>
-        <translation type="unfinished"></translation>
+        <translation>プライバシーイベントログを消去</translation>
     </message>
     <message>
         <location filename="Views/EventView.cpp" line="30"/>
         <source>Level|Time Stamp|Information</source>
-        <translation type="unfinished"></translation>
+        <translation>レベル|タイムスタンプ|情報</translation>
     </message>
     <message>
         <location filename="Views/EventView.cpp" line="54"/>
         <source>Do you really want to clear the Privacy Event Log?</source>
-        <translation type="unfinished"></translation>
+        <translation>プライバシーイベントログを本当に消去しますか?</translation>
     </message>
     <message>
         <location filename="Views/EventView.cpp" line="98"/>
         <source>Firewall Rule Created</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルールの作成</translation>
     </message>
     <message>
         <location filename="Views/EventView.cpp" line="105"/>
         <source>Firewall Rule Guard</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルールガード</translation>
     </message>
 </context>
 <context>
@@ -1682,27 +1682,27 @@ Error: %1</source>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="506"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; Process Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt; プロセス保護の構成</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="507"/>
         <source>MajorPrivacy can protect the integrity of processes and enforce custom Code Integrity rules.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacyはプロセスの整合性を保護し、カスタムのコード整合性ルールを適用できます。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="516"/>
         <source>MajorPrivacy puts you in charge of your system by letting you decide which programs are allowed to start others, which libraries they may load, and how processes can interact with each other (read/write memory, etc.). To give you clear insight, Execution and inter-process access (Ingress) events are aggregated into records that clearly show interactions between programs. These records are stored in memory (RAM) and can be saved to disk, giving you long-term insight into how your programs interact. For privacy, you can configure the storage options individually per program. If needed, the raw events can also be logged to RAM, though this will consume a significant amount of memory.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacyでは、どのプログラムが他のプログラムを起動できるか、どのライブラリを読み込めるか、プロセス同士がどのように相互作用できるか (メモリの読み取り/書き込みなど) を自分で決定できます。状況を分かりやすく把握できるよう、実行およびプロセス間アクセス (イングレス) イベントは、プログラム間の相互作用が一目で分かる記録に集約されます。これらの記録はメモリ (RAM) 上に保持され、ディスクに保存することもできるため、プログラム同士の相互作用を長期的に把握できます。プライバシー保護のため、保存オプションはプログラムごとに個別に設定できます。必要に応じて、生イベントを RAM にログとして記録することもできますが、大量のメモリを消費します。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="527"/>
         <source>Save Process Execution and Ingress Records to Disk (IngressRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>プロセスの実行とイングレスの記録をディスクに保存 (IngressRecord.dat)</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="532"/>
         <source>Log Process Execution and Ingress events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>プロセスの実行とイングレスのイベントをメモリにログ記録</translation>
     </message>
 </context>
 <context>
@@ -1773,22 +1773,22 @@ Error: %1</source>
     <message>
         <location filename="Views/ExecutionView.cpp" line="48"/>
         <source>Show entries per UPID</source>
-        <translation>UPIDごとにエントリを表示</translation>
+        <translation>UPID ごとにエントリを表示</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="57"/>
         <source>Hold updates</source>
-        <translation type="unfinished">更新を保留</translation>
+        <translation>更新を保留</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="63"/>
         <source>Reload</source>
-        <translation type="unfinished"></translation>
+        <translation>再読み込み</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="72"/>
         <source>Clear Records</source>
-        <translation type="unfinished"></translation>
+        <translation>記録を消去</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="81"/>
@@ -1798,17 +1798,17 @@ Error: %1</source>
     <message>
         <location filename="Views/ExecutionView.cpp" line="197"/>
         <source>Loading %1</source>
-        <translation type="unfinished">%1 を読み込み中</translation>
+        <translation>%1 を読み込み中</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="289"/>
         <source>Are you sure you want to clear the all Execution and Ingress records for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのプログラム項目の実行およびイングレスの記録をすべて消去しますか?</translation>
     </message>
     <message>
         <location filename="Views/ExecutionView.cpp" line="296"/>
         <source>Are you sure you want to clear the all Execution and Ingress records for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>現在のプログラム項目の実行およびイングレスの記録をすべて消去しますか?</translation>
     </message>
 </context>
 <context>
@@ -1829,28 +1829,28 @@ Error: %1</source>
     <message>
         <location filename="Core/IssueManager.cpp" line="246"/>
         <source>Unapproved Windows Firewall rule: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>未承認の Windows ファイアウォールルール : %1</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="253"/>
         <source>Missing Windows Firewall rule: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>欠落している Windows ファイアウォールルール : %1</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="266"/>
         <source>Altered Windows Firewall rule: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>変更された Windows ファイアウォールルール : %1</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="293"/>
         <location filename="Core/IssueManager.cpp" line="314"/>
         <source>This issue can not be fixed in this mode!</source>
-        <translation type="unfinished"></translation>
+        <translation>この問題はこのモードでは修正できません!</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="316"/>
         <source>This issue can not be fixed!</source>
-        <translation type="unfinished"></translation>
+        <translation>この問題は修正できません!</translation>
     </message>
 </context>
 <context>
@@ -1872,7 +1872,7 @@ Error: %1</source>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="40"/>
         <source>MajorPrivacy-Rule, New Firewall Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy ルール, 新規ファイアウォールルール</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="75"/>
@@ -1908,22 +1908,22 @@ Error: %1</source>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="179"/>
         <source>[Add IP]</source>
-        <translation>[IPを追加]</translation>
+        <translation>[IP を追加]</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="187"/>
         <source>No</source>
-        <translation type="unfinished">いいえ</translation>
+        <translation>いいえ</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="189"/>
         <source>Defer to App</source>
-        <translation type="unfinished"></translation>
+        <translation>アプリに委ねる</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="190"/>
         <source>Defer to User</source>
-        <translation type="unfinished"></translation>
+        <translation>ユーザーに委ねる</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="398"/>
@@ -1944,13 +1944,13 @@ Error: %1</source>
         <location filename="Windows/FirewallRuleWnd.cpp" line="663"/>
         <location filename="Windows/FirewallRuleWnd.cpp" line="672"/>
         <source>Invalid IP Address</source>
-        <translation>無効なIPアドレス</translation>
+        <translation>無効な IP アドレス</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="676"/>
         <location filename="Windows/FirewallRuleWnd.cpp" line="681"/>
         <source>Invalid IP Range</source>
-        <translation>無効なIP範囲</translation>
+        <translation>無効な IP 範囲</translation>
     </message>
     <message>
         <location filename="Windows/FirewallRuleWnd.cpp" line="709"/>
@@ -1963,42 +1963,42 @@ Error: %1</source>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="17"/>
         <source>Windows Default</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows 既定</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="18"/>
         <source>Windows Store</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows ストア</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="19"/>
         <source>MajorPrivacy</source>
-        <translation type="unfinished">MajorPrivacy</translation>
+        <translation>MajorPrivacy</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="20"/>
         <source>Privacy Template</source>
-        <translation type="unfinished"></translation>
+        <translation>プライバシーテンプレート</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="29"/>
         <source>Unapproved</source>
-        <translation type="unfinished"></translation>
+        <translation>未承認</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="30"/>
         <source>Approved</source>
-        <translation type="unfinished"></translation>
+        <translation>承認済み</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="31"/>
         <source>Backup</source>
-        <translation type="unfinished"></translation>
+        <translation>バックアップ</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="32"/>
         <source>Diverged</source>
-        <translation type="unfinished"></translation>
+        <translation>相違あり</translation>
     </message>
     <message>
         <location filename="Core/Network/FwRule.cpp" line="122"/>
@@ -2149,12 +2149,12 @@ Error: %1</source>
     <message>
         <location filename="Models/FwRuleModel.cpp" line="200"/>
         <source>State</source>
-        <translation type="unfinished">状態</translation>
+        <translation>状態</translation>
     </message>
     <message>
         <location filename="Models/FwRuleModel.cpp" line="201"/>
         <source>Source</source>
-        <translation type="unfinished"></translation>
+        <translation>作成元</translation>
     </message>
     <message>
         <location filename="Models/FwRuleModel.cpp" line="202"/>
@@ -2209,7 +2209,7 @@ Error: %1</source>
     <message>
         <location filename="Models/FwRuleModel.cpp" line="212"/>
         <source>ICMP Options</source>
-        <translation>ICMPオプション</translation>
+        <translation>ICMP オプション</translation>
     </message>
     <message>
         <location filename="Models/FwRuleModel.cpp" line="213"/>
@@ -2242,12 +2242,12 @@ Error: %1</source>
     <message>
         <location filename="Views/FwRuleView.cpp" line="34"/>
         <source>Approve Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ルールを承認</translation>
     </message>
     <message>
         <location filename="Views/FwRuleView.cpp" line="35"/>
         <source>Restore Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ルールを復元</translation>
     </message>
     <message>
         <location filename="Views/FwRuleView.cpp" line="37"/>
@@ -2318,7 +2318,7 @@ Error: %1</source>
     <message>
         <location filename="Views/FwRuleView.cpp" line="82"/>
         <source>Hide default rules</source>
-        <translation type="unfinished"></translation>
+        <translation>既定のルールを非表示</translation>
     </message>
     <message>
         <location filename="Views/FwRuleView.cpp" line="91"/>
@@ -2389,12 +2389,12 @@ Error: %1</source>
     <message>
         <location filename="Models/HashDBModel.cpp" line="160"/>
         <source>Name</source>
-        <translation type="unfinished">名前</translation>
+        <translation>名前</translation>
     </message>
     <message>
         <location filename="Models/HashDBModel.cpp" line="161"/>
         <source>Value</source>
-        <translation type="unfinished">値</translation>
+        <translation>値</translation>
     </message>
 </context>
 <context>
@@ -2402,43 +2402,43 @@ Error: %1</source>
     <message>
         <location filename="Views/HashDBView.cpp" line="29"/>
         <source>Enable Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>エントリーを有効化</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="30"/>
         <source>Disable Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>エントリーを無効化</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="33"/>
         <source>Delete Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>エントリーを削除</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="37"/>
         <source>Edit Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>エントリーを編集</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="39"/>
         <location filename="Views/HashDBView.cpp" line="46"/>
         <source>Add Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>エントリーを追加</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="54"/>
         <source>Refresh DB</source>
-        <translation type="unfinished"></translation>
+        <translation>DB を更新</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="76"/>
         <source>Auto Expand</source>
-        <translation type="unfinished">自動展開</translation>
+        <translation>自動展開</translation>
     </message>
     <message>
         <location filename="Views/HashDBView.cpp" line="316"/>
         <source>Do you want to delete selected Entries?</source>
-        <translation type="unfinished"></translation>
+        <translation>選択したエントリーを削除しますか?</translation>
     </message>
 </context>
 <context>
@@ -2446,49 +2446,49 @@ Error: %1</source>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="35"/>
         <source>Create Hash DB Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>ハッシュ DB エントリーの作成</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="35"/>
         <source>Edit HashDB Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>ハッシュ DB エントリーの編集</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="38"/>
         <location filename="Windows/HashEntryWnd.cpp" line="45"/>
         <location filename="Windows/HashEntryWnd.cpp" line="174"/>
         <source>None</source>
-        <translation type="unfinished">なし</translation>
+        <translation>なし</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="60"/>
         <source>File</source>
-        <translation type="unfinished">ファイル</translation>
+        <translation>ファイル</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="61"/>
         <source>Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>証明書</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="121"/>
         <source>Please select a type.</source>
-        <translation type="unfinished"></translation>
+        <translation>種類を選択してください。</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="129"/>
         <source>Please enter a valid hash value using hexadecimal notation.</source>
-        <translation type="unfinished"></translation>
+        <translation>16進数表記で有効なハッシュ値を入力してください。</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="167"/>
         <source>Add Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>コレクションを追加</translation>
     </message>
     <message>
         <location filename="Windows/HashEntryWnd.cpp" line="167"/>
         <source>Enter the name of the collection:</source>
-        <translation type="unfinished"></translation>
+        <translation>コレクションの名前を入力してください :</translation>
     </message>
 </context>
 <context>
@@ -2496,17 +2496,17 @@ Error: %1</source>
     <message>
         <location filename="Pages/HomePage.cpp" line="66"/>
         <source>Privacy Events</source>
-        <translation type="unfinished"></translation>
+        <translation>プライバシーイベント</translation>
     </message>
     <message>
         <location filename="Pages/HomePage.cpp" line="72"/>
         <source>System Events</source>
-        <translation type="unfinished"></translation>
+        <translation>システムイベント</translation>
     </message>
     <message>
         <location filename="Pages/HomePage.cpp" line="79"/>
         <source>Clear System Event Log</source>
-        <translation type="unfinished"></translation>
+        <translation>システムイベントログを消去</translation>
     </message>
     <message>
         <location filename="Pages/HomePage.cpp" line="89"/>
@@ -2516,7 +2516,7 @@ Error: %1</source>
     <message>
         <location filename="Pages/HomePage.cpp" line="181"/>
         <source>Are you sure you want to clear the event log?</source>
-        <translation type="unfinished"></translation>
+        <translation>イベントログを消去しますか?</translation>
     </message>
     <message>
         <location filename="Pages/HomePage.cpp" line="252"/>
@@ -2559,12 +2559,12 @@ Error: %1</source>
     <message>
         <location filename="Views/InfoView.cpp" line="49"/>
         <source>Name: %1 (%2)</source>
-        <translation>名前: %1 (%2)</translation>
+        <translation>名前 : %1 (%2)</translation>
     </message>
     <message>
         <location filename="Views/InfoView.cpp" line="53"/>
         <source>Path: %1</source>
-        <translation>パス: %1</translation>
+        <translation>パス : %1</translation>
     </message>
     <message>
         <location filename="Views/InfoView.cpp" line="59"/>
@@ -2700,22 +2700,22 @@ Error: %1</source>
     <message>
         <location filename="Views/IngressView.cpp" line="69"/>
         <source>Show entries per UPID</source>
-        <translation>UPIDごとにエントリを表示</translation>
+        <translation>UPID ごとにエントリを表示</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="79"/>
         <source>Hold updates</source>
-        <translation type="unfinished">更新を保留</translation>
+        <translation>更新を保留</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="85"/>
         <source>Reload</source>
-        <translation type="unfinished"></translation>
+        <translation>再読み込み</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="94"/>
         <source>Clear Records</source>
-        <translation type="unfinished"></translation>
+        <translation>記録を消去</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="103"/>
@@ -2725,17 +2725,17 @@ Error: %1</source>
     <message>
         <location filename="Views/IngressView.cpp" line="241"/>
         <source>Loading %1</source>
-        <translation type="unfinished">%1 を読み込み中</translation>
+        <translation>%1 を読み込み中</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="339"/>
         <source>Are you sure you want to clear the all Execution and Ingress records for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのプログラム項目の実行およびイングレスの記録をすべて消去しますか?</translation>
     </message>
     <message>
         <location filename="Views/IngressView.cpp" line="346"/>
         <source>Are you sure you want to clear the all Execution and Ingress records for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>現在のプログラム項目の実行およびイングレスの記録をすべて消去しますか?</translation>
     </message>
 </context>
 <context>
@@ -2748,7 +2748,7 @@ Error: %1</source>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="216"/>
         <source>Welcome to the Setup Wizard. This wizard will help you to configure your copy of &lt;b&gt;MajorPrivacy&lt;/b&gt;. It is strongly recommended to go through this wizard in order to learn about some of the avilable featues and mechanisms. You can start this wizard at any time from the Privacy-&gt;Maintenance menu if you do not wish to complete it now.</source>
-        <translation type="unfinished"></translation>
+        <translation>セットアップウィザードへようこそ。このウィザードは、&lt;b&gt;MajorPrivacy&lt;/b&gt; の設定を支援します。利用可能な機能や仕組みについて知るために、このウィザードを最後まで実施することを強くお勧めします。今すぐ完了しない場合は、プライバシー-&gt;メンテナンス メニューからいつでもこのウィザードを開始できます。</translation>
     </message>
     <message>
         <source>Welcome to the Setup Wizard. This wizard will help you to configure your copy of &lt;b&gt;MajorPrivacy&lt;/b&gt;. You can start this wizard at any time from the Sandbox-&gt;Maintenance menu if you do not wish to complete it now.</source>
@@ -2776,27 +2776,27 @@ Error: %1</source>
     <message>
         <location filename="Core/IssueManager.cpp" line="166"/>
         <source>Low</source>
-        <translation type="unfinished"></translation>
+        <translation>低</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="167"/>
         <source>Medium</source>
-        <translation type="unfinished"></translation>
+        <translation>中</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="168"/>
         <source>High</source>
-        <translation type="unfinished">高</translation>
+        <translation>高</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="169"/>
         <source>Critical</source>
-        <translation type="unfinished"></translation>
+        <translation>重大</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="170"/>
         <source>Undefined</source>
-        <translation type="unfinished">未定義</translation>
+        <translation>未定義</translation>
     </message>
 </context>
 <context>
@@ -2804,82 +2804,82 @@ Error: %1</source>
     <message>
         <location filename="Views/IssueView.cpp" line="18"/>
         <source>Current Privacy related Issues requirering an Action to be taken:</source>
-        <translation type="unfinished"></translation>
+        <translation>アクションが必要な現在のプライバシー関連の問題 :</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="24"/>
         <source>Severity|Description</source>
-        <translation type="unfinished"></translation>
+        <translation>重大度|説明</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="34"/>
         <source>Fix Issue</source>
-        <translation type="unfinished"></translation>
+        <translation>問題を修正</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="38"/>
         <source>Accept Change</source>
-        <translation type="unfinished"></translation>
+        <translation>変更を承認</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="42"/>
         <source>Reject Change</source>
-        <translation type="unfinished"></translation>
+        <translation>変更を拒否</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="46"/>
         <source>Ignore Issue</source>
-        <translation type="unfinished"></translation>
+        <translation>問題を無視</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="163"/>
         <source>&lt;br /&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;br /&gt;</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="165"/>
         <source>... and %1 more</source>
-        <translation type="unfinished"></translation>
+        <translation>... 他 %1 件</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="170"/>
         <source>Do you really want to hide the following issue?&lt;br /&gt;&lt;br /&gt;%1</source>
-        <translation type="unfinished"></translation>
+        <translation>次の問題を本当に非表示にしますか?&lt;br /&gt;&lt;br /&gt;%1</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="181"/>
         <source>Do you want to fix the following issue?&lt;br /&gt;&lt;br /&gt;%1</source>
-        <translation type="unfinished"></translation>
+        <translation>次の問題を修正しますか?&lt;br /&gt;&lt;br /&gt;%1</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="186"/>
         <source>Do you want to %1 the following firewall rule changes?&lt;br /&gt;&lt;br /&gt;%2</source>
-        <translation type="unfinished"></translation>
+        <translation>次のファイアウォールルールの変更を%1しますか?&lt;br /&gt;&lt;br /&gt;%2</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="186"/>
         <source>accept</source>
-        <translation type="unfinished"></translation>
+        <translation>承認</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="186"/>
         <source>reject</source>
-        <translation type="unfinished"></translation>
+        <translation>拒否</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="210"/>
         <source>Do you want to accept the changes to the Firewall Rule (Yes) or restore the previouse state (No)?&lt;br /&gt;&lt;br /&gt;%1</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルールの変更を承認しますか (はい)、それとも以前の状態に復元しますか (いいえ)?&lt;br /&gt;&lt;br /&gt;%1</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="222"/>
         <source>Do you want to fix the issue?&lt;br /&gt;&lt;br /&gt;%1</source>
-        <translation type="unfinished"></translation>
+        <translation>問題を修正しますか?&lt;br /&gt;&lt;br /&gt;%1</translation>
     </message>
     <message>
         <location filename="Views/IssueView.cpp" line="226"/>
         <source>Don&apos;t ask in future</source>
-        <translation type="unfinished"></translation>
+        <translation>今後は確認しない</translation>
     </message>
 </context>
 <context>
@@ -2887,12 +2887,12 @@ Error: %1</source>
     <message>
         <location filename="Windows/ItemPicker.cpp" line="29"/>
         <source>MajorPrivacy - Select Item</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy - 項目の選択</translation>
     </message>
     <message>
         <location filename="Windows/ItemPicker.cpp" line="120"/>
         <source>Please select an item</source>
-        <translation type="unfinished"></translation>
+        <translation>項目を選択してください</translation>
     </message>
 </context>
 <context>
@@ -2905,7 +2905,7 @@ Error: %1</source>
     <message>
         <location filename="Views/LibraryInfoView.cpp" line="93"/>
         <source>Loading %1</source>
-        <translation type="unfinished">%1 を読み込み中</translation>
+        <translation>%1 を読み込み中</translation>
     </message>
     <message>
         <location filename="Views/LibraryInfoView.cpp" line="126"/>
@@ -2920,7 +2920,7 @@ Error: %1</source>
     <message>
         <location filename="Views/LibraryInfoView.cpp" line="136"/>
         <source>Yes (Catalog)</source>
-        <translation>はい（カタログ）</translation>
+        <translation>はい (カタログ)</translation>
     </message>
 </context>
 <context>
@@ -2953,7 +2953,7 @@ Error: %1</source>
     <message>
         <location filename="Models/LibraryModel.cpp" line="247"/>
         <source>File Hash</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイルハッシュ</translation>
     </message>
     <message>
         <location filename="Models/LibraryModel.cpp" line="248"/>
@@ -3029,22 +3029,22 @@ Error: %1</source>
     <message>
         <location filename="Views/LibraryView.cpp" line="30"/>
         <source>Allow Signer Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>署名者証明書を許可</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="31"/>
         <source>Remove Signer Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>署名者証明書を削除</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="32"/>
         <source>Allow Issuer Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>発行者証明書を許可</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="33"/>
         <source>Remove Issuer Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>発行者証明書を削除</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="66"/>
@@ -3069,17 +3069,17 @@ Error: %1</source>
     <message>
         <location filename="Views/LibraryView.cpp" line="76"/>
         <source>Hide windows Libraries</source>
-        <translation type="unfinished"></translation>
+        <translation>Windowsライブラリを非表示</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="86"/>
         <source>Hold updates</source>
-        <translation type="unfinished">更新を保留</translation>
+        <translation>更新を保留</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="92"/>
         <source>Reload</source>
-        <translation type="unfinished"></translation>
+        <translation>再読み込み</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="101"/>
@@ -3094,23 +3094,24 @@ Error: %1</source>
     <message>
         <location filename="Views/LibraryView.cpp" line="123"/>
         <source>Show Signature Details</source>
-        <translation type="unfinished"></translation>
+        <translation>署名の詳細を表示</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="266"/>
         <source>Loading %1</source>
-        <translation type="unfinished">%1 を読み込み中</translation>
+        <translation>%1 を読み込み中</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="448"/>
         <source>Do you really want to allow the Issuing Certificate Authoricy Certificate? This will allow all Signign Certificate issued by this CA.</source>
-        <translation type="unfinished"></translation>
+        <translation>発行元認証局の証明書を本当に許可しますか? これにより、この認証局が発行したすべての署名証明書が許可されます。</translation>
     </message>
     <message>
         <location filename="Views/LibraryView.cpp" line="481"/>
         <source>Are you sure you want to cleanup the library list for the current program items?
 This will remove all library entries for for not currently loaded libraries.</source>
-        <translation type="unfinished"></translation>
+        <translation>現在のプログラム項目のライブラリ一覧をクリーンアップしますか?
+これにより、現在読み込まれていないライブラリのエントリーがすべて削除されます。</translation>
     </message>
 </context>
 <context>
@@ -3124,7 +3125,8 @@ This will remove all library entries for for not currently loaded libraries.</so
         <location filename="MajorPrivacy.cpp" line="310"/>
         <source>The License Certificate is not valid.
 Error: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>ライセンス証明書が無効です。
+エラー: %1</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="422"/>
@@ -3138,7 +3140,7 @@ Error: %1</source>
     <message>
         <location filename="MajorPrivacy.cpp" line="456"/>
         <source>The Privacy Agent is not currently installed as a service. Would you like to install it now (Yes), run it without installation (No), or abort the connection attempt (Cancel)?</source>
-        <translation>Privacy Agentは現在、サービスとしてインストールされていません。今すぐインストールしますか (はい)、インストールせずに実行しますか (いいえ)、あるいは接続を中止しますか (キャンセル)？</translation>
+        <translation>Privacy Agent は現在、サービスとしてインストールされていません。今すぐインストールしますか (はい)、インストールせずに実行しますか (いいえ)、あるいは接続を中止しますか (キャンセル)？</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="457"/>
@@ -3149,22 +3151,22 @@ Error: %1</source>
     <message>
         <location filename="MajorPrivacy.cpp" line="475"/>
         <source>MajorPrivacy will now attempt to start the Privacy Agent, please confirm the UAC prompt.</source>
-        <translation>MajorPrivacyがPrivacy Agentの起動を開始します。UACプロンプトを許可してください。</translation>
+        <translation>MajorPrivacy が Privacy Agent の起動を開始します。UAC プロンプトを許可してください。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="487"/>
         <source>Privacy Agent Ready %1/%2</source>
-        <translation>Privacy Agentの準備完了 %1/%2</translation>
+        <translation>Privacy Agent の準備完了 %1/%2</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="528"/>
         <source>Privacy Agent Failed: %1</source>
-        <translation>Privacy Agent 失敗: %1</translation>
+        <translation>Privacy Agent 失敗 : %1</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="593"/>
         <source>Do you want to close MajorPrivacy?</source>
-        <translation>MajorPrivacyを終了しますか？</translation>
+        <translation>MajorPrivacy を終了しますか？</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="648"/>
@@ -3174,12 +3176,12 @@ Error: %1</source>
     <message>
         <location filename="MajorPrivacy.cpp" line="674"/>
         <source>Mem Usage: %1 + %2 (Logs)</source>
-        <translation>メモリ使用量: %1 + %2 (ログ)</translation>
+        <translation>メモリ使用量 : %1 + %2 (ログ)</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="681"/>
         <source>Disconnected from privacy agent</source>
-        <translation>Privacy Agentから切断されました</translation>
+        <translation>Privacy Agent から切断されました</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="840"/>
@@ -3235,7 +3237,7 @@ Error: %1</source>
     <message>
         <location filename="MajorPrivacy.cpp" line="967"/>
         <source>Open *.dat Editor</source>
-        <translation>*.datエディターを開く</translation>
+        <translation>*.dat エディターを開く</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="853"/>
@@ -3312,67 +3314,68 @@ Error: %1</source>
         <location filename="MajorPrivacy.cpp" line="425"/>
         <source>The driver configuration has an INVALID Signature!!! Do you want to load it anyways?
 It is strongly recomended to manualy validate the configuration or restore a known good configuration. Before commiting (signing) the loaded configuration.</source>
-        <translation type="unfinished"></translation>
+        <translation>ドライバー構成の署名が無効です!!! それでも読み込みますか?
+読み込んだ構成をコミット (署名) する前に、構成を手動で検証するか、正常に動作していた構成を復元することを強くお勧めします。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="433"/>
         <source>The current driver configuration could not be loaded, the last valid config was loaded instead. Commit the config to save it as current.</source>
-        <translation type="unfinished"></translation>
+        <translation>現在のドライバー構成を読み込めなかったため、最後の有効な構成が読み込まれました。現在の構成として保存するには、構成をコミットしてください。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="435"/>
         <source>The current driver configuration was not loaded due to to many faild boot atempts, the last presumably good config was loaded instead.</source>
-        <translation type="unfinished"></translation>
+        <translation>起動の失敗が多すぎたため、現在のドライバー構成は読み込まれず、最後に正常だったと思われる構成が読み込まれました。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="437"/>
         <source>The current driver configuration was not loaded due to to many faild boot atempts.</source>
-        <translation type="unfinished"></translation>
+        <translation>起動の失敗が多すぎたため、現在のドライバー構成は読み込まれませんでした。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="501"/>
         <source>Failed to restart MajorPrivacy with maximum security, error: 0x%1!</source>
-        <translation type="unfinished"></translation>
+        <translation>最大セキュリティでの MajorPrivacy の再起動に失敗しました。エラー : 0x%1!</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="511"/>
         <source>MajorPrivacy&apos;s UI is not recognized by the driver!!!</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy の UI がドライバーに認識されていません!!!</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="519"/>
         <source>Do you want the setup wizard to be omitted?</source>
-        <translation type="unfinished"></translation>
+        <translation>セットアップウィザードを省略しますか?</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="844"/>
         <source>Start Services</source>
-        <translation type="unfinished"></translation>
+        <translation>サービスを開始</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="845"/>
         <source>Stop Services</source>
-        <translation type="unfinished"></translation>
+        <translation>サービスを停止</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="851"/>
         <source>Restart As Admin</source>
-        <translation type="unfinished"></translation>
+        <translation>管理者として再起動</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="857"/>
         <source>Toggle Program View</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムビューの切り替え</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="895"/>
         <source>Enable Config Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>設定保護を有効化</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="896"/>
         <source>Disable Config Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>設定保護を無効化</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="904"/>
@@ -3397,27 +3400,27 @@ It is strongly recomended to manualy validate the configuration or restore a kno
     <message>
         <location filename="MajorPrivacy.cpp" line="916"/>
         <source>&amp;Firewall Tools</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールツール(&amp;F)</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="917"/>
         <source>Restore Default Windows Firewall Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>既定の Windows ファイアウォールルールを復元</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="918"/>
         <source>Are you sure you want to remove ALL current Firewall Rules and restore the default Windows Firewall rules set?</source>
-        <translation type="unfinished"></translation>
+        <translation>現在のファイアウォールルールをすべて削除し、既定の Windows ファイアウォールルールセットを復元しますか?</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="922"/>
         <source>Create Recommended Firewall Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>推奨ファイアウォールルールを作成</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="923"/>
         <source>Are you sure you want to create the recommended Firewall Rules?</source>
-        <translation type="unfinished"></translation>
+        <translation>推奨ファイアウォールルールを作成しますか?</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="929"/>
@@ -3462,7 +3465,7 @@ It is strongly recomended to manualy validate the configuration or restore a kno
     <message>
         <location filename="MajorPrivacy.cpp" line="961"/>
         <source>&amp;Management</source>
-        <translation type="unfinished"></translation>
+        <translation>管理(&amp;M)</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="969"/>
@@ -3487,23 +3490,23 @@ It is strongly recomended to manualy validate the configuration or restore a kno
     <message>
         <location filename="MajorPrivacy.cpp" line="975"/>
         <source>Diagnostics Information</source>
-        <translation type="unfinished"></translation>
+        <translation>診断情報</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="976"/>
         <source>Check for Updates</source>
-        <translation type="unfinished"></translation>
+        <translation>更新を確認</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="978"/>
         <source>About the Qt Framework</source>
-        <translation>Qtフレームワークについて</translation>
+        <translation>Qt フレームワークについて</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="979"/>
         <location filename="MajorPrivacy.cpp" line="3344"/>
         <source>About MajorPrivacy</source>
-        <translation>MajorPrivacyについて</translation>
+        <translation>MajorPrivacy について</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1054"/>
@@ -3539,7 +3542,7 @@ It is strongly recomended to manualy validate the configuration or restore a kno
         <location filename="MajorPrivacy.cpp" line="1060"/>
         <location filename="MajorPrivacy.cpp" line="1371"/>
         <source>DNS Filtering</source>
-        <translation>DNSフィルタリング</translation>
+        <translation>DNS フィルタリング</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1061"/>
@@ -3559,97 +3562,97 @@ It is strongly recomended to manualy validate the configuration or restore a kno
     <message>
         <location filename="MajorPrivacy.cpp" line="1119"/>
         <source>Last 5 Seconds</source>
-        <translation>過去5秒間</translation>
+        <translation>過去 5秒間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1120"/>
         <source>Last 10 Seconds</source>
-        <translation>過去10秒間</translation>
+        <translation>過去 10秒間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1121"/>
         <source>Last 30 Seconds</source>
-        <translation>過去30秒間</translation>
+        <translation>過去 30秒間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1122"/>
         <source>Last Minute</source>
-        <translation>過去1分間</translation>
+        <translation>過去 1分間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1123"/>
         <source>Last 3 Minutes</source>
-        <translation>過去3分間</translation>
+        <translation>過去 3分間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1124"/>
         <source>Last 5 Minutes</source>
-        <translation>過去5分間</translation>
+        <translation>過去 5分間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1125"/>
         <source>Last 15 Minutes</source>
-        <translation>過去15分間</translation>
+        <translation>過去 15分間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1126"/>
         <source>Last 30 Minutes</source>
-        <translation>過去30分間</translation>
+        <translation>過去 30分間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1127"/>
         <source>Last Hour</source>
-        <translation>過去1時間</translation>
+        <translation>過去 1時間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1128"/>
         <source>Last 3 Hours</source>
-        <translation>過去3時間</translation>
+        <translation>過去 3時間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1129"/>
         <source>Last 12 Hours</source>
-        <translation>過去12時間</translation>
+        <translation>過去 12時間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1130"/>
         <source>Last 24 Hours</source>
-        <translation>過去24時間</translation>
+        <translation>過去 24時間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1131"/>
         <source>Last 48 Hours</source>
-        <translation>過去48時間</translation>
+        <translation>過去 48時間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1132"/>
         <source>Last Week</source>
-        <translation>過去1週間</translation>
+        <translation>過去 1週間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1133"/>
         <source>Last 2 Weeks</source>
-        <translation>過去2週間</translation>
+        <translation>過去 2週間</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1134"/>
         <source>Last Month</source>
-        <translation>過去1ヶ月</translation>
+        <translation>過去 1ヶ月</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1229"/>
         <source>&lt;a href=&quot;app://update/installer&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy release %1 ready&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;app://update/installer&quot; style=&quot;color: red;&quot;&gt;新しい MajorPrivacy のリリース %1 の準備ができました&lt;/a&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1233"/>
         <source>&lt;a href=&quot;app://update/apply&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy update %1 ready&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;app://update/apply&quot; style=&quot;color: red;&quot;&gt;新しい MajorPrivacy のアップデート %1 の準備ができました&lt;/a&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1237"/>
         <source>&lt;a href=&quot;app://update/check&quot; style=&quot;color: red;&quot;&gt;There is a new MajorPrivacy update v%1 available&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;app://update/check&quot; style=&quot;color: red;&quot;&gt;新しい MajorPrivacy のアップデート v%1 が利用可能です&lt;/a&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1341"/>
@@ -3659,7 +3662,7 @@ It is strongly recomended to manualy validate the configuration or restore a kno
     <message>
         <location filename="MajorPrivacy.cpp" line="1346"/>
         <source>Security Presets</source>
-        <translation type="unfinished"></translation>
+        <translation>セキュリティプリセット</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1349"/>
@@ -3734,12 +3737,12 @@ Once that is done you can not change rules (except windows firewall) without usi
     <message>
         <location filename="MajorPrivacy.cpp" line="1455"/>
         <source>Remember Password to sign more items for:</source>
-        <translation>追加の項目に署名するため、以下の時間パスワードを記憶する:</translation>
+        <translation>追加の項目に署名するため、以下の時間パスワードを記憶する :</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1457"/>
         <source>Remember Password and commit changes after:</source>
-        <translation>変更を確定するため、以下の時間パスワードを記憶する:</translation>
+        <translation>変更を確定するため、以下の時間パスワードを記憶する :</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1510"/>
@@ -3844,7 +3847,7 @@ If the driver is set to auto-start, it will automatically re-lock the key on reb
     <message>
         <location filename="MajorPrivacy.cpp" line="2376"/>
         <source>Operation failed for %1 item(s).</source>
-        <translation>%1個の項目で操作が失敗しました。</translation>
+        <translation>%1 個の項目で操作が失敗しました。</translation>
     </message>
     <message>
         <source>Are you sure you want to clear the All trace logs for all program items?</source>
@@ -3863,12 +3866,12 @@ If the driver is set to auto-start, it will automatically re-lock the key on reb
     <message>
         <location filename="MajorPrivacy.cpp" line="2610"/>
         <source>Process start blocked</source>
-        <translation type="unfinished"></translation>
+        <translation>プロセスの開始をブロックしました</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2610"/>
         <source>Application %1 fails coherency check.</source>
-        <translation type="unfinished"></translation>
+        <translation>アプリケーション %1 は一貫性チェックに失敗しました。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2681"/>
@@ -3899,13 +3902,13 @@ If the driver is set to auto-start, it will automatically re-lock the key on reb
     <message>
         <location filename="MajorPrivacy.cpp" line="2773"/>
         <source>Failed to parse XML data!</source>
-        <translation>XMLデータの解析に失敗しました！</translation>
+        <translation>XML データの解析に失敗しました！</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3043"/>
         <source>Do you want to stop the Privacy Agent and unload the Kernel Isolator?
 CAUTION: This will disable protection.</source>
-        <translation>Privacy Agentを停止し、カーネルアイソレーターをアンロードしますか？
+        <translation>Privacy Agent を停止し、カーネルアイソレーターをアンロードしますか？
 注意：この操作により保護が無効になります。</translation>
     </message>
     <message>
@@ -3936,7 +3939,7 @@ CAUTION: This will disable protection.</source>
     <message>
         <location filename="MajorPrivacy.cpp" line="3124"/>
         <source>Default Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>既定のプリセット</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3166"/>
@@ -4001,87 +4004,87 @@ CAUTION: This will disable protection.</source>
     <message>
         <location filename="MajorPrivacy.cpp" line="3216"/>
         <source>&lt;h3&gt;MajorPrivacy Diagnostics Information&lt;/h3&gt;&lt;p&gt;Current Version %1&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;h3&gt;MajorPrivacy 診断情報&lt;/h3&gt;&lt;p&gt;現在のバージョン %1&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3231"/>
         <source> Securely Created</source>
-        <translation type="unfinished"></translation>
+        <translation> 安全に作成</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3232"/>
         <source> Verified Process</source>
-        <translation type="unfinished"></translation>
+        <translation> 検証済みプロセス</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3233"/>
         <source> Protected Process</source>
-        <translation type="unfinished"></translation>
+        <translation> 保護されたプロセス</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3234"/>
         <source> No Untrusted Images</source>
-        <translation type="unfinished"></translation>
+        <translation> 信頼されていないイメージなし</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3235"/>
         <source> Has File Object</source>
-        <translation type="unfinished"></translation>
+        <translation> ファイルオブジェクトあり</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3236"/>
         <source> Has Section Object Pointers</source>
-        <translation type="unfinished"></translation>
+        <translation> セクションオブジェクトポインターあり</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3237"/>
         <source> No User Writable References</source>
-        <translation type="unfinished"></translation>
+        <translation> ユーザー書き込み可能な参照なし</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3238"/>
         <source> No Writable File Object</source>
-        <translation type="unfinished"></translation>
+        <translation> 書き込み可能なファイルオブジェクトなし</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3239"/>
         <source> No File Transaction</source>
-        <translation type="unfinished"></translation>
+        <translation> ファイルトランザクションなし</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3240"/>
         <source> Not Being Debugged</source>
-        <translation type="unfinished"></translation>
+        <translation> デバッグされていない</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3245"/>
         <source>&lt;p&gt;User Config Dir: %1&lt;br /&gt;User Interface Level: %2 (PID: %3)&lt;br /&gt;User Interface Status: %4&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;ユーザー設定ディレクトリ: %1&lt;br /&gt;ユーザーインターフェースレベル: %2 (PID: %3)&lt;br /&gt;ユーザーインターフェースの状態: %4&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3255"/>
         <source>&lt;p&gt;System Config Dir: %1&lt;br /&gt;System Service Level: %2 (PID: %3)&lt;br /&gt;System Service Status: %4&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;システム設定ディレクトリ: %1&lt;br /&gt;システムサービスレベル: %2 (PID: %3)&lt;br /&gt;システムサービスの状態: %4&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3266"/>
         <source>&lt;pre&gt;%1&lt;/pre&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;pre&gt;%1&lt;/pre&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3270"/>
         <source>MajorPrivacy Diagnostics Information</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy 診断情報</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3291"/>
         <source>Copy</source>
-        <translation type="unfinished"></translation>
+        <translation>コピー</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3316"/>
         <source>&lt;h3&gt;About MajorPrivacy&lt;/h3&gt;&lt;p&gt;Version %1&lt;/p&gt;&lt;p&gt;</source>
-        <translation>&lt;h3&gt;MajorPrivacyについて&lt;/h3&gt;&lt;p&gt;バージョン %1&lt;/p&gt;&lt;p&gt;</translation>
+        <translation>&lt;h3&gt;MajorPrivacy について&lt;/h3&gt;&lt;p&gt;バージョン %1&lt;/p&gt;&lt;p&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3325"/>
@@ -4188,7 +4191,7 @@ Error: %1</source>
     <message>
         <location filename="MajorPrivacy.cpp" line="1248"/>
         <source>&lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;Support MajorPrivacy on Patreon&lt;/a&gt;</source>
-        <translation>&lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;PatreonでMajorPrivacyを支援&lt;/a&gt;</translation>
+        <translation>&lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;Patreonで MajorPrivacy を支援&lt;/a&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1249"/>
@@ -4199,17 +4202,18 @@ Error: %1</source>
         <location filename="MajorPrivacy.cpp" line="1443"/>
         <source>Enter Secure Configuration Password, to enable config protection.
 Once that is done you can not change rules (except windows firewall) without using the user key.</source>
-        <translation type="unfinished"></translation>
+        <translation>セキュア設定パスワードを入力して、設定保護を有効にしてください。
+これを行うと、ユーザーキーを使用しない限り、ルール (Windowsファイアウォールを除く) を変更できなくなります。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1445"/>
         <source>Enter Secure Configuration Password, to disable config protection.</source>
-        <translation type="unfinished"></translation>
+        <translation>設定保護を無効にするには、セキュア設定パスワードを入力してください。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1598"/>
         <source>This setting required the service to be restarted to take effect</source>
-        <translation type="unfinished"></translation>
+        <translation>この設定を有効にするには、サービスの再起動が必要です</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1608"/>
@@ -4218,69 +4222,75 @@ Once that is done you can not change rules (except windows firewall) without usi
 Locking down the user key will prevent it from being removed or changed, and config protection cannot be disabled until the system is rebooted.
 
 If the driver is set to auto-start, it will automatically re-lock the key on reboot!</source>
-        <translation type="unfinished"></translation>
+        <translation>ユーザーキーをロックダウンしますか (はい)、それともユーザーキー署名ベースの設定保護のみを有効にしますか (いいえ)?
+
+ユーザーキーをロックダウンすると、削除や変更ができなくなり、システムを再起動するまで設定保護を無効にできなくなります。
+
+ドライバーが自動起動に設定されている場合、再起動時にキーが自動的に再ロックされます!</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1787"/>
         <source>Set a secure Password to protect the new Private User Key.</source>
-        <translation type="unfinished"></translation>
+        <translation>新しいプライベートユーザーキーを保護するための、安全なパスワードを設定してください。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1885"/>
         <source>Preset Activation Conflict</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットのアクティブ化の競合</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1886"/>
         <source>Preset &apos;%1&apos; has conflicts with items managed by other active Presets.</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセット &apos;%1&apos; は、他のアクティブなプリセットが管理している項目と競合しています。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1888"/>
         <source>Do you want to force activate this Preset and override the conflicts?</source>
-        <translation type="unfinished"></translation>
+        <translation>このプリセットを強制的にアクティブ化し、競合を上書きしますか?</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1891"/>
         <source>Yes (Force)</source>
-        <translation type="unfinished"></translation>
+        <translation>はい (強制)</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="1892"/>
         <source>No (Cancel)</source>
-        <translation type="unfinished"></translation>
+        <translation>いいえ (キャンセル)</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2340"/>
         <source>Program is already in the group.</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムはすでにグループに含まれています。</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2341"/>
         <source>The process was ejected form the enclave, and is running unprotected, probably due to insuficient signature level!</source>
-        <translation type="unfinished">プロセスはエンクレーブから排出され、保護されていない状態で実行されています。署名レベルが不十分なことが原因の可能性があります！</translation>
+        <translation>プロセスはエンクレーブから排出され、保護されていない状態で実行されています。署名レベルが不十分なことが原因の可能性があります！</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2342"/>
         <source>Firewall rule was only partially applied some fields diverge from the preset</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルールは部分的にのみ適用されました。一部のフィールドがプリセットと異なります</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2387"/>
         <source>You cannot create any %1 until you have acknowledged the warning and reviewed the recovery instructions in the first-start wizard.
 You can cancel the wizard after the acknowledgment page; then only your acknowledgment will be saved.
 Would you like to start the wizard now?</source>
-        <translation type="unfinished"></translation>
+        <translation>最初の起動ウィザードで警告を確認し、復旧手順を確認するまで、%1 を作成できません。
+確認ページの後でウィザードをキャンセルすることもできます。その場合は確認のみが保存されます。
+ウィザードを今すぐ開始しますか?</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="2502"/>
         <source>Are you sure you want to clear the All Trace Logs and All Access Records for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのプログラム項目のすべてのトレースログとすべてのアクセス記録を消去しますか?</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3330"/>
         <source>&lt;p&gt;MajorPrivacy is a program that helps you to protect your privacy and security.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Visit &lt;a href=&quot;https://xanasoft.com&quot;&gt;xanasoft.com&lt;/a&gt; for more information.&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;%1&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;Icons from &lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;MajorPrivacy は、プライバシーとセキュリティの保護を支援するプログラムです。&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;詳細は &lt;a href=&quot;https://xanasoft.com&quot;&gt;xanasoft.com&lt;/a&gt; をご覧ください。&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;%1&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://icons8.com&quot;&gt;icons8.com&lt;/a&gt; のアイコン&lt;/p&gt;&lt;p&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="MajorPrivacy.cpp" line="3458"/>
@@ -4306,52 +4316,52 @@ Would you like to start the wizard now?</source>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="608"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; Network Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt; ネットワーク保護の構成</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="609"/>
         <source>MajorPrivacy enhance and protect the Windows Firewall and Filter DNS requests.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy は Windows ファイアウォールを強化・保護し、DNS リクエストをフィルタリングします。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="618"/>
         <source>MajorPrivacy can take full control of the Windows Firewall, giving you the power to manage both outbound and inbound network connections. It enhances the firewall with flexible, file-pattern based rule templates and safeguards your configuration against unauthorized changes made by other programs. Every connection attempt can be tracked and aggregated (per domain) into records that clearly show which programs communicated where, and when.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy は Windows ファイアウォールを完全に制御でき、送信と受信の両方のネットワーク接続を管理できます。ファイルパターンベースの柔軟なルールテンプレートでファイアウォールを強化し、他のプログラムによる不正な変更から設定を保護します。すべての接続試行を追跡し、(ドメインごとに) 記録に集約して、どのプログラムがいつ、どこと通信したかを分かりやすく表示します。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="624"/>
         <source>Take control of the Windows Firewall</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows ファイアウォールを制御する</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="634"/>
         <source>Block all outbound connection attempts by default</source>
-        <translation type="unfinished"></translation>
+        <translation>既定ですべての送信接続試行をブロックする</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="639"/>
         <source>Create recommended windows firewall rules</source>
-        <translation type="unfinished"></translation>
+        <translation>推奨の Windows ファイアウォールルールを作成する</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="644"/>
         <source>Automatically revert all unauthorized rule changes</source>
-        <translation type="unfinished"></translation>
+        <translation>不正なルール変更をすべて自動的に元に戻す</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="649"/>
         <source>Collect File/Folder Accesses Events</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイル/フォルダーアクセスイベントを収集する</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="654"/>
         <source>Save Network Traffic Record to Disk (TrafficRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>ネットワークトラフィックの記録をディスクに保存 (TrafficRecord.dat)</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="659"/>
         <source>Log all Network Access events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのネットワークアクセスイベントをメモリにログ記録</translation>
     </message>
 </context>
 <context>
@@ -4477,22 +4487,22 @@ Would you like to start the wizard now?</source>
     <message>
         <location filename="Views/NetTraceView.cpp" line="36"/>
         <source>TCP Sockets</source>
-        <translation>TCPソケット</translation>
+        <translation>TCP ソケット</translation>
     </message>
     <message>
         <location filename="Views/NetTraceView.cpp" line="37"/>
         <source>TCP Clients</source>
-        <translation>TCPクライアント</translation>
+        <translation>TCP クライアント</translation>
     </message>
     <message>
         <location filename="Views/NetTraceView.cpp" line="38"/>
         <source>TCP Servers</source>
-        <translation>TCPサーバー</translation>
+        <translation>TCP サーバー</translation>
     </message>
     <message>
         <location filename="Views/NetTraceView.cpp" line="39"/>
         <source>UDP Sockets</source>
-        <translation>UDPソケット</translation>
+        <translation>UDP ソケット</translation>
     </message>
     <message>
         <location filename="Views/NetTraceView.cpp" line="46"/>
@@ -4535,112 +4545,112 @@ Would you like to start the wizard now?</source>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="216"/>
         <source>Network Discovery (SSDP-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ネットワーク探索 (SSDP-In) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="220"/>
         <source>Network Discovery (SSDP-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ネットワーク探索 (SSDP-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="225"/>
         <source>Network Discovery (NB-Name-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ネットワーク探索 (NB-Name-In) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="228"/>
         <source>Network Discovery (NB-Name-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ネットワーク探索 (NB-Name-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="231"/>
         <source>File and Printer Sharing (NB-Session-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイルとプリンターの共有 (NB-Session-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="235"/>
         <source>File and Printer Sharing (SMB-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイルとプリンターの共有 (SMB-In) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="238"/>
         <source>File and Printer Sharing (SMB-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイルとプリンターの共有 (SMB-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="242"/>
         <source>File and Printer Sharing (Spooler-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイルとプリンターの共有 (Spooler-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="247"/>
         <source>Windows Update - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows Update - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="251"/>
         <source>Windows Time Service - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>Windowsタイムサービス - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="255"/>
         <source>Microsoft WWA Host - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>Microsoft WWAホスト - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="260"/>
         <source>Core Networking - Dynamic Host Configuration Protocol (DHCP-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>コアネットワーク - 動的ホスト構成プロトコル (DHCP-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="265"/>
         <source>Core Networking - Domain Name System (DNS-UDP-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>コアネットワーク - ドメインネームシステム (DNS-UDP-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="269"/>
         <source>Core Networking - Domain Name System (DNS-TCP-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>コアネットワーク - ドメインネームシステム (DNS-TCP-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="274"/>
         <source>Internet Control Message Protocol (ICMPv6-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>インターネット制御メッセージプロトコル (ICMPv6-In) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="276"/>
         <source>Internet Control Message Protocol (ICMPv4-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>インターネット制御メッセージプロトコル (ICMPv4-In) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="278"/>
         <source>Internet Control Message Protocol (ICMPv6-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>インターネット制御メッセージプロトコル (ICMPv6-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="280"/>
         <source>Internet Control Message Protocol (ICMPv4-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>インターネット制御メッセージプロトコル (ICMPv4-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="285"/>
         <source>MajorPrivacy Network Access (GUI) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy ネットワークアクセス (GUI) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="289"/>
         <source>MajorPrivacy Service Network Access (PrivacyAgent) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy サービスのネットワークアクセス (PrivacyAgent) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="293"/>
         <source>MajorPrivacy Local DNS Filter (DNS-Filter-Out) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy ローカ ルDNS フィルター (DNS-Filter-Out) - 既定の MajorPrivacy ルール</translation>
     </message>
     <message>
         <location filename="Core/Network/NetworkManager.cpp" line="297"/>
         <source>MajorPrivacy Local DNS Filter (DNS-Filter-In) - Default MajorPrivacy Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy ローカル DNS フィルター (DNS-Filter-In) - 既定の MajorPrivacy ルール</translation>
     </message>
 </context>
 <context>
@@ -4681,7 +4691,7 @@ Do you still want to update?</source>
     <message>
         <location filename="OnlineUpdater.cpp" line="481"/>
         <source>Do you want to check if there is a new version of MajorPrivacy?</source>
-        <translation>MajorPrivacyの新しいバージョンがあるか確認しますか？</translation>
+        <translation>MajorPrivacy の新しいバージョンがあるか確認しますか？</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="482"/>
@@ -4701,7 +4711,9 @@ Do you still want to update?</source>
         <source>Your MajorPrivacy license is expired, however for the current build you are using it remains active, when you update to a newer build protection features will be disabled.
 
 Do you still want to update?</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy のライセンスの有効期限が切れていますが、現在ご使用のビルドでは引き続き有効です。新しいビルドにアップデートすると、保護機能が無効になります。
+
+それでもアップデートしますか?</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="538"/>
@@ -4716,21 +4728,21 @@ Do you still want to update?</source>
     <message>
         <location filename="OnlineUpdater.cpp" line="548"/>
         <source>Failed to check for updates, error: %1</source>
-        <translation>アップデートの確認に失敗しました。エラー: %1</translation>
+        <translation>アップデートの確認に失敗しました。エラー : %1</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="578"/>
         <source>No new updates found, your MajorPrivacy is up-to-date.
 
 Note: The update check is often behind the latest GitHub release to ensure that only tested updates are offered.</source>
-        <translation>新しいアップデートは見つかりませんでした。お使いのMajorPrivacyは最新の状態です。
+        <translation>新しいアップデートは見つかりませんでした。お使いの MajorPrivacy は最新の状態です。
 
-注: テスト済みのアップデートのみが提供されるよう、アップデートの確認は最新のGitHubリリースより遅れることがあります。</translation>
+注 : テスト済みのアップデートのみが提供されるよう、アップデートの確認は最新の GitHub リリースより遅れることがあります。</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="705"/>
         <source>&lt;p&gt;There is a new version of MajorPrivacy available.&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;&lt;b&gt;New version:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;MajorPrivacyの新しいバージョンが利用可能です。&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;&lt;b&gt;新しいバージョン:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;MajorPrivacy の新しいバージョンが利用可能です。&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;&lt;b&gt;新しいバージョン:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;%1&lt;/b&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="719"/>
@@ -4770,7 +4782,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="OnlineUpdater.cpp" line="892"/>
         <source>failed to load updated json file</source>
-        <translation>更新されたJSONファイルの読み込みに失敗しました</translation>
+        <translation>更新された JSON ファイルの読み込みに失敗しました</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="893"/>
@@ -4810,7 +4822,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="OnlineUpdater.cpp" line="947"/>
         <source>&lt;p&gt;Updates for MajorPrivacy have been downloaded.&lt;/p&gt;&lt;p&gt;Do you want to apply these updates? If any programs are running in secure enclaves, they will be terminated.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;MajorPrivacy のアップデートがダウンロードされました。&lt;/p&gt;&lt;p&gt;これらのアップデートを適用しますか? セキュアエンクレーブ内で実行中のプログラムがある場合、それらは終了されます。&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="1052"/>
@@ -4820,12 +4832,12 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="OnlineUpdater.cpp" line="1095"/>
         <source>&lt;p&gt;A new MajorPrivacy installer has been downloaded to the following location:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Do you want to begin the installation? If any programs are running in secure enclaves, they will be terminated!&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;新しいMajorPrivacy インストーラーが次の場所にダウンロードされました :&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;インストールを開始しますか? セキュアエンクレーブ内で実行中のプログラムがある場合、それらは終了されます!&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="1263"/>
         <source>Downloading tweaks...</source>
-        <translation type="unfinished"></translation>
+        <translation>調整をダウンロード中...</translation>
     </message>
     <message>
         <source>&lt;p&gt;A new MajorPrivacy installer has been downloaded to the following location:&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;%2&quot;&gt;%1&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Do you want to begin the installation? If any programs are running sandboxed, they will be terminated.&lt;/p&gt;</source>
@@ -4834,7 +4846,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="OnlineUpdater.cpp" line="1154"/>
         <source>There is a new Templates.ini available, do you want to download it?</source>
-        <translation>新しいTemplates.iniが利用可能です。ダウンロードしますか？</translation>
+        <translation>新しい Templates.ini が利用可能です。ダウンロードしますか？</translation>
     </message>
     <message>
         <location filename="OnlineUpdater.cpp" line="1201"/>
@@ -4865,7 +4877,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="89"/>
         <source>MajorPrivacy Notifications</source>
-        <translation>MajorPrivacyの通知</translation>
+        <translation>MajorPrivacy の通知</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="99"/>
@@ -4875,7 +4887,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="101"/>
         <source>One Time</source>
-        <translation type="unfinished"></translation>
+        <translation>1回のみ</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="102"/>
@@ -4922,12 +4934,12 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="146"/>
         <source>Approve All</source>
-        <translation type="unfinished"></translation>
+        <translation>すべて承認</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="152"/>
         <source>Reject All</source>
-        <translation type="unfinished"></translation>
+        <translation>すべて拒否</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="169"/>
@@ -4952,32 +4964,32 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="200"/>
         <source>Allow File</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイルを許可</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="204"/>
         <source>Allow Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>証明書を許可</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="205"/>
         <source>Allow CA Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>CA 証明書を許可</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="321"/>
         <source>Block in %1</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 でブロック</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="1386"/>
         <source>Please select a file to add to Allowed Hash Database.</source>
-        <translation type="unfinished"></translation>
+        <translation>許可ハッシュデータベースに追加するファイルを選択してください。</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="1392"/>
         <source>Do you really want to allow the Issuing Certificate Authoricy Certificate? This will allow all Signign Certificate issued by this CA.</source>
-        <translation type="unfinished"></translation>
+        <translation>発行元認証局の証明書を本当に許可しますか? これにより、この認証局が発行したすべての署名証明書が許可されます。</translation>
     </message>
     <message>
         <source>Sign Certificate</source>
@@ -5005,52 +5017,52 @@ Note: The update check is often behind the latest GitHub release to ensure that 
         <location filename="Windows/PopUpWindow.cpp" line="999"/>
         <location filename="Windows/PopUpWindow.cpp" line="1285"/>
         <source>%1 (%2)</source>
-        <translation type="unfinished">%1 (%2)</translation>
+        <translation>%1 (%2)</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="573"/>
         <source>Modified</source>
-        <translation type="unfinished"></translation>
+        <translation>変更済み</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="583"/>
         <source>Added</source>
-        <translation type="unfinished"></translation>
+        <translation>追加済み</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="588"/>
         <source>Removed</source>
-        <translation type="unfinished"></translation>
+        <translation>削除済み</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="595"/>
         <source>%1 -&gt; %2 </source>
-        <translation type="unfinished"></translation>
+        <translation>%1 -&gt; %2 </translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="595"/>
         <source>Enabled</source>
-        <translation type="unfinished">有効</translation>
+        <translation>有効</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="595"/>
         <source>Disabled</source>
-        <translation type="unfinished"></translation>
+        <translation>無効</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="600"/>
         <source>%1 -&gt; %2</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 -&gt; %2</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="605"/>
         <source> %1 -&gt; %2</source>
-        <translation type="unfinished"></translation>
+        <translation> %1 -&gt; %2</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="713"/>
         <source>No rules selected, do you want to apply the action to all rules?</source>
-        <translation type="unfinished"></translation>
+        <translation>ルールが選択されていません。すべてのルールにアクションを適用しますか?</translation>
     </message>
     <message>
         <location filename="Windows/PopUpWindow.cpp" line="1073"/>
@@ -5077,125 +5089,131 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Views/PresetView.cpp" line="18"/>
         <source>Rule Presets:</source>
-        <translation type="unfinished"></translation>
+        <translation>ルールプリセット :</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="26"/>
         <source>Name|Description</source>
-        <translation type="unfinished"></translation>
+        <translation>名前|説明</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="39"/>
         <source>Add Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットを追加</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="45"/>
         <source>Activate Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットをアクティブ化</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="49"/>
         <source>Deactivate Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットを非アクティブ化</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="55"/>
         <source>Edit Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットを編集</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="59"/>
         <source>Remove Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットを削除</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="209"/>
         <source>Preset Activation Conflict</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットのアクティブ化の競合</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="210"/>
         <source>Preset &apos;%1&apos; has conflicts with items managed by other active Presets.</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセット &apos;%1&apos; は、他のアクティブなプリセットが管理している項目と競合しています。</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="212"/>
         <source>Do you want to force activate this Preset and override the conflicts?</source>
-        <translation type="unfinished"></translation>
+        <translation>このプリセットを強制的にアクティブ化し、競合を上書きしますか?</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="215"/>
         <source>Apply to all remaining Presets</source>
-        <translation type="unfinished"></translation>
+        <translation>残りのすべてのプリセットに適用</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="218"/>
         <source>Yes (Force)</source>
-        <translation type="unfinished"></translation>
+        <translation>はい (強制)</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="219"/>
         <source>No (Skip)</source>
-        <translation type="unfinished"></translation>
+        <translation>いいえ (スキップ)</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="220"/>
         <source>Cancel All</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてキャンセル</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="258"/>
         <source>Preset activation complete:
 </source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットのアクティブ化が完了しました :
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="260"/>
         <source>  Activated: %1
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  アクティブ化 : %1
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="262"/>
         <source>  Skipped: %1
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  スキップ : %1
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="264"/>
         <location filename="Views/PresetView.cpp" line="308"/>
         <source>  Failed: %1
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  失敗 : %1
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="266"/>
         <source>Preset Activation</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットのアクティブ化</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="304"/>
         <source>Preset deactivation complete:
 </source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットの非アクティブ化が完了しました :
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="306"/>
         <source>  Deactivated: %1
 </source>
-        <translation type="unfinished"></translation>
+        <translation>  非アクティブ化 : %1
+</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="310"/>
         <location filename="Views/PresetView.cpp" line="314"/>
         <source>Preset Deactivation</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットの非アクティブ化</translation>
     </message>
     <message>
         <location filename="Views/PresetView.cpp" line="315"/>
         <source>Failed to deactivate Preset.</source>
-        <translation type="unfinished"></translation>
+        <translation>プリセットの非アクティブ化に失敗しました。</translation>
     </message>
 </context>
 <context>
@@ -5203,154 +5221,154 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Windows/PresetWindow.cpp" line="38"/>
         <source>Add Execution Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>実行ルールを追加</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="40"/>
         <source>Add Resource Access Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>リソースアクセスルールを追加</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="42"/>
         <source>Add Firewall Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルールを追加</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="44"/>
         <source>Add DNS Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>DNS ルールを追加</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="46"/>
         <source>Add Tweak</source>
-        <translation type="unfinished"></translation>
+        <translation>調整を追加</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="48"/>
         <source>Remove Selected Items</source>
-        <translation type="unfinished"></translation>
+        <translation>選択した項目を削除</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="59"/>
         <source>Change Icon</source>
-        <translation type="unfinished">アイコンの変更</translation>
+        <translation>アイコンの変更</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="61"/>
         <source>Browse for Image</source>
-        <translation type="unfinished">画像を参照</translation>
+        <translation>画像を参照</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="70"/>
         <source>Create Rule Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>ルールプリセットの作成</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="70"/>
         <source>Edit Rule Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>ルールプリセットの編集</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="127"/>
         <source>Unknown Program Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>不明なプログラムルール (%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="141"/>
         <source>Unknown Resource Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>不明なリソースルール (%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="144"/>
         <source>Resource Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>リソースルール (%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="157"/>
         <source>Unknown Firewall Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>不明なファイアウォールルール (%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="160"/>
         <source>Firewall Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール (%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="169"/>
         <source>Unknown DNS Rule (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>不明なDNSルール (%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="183"/>
         <source>Unknown Tweak (%1)</source>
-        <translation type="unfinished"></translation>
+        <translation>不明な調整 (%1)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="200"/>
         <source>Do Nothing</source>
-        <translation type="unfinished"></translation>
+        <translation>何もしない</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="201"/>
         <location filename="Windows/PresetWindow.cpp" line="509"/>
         <source>Enable</source>
-        <translation type="unfinished"></translation>
+        <translation>有効化</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="202"/>
         <location filename="Windows/PresetWindow.cpp" line="510"/>
         <source>Disable</source>
-        <translation type="unfinished"></translation>
+        <translation>無効化</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="297"/>
         <source>Select Image File</source>
-        <translation type="unfinished">画像ファイルの選択</translation>
+        <translation>画像ファイルの選択</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="297"/>
         <source>Image Files (*.png)</source>
-        <translation type="unfinished">画像ファイル (*.png)</translation>
+        <translation>画像ファイル (*.png)</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="341"/>
         <source>Sellect a Program Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムルールを選択</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="372"/>
         <source>Sellect a Resource Access Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>リソースアクセスルールを選択</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="404"/>
         <source>Sellect a Firewall Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルールを選択</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="431"/>
         <source>Sellect a DNS Rule</source>
-        <translation type="unfinished"></translation>
+        <translation>DNS ルールを選択</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="475"/>
         <source>Sellect a Tweak</source>
-        <translation type="unfinished"></translation>
+        <translation>調整を選択</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="492"/>
         <source>Remove Items</source>
-        <translation type="unfinished"></translation>
+        <translation>項目を削除</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="492"/>
         <source>Are you sure you want to remove the selected items?</source>
-        <translation type="unfinished"></translation>
+        <translation>選択した項目を削除しますか?</translation>
     </message>
     <message>
         <location filename="Windows/PresetWindow.cpp" line="508"/>
         <source>Do nothing</source>
-        <translation type="unfinished"></translation>
+        <translation>何もしない</translation>
     </message>
 </context>
 <context>
@@ -5358,7 +5376,7 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Core/Processes/Process.cpp" line="202"/>
         <source>Sec: %1</source>
-        <translation>秒: %1</translation>
+        <translation>秒 : %1</translation>
     </message>
     <message>
         <location filename="Core/Processes/Process.cpp" line="224"/>
@@ -5426,12 +5444,12 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Models/ProcessModel.cpp" line="280"/>
         <source>Handles</source>
-        <translation type="unfinished"></translation>
+        <translation>ハンドル</translation>
     </message>
     <message>
         <location filename="Models/ProcessModel.cpp" line="281"/>
         <source>Sockets</source>
-        <translation type="unfinished"></translation>
+        <translation>ソケット</translation>
     </message>
     <message>
         <location filename="Models/ProcessModel.cpp" line="282"/>
@@ -5450,14 +5468,14 @@ Note: The update check is often behind the latest GitHub release to ensure that 
         <location filename="Pages/ProcessPage.cpp" line="100"/>
         <location filename="Pages/ProcessPage.cpp" line="109"/>
         <source>Program Rules</source>
-        <translation type="unfinished">プログラムルール</translation>
+        <translation>プログラムルール</translation>
     </message>
     <message>
         <location filename="Pages/ProcessPage.cpp" line="34"/>
         <location filename="Pages/ProcessPage.cpp" line="101"/>
         <location filename="Pages/ProcessPage.cpp" line="110"/>
         <source>Hash Database</source>
-        <translation type="unfinished"></translation>
+        <translation>ハッシュデータベース</translation>
     </message>
     <message>
         <location filename="Pages/ProcessPage.cpp" line="40"/>
@@ -5583,22 +5601,22 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="34"/>
         <source>Any Operation</source>
-        <translation type="unfinished"></translation>
+        <translation>すべての操作</translation>
     </message>
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="35"/>
         <source>Process Start</source>
-        <translation type="unfinished"></translation>
+        <translation>プロセスの開始</translation>
     </message>
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="36"/>
         <source>Image Load</source>
-        <translation type="unfinished"></translation>
+        <translation>イメージの読み込み</translation>
     </message>
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="37"/>
         <source>Process Access</source>
-        <translation type="unfinished">プロセスアクセス</translation>
+        <translation>プロセスアクセス</translation>
     </message>
     <message>
         <location filename="Views/ProcessTraceView.cpp" line="46"/>
@@ -5708,27 +5726,27 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="464"/>
         <source>Developer Signed</source>
-        <translation type="unfinished">開発者署名</translation>
+        <translation>開発者署名</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="466"/>
         <source>User Allowed for Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>エンクレーブ用にユーザーが許可</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="468"/>
         <source>User Signed</source>
-        <translation type="unfinished">ユーザー署名</translation>
+        <translation>ユーザー署名</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="470"/>
         <source>User Allowed</source>
-        <translation type="unfinished"></translation>
+        <translation>ユーザーが許可</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="480"/>
         <source>NONE</source>
-        <translation type="unfinished"></translation>
+        <translation>なし</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="481"/>
@@ -5748,102 +5766,102 @@ Note: The update check is often behind the latest GitHub release to ensure that 
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="484"/>
         <source>UNKNOWN</source>
-        <translation type="unfinished"></translation>
+        <translation>不明</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="498"/>
         <source>Root: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>ルート : %1</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="500"/>
         <source>Roots: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>ルート(複数) : %1</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="504"/>
         <source> (Error: %1)</source>
-        <translation type="unfinished"></translation>
+        <translation> (エラー : %1)</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="510"/>
         <source>CI: Level 0</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: レベル0</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="511"/>
         <source>CI: Enterprise</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: エンタープライズ</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="512"/>
         <source>CI: Developer</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: デベロッパー</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="513"/>
         <source>CI: Authenticode</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: オーセンティコード</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="514"/>
         <source>CI: Level 2</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: レベル2</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="515"/>
         <source>CI: Store</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: ストア</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="516"/>
         <source>CI: Antimalware</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: アンチマルウェア</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="517"/>
         <source>CI: Microsoft</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: Microsoft</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="518"/>
         <source>CI: Level 4</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: レベル 4</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="519"/>
         <source>CI: Level 5</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: レベル 5</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="520"/>
         <source>CI: Code Gen.</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: コード生成.</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="521"/>
         <source>CI: Windows</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: Windows</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="522"/>
         <source>CI: Level 7</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: レベル 7</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="523"/>
         <source>CI: Windows TCB</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: Windows TCB</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="524"/>
         <source>CI: Level 6</source>
-        <translation type="unfinished"></translation>
+        <translation>CI: レベル 6</translation>
     </message>
     <message>
         <location filename="Core/Programs/ProgramFile.cpp" line="528"/>
         <source>Image INCOCHERENT</source>
-        <translation type="unfinished"></translation>
+        <translation>イメージの一貫性なし</translation>
     </message>
     <message>
         <source>Unknown</source>
@@ -5962,7 +5980,10 @@ Note: The update check is often behind the latest GitHub release to ensure that 
 Packet Name: %2
 Packet SID: %3
 Path: %4</source>
-        <translation type="unfinished"></translation>
+        <translation>アプリ名 : %1
+パケット名 : %2
+パケット SID : %3
+パス: %4</translation>
     </message>
     <message>
         <location filename="Models/ProgramModel.cpp" line="383"/>
@@ -6007,7 +6028,7 @@ Path: %4</source>
     <message>
         <location filename="Models/ProgramModel.cpp" line="398"/>
         <source>FW Rules</source>
-        <translation>FWルール</translation>
+        <translation>FW ルール</translation>
     </message>
     <message>
         <location filename="Models/ProgramModel.cpp" line="399"/>
@@ -6106,7 +6127,7 @@ Path: %4</source>
     <message>
         <location filename="Models/ProgramRuleModel.cpp" line="122"/>
         <source>, </source>
-        <translation type="unfinished"></translation>
+        <translation>, </translation>
     </message>
     <message>
         <location filename="Models/ProgramRuleModel.cpp" line="202"/>
@@ -6126,7 +6147,7 @@ Path: %4</source>
     <message>
         <location filename="Models/ProgramRuleModel.cpp" line="205"/>
         <source>Signers</source>
-        <translation type="unfinished"></translation>
+        <translation>署名者</translation>
     </message>
     <message>
         <source>Trust Level</source>
@@ -6228,7 +6249,7 @@ Path: %4</source>
         <location filename="Windows/ProgramRuleWnd.cpp" line="41"/>
         <location filename="Windows/ProgramRuleWnd.cpp" line="425"/>
         <source>None</source>
-        <translation type="unfinished">なし</translation>
+        <translation>なし</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="55"/>
@@ -6258,32 +6279,32 @@ Path: %4</source>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="90"/>
         <source>Default</source>
-        <translation type="unfinished"></translation>
+        <translation>既定</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="91"/>
         <source>Inject Low (Exclusive)</source>
-        <translation type="unfinished"></translation>
+        <translation>低インジェクト (排他)</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="92"/>
         <source>Inject High (Sbie+ Compatible)</source>
-        <translation type="unfinished"></translation>
+        <translation>高インジェクト (Sbie+ 互換)</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="93"/>
         <source>Disabled</source>
-        <translation type="unfinished"></translation>
+        <translation>無効</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="418"/>
         <source>Add Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>コレクションを追加</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="418"/>
         <source>Enter the name of the collection:</source>
-        <translation type="unfinished"></translation>
+        <translation>コレクションの名前を入力してください :</translation>
     </message>
     <message>
         <source>Audit</source>
@@ -6323,12 +6344,12 @@ Path: %4</source>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="274"/>
         <source>The Program Path is not valid.</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムのパスが無効です。</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="278"/>
         <source>The Program Path may break windows, please use a more specific path.</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムのパスが Windows を破損させる可能性があります。より具体的なパスを使用してください。</translation>
     </message>
     <message>
         <location filename="Windows/ProgramRuleWnd.cpp" line="327"/>
@@ -6432,7 +6453,7 @@ Path: %4</source>
     <message>
         <location filename="Views/ProgramView.cpp" line="193"/>
         <source>Refresh Programs</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムを更新</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="200"/>
@@ -6452,7 +6473,7 @@ Path: %4</source>
     <message>
         <location filename="Views/ProgramView.cpp" line="220"/>
         <source>Show Tree</source>
-        <translation type="unfinished">ツリーを表示</translation>
+        <translation>ツリーを表示</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="234"/>
@@ -6468,7 +6489,7 @@ Path: %4</source>
         <location filename="Views/ProgramView.cpp" line="817"/>
         <location filename="Views/ProgramView.cpp" line="825"/>
         <source>Are you sure you want to clear the the %1 for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>現在のプログラム項目の %1 を消去しますか?</translation>
     </message>
     <message>
         <source>Clear Trace</source>
@@ -6497,37 +6518,37 @@ Path: %4</source>
     <message>
         <location filename="Views/ProgramView.cpp" line="280"/>
         <source>Clear Trace Logs</source>
-        <translation type="unfinished"></translation>
+        <translation>トレースログを消去</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="281"/>
         <source>Execution/Ingress Trace Log</source>
-        <translation type="unfinished"></translation>
+        <translation>実行/イングレストレースログ</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="282"/>
         <source>Resource Access Trace Log</source>
-        <translation type="unfinished"></translation>
+        <translation>リソースアクセストレースログ</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="283"/>
         <source>Network Access Trace Log</source>
-        <translation type="unfinished"></translation>
+        <translation>ネットワークアクセストレースログ</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="285"/>
         <source>Execution/Ingress Records</source>
-        <translation type="unfinished"></translation>
+        <translation>実行/イングレス記録</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="286"/>
         <source>Resource Access Records</source>
-        <translation type="unfinished"></translation>
+        <translation>リソースアクセス記録</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="287"/>
         <source>Network Access Records</source>
-        <translation type="unfinished"></translation>
+        <translation>ネットワークアクセス記録</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="291"/>
@@ -6569,7 +6590,7 @@ Path: %4</source>
     <message>
         <location filename="Views/ProgramView.cpp" line="307"/>
         <source>Cache only in RAM</source>
-        <translation>RAMにのみキャッシュ</translation>
+        <translation>RAM にのみキャッシュ</translation>
     </message>
     <message>
         <source>Add to Group</source>
@@ -6590,7 +6611,7 @@ Path: %4</source>
         <source>Do you want to delete selected Program Items (Yes)?
 The selected Item has children, do you want to delete them as well (Yes to All)?</source>
         <translation>選択したプログラム項目を削除しますか(はい)？
-選択した項目には子項目があります。それらもすべて削除しますか(すべてはい)？</translation>
+選択した項目には子項目があります。それらもすべて削除しますか (すべてはい)？</translation>
     </message>
     <message>
         <location filename="Views/ProgramView.cpp" line="748"/>
@@ -6689,7 +6710,7 @@ The selected Item belongs to more than one Group, to delete it from all groups p
     <message>
         <location filename="Windows/ProgramWnd.cpp" line="70"/>
         <source>Cache only in RAM</source>
-        <translation>RAMにのみキャッシュ</translation>
+        <translation>RAM にのみキャッシュ</translation>
     </message>
     <message>
         <location filename="Windows/ProgramWnd.cpp" line="78"/>
@@ -6727,37 +6748,37 @@ The selected Item belongs to more than one Group, to delete it from all groups p
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="552"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; Resource Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt; リソース保護の構成</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="553"/>
         <source>MajorPrivacy can pritect files and folders on your system from access by rogue applications.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacyは、不正なアプリケーションによるアクセスからシステム上のファイルやフォルダーを保護できます。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="562"/>
         <source>MajorPrivacy lets you control how programs interact with your files and folders, you can decide which applications can read, write, modify, or delete protected data. These access events can be aggregated into clear records that show which programs touched which files, when and how often. These records are kept in memory (RAM) and can be saved to disk for long-term insight into data usage. For privacy, you can configure the storage options individually per program. If needed, raw file access events can also be logged in detail, though this will consume a significant amount of memory.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy では、プログラムがファイルやフォルダーとどのように相互作用するかを制御でき、保護されたデータの読み取り、書き込み、変更、削除を行えるアプリケーションを決定できます。これらのアクセスイベントは、どのプログラムがいつ、どのくらいの頻度でどのファイルに触れたかを示す分かりやすい記録に集約できます。これらの記録はメモリ (RAM) 上に保持され、ディスクに保存してデータ使用状況を長期的に把握することもできます。プライバシー保護のため、保存オプションはプログラムごとに個別に設定できます。必要に応じて、生のファイルアクセスイベントを詳細にログ記録することもできますが、大量のメモリを消費します。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="568"/>
         <source>Collect File/Folder Accesses Events</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイル/フォルダーアクセスイベントを収集する</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="578"/>
         <source>Save File/Folder Accesses Records to Disk (AccessRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイル/フォルダーアクセスの記録をディスクに保存 (AccessRecord.dat)</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="583"/>
         <source>Log all File/Folder Accesses events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのファイル/フォルダーアクセスイベントをメモリにログ記録</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="588"/>
         <source>Enable list of all Open Files (increases CPU load)</source>
-        <translation type="unfinished"></translation>
+        <translation>すべての開いているファイルの一覧を有効化 (CPU負荷が増加します)</translation>
     </message>
 </context>
 <context>
@@ -6858,69 +6879,69 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="39"/>
         <source>MajorPrivacy - Script Editor</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy - スクリプトエディター</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="42"/>
         <source>Load from File</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイルから読み込み</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="43"/>
         <source>Save to File</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイルに保存</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="45"/>
         <source>Run onTest Function</source>
-        <translation type="unfinished"></translation>
+        <translation>onTest 関数を実行</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="46"/>
         <source>CleanUp Log</source>
-        <translation type="unfinished"></translation>
+        <translation>ログをクリーンアップ</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="149"/>
         <source>Import Script</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプトをインポート</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="149"/>
         <location filename="Windows/ScriptWindow.cpp" line="162"/>
         <source>JavaScript Files (*.js);;All Files (*.*)</source>
-        <translation type="unfinished"></translation>
+        <translation>JavaScript ファイル (*.js);;すべてのファイル (*.*)</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="154"/>
         <location filename="Windows/ScriptWindow.cpp" line="166"/>
         <source>Error</source>
-        <translation type="unfinished">エラー</translation>
+        <translation>エラー</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="154"/>
         <source>Failed to read file &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイル &apos;%1&apos; の読み込みに失敗しました</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="162"/>
         <source>Export Script</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプトをエクスポート</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="166"/>
         <source>Failed to write file &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイル &apos;%1&apos; の書き込みに失敗しました</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="180"/>
         <source>You have unapplied changes. Do you want to apply them before the test?</source>
-        <translation type="unfinished"></translation>
+        <translation>適用されていない変更があります。テストの前に適用しますか?</translation>
     </message>
     <message>
         <location filename="Windows/ScriptWindow.cpp" line="181"/>
         <source>Remember this choice.</source>
-        <translation type="unfinished">この選択を記憶する。</translation>
+        <translation>この選択を記憶する。</translation>
     </message>
 </context>
 <context>
@@ -6938,32 +6959,32 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="139"/>
         <source>None</source>
-        <translation type="unfinished">なし</translation>
+        <translation>なし</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="140"/>
         <source>Native</source>
-        <translation type="unfinished"></translation>
+        <translation>ネイティブ</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="141"/>
         <source>Qt</source>
-        <translation type="unfinished"></translation>
+        <translation>Qt</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="145"/>
         <source>%1</source>
-        <translation type="unfinished">%1</translation>
+        <translation>%1</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="149"/>
         <source>Select font</source>
-        <translation type="unfinished"></translation>
+        <translation>フォントの選択</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="151"/>
         <source>Reset font</source>
-        <translation type="unfinished"></translation>
+        <translation>フォントをリセット</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="157"/>
@@ -6988,45 +7009,45 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="163"/>
         <source>Every Day</source>
-        <translation type="unfinished"></translation>
+        <translation>毎日</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="164"/>
         <source>Every Week</source>
-        <translation type="unfinished"></translation>
+        <translation>毎週</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="165"/>
         <source>Every 2 Weeks</source>
-        <translation type="unfinished"></translation>
+        <translation>2週間ごと</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="166"/>
         <source>Every 30 days</source>
-        <translation type="unfinished"></translation>
+        <translation>30日ごと</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="168"/>
         <source>Ignore</source>
-        <translation type="unfinished">無視</translation>
+        <translation>無視</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="169"/>
         <location filename="Windows/SettingsWindow.cpp" line="174"/>
         <source>Notify</source>
-        <translation type="unfinished"></translation>
+        <translation>通知</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="170"/>
         <location filename="Windows/SettingsWindow.cpp" line="175"/>
         <source>Download &amp; Notify</source>
-        <translation type="unfinished"></translation>
+        <translation>ダウンロードして通知</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="171"/>
         <location filename="Windows/SettingsWindow.cpp" line="176"/>
         <source>Download &amp; Install</source>
-        <translation type="unfinished"></translation>
+        <translation>ダウンロードしてインストール</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="309"/>
@@ -7036,28 +7057,28 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="472"/>
         <source>&lt;a href=&quot;check&quot;&gt;Check Now&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;check&quot;&gt;今すぐ確認&lt;/a&gt;</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="541"/>
         <source>Auto Approve</source>
-        <translation type="unfinished"></translation>
+        <translation>自動承認</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="541"/>
         <source>Auto Reject</source>
-        <translation type="unfinished"></translation>
+        <translation>自動拒否</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="556"/>
         <location filename="Windows/SettingsWindow.cpp" line="565"/>
         <source>Enter file path pattern for the entry</source>
-        <translation type="unfinished"></translation>
+        <translation>エントリーのファイルパスパターンを入力してください</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="640"/>
         <source>Enter Block Lisz URL to be added</source>
-        <translation>追加するブロックリストのURLを入力</translation>
+        <translation>追加するブロックリストの URL を入力</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="679"/>
@@ -7098,114 +7119,115 @@ Unlike the preview channel, it does not include untested, potentially breaking, 
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1048"/>
         <source>MajorPrivacy Version: %1</source>
-        <translation>MajorPrivacy バージョン: %1</translation>
+        <translation>MajorPrivacy バージョン : %1</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1120"/>
         <source>This license has expired, please &lt;a href=&quot;%1&quot;&gt;get new license&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>このライセンスは有効期限が切れています。&lt;a href=&quot;%1&quot;&gt;新しいライセンスを取得&lt;/a&gt;してください。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1133"/>
         <source>This license will &lt;font color=&apos;red&apos;&gt;expire in %1 days&lt;/font&gt;, please &lt;a href=&quot;%2&quot;&gt;get new license&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>このライセンスは&lt;font color=&apos;red&apos;&gt;%1 日後に有効期限が切れます&lt;/font&gt;。&lt;a href=&quot;%2&quot;&gt;新しいライセンスを取得&lt;/a&gt;してください。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1201"/>
         <source>&lt;b&gt;You have used %1/%2 evaluation licenses. No more free licenses can be generated.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;%1/%2 個の評価用ライセンスを使用しました。これ以上無料のライセンスは生成できません。&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1203"/>
         <source>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;Get a free evaluation license&lt;/a&gt; and enjoy all premium features for %1 days.&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;b&gt;&lt;a href=&quot;_&quot;&gt;無料の評価用ライセンスを入手&lt;/a&gt;して、%1日間すべてのプレミアム機能をお楽しみください。&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1204"/>
         <source>You can request a free %1-day evaluation license up to %2 times per hardware ID.</source>
-        <translation type="unfinished"></translation>
+        <translation>ハードウェアIDごとに、%1 日間の無料評価用ライセンスを最大 %2 回までリクエストできます。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1220"/>
         <source>This does not look like a MajorPrivacy Serial Number.&lt;br /&gt;If you have attempted to enter the UpdateKey or the Signature from license certificate, that is not correct, please enter the entire license certificate into the text area above instead.</source>
-        <translation type="unfinished"></translation>
+        <translation>これは MajorPrivacy のシリアル番号ではないようです。&lt;br /&gt;ライセンス証明書の UpdateKey や署名を入力しようとした場合、それは正しくありません。代わりに、上のテキスト領域にライセンス証明書全体を入力してください。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1227"/>
         <source>You are attempting to use a feature Upgrade-Key without having entered a pre-existing license. Please note that this type of key (&lt;b&gt;as it is clearly stated in bold on the website&lt;/b) requires you to have a pre-existing valid base license; it is useless without one.&lt;br /&gt;If you want to use the advanced features, you need to obtain both a base license and the feature upgrade key to unlock advanced functionality.</source>
-        <translation type="unfinished"></translation>
+        <translation>ベースとなるライセンスを入力せずに、機能アップグレードキーを使用しようとしています。このタイプのキーは (&lt;b&gt;ウェブサイトに太字で明記されているとおり&lt;/b&gt;)、既存の有効なベースライセンスが必要であり、それがなければ役に立たないのでご注意ください。&lt;br /&gt;高度な機能を使用するには、ベースライセンスと機能アップグレードキーの両方を入手して、高度な機能のロックを解除する必要があります。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1233"/>
         <source>You are attempting to use a Renew-Key without having entered a pre-existing license. Please note that this type of key (&lt;b&gt;as it is clearly stated in bold on the website&lt;/b) requires you to have a pre-existing valid license; it is useless without one.</source>
-        <translation type="unfinished"></translation>
+        <translation>ベースとなるライセンスを入力せずに、更新キーを使用しようとしています。このタイプのキーは (&lt;b&gt;ウェブサイトに太字で明記されているとおり&lt;/b&gt;)、既存の有効なライセンスが必要であり、それがなければ役に立たないのでご注意ください。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1253"/>
         <location filename="Windows/SettingsWindow.cpp" line="1511"/>
         <source>Retrieving license certificate...</source>
-        <translation type="unfinished"></translation>
+        <translation>ライセンス証明書を取得中...</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1269"/>
         <source>MajorPrivacy - Get EVALUATION License</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy - 評価用ライセンスの取得</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1269"/>
         <source>Please enter your email address to receive a free %1-day evaluation license, which will be issued to %2 and locked to the current hardware.
 You can request up to %3 evaluation licenses for each unique hardware ID.</source>
-        <translation type="unfinished"></translation>
+        <translation>無料の %1 日間評価用ライセンスを受け取るには、メールアドレスを入力してください。ライセンスは %2 宛に発行され、現在のハードウェアにロックされます。
+ハードウェア ID ごとに、最大 %3 個の評価用ライセンスをリクエストできます。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1281"/>
         <source>Retrieving License Certificate...</source>
-        <translation type="unfinished"></translation>
+        <translation>ライセンス証明書を取得中...</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1428"/>
         <source>This does not look like a license certificate. Please enter the entire data block, not just a portion of it.</source>
-        <translation type="unfinished"></translation>
+        <translation>これはライセンス証明書ではないようです。一部だけでなく、データブロック全体を入力してください。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1445"/>
         <source>This license is unfortunately not valid for the current build, you need to get a new license or downgrade to an earlier build.</source>
-        <translation type="unfinished"></translation>
+        <translation>残念ながら、このライセンスは現在のビルドでは有効ではありません。新しいライセンスを入手するか、以前のビルドにダウングレードする必要があります。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1447"/>
         <source>Although this license has expired, for the currently installed version plus features remain enabled. However, you will no longer have access to updates.</source>
-        <translation type="unfinished"></translation>
+        <translation>このライセンスは有効期限が切れていますが、現在インストールされているバージョンでは Plus 機能は引き続き有効です。ただし、アップデートにはアクセスできなくなります。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1449"/>
         <source>This license has unfortunately expired, you need to get a new license.</source>
-        <translation type="unfinished"></translation>
+        <translation>残念ながらこのライセンスは有効期限が切れています。新しいライセンスを入手する必要があります。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1453"/>
         <source>The evaluation license has been successfully applied. Enjoy your free trial!</source>
-        <translation type="unfinished"></translation>
+        <translation>評価用ライセンスが正常に適用されました。無料トライアルをお楽しみください!</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1497"/>
         <source>A mandatory security update for your MajorPrivacy License Certificate is required. Would you like to download the updated certificate now?</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy ライセンス証明書には必須のセキュリティアップデートがあります。更新された証明書を今すぐダウンロードしますか?</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1539"/>
         <source>Valid License required for access</source>
-        <translation type="unfinished"></translation>
+        <translation>アクセスには有効なライセンスが必要です</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1556"/>
         <source>Valid Lciense required for automation</source>
-        <translation type="unfinished"></translation>
+        <translation>自動化には有効なライセンスが必要です</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1589"/>
         <source>%1 (Current)</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 (現在)</translation>
     </message>
     <message>
         <source>This supporter certificate has expired, please &lt;a href=&quot;%1&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
@@ -7214,17 +7236,17 @@ You can request up to %3 evaluation licenses for each unique hardware ID.</sourc
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1123"/>
         <source>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;Plus features will be disabled in %1 days.&lt;/font&gt;</source>
-        <translation>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;Plusの機能は%1日後に無効になります。&lt;/font&gt;</translation>
+        <translation>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;Plus の機能は %1 日後に無効になります。&lt;/font&gt;</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1125"/>
         <source>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;For the current build Plus features remain enabled&lt;/font&gt;, but you no longer have access updates.</source>
-        <translation>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;現在のビルドではPlus機能は引き続き有効ですが&lt;/font&gt;、アップデートは利用できなくなります。</translation>
+        <translation>&lt;br /&gt;&lt;font color=&apos;red&apos;&gt;現在のビルドでは Plus 機能は引き続き有効ですが&lt;/font&gt;、アップデートは利用できなくなります。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1127"/>
         <source>&lt;br /&gt;Plus features are no longer enabled.</source>
-        <translation>&lt;br /&gt;Plus機能は無効になりました。</translation>
+        <translation>&lt;br /&gt;Plus 機能は無効になりました。</translation>
     </message>
     <message>
         <source>This supporter certificate will &lt;font color=&apos;red&apos;&gt;expire in %1 days&lt;/font&gt;, please &lt;a href=&quot;%2&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
@@ -7233,17 +7255,17 @@ You can request up to %3 evaluation licenses for each unique hardware ID.</sourc
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1168"/>
         <source>Expires in: %1 days</source>
-        <translation>有効期間: 残り%1日</translation>
+        <translation>有効期間 : 残り %1 日</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1170"/>
         <source>Expired: %1 days ago</source>
-        <translation>有効期限切れ: %1日前</translation>
+        <translation>有効期限切れ : %1 日前</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1172"/>
         <source>; eligible Patreons can always &lt;a href=&quot;https://xanasoft.com/get-supporter-certificate/&quot;&gt;obtain an updated certificate&lt;/a&gt; from xanasoft.com</source>
-        <translation>; 対象となるPatreon会員は、いつでもxanasoft.comから&lt;a href=&quot;https://xanasoft.com/get-supporter-certificate/&quot;&gt;更新された証明書を入手できます&lt;/a&gt;</translation>
+        <translation>; 対象となる Patreon 会員は、いつでもxanasoft.comから&lt;a href=&quot;https://xanasoft.com/get-supporter-certificate/&quot;&gt;更新された証明書を入手できます&lt;/a&gt;</translation>
     </message>
     <message>
         <source>&lt;b&gt;You have used %1/%2 evaluation certificates. No more free certificates can be generated.&lt;/b&gt;</source>
@@ -7272,7 +7294,7 @@ You can request up to %3 evaluation licenses for each unique hardware ID.</sourc
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1238"/>
         <source>&lt;br /&gt;&lt;br /&gt;&lt;u&gt;If you have not read the product description and obtained this key by mistake, please contact us via email (provided on our website) to resolve this issue.&lt;/u&gt;</source>
-        <translation>&lt;br /&gt;&lt;br /&gt;&lt;u&gt;製品説明をお読みにならず、誤ってこのキーを入手された場合は、この問題を解決するため、当社のウェブサイトに記載されているEメールアドレスまでご連絡ください。&lt;/u&gt;</translation>
+        <translation>&lt;br /&gt;&lt;br /&gt;&lt;u&gt;製品説明をお読みにならず、誤ってこのキーを入手された場合は、この問題を解決するため、当社のウェブサイトに記載されている Eメールアドレスまでご連絡ください。&lt;/u&gt;</translation>
     </message>
     <message>
         <source>Retrieving certificate...</source>
@@ -7291,12 +7313,12 @@ You can request up to %3 evaluation certificates for each unique hardware ID.</s
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1295"/>
         <source>Error retrieving certificate: %1</source>
-        <translation>証明書の取得エラー: %1</translation>
+        <translation>証明書の取得エラー : %1</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1295"/>
         <source>Unknown Error (probably a network issue)</source>
-        <translation>不明なエラー（ネットワークの問題と思われます）</translation>
+        <translation>不明なエラー (ネットワークの問題と思われます)</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1350"/>
@@ -7396,14 +7418,14 @@ You can request up to %3 evaluation certificates for each unique hardware ID.</s
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1456"/>
         <source>Thank you for supporting the development of MajorPrivacy.</source>
-        <translation>MajorPrivacyの開発をサポートしていただき、ありがとうございます。</translation>
+        <translation>MajorPrivacy の開発をサポートしていただき、ありがとうございます。</translation>
     </message>
     <message>
         <location filename="Windows/SettingsWindow.cpp" line="1458"/>
         <source>
 This is a temporary Patreon certificate, valid for 3 months. Once it nears expiration, you can obtain a new certificate online that will be valid for the full term.</source>
         <translation>
-これは3ヶ月間有効なPatreonの一時的な証明書です。有効期限が近づきましたら、オンラインで全期間有効な新しい証明書を取得できます。</translation>
+これは 3ヶ月間有効な Patreon の一時的な証明書です。有効期限が近づきましたら、オンラインで全期間有効な新しい証明書を取得できます。</translation>
     </message>
     <message>
         <source>A mandatory security update for your MajorPrivacy Supporter Certificate is required. Would you like to download the updated certificate now?</source>
@@ -7505,12 +7527,12 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Core/Network/Socket.cpp" line="25"/>
         <source>SYN sent</source>
-        <translation>SYN送信</translation>
+        <translation>SYN 送信</translation>
     </message>
     <message>
         <location filename="Core/Network/Socket.cpp" line="26"/>
         <source>SYN received</source>
-        <translation>SYN受信</translation>
+        <translation>SYN 受信</translation>
     </message>
     <message>
         <location filename="Core/Network/Socket.cpp" line="27"/>
@@ -7520,12 +7542,12 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Core/Network/Socket.cpp" line="28"/>
         <source>FIN wait 1</source>
-        <translation>FIN待機1</translation>
+        <translation>FIN 待機1</translation>
     </message>
     <message>
         <location filename="Core/Network/Socket.cpp" line="29"/>
         <source>FIN wait 2</source>
-        <translation>FIN待機2</translation>
+        <translation>FIN 待機2</translation>
     </message>
     <message>
         <location filename="Core/Network/Socket.cpp" line="30"/>
@@ -7540,7 +7562,7 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Core/Network/Socket.cpp" line="32"/>
         <source>Last ACK</source>
-        <translation>最終ACK</translation>
+        <translation>最終 ACK</translation>
     </message>
     <message>
         <location filename="Core/Network/Socket.cpp" line="33"/>
@@ -7550,7 +7572,7 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Core/Network/Socket.cpp" line="34"/>
         <source>Delete TCB</source>
-        <translation>TCB削除</translation>
+        <translation>TCB 削除</translation>
     </message>
     <message>
         <location filename="Core/Network/Socket.cpp" line="35"/>
@@ -7672,22 +7694,22 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/SocketView.cpp" line="31"/>
         <source>TCP Sockets</source>
-        <translation>TCPソケット</translation>
+        <translation>TCP ソケット</translation>
     </message>
     <message>
         <location filename="Views/SocketView.cpp" line="32"/>
         <source>TCP Clients</source>
-        <translation>TCPクライアント</translation>
+        <translation>TCP クライアント</translation>
     </message>
     <message>
         <location filename="Views/SocketView.cpp" line="33"/>
         <source>TCP Servers</source>
-        <translation>TCPサーバー</translation>
+        <translation>TCP サーバー</translation>
     </message>
     <message>
         <location filename="Views/SocketView.cpp" line="34"/>
         <source>UDP Sockets</source>
-        <translation>UDPソケット</translation>
+        <translation>UDP ソケット</translation>
     </message>
 </context>
 <context>
@@ -7695,231 +7717,231 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/StatusView.cpp" line="26"/>
         <source>System Status</source>
-        <translation type="unfinished"></translation>
+        <translation>システムの状態</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="48"/>
         <source>Process Protection</source>
-        <translation type="unfinished">プロセス保護</translation>
+        <translation>プロセス保護</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="66"/>
         <source>Resource Protection</source>
-        <translation type="unfinished">リソース保護</translation>
+        <translation>リソース保護</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="86"/>
         <source>Networking Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>ネットワーク保護</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="110"/>
         <source>Privacy Tweaks</source>
-        <translation type="unfinished">プライバシー調整</translation>
+        <translation>プライバシー調整</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="171"/>
         <source>Privacy Agent: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>プライバシーエージェント : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="171"/>
         <location filename="Views/StatusView.cpp" line="172"/>
         <source>OK</source>
-        <translation type="unfinished">OK</translation>
+        <translation>OK</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="171"/>
         <location filename="Views/StatusView.cpp" line="172"/>
         <source>Inactive</source>
-        <translation type="unfinished"></translation>
+        <translation>非アクティブ</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="172"/>
         <source>Kernel Isolator: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>カーネルアイソレーター : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="176"/>
         <source>User Key NOT available</source>
-        <translation type="unfinished"></translation>
+        <translation>ユーザーキーが利用できません</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="177"/>
         <source>Config Protection NOT available</source>
-        <translation type="unfinished"></translation>
+        <translation>設定保護が利用できません</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="178"/>
         <source>Unload Protection NOT available</source>
-        <translation type="unfinished"></translation>
+        <translation>アンロード保護が利用できません</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="185"/>
         <source>User Key is NOT configured</source>
-        <translation type="unfinished"></translation>
+        <translation>ユーザーキーが構成されていません</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="194"/>
         <source>User Key: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>ユーザーキー : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="198"/>
         <source>SHA256-FP: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>SHA256-FP: %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="207"/>
         <source>Config Protection Active</source>
-        <translation type="unfinished"></translation>
+        <translation>設定保護は有効です</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="209"/>
         <source>Config Protection NOT Active</source>
-        <translation type="unfinished"></translation>
+        <translation>設定保護は有効ではありません</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="212"/>
         <source>Unload Protection Active</source>
-        <translation type="unfinished"></translation>
+        <translation>アンロード保護は有効です</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="214"/>
         <source>Unload Protection NOT Active</source>
-        <translation type="unfinished"></translation>
+        <translation>アンロード保護は有効ではありません</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="221"/>
         <source>Program Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムルール : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="222"/>
         <source>Enclaves: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>エンクレーブ : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="223"/>
         <location filename="Views/StatusView.cpp" line="251"/>
         <source>Protection active</source>
-        <translation type="unfinished"></translation>
+        <translation>保護は有効です</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="231"/>
         <source>Program Rules: DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムルール : 無効</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="232"/>
         <source>Enclaves: DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>エンクレーブ : 無効</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="233"/>
         <location filename="Views/StatusView.cpp" line="262"/>
         <source>Protection NOT active</source>
-        <translation type="unfinished"></translation>
+        <translation>保護は有効ではありません</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="241"/>
         <source>Access Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>アクセスルール : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="249"/>
         <source>Protected Folders: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>保護されたフォルダー : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="250"/>
         <source>Secure Volumes: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>セキュアボリューム : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="259"/>
         <source>Access Rules: DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>アクセスルール : 無効</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="260"/>
         <source>Protected Folders: DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>保護されたフォルダー : 無効</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="261"/>
         <source>Secure Volumes: DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>セキュアボリューム : 無効</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="277"/>
         <source>Windows Firewall DISABLED</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows ファイアウォールは無効です</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="279"/>
         <source>Windows Firewall Active</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows ファイアウォールは有効です</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="280"/>
         <source>Firewall Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="284"/>
         <source>Unapproved Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>未承認のルール : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="286"/>
         <source>No Unapproved Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>未承認のルールなし</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="290"/>
         <source>Altered Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>変更されたルール : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="292"/>
         <source>No Altered Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>変更されたルールなし</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="296"/>
         <source>Missing Rules: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>欠落しているルール : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="298"/>
         <source>No Missing Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>欠落しているルールなし</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="301"/>
         <source>DNS Filter NOT enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>DNS フィルターが有効ではありません</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="303"/>
         <source>DNS Filter NOT installed</source>
-        <translation type="unfinished"></translation>
+        <translation>DNS フィルターがインストールされていません</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="305"/>
         <source>DNS Filter installed</source>
-        <translation type="unfinished"></translation>
+        <translation>DNS フィルターがインストールされています</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="310"/>
         <source>Applied Tweaks: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>適用された調整 : %1</translation>
     </message>
     <message>
         <location filename="Views/StatusView.cpp" line="311"/>
         <source>Failed Tweaks: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>失敗した調整 : %1</translation>
     </message>
 </context>
 <context>
@@ -7927,27 +7949,27 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="754"/>
         <source>Windows System Configuration</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows システム構成</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="755"/>
         <source>To allow MajorPrivacy provide the up upmost security some system configurations should be changed.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy が最高水準のセキュリティを提供できるように、一部のシステム構成を変更する必要があります。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="764"/>
         <source>When sensitive data is stored in RAM, it is critical to prevent that information from being written to disk in an unprotected form. Windows may write memory contents into the page file during normal operation or into the hibernation file when the system is suspended, leaving sensitive data exposed to offline analysis or theft. Enabling NTFS page file encryption ensures that any memory pages written to disk are securely encrypted, reducing the risk of leakage. At the same time, disabling hibernation prevents entire memory snapshots from being saved to disk, closing off another major avenue through which sensitive data could persist beyond system uptime.</source>
-        <translation type="unfinished"></translation>
+        <translation>機密データがRAMに保存されている場合、その情報が保護されていない形でディスクに書き込まれるのを防ぐことが重要です。Windows は、通常の動作中にメモリの内容をページファイルに書き込んだり、システムの休止時に休止状態ファイルに書き込んだりすることがあり、機密データがオフライン解析や盗難にさらされる可能性があります。NTFSページファイルの暗号化を有効にすると、ディスクに書き込まれるメモリページが確実に暗号化され、漏洩のリスクが低減されます。同時に、休止状態を無効にすることで、メモリ全体のスナップショットがディスクに保存されるのを防ぎ、システムの稼働時間を超えて機密データが残る可能性のあるもう一つの主要な経路を遮断できます。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="770"/>
         <source>Enable Virtual Memory Pagefile Encryption</source>
-        <translation type="unfinished"></translation>
+        <translation>仮想メモリのページファイル暗号化を有効にする</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="774"/>
         <source>Prevent Hibernation when Secure Protected Volumes are mounted</source>
-        <translation type="unfinished"></translation>
+        <translation>セキュア保護ボリュームがマウントされている間は休止状態を禁止する</translation>
     </message>
 </context>
 <context>
@@ -7960,7 +7982,7 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/TraceView.cpp" line="309"/>
         <source>Are you sure you want to clear the the trace logs for ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのプログラム項目のトレースログを消去しますか?</translation>
     </message>
     <message>
         <location filename="Views/TraceView.cpp" line="316"/>
@@ -7996,12 +8018,12 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/TrafficView.cpp" line="22"/>
         <source>Block Program in Firewall</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールでプログラムをブロック</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="23"/>
         <source>Add Domain to DNS Blocklist</source>
-        <translation type="unfinished"></translation>
+        <translation>ドメインを DNS ブロックリストに追加</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="37"/>
@@ -8036,17 +8058,17 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/TrafficView.cpp" line="65"/>
         <source>Hold updates</source>
-        <translation type="unfinished">更新を保留</translation>
+        <translation>更新を保留</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="71"/>
         <source>Reload</source>
-        <translation type="unfinished"></translation>
+        <translation>再読み込み</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="80"/>
         <source>Clear Records</source>
-        <translation type="unfinished"></translation>
+        <translation>記録を消去</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="89"/>
@@ -8056,32 +8078,32 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Views/TrafficView.cpp" line="245"/>
         <source>Loading %1</source>
-        <translation type="unfinished">%1 を読み込み中</translation>
+        <translation>%1 を読み込み中</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="371"/>
         <source>MajorPrivacy-Rule, %1</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy ルール, %1</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="384"/>
         <source>DNS filtering is not enabled!</source>
-        <translation type="unfinished"></translation>
+        <translation>DNS フィルタリングが有効ではありません!</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="399"/>
         <source>Select host name to block:</source>
-        <translation type="unfinished"></translation>
+        <translation>ブロックするホスト名を選択してください :</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="442"/>
         <source>Are you sure you want to clear the all execution and Network records for the ALL program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのプログラム項目の実行およびネットワークの記録をすべて消去しますか?</translation>
     </message>
     <message>
         <location filename="Views/TrafficView.cpp" line="449"/>
         <source>Are you sure you want to clear the all execution and Network records for the current program items?</source>
-        <translation type="unfinished"></translation>
+        <translation>現在のプログラム項目の実行およびネットワークの記録をすべて消去しますか?</translation>
     </message>
 </context>
 <context>
@@ -8115,7 +8137,8 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
         <location filename="Views/TweakInfo.cpp" line="64"/>
         <source>Description: %1 
 </source>
-        <translation type="unfinished"></translation>
+        <translation>説明 : %1 
+</translation>
     </message>
 </context>
 <context>
@@ -8123,23 +8146,24 @@ This is a temporary Patreon certificate, valid for 3 months. Once it nears expir
     <message>
         <location filename="Core/IssueManager.cpp" line="332"/>
         <source>Missing Tweak: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>欠落している調整 : %1</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="335"/>
         <source>Ineffective Tweak: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>効果のない調整 : %1</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="351"/>
         <source>This issue can not be fixed in this mode!</source>
-        <translation type="unfinished"></translation>
+        <translation>この問題はこのモードでは修正できません!</translation>
     </message>
     <message>
         <location filename="Core/IssueManager.cpp" line="354"/>
         <source>When a tweak is inneffective this can not be fixed it means that you windows version does not respect this preset.
 You can undo the tweak from the tweaks page to remowe the warning.</source>
-        <translation type="unfinished"></translation>
+        <translation>調整が効果を発揮していない場合、これは修正できません。お使いの Windows のバージョンがこのプリセットに対応していないことを意味します。
+警告を消すには、調整ページから調整を元に戻してください。</translation>
     </message>
 </context>
 <context>
@@ -8180,7 +8204,7 @@ You can undo the tweak from the tweaks page to remowe the warning.</source>
     <message>
         <location filename="Models/TweakModel.cpp" line="212"/>
         <source>Description</source>
-        <translation type="unfinished">説明</translation>
+        <translation>説明</translation>
     </message>
     <message>
         <source>Info</source>
@@ -8250,14 +8274,14 @@ The following operations will be performed:
         <location filename="Views/TweakView.cpp" line="229"/>
         <source>Undo tweaks:
 </source>
-        <translation>元に戻す調整:
+        <translation>元に戻す調整 :
 </translation>
     </message>
     <message>
         <location filename="Views/TweakView.cpp" line="236"/>
         <source>Apply tweaks:
 </source>
-        <translation>適用する調整:
+        <translation>適用する調整 :
 </translation>
     </message>
 </context>
@@ -8266,67 +8290,67 @@ The following operations will be performed:
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="793"/>
         <source>Configure &lt;b&gt;MajorPrivacy&lt;/b&gt; updater</source>
-        <translation type="unfinished">&lt;b&gt;MajorPrivacy&lt;/b&gt;アップデーターの設定</translation>
+        <translation>&lt;b&gt;MajorPrivacy&lt;/b&gt;アップデーターの設定</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="794"/>
         <source>Like with any other security product, it&apos;s important to keep your MajorPrivacy up to date.</source>
-        <translation type="unfinished">他のセキュリティ製品と同様に、MajorPrivacyを常に最新の状態に保つことが重要です。</translation>
+        <translation>他のセキュリティ製品と同様に、MajorPrivacy を常に最新の状態に保つことが重要です。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="803"/>
         <source>Regularly check for all updates to MajorPrivacy and optional components</source>
-        <translation type="unfinished">MajorPrivacyおよびオプションコンポーネントのすべてのアップデートを定期的に確認する</translation>
+        <translation>MajorPrivacy およびオプションコンポーネントのすべてのアップデートを定期的に確認する</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="804"/>
         <source>Let MajorPrivacy regularly check for latest updates.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy に最新のアップデートを定期的に確認させる。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="814"/>
         <source>Check for new MajorPrivacy versions:</source>
-        <translation type="unfinished">MajorPrivacyの新しいバージョンを確認:</translation>
+        <translation>MajorPrivacy の新しいバージョンを確認:</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="815"/>
         <source>Check for new MajorPrivacy builds.</source>
-        <translation type="unfinished">MajorPrivacyの新しいビルドを確認する。</translation>
+        <translation>MajorPrivacy の新しいビルドを確認する。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="821"/>
         <source>Select in which update channel to look for new MajorPrivacy builds:</source>
-        <translation type="unfinished">MajorPrivacyの新しいビルドを検索するアップデートチャネルを選択してください:</translation>
+        <translation>MajorPrivacy の新しいビルドを検索するアップデートチャネルを選択してください:</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="830"/>
         <source>In the Stable Channel</source>
-        <translation type="unfinished">安定版チャネル</translation>
+        <translation>安定版チャネル</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="831"/>
         <source>The stable channel contains the latest stable GitHub releases.</source>
-        <translation type="unfinished">安定版チャネルには、最新の安定したGitHubリリースが含まれています。</translation>
+        <translation>安定版チャネルには、最新の安定した GitHub リリースが含まれています。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="835"/>
         <source>In the Preview Channel - with newest experimental changes</source>
-        <translation type="unfinished">プレビューチャネル - 最新の実験的な変更あり</translation>
+        <translation>プレビューチャネル - 最新の実験的な変更あり</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="836"/>
         <source>The preview channel contains the latest GitHub pre-releases.</source>
-        <translation type="unfinished">プレビューチャネルには、最新のGitHubプレリリースが含まれています。</translation>
+        <translation>プレビューチャネルには、最新の GitHub プレリリースが含まれています。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="855"/>
         <source>Keep tweak list up to date</source>
-        <translation type="unfinished"></translation>
+        <translation>調整リストを最新の状態に保つ</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="856"/>
         <source>Check for latest privacy tweaks.</source>
-        <translation type="unfinished"></translation>
+        <translation>最新のプライバシー調整を確認する。</translation>
     </message>
 </context>
 <context>
@@ -8441,7 +8465,7 @@ The following operations will be performed:
     <message>
         <location filename="Windows/VolumeConfigWnd.cpp" line="36"/>
         <source>Edit Secure Volume Configuration</source>
-        <translation type="unfinished"></translation>
+        <translation>セキュアボリューム構成の編集</translation>
     </message>
 </context>
 <context>
@@ -8500,12 +8524,12 @@ The following operations will be performed:
     <message>
         <location filename="Views/VolumeView.cpp" line="34"/>
         <source>Change Volume Configuration</source>
-        <translation type="unfinished"></translation>
+        <translation>ボリューム構成の変更</translation>
     </message>
     <message>
         <location filename="Views/VolumeView.cpp" line="35"/>
         <source>Add Volume Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>ボリュームエンクレーブを追加</translation>
     </message>
     <message>
         <location filename="Views/VolumeView.cpp" line="42"/>
@@ -8556,7 +8580,7 @@ The following operations will be performed:
     <message>
         <location filename="Views/VolumeView.cpp" line="233"/>
         <source>This volume content will be placed in an encrypted container file, please note that any corruption of the container&apos;s header will render all its content permanently inaccessible. Corruption can occur as a result of a BSOD, a storage hardware failure, or a malicious application overwriting random files. This feature is provided under a strict &lt;b&gt;No Backup No Mercy&lt;/b&gt; policy, YOU the user are responsible for the data you put into an encrypted box. &lt;br /&gt;&lt;br /&gt;IF YOU AGREE TO TAKE FULL RESPONSIBILITY FOR YOUR DATA PRESS [YES], OTHERWISE PRESS [NO].</source>
-        <translation>このボリュームの内容は暗号化されたコンテナファイルに格納されます。コンテナのヘッダーが破損した場合、その中のすべてのコンテンツが永久にアクセス不能になることにご注意ください。破損は、BSOD（ブルースクリーン）、ストレージハードウェアの障害、または悪意のあるアプリケーションによるランダムなファイルの上書きの結果として発生する可能性があります。この機能は、厳格な&lt;b&gt;「バックアップなければ、情け容赦なし (No Backup No Mercy)」&lt;/b&gt;ポリシーの下で提供されます。暗号化されたボックスに入れるデータについては、ユーザーである&lt;b&gt;あなた自身&lt;/b&gt;が責任を負います。&lt;br /&gt;&lt;br /&gt;ご自身のデータに対して全責任を負うことに同意する場合は[はい]を、そうでない場合は[いいえ]を押してください。</translation>
+        <translation>このボリュームの内容は暗号化されたコンテナファイルに格納されます。コンテナのヘッダーが破損した場合、その中のすべてのコンテンツが永久にアクセス不能になることにご注意ください。破損は、BSOD (ブルースクリーン)、ストレージハードウェアの障害、または悪意のあるアプリケーションによるランダムなファイルの上書きの結果として発生する可能性があります。この機能は、厳格な&lt;b&gt;「バックアップなければ、情け容赦なし (No Backup No Mercy)」&lt;/b&gt;ポリシーの下で提供されます。暗号化されたボックスに入れるデータについては、ユーザーである&lt;b&gt;あなた自身&lt;/b&gt;が責任を負います。&lt;br /&gt;&lt;br /&gt;ご自身のデータに対して全責任を負うことに同意する場合は[はい]を、そうでない場合は[いいえ]を押してください。</translation>
     </message>
     <message>
         <location filename="Views/VolumeView.cpp" line="239"/>
@@ -8572,7 +8596,7 @@ The following operations will be performed:
     <message>
         <location filename="Views/VolumeView.cpp" line="288"/>
         <source>%1 Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 エンクレーブ</translation>
     </message>
     <message>
         <location filename="Views/VolumeView.cpp" line="301"/>
@@ -8583,7 +8607,7 @@ The following operations will be performed:
         <location filename="Views/VolumeView.cpp" line="327"/>
         <source>The security of files and folders on unencrypted volumes cannot be guaranteed if MajorPrivacy is not running or if the Kernel Isolator driver is not loaded. In this state, folder access control will not be enforced.
 For non-critical data, folder protection may still provide a basic level of security. However, for highly confidential or sensitive information, it is strongly recommended to use a secure, encrypted volume to ensure robust protection against unauthorized access.</source>
-        <translation>MajorPrivacyが実行されていない、またはカーネルアイソレータードライバーが読み込まれていない場合、暗号化されていないボリューム上のファイルやフォルダーのセキュリティは保証できません。この状態では、フォルダーのアクセス制御は強制されません。
+        <translation>MajorPrivacy が実行されていない、またはカーネルアイソレータードライバーが読み込まれていない場合、暗号化されていないボリューム上のファイルやフォルダーのセキュリティは保証できません。この状態では、フォルダーのアクセス制御は強制されません。
 重要でないデータの場合、フォルダー保護でも基本的なレベルのセキュリティは提供できます。しかし、機密性の高い情報や重要な情報については、不正アクセスからの堅牢な保護を確保するために、セキュアな暗号化ボリュームを使用することを強く推奨します。</translation>
     </message>
     <message>
@@ -8626,7 +8650,7 @@ Note: The volume image files will remain intact and must be manually deleted.</s
         <source>WARNING: Short passwords are easy to crack using brute force techniques!
 
 It is recommended to choose a password consisting of 20 or more characters. Are you sure you want to use a short password?</source>
-        <translation>警告：短いパスワードは、総当たり攻撃（ブルートフォース攻撃）によって容易に解読されます！
+        <translation>警告：短いパスワードは、総当たり攻撃 (ブルートフォース攻撃) によって容易に解読されます！
 
 20文字以上のパスワードを選択することが推奨されます。本当に短いパスワードを使用しますか？</translation>
     </message>
@@ -8635,14 +8659,14 @@ It is recommended to choose a password consisting of 20 or more characters. Are 
         <source>The password is constrained to a maximum length of 128 characters. 
 This length permits approximately 384 bits of entropy with a passphrase composed of actual English words, 
 increases to 512 bits with the application of Leet (L337) speak modifications, and exceeds 768 bits when composed of entirely random printable ASCII characters.</source>
-        <translation>パスワードの最大長は128文字に制限されています。
-この長さでは、実際の英単語で構成されたパスフレーズで約384ビットのエントロピーが得られます。
-リートスピーク（L337）の変換を適用すると512ビットに増加し、完全にランダムな印字可能ASCII文字で構成した場合は768ビットを超えます。</translation>
+        <translation>パスワードの最大長は 128文字に制限されています。
+この長さでは、実際の英単語で構成されたパスフレーズで約 384ビットのエントロピーが得られます。
+リートスピーク (L337) の変換を適用すると 512ビットに増加し、完全にランダムな印字可能 ASCII 文字で構成した場合は 768ビットを超えます。</translation>
     </message>
     <message>
         <location filename="Windows/VolumeWindow.cpp" line="174"/>
         <source>The Box Disk Image must be at least 256 MB in size, 2GB are recommended.</source>
-        <translation>ボックスディスクイメージは最低256MBのサイズが必要ですが、2GBを推奨します。</translation>
+        <translation>ボックスディスクイメージは最低 256MBのサイズが必要ですが、2GBを推奨します。</translation>
     </message>
     <message>
         <location filename="Windows/VolumeWindow.cpp" line="185"/>
@@ -8690,27 +8714,27 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="289"/>
         <source>Safety and Recovery instructions. &lt;b&gt;Please read carefully&lt;/b&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>安全と復旧の手順。&lt;b&gt;よくお読みください&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="290"/>
         <source>Major Privacy is a powerfull tool, improper operation may break the system.</source>
-        <translation type="unfinished"></translation>
+        <translation>Major Privacy は強力なツールであり、不適切な操作によりシステムが破損する可能性があります。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="296"/>
         <source>MajorPrivacy allows you to control file access, process execution, and enforce custom code-integrity rules. Incorrect or overly restrictive rules may prevent Windows from booting into the desktop.&lt;br /&gt;&lt;br /&gt;To mitigate this risk, MajorPrivacy automatically disables rule enforcement when Windows starts in recovery mode. Additionally, if repeated boot failures are detected, MajorPrivacy will take corrective action: it will revert to the last known good rule set after the third failed boot, and completely disable all rules after the fifth.&lt;br /&gt;&lt;br /&gt;If recovery fails, you can manually disable MajorPrivacy from the Windows Recovery Environment (WinRE). Open the command prompt, navigate to your installation directory (typically &quot;C:\Program Files\MajorPrivacy&quot;), and rename the driver file - for example, by appending .disabled to its name.&lt;br /&gt;&lt;br /&gt;&lt;b&gt;Disclaimer:&lt;/b&gt; Use of these features is at your own risk. We assume no responsibility for system instability or data loss resulting from user-defined rules.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy では、ファイルアクセス、プロセスの実行を制御し、カスタムのコード整合性ルールを適用できます。誤った、または制限が厳しすぎるルールにより、Windows がデスクトップまで起動しなくなる可能性があります。&lt;br /&gt;&lt;br /&gt;このリスクを軽減するため、MajorPrivacy は Windows が回復モードで起動した場合、ルールの適用を自動的に無効にします。さらに、起動の失敗が繰り返し検出された場合、MajorPrivacy は是正措置を講じます。3回目の起動失敗後に最後に正常だったルールセットに戻し、5回目の失敗後にすべてのルールを完全に無効にします。&lt;br /&gt;&lt;br /&gt;復旧に失敗した場合は、Windows 回復環境 (WinRE) から MajorPrivacy を手動で無効にできます。コマンドプロンプトを開き、インストールディレクトリ (通常は &quot;C:\Program Files\MajorPrivacy&quot;) に移動して、ドライバーファイルの名前を変更します。たとえば、名前の末尾に .disabled を追加します。&lt;br /&gt;&lt;br /&gt;&lt;b&gt;免責事項:&lt;/b&gt; これらの機能の使用は自己責任で行ってください。ユーザー定義のルールが原因で生じたシステムの不安定化やデータ損失について、当方は一切責任を負いません。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="306"/>
         <source>I acknowledge the risks and take full responsibility for teh rules I create.</source>
-        <translation type="unfinished"></translation>
+        <translation>リスクを認識しており、作成するルールについて全責任を負うことに同意します。</translation>
     </message>
     <message>
         <location filename="Wizards/SetupWizard.cpp" line="312"/>
         <source> (already acknowledged)</source>
-        <translation type="unfinished"></translation>
+        <translation> (確認済み)</translation>
     </message>
 </context>
 <context>
@@ -8746,17 +8770,17 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="135"/>
         <source>Allowed by User</source>
-        <translation type="unfinished"></translation>
+        <translation>ユーザーが許可</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="164"/>
         <source>Scripting</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプト</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="170"/>
         <source>Call script to make decisions</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプトを呼び出して判断する</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="187"/>
@@ -8779,12 +8803,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="20"/>
         <source>Permissions &amp;&amp; Privileges</source>
-        <translation type="unfinished"></translation>
+        <translation>権限と特権</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="26"/>
         <source>Elevate Token Integrity Level, for User Interface Privilege Isolation</source>
-        <translation>トークン整合性レベルを昇格（ユーザーインターフェース特権分離のため）</translation>
+        <translation>トークン整合性レベルを昇格 (ユーザーインターフェース特権分離のため)</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="29"/>
@@ -8799,57 +8823,57 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="46"/>
         <source>Allow Debugging (INSECURE !!!)</source>
-        <translation>デバッグを許可（非セキュア！）</translation>
+        <translation>デバッグを許可 (非セキュア！)</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="68"/>
         <source>Image Coherency Checking</source>
-        <translation type="unfinished"></translation>
+        <translation>イメージ一貫性チェック</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="81"/>
         <source>Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>コレクション</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="91"/>
         <source>Signed by Microsoft</source>
-        <translation type="unfinished"></translation>
+        <translation>Microsoft 署名</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="98"/>
         <source>Allowed by User for Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>エンクレーブ用にユーザーが許可</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="105"/>
         <source>Add new Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>新しいコレクションを追加</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="108"/>
         <source>...</source>
-        <translation type="unfinished">...</translation>
+        <translation>...</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="200"/>
         <source>On Untrusted</source>
-        <translation type="unfinished"></translation>
+        <translation>信頼されていない場合</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="223"/>
         <source>Integration</source>
-        <translation type="unfinished"></translation>
+        <translation>統合</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="235"/>
         <source>Dll Injection</source>
-        <translation type="unfinished"></translation>
+        <translation>DLL インジェクション</translation>
     </message>
     <message>
         <location filename="Forms/EnclaveWnd.ui" line="254"/>
         <source>Secure Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>セキュアエンクレーブ</translation>
     </message>
 </context>
 <context>
@@ -8862,7 +8886,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="26"/>
         <source>Firewall Rule Identity</source>
-        <translation>ファイアウォール ルールのID</translation>
+        <translation>ファイアウォール ルールの ID</translation>
     </message>
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="38"/>
@@ -8913,7 +8937,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="247"/>
         <source>Selected:</source>
-        <translation>選択済み:</translation>
+        <translation>選択済み :</translation>
     </message>
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="257"/>
@@ -8948,7 +8972,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="311"/>
         <source>Specific Types:</source>
-        <translation>特定のタイプ:</translation>
+        <translation>特定のタイプ :</translation>
     </message>
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="321"/>
@@ -8974,7 +8998,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <location filename="Forms/FirewallRuleWnd.ui" line="420"/>
         <location filename="Forms/FirewallRuleWnd.ui" line="500"/>
         <source>Ok</source>
-        <translation>Ok</translation>
+        <translation>OK</translation>
     </message>
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="386"/>
@@ -8990,7 +9014,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="493"/>
         <source>Edge Traversal</source>
-        <translation type="unfinished">エッジトラバーサル</translation>
+        <translation>エッジトラバーサル</translation>
     </message>
     <message>
         <location filename="Forms/FirewallRuleWnd.ui" line="534"/>
@@ -9034,42 +9058,42 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="14"/>
         <source>Form</source>
-        <translation type="unfinished">フォーム</translation>
+        <translation>フォーム</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="26"/>
         <source>Hash DB Entry</source>
-        <translation type="unfinished"></translation>
+        <translation>ハッシュ DB エントリー</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="38"/>
         <source>Name</source>
-        <translation type="unfinished">名前</translation>
+        <translation>名前</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="106"/>
         <source>Hash Affiliation</source>
-        <translation type="unfinished"></translation>
+        <translation>ハッシュの所属</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="118"/>
         <source>Secure Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>セキュアエンクレーブ</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="134"/>
         <source>Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>コレクション</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="157"/>
         <source>Add new Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>新しいコレクションを追加</translation>
     </message>
     <message>
         <location filename="Forms/HashEntryWnd.ui" line="160"/>
         <source>...</source>
-        <translation type="unfinished">...</translation>
+        <translation>...</translation>
     </message>
 </context>
 <context>
@@ -9077,27 +9101,27 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ItemPicker.ui" line="32"/>
         <source>MajorPrivacy - Select Program</source>
-        <translation type="unfinished">MajorPrivacy - プログラムの選択</translation>
+        <translation>MajorPrivacy - プログラムの選択</translation>
     </message>
     <message>
         <location filename="Forms/ItemPicker.ui" line="45"/>
         <source>Find Program</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムを検索</translation>
     </message>
     <message>
         <location filename="Forms/ItemPicker.ui" line="48"/>
         <source>...</source>
-        <translation type="unfinished">...</translation>
+        <translation>...</translation>
     </message>
     <message>
         <location filename="Forms/ItemPicker.ui" line="61"/>
         <source>Select an item from the list</source>
-        <translation type="unfinished"></translation>
+        <translation>リストから項目を選択してください</translation>
     </message>
     <message>
         <location filename="Forms/ItemPicker.ui" line="91"/>
         <source>Name</source>
-        <translation type="unfinished">名前</translation>
+        <translation>名前</translation>
     </message>
 </context>
 <context>
@@ -9120,7 +9144,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/OptionsTransferWnd.ui" line="95"/>
         <source>Configuration Presets</source>
-        <translation type="unfinished"></translation>
+        <translation>構成プリセット</translation>
     </message>
     <message>
         <location filename="Forms/OptionsTransferWnd.ui" line="116"/>
@@ -9160,7 +9184,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/OptionsTransferWnd.ui" line="197"/>
         <source>Database with Approved Hashes</source>
-        <translation type="unfinished"></translation>
+        <translation>承認済みハッシュのデータベース</translation>
     </message>
     <message>
         <location filename="Forms/OptionsTransferWnd.ui" line="204"/>
@@ -9188,7 +9212,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/PopUpWindow.ui" line="32"/>
         <source>MajorPrivacy Notifications</source>
-        <translation>MajorPrivacyの通知</translation>
+        <translation>MajorPrivacy の通知</translation>
     </message>
     <message>
         <location filename="Forms/PopUpWindow.ui" line="56"/>
@@ -9278,7 +9302,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/PopUpWindow.ui" line="191"/>
         <source>Process Id</source>
-        <translation>プロセスID</translation>
+        <translation>プロセス ID</translation>
     </message>
     <message>
         <location filename="Forms/PopUpWindow.ui" line="196"/>
@@ -9313,12 +9337,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/PopUpWindow.ui" line="227"/>
         <source>Event</source>
-        <translation type="unfinished"></translation>
+        <translation>イベント</translation>
     </message>
     <message>
         <location filename="Forms/PopUpWindow.ui" line="237"/>
         <source>Firewall Rule Name</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールルール名</translation>
     </message>
     <message>
         <location filename="Forms/PopUpWindow.ui" line="572"/>
@@ -9330,7 +9354,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <location filename="Forms/PopUpWindow.ui" line="577"/>
         <location filename="Forms/PopUpWindow.ui" line="832"/>
         <source>Process ID</source>
-        <translation>プロセスID</translation>
+        <translation>プロセス ID</translation>
     </message>
     <message>
         <location filename="Forms/PopUpWindow.ui" line="732"/>
@@ -9355,7 +9379,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/PopUpWindow.ui" line="817"/>
         <source>Issuer Certificate</source>
-        <translation type="unfinished"></translation>
+        <translation>発行者証明書</translation>
     </message>
     <message>
         <location filename="Forms/PopUpWindow.ui" line="837"/>
@@ -9405,33 +9429,33 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/PresetWindow.ui" line="14"/>
         <source>Form</source>
-        <translation type="unfinished">フォーム</translation>
+        <translation>フォーム</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="26"/>
         <source>Scripting</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプト</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="32"/>
         <source>Call script on Activation/Deactivation</source>
-        <translation type="unfinished"></translation>
+        <translation>アクティブ化/非アクティブ化時にスクリプトを呼び出す</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="55"/>
         <source>Rule Profile Identity</source>
-        <translation type="unfinished"></translation>
+        <translation>ルールプロファイル ID</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="77"/>
         <location filename="Forms/PresetWindow.ui" line="207"/>
         <source>Name</source>
-        <translation type="unfinished">名前</translation>
+        <translation>名前</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="136"/>
         <source>Rules and Tweaks</source>
-        <translation type="unfinished"></translation>
+        <translation>ルールと調整</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="142"/>
@@ -9440,22 +9464,22 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
         <location filename="Forms/PresetWindow.ui" line="192"/>
         <location filename="Forms/PresetWindow.ui" line="220"/>
         <source>...</source>
-        <translation type="unfinished">...</translation>
+        <translation>...</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="199"/>
         <source>Remove Item</source>
-        <translation type="unfinished"></translation>
+        <translation>項目を削除</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="212"/>
         <source>Action</source>
-        <translation type="unfinished">アクション</translation>
+        <translation>アクション</translation>
     </message>
     <message>
         <location filename="Forms/PresetWindow.ui" line="227"/>
         <source>Add Item:</source>
-        <translation type="unfinished"></translation>
+        <translation>項目を追加 :</translation>
     </message>
 </context>
 <context>
@@ -9473,13 +9497,13 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ProgramPicker.ui" line="60"/>
         <source>Add Program</source>
-        <translation type="unfinished">プログラムを追加</translation>
+        <translation>プログラムを追加</translation>
     </message>
     <message>
         <location filename="Forms/ProgramPicker.ui" line="63"/>
         <location filename="Forms/ProgramPicker.ui" line="89"/>
         <source>...</source>
-        <translation type="unfinished">...</translation>
+        <translation>...</translation>
     </message>
     <message>
         <location filename="Forms/ProgramPicker.ui" line="76"/>
@@ -9489,7 +9513,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ProgramPicker.ui" line="86"/>
         <source>Find Program</source>
-        <translation type="unfinished"></translation>
+        <translation>プログラムを検索</translation>
     </message>
     <message>
         <location filename="Forms/ProgramPicker.ui" line="45"/>
@@ -9523,47 +9547,47 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="26"/>
         <source>Code Integrity Presets</source>
-        <translation type="unfinished">コード整合性プリセット</translation>
+        <translation>コード整合性プリセット</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="38"/>
         <source>Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>コレクション</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="48"/>
         <source>Add new Collection</source>
-        <translation type="unfinished"></translation>
+        <translation>新しいコレクションを追加</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="58"/>
         <source>Allowed by User for Enclave</source>
-        <translation type="unfinished"></translation>
+        <translation>エンクレーブ用にユーザーが許可</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="78"/>
         <source>Signed by Microsoft</source>
-        <translation type="unfinished"></translation>
+        <translation>Microsoft 署名</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="85"/>
         <source>Allowed by User</source>
-        <translation type="unfinished"></translation>
+        <translation>ユーザーが許可</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="99"/>
         <source>Image Coherency Checking</source>
-        <translation type="unfinished"></translation>
+        <translation>イメージ一貫性チェック</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="146"/>
         <source>Scripting</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプト</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="152"/>
         <source>Call script to make decisions</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプトを呼び出して判断する</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="240"/>
@@ -9578,17 +9602,17 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="273"/>
         <source>Integration</source>
-        <translation type="unfinished"></translation>
+        <translation>統合</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="285"/>
         <source>Dll Injection</source>
-        <translation type="unfinished"></translation>
+        <translation>DLL インジェクション</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="304"/>
         <source>Program Rule Identity</source>
-        <translation>プログラムルールのID</translation>
+        <translation>プログラムルールの ID</translation>
     </message>
     <message>
         <location filename="Forms/ProgramRuleWnd.ui" line="316"/>
@@ -9636,7 +9660,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ProgramWnd.ui" line="125"/>
         <source>Exact File Path or Path Pattern (DOS style)</source>
-        <translation>完全なファイルパスまたはパターンのパス (DOS形式)</translation>
+        <translation>完全なファイルパスまたはパターンのパス (DOS 形式)</translation>
     </message>
     <message>
         <location filename="Forms/ProgramWnd.ui" line="138"/>
@@ -9858,12 +9882,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/ScriptWindow.ui" line="32"/>
         <source>MajorPrivacy - Script Editor</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy - スクリプトエディター</translation>
     </message>
     <message>
         <location filename="Forms/ScriptWindow.ui" line="52"/>
         <source>Script Log:</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプトログ :</translation>
     </message>
 </context>
 <context>
@@ -9881,7 +9905,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="76"/>
         <source>UI Language:</source>
-        <translation>UI言語:</translation>
+        <translation>UI 言語 :</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="132"/>
@@ -9911,7 +9935,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="299"/>
         <source>Use Fusion Theme</source>
-        <translation>Fusionテーマを使用</translation>
+        <translation>Fusion テーマを使用</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="402"/>
@@ -10007,7 +10031,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="636"/>
         <source>Registry Access Tracing (not recommended, adds some CPU load)</source>
-        <translation>レジストリアクセスのトレース (非推奨、CPU負荷が増加します)</translation>
+        <translation>レジストリアクセスのトレース (非推奨、CPU 負荷が増加します)</translation>
     </message>
     <message>
         <source>Log all File/Folder Accesses (to RAM)</source>
@@ -10021,12 +10045,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="691"/>
         <source>This feature enables the creation of firewall rule templates with path wildcards. When the Privacy Agent detects network activity matching a template without an existing rule, it automatically generates a new firewall rule.</source>
-        <translation>この機能を使用すると、パスワイルドカードを含むファイアウォール ルール テンプレートを作成できます。既存のルールがないテンプレートに一致するネットワーク アクティビティをPrivacy Agentが検出すると、新しいファイアウォール ルールが自動的に生成されます。</translation>
+        <translation>この機能を使用すると、パスワイルドカードを含むファイアウォール ルール テンプレートを作成できます。既存のルールがないテンプレートに一致するネットワーク アクティビティを Privacy Agent が検出すると、新しいファイアウォール ルールが自動的に生成されます。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="694"/>
         <source>Enhance Windows Firewall with Dynamic Rule Templates</source>
-        <translation>動的ルールテンプレートでWindowsファイアウォールを強化</translation>
+        <translation>動的ルールテンプレートで Windows ファイアウォールを強化</translation>
     </message>
     <message>
         <source>Save Traffic Record to Disk (TrafficRecord.dat)</source>
@@ -10035,7 +10059,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="671"/>
         <source>Disable Windows Firewall (not recomended)</source>
-        <translation>Windowsファイアウォールを無効化 (非推奨)</translation>
+        <translation>Windows ファイアウォールを無効化 (非推奨)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="729"/>
@@ -10045,7 +10069,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="766"/>
         <source>Block List Mode (Windows default)</source>
-        <translation>ブロックリストモード (Windowsのデフォルト)</translation>
+        <translation>ブロックリストモード (Windows のデフォルト)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="786"/>
@@ -10055,12 +10079,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="836"/>
         <source>Windows Firewall Logging</source>
-        <translation>Windowsファイアウォールのログ記録</translation>
+        <translation>Windows ファイアウォールのログ記録</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="684"/>
         <source>Windows Firewall Mode</source>
-        <translation>Windowsファイアウォール モード</translation>
+        <translation>Windows ファイアウォール モード</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="715"/>
@@ -10070,7 +10094,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="701"/>
         <source>Use Reverse DNS</source>
-        <translation>逆引きDNSを使用</translation>
+        <translation>逆引き DNS を使用</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="823"/>
@@ -10089,7 +10113,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="843"/>
         <source>Load Windows Firewall Log on start (can be very slow)</source>
-        <translation>起動時にWindowsファイアウォール ログをロード (非常に遅くなる場合があります)</translation>
+        <translation>起動時に Windows ファイアウォール ログをロード (非常に遅くなる場合があります)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="708"/>
@@ -10104,12 +10128,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1037"/>
         <source>Dns Filter</source>
-        <translation>DNSフィルター</translation>
+        <translation>DNS フィルター</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1108"/>
         <source>Setup DNS Proxy as default DNS in Windows</source>
-        <translation>WindowsのデフォルトDNSとしてDNSプロキシをセットアップ</translation>
+        <translation>Windows のデフォルト DNS として DNS プロキシをセットアップ</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="962"/>
@@ -10124,17 +10148,17 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1058"/>
         <source>Upstream DNS Resolvers</source>
-        <translation>上流DNSリゾルバー</translation>
+        <translation>上流 DNS リゾルバー</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1161"/>
         <source>DNS Filter</source>
-        <translation>DNSフィルター</translation>
+        <translation>DNS フィルター</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1148"/>
         <source>Enable Filtering DNS Proxy</source>
-        <translation>DNSフィルタリングプロキシを有効化</translation>
+        <translation>DNS フィルタリングプロキシを有効化</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1115"/>
@@ -10149,193 +10173,193 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="93"/>
         <source>Enable Virtual Memory Pagefile Encryption (requires system reboot)</source>
-        <translation type="unfinished"></translation>
+        <translation>仮想メモリのページファイル暗号化を有効にする (システムの再起動が必要)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="145"/>
         <source>More Options</source>
-        <translation type="unfinished"></translation>
+        <translation>その他のオプション</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="152"/>
         <source>Prevent Hibernation when secure protected volumes are mounted</source>
-        <translation type="unfinished"></translation>
+        <translation>セキュア保護ボリュームがマウントされている間は休止状態を禁止する</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="162"/>
         <source>Add Major Privacy GUI to AutoRun</source>
-        <translation type="unfinished"></translation>
+        <translation>Major Privacy GUI を自動実行に追加</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="186"/>
         <source>Graphic Options</source>
-        <translation type="unfinished"></translation>
+        <translation>グラフィックオプション</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="195"/>
         <source>Select Font</source>
-        <translation type="unfinished"></translation>
+        <translation>フォントの選択</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="205"/>
         <source>Reset Font</source>
-        <translation type="unfinished"></translation>
+        <translation>フォントをリセット</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="230"/>
         <source>High DPI Scaling</source>
-        <translation type="unfinished"></translation>
+        <translation>高 DPI スケーリング</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="259"/>
         <source>UI Font</source>
-        <translation type="unfinished"></translation>
+        <translation>UI フォント</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="272"/>
         <source>(Restart required)</source>
-        <translation type="unfinished"></translation>
+        <translation>(再起動が必要)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="279"/>
         <source>Use the new SandMan style on Windows 11</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows 11 で新しい SandMan スタイルを使用する</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="345"/>
         <source>Alternate row background in lists</source>
-        <translation type="unfinished"></translation>
+        <translation>リストの行の背景を交互に変える</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="365"/>
         <source>#</source>
-        <translation type="unfinished"></translation>
+        <translation>#</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="372"/>
         <source>Font Scaling</source>
-        <translation type="unfinished"></translation>
+        <translation>フォントスケーリング</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="392"/>
         <source>%</source>
-        <translation type="unfinished"></translation>
+        <translation>%</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="436"/>
         <source>When an event notification is displayed, you can ignore all future notifications for a specific file. These ignore entries can be removed using the below list. To add new entries, you need to add them from the notification popup.</source>
-        <translation type="unfinished"></translation>
+        <translation>イベント通知が表示されたとき、特定のファイルに対する今後のすべての通知を無視できます。これらの無視エントリーは下のリストから削除できます。新しいエントリーを追加するには、通知ポップアップから追加する必要があります。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="504"/>
         <source>Save Process Execution and Ingress Records to Disk (IngressRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>プロセスの実行とイングレスの記録をディスクに保存 (IngressRecord.dat)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="524"/>
         <source>Log Process Execution and Ingress events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>プロセスの実行とイングレスのイベントをメモリにログ記録</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="575"/>
         <source>Save File/Folder Accesses Records to Disk (AccessRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイル/フォルダーアクセスの記録をディスクに保存 (AccessRecord.dat)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="622"/>
         <source>Collect File/Folder Accesses Events</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイル/フォルダーアクセスイベントを収集する</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="643"/>
         <source>Log all File/Folder Accesses events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのファイル/フォルダーアクセスイベントをメモリにログ記録</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="663"/>
         <source>Windows Firewall Management</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows ファイアウォール管理</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="736"/>
         <source>Show system notification when a new rule has been created</source>
-        <translation type="unfinished"></translation>
+        <translation>新しいルールが作成されたときにシステム通知を表示する</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="796"/>
         <source>Save Network Traffic Record to Disk (TrafficRecord.dat)</source>
-        <translation type="unfinished"></translation>
+        <translation>ネットワークトラフィックの記録をディスクに保存 (TrafficRecord.dat)</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="803"/>
         <source>Log all Network Access events to Memory</source>
-        <translation type="unfinished"></translation>
+        <translation>すべてのネットワークアクセスイベントをメモリにログ記録</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="850"/>
         <source>Automatically remove firewall rules that were generated from templates when the associated program file no longer exists</source>
-        <translation type="unfinished"></translation>
+        <translation>関連するプログラムファイルが存在しなくなった場合、テンプレートから生成されたファイアウォールルールを自動的に削除する</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="853"/>
         <source>Auto-delete rules created from a template when the associated binary no longer exists</source>
-        <translation type="unfinished"></translation>
+        <translation>関連するバイナリが存在しなくなった場合、テンプレートから作成されたルールを自動削除する</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="863"/>
         <location filename="Forms/SettingsWindow.ui" line="877"/>
         <source>Windows Firewall Protection</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows ファイアウォール保護</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="890"/>
         <source>Add Approve</source>
-        <translation type="unfinished"></translation>
+        <translation>承認を追加</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="897"/>
         <source>You can specify guidelines below which rule changes to auto accept or revert based on the subject application file path.</source>
-        <translation type="unfinished"></translation>
+        <translation>対象アプリケーションのファイルパスに基づいて、自動的に承認または元に戻すルール変更の指針を以下に指定できます。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="926"/>
         <source>Add Reject</source>
-        <translation type="unfinished"></translation>
+        <translation>拒否を追加</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="933"/>
         <source>Show Unexpected Rule Change Alert Popups</source>
-        <translation type="unfinished"></translation>
+        <translation>予期しないルール変更のアラートポップアップを表示する</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="936"/>
         <source>Ctrl+S</source>
-        <translation type="unfinished"></translation>
+        <translation>Ctrl+S</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="969"/>
         <source>Delete Unauthorized rules instead of Disabling them</source>
-        <translation type="unfinished"></translation>
+        <translation>未承認のルールを無効にする代わりに削除する</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="976"/>
         <source>Auto Reverse any Unauthorized Changes to Windows Firewall Rules</source>
-        <translation type="unfinished"></translation>
+        <translation>Windows ファイアウォールルールへの未承認の変更を自動的に元に戻す</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1002"/>
         <source>Firewall Guard Automation</source>
-        <translation type="unfinished"></translation>
+        <translation>ファイアウォールガード自動化</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1015"/>
         <source>Path</source>
-        <translation type="unfinished">パス</translation>
+        <translation>パス</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1023"/>
         <source>Show system notification when a rule is rejected or approved</source>
-        <translation type="unfinished"></translation>
+        <translation>ルールが拒否または承認されたときにシステム通知を表示する</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1082"/>
@@ -10355,7 +10379,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1192"/>
         <source>Trace Log Entry Limit:</source>
-        <translation>トレースログのエントリ上限:</translation>
+        <translation>トレースログのエントリ上限 :</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1208"/>
@@ -10365,7 +10389,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1228"/>
         <source>Trace Log Retention Time:</source>
-        <translation>トレースログの保持期間:</translation>
+        <translation>トレースログの保持期間 :</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1257"/>
@@ -10385,7 +10409,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1701"/>
         <source>Update Tweak List from Server when checking for updates</source>
-        <translation type="unfinished"></translation>
+        <translation>更新を確認するときにサーバーから調整リストを更新する</translation>
     </message>
     <message>
         <source>In the future, don&apos;t notify about certificate expiration</source>
@@ -10403,7 +10427,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1678"/>
         <source>Hotpatches for the installed version, updates to the Templates.ini and translations.</source>
-        <translation>インストール済みバージョン用のホットパッチ、Templates.iniと翻訳の更新。</translation>
+        <translation>インストール済みバージョン用のホットパッチ、Templates.ini と翻訳の更新。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1681"/>
@@ -10413,7 +10437,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1668"/>
         <source>The preview channel contains the latest GitHub pre-releases.</source>
-        <translation>プレビューチャネルには、最新のGitHubプレリリースが含まれています。</translation>
+        <translation>プレビューチャネルには、最新の GitHub プレリリースが含まれています。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1671"/>
@@ -10428,47 +10452,47 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1349"/>
         <source>This license has expired, please &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-renew-cert&quot;&gt;get an updated license&lt;/a&gt;.</source>
-        <translation type="unfinished"></translation>
+        <translation>このライセンスは有効期限が切れています。&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-renew-cert&quot;&gt;更新されたライセンスを入手&lt;/a&gt;してください。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1359"/>
         <source>Please enter your License Data or Serial Number:</source>
-        <translation type="unfinished"></translation>
+        <translation>ライセンスデータまたはシリアル番号を入力してください:</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1375"/>
         <source>&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-use-cert&quot;&gt;License usage guide&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-use-cert&quot;&gt;ライセンスの使用ガイド&lt;/a&gt;</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1388"/>
         <source>Retrieve/Upgrade/Renew license using Serial Number</source>
-        <translation type="unfinished"></translation>
+        <translation>シリアル番号を使用してライセンスを取得/アップグレード/更新</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1411"/>
         <source>In the future, don&apos;t notify about license expiration</source>
-        <translation type="unfinished"></translation>
+        <translation>今後、ライセンスの有効期限について通知しない</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1424"/>
         <source>Enter the License Data here</source>
-        <translation type="unfinished"></translation>
+        <translation>ここにライセンスデータを入力してください</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1483"/>
         <source>Maintaining and improving MajorPrivacy is an ongoing process focused on enhancing functionality, user experience, and privacy protection. Your support is essential to ensure continued development, long-term sustainability, and the addition of new features. You can support MajorPrivacy by &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-contribute&quot;&gt;contributing directly to the project&lt;/a&gt;, showing your appreciation by &lt;a href=&quot;https://xanasoft.com/go.php?to=priv-obtain-cert&quot;&gt;purchasing a license&lt;/a&gt;, becoming a patron by &lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;subscribing on Patreon&lt;/a&gt;, or through a &lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPal donation&lt;/a&gt;. Your support helps drive innovation and ensures the continued availability of this privacy-focused tool.</source>
-        <translation type="unfinished"></translation>
+        <translation>MajorPrivacy の維持と改善は、機能性、ユーザーエクスペリエンス、プライバシー保護の強化に重点を置いた継続的なプロセスです。継続的な開発、長期的な持続可能性、新機能の追加を確実にするには、皆様のサポートが不可欠です。&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-contribute&quot;&gt;プロジェクトへの直接的な貢献&lt;/a&gt;、&lt;a href=&quot;https://xanasoft.com/go.php?to=priv-obtain-cert&quot;&gt;ライセンスの購入&lt;/a&gt;による感謝の表明、&lt;a href=&quot;https://xanasoft.com/go.php?to=patreon&quot;&gt;Patreonでの購読&lt;/a&gt;によるパトロンへの参加、または&lt;a href=&quot;https://xanasoft.com/go.php?to=donate&quot;&gt;PayPalでの寄付&lt;/a&gt;によって、MajorPrivacyをサポートできます。皆様のサポートが、イノベーションを推進し、このプライバシー重視ツールの継続的な提供を支えます。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1549"/>
         <source>Check periodically for new MajorPrivacy versions</source>
-        <translation type="unfinished"></translation>
+        <translation>新しい MajorPrivacy のバージョンを定期的に確認する</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1691"/>
         <source>The stable channel contains the latest stable GitHub releases.</source>
-        <translation>安定版チャネルには、最新の安定したGitHubリリースが含まれています。</translation>
+        <translation>安定版チャネルには、最新の安定した GitHub リリースが含まれています。</translation>
     </message>
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1694"/>
@@ -10511,7 +10535,7 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/SettingsWindow.ui" line="1329"/>
         <source>MajorPrivacy Version: 0.0.0</source>
-        <translation>MajorPrivacy バージョン: 0.0.0</translation>
+        <translation>MajorPrivacy バージョン : 0.0.0</translation>
     </message>
     <message>
         <source>This supporter certificate has expired, please &lt;a href=&quot;https://xanasoft.com/go.php?to=sbie-renew-cert&quot;&gt;get an updated certificate&lt;/a&gt;.</source>
@@ -10581,17 +10605,17 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/VolumeConfigWnd.ui" line="14"/>
         <source>Form</source>
-        <translation type="unfinished">フォーム</translation>
+        <translation>フォーム</translation>
     </message>
     <message>
         <location filename="Forms/VolumeConfigWnd.ui" line="46"/>
         <source>Scripting</source>
-        <translation type="unfinished"></translation>
+        <translation>スクリプト</translation>
     </message>
     <message>
         <location filename="Forms/VolumeConfigWnd.ui" line="52"/>
         <source>Call script on Mount/Unmount</source>
-        <translation type="unfinished"></translation>
+        <translation>マウント/アンマウント時にスクリプトを呼び出す</translation>
     </message>
 </context>
 <context>
@@ -10633,12 +10657,12 @@ increases to 512 bits with the application of Leet (L337) speak modifications, a
     <message>
         <location filename="Forms/VolumeWindow.ui" line="202"/>
         <source>Lockdown Volume Configuration (Prevent Configuration changes)</source>
-        <translation type="unfinished"></translation>
+        <translation>ボリューム構成をロックダウン (構成の変更を禁止)</translation>
     </message>
     <message>
         <location filename="Forms/VolumeWindow.ui" line="209"/>
         <source>Load Volume Configuration (Protection Rules and more)</source>
-        <translation type="unfinished"></translation>
+        <translation>ボリューム構成を読み込む (保護ルールなど)</translation>
     </message>
     <message>
         <location filename="Forms/VolumeWindow.ui" line="84"/>
